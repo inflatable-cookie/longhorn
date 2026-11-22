@@ -47,7 +47,11 @@ impl OperationState {
         match self {
             Self::Queued => matches!(
                 next,
-                Self::Running | Self::Failed | Self::Cancelled | Self::Interrupted
+                Self::Running
+                    | Self::Cancelling
+                    | Self::Failed
+                    | Self::Cancelled
+                    | Self::Interrupted
             ),
             Self::Running => matches!(
                 next,
@@ -153,7 +157,7 @@ impl OperationRecord {
         self.cancellation_support
     }
 
-    /// Returns the retained terminal operation this retry descends from.
+    /// Returns the optional opaque operation id this retry descends from.
     #[must_use]
     pub const fn retry_of(&self) -> Option<&OperationId> {
         self.retry_of.as_ref()
@@ -363,6 +367,7 @@ impl OperationRegistrationReceipt {
 /// Receipt for one committed lifecycle transition.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationTransitionReceipt {
+    pub(crate) operation: OperationRecord,
     pub(crate) operation_id: OperationId,
     pub(crate) previous_state: OperationState,
     pub(crate) committed_state: OperationState,
@@ -374,6 +379,12 @@ pub struct OperationTransitionReceipt {
 }
 
 impl OperationTransitionReceipt {
+    /// Returns the authoritative post-commit operation record, preserved even
+    /// if terminal retention evicted it during the same commit.
+    #[must_use]
+    pub const fn operation(&self) -> &OperationRecord {
+        &self.operation
+    }
     /// Returns the changed operation identity.
     #[must_use]
     pub const fn operation_id(&self) -> &OperationId {

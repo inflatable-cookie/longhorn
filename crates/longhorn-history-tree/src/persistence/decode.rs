@@ -47,7 +47,7 @@ where
                 })?;
             let step = codec
                 .migrate_one(payload_version, bytes, target)
-                .map_err(|error| ForkLoadError::Payload {
+                .map_err(|error| ForkLoadError::PayloadMigration {
                     entry_id: entry_id.clone(),
                     error,
                 })?

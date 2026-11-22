@@ -111,14 +111,23 @@ artifacts, operation results, and recovery evidence remain consumer-owned.
 
 ## Operation Observation
 
-An optional projector receives one committed operation transition and returns
-zero or one notification draft. It may inspect bounded operation metadata and
+An optional projector receives one committed terminal operation outcome —
+whether from a direct lifecycle transition, an accepted confirmed queued
+cancellation, or a completed controlled-teardown resolution — and returns zero
+or one notification draft. Non-terminal and no-op receipts reject. It may
+inspect bounded operation metadata carried by the committed receipt (even when
+zero terminal retention evicted the operation during the same commit) and
 consumer-supplied typed policy input. It does not mutate the operation or
 assume every success, failure, cancellation, or interruption should notify.
 
 Projection is idempotent under an explicit source/replacement key or producer
-deduplication token. Notification publication failure cannot change an
-already-committed operation terminal outcome.
+deduplication token. Producer-token deduplication checks active retained
+records and a bounded per-session FIFO window of 4,096 distinct committed
+tokens (oldest evicted first, not persisted across authority reloads); within
+that window dismissed, cleared, or pruned records do not reappear on replay,
+and after eviction by 4,096 newer distinct tokens a replay may publish a fresh
+record. Notification publication failure cannot change an already-committed
+operation terminal outcome.
 
 ## Snapshot And Events
 

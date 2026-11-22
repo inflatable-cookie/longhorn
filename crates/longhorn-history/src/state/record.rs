@@ -2,19 +2,42 @@
 
 use std::collections::BTreeSet;
 
-use longhorn_core::{HistoryEntryId, HistoryRevision};
+use longhorn_core::{HistoryEntryId, HistoryGroupId, HistoryRevision};
 
 use crate::retention::retained_weight;
 use crate::{
     AppliedHistoryRecord, HistoryCoalesce, HistoryCoalesceContext, HistoryCommittedTransition,
-    HistoryCommittedTransitionKind, HistoryEntry, HistoryLimits, HistoryPolicy, HistoryPrunedEntry,
-    HistoryPruningReceipt, HistoryRecordTransitionEffect, HistoryRetentionError,
+    HistoryCommittedTransitionKind, HistoryEntry, HistoryEntrySequence, HistoryLimits,
+    HistoryPolicy, HistoryPrunedEntry, HistoryPruningReceipt, HistoryRecordTransitionEffect,
+    HistoryRetainedBaseline, HistoryRetentionError,
 };
 
 use super::{
     HistoryRecordError, HistoryRecordOutcome, HistoryRecordResult, HistoryStateError,
     LinearHistory, LinearHistoryState,
 };
+
+enum RecordPlan<P> {
+    Add {
+        payload: P,
+        encoded_weight: u64,
+        next_sequence: HistoryEntrySequence,
+    },
+    ReplaceLast {
+        merged: P,
+        encoded_weight: u64,
+        previous_weight: u64,
+    },
+    RemoveLast {
+        previous_weight: u64,
+    },
+}
+
+struct PruningPlan {
+    applied_to_prune: usize,
+    retained_weight: u64,
+    prospective_baseline: HistoryRetainedBaseline,
+}
 
 impl<P> LinearHistory<P> {
     /// Records a product mutation that the consumer already applied successfully.
@@ -41,33 +64,14 @@ impl<P> LinearHistory<P> {
     pub(crate) fn record_applied_with_group<T>(
         &mut self,
         record: AppliedHistoryRecord<P>,
-        group_id: Option<longhorn_core::HistoryGroupId>,
+        group_id: Option<HistoryGroupId>,
         may_coalesce: bool,
         policy: &T,
     ) -> Result<HistoryRecordResult, HistoryRecordError<T::Error>>
     where
         T: HistoryPolicy<P>,
     {
-        if record.expected_revision() != self.state.revision {
-            return Err(HistoryRecordError::StaleRevision {
-                expected: record.expected_revision(),
-                actual: self.state.revision,
-            });
-        }
-        if record.metadata().label().len_bytes() > self.limits.maximum_label_bytes() {
-            return Err(HistoryRecordError::LabelTooLong {
-                maximum: self.limits.maximum_label_bytes(),
-                actual: record.metadata().label().len_bytes(),
-            });
-        }
-        if record.metadata().group_id().is_some() {
-            return Err(HistoryRecordError::CommittedGroupRequiresLifecycle);
-        }
-        if contains_entry_id(&self.state, record.entry_id()) {
-            return Err(HistoryRecordError::DuplicateEntryId(
-                record.entry_id().clone(),
-            ));
-        }
+        self.validate_record_preconditions(&record)?;
 
         let (expected_revision, entry_id, mut metadata, payload) = record.into_parts();
         metadata.set_group_id(group_id.clone());
@@ -89,63 +93,233 @@ impl<P> LinearHistory<P> {
             .revision
             .checked_next()
             .map_err(|_| HistoryRecordError::RevisionOverflow)?;
-        let coalesce = if may_coalesce
-            && self
-                .state
-                .applied
-                .last()
-                .is_some_and(|previous| previous.metadata().group_id() == group_id.as_ref())
-        {
-            let previous = self.state.applied.last().expect("checked above");
-            policy
-                .coalesce(
-                    previous.payload(),
-                    &payload,
-                    match group_id.as_ref() {
-                        Some(group_id) => HistoryCoalesceContext::Group { group_id },
-                        None => HistoryCoalesceContext::Adjacent,
+        let plan = self.plan_record_action(payload, group_id.as_ref(), may_coalesce, policy)?;
+        let pruning_plan = self.plan_record_pruning(&plan)?;
+
+        let advanced_baseline = self.state.applied[..pruning_plan.applied_to_prune]
+            .iter()
+            .map(HistoryPrunedEntry::from_entry)
+            .collect();
+        let cleared_future: Vec<HistoryEntryId> = self
+            .state
+            .future
+            .iter()
+            .rev()
+            .map(|entry| entry.entry_id().clone())
+            .collect();
+        self.state.future.clear();
+        self.state.applied.drain(..pruning_plan.applied_to_prune);
+        self.state.retained_baseline = pruning_plan.prospective_baseline;
+
+        let (outcome, effect) = match plan {
+            RecordPlan::Add {
+                payload,
+                encoded_weight,
+                next_sequence,
+            } => {
+                let sequence = self.state.next_sequence;
+                self.state.applied.push(HistoryEntry::new(
+                    entry_id.clone(),
+                    metadata,
+                    sequence,
+                    committed_revision,
+                    encoded_weight,
+                    payload,
+                ));
+                self.state.next_sequence = next_sequence;
+                (
+                    HistoryRecordOutcome::Added {
+                        entry_id: entry_id.clone(),
+                        sequence,
+                    },
+                    HistoryRecordTransitionEffect::Added { entry_id, sequence },
+                )
+            }
+            RecordPlan::ReplaceLast {
+                merged,
+                encoded_weight,
+                ..
+            } => {
+                let previous = self
+                    .state
+                    .applied
+                    .last_mut()
+                    .expect("coalesce plan preserves the target applied entry");
+                let retained_entry_id = previous.entry_id().clone();
+                let retained_sequence = previous.sequence();
+                previous.replace(metadata, committed_revision, encoded_weight, merged);
+                (
+                    HistoryRecordOutcome::Replaced {
+                        entry_id: retained_entry_id.clone(),
+                        sequence: retained_sequence,
+                    },
+                    HistoryRecordTransitionEffect::Replaced {
+                        entry_id: retained_entry_id,
+                        sequence: retained_sequence,
                     },
                 )
-                .map_err(HistoryRecordError::Policy)?
-        } else {
-            HistoryCoalesce::KeepSeparate
+            }
+            RecordPlan::RemoveLast { .. } => {
+                let removed = self
+                    .state
+                    .applied
+                    .pop()
+                    .expect("coalesce plan preserves the target applied entry");
+                let removed_id = removed.entry_id().clone();
+                let removed_sequence = removed.sequence();
+                (
+                    HistoryRecordOutcome::Removed {
+                        entry_id: removed_id.clone(),
+                        sequence: removed_sequence,
+                    },
+                    HistoryRecordTransitionEffect::Removed {
+                        entry_id: removed_id,
+                        sequence: removed_sequence,
+                    },
+                )
+            }
         };
 
-        if group_id.is_some() && may_coalesce && matches!(coalesce, HistoryCoalesce::KeepSeparate) {
-            return Err(HistoryRecordError::GroupPolicyKeptSeparate);
+        self.state.revision = committed_revision;
+        self.coalescing_open = matches!(
+            outcome,
+            HistoryRecordOutcome::Added { .. } | HistoryRecordOutcome::Replaced { .. }
+        );
+        let pruning = HistoryPruningReceipt::new(advanced_baseline, Vec::new());
+        let transition = HistoryCommittedTransition::new(
+            self.state.history_id.clone(),
+            Some(expected_revision),
+            committed_revision,
+            HistoryCommittedTransitionKind::Record {
+                effect,
+                cleared_future: cleared_future.clone(),
+                pruning: pruning.clone(),
+            },
+        );
+        Ok(HistoryRecordResult {
+            previous_revision: expected_revision,
+            committed_revision,
+            outcome,
+            cleared_future,
+            pruning,
+            retained_encoded_weight: pruning_plan.retained_weight,
+            transition: Some(transition),
+        })
+    }
+
+    fn validate_record_preconditions<E>(
+        &self,
+        record: &AppliedHistoryRecord<P>,
+    ) -> Result<(), HistoryRecordError<E>> {
+        if record.expected_revision() != self.state.revision {
+            return Err(HistoryRecordError::StaleRevision {
+                expected: record.expected_revision(),
+                actual: self.state.revision,
+            });
         }
-        if let HistoryCoalesce::Replace(merged) = &coalesce
-            && policy.is_noop(merged)
-        {
-            return Err(HistoryRecordError::CoalescedPayloadIsNoOp);
+        if record.metadata().label().len_bytes() > self.limits.maximum_label_bytes() {
+            return Err(HistoryRecordError::LabelTooLong {
+                maximum: self.limits.maximum_label_bytes(),
+                actual: record.metadata().label().len_bytes(),
+            });
+        }
+        if record.metadata().group_id().is_some() {
+            return Err(HistoryRecordError::CommittedGroupRequiresLifecycle);
+        }
+        if contains_entry_id(&self.state, record.entry_id()) {
+            return Err(HistoryRecordError::DuplicateEntryId(
+                record.entry_id().clone(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn plan_record_action<T>(
+        &self,
+        payload: P,
+        group_id: Option<&HistoryGroupId>,
+        may_coalesce: bool,
+        policy: &T,
+    ) -> Result<RecordPlan<P>, HistoryRecordError<T::Error>>
+    where
+        T: HistoryPolicy<P>,
+    {
+        let coalesce_target = self
+            .state
+            .applied
+            .last()
+            .filter(|previous| may_coalesce && previous.metadata().group_id() == group_id);
+
+        if let Some(previous) = coalesce_target {
+            let context = match group_id {
+                Some(group_id) => HistoryCoalesceContext::Group { group_id },
+                None => HistoryCoalesceContext::Adjacent,
+            };
+            let decision = policy
+                .coalesce(previous.payload(), &payload, context)
+                .map_err(HistoryRecordError::Policy)?;
+            match decision {
+                HistoryCoalesce::KeepSeparate => {
+                    if group_id.is_some() {
+                        return Err(HistoryRecordError::GroupPolicyKeptSeparate);
+                    }
+                }
+                HistoryCoalesce::Replace(merged) => {
+                    if policy.is_noop(&merged) {
+                        return Err(HistoryRecordError::CoalescedPayloadIsNoOp);
+                    }
+                    let encoded_weight = self.measure_payload_weight(&merged, policy)?;
+                    return Ok(RecordPlan::ReplaceLast {
+                        merged,
+                        encoded_weight,
+                        previous_weight: previous.encoded_weight(),
+                    });
+                }
+                HistoryCoalesce::Remove => {
+                    return Ok(RecordPlan::RemoveLast {
+                        previous_weight: previous.encoded_weight(),
+                    });
+                }
+            }
         }
 
-        let encoded_weight = match &coalesce {
-            HistoryCoalesce::KeepSeparate => policy
-                .encoded_weight(&payload)
-                .map_err(HistoryRecordError::Policy)?,
-            HistoryCoalesce::Replace(merged) => policy
-                .encoded_weight(merged)
-                .map_err(HistoryRecordError::Policy)?,
-            HistoryCoalesce::Remove => 0,
-        };
+        let encoded_weight = self.measure_payload_weight(&payload, policy)?;
+        let next_sequence = self
+            .state
+            .next_sequence
+            .checked_next()
+            .map_err(|_| HistoryRecordError::SequenceOverflow)?;
+        Ok(RecordPlan::Add {
+            payload,
+            encoded_weight,
+            next_sequence,
+        })
+    }
+
+    fn measure_payload_weight<T>(
+        &self,
+        payload: &P,
+        policy: &T,
+    ) -> Result<u64, HistoryRecordError<T::Error>>
+    where
+        T: HistoryPolicy<P>,
+    {
+        let encoded_weight = policy
+            .encoded_weight(payload)
+            .map_err(HistoryRecordError::Policy)?;
         if encoded_weight > self.limits.maximum_encoded_weight() {
             return Err(HistoryRecordError::PayloadWeightExceedsLimit {
                 maximum: self.limits.maximum_encoded_weight(),
                 actual: encoded_weight,
             });
         }
+        Ok(encoded_weight)
+    }
 
-        let next_sequence = match coalesce {
-            HistoryCoalesce::KeepSeparate => Some(
-                self.state
-                    .next_sequence
-                    .checked_next()
-                    .map_err(|_| HistoryRecordError::SequenceOverflow)?,
-            ),
-            HistoryCoalesce::Replace(_) | HistoryCoalesce::Remove => None,
-        };
-
+    fn plan_record_pruning<E>(
+        &self,
+        plan: &RecordPlan<P>,
+    ) -> Result<PruningPlan, HistoryRecordError<E>> {
         let retained_before = retained_weight(&self.state.applied, &self.state.future)
             .map_err(HistoryRecordError::Retention)?;
         let future_weight = self.state.future.iter().try_fold(0_u64, |total, entry| {
@@ -157,34 +331,28 @@ impl<P> LinearHistory<P> {
         })?;
         let mut retained_count = self.state.applied.len();
         let mut retained_weight = retained_before - future_weight;
-        let maximum_prunable = match &coalesce {
-            HistoryCoalesce::KeepSeparate => {
+        let maximum_prunable = match plan {
+            RecordPlan::Add { encoded_weight, .. } => {
                 retained_count += 1;
-                retained_weight = retained_weight.checked_add(encoded_weight).ok_or(
+                retained_weight = retained_weight.checked_add(*encoded_weight).ok_or(
                     HistoryRecordError::Retention(HistoryRetentionError::EncodedWeightOverflow),
                 )?;
                 self.state.applied.len()
             }
-            HistoryCoalesce::Replace(_) => {
-                let previous = self
-                    .state
-                    .applied
-                    .last()
-                    .expect("coalescing requires a previous entry");
-                retained_weight -= previous.encoded_weight();
-                retained_weight = retained_weight.checked_add(encoded_weight).ok_or(
+            RecordPlan::ReplaceLast {
+                encoded_weight,
+                previous_weight,
+                ..
+            } => {
+                retained_weight -= *previous_weight;
+                retained_weight = retained_weight.checked_add(*encoded_weight).ok_or(
                     HistoryRecordError::Retention(HistoryRetentionError::EncodedWeightOverflow),
                 )?;
                 self.state.applied.len().saturating_sub(1)
             }
-            HistoryCoalesce::Remove => {
-                let previous = self
-                    .state
-                    .applied
-                    .last()
-                    .expect("coalescing requires a previous entry");
+            RecordPlan::RemoveLast { previous_weight } => {
                 retained_count -= 1;
-                retained_weight -= previous.encoded_weight();
+                retained_weight -= *previous_weight;
                 self.state.applied.len().saturating_sub(1)
             }
         };
@@ -207,88 +375,10 @@ impl<P> LinearHistory<P> {
             .retained_baseline
             .checked_advance(&self.state.applied[..applied_to_prune])
             .map_err(HistoryRecordError::Retention)?;
-        let advanced_baseline = self.state.applied[..applied_to_prune]
-            .iter()
-            .map(HistoryPrunedEntry::from_entry)
-            .collect();
-        let cleared_future: Vec<HistoryEntryId> = self
-            .state
-            .future
-            .iter()
-            .rev()
-            .map(|entry| entry.entry_id().clone())
-            .collect();
-        self.state.future.clear();
-        self.state.applied.drain(..applied_to_prune);
-        self.state.retained_baseline = prospective_baseline;
-
-        let outcome = match coalesce {
-            HistoryCoalesce::KeepSeparate => {
-                let sequence = self.state.next_sequence;
-                self.state.applied.push(HistoryEntry::new(
-                    entry_id.clone(),
-                    metadata,
-                    sequence,
-                    committed_revision,
-                    encoded_weight,
-                    payload,
-                ));
-                self.state.next_sequence = next_sequence.expect("separate record sequence");
-                HistoryRecordOutcome::Added { entry_id, sequence }
-            }
-            HistoryCoalesce::Replace(merged) => {
-                let previous = self
-                    .state
-                    .applied
-                    .last_mut()
-                    .expect("coalescing requires a previous entry");
-                let retained_entry_id = previous.entry_id().clone();
-                let retained_sequence = previous.sequence();
-                previous.replace(metadata, committed_revision, encoded_weight, merged);
-                HistoryRecordOutcome::Replaced {
-                    entry_id: retained_entry_id,
-                    sequence: retained_sequence,
-                }
-            }
-            HistoryCoalesce::Remove => {
-                let removed = self
-                    .state
-                    .applied
-                    .pop()
-                    .expect("coalescing requires a previous entry");
-                HistoryRecordOutcome::Removed {
-                    entry_id: removed.entry_id().clone(),
-                    sequence: removed.sequence(),
-                }
-            }
-        };
-
-        self.state.revision = committed_revision;
-        self.coalescing_open = matches!(
-            outcome,
-            HistoryRecordOutcome::Added { .. } | HistoryRecordOutcome::Replaced { .. }
-        );
-        let pruning = HistoryPruningReceipt::new(advanced_baseline, Vec::new());
-        let effect = HistoryRecordTransitionEffect::from_outcome(&outcome)
-            .expect("committed record cannot be an ignored no-op");
-        let transition = HistoryCommittedTransition::new(
-            self.state.history_id.clone(),
-            Some(expected_revision),
-            committed_revision,
-            HistoryCommittedTransitionKind::Record {
-                effect,
-                cleared_future: cleared_future.clone(),
-                pruning: pruning.clone(),
-            },
-        );
-        Ok(HistoryRecordResult {
-            previous_revision: expected_revision,
-            committed_revision,
-            outcome,
-            cleared_future,
-            pruning,
-            retained_encoded_weight: retained_weight,
-            transition: Some(transition),
+        Ok(PruningPlan {
+            applied_to_prune,
+            retained_weight,
+            prospective_baseline,
         })
     }
 }

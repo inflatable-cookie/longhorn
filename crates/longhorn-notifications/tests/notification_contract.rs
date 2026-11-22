@@ -153,7 +153,11 @@ fn exact_identity_and_state_rejections_leave_the_ledger_unchanged() {
         NotificationAuthorityEpoch::new(1).unwrap(),
     );
     assert!(matches!(
-        ledger.dismiss(foreign, ledger.revision(), id("notification:one")),
+        ledger.dismiss(longhorn_notifications::NotificationDismiss::new(
+            foreign,
+            ledger.revision(),
+            id("notification:one"),
+        )),
         Err(NotificationLedgerError::WrongAuthority { .. })
     ));
     assert_eq!(ledger, before);
@@ -240,11 +244,181 @@ fn producer_token_is_explicit_idempotency_not_add_deduplication() {
     ));
     let revision = ledger.revision();
     assert!(matches!(
-        ledger.publish_once(publication).unwrap(),
-        NotificationPublishOutcome::AlreadyPublished { .. }
+        ledger.publish_once(publication.clone()).unwrap(),
+        NotificationPublishOutcome::AlreadyPublished {
+            record: Some(_),
+            ..
+        }
     ));
     assert_eq!(ledger.revision(), revision);
     assert_eq!(ledger.records().len(), 1);
+
+    // Dismissing the notification must NOT allow the same producer token to
+    // re-publish it (contract 016 bounded token memory).
+    ledger
+        .dismiss(longhorn_notifications::NotificationDismiss::new(
+            ledger.authority().clone(),
+            ledger.revision(),
+            id("notification:render-42"),
+        ))
+        .unwrap();
+    assert_eq!(ledger.records().len(), 0);
+    let revision_after_dismiss = ledger.revision();
+    let replayed = ledger
+        .publish_once(NotificationPublishOnce::new(add(
+            &ledger,
+            "notification:render-42-replay",
+            draft("loophole.render", "Render complete", "Export ready").with_producer_token(
+                NotificationProducerToken::new("operation:render-42:succeeded").unwrap(),
+            ),
+        )))
+        .unwrap();
+    assert_eq!(
+        replayed,
+        NotificationPublishOutcome::AlreadyPublished {
+            notification_id: id("notification:render-42"),
+            record: None,
+            ledger_revision: revision_after_dismiss,
+        }
+    );
+    assert_eq!(ledger.revision(), revision_after_dismiss);
+    assert_eq!(ledger.records().len(), 0);
+}
+
+#[test]
+fn publish_once_remains_idempotent_after_pruning_and_noop_retention_keeps_revision() {
+    let mut ledger = ledger_with_limits(1, 32 * 1_024 * 1_024);
+    let token = NotificationProducerToken::new("operation:pruned-1:succeeded").unwrap();
+    assert!(matches!(
+        ledger
+            .publish_once(NotificationPublishOnce::new(add(
+                &ledger,
+                "notification:pruned-1",
+                draft("source:test", "First", "First").with_producer_token(token.clone()),
+            )))
+            .unwrap(),
+        NotificationPublishOutcome::Published(_)
+    ));
+    // Adding a second notification prunes the first.
+    let add_receipt = ledger
+        .add(add(
+            &ledger,
+            "notification:second",
+            draft("source:test", "Second", "Second"),
+        ))
+        .unwrap();
+    assert_eq!(add_receipt.pruned().len(), 1);
+    let rev_before_replay = ledger.revision();
+    let replay = ledger
+        .publish_once(NotificationPublishOnce::new(add(
+            &ledger,
+            "notification:pruned-1-again",
+            draft("source:test", "First", "First").with_producer_token(token),
+        )))
+        .unwrap();
+    assert_eq!(
+        replay,
+        NotificationPublishOutcome::AlreadyPublished {
+            notification_id: id("notification:pruned-1"),
+            record: None,
+            ledger_revision: rev_before_replay,
+        }
+    );
+    assert_eq!(ledger.revision(), rev_before_replay);
+
+    // No-op retention change must not advance the ledger revision.
+    let noop = ledger
+        .change_retention(NotificationRetentionChange::new(
+            ledger.authority().clone(),
+            ledger.revision(),
+            ledger.limits(),
+        ))
+        .unwrap();
+    assert_eq!(noop.previous_ledger_revision(), rev_before_replay);
+    assert_eq!(noop.committed_ledger_revision(), rev_before_replay);
+    assert!(noop.removals().is_empty());
+    assert_eq!(ledger.revision(), rev_before_replay);
+}
+
+#[test]
+fn producer_token_fifo_window_evicts_oldest_after_maximum_remembered_tokens() {
+    let cap = longhorn_notifications::MAXIMUM_REMEMBERED_PRODUCER_TOKENS;
+    let mut ledger = ledger_with_limits(1, 32 * 1_024 * 1_024);
+    let first_token = NotificationProducerToken::new("token:0").unwrap();
+    assert!(matches!(
+        ledger
+            .publish_once(NotificationPublishOnce::new(add(
+                &ledger,
+                "notification:0",
+                draft("source:test", "Zero", "Zero").with_producer_token(first_token.clone()),
+            )))
+            .unwrap(),
+        NotificationPublishOutcome::Published(_)
+    ));
+    ledger
+        .dismiss(longhorn_notifications::NotificationDismiss::new(
+            ledger.authority().clone(),
+            ledger.revision(),
+            id("notification:0"),
+        ))
+        .unwrap();
+
+    // Fill the remaining cap - 1 slots with distinct tokens.
+    for index in 1..cap {
+        let token = NotificationProducerToken::new(format!("token:{index}")).unwrap();
+        assert!(matches!(
+            ledger
+                .publish_once(NotificationPublishOnce::new(add(
+                    &ledger,
+                    &format!("notification:{index}"),
+                    draft("source:test", "Fill", "Fill").with_producer_token(token),
+                )))
+                .unwrap(),
+            NotificationPublishOutcome::Published(_)
+        ));
+    }
+
+    // `token:0` is still at the front of the FIFO window: replay is suppressed.
+    let rev_before = ledger.revision();
+    assert_eq!(
+        ledger
+            .publish_once(NotificationPublishOnce::new(add(
+                &ledger,
+                "notification:0-replay-inside-window",
+                draft("source:test", "Zero", "Zero").with_producer_token(first_token.clone()),
+            )))
+            .unwrap(),
+        NotificationPublishOutcome::AlreadyPublished {
+            notification_id: id("notification:0"),
+            record: None,
+            ledger_revision: rev_before,
+        }
+    );
+
+    // One more distinct token evicts `token:0` from the FIFO window.
+    let overflow_token = NotificationProducerToken::new(format!("token:{cap}")).unwrap();
+    assert!(matches!(
+        ledger
+            .publish_once(NotificationPublishOnce::new(add(
+                &ledger,
+                &format!("notification:{cap}"),
+                draft("source:test", "Overflow", "Overflow").with_producer_token(overflow_token),
+            )))
+            .unwrap(),
+        NotificationPublishOutcome::Published(_)
+    ));
+
+    // After eviction, replaying `token:0` publishes a fresh record.
+    assert!(matches!(
+        ledger
+            .publish_once(NotificationPublishOnce::new(add(
+                &ledger,
+                "notification:0-after-eviction",
+                draft("source:test", "Zero", "Zero").with_producer_token(first_token),
+            )))
+            .unwrap(),
+        NotificationPublishOutcome::Published(_)
+    ));
 }
 
 #[test]
@@ -283,11 +457,11 @@ fn seen_dismiss_clear_and_prune_have_distinct_receipts() {
     assert_eq!(ledger, before);
 
     let dismissed = ledger
-        .dismiss(
+        .dismiss(longhorn_notifications::NotificationDismiss::new(
             ledger.authority().clone(),
             ledger.revision(),
             id("notification:one"),
-        )
+        ))
         .unwrap();
     assert_eq!(
         dismissed.removals()[0].reason(),
@@ -461,13 +635,14 @@ mod operation {
     };
     use longhorn_notifications::{
         OperationNotificationObservationError, OperationNotificationPolicy,
-        OperationNotificationPublication, observe_terminal_operation,
-        publish_operation_notification,
+        OperationNotificationPublication, OperationTerminalEvidence, observe_terminal_operation,
+        observe_terminal_receipt, publish_operation_notification,
     };
     use longhorn_operation::{
-        OperationAuthorityEpoch, OperationCancellationSupport, OperationCatalogue,
-        OperationCatalogueLimits, OperationLabel, OperationRegistration, OperationState,
-        OperationTransition,
+        OperationAuthorityEpoch, OperationCancellationRequest, OperationCancellationSupport,
+        OperationCatalogue, OperationCatalogueLimits, OperationLabel, OperationRegistration,
+        OperationState, OperationTeardown, OperationTeardownResolution,
+        OperationTeardownResolutionOutcome, OperationTransition, QueuedCancellationConfirmation,
     };
 
     struct RenderPolicy;
@@ -476,7 +651,7 @@ mod operation {
         fn publication(
             &self,
             operation: &longhorn_operation::OperationRecord,
-            _receipt: &longhorn_operation::OperationTransitionReceipt,
+            _evidence: OperationTerminalEvidence<'_>,
         ) -> Option<OperationNotificationPublication> {
             Some(OperationNotificationPublication::new(
                 NotificationId::new(format!(
@@ -605,6 +780,497 @@ mod operation {
         assert_eq!(
             observe_terminal_operation(&RenderPolicy, record, &receipt),
             Err(OperationNotificationObservationError::NonTerminalTransition)
+        );
+    }
+
+    #[test]
+    fn observer_handles_confirmed_queued_cancellation_and_teardown_terminals() {
+        let mut catalogue = OperationCatalogue::new(
+            OperationAuthorityId::new("operations:terminal-paths").unwrap(),
+            OperationAuthorityEpoch::new(1).unwrap(),
+            OperationCatalogueLimits::default(),
+        );
+        catalogue
+            .register(OperationRegistration::new(
+                catalogue.authority().clone(),
+                catalogue.revision(),
+                OperationId::new("operation:queued-cancel").unwrap(),
+                OperationKindId::new("loophole.render").unwrap(),
+                None,
+                OperationLabel::new("Queued cancel").unwrap(),
+                OperationState::Queued,
+                OperationCancellationSupport::Supported,
+                None,
+            ))
+            .unwrap();
+        catalogue
+            .register(OperationRegistration::new(
+                catalogue.authority().clone(),
+                catalogue.revision(),
+                OperationId::new("operation:teardown").unwrap(),
+                OperationKindId::new("loophole.render").unwrap(),
+                None,
+                OperationLabel::new("Teardown").unwrap(),
+                OperationState::Running,
+                OperationCancellationSupport::Supported,
+                None,
+            ))
+            .unwrap();
+
+        let queued_op = catalogue
+            .operation(&OperationId::new("operation:queued-cancel").unwrap())
+            .unwrap();
+        let cancel_receipt = catalogue
+            .request_cancellation(
+                OperationCancellationRequest::new(
+                    catalogue.authority().clone(),
+                    queued_op.operation_id().clone(),
+                    queued_op.revision(),
+                )
+                .with_queued_confirmation(QueuedCancellationConfirmation::ConfirmedUnstarted),
+            )
+            .unwrap();
+        let queued_record = catalogue
+            .operation(&OperationId::new("operation:queued-cancel").unwrap())
+            .unwrap();
+        let cancel_pub = observe_terminal_operation(&RenderPolicy, queued_record, &cancel_receipt)
+            .unwrap()
+            .expect("confirmed queued cancel is observable");
+        assert_eq!(
+            cancel_pub.notification_id().as_str(),
+            "notification:operation-queued-cancel"
+        );
+
+        let teardown_op = catalogue
+            .operation(&OperationId::new("operation:teardown").unwrap())
+            .unwrap();
+        let teardown_receipt = catalogue
+            .teardown(OperationTeardown::new(
+                catalogue.authority().clone(),
+                catalogue.revision(),
+                vec![OperationTeardownResolution::new(
+                    teardown_op.operation_id().clone(),
+                    teardown_op.revision(),
+                    OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+                )],
+            ))
+            .unwrap();
+        let teardown_record = catalogue
+            .operation(&OperationId::new("operation:teardown").unwrap())
+            .unwrap();
+        let teardown_pub =
+            observe_terminal_operation(&RenderPolicy, teardown_record, &teardown_receipt)
+                .unwrap()
+                .expect("teardown terminal outcome is observable");
+        assert_eq!(
+            teardown_pub.notification_id().as_str(),
+            "notification:operation-teardown"
+        );
+    }
+
+    #[test]
+    fn observer_rejects_noop_terminal_cancellation_receipt() {
+        let mut catalogue = OperationCatalogue::new(
+            OperationAuthorityId::new("operations:noop-cancel").unwrap(),
+            OperationAuthorityEpoch::new(1).unwrap(),
+            OperationCatalogueLimits::default(),
+        );
+        let op_id = OperationId::new("operation:already-succeeded").unwrap();
+        catalogue
+            .register(OperationRegistration::new(
+                catalogue.authority().clone(),
+                catalogue.revision(),
+                op_id.clone(),
+                OperationKindId::new("loophole.render").unwrap(),
+                None,
+                OperationLabel::new("Done").unwrap(),
+                OperationState::Running,
+                OperationCancellationSupport::Supported,
+                None,
+            ))
+            .unwrap();
+        let rev = catalogue.operation(&op_id).unwrap().revision();
+        catalogue
+            .transition(OperationTransition::new(
+                catalogue.authority().clone(),
+                op_id.clone(),
+                rev,
+                OperationState::Succeeded,
+            ))
+            .unwrap();
+        let done_rev = catalogue.operation(&op_id).unwrap().revision();
+        let noop_cancel = catalogue
+            .request_cancellation(OperationCancellationRequest::new(
+                catalogue.authority().clone(),
+                op_id.clone(),
+                done_rev,
+            ))
+            .unwrap();
+        assert_eq!(
+            noop_cancel.outcome(),
+            longhorn_operation::OperationCancellationOutcome::Terminal
+        );
+        let record = catalogue.operation(&op_id).unwrap();
+        assert_eq!(
+            observe_terminal_operation(&RenderPolicy, record, &noop_cancel),
+            Err(OperationNotificationObservationError::NonTerminalTransition)
+        );
+        assert_eq!(
+            observe_terminal_receipt(&RenderPolicy, &noop_cancel),
+            Err(OperationNotificationObservationError::NonTerminalTransition)
+        );
+    }
+
+    #[test]
+    fn observer_handles_evicted_queued_cancel_and_teardown_under_zero_terminal_retention() {
+        // Zero terminal retention evicts the completed operation during the
+        // same commit; receipts carry the committed record so observation works
+        // independently of retention.
+        let zero_terminal = OperationCatalogueLimits::new(2, 0, 0).unwrap();
+        let mut catalogue = OperationCatalogue::new(
+            OperationAuthorityId::new("operations:zero-retention").unwrap(),
+            OperationAuthorityEpoch::new(1).unwrap(),
+            zero_terminal,
+        );
+        let cancel_id = OperationId::new("operation:evicted-cancel").unwrap();
+        let teardown_id = OperationId::new("operation:evicted-teardown").unwrap();
+        for (id, initial) in [
+            (&cancel_id, OperationState::Queued),
+            (&teardown_id, OperationState::Running),
+        ] {
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Evicted on terminal").unwrap(),
+                    initial,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+        }
+
+        let cancel_rev = catalogue.operation(&cancel_id).unwrap().revision();
+        let cancel_receipt = catalogue
+            .request_cancellation(
+                OperationCancellationRequest::new(
+                    catalogue.authority().clone(),
+                    cancel_id.clone(),
+                    cancel_rev,
+                )
+                .with_queued_confirmation(QueuedCancellationConfirmation::ConfirmedUnstarted),
+            )
+            .unwrap();
+        assert!(
+            catalogue.operation(&cancel_id).is_none(),
+            "zero terminal retention must evict the operation immediately"
+        );
+        let cancel_pub = observe_terminal_receipt(&RenderPolicy, &cancel_receipt)
+            .unwrap()
+            .expect("evicted queued cancel is still observable from its receipt");
+        assert_eq!(
+            cancel_pub.notification_id().as_str(),
+            "notification:operation-evicted-cancel"
+        );
+
+        let teardown_rev = catalogue.operation(&teardown_id).unwrap().revision();
+        let teardown_receipt = catalogue
+            .teardown(OperationTeardown::new(
+                catalogue.authority().clone(),
+                catalogue.revision(),
+                vec![OperationTeardownResolution::new(
+                    teardown_id.clone(),
+                    teardown_rev,
+                    OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+                )],
+            ))
+            .unwrap();
+        assert!(
+            catalogue.operation(&teardown_id).is_none(),
+            "zero terminal retention must evict the torn-down operation immediately"
+        );
+        let teardown_pub = observe_terminal_receipt(
+            &RenderPolicy,
+            OperationTerminalEvidence::TeardownOutcome {
+                receipt: &teardown_receipt,
+                outcome_index: 0,
+            },
+        )
+        .unwrap()
+        .expect("evicted teardown completion is still observable from its receipt");
+        assert_eq!(
+            teardown_pub.notification_id().as_str(),
+            "notification:operation-evicted-teardown"
+        );
+    }
+
+    #[test]
+    fn observer_rejects_foreign_authority_epoch_record_with_matching_operation_id() {
+        let authority_id = OperationAuthorityId::new("operations:epoch-check").unwrap();
+        let op_id = OperationId::new("operation:render-42").unwrap();
+
+        let make_catalogue = |epoch: u64| {
+            OperationCatalogue::new(
+                authority_id.clone(),
+                OperationAuthorityEpoch::new(epoch).unwrap(),
+                OperationCatalogueLimits::default(),
+            )
+        };
+
+        // Same authority_id and operation_id, different authority epochs:
+        // transition, confirmed queued cancellation, and teardown must all
+        // reject a foreign-epoch record even when state and revision match.
+        let mut epoch1_transition = make_catalogue(1);
+        let mut epoch2_transition = make_catalogue(2);
+        for catalogue in [&mut epoch1_transition, &mut epoch2_transition] {
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Render stems").unwrap(),
+                    OperationState::Running,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+            let rev = catalogue.operation(&op_id).unwrap().revision();
+            catalogue
+                .transition(OperationTransition::new(
+                    catalogue.authority().clone(),
+                    op_id.clone(),
+                    rev,
+                    OperationState::Failed,
+                ))
+                .unwrap();
+        }
+        let mut epoch1_fresh = make_catalogue(1);
+        epoch1_fresh
+            .register(OperationRegistration::new(
+                epoch1_fresh.authority().clone(),
+                epoch1_fresh.revision(),
+                op_id.clone(),
+                OperationKindId::new("loophole.render").unwrap(),
+                None,
+                OperationLabel::new("Render stems").unwrap(),
+                OperationState::Running,
+                OperationCancellationSupport::Supported,
+                None,
+            ))
+            .unwrap();
+        let rev = epoch1_fresh.operation(&op_id).unwrap().revision();
+        let transition_receipt = epoch1_fresh
+            .transition(OperationTransition::new(
+                epoch1_fresh.authority().clone(),
+                op_id.clone(),
+                rev,
+                OperationState::Failed,
+            ))
+            .unwrap();
+        let foreign_transition_record = epoch2_transition.operation(&op_id).unwrap();
+        assert_eq!(
+            foreign_transition_record.operation_id(),
+            transition_receipt.operation_id()
+        );
+        assert_eq!(
+            foreign_transition_record.state(),
+            transition_receipt.committed_state()
+        );
+        assert_eq!(
+            foreign_transition_record.revision(),
+            transition_receipt.committed_operation_revision()
+        );
+        assert_eq!(
+            observe_terminal_operation(
+                &RenderPolicy,
+                foreign_transition_record,
+                &transition_receipt
+            ),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+
+        let mut epoch1_cancel = make_catalogue(1);
+        let mut epoch2_cancel = make_catalogue(2);
+        for catalogue in [&mut epoch1_cancel, &mut epoch2_cancel] {
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Queued").unwrap(),
+                    OperationState::Queued,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+        }
+        let c1_rev = epoch1_cancel.operation(&op_id).unwrap().revision();
+        let cancel_receipt = epoch1_cancel
+            .request_cancellation(
+                OperationCancellationRequest::new(
+                    epoch1_cancel.authority().clone(),
+                    op_id.clone(),
+                    c1_rev,
+                )
+                .with_queued_confirmation(QueuedCancellationConfirmation::ConfirmedUnstarted),
+            )
+            .unwrap();
+        let c2_rev = epoch2_cancel.operation(&op_id).unwrap().revision();
+        epoch2_cancel
+            .request_cancellation(
+                OperationCancellationRequest::new(
+                    epoch2_cancel.authority().clone(),
+                    op_id.clone(),
+                    c2_rev,
+                )
+                .with_queued_confirmation(QueuedCancellationConfirmation::ConfirmedUnstarted),
+            )
+            .unwrap();
+        let foreign_cancel_record = epoch2_cancel.operation(&op_id).unwrap();
+        assert_eq!(
+            observe_terminal_operation(&RenderPolicy, foreign_cancel_record, &cancel_receipt),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+
+        let mut epoch1_teardown = make_catalogue(1);
+        let mut epoch2_teardown = make_catalogue(2);
+        for catalogue in [&mut epoch1_teardown, &mut epoch2_teardown] {
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Teardown").unwrap(),
+                    OperationState::Running,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+        }
+        let t1_rev = epoch1_teardown.operation(&op_id).unwrap().revision();
+        let teardown_receipt = epoch1_teardown
+            .teardown(OperationTeardown::new(
+                epoch1_teardown.authority().clone(),
+                epoch1_teardown.revision(),
+                vec![OperationTeardownResolution::new(
+                    op_id.clone(),
+                    t1_rev,
+                    OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+                )],
+            ))
+            .unwrap();
+        let t2_rev = epoch2_teardown.operation(&op_id).unwrap().revision();
+        epoch2_teardown
+            .teardown(OperationTeardown::new(
+                epoch2_teardown.authority().clone(),
+                epoch2_teardown.revision(),
+                vec![OperationTeardownResolution::new(
+                    op_id.clone(),
+                    t2_rev,
+                    OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+                )],
+            ))
+            .unwrap();
+        let foreign_teardown_record = epoch2_teardown.operation(&op_id).unwrap();
+        assert_eq!(
+            observe_terminal_operation(&RenderPolicy, foreign_teardown_record, &teardown_receipt),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+        assert_eq!(
+            observe_terminal_operation(
+                &RenderPolicy,
+                foreign_teardown_record,
+                OperationTerminalEvidence::TeardownOutcome {
+                    receipt: &teardown_receipt,
+                    outcome_index: 0,
+                },
+            ),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+    }
+
+    #[test]
+    fn observer_teardown_outcome_batch_observation_is_linear() {
+        use std::time::Instant;
+
+        let batch_size = 2_048_usize;
+        let mut catalogue = OperationCatalogue::new(
+            OperationAuthorityId::new("operations:batch-teardown").unwrap(),
+            OperationAuthorityEpoch::new(1).unwrap(),
+            OperationCatalogueLimits::new(batch_size, 0, 0).unwrap(),
+        );
+        let mut resolutions = Vec::with_capacity(batch_size);
+        for index in 0..batch_size {
+            let op_id = OperationId::new(format!("operation:batch-{index:04}")).unwrap();
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Batch item").unwrap(),
+                    OperationState::Running,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+            let rev = catalogue.operation(&op_id).unwrap().revision();
+            resolutions.push(OperationTeardownResolution::new(
+                op_id,
+                rev,
+                OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+            ));
+        }
+
+        let receipt = catalogue
+            .teardown(OperationTeardown::new(
+                catalogue.authority().clone(),
+                catalogue.revision(),
+                resolutions,
+            ))
+            .unwrap();
+        assert_eq!(receipt.outcomes().len(), batch_size);
+
+        let started = Instant::now();
+        for outcome_index in 0..receipt.outcomes().len() {
+            let publication = observe_terminal_receipt(
+                &RenderPolicy,
+                OperationTerminalEvidence::TeardownOutcome {
+                    receipt: &receipt,
+                    outcome_index,
+                },
+            )
+            .unwrap()
+            .expect("each completed teardown outcome publishes");
+            assert_eq!(
+                publication.notification_id().as_str(),
+                format!("notification:operation-batch-{outcome_index:04}")
+            );
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed.as_secs() < 2,
+            "observing {batch_size} teardown outcomes by index took too long: {elapsed:?}"
+        );
+        assert_eq!(
+            observe_terminal_receipt(
+                &RenderPolicy,
+                OperationTerminalEvidence::TeardownOutcome {
+                    receipt: &receipt,
+                    outcome_index: batch_size,
+                },
+            ),
+            Err(OperationNotificationObservationError::OperationMismatch)
         );
     }
 }

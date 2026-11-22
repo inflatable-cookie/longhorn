@@ -83,6 +83,30 @@ impl NotificationSeen {
     }
 }
 
+/// Revision-bound request to explicitly dismiss one retained record.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NotificationDismiss {
+    pub(crate) authority: NotificationAuthorityCursor,
+    pub(crate) expected_revision: NotificationLedgerRevision,
+    pub(crate) notification_id: NotificationId,
+}
+
+impl NotificationDismiss {
+    /// Constructs a dismiss request.
+    #[must_use]
+    pub const fn new(
+        authority: NotificationAuthorityCursor,
+        expected_revision: NotificationLedgerRevision,
+        notification_id: NotificationId,
+    ) -> Self {
+        Self {
+            authority,
+            expected_revision,
+            notification_id,
+        }
+    }
+}
+
 /// Explicit clear target.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum NotificationClearTarget {
@@ -159,10 +183,12 @@ impl NotificationPublishOnce {
 pub enum NotificationPublishOutcome {
     /// A fresh record was committed.
     Published(crate::NotificationMutationReceipt),
-    /// The producer token already names a retained record.
+    /// The producer token was already published in this authority session.
     AlreadyPublished {
-        /// Existing retained record.
-        record: NotificationRecord,
+        /// Original notification identity committed for this producer token.
+        notification_id: NotificationId,
+        /// Existing retained record, or `None` if it was since dismissed, cleared, or pruned.
+        record: Option<NotificationRecord>,
         /// Current authoritative ledger revision.
         ledger_revision: NotificationLedgerRevision,
     },

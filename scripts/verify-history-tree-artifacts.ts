@@ -185,8 +185,10 @@ async function packAndRunRustArtifacts(): Promise<{ identities: readonly Artifac
   // origin row would depend on -- and a continuation run reports its anchor
   // instead. 53 since Card 213 added the envelope property suite. 57 since
   // Card 222 pinned the host-facing error messages by content. 59 since
-  // AlreadyAtTarget added two protocol round-trips on the same crate.
-  if (testCount !== 59) throw new Error(`artifact tree test count mismatch: ${testCount}`);
+  // AlreadyAtTarget added two protocol round-trips on the same crate. 64
+  // since task 099 added policy-weight/migration-error, near-ceiling prune,
+  // pinned-spine protected-lineage, and lazy branch-page projection tests.
+  if (testCount !== 64) throw new Error(`artifact tree test count mismatch: ${testCount}`);
 
   const traces = {} as Record<Shape, Json>;
   const graphs = {} as Record<Shape, readonly string[]>;

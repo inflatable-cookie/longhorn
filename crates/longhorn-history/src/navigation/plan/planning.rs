@@ -10,6 +10,10 @@ use super::helpers::direction;
 
 impl<P: Clone> LinearHistory<P> {
     /// Plans undo, redo, or entry-id checkout without changing history.
+    ///
+    /// Rejects plan ids present in the bounded per-session recent-plan ring
+    /// (`HistoryNavigationLimits::maximum_recent_plans`), which guards against
+    /// reusing a committed plan id at the current revision within this session.
     pub fn plan_navigation<T>(
         &self,
         request: HistoryNavigationRequest,

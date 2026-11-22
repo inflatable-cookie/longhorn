@@ -24,21 +24,23 @@ pub use limits::{
     MAXIMUM_NOTIFICATION_ACTION_LABEL_BYTES, MAXIMUM_NOTIFICATION_ACTIONS,
     MAXIMUM_NOTIFICATION_ENCODED_WEIGHT, MAXIMUM_NOTIFICATION_PAGE_SIZE,
     MAXIMUM_NOTIFICATION_SUMMARY_BYTES, MAXIMUM_NOTIFICATION_TITLE_BYTES,
-    MAXIMUM_RETAINED_NOTIFICATIONS, NotificationActionLabel, NotificationActionLabelError,
-    NotificationLedgerLimits, NotificationLedgerLimitsError, NotificationPageSizeError,
-    NotificationSummary, NotificationSummaryError, NotificationTitle, NotificationTitleError,
+    MAXIMUM_REMEMBERED_PRODUCER_TOKENS, MAXIMUM_RETAINED_NOTIFICATIONS, NotificationActionLabel,
+    NotificationActionLabelError, NotificationLedgerLimits, NotificationLedgerLimitsError,
+    NotificationPageSizeError, NotificationSummary, NotificationSummaryError, NotificationTitle,
+    NotificationTitleError,
 };
 pub use model::{
     NotificationAction, NotificationAdd, NotificationAuthorityCursor, NotificationClear,
-    NotificationClearTarget, NotificationDraft, NotificationLedgerProjection, NotificationPage,
-    NotificationPublishOnce, NotificationPublishOutcome, NotificationReadState, NotificationRecord,
-    NotificationReplace, NotificationRetentionChange, NotificationRetentionClass, NotificationSeen,
-    NotificationSeverity,
+    NotificationClearTarget, NotificationDismiss, NotificationDraft, NotificationLedgerProjection,
+    NotificationPage, NotificationPublishOnce, NotificationPublishOutcome, NotificationReadState,
+    NotificationRecord, NotificationReplace, NotificationRetentionChange,
+    NotificationRetentionClass, NotificationSeen, NotificationSeverity,
 };
 #[cfg(feature = "operation")]
 pub use operation_observer::{
     OperationNotificationObservationError, OperationNotificationPolicy,
-    OperationNotificationPublication, observe_terminal_operation, publish_operation_notification,
+    OperationNotificationPublication, OperationTerminalEvidence, observe_terminal_operation,
+    observe_terminal_receipt, publish_operation_notification,
 };
 pub use protocol::*;
 pub use retention::{

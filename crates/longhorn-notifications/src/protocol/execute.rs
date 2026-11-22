@@ -3,9 +3,9 @@
 use longhorn_core::NotificationRequestId;
 
 use crate::{
-    NotificationAdd, NotificationClear, NotificationClearTarget, NotificationLedger,
-    NotificationLedgerError, NotificationMutationReceipt, NotificationRemovalReceipt,
-    NotificationReplace, NotificationRetentionChange, NotificationSeen,
+    NotificationAdd, NotificationClear, NotificationClearTarget, NotificationDismiss,
+    NotificationLedger, NotificationLedgerError, NotificationMutationReceipt,
+    NotificationRemovalReceipt, NotificationReplace, NotificationRetentionChange, NotificationSeen,
 };
 
 use super::*;
@@ -128,13 +128,13 @@ fn execute_mutation(
             notification_id,
             ..
         } => ledger
-            .dismiss(
+            .dismiss(NotificationDismiss::new(
                 authority
                     .into_cursor()
                     .map_err(NotificationRejection::from)?,
                 expected_ledger_revision,
                 notification_id,
-            )
+            ))
             .map(project_removal_receipt)
             .map_err(NotificationRejection::from),
         NotificationMutationCommand::Clear {

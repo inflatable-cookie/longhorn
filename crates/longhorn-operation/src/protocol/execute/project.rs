@@ -44,6 +44,7 @@ pub(crate) fn project_teardown_outcome(
             state,
             previous_operation_revision,
             committed_operation_revision,
+            ..
         } => OperationTeardownOutcomeProjection::Completed {
             operation_id: operation_id.clone(),
             state: (*state).into(),

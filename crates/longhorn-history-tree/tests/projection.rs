@@ -1,9 +1,11 @@
 //! Linear-default and explicit bounded alternate projection evidence.
 
+use std::convert::Infallible;
+
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryKindId};
 use longhorn_history::{
-    HistoryAuthorityEpoch, HistoryEntryMetadata, HistoryEntryPosition, HistoryLabel,
-    HistoryRecordedAt,
+    HistoryAuthorityEpoch, HistoryCoalesce, HistoryCoalesceContext, HistoryEntryMetadata,
+    HistoryEntryPosition, HistoryLabel, HistoryPolicy, HistoryRecordedAt,
 };
 use longhorn_history_tree::{
     ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistory, ForkHistoryState,
@@ -13,6 +15,33 @@ use longhorn_history_tree::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Mutation(i32);
+
+struct MutationPolicy;
+
+impl HistoryPolicy<Mutation> for MutationPolicy {
+    type Error = Infallible;
+
+    fn inverse(&self, payload: &Mutation) -> Result<Mutation, Self::Error> {
+        Ok(Mutation(-payload.0))
+    }
+
+    fn is_noop(&self, _payload: &Mutation) -> bool {
+        false
+    }
+
+    fn encoded_weight(&self, _payload: &Mutation) -> Result<u64, Self::Error> {
+        Ok(4)
+    }
+
+    fn coalesce(
+        &self,
+        _previous: &Mutation,
+        _incoming: &Mutation,
+        _context: HistoryCoalesceContext<'_>,
+    ) -> Result<HistoryCoalesce<Mutation>, Self::Error> {
+        Ok(HistoryCoalesce::KeepSeparate)
+    }
+}
 
 fn history_id() -> HistoryId {
     HistoryId::new("history:projection").unwrap()
@@ -50,14 +79,16 @@ fn record(
     divergent: Option<ForkBranchSeed>,
 ) {
     graph
-        .record_applied(ForkRecord::new(
-            graph.revision(),
-            entry_id(id),
-            metadata(id),
-            4,
-            Mutation(value),
-            divergent,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id(id),
+                metadata(id),
+                Mutation(value),
+                divergent,
+            ),
+            &MutationPolicy,
+        )
         .unwrap();
 }
 
@@ -559,5 +590,107 @@ fn a_continuation_run_reports_its_anchor_not_the_origin() {
         longhorn_history_tree::ForkPathFloorProjection::Anchor {
             entry_id: entry_id("entry:b")
         }
+    );
+}
+
+#[test]
+fn project_branch_page_stays_lazy_and_bounded_near_ceilings() {
+    use std::time::Instant;
+
+    use longhorn_core::HistoryRevision;
+    use longhorn_history::HistoryEntrySequence;
+    use longhorn_history_tree::{ForkBranch, ForkHistoryNode, ForkPreferredChild};
+
+    // Build a deep main spine (8,192 nodes) with 2,048 alternate branches
+    // forking off the midpoint. The old implementation materialized every
+    // branch's full lineage (~8.4M node clones per page); the lazy index
+    // resolves bounded pages in O(N + B) without full-lineage materialization.
+    let main_depth = 8_192_usize;
+    let fork_count = 2_048_usize;
+    let mut nodes = Vec::with_capacity(main_depth + fork_count);
+    let mut parent = None;
+    for index in 1..=main_depth {
+        let id = entry_id(&format!("entry:main-{index:04}"));
+        nodes.push(ForkHistoryNode::new(
+            id.clone(),
+            parent,
+            metadata("main"),
+            HistoryEntrySequence::new(index as u64).unwrap(),
+            HistoryRevision::new(index as u64),
+            4,
+            Mutation(index as i32),
+        ));
+        parent = Some(id);
+    }
+    let main_head = parent.unwrap();
+    let anchor = entry_id(&format!("entry:main-{:04}", main_depth / 2));
+    let mut branches = Vec::with_capacity(fork_count + 1);
+    branches.push(ForkBranch::new(
+        branch_id("branch:main"),
+        Some(main_head.clone()),
+        branch_metadata("Main"),
+    ));
+    for index in 1..=fork_count {
+        let seq = (main_depth + index) as u64;
+        let id = entry_id(&format!("entry:fork-{index:04}"));
+        nodes.push(ForkHistoryNode::new(
+            id.clone(),
+            Some(anchor.clone()),
+            metadata("fork"),
+            HistoryEntrySequence::new(seq).unwrap(),
+            HistoryRevision::new(seq),
+            4,
+            Mutation(seq as i32),
+        ));
+        branches.push(ForkBranch::new(
+            branch_id(&format!("branch:fork-{index:04}")),
+            Some(id),
+            branch_metadata(&format!("Fork {index}")),
+        ));
+    }
+    let state = ForkHistoryState::new(
+        history_id(),
+        HistoryRevision::new((main_depth + fork_count) as u64),
+        branch_id("branch:main"),
+        Some(main_head),
+        HistoryEntrySequence::new((main_depth + fork_count + 1) as u64).unwrap(),
+    )
+    .with_nodes(nodes)
+    .with_branches(branches)
+    .with_preferred_children(vec![ForkPreferredChild::new(
+        Some(anchor.clone()),
+        entry_id(&format!("entry:main-{:04}", main_depth / 2 + 1)),
+    )]);
+    let graph = ForkHistory::from_state(state).expect("valid deep/wide graph");
+
+    let started = Instant::now();
+    let first_page = graph
+        .project_branch_page(ForkProjectionPageRequest::new(0, 32).unwrap())
+        .expect("bounded first branch page");
+    let middle_page = graph
+        .project_branch_page(ForkProjectionPageRequest::new(fork_count / 2, 32).unwrap())
+        .expect("bounded middle branch page");
+    let elapsed = started.elapsed();
+
+    assert_eq!(first_page.total_branches(), fork_count + 1);
+    assert_eq!(first_page.branches().len(), 32);
+    assert!(first_page.truncated_after());
+    assert_eq!(middle_page.total_branches(), fork_count + 1);
+    assert_eq!(middle_page.branches().len(), 32);
+    assert!(middle_page.truncated_after());
+    for projected in first_page
+        .branches()
+        .iter()
+        .chain(middle_page.branches().iter())
+    {
+        assert_eq!(projected.divergence_entry_id(), Some(&anchor));
+        assert_eq!(
+            projected.divergence_branch_id(),
+            Some(&branch_id("branch:main"))
+        );
+    }
+    assert!(
+        elapsed.as_secs() < 2,
+        "lazy branch-page projection on {main_depth}-node spine with {fork_count} forks took too long: {elapsed:?}"
     );
 }

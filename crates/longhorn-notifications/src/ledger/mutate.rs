@@ -2,10 +2,8 @@
 
 use std::collections::HashSet;
 
-use longhorn_core::{NotificationId, NotificationLedgerRevision};
-
 use crate::{
-    NotificationAdd, NotificationAuthorityCursor, NotificationClear, NotificationClearTarget,
+    NotificationAdd, NotificationClear, NotificationClearTarget, NotificationDismiss,
     NotificationLedgerError, NotificationMutationReceipt, NotificationPublishOnce,
     NotificationPublishOutcome, NotificationReadState, NotificationRecord, NotificationRemoval,
     NotificationRemovalReason, NotificationRemovalReceipt, NotificationReplace,
@@ -51,6 +49,7 @@ impl NotificationLedger {
             .expect("new record is protected from its admission prune")
             .clone();
 
+        let producer_token = committed_record.draft().producer_token().cloned();
         let receipt = NotificationMutationReceipt {
             record: committed_record,
             previous_ledger_revision: self.revision,
@@ -61,10 +60,21 @@ impl NotificationLedger {
         self.revision = committed_revision;
         self.next_sequence = next_sequence;
         self.pruned_count = pruned_count;
+        if let Some(token) = producer_token {
+            self.remember_producer_token(token, admitted_id);
+        }
         Ok(receipt)
     }
 
     /// Publishes at most once by the draft's durable producer token.
+    ///
+    /// Deduplication checks active retained records first, then the ledger's
+    /// bounded per-session FIFO token memory
+    /// ([`crate::MAXIMUM_REMEMBERED_PRODUCER_TOKENS`] = 4,096 distinct tokens,
+    /// oldest evicted first, not persisted across reloads). Within that window,
+    /// dismissed, cleared, or pruned records do not reappear on replay; once
+    /// evicted by 4,096 newer distinct tokens, replay may publish a fresh
+    /// record.
     pub fn publish_once(
         &mut self,
         request: NotificationPublishOnce,
@@ -77,7 +87,15 @@ impl NotificationLedger {
             .ok_or(NotificationLedgerError::MissingProducerToken)?;
         if let Some(record) = self.record_by_producer_token(token) {
             return Ok(NotificationPublishOutcome::AlreadyPublished {
-                record: record.clone(),
+                notification_id: record.notification_id().clone(),
+                record: Some(record.clone()),
+                ledger_revision: self.revision,
+            });
+        }
+        if let Some(notification_id) = self.remembered_producer_token_ids.get(token) {
+            return Ok(NotificationPublishOutcome::AlreadyPublished {
+                notification_id: notification_id.clone(),
+                record: None,
                 ledger_revision: self.revision,
             });
         }
@@ -114,6 +132,7 @@ impl NotificationLedger {
             .find(|record| record.notification_id() == &notification_id)
             .expect("replaced record is protected from its replacement prune")
             .clone();
+        let producer_token = committed_record.draft().producer_token().cloned();
         let receipt = NotificationMutationReceipt {
             record: committed_record,
             previous_ledger_revision: self.revision,
@@ -123,6 +142,9 @@ impl NotificationLedger {
         self.records = records;
         self.revision = committed_revision;
         self.pruned_count = pruned_count;
+        if let Some(token) = producer_token {
+            self.remember_producer_token(token, notification_id);
+        }
         Ok(receipt)
     }
 
@@ -154,13 +176,11 @@ impl NotificationLedger {
     /// Explicitly dismisses one retained record.
     pub fn dismiss(
         &mut self,
-        authority: NotificationAuthorityCursor,
-        expected_revision: NotificationLedgerRevision,
-        notification_id: NotificationId,
+        request: NotificationDismiss,
     ) -> Result<NotificationRemovalReceipt, NotificationLedgerError> {
-        self.validate_authority(&authority)?;
-        self.validate_revision(expected_revision)?;
-        let index = self.record_index(&notification_id)?;
+        self.validate_authority(&request.authority)?;
+        self.validate_revision(request.expected_revision)?;
+        let index = self.record_index(&request.notification_id)?;
         let committed_revision = self.next_revision()?;
         let record = self.records.remove(index);
         let receipt = NotificationRemovalReceipt {
@@ -230,6 +250,13 @@ impl NotificationLedger {
     ) -> Result<NotificationRemovalReceipt, NotificationLedgerError> {
         self.validate_authority(&request.authority)?;
         self.validate_revision(request.expected_revision)?;
+        if request.limits == self.limits {
+            return Ok(NotificationRemovalReceipt {
+                previous_ledger_revision: self.revision,
+                committed_ledger_revision: self.revision,
+                removals: Vec::new(),
+            });
+        }
         let committed_revision = self.next_revision()?;
         let mut records = self.records.clone();
         let removals = prune_to_limits(&mut records, request.limits, None)?;

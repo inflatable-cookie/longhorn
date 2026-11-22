@@ -115,7 +115,12 @@ Record admission checks:
 In linear mode, a committed record after undo clears the redo path. The
 transition receipt lists every added, replaced, removed, or pruned entry.
 
-No failed or rejected product mutation records history.
+No failed or rejected product mutation records history. Conversely, because
+recording runs after the product mutation applies, a record-admission rejection
+— including fork-tree hard ceilings (`NodeLimitReached`, `BranchLimitReached`,
+`EncodedWeightLimitExceeded`) — leaves the graph unchanged after product apply.
+Consumers that need to prevent post-apply rejection must check retained counts
+or prune before applying, or roll back / enter recovery on record failure.
 
 ## Navigation Protocol
 

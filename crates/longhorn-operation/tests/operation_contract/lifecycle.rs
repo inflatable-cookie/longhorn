@@ -17,6 +17,7 @@ fn expected_edge(current: OperationState, next: OperationState) -> bool {
         OperationState::Queued => matches!(
             next,
             OperationState::Running
+                | OperationState::Cancelling
                 | OperationState::Failed
                 | OperationState::Cancelled
                 | OperationState::Interrupted

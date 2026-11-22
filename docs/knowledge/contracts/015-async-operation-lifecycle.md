@@ -88,10 +88,12 @@ The closed state set is:
 - `cancelled`
 - `interrupted`
 
-Allowed forward transitions are explicit. `queued` may start, cancel before
-start, fail admission after registration, or become interrupted. `running`
-may request cancellation or reach any executor-proven terminal outcome.
-`cancelling` may become `cancelled`, `succeeded`, `failed`, or `interrupted`.
+Allowed forward transitions are explicit. `queued` may start, enter
+`cancelling`, cancel before start when consumer admission confirms execution
+never started, fail admission after registration, or become interrupted.
+`running` may request cancellation or reach any executor-proven terminal
+outcome. `cancelling` may become `cancelled`, `succeeded`, `failed`, or
+`interrupted`.
 
 Every terminal state is sticky. A second terminal claim, later progress, or
 attempt to reopen the operation rejects without changing state.

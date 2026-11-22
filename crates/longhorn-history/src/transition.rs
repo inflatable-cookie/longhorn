@@ -4,7 +4,7 @@ use longhorn_core::{HistoryEntryId, HistoryId, HistoryPlanId, HistoryRevision};
 
 use crate::{
     HistoryEntrySequence, HistoryLimits, HistoryNavigationDirection, HistoryNavigationPosition,
-    HistoryPruningReceipt, HistoryRecordOutcome, HistoryRetainedBaseline, LinearHistory,
+    HistoryPruningReceipt, HistoryRetainedBaseline, LinearHistory,
 };
 
 /// One payload-free record effect committed by the history authority.
@@ -31,26 +31,6 @@ pub enum HistoryRecordTransitionEffect {
         /// Removed insertion sequence.
         sequence: HistoryEntrySequence,
     },
-}
-
-impl HistoryRecordTransitionEffect {
-    pub(crate) fn from_outcome(outcome: &HistoryRecordOutcome) -> Option<Self> {
-        match outcome {
-            HistoryRecordOutcome::IgnoredNoOp { .. } => None,
-            HistoryRecordOutcome::Added { entry_id, sequence } => Some(Self::Added {
-                entry_id: entry_id.clone(),
-                sequence: *sequence,
-            }),
-            HistoryRecordOutcome::Replaced { entry_id, sequence } => Some(Self::Replaced {
-                entry_id: entry_id.clone(),
-                sequence: *sequence,
-            }),
-            HistoryRecordOutcome::Removed { entry_id, sequence } => Some(Self::Removed {
-                entry_id: entry_id.clone(),
-                sequence: *sequence,
-            }),
-        }
-    }
 }
 
 /// Payload-free kind-specific evidence for one committed structural transition.

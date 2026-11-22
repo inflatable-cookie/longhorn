@@ -111,7 +111,14 @@ pub enum ForkLoadError<CE, ME> {
         /// Current supported version.
         maximum: HistoryPayloadCodecVersion,
     },
-    /// Consumer payload decode or migration failed.
+    /// Consumer payload migration failed.
+    PayloadMigration {
+        /// Entry whose payload migration failed.
+        entry_id: HistoryEntryId,
+        /// Consumer codec failure.
+        error: CE,
+    },
+    /// Consumer payload decode failed.
     Payload {
         /// Entry whose payload failed.
         entry_id: HistoryEntryId,

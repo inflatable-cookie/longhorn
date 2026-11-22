@@ -330,3 +330,86 @@ fn a_pruned_page_reports_a_baseline_and_an_unpruned_one_reports_the_origin() {
         "the origin is gone and the page says so, with how much went"
     );
 }
+
+#[test]
+fn coalescing_after_change_limits_prunes_target_adds_fresh_entry() {
+    struct CoalescingWeightedPolicy;
+    impl HistoryPolicy<WeightedValue> for CoalescingWeightedPolicy {
+        type Error = Infallible;
+        fn inverse(&self, payload: &WeightedValue) -> Result<WeightedValue, Self::Error> {
+            Ok(payload.clone())
+        }
+        fn is_noop(&self, _: &WeightedValue) -> bool {
+            false
+        }
+        fn encoded_weight(&self, payload: &WeightedValue) -> Result<u64, Self::Error> {
+            Ok(payload.encoded_weight)
+        }
+        fn coalesce(
+            &self,
+            previous: &WeightedValue,
+            incoming: &WeightedValue,
+            _: HistoryCoalesceContext<'_>,
+        ) -> Result<HistoryCoalesce<WeightedValue>, Self::Error> {
+            Ok(HistoryCoalesce::Replace(WeightedValue {
+                value: previous.value + incoming.value,
+                encoded_weight: incoming.encoded_weight,
+            }))
+        }
+    }
+
+    let mut history = LinearHistory::new(
+        history_id("history:coalesce-after-prune"),
+        HistoryLimits::new(4, 16, 1_024).unwrap(),
+    );
+    // Record two entries; coalescing is open on the newest applied entry.
+    history
+        .record_applied(
+            record(
+                0,
+                "entry:1",
+                metadata("First", "document:weighted"),
+                value(1, 6),
+            ),
+            &WeightedPolicy,
+        )
+        .unwrap();
+    history
+        .record_applied(
+            record(
+                1,
+                "entry:2",
+                metadata("Second", "document:weighted"),
+                value(2, 6),
+            ),
+            &WeightedPolicy,
+        )
+        .unwrap();
+
+    // Tighten limits so both entries (including the coalescing target) are pruned.
+    let limit_change = history
+        .change_limits(history.revision(), HistoryLimits::new(2, 4, 1_024).unwrap())
+        .unwrap();
+    assert_eq!(limit_change.pruning().advanced_baseline().len(), 2);
+    assert!(history.applied().is_empty());
+
+    // Subsequent record with a coalescing policy must add a fresh entry cleanly.
+    let added = history
+        .record_applied(
+            record(
+                history.revision().get(),
+                "entry:3",
+                metadata("Third", "document:weighted"),
+                value(5, 4),
+            ),
+            &CoalescingWeightedPolicy,
+        )
+        .unwrap();
+    assert_eq!(history.applied().len(), 1);
+    assert_eq!(history.applied()[0].entry_id(), &entry_id("entry:3"));
+    assert_eq!(history.applied()[0].payload().value, 5);
+    assert!(matches!(
+        added.outcome(),
+        longhorn_history::HistoryRecordOutcome::Added { .. }
+    ));
+}

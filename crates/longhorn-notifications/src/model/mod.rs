@@ -12,6 +12,7 @@ pub use draft::{
 pub use projection::{NotificationLedgerProjection, NotificationPage};
 pub use record::{NotificationAuthorityCursor, NotificationRecord};
 pub use request::{
-    NotificationAdd, NotificationClear, NotificationClearTarget, NotificationPublishOnce,
-    NotificationPublishOutcome, NotificationReplace, NotificationRetentionChange, NotificationSeen,
+    NotificationAdd, NotificationClear, NotificationClearTarget, NotificationDismiss,
+    NotificationPublishOnce, NotificationPublishOutcome, NotificationReplace,
+    NotificationRetentionChange, NotificationSeen,
 };

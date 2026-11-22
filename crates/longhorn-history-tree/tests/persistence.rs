@@ -173,6 +173,38 @@ fn mutation_weight(codec_version: u32, body: &[u8]) -> u64 {
     u64::try_from(8 + body.len() + usize::from(codec_version == 2)).expect("fixture weight")
 }
 
+struct MutationPolicy {
+    codec_version: u32,
+}
+
+impl longhorn_history::HistoryPolicy<Mutation> for MutationPolicy {
+    type Error = Infallible;
+
+    fn inverse(&self, payload: &Mutation) -> Result<Mutation, Self::Error> {
+        Ok(Mutation {
+            delta: -payload.delta,
+            body: payload.body.clone(),
+        })
+    }
+
+    fn is_noop(&self, _payload: &Mutation) -> bool {
+        false
+    }
+
+    fn encoded_weight(&self, payload: &Mutation) -> Result<u64, Self::Error> {
+        Ok(mutation_weight(self.codec_version, &payload.body))
+    }
+
+    fn coalesce(
+        &self,
+        _previous: &Mutation,
+        _incoming: &Mutation,
+        _context: longhorn_history::HistoryCoalesceContext<'_>,
+    ) -> Result<longhorn_history::HistoryCoalesce<Mutation>, Self::Error> {
+        Ok(longhorn_history::HistoryCoalesce::KeepSeparate)
+    }
+}
+
 fn record(
     graph: &mut ForkHistory<Mutation>,
     id: &str,
@@ -180,16 +212,17 @@ fn record(
     codec_version: u32,
     divergent_branch: Option<ForkBranchSeed>,
 ) {
-    let encoded_weight = mutation_weight(codec_version, &payload.body);
     graph
-        .record_applied(ForkRecord::new(
-            graph.revision(),
-            entry_id(id),
-            metadata(id),
-            encoded_weight,
-            payload,
-            divergent_branch,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id(id),
+                metadata(id),
+                payload,
+                divergent_branch,
+            ),
+            &MutationPolicy { codec_version },
+        )
         .expect("fixture record");
 }
 
@@ -834,16 +867,17 @@ fn a_supplied_recorded_at_round_trips() {
         branch_metadata("Main", true),
     );
     let payload = mutation(1, b"alpha");
-    let encoded_weight = mutation_weight(1, &payload.body);
     graph
-        .record_applied(ForkRecord::new(
-            graph.revision(),
-            entry_id("entry:a"),
-            metadata("Stamped").with_recorded_at(stamped),
-            encoded_weight,
-            payload,
-            None,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id("entry:a"),
+                metadata("Stamped").with_recorded_at(stamped),
+                payload,
+                None,
+            ),
+            &MutationPolicy { codec_version: 1 },
+        )
         .expect("record stamped entry");
 
     let encoded = persistence_v1().encode(&graph).expect("encode stamped");
@@ -970,4 +1004,168 @@ proptest! {
                 .expect("a re-encoded graph must re-load");
         }
     }
+}
+
+#[test]
+fn tree_record_derives_weight_from_policy_and_rejects_wrong_weight_at_encode_or_policy_error() {
+    struct FailingWeightPolicy;
+    impl longhorn_history::HistoryPolicy<Mutation> for FailingWeightPolicy {
+        type Error = &'static str;
+        fn inverse(&self, payload: &Mutation) -> Result<Mutation, Self::Error> {
+            Ok(payload.clone())
+        }
+        fn is_noop(&self, _: &Mutation) -> bool {
+            false
+        }
+        fn encoded_weight(&self, _: &Mutation) -> Result<u64, Self::Error> {
+            Err("unmeasurable payload")
+        }
+        fn coalesce(
+            &self,
+            _: &Mutation,
+            _: &Mutation,
+            _: longhorn_history::HistoryCoalesceContext<'_>,
+        ) -> Result<longhorn_history::HistoryCoalesce<Mutation>, Self::Error> {
+            Ok(longhorn_history::HistoryCoalesce::KeepSeparate)
+        }
+    }
+
+    struct WrongWeightPolicy;
+    impl longhorn_history::HistoryPolicy<Mutation> for WrongWeightPolicy {
+        type Error = Infallible;
+        fn inverse(&self, payload: &Mutation) -> Result<Mutation, Self::Error> {
+            Ok(payload.clone())
+        }
+        fn is_noop(&self, _: &Mutation) -> bool {
+            false
+        }
+        fn encoded_weight(&self, _: &Mutation) -> Result<u64, Self::Error> {
+            Ok(999)
+        }
+        fn coalesce(
+            &self,
+            _: &Mutation,
+            _: &Mutation,
+            _: longhorn_history::HistoryCoalesceContext<'_>,
+        ) -> Result<longhorn_history::HistoryCoalesce<Mutation>, Self::Error> {
+            Ok(longhorn_history::HistoryCoalesce::KeepSeparate)
+        }
+    }
+
+    let mut graph = ForkHistory::new(
+        history_id("history:weight-check"),
+        branch_id("branch:main"),
+        branch_metadata("Main", true),
+    );
+    let before = graph.clone();
+    let error = graph
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id("entry:fail"),
+                metadata("fail"),
+                mutation(1, b"abc"),
+                None,
+            ),
+            &FailingWeightPolicy,
+        )
+        .expect_err("policy error rejects record without mutating");
+    assert_eq!(
+        error,
+        longhorn_history_tree::ForkHistoryError::Policy("unmeasurable payload")
+    );
+    assert_eq!(graph, before);
+
+    // Matching policy derives exact codec weight and encodes cleanly.
+    graph
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id("entry:ok"),
+                metadata("ok"),
+                mutation(1, b"abc"),
+                None,
+            ),
+            &MutationPolicy { codec_version: 1 },
+        )
+        .expect("matching policy records");
+    assert_eq!(graph.retained_encoded_weight(), 11);
+    persistence_v1()
+        .encode(&graph)
+        .expect("policy-derived weight matches codec");
+
+    // A buggy policy that disagrees with the codec is caught at encode.
+    let mut mismatched = ForkHistory::new(
+        history_id("history:weight-mismatch"),
+        branch_id("branch:main"),
+        branch_metadata("Main", true),
+    );
+    mismatched
+        .record_applied(
+            ForkRecord::new(
+                mismatched.revision(),
+                entry_id("entry:bad"),
+                metadata("bad"),
+                mutation(1, b"abc"),
+                None,
+            ),
+            &WrongWeightPolicy,
+        )
+        .expect("buggy policy records its reported weight");
+    assert!(matches!(
+        persistence_v1().encode(&mismatched),
+        Err(
+            longhorn_history_tree::ForkEncodeError::PayloadWeightMismatch {
+                recorded: 999,
+                actual: 11,
+                ..
+            }
+        )
+    ));
+}
+
+#[test]
+fn payload_migration_failure_is_distinct_from_payload_decode_failure() {
+    struct FailingMigrationCodec;
+    impl HistoryPayloadCodec<Mutation> for FailingMigrationCodec {
+        type Error = CodecError;
+        fn family(&self) -> &HistoryPayloadCodecFamily {
+            static FAMILY: std::sync::OnceLock<HistoryPayloadCodecFamily> =
+                std::sync::OnceLock::new();
+            FAMILY.get_or_init(|| {
+                HistoryPayloadCodecFamily::new("fixture.fork-mutation").expect("family")
+            })
+        }
+        fn version(&self) -> HistoryPayloadCodecVersion {
+            HistoryPayloadCodecVersion::new(2)
+        }
+        fn encode(&self, _payload: &Mutation) -> Result<Vec<u8>, Self::Error> {
+            Ok(Vec::new())
+        }
+        fn decode(&self, _bytes: &[u8]) -> Result<Mutation, Self::Error> {
+            Err(CodecError::Short)
+        }
+        fn migrate_one(
+            &self,
+            _from: HistoryPayloadCodecVersion,
+            _bytes: Vec<u8>,
+            _target: HistoryPayloadMigrationTarget<'_>,
+        ) -> Result<Option<HistoryPayloadMigrationStep>, Self::Error> {
+            Err(CodecError::Checksum)
+        }
+    }
+
+    let (source_graph, bytes_v1) = encoded_v1();
+    let persistence =
+        ForkPersistence::without_structural_migration(FailingMigrationCodec, limits());
+    let error = persistence
+        .load(source_graph.history_id(), &bytes_v1)
+        .expect_err("migration failure must classify as PayloadMigration");
+    assert!(matches!(
+        error,
+        ForkLoadError::PayloadMigration {
+            error: CodecError::Checksum,
+            ..
+        }
+    ));
 }

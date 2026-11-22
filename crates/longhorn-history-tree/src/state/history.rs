@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
-use longhorn_history::{HistoryEntrySequence, MAXIMUM_HISTORY_ENCODED_WEIGHT};
+use longhorn_history::{HistoryEntrySequence, HistoryPolicy, MAXIMUM_HISTORY_ENCODED_WEIGHT};
 
 use crate::{
     ForkBranch, ForkBranchId, ForkBranchMetadata, ForkCheckpoint, ForkCheckpointId,
@@ -297,10 +297,28 @@ impl<P> ForkHistory<P> {
     }
 
     /// Records one already-applied mutation without deleting alternate futures.
-    pub fn record_applied(
+    ///
+    /// Derives the node's exact encoded weight from `policy` rather than
+    /// trusting a caller-supplied number.
+    ///
+    /// # Errors
+    ///
+    /// Rejects without mutating the graph on stale revision, duplicate entry or
+    /// branch identity, missing or unexpected divergent branch seed, policy
+    /// failure, or hard ceiling exhaustion ([`ForkHistoryError::NodeLimitReached`],
+    /// [`ForkHistoryError::BranchLimitReached`],
+    /// [`ForkHistoryError::EncodedWeightLimitExceeded`]). Because recording runs
+    /// after the consumer applied its product mutation, consumers that want to
+    /// avoid post-apply rejection must check capacity or prune before applying,
+    /// or roll back / enter recovery on error.
+    pub fn record_applied<T>(
         &mut self,
         record: ForkRecord<P>,
-    ) -> Result<ForkRecordReceipt, ForkHistoryError> {
+        policy: &T,
+    ) -> Result<ForkRecordReceipt, ForkHistoryError<T::Error>>
+    where
+        T: HistoryPolicy<P>,
+    {
         if record.expected_revision != self.revision {
             return Err(ForkHistoryError::StaleRevision {
                 expected: record.expected_revision,
@@ -341,6 +359,9 @@ impl<P> ForkHistory<P> {
             (false, None) => None,
         };
 
+        let encoded_weight = policy
+            .encoded_weight(&record.payload)
+            .map_err(ForkHistoryError::Policy)?;
         let committed_revision = self
             .revision
             .checked_next()
@@ -351,13 +372,11 @@ impl<P> ForkHistory<P> {
             .map_err(|_| ForkHistoryError::SequenceOverflow)?;
         let retained_encoded_weight = self
             .retained_encoded_weight
-            .checked_add(record.encoded_weight)
+            .checked_add(encoded_weight)
             .filter(|weight| *weight <= MAXIMUM_HISTORY_ENCODED_WEIGHT)
             .ok_or(ForkHistoryError::EncodedWeightLimitExceeded {
                 maximum: MAXIMUM_HISTORY_ENCODED_WEIGHT,
-                requested: self
-                    .retained_encoded_weight
-                    .saturating_add(record.encoded_weight),
+                requested: self.retained_encoded_weight.saturating_add(encoded_weight),
             })?;
 
         let branch_id = if let Some((branch_id, metadata)) = new_branch {
@@ -378,7 +397,7 @@ impl<P> ForkHistory<P> {
             record.metadata,
             self.next_sequence,
             committed_revision,
-            record.encoded_weight,
+            encoded_weight,
             record.payload,
         );
         self.nodes.insert(entry_id.clone(), node);

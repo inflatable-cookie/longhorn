@@ -1,6 +1,10 @@
 //! Validated mutable authority for one finite retained notification ledger.
 
-use longhorn_core::{NotificationAuthorityId, NotificationId, NotificationLedgerRevision};
+use std::collections::{BTreeMap, VecDeque};
+
+use longhorn_core::{
+    NotificationAuthorityId, NotificationId, NotificationLedgerRevision, NotificationProducerToken,
+};
 
 use crate::{
     NotificationAuthorityCursor, NotificationAuthorityEpoch, NotificationLedgerError,
@@ -19,6 +23,8 @@ pub struct NotificationLedger {
     pub(crate) limits: NotificationLedgerLimits,
     pub(crate) records: Vec<NotificationRecord>,
     pub(crate) pruned_count: u64,
+    pub(crate) remembered_producer_tokens: VecDeque<NotificationProducerToken>,
+    pub(crate) remembered_producer_token_ids: BTreeMap<NotificationProducerToken, NotificationId>,
 }
 
 impl NotificationLedger {
@@ -36,6 +42,8 @@ impl NotificationLedger {
             limits,
             records: Vec::new(),
             pruned_count: 0,
+            remembered_producer_tokens: VecDeque::new(),
+            remembered_producer_token_ids: BTreeMap::new(),
         }
     }
 

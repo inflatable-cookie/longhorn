@@ -1,6 +1,6 @@
 use longhorn_core::{OperationCatalogueRevision, OperationId, OperationRevision};
 
-use crate::{OperationAuthorityCursor, OperationRemoval, OperationState};
+use crate::{OperationAuthorityCursor, OperationRecord, OperationRemoval, OperationState};
 
 /// Whether a consumer executor accepts cancellation requests.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -11,16 +11,29 @@ pub enum OperationCancellationSupport {
     Unsupported,
 }
 
+/// Whether consumer admission confirms a queued operation never started executing.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum QueuedCancellationConfirmation {
+    /// Execution start is not confirmed absent; accepted queued work enters
+    /// [`OperationState::Cancelling`] and waits for executor confirmation.
+    #[default]
+    Unconfirmed,
+    /// Consumer admission confirms execution never started, permitting
+    /// immediate terminal [`OperationState::Cancelled`] when still queued.
+    ConfirmedUnstarted,
+}
+
 /// Revision-bound cancellation request.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationCancellationRequest {
     pub(crate) authority: OperationAuthorityCursor,
     pub(crate) operation_id: OperationId,
     pub(crate) expected_operation_revision: OperationRevision,
+    pub(crate) queued_confirmation: QueuedCancellationConfirmation,
 }
 
 impl OperationCancellationRequest {
-    /// Constructs a cancellation request.
+    /// Constructs a cancellation request without confirming unstarted queued admission.
     #[must_use]
     pub const fn new(
         authority: OperationAuthorityCursor,
@@ -31,7 +44,24 @@ impl OperationCancellationRequest {
             authority,
             operation_id,
             expected_operation_revision,
+            queued_confirmation: QueuedCancellationConfirmation::Unconfirmed,
         }
+    }
+
+    /// Sets whether consumer admission confirmed that queued work never started.
+    #[must_use]
+    pub const fn with_queued_confirmation(
+        mut self,
+        confirmation: QueuedCancellationConfirmation,
+    ) -> Self {
+        self.queued_confirmation = confirmation;
+        self
+    }
+
+    /// Returns the queued-execution confirmation supplied with this request.
+    #[must_use]
+    pub const fn queued_confirmation(&self) -> QueuedCancellationConfirmation {
+        self.queued_confirmation
     }
 }
 
@@ -51,6 +81,7 @@ pub enum OperationCancellationOutcome {
 /// Receipt for cancellation admission. Acceptance is not executor completion.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationCancellationReceipt {
+    pub(crate) operation: OperationRecord,
     pub(crate) operation_id: OperationId,
     pub(crate) outcome: OperationCancellationOutcome,
     pub(crate) previous_state: OperationState,
@@ -63,6 +94,13 @@ pub struct OperationCancellationReceipt {
 }
 
 impl OperationCancellationReceipt {
+    /// Returns the authoritative post-admission operation record, preserved
+    /// even if terminal retention evicted it during the same commit.
+    #[must_use]
+    pub const fn operation(&self) -> &OperationRecord {
+        &self.operation
+    }
+
     /// Returns the target operation.
     #[must_use]
     pub const fn operation_id(&self) -> &OperationId {

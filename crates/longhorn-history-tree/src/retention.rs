@@ -1,5 +1,6 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    cmp::Reverse,
+    collections::{BTreeMap, BTreeSet, BinaryHeap, HashSet},
     error::Error,
     fmt,
 };
@@ -371,8 +372,8 @@ impl<P> ForkHistory<P> {
     /// checkpoints and branch heads that pointed here.
     fn remove_in_leaf_order(&mut self, order: Vec<HistoryEntryId>) -> Removal {
         let mut pruned_nodes = Vec::with_capacity(order.len());
-        let mut removed_branches = Vec::new();
-        let mut removed_checkpoints = Vec::new();
+        let mut removed_set = HashSet::with_capacity(order.len());
+        let mut affected_parents = BTreeSet::new();
         let mut retained_encoded_weight = self.retained_encoded_weight;
 
         for entry_id in order {
@@ -381,54 +382,68 @@ impl<P> ForkHistory<P> {
                 .remove(&entry_id)
                 .expect("pruning plan names retained nodes");
             let parent = node.parent_entry_id().cloned();
-            let removed_preference = self.preferred_children.get(&parent) == Some(&entry_id);
-            let mut replacement_preference = None;
-            if let Some(children) = self.children.get_mut(&parent) {
-                children.retain(|child| child != &entry_id);
-                if children.is_empty() {
-                    self.children.remove(&parent);
-                } else if removed_preference {
-                    replacement_preference = children.last().cloned();
-                }
-            }
+            affected_parents.insert(parent);
             self.children.remove(&Some(entry_id.clone()));
             self.preferred_children.remove(&Some(entry_id.clone()));
-            self.preferred_children
-                .retain(|_, child| child != &entry_id);
-            if let Some(replacement) = replacement_preference {
-                self.preferred_children.insert(parent, replacement);
-            }
-
-            let checkpoint_ids: Vec<_> = self
-                .checkpoints
-                .values()
-                .filter(|checkpoint| checkpoint.after_entry_id() == Some(&entry_id))
-                .map(|checkpoint| checkpoint.checkpoint_id().clone())
-                .collect();
-            for checkpoint_id in checkpoint_ids {
-                self.checkpoints.remove(&checkpoint_id);
-                removed_checkpoints.push(checkpoint_id);
-            }
-
-            let branch_ids: Vec<_> = self
-                .branches
-                .values()
-                .filter(|branch| branch.head_entry_id() == Some(&entry_id))
-                .map(|branch| branch.branch_id().clone())
-                .collect();
-            for branch_id in branch_ids {
-                self.branches.remove(&branch_id);
-                removed_branches.push(branch_id);
-            }
             retained_encoded_weight = retained_encoded_weight
                 .checked_sub(node.encoded_weight())
                 .expect("pruned node weight is retained");
+            removed_set.insert(entry_id.clone());
             pruned_nodes.push(ForkPrunedNode {
                 entry_id,
                 sequence: node.sequence(),
                 encoded_weight: node.encoded_weight(),
             });
         }
+
+        // Repair each affected parent's child list and preferred child once in O(deg)
+        // rather than scanning per removed node.
+        for parent in affected_parents {
+            let mut removed_preference = false;
+            if let Some(preferred) = self.preferred_children.get(&parent)
+                && removed_set.contains(preferred)
+            {
+                removed_preference = true;
+            }
+            let mut replacement_preference = None;
+            if let Some(children) = self.children.get_mut(&parent) {
+                children.retain(|child| !removed_set.contains(child));
+                if children.is_empty() {
+                    self.children.remove(&parent);
+                } else if removed_preference {
+                    replacement_preference = children.last().cloned();
+                }
+            }
+            if removed_preference {
+                if let Some(replacement) = replacement_preference {
+                    self.preferred_children.insert(parent, replacement);
+                } else {
+                    self.preferred_children.remove(&parent);
+                }
+            }
+        }
+
+        let mut removed_checkpoints = Vec::new();
+        self.checkpoints.retain(|checkpoint_id, checkpoint| {
+            let remove = checkpoint
+                .after_entry_id()
+                .is_some_and(|entry_id| removed_set.contains(entry_id));
+            if remove {
+                removed_checkpoints.push(checkpoint_id.clone());
+            }
+            !remove
+        });
+
+        let mut removed_branches = Vec::new();
+        self.branches.retain(|branch_id, branch| {
+            let remove = branch
+                .head_entry_id()
+                .is_some_and(|entry_id| removed_set.contains(entry_id));
+            if remove {
+                removed_branches.push(branch_id.clone());
+            }
+            !remove
+        });
 
         removed_branches.sort();
         removed_checkpoints.sort();
@@ -442,6 +457,29 @@ impl<P> ForkHistory<P> {
 
     fn protected_lineage(&self) -> Result<BTreeSet<HistoryEntryId>, ForkRetentionError> {
         let mut protected = BTreeSet::new();
+        // Walk each protected head upward only until the first already-protected
+        // ancestor. Because protection is ancestor-closed, every node in the
+        // graph is visited at most once across all pinned branches (O(N + B)).
+        let mut mark_ancestors =
+            |start: Option<&HistoryEntryId>| -> Result<(), ForkRetentionError> {
+                let mut current = start;
+                let mut steps = 0usize;
+                while let Some(entry_id) = current {
+                    if !protected.insert(entry_id.clone()) {
+                        break;
+                    }
+                    if steps >= self.nodes.len() {
+                        return Err(ForkRetentionError::InvalidTopology);
+                    }
+                    let node = self
+                        .nodes
+                        .get(entry_id)
+                        .ok_or(ForkRetentionError::InvalidTopology)?;
+                    current = node.parent_entry_id();
+                    steps += 1;
+                }
+                Ok(())
+            };
         // Pinned and current only. A name used to imply protection, from when
         // a name meant an operator had typed one; auto-naming turned that into
         // "protect everything", which is why a fully-named graph could never
@@ -449,15 +487,9 @@ impl<P> ForkHistory<P> {
         for branch in self.branches.values().filter(|branch| {
             branch.branch_id() == &self.current_branch_id || branch.metadata().pinned()
         }) {
-            protected.extend(
-                self.lineage(branch.head_entry_id())
-                    .map_err(|_| ForkRetentionError::InvalidTopology)?,
-            );
+            mark_ancestors(branch.head_entry_id())?;
         }
-        protected.extend(
-            self.lineage(self.current_node_id.as_ref())
-                .map_err(|_| ForkRetentionError::InvalidTopology)?,
-        );
+        mark_ancestors(self.current_node_id.as_ref())?;
         Ok(protected)
     }
 
@@ -467,8 +499,7 @@ impl<P> ForkHistory<P> {
         protected: &BTreeSet<HistoryEntryId>,
         unprotected: UnprotectedShare,
     ) -> Vec<HistoryEntryId> {
-        let mut remaining: BTreeSet<_> = self.nodes.keys().cloned().collect();
-        let mut child_counts: BTreeMap<_, usize> = self
+        let mut child_counts: BTreeMap<&HistoryEntryId, usize> = self
             .nodes
             .keys()
             .map(|entry_id| {
@@ -476,9 +507,17 @@ impl<P> ForkHistory<P> {
                     .children
                     .get(&Some(entry_id.clone()))
                     .map_or(0, Vec::len);
-                (entry_id.clone(), count)
+                (entry_id, count)
             })
             .collect();
+        let mut leaves: BinaryHeap<Reverse<(HistoryEntrySequence, &HistoryEntryId)>> = self
+            .nodes
+            .iter()
+            .filter(|(entry_id, _)| !protected.contains(*entry_id))
+            .filter(|(entry_id, _)| child_counts.get(*entry_id).copied().unwrap_or(0) == 0)
+            .map(|(entry_id, node)| Reverse((node.sequence(), entry_id)))
+            .collect();
+
         // The budget bounds the unprotected share, not the graph. A protected
         // entry is a core record of the project, not a transient budgeted
         // thing, so pinning may grow a graph without bound and that is the
@@ -488,32 +527,26 @@ impl<P> ForkHistory<P> {
         let mut removals = Vec::new();
 
         while count > limits.maximum_entries() || weight > limits.maximum_encoded_weight() {
-            let candidate = remaining
-                .iter()
-                .filter(|entry_id| !protected.contains(*entry_id))
-                .filter(|entry_id| child_counts.get(*entry_id).copied().unwrap_or(0) == 0)
-                .min_by_key(|entry_id| {
-                    let node = self.nodes.get(*entry_id).expect("remaining node exists");
-                    (node.sequence(), (*entry_id).clone())
-                })
-                .cloned()
-                .expect(
-                    "an unprotected entry always has an unprotected leaf below it: protection \
-                     is by lineage, so the protected set is ancestor-closed and no unprotected \
-                     entry can have a protected descendant",
-                );
-            let node = self.nodes.get(&candidate).expect("candidate exists");
+            let Reverse((_, candidate)) = leaves.pop().expect(
+                "an unprotected entry always has an unprotected leaf below it: protection \
+                 is by lineage, so the protected set is ancestor-closed and no unprotected \
+                 entry can have a protected descendant",
+            );
+            let node = self.nodes.get(candidate).expect("candidate exists");
             count -= 1;
             weight = weight
                 .checked_sub(node.encoded_weight())
                 .expect("candidate weight is retained");
-            remaining.remove(&candidate);
             if let Some(parent) = node.parent_entry_id()
                 && let Some(child_count) = child_counts.get_mut(parent)
             {
                 *child_count -= 1;
+                if *child_count == 0 && !protected.contains(parent) {
+                    let parent_node = self.nodes.get(parent).expect("parent node exists");
+                    leaves.push(Reverse((parent_node.sequence(), parent)));
+                }
             }
-            removals.push(candidate);
+            removals.push(candidate.clone());
         }
         removals
     }
@@ -522,11 +555,17 @@ impl<P> ForkHistory<P> {
         &self,
         protected: &BTreeSet<HistoryEntryId>,
     ) -> Result<UnprotectedShare, ForkRetentionError> {
+        let protected_weight = self.protected_weight(protected)?;
         Ok(UnprotectedShare {
-            entry_count: self.nodes.len().saturating_sub(protected.len()),
+            entry_count: self
+                .nodes
+                .len()
+                .checked_sub(protected.len())
+                .expect("protected lineage is a subset of retained nodes"),
             encoded_weight: self
                 .retained_encoded_weight
-                .saturating_sub(self.protected_weight(protected)?),
+                .checked_sub(protected_weight)
+                .expect("protected lineage weight cannot exceed retained encoded weight"),
         })
     }
 
