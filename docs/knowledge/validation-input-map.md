@@ -340,6 +340,7 @@ Companions: none. Admission: unmarked but heavyweight. Release gate (`source`).
 `scripts/check-release-gates-alignment.ts`,
 `scripts/check-release-runner-tools.ts`,
 `scripts/check-changelog.ts`,
+`scripts/check-bun-deps.test.ts`,
 `scripts/verify-private-candidate-docs-card127.ts` and their `.test.ts`,
 `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`,
 `scripts/check-prototype-dependency-coverage.ts` and their tests,
@@ -412,10 +413,12 @@ Limits: not a substitute for dispatching `release.yml`.
 `package.json`, `bun.lock`, `packages/*/package.json`. Companion: every
 TypeScript gate. In `qa`.
 
-**`check:bun-deps`** — role: precondition. Fails when
-`node_modules/{typescript,svelte,@inflatable-cookie/poodle-core}` are absent.
-Nested inside `check:ts` and `check:svelte`. Owns `node_modules` presence,
-`package.json`, `bun.lock`. No independent entry in `qa`.
+**`check:bun-deps`** — role: precondition. When
+`node_modules/{typescript,svelte,@inflatable-cookie/poodle-core}` are absent,
+runs `bun install --frozen-lockfile` and rechecks those markers. Fails if the
+install fails or markers remain absent. Nested inside `check:ts` and
+`check:svelte`. Owns `node_modules` presence, `package.json`, `bun.lock`. No
+independent entry in `qa`.
 
 **`check:ts`** — role: typecheck. `bun x tsc -p` for each
 `packages/*/tsconfig.json` (currently `longhorn`, `longhorn-poodle-svelte`,
@@ -931,6 +934,7 @@ implementation as an owned input of its selector.
 | `scripts/verify-source-consumer.sh` | `release:source-consumer` |
 | `scripts/verify-private-candidate-docs-card127.ts` | `release:gates` (private-candidate) |
 | `scripts/verify-private-candidate-docs-card127.test.ts` | `test:release-tooling` |
+| `scripts/check-bun-deps.test.ts` | `test:release-tooling` |
 | any other `scripts/verify-*.ts` | unresolved until its owning selector is established |
 
 `examples/**` is not one rule either: `examples/*/src-tauri/**` and
