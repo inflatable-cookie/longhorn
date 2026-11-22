@@ -20,10 +20,11 @@ use std::{
 use longhorn_core::{CredentialSlot, CredentialStore, MemoryCredentialStore};
 use longhorn_git_workspace::{
     ACCESS_REFRESH_SKEW, AccessTokenResponse, CredentialScope, CredentialStoreReading,
-    DEFAULT_POLL_INTERVAL, DeviceFlowEndpoints, GITHUB_DEVICE_VERIFICATION_URL, GithubAuthFailure,
-    GithubAuthProgress, GithubTokenClient, MAX_DEVICE_WAIT, TOKEN_REQUEST_TIMEOUT, TokenClient,
-    TokenGrant, classify_token_exchange, force_refresh_token, fresh_access_token,
-    read_credential_presence, read_grant, run_device_flow, sign_out, write_grant,
+    DEFAULT_POLL_INTERVAL, DeviceCodeClient, DeviceCodeResponse, DeviceFlowEndpoints,
+    GITHUB_DEVICE_VERIFICATION_URL, GithubAuthFailure, GithubAuthProgress, GithubTokenClient,
+    MAX_DEVICE_WAIT, TOKEN_REQUEST_TIMEOUT, TokenClient, TokenGrant, classify_token_exchange,
+    force_refresh_token, fresh_access_token, read_credential_presence, read_grant, run_device_flow,
+    sign_out, write_grant,
 };
 use longhorn_git_workspace::{FixtureRoute, FixtureServer};
 use secrecy::{ExposeSecret as _, SecretString};
@@ -273,6 +274,36 @@ fn a_device_flow_succeeds_and_reports_only_the_code_and_verification_page() {
     );
     assert!(poll_bodies[0].contains("device_code=device-code-value"));
     assert!(!poll_bodies[0].contains("flow-access"));
+}
+
+#[test]
+fn device_flow_uses_both_application_transports() {
+    struct DeviceClient;
+    impl DeviceCodeClient for DeviceClient {
+        fn request_code(&self, client_id: &str) -> Result<DeviceCodeResponse, GithubAuthFailure> {
+            assert_eq!(client_id, CLIENT_ID);
+            Ok(DeviceCodeResponse {
+                device_code: "injected-device-code".to_owned(),
+                user_code: "TEST-CODE".to_owned(),
+                expires_in: 60,
+                interval: None,
+                verification_uri: None,
+            })
+        }
+    }
+    let token_client = FakeTokenClient::new(vec![Ok(token_response("access", "refresh", 3600))]);
+    let server = FixtureServer::spawn(Vec::new()).expect("a loopback listener");
+    let device_url = server.url(DEVICE_CODE_PATH);
+    let token_url = server.url(ACCESS_TOKEN_PATH);
+    let endpoints = DeviceFlowEndpoints::loopback_for_tests(&device_url, &token_url)
+        .expect("the loopback endpoints")
+        .with_clients(&DeviceClient, &token_client);
+
+    let grant = run_device_flow(CLIENT_ID, &endpoints, &AtomicBool::new(false), &mut |_| {})
+        .expect("the injected endpoints answer");
+    assert_eq!(grant.access_token.expose_secret(), "access");
+    assert_eq!(token_client.request_count(), 1);
+    assert!(server.requests().is_empty());
 }
 
 #[test]
@@ -759,26 +790,33 @@ fn concurrent_forced_refreshes_reuse_an_already_rotated_grant() {
 }
 
 #[test]
-fn a_bare_stored_value_is_read_as_an_access_token_and_cannot_be_refreshed() {
+fn a_corrupt_or_unsupported_grant_requires_sign_in_without_an_exchange() {
     let store = MemoryCredentialStore::new();
     let slot = test_slot();
-    store
-        .store(&slot, "legacy-access-token")
-        .expect("the stored value");
+    let scope = scope(&store, &slot);
     let client = FakeTokenClient::new(Vec::new());
     let now = SystemTime::now();
 
-    let token = fresh_access_token(&scope(&store, &slot), CLIENT_ID, &client, now, false, None)
-        .expect("the legacy value is used as it is")
-        .expect("a grant is stored");
-    assert_eq!(token.expose_secret(), "legacy-access-token");
-    assert_eq!(client.request_count(), 0);
-
-    let forced = fresh_access_token(&scope(&store, &slot), CLIENT_ID, &client, now, true, None);
-    assert_eq!(
-        forced.expect_err("no refresh token"),
-        GithubAuthFailure::SignInExpired
-    );
+    for raw in [
+        "",
+        "legacy-access-token",
+        r#"{"v":1,"refresh_token":"private-refresh""#,
+        r#"{"v":2,"access_token":"private-access","refresh_token":"private-refresh"}"#,
+        r#"{"v":1,"access_token":"  "}"#,
+    ] {
+        store.store(&slot, raw).expect("the stored value");
+        assert_eq!(
+            read_grant(&scope).unwrap_err(),
+            GithubAuthFailure::SignInExpired
+        );
+        for force in [false, true] {
+            assert_eq!(
+                fresh_access_token(&scope, CLIENT_ID, &client, now, force, None).unwrap_err(),
+                GithubAuthFailure::SignInExpired
+            );
+        }
+        assert_eq!(store.retrieve(&slot).unwrap().as_deref(), Some(raw));
+    }
     assert_eq!(client.request_count(), 0);
 }
 

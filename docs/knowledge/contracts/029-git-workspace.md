@@ -127,7 +127,7 @@ Free functions:
 - staging: `target_already_present`, `staging_parent`, `create_owned_staging`,
   `rename_exclusive`, `remove_owned_staging`;
 - classification and comparison: `is_https_github`, `classify_remote_failure`,
-  `RemoteAccessFailure`, `credential_bridge_configured`,
+  `RemoteAccessFailure`,
   `is_remote_credential_operation`, `remotes_match`, `remote_identity`,
   `remote_for_display`, `has_switch_blocking_dirt`;
 - output treatment: `redact_git_detail`, `FAILURE_DETAIL_BOUND`,
@@ -145,9 +145,10 @@ Part 5b's surface:
 - scope and vocabulary: `CredentialScope { store, slot }`,
   `GithubAuthFailure` (ten classes), `GithubAuthProgress` (two readings),
   `CredentialStoreReading` (`Missing`, `Present`, `Unavailable`);
-- device flow: `DeviceFlowEndpoints::{github, new, loopback_for_tests}`,
+- device flow: `DeviceFlowEndpoints::{github, new, loopback_for_tests, with_clients}`,
+  `DeviceCodeClient::request_code`, `DeviceCodeResponse`,
   `run_device_flow(client_id, endpoints, cancel, progress)`;
-- token exchange: the `TokenClient` trait, `AccessTokenResponse` fields,
+- token exchange: `TokenClient::{exchange, poll_device_code}`, `AccessTokenResponse` fields,
   `GithubTokenClient::{new, loopback_for_tests}`, `classify_token_exchange`;
 - the grant: `TokenGrant` with its four public fields, `read_grant`,
   `write_grant`, `read_credential_presence`, `sign_out`, `fresh_access_token`,
@@ -168,23 +169,29 @@ Part 5b's surface:
 - The program is the fixed name `git`, resolved on `PATH`, with an argument
   vector. No code path builds a shell string. A working folder is passed as
   `git -C <root>`.
-- The child environment sets `GIT_TERMINAL_PROMPT=0` and `LC_ALL=C` and removes
-  `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME` and
-  `GIT_COMMITTER_EMAIL`.
-- `GitPolicy::isolate` runs before the invocation credential is applied, so a
-  credential environment value wins.
-- A credential is applied only to `fetch`, `push` or `ls-remote` naming
-  `origin` on a GitHub remote over HTTP or HTTPS
-  (`is_remote_credential_operation`). Every other invocation, including a
-  status or a branch read on such a worktree, never asks the policy for one.
-- When a credential-scoped call fails and `classify_remote_failure` reads the
-  failure as `AuthenticationRequired`, the policy is asked once for a refreshed
-  credential and the call is retried once. A refusal to refresh keeps the
-  original failure. The retry runs under the same deadline as the first
-  attempt: a bounded call fixes its deadline when it starts, and that deadline
-  covers the origin lookup, both attempts and the policy's refresh. A refresh
-  that answers after the deadline, with a replacement or without one, reports
-  `GitFailure::TimedOut` without a retry.
+- Every child disables interactive prompts, ambient askpass and configured Git
+  credential helpers, including when the credential hook returns `Ok(None)`.
+  It uses `LC_ALL=C` and clears inherited Git identity, repository pointers,
+  `GIT_CONFIG_PARAMETERS` and the inherited environment-config block.
+- `GitPolicy::isolate` supplies the application's environment. The executor
+  appends the credential's config entries to that block and then appends the
+  helper reset. The same command setup serves probes, clone and worktree calls.
+- Credential discovery covers bare `fetch`, `push`, and `ls-remote` and their
+  supported explicit `origin` forms. Git resolves the default fetch remote.
+  For a bare push the order is the branch's push remote, the default push
+  remote, the branch's fetch remote, then Git's single-remote or origin
+  default. The executor reads effective push URLs, including `pushurl` and
+  rewrites. An invocation with multiple push URLs receives a credential only
+  when every URL belongs to GitHub over HTTPS. Status and branch reads never
+  ask for a credential.
+- Each askpass program checks the HTTPS host and port in the credential prompt
+  before returning credentials. A bridge token is for `github.com` on the
+  default HTTPS port. A caller-provided program is guarded for the invocation's
+  resolved HTTPS destination.
+- Only an HTTP credential rejection can trigger one refresh and retry. Local
+  permission errors and SSH failures never spend a refresh token. The
+  destination lookup, first attempt, refresh and retry share one deadline.
+  A refresh that answers after it reports `TimedOut` before starting Git again.
 - The wall clock bounds Git processes and their output, not caller code.
   `GitPolicy::credential` and `GitPolicy::refresh_credential` run
   synchronously on the calling thread and the mechanism cannot preempt them: a
@@ -208,15 +215,14 @@ Part 5b's surface:
   branch discovery, the attach comparison, the credential decision) take the
   exact bytes, because redaction would corrupt an identifier; the values they
   publish (`origin_url`) are redacted at the public boundary.
-- `Git::run` is the only bounded call. The child runs in its own process group
+- `Git::run` and the two remote probes are bounded. The child runs in its own process group
   on Unix, and its `timeout` covers both the wait and the drain. On reaching
   the bound the group is killed, the child is reaped and both readers are
   joined, so the returned `GitFailure::TimedOut` comes at the bound even when
   Git has already exited and a shell alias, a remote helper or another
   descendant still holds its output pipes: the call has not finished until that
-  output does. The readings in this part impose no wall clock; a caller that
-  needs one uses `run`, and a clone is bounded by its cancellation flag, which
-  kills the same process group.
+  output does. Other worktree readings impose no wall clock. A clone is
+  bounded by its cancellation flag, which kills the same process group.
 - Capture readers are joined on every exit, including a kill, so a call leaves
   no reader or child behind.
 
@@ -268,25 +274,23 @@ ends in `/HEAD`, is not a branch and is skipped.
 `CredentialHelperMissing`, `AuthenticationRequired`, `NetworkUnavailable`,
 `RepositoryUnavailable` and `Unavailable`. It matches the donor's phrases and
 its precedence: network and DNS first, then missing prompts and helpers, then
-refused credentials and permission, then repository availability.
+credential rejection and SSH authentication failures, then repository
+availability. A local permission error is `Unavailable`.
 
 `preflight_remote` is read-only: it runs
 `git ls-remote --heads -- <remote>` with no repository and no mutation, and
 returns only the classification. An unreachable or absent remote reads as
 `RepositoryUnavailable`.
 
-A GitHub remote over the HTTP or HTTPS client route — the donor treats both
-spellings alike — requires a supplied credential and is refused as
-`CredentialHelperMissing` before Git runs when none is supplied. Ambient
-credential helpers are never consulted: an isolation configuration carrying a
-`gh`-style URL-scoped helper changes nothing. What the machine has configured
-cannot make an uncredentialled remote readable, and cannot be used as a
-fallback.
+An HTTPS GitHub remote requires a supplied credential. With an empty
+credential argument, preflight reports `CredentialHelperMissing` before
+starting Git. It also disables helper and prompt fallback when probing other
+remotes.
 
-`push_capability` runs `git push --dry-run origin HEAD` in the worktree and
-classifies a refusal with the same vocabulary. `--dry-run` contacts the remote
-and resolves the ref without creating, updating or deleting anything on either
-side.
+`push_capability` runs `git push --dry-run origin HEAD` in the worktree.
+`--dry-run` resolves the ref without updating either side. Both probes
+have a fifteen-second Git budget and classify a timeout as
+`NetworkUnavailable`.
 
 ## Legacy Sync
 
@@ -443,8 +447,8 @@ own paths.
   (grant kept), a registration error, two concurrent callers causing one
   exchange, two forced refreshes reusing a rotated grant, a refresh whose
   exchange signs out (the slot stays empty) and one whose exchange completes a
-  new sign-in (that grant is adopted and kept), a bare stored value, the store
-  readings, sign-out, and the exchange classification. Values an endpoint or a
+  new sign-in (that grant is adopted and kept), corrupt and unsupported stored
+  grants, the store readings, sign-out, and the exchange classification. Values an endpoint or a
   store supplies that the clock cannot represent are proved not to panic: a
   stored grant with `u64::MAX` expiries reads as no declared expiry and still
   refreshes on a forced call, a token response with `u64::MAX` expiries stores
@@ -461,7 +465,8 @@ own paths.
   and unusable profile, an empty slot, and an identity read that refreshes.
   The askpass suite runs real `git`: the helper's answers through `git
   credential fill` for both prompts, owner-only permissions, the folder removed
-  with its bridge, a real fetch from a local bare remote through a bridge
+  after its last credential is dropped, rejection of foreign credential prompts,
+  a real fetch from a local bare remote through a bridge
   credential, a recorded child environment that carries the askpass values with
   no token in any argument, and a refresh-and-retry where the first fetch is
   refused by a scripted `ext::` program and the retried fetch brings the
@@ -491,11 +496,9 @@ are proved on a loopback server, so the `https` requirement of the production
 constructors is proved by refusal, not by a live TLS request. The flow's wait
 bound is proved at one second of declared wait, not at the 900-second ceiling.
 The body timeout is proved against a loopback server that sends headers and
-withholds the body, at the real ten-second clock. The credential store has no
-conditional write (contract 021), so a refresh closes the sign-out and new
-sign-in windows by re-reading the slot immediately before it writes; a
-sign-out that lands between that read and the write is the one window the crate
-cannot close.
+withholds the body, at the real ten-second clock. The process-wide grant write lock coordinates sign-out, sign-in and refresh
+writeback in this crate. External store writers still have no conditional
+write (contract 021).
 The askpass bridge and the commit identity are proved on the current host only,
 and the permission rules are checked on Unix. The token exists in `secrecy`
 memory in three places at once during an invocation — the refreshed grant, the
@@ -541,6 +544,11 @@ production constructors refuse anything but `https` with `NotConfigured`.
 `run_device_flow` posts `client_id` to the device-code endpoint. An empty
 client id is `NotConfigured`; 429 and 5xx are `Offline`; any other non-success
 status is `Failed`. The answer must name a device code and a user code.
+`DeviceFlowEndpoints::with_clients` supplies application-owned transports for
+both requests. The code request calls `DeviceCodeClient::request_code`, and
+each poll calls `TokenClient::poll_device_code` so pending and slow-down
+answers reach the flow. The endpoint constructors use the built-in HTTPS
+transport by default. Injected clients own their request timeouts and branding.
 
 The verification address reported to the application is always
 `GITHUB_DEVICE_VERIFICATION_URL`. A device response naming another address is
@@ -565,8 +573,8 @@ an endpoint's `interval` suggestion cannot panic the wait.
 The flow waits for the shorter of the device response's `expires_in` and
 `MAX_DEVICE_WAIT` (900 s). A wait that ends at that bound reports `TimedOut`
 instead of polling again, so a poll is never sent after the operator's window
-closed; an in-flight request keeps only its own `TOKEN_REQUEST_TIMEOUT`. It
-explores the caller's cancellation flag before the first request, before every
+closed. Built-in requests have a `TOKEN_REQUEST_TIMEOUT` wall clock. The flow
+checks the caller's cancellation flag before the first request, before every
 poll, and every 100 ms of a poll wait, and reports `Cancelled` when it is set.
 The mechanism never opens a browser: the application shows the code and opens
 the pinned page from its own action.
@@ -592,11 +600,9 @@ declaring an absurd number of seconds — is read as no declared expiry, which
 the grant already covers as "does not expire on its own". No duration that an
 endpoint or a store supplies panics the mechanism.
 
-A stored value that is not that document — not JSON, another version, or a
-blank access token — is read as a bare access token with no expiry and no
-refresh token. That is the shape an earlier build of the application wrote, and
-refusing it would strand a signed-in operator; a forced refresh on such a value
-is `SignInExpired`.
+Malformed JSON, unsupported versions and blank access tokens produce
+`SignInExpired`. Legacy plain tokens require a new sign-in. An empty slot
+returns `None`.
 
 Every read, write and removal goes through the caller's `CredentialStore` and
 `CredentialSlot`. A store failure is `CredentialStoreUnavailable`, never "not
@@ -628,9 +634,9 @@ grant is left in place.
 A refresh writes only over the grant it read. The exchange takes time and the
 store has no conditional write, so the slot can be emptied by `sign_out` or
 replaced by a new sign-in while it runs. The slot is read again after the
-exchange and the write is abandoned when it no longer holds this grant: a
-signed-out slot stays empty and the call reports no token, and a newer sign-in
-is adopted as it stands rather than overwritten by a stale refresh.
+exchange under the same write lock used for `sign_out` and `write_grant`.
+A signed-out slot stays empty and the call reports no token. A newer sign-in
+is adopted as it stands. The network request runs outside the write lock.
 
 A missing or expired refresh token is `SignInExpired` when the caller forced a
 refresh or the grant declares an access expiry; otherwise the stored token is
@@ -665,22 +671,20 @@ anything else is `NotConfigured`. The application supplies no program.
 `GitCredentialBridge::from_token` writes the crate's own helper program into a
 new temporary folder with owner-only permissions — folder and program both
 `0700` on Unix — keeps the token in `secrecy` memory, and refuses a blank token
-with `CredentialStoreUnavailable`. The folder exists for exactly that bridge's
-lifetime and is removed when it is dropped.
+with `CredentialStoreUnavailable`. The bridge and its invocation credentials
+share ownership of the folder. The last owner removes it.
 
-The helper prints the token for a password prompt and `x-access-token` for a
-username prompt, which is GitHub's token-authentication convention. It reads
-the named variable and holds no token itself.
+The helper accepts only an HTTPS Git credential prompt for `github.com`
+on the default port. It prints `x-access-token` for the username and the
+named environment variable's value for the password.
 
-`bridge.credential()` gives the invocation `GitCredential`: `GIT_ASKPASS`
-pointing at the helper, the named token variable, `GIT_TERMINAL_PROMPT=0`, and
-one environment-config entry that clears `credential.helper` for this child
-only, so a stale machine-wide helper never runs first. The credential's secret
-is the token, so every Git text the crate returns is redacted of it.
+`bridge.credential()` gives the invocation `GitCredential` its private
+`GIT_ASKPASS` program and token environment. Command setup disables other
+helpers. Apps using `env_vars()` on their own Git subprocesses supply their
+own isolation and clear `credential.helper` in their config block.
 
-The token never appears in a Git argument, a file, a log line, an error or a
-`Debug` output. It reaches Git only as the child environment value the helper
-prints, and the bridge must stay alive until the invocation finishes.
+The token reaches Git through the child environment. It stays out of the
+program file, Git arguments, returned diagnostics and `Debug` output.
 
 ### Commit identity
 
@@ -713,7 +717,7 @@ application calls it on sign-out.
 | Cancelled | `Cancelled` | the caller's flag |
 | Browser | `BrowserUnavailable` | never by this crate: the application's own browser step reports it into this vocabulary |
 | Unusable answer | `Failed` | a bad exchange, an unusable profile, a refresh without a refresh token |
-| Sign in again | `SignInExpired` | a missing, expired or refused refresh token; a 401 profile read |
+| Sign in again | `SignInExpired` | unreadable stored grant, missing, expired or refused refresh token, or 401 profile read |
 
 No variant carries a token, a response body or an account detail. The
 application maps a variant to its own copy.
@@ -793,9 +797,8 @@ Part 5b's deltas from `git/mechanism/auth.rs` at `4993376c`:
   `GitCommitIdentity` and `GithubCommitIdentityResolver` are public here; in
   the donor they were `pub(crate)` behind the application's facade.
 - `ensure_fresh` is folded into `fresh_access_token`; `serialize_grant`,
-  `parse_grant`, `form_body`, `form_encode`, `classify_device_error`,
-  `sleep_with_cancel` and the response types' fields that the exchange does not
-  need stay private.
+  `parse_grant`, `form_body`, `form_encode`, `classify_device_error` and
+  `wait_with_cancel` stay private.
 - Secrets use `secrecy::SecretString`, not `zeroize::Zeroizing<String>`:
   `TokenGrant`'s token fields are public and typed `SecretString`,
   `fresh_access_token` returns `Option<SecretString>`, `force_refresh_token`

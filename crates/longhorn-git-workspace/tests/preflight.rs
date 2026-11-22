@@ -6,8 +6,7 @@ mod support;
 use std::fs;
 
 use longhorn_git_workspace::{
-    GitCredential, RemoteAccessFailure, classify_remote_failure, credential_bridge_configured,
-    is_https_github,
+    GitCredential, RemoteAccessFailure, classify_remote_failure, is_https_github,
 };
 use support::{Fixture, Policy, handle, rewrite_env};
 
@@ -17,7 +16,7 @@ const GITHUB_REMOTE: &str = "https://github.com/example/content";
 fn github_over_https_is_the_one_credential_scoped_route() {
     assert!(is_https_github(GITHUB_REMOTE));
     assert!(is_https_github("HTTPS://GitHub.com/example/content"));
-    assert!(is_https_github("http://github.com/example/content"));
+    assert!(!is_https_github("http://github.com/example/content"));
     assert!(!is_https_github("git@github.com:example/content.git"));
     assert!(!is_https_github("ssh://git@github.com/example/content.git"));
     assert!(!is_https_github("https://gitlab.com/example/content"));
@@ -36,7 +35,6 @@ fn an_https_github_remote_without_a_credential_is_refused_before_git_runs() {
 
     assert_eq!(failure, RemoteAccessFailure::CredentialHelperMissing);
     assert!(policy.credential_calls().is_empty());
-    assert!(!credential_bridge_configured(None));
 }
 
 #[test]
@@ -129,7 +127,6 @@ fn a_supplied_credential_reaches_the_preflight() {
         rewrite_env(&fixture.remote, GITHUB_REMOTE),
         "controlled-secret",
     );
-    assert!(credential_bridge_configured(Some(&credential)));
 
     git.preflight_remote(GITHUB_REMOTE, Some(&credential))
         .expect("the credential rewrites the remote to a local repository");

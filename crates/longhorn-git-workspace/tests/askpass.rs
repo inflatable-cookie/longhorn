@@ -16,10 +16,7 @@ use std::{
     io::Write as _,
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    sync::{
-        Mutex,
-        atomic::{AtomicUsize, Ordering},
-    },
+    sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, SystemTime},
 };
 
@@ -56,33 +53,6 @@ fn askpass_path(credential: &GitCredential) -> PathBuf {
     PathBuf::from(value)
 }
 
-/// One bridge credential's environment, with the local substitute for the
-/// remote added to its Git environment-config block.
-///
-/// The substitute rides the credential because the mechanism applies the
-/// credential's environment after the application's isolation, and because
-/// `git remote get-url` would otherwise report the substitute rather than the
-/// GitHub remote the mechanism decides the credential on.
-fn with_substitute(credential: &GitCredential, rules: &[(String, String)]) -> GitCredential {
-    let mut env: Vec<(String, String)> = credential
-        .env_vars()
-        .iter()
-        .filter(|(key, _)| !key.starts_with("GIT_CONFIG_"))
-        .cloned()
-        .collect();
-    env.push(("GIT_CONFIG_COUNT".to_owned(), (rules.len() + 1).to_string()));
-    env.push((
-        "GIT_CONFIG_KEY_0".to_owned(),
-        "credential.helper".to_owned(),
-    ));
-    env.push(("GIT_CONFIG_VALUE_0".to_owned(), String::new()));
-    for (index, (key, value)) in rules.iter().enumerate() {
-        env.push((format!("GIT_CONFIG_KEY_{}", index + 1), key.clone()));
-        env.push((format!("GIT_CONFIG_VALUE_{}", index + 1), value.clone()));
-    }
-    GitCredential::new(env, credential.secret().expose_secret().to_owned())
-}
-
 /// The rule that points one remote at a local bare repository.
 fn file_rule(local: &Path, remote: &str) -> Vec<(String, String)> {
     vec![(
@@ -107,7 +77,11 @@ fn ext_rule(program: &Path, remote: &str) -> Vec<(String, String)> {
 }
 
 /// Runs `git credential fill` with one bridge credential, as Git would.
-fn credential_fill(fixture: &Fixture, credential: &GitCredential, input: &str) -> String {
+fn credential_fill(
+    fixture: &Fixture,
+    credential: &GitCredential,
+    input: &str,
+) -> std::process::Output {
     let mut command = Command::new("git");
     command
         .args(["credential", "fill"])
@@ -127,8 +101,11 @@ fn credential_fill(fixture: &Fixture, credential: &GitCredential, input: &str) -
         .expect("a writable standard input")
         .write_all(input.as_bytes())
         .expect("the credential input");
-    let output = child.wait_with_output().expect("Git answers");
-    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    child.wait_with_output().expect("Git answers")
+}
+
+fn filled(output: std::process::Output) -> String {
+    let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
         output.status.success(),
         "git credential fill failed: {stderr}"
@@ -154,57 +131,35 @@ fn the_credential_carries_the_askpass_environment_and_no_token_in_debug() {
         env.iter()
             .any(|(key, value)| key == "GIT_TERMINAL_PROMPT" && value == "0")
     );
-    // A stale machine-wide helper never runs before the bridge.
-    assert!(
-        env.iter()
-            .any(|(key, value)| key == "GIT_CONFIG_KEY_0" && value == "credential.helper")
-    );
-    assert!(
-        env.iter()
-            .any(|(key, value)| key == "GIT_CONFIG_VALUE_0" && value.is_empty())
-    );
     let debug = format!("{bridge:?} {credential:?}");
     assert!(!debug.contains(TOKEN), "{debug}");
     assert!(debug.contains("GitCredential"));
 }
 
 #[test]
-fn the_helper_is_owner_only_and_its_folder_is_removed_with_the_bridge() {
-    let path;
+fn the_helper_lives_until_its_last_credential_is_dropped() {
+    let credential = bridge().credential();
+    let path = askpass_path(&credential);
+    assert!(path.exists(), "the credential owns the helper");
+    #[cfg(unix)]
     {
-        let bridge = bridge();
-        let credential = bridge.credential();
-        path = askpass_path(&credential);
-        assert!(path.exists(), "the helper exists for the invocation");
-        let program = fs::read_to_string(&path).expect("a readable helper");
-        assert!(
-            program.contains(&format!("${{{TOKEN_ENV}:-}}")),
-            "{program}"
-        );
-        assert!(program.contains("x-access-token"));
-        assert!(!program.contains(TOKEN), "{program}");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt as _;
-            let program_mode = fs::metadata(&path)
-                .expect("the helper's metadata")
-                .permissions()
-                .mode()
-                & 0o777;
-            assert_eq!(program_mode, 0o700, "the helper is owner-only");
-            let folder = path.parent().expect("the private folder");
-            let folder_mode = fs::metadata(folder)
-                .expect("the folder's metadata")
-                .permissions()
-                .mode()
-                & 0o777;
-            assert_eq!(folder_mode, 0o700, "the folder is owner-only");
-        }
+        use std::os::unix::fs::PermissionsExt as _;
+        let program_mode = fs::metadata(&path)
+            .expect("the helper's metadata")
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(program_mode, 0o700, "the helper is owner-only");
+        let folder = path.parent().expect("the private folder");
+        let folder_mode = fs::metadata(folder)
+            .expect("the folder's metadata")
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(folder_mode, 0o700, "the folder is owner-only");
     }
-    assert!(
-        !path.exists(),
-        "the helper folder is removed with its bridge"
-    );
+    drop(credential);
+    assert!(!path.exists(), "the helper is removed after its last owner");
 }
 
 #[test]
@@ -213,8 +168,11 @@ fn the_helper_answers_both_of_gits_credential_prompts() {
     let bridge = bridge();
     let credential = bridge.credential();
 
-    let without_user =
-        credential_fill(&fixture, &credential, "protocol=https\nhost=github.com\n\n");
+    let without_user = filled(credential_fill(
+        &fixture,
+        &credential,
+        "protocol=https\nhost=github.com\n\n",
+    ));
     assert!(
         without_user.contains("username=x-access-token"),
         "{without_user}"
@@ -224,16 +182,46 @@ fn the_helper_answers_both_of_gits_credential_prompts() {
         "{without_user}"
     );
 
-    let with_user = credential_fill(
+    let with_user = filled(credential_fill(
         &fixture,
         &credential,
         "protocol=https\nhost=github.com\nusername=octocat\n\n",
-    );
+    ));
     assert!(with_user.contains("username=octocat"), "{with_user}");
     assert!(
         with_user.contains(&format!("password={TOKEN}")),
         "{with_user}"
     );
+}
+
+#[test]
+fn the_helper_refuses_other_protocols_hosts_ports_and_ambiguous_prompts() {
+    let fixture = Fixture::worktree();
+    let credential = bridge().credential();
+    for input in [
+        "protocol=http\nhost=github.com\n\n",
+        "protocol=https\nhost=github.com.example.test\n\n",
+        "protocol=https\nhost=github.com:8443\n\n",
+        "protocol=https\nhost=other.example.test\nusername=github.com/foo\n\n",
+    ] {
+        let output = credential_fill(&fixture, &credential, input);
+        assert!(!output.status.success(), "{input:?}");
+        assert!(output.stdout.is_empty(), "{input:?}");
+        assert!(!String::from_utf8_lossy(&output.stderr).contains(TOKEN));
+    }
+    let mut command = Command::new(askpass_path(&credential));
+    let output = command
+        .envs(
+            credential
+                .env_vars()
+                .iter()
+                .map(|(key, value)| (key, value)),
+        )
+        .arg("Unexpected password prompt")
+        .output()
+        .expect("the helper answers");
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
 }
 
 #[test]
@@ -256,12 +244,10 @@ fn a_real_fetch_reaches_a_local_remote_through_the_bridge_credential() {
     support::checked(&peer, &fixture.config, &["push", "origin", "main"]);
     let peer_head = support::checked(&peer, &fixture.config, &["rev-parse", "HEAD"]);
 
-    let bridge = bridge();
-    let credential = with_substitute(
-        &bridge.credential(),
-        &file_rule(&fixture.remote, GITHUB_REMOTE),
-    );
-    let policy = fixture.policy().with_supplied_credential(credential);
+    let policy = fixture
+        .policy()
+        .with_supplied_credential(bridge().credential())
+        .with_fetch_isolation(file_rule(&fixture.remote, GITHUB_REMOTE));
     let git = handle(&policy);
 
     let output = git
@@ -305,8 +291,10 @@ fn the_git_child_receives_the_bridge_environment_and_no_token_in_its_arguments()
     let bridge = bridge();
     let credential = bridge.credential();
     let helper = askpass_path(&credential);
-    let credential = with_substitute(&credential, &ext_rule(&recorder, GITHUB_REMOTE));
-    let policy = fixture.policy().with_supplied_credential(credential);
+    let policy = fixture
+        .policy()
+        .with_supplied_credential(credential)
+        .with_fetch_isolation(ext_rule(&recorder, GITHUB_REMOTE));
     let git = handle(&policy);
 
     let failure = git
@@ -352,7 +340,6 @@ struct RefreshingPolicy {
     client: RotatingClient,
     askpass: AskpassConfig,
     refresh_calls: AtomicUsize,
-    kept: Mutex<Vec<GitCredentialBridge>>,
 }
 
 impl RefreshingPolicy {
@@ -363,23 +350,14 @@ impl RefreshingPolicy {
         }
     }
 
-    fn bridge_for(
-        &self,
-        token: SecretString,
-        rules: &[(String, String)],
-    ) -> Result<GitCredential, GitFailure> {
+    fn bridge_for(&self, token: SecretString) -> Result<GitCredential, GitFailure> {
         let bridge = GitCredentialBridge::from_token(&self.askpass, token).map_err(|_| {
             GitFailure::Unavailable {
                 code: GitFailureCode::FetchFailed,
                 detail: "the askpass bridge could not be written".to_owned(),
             }
         })?;
-        let credential = with_substitute(&bridge.credential(), rules);
-        self.kept
-            .lock()
-            .expect("the kept bridges are not poisoned")
-            .push(bridge);
-        Ok(credential)
+        Ok(bridge.credential())
     }
 }
 
@@ -388,6 +366,14 @@ impl GitPolicy for RefreshingPolicy {
         command
             .env("GIT_CONFIG_GLOBAL", &self.config)
             .env("GIT_CONFIG_NOSYSTEM", "1");
+        if command.get_args().nth(2).is_some_and(|arg| arg == "fetch") {
+            let rules = if self.refresh_calls.load(Ordering::SeqCst) == 0 {
+                &self.refused_rule
+            } else {
+                &self.accepted_rule
+            };
+            support::configure(command, rules);
+        }
     }
 
     fn credential(&self, _remote: &str) -> Result<Option<GitCredential>, GitFailure> {
@@ -407,14 +393,14 @@ impl GitPolicy for RefreshingPolicy {
             code: GitFailureCode::FetchFailed,
             detail: "no GitHub sign-in is stored".to_owned(),
         })?;
-        self.bridge_for(token, &self.refused_rule).map(Some)
+        self.bridge_for(token).map(Some)
     }
 
     fn refresh_credential(&self, rejected: &GitCredential) -> Option<GitCredential> {
         self.refresh_calls.fetch_add(1, Ordering::SeqCst);
         let token = force_refresh_token(&self.scope(), CLIENT_ID, &self.client, rejected.secret())
             .ok()??;
-        self.bridge_for(token, &self.accepted_rule).ok()
+        self.bridge_for(token).ok()
     }
 }
 
@@ -491,7 +477,6 @@ fn a_rejected_bridge_credential_is_refreshed_once_and_the_fetch_retried() {
         },
         askpass: askpass(),
         refresh_calls: AtomicUsize::new(0),
-        kept: Mutex::new(Vec::new()),
     };
     let git = Git::new(&policy, support::redactor());
 
@@ -518,18 +503,6 @@ fn a_rejected_bridge_credential_is_refreshed_once_and_the_fetch_retried() {
         &["rev-parse", "origin/main"],
     );
     assert_eq!(fetched, peer_head, "the retry brought the peer's commit");
-
-    // Both bridges outlived their invocations, and both helpers were present
-    // while Git ran.
-    let kept = policy
-        .kept
-        .lock()
-        .expect("the kept bridges are not poisoned");
-    assert_eq!(kept.len(), 2);
-    for bridge in kept.iter() {
-        let credential = bridge.credential();
-        assert!(askpass_path(&credential).exists());
-    }
 }
 
 #[test]

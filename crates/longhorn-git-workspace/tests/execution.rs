@@ -3,7 +3,12 @@
 
 mod support;
 
-use std::time::{Duration, Instant};
+use std::{
+    fs,
+    path::Path,
+    process::Command,
+    time::{Duration, Instant},
+};
 
 use longhorn_git_workspace::{
     FAILURE_DETAIL_BOUND, Git, GitFailure, GitFailureCode, MAX_CAPTURED_OUTPUT_BYTES,
@@ -148,33 +153,212 @@ fn a_run_over_the_capture_bound_fails_instead_of_returning_a_partial_answer() {
 }
 
 #[test]
-fn only_a_remote_github_operation_asks_the_policy_for_a_credential() {
-    assert!(is_remote_credential_operation(&["fetch"], GITHUB_REMOTE));
+fn a_bare_fetch_to_a_non_origin_upstream_never_requests_the_origin_credential() {
+    let fixture = Fixture::worktree();
+    let root = &fixture.root;
+    let config = &fixture.config;
+    support::checked(
+        root,
+        config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    let upstream = fixture.remote.to_str().expect("fixture path");
+    support::checked(root, config, &["remote", "add", "upstream", upstream]);
+    support::checked(root, config, &["config", "branch.main.remote", "upstream"]);
+    let policy = fixture.policy();
+    handle(&policy)
+        .run(
+            root,
+            &["fetch"],
+            GitFailureCode::FetchFailed,
+            Duration::from_secs(15),
+        )
+        .expect("Git uses the local upstream");
+
+    assert!(policy.credential_calls().is_empty());
     assert!(is_remote_credential_operation(
         &["fetch", "--prune", "origin"],
         GITHUB_REMOTE
     ));
-    assert!(is_remote_credential_operation(
-        &["push", "--", "origin", "HEAD:refs/heads/main"],
-        GITHUB_REMOTE
-    ));
-    assert!(is_remote_credential_operation(
-        &["ls-remote", "--heads", "origin"],
-        GITHUB_REMOTE
-    ));
-    assert!(!is_remote_credential_operation(&["status"], GITHUB_REMOTE));
     assert!(!is_remote_credential_operation(
-        &["fetch", "--all"],
+        &["fetch", "--all", "origin"],
         GITHUB_REMOTE
     ));
     assert!(!is_remote_credential_operation(
-        &["fetch"],
-        "https://gitlab.com/example/content"
+        &["push", "upstream", "origin"],
+        GITHUB_REMOTE
     ));
-    assert!(!is_remote_credential_operation(
-        &["fetch"],
-        "git@github.com:example/content.git"
-    ));
+}
+
+#[test]
+fn a_push_remotes_override_and_a_foreign_pushurl_both_exclude_the_origin_credential() {
+    let fixture = Fixture::worktree();
+    let root = &fixture.root;
+    let config = &fixture.config;
+    let local = fixture.remote.to_str().expect("fixture path");
+    support::checked(
+        root,
+        config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    support::checked(root, config, &["remote", "add", "publisher", local]);
+    support::checked(
+        root,
+        config,
+        &["config", "branch.main.pushRemote", "publisher"],
+    );
+    support::checked(root, config, &["config", "push.default", "current"]);
+    let policy = fixture.policy();
+    let git = handle(&policy);
+
+    git.run(
+        root,
+        &["push"],
+        GitFailureCode::PushFailed,
+        Duration::from_secs(15),
+    )
+    .expect("the branch push remote is local");
+    support::checked(
+        root,
+        config,
+        &["remote", "set-url", "--push", "origin", local],
+    );
+    git.push_capability(root).expect("origin pushurl is local");
+    assert!(policy.credential_calls().is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn a_none_credential_cannot_use_ambient_credentials() {
+    let fixture = Fixture::worktree();
+    let marker = fixture.temp.path().join("ambient-called");
+    let helper = support::script(
+        fixture.temp.path(),
+        "ambient-helper",
+        &format!(
+            "touch '{}'
+printf '%s\n' username=ambient password=ambient",
+            marker.display()
+        ),
+    );
+    let recorder = support::script(
+        fixture.temp.path(),
+        "fill-credential",
+        "printf 'protocol=https\nhost=github.com\n\n' | git credential fill",
+    );
+    fs::write(
+        &fixture.config,
+        format!(
+            "[credential \"https://github.com\"]
+    helper = {}
+[core]
+    askPass = {}
+",
+            helper.display(),
+            helper.display()
+        ),
+    )
+    .expect("the ambient helper configuration");
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    let policy = fixture.policy().with_fetch_isolation(vec![
+        (
+            format!("url.ext::{}.insteadOf", recorder.display()),
+            GITHUB_REMOTE.to_owned(),
+        ),
+        ("protocol.ext.allow".to_owned(), "always".to_owned()),
+    ]);
+    let failure = handle(&policy)
+        .run(
+            &fixture.root,
+            &["fetch", "origin"],
+            GitFailureCode::FetchFailed,
+            Duration::from_secs(15),
+        )
+        .expect_err("no credential can be supplied");
+    assert_eq!(policy.credential_calls(), vec![GITHUB_REMOTE.to_owned()]);
+    assert!(
+        failure.detail().contains("terminal prompts disabled"),
+        "{failure}"
+    );
+    assert!(!marker.exists());
+}
+
+#[test]
+fn inherited_git_dir_cannot_replace_the_requested_worktree() {
+    const ROOT: &str = "LONGHORN_INHERITED_GIT_DIR_TEST_ROOT";
+    const CONFIG: &str = "LONGHORN_INHERITED_GIT_DIR_TEST_CONFIG";
+    if let Some(root) = std::env::var_os(ROOT) {
+        let root = Path::new(&root);
+        let config = std::env::var_os(CONFIG).expect("fixture config");
+        let policy = support::Policy::isolated(Path::new(&config));
+        let actual = handle(&policy)
+            .run(
+                root,
+                &["rev-parse", "--show-toplevel"],
+                GitFailureCode::StatusFailed,
+                Duration::from_secs(15),
+            )
+            .expect("Git found the requested worktree");
+        assert_eq!(
+            Path::new(&actual).canonicalize().unwrap(),
+            root.canonicalize().unwrap()
+        );
+        return;
+    }
+
+    let fixture = Fixture::worktree();
+    let foreign = fixture.peer();
+    let output = Command::new(std::env::current_exe().expect("the current test binary"))
+        .args([
+            "--exact",
+            "inherited_git_dir_cannot_replace_the_requested_worktree",
+        ])
+        .env(ROOT, &fixture.root)
+        .env(CONFIG, &fixture.config)
+        .env("GIT_DIR", foreign.join(".git"))
+        .env("GIT_WORK_TREE", &foreign)
+        .env("GIT_CONFIG_PARAMETERS", "'invalid injection'")
+        .output()
+        .expect("the subprocess test runs");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_local_permission_failure_does_not_refresh_the_credential() {
+    let fixture = Fixture::worktree();
+    support::checked(
+        &fixture.root,
+        &fixture.config,
+        &["remote", "set-url", "origin", GITHUB_REMOTE],
+    );
+    let refusal = support::script(
+        fixture.temp.path(),
+        "refuse-local",
+        "echo 'fatal: cannot open .git/FETCH_HEAD: Permission denied' >&2
+exit 1",
+    );
+    let policy = fixture
+        .policy()
+        .with_credential(ext_remote_env(&refusal, GITHUB_REMOTE), "access-token");
+    let failure = handle(&policy)
+        .run(
+            &fixture.root,
+            &["fetch", "origin"],
+            GitFailureCode::FetchFailed,
+            Duration::from_secs(15),
+        )
+        .expect_err("the local file is unreadable");
+    assert!(failure.detail().contains("Permission denied"), "{failure}");
+    assert_eq!(policy.refresh_calls(), 0);
 }
 
 #[test]

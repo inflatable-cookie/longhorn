@@ -13,6 +13,7 @@
 //! secret, and a failure's detail is cut to [`FAILURE_DETAIL_BOUND`].
 
 use std::{
+    ffi::OsString,
     io::{self, Read},
     path::Path,
     process::{Child, Command, ExitStatus, Stdio},
@@ -24,11 +25,13 @@ use std::{
 use longhorn_redact::{RedactionRules, Redactor};
 use longhorn_support_log::{TailBounds, bound_field, bounded_tail};
 use secrecy::ExposeSecret as _;
+use tempfile::TempDir;
 
 use crate::{
+    askpass::{ASKPASS_DELEGATE, guarded_delegate},
     failure::{GitFailure, GitFailureCode},
     policy::{GitCredential, GitPolicy},
-    preflight::{RemoteAccessFailure, classify_remote_failure, is_https_github},
+    preflight::{is_https_github, is_rejected_credential},
 };
 
 /// Most bytes retained from Git's standard output by one invocation.
@@ -120,11 +123,6 @@ impl<'a> Git<'a> {
         &self.redactor
     }
 
-    /// Applies the caller's isolation to one command this crate builds itself.
-    pub(crate) fn isolate(&self, command: &mut Command) {
-        self.policy.isolate(command);
-    }
-
     /// One non-mutating probe. `Ok(None)` means Git ran and refused; `Err`
     /// means it could not run or its answer could not be trusted.
     pub(crate) fn run_git_probe(
@@ -142,21 +140,21 @@ impl<'a> Git<'a> {
         Ok(Some(stdout(&process.capture.stdout)))
     }
 
-    /// Runs Git with no repository and no credential, for a remote probe.
+    /// Runs a bounded remote probe without selecting a repository.
     pub(crate) fn run_git_unbound(
         &self,
         arguments: &[&str],
+        remote: &str,
         code: GitFailureCode,
         credential: Option<&GitCredential>,
     ) -> Result<String, GitFailure> {
-        let mut command = self.command(None, arguments);
-        if let Some(credential) = credential {
-            apply_credential(&mut command, credential);
-        }
-        let capture = capture(command, None).map_err(|error| GitFailure::Unavailable {
-            code: GitFailureCode::CommandUnavailable,
-            detail: redact_git_detail(&self.redactor, &error.to_string(), None),
-        })?;
+        let clock = Clock::new(code, Some(crate::preflight::REMOTE_PROBE_TIMEOUT));
+        let resolved = if credential.is_some() {
+            self.read_command(None, &["ls-remote", "--get-url", "--", remote], &clock)?
+        } else {
+            None
+        };
+        let capture = self.spawn(None, arguments, credential.zip(resolved.as_deref()), &clock)?;
         if capture.success {
             if capture.stdout_truncated {
                 return Err(too_large());
@@ -235,19 +233,25 @@ impl<'a> Git<'a> {
         code: GitFailureCode,
         timeout: Option<Duration>,
     ) -> Result<Processed, GitFailure> {
-        let clock = Clock {
-            deadline: timeout.map(|bound| Instant::now() + bound),
-            bound: timeout.unwrap_or_default(),
-            code,
-        };
-        let mut credential = self.credential_for(root, arguments, &clock)?;
-        let mut capture = self.spawn(root, arguments, credential.as_ref(), &clock)?;
+        let clock = Clock::new(code, timeout);
+        let remote = self.credential_remote(root, arguments, &clock)?;
+        let credential = remote
+            .as_deref()
+            .map(|remote| self.policy.credential(remote))
+            .transpose();
+        if clock.expired() {
+            return Err(clock.timed_out());
+        }
+        let mut credential = credential?.flatten();
+        let mut capture = self.spawn(
+            Some(root),
+            arguments,
+            credential.as_ref().zip(remote.as_deref()),
+            &clock,
+        )?;
         if !capture.success
             && let Some(existing) = credential.as_ref()
-            && matches!(
-                classify_remote_failure(&String::from_utf8_lossy(&capture.stderr)),
-                RemoteAccessFailure::AuthenticationRequired
-            )
+            && is_rejected_credential(&String::from_utf8_lossy(&capture.stderr))
         {
             let refreshed = self.policy.refresh_credential(existing);
             // The refresh runs on the caller's clock whatever it returns: a
@@ -257,7 +261,12 @@ impl<'a> Git<'a> {
             }
             if let Some(refreshed) = refreshed {
                 credential = Some(refreshed);
-                capture = self.spawn(root, arguments, credential.as_ref(), &clock)?;
+                capture = self.spawn(
+                    Some(root),
+                    arguments,
+                    credential.as_ref().zip(remote.as_deref()),
+                    &clock,
+                )?;
             }
         }
         Ok(Processed {
@@ -266,52 +275,106 @@ impl<'a> Git<'a> {
         })
     }
 
-    /// Decides the credential posture for a remote Git operation. A missing
-    /// credential and a credential error are both the caller's error: the
-    /// operation stops rather than running Git with an ambient helper.
-    fn credential_for(
+    // Resolve Git's destination before calling the policy. Bare fetch uses
+    // Git's default fetch remote; bare push has its own precedence and URLs.
+    fn credential_remote(
         &self,
         root: &Path,
         arguments: &[&str],
         clock: &Clock,
-    ) -> Result<Option<GitCredential>, GitFailure> {
-        if !matches!(
-            arguments.first(),
-            Some(&"fetch") | Some(&"push") | Some(&"ls-remote")
-        ) {
+    ) -> Result<Option<String>, GitFailure> {
+        let Some((operation, remote)) = credential_operation(arguments) else {
             return Ok(None);
-        }
-        // The origin lookup runs under the caller's clock; an unreadable
-        // origin means no credential, as an absent one does.
-        let remote = match self.spawn(root, &["remote", "get-url", "origin"], None, clock) {
-            Ok(origin) if origin.success && !origin.stdout_truncated => stdout(&origin.stdout),
-            Err(failure @ GitFailure::TimedOut { .. }) => return Err(failure),
-            Ok(_) | Err(_) => return Ok(None),
         };
-        if remote.is_empty() || !is_remote_credential_operation(arguments, &remote) {
-            return Ok(None);
+        let root = Some(root);
+        let resolved = if operation == "push" {
+            let name = match remote {
+                Some(name) => name.to_owned(),
+                None => self.default_push_remote(root, clock)?,
+            };
+            self.read_command(
+                root,
+                &["remote", "get-url", "--push", "--all", "--", &name],
+                clock,
+            )?
+        } else {
+            let mut args = vec!["ls-remote", "--get-url"];
+            if let Some(remote) = remote {
+                args.extend(["--", remote]);
+            }
+            self.read_command(root, &args, clock)?
+        };
+        // Multiple push URLs are used by the same Git child. Only hand it a
+        // credential when every destination belongs to the credential host.
+        Ok(resolved.and_then(|urls| {
+            urls.lines()
+                .all(is_https_github)
+                .then(|| urls.lines().next().map(str::to_owned))
+                .flatten()
+        }))
+    }
+
+    fn default_push_remote(
+        &self,
+        root: Option<&Path>,
+        clock: &Clock,
+    ) -> Result<String, GitFailure> {
+        let branch =
+            self.read_command(root, &["symbolic-ref", "--quiet", "--short", "HEAD"], clock)?;
+        let push_key = branch
+            .as_ref()
+            .map(|branch| format!("branch.{branch}.pushRemote"));
+        let fetch_key = branch
+            .as_ref()
+            .map(|branch| format!("branch.{branch}.remote"));
+        for key in [
+            push_key.as_deref(),
+            Some("remote.pushDefault"),
+            fetch_key.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if let Some(remote) = self.read_command(root, &["config", "--get", key], clock)? {
+                return Ok(remote);
+            }
         }
-        let credential = self.policy.credential(&remote);
-        // The lookup runs on the caller's clock whatever it returns: a late
-        // answer, a credential or an error, is a timeout.
-        if clock.expired() {
-            return Err(clock.timed_out());
+        let remotes = self.read_command(root, &["remote"], clock)?;
+        Ok(remotes
+            .filter(|remotes| !remotes.contains('\n'))
+            .unwrap_or_else(|| "origin".to_owned()))
+    }
+
+    fn read_command(
+        &self,
+        root: Option<&Path>,
+        arguments: &[&str],
+        clock: &Clock,
+    ) -> Result<Option<String>, GitFailure> {
+        match self.spawn(root, arguments, None, clock) {
+            Ok(read) if read.success && !read.stdout_truncated => {
+                Ok(Some(stdout(&read.stdout)).filter(|value| !value.is_empty()))
+            }
+            Err(failure @ GitFailure::TimedOut { .. }) => Err(failure),
+            _ => Ok(None),
         }
-        credential
     }
 
     fn spawn(
         &self,
-        root: &Path,
+        root: Option<&Path>,
         arguments: &[&str],
-        credential: Option<&GitCredential>,
+        credential: Option<(&GitCredential, &str)>,
         clock: &Clock,
     ) -> Result<Capture, GitFailure> {
-        let mut command = self.command(Some(root), arguments);
-        if let Some(credential) = credential {
-            apply_credential(&mut command, credential);
+        if clock.expired() {
+            return Err(clock.timed_out());
         }
-        capture(command, clock.deadline).map_err(|error| {
+        let capture = (|| {
+            let (command, _askpass) = self.command(root, arguments, credential)?;
+            capture(command, clock.deadline)
+        })();
+        capture.map_err(|error| {
             if error.kind() == io::ErrorKind::TimedOut {
                 clock.timed_out()
             } else {
@@ -323,41 +386,216 @@ impl<'a> Git<'a> {
         })
     }
 
-    fn command(&self, root: Option<&Path>, arguments: &[&str]) -> Command {
+    pub(crate) fn command(
+        &self,
+        root: Option<&Path>,
+        arguments: &[&str],
+        credential: Option<(&GitCredential, &str)>,
+    ) -> io::Result<(Command, Option<TempDir>)> {
         let mut command = Command::new("git");
         if let Some(root) = root {
             command.arg("-C").arg(root);
         }
-        command
-            .args(arguments)
-            .env("GIT_TERMINAL_PROMPT", "0")
-            .env("LC_ALL", "C")
-            .env_remove("GIT_AUTHOR_NAME")
-            .env_remove("GIT_AUTHOR_EMAIL")
-            .env_remove("GIT_COMMITTER_NAME")
-            .env_remove("GIT_COMMITTER_EMAIL");
-        // Isolation first: the credential and any caller environment are
-        // applied afterwards and win.
+        command.args(arguments).env_remove("GIT_CONFIG_COUNT");
+        for (key, _) in std::env::vars_os() {
+            let name = key.to_string_lossy();
+            if name.starts_with("GIT_CONFIG_KEY_") || name.starts_with("GIT_CONFIG_VALUE_") {
+                command.env_remove(key);
+            }
+        }
         self.policy.isolate(&mut command);
-        isolate_process_group(&mut command);
+
+        let mut askpass = None;
+        let mut askpass_program = OsString::new();
+        if let Some((credential, remote)) = credential
+            && let Some(host) = https_host(remote)
+            && (!credential.is_github() || is_https_github(remote))
+        {
+            let env = credential.env_vars();
+            if let Some(helper) =
+                credential_env(env, "GIT_ASKPASS").filter(|helper| !helper.is_empty())
+            {
+                if credential.is_github() {
+                    askpass_program = helper.into();
+                } else {
+                    let guard = guarded_delegate(&host)?;
+                    askpass_program = guard.path().join("git-askpass").into_os_string();
+                    command.env(ASKPASS_DELEGATE, helper);
+                    askpass = Some(guard);
+                }
+            }
+            for (key, value) in env {
+                if !key.starts_with("GIT_CONFIG_") && key != ASKPASS_DELEGATE {
+                    command.env(key, value);
+                }
+            }
+            append_credential_config(&mut command, env)?;
+            append_config(&mut command, [("http.followRedirects", "false")])?;
+        }
+        append_config(
+            &mut command,
+            [
+                ("credential.helper", ""),
+                ("credential.useHttpPath", "false"),
+            ],
+        )?;
+
         command
+            .env("GIT_TERMINAL_PROMPT", "0")
+            .env("GIT_ASKPASS", askpass_program)
+            .env("SSH_ASKPASS_REQUIRE", "never")
+            .env("LC_ALL", "C");
+        for name in [
+            "GIT_AUTHOR_NAME",
+            "GIT_AUTHOR_EMAIL",
+            "GIT_COMMITTER_NAME",
+            "GIT_COMMITTER_EMAIL",
+            "GIT_DIR",
+            "GIT_WORK_TREE",
+            "GIT_COMMON_DIR",
+            "GIT_NAMESPACE",
+            "GIT_INDEX_FILE",
+            "GIT_OBJECT_DIRECTORY",
+            "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_CONFIG_PARAMETERS",
+            "SSH_ASKPASS",
+        ] {
+            command.env_remove(name);
+        }
+        isolate_process_group(&mut command);
+        Ok((command, askpass))
+    }
+
+    pub(crate) fn clone_command(
+        &self,
+        arguments: &[&str],
+        remote: &str,
+        credential: Option<&GitCredential>,
+    ) -> io::Result<(Command, Option<TempDir>)> {
+        let resolved = if credential.is_some() {
+            let clock = Clock::new(
+                GitFailureCode::RemotePreflightFailed,
+                Some(crate::preflight::REMOTE_PROBE_TIMEOUT),
+            );
+            self.read_command(None, &["ls-remote", "--get-url", "--", remote], &clock)
+                .map_err(|error| io::Error::other(error.to_string()))?
+        } else {
+            None
+        };
+        self.command(None, arguments, credential.zip(resolved.as_deref()))
     }
 }
 
-/// True when this argument vector is a remote operation that must use the
-/// caller's credential: `fetch`, `push` or `ls-remote` naming `origin` on an
-/// GitHub remote over HTTP or HTTPS.
+// Only known valueless flags may precede a positional origin. Treat ambiguous
+// argument lists as uncredentialled. This keeps refspecs and option values from
+// being mistaken for the destination.
+fn credential_operation<'a>(arguments: &'a [&str]) -> Option<(&'a str, Option<&'a str>)> {
+    let (&operation, args) = arguments.split_first()?;
+    if !matches!(operation, "fetch" | "push" | "ls-remote") {
+        return None;
+    }
+    if args.is_empty() {
+        return Some((operation, None));
+    }
+    let mut args = args.iter().copied();
+    while let Some(arg) = args.next() {
+        match arg {
+            "--" => return (args.next() == Some("origin")).then_some((operation, Some("origin"))),
+            "origin" => return Some((operation, Some("origin"))),
+            "-q" | "--quiet" | "-v" | "--verbose" | "--progress" | "--no-progress" | "--prune"
+            | "--no-prune" | "--tags" | "--no-tags" | "--dry-run" | "-u" | "--set-upstream"
+            | "--heads" | "--branches" | "--refs" | "--symref" | "--exit-code" => {}
+            _ => return None,
+        }
+    }
+    None
+}
+
+/// True when the arguments identify a remote operation eligible for a GitHub
+/// credential over HTTPS. For bare commands, pass Git's resolved destination.
 #[must_use]
 pub fn is_remote_credential_operation(arguments: &[&str], remote: &str) -> bool {
-    matches!(
-        arguments.first(),
-        Some(&"fetch") | Some(&"push") | Some(&"ls-remote")
-    ) && (arguments.len() == 1
-        || arguments
-            .iter()
-            .skip(1)
-            .any(|argument| *argument == "origin"))
-        && is_https_github(remote)
+    credential_operation(arguments).is_some() && is_https_github(remote)
+}
+
+pub(crate) fn https_host(remote: &str) -> Option<String> {
+    // Git and URL parsers can disagree about backslash and whitespace. Only
+    // admit unambiguous HTTPS URLs to the credential path.
+    if remote.contains('\\') || remote.chars().any(char::is_whitespace) {
+        return None;
+    }
+    let (scheme, address) = remote.split_once("://")?;
+    if !scheme.eq_ignore_ascii_case("https") || address.starts_with('/') {
+        return None;
+    }
+    let url = reqwest::Url::parse(remote).ok()?;
+    let host = url.host_str()?;
+    if !host
+        .bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || b".-:[]".contains(&byte))
+    {
+        return None;
+    }
+    let authority = address.split(['/', '?', '#']).next()?.rsplit('@').next()?;
+    if !authority.is_ascii() || authority.contains('%') {
+        return None;
+    }
+    match url.port() {
+        Some(port) => Some(format!("{host}:{port}")),
+        None => Some(host.to_owned()),
+    }
+}
+
+fn credential_env<'a>(env: &'a [(String, String)], name: &str) -> Option<&'a str> {
+    env.iter()
+        .rev()
+        .find_map(|(key, value)| (key == name).then_some(value.as_str()))
+}
+
+fn invalid_config() -> io::Error {
+    io::Error::new(
+        io::ErrorKind::InvalidInput,
+        "invalid Git environment configuration",
+    )
+}
+
+fn append_credential_config(command: &mut Command, env: &[(String, String)]) -> io::Result<()> {
+    let count = credential_env(env, "GIT_CONFIG_COUNT")
+        .map_or(Ok(0), |count| count.parse::<usize>())
+        .map_err(|_| invalid_config())?;
+    let entries = (0..count)
+        .map(|index| {
+            let key = credential_env(env, &format!("GIT_CONFIG_KEY_{index}"))
+                .ok_or_else(invalid_config)?;
+            let value = credential_env(env, &format!("GIT_CONFIG_VALUE_{index}"))
+                .ok_or_else(invalid_config)?;
+            Ok((key, value))
+        })
+        .collect::<io::Result<Vec<_>>>()?;
+    append_config(command, entries)
+}
+
+fn append_config<'a>(
+    command: &mut Command,
+    entries: impl IntoIterator<Item = (&'a str, &'a str)>,
+) -> io::Result<()> {
+    let mut index = command
+        .get_envs()
+        .find_map(|(key, value)| (key == "GIT_CONFIG_COUNT").then_some(value).flatten())
+        .map_or(Ok(0), |count| {
+            count
+                .to_str()
+                .and_then(|count| count.parse::<usize>().ok())
+                .ok_or_else(invalid_config)
+        })?;
+    for (key, value) in entries {
+        command
+            .env(format!("GIT_CONFIG_KEY_{index}"), key)
+            .env(format!("GIT_CONFIG_VALUE_{index}"), value);
+        index = index.checked_add(1).ok_or_else(invalid_config)?;
+    }
+    command.env("GIT_CONFIG_COUNT", index.to_string());
+    Ok(())
 }
 
 /// Redacts one Git detail with the caller's redactor and the invocation
@@ -408,12 +646,6 @@ pub(crate) fn stderr_detail(
     bounded_tail(redactor, &text, FAILURE_DETAIL_BOUND)
 }
 
-fn apply_credential(command: &mut Command, credential: &GitCredential) {
-    for (key, value) in credential.env_vars() {
-        command.env(key, value);
-    }
-}
-
 /// One call's wall clock: a deadline fixed when the call starts, the bound the
 /// caller asked for, and the code a timeout reports.
 struct Clock {
@@ -423,6 +655,14 @@ struct Clock {
 }
 
 impl Clock {
+    fn new(code: GitFailureCode, timeout: Option<Duration>) -> Self {
+        Self {
+            deadline: timeout.map(|bound| Instant::now() + bound),
+            bound: timeout.unwrap_or_default(),
+            code,
+        }
+    }
+
     fn expired(&self) -> bool {
         self.deadline
             .is_some_and(|deadline| Instant::now() >= deadline)

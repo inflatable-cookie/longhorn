@@ -14,7 +14,7 @@ One `Git` handle carries the caller's `GitPolicy` and the caller's
   without changing either side.
 - `preflight_remote` classifies one remote refusal: a missing credential, a
   refused credential, an unreachable host, an unavailable repository, or
-  anything else.
+  anything else. Both remote probes have a fifteen-second Git budget.
 - `sync_workspace` is Legacy Sync: clean, upstream-only, fetch, compare,
   fast-forward only, push only when ahead.
 - `switch_branch` switches onto one branch already observed in a prior reading.
@@ -35,9 +35,9 @@ place only with `rename_exclusive`, which fails instead of replacing an existing
 target.
 
 Process execution is always the fixed program `git` with an argument vector, in
-one explicit folder. Prompts are disabled, author and committer identity are
-removed from the inherited environment, and the caller's isolation is applied
-before the invocation credential. A credential is supplied by
+one explicit folder. The executor disables ambient credential helpers and
+prompts and clears inherited repository pointers and identity. It composes the
+caller's configuration with the invocation credential. A credential is supplied by
 `GitPolicy::credential` for a credential-scoped remote, or explicitly as a
 `GitCredential` for a preflight or a clone. Git's standard output is retained
 from its head within `MAX_CAPTURED_OUTPUT_BYTES`, and its standard error from
@@ -68,7 +68,8 @@ Part 5b is GitHub sign-in in the same crate:
   browser and authors no sentence.
 - `TokenGrant`, `read_grant`, `write_grant`, `read_credential_presence` and
   `sign_out` store one grant in the caller's `longhorn-core` credential slot, in
-  the version 1 JSON document contract 029 defines.
+  the version 1 JSON document contract 029 defines. Unreadable or unsupported
+  values require signing in again.
 - `fresh_access_token` and `force_refresh_token` refresh inside the five-minute
   skew under one process-wide lock, so concurrent callers cause one exchange,
   and a refused refresh reports `SignInExpired` while leaving the grant in place.
@@ -81,8 +82,8 @@ Part 5b is GitHub sign-in in the same crate:
 - `AskpassConfig` names the token variable; `GitCredentialBridge::from_token`
   writes this crate's own askpass helper into an owner-only temporary folder and
   `credential()` hands the policy a `GitCredential`. The token reaches Git only
-  as the child environment value the helper prints, and the folder is removed
-  when the bridge is dropped.
+  as the child environment value the helper prints for an HTTPS GitHub prompt.
+  The folder lives until the bridge and its credentials are dropped.
 
 The application composes 5b inside its `GitPolicy`: `credential` reads a fresh
 token, builds a bridge and returns its credential; `refresh_credential` passes
