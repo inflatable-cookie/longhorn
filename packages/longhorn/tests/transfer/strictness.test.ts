@@ -18,7 +18,6 @@ describe("transfer boundary strictness", () => {
     protocol_version: 1,
     client_id: "client:one",
     client_epoch: 1,
-    current_lease_generation: 1,
   } as const;
 
   test("the field map matches the declared snapshot fields", () => {

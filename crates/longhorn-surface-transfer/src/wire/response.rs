@@ -25,10 +25,6 @@ pub struct SurfaceProvisioningCompletion {
 
 impl SurfaceProvisioningCompletion {
     fn from_domain(provision: &crate::CompletedSurfaceProvision) -> Self {
-        debug_assert_eq!(
-            provision.provision().window_id(),
-            provision.commit().window_id()
-        );
         Self {
             window_id: provision.provision().window_id().clone(),
             host_binding_id: provision.provision().host_binding_id().clone(),
@@ -175,6 +171,44 @@ impl SurfaceTransferAbort {
             reconciliation_required: error.code()
                 == SurfaceTransferErrorCode::HostReconciliationRequired,
         }
+    }
+
+    /// Returns the rejecting domain and stable error code.
+    #[must_use]
+    pub const fn source(&self) -> SurfaceTransferAbortSource {
+        self.source
+    }
+
+    /// Returns the underlying Surface mutation rejection code when applicable.
+    #[must_use]
+    pub const fn surface_code(&self) -> Option<SurfaceMutationRejectionCode> {
+        self.surface_code
+    }
+
+    /// Returns the human-readable diagnostic message.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Returns whether the failed request may be retried without fresh authority.
+    ///
+    /// Transfer aborts are terminal for the request under contract 011.
+    #[must_use]
+    pub const fn retryable(&self) -> bool {
+        self.retryable
+    }
+
+    /// Returns whether the first terminal session attempt was consumed.
+    #[must_use]
+    pub const fn session_consumed(&self) -> bool {
+        self.session_consumed
+    }
+
+    /// Returns whether durable Surface state committed and host reconciliation is required.
+    #[must_use]
+    pub const fn reconciliation_required(&self) -> bool {
+        self.reconciliation_required
     }
 }
 

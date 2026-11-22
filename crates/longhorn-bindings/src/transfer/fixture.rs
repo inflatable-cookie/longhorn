@@ -8,8 +8,8 @@ use longhorn_transfer::{
     ClientDropZone, ClientEpoch, DragSessionId, InsertionPosition, LeaseGeneration,
     PanelSessionStartRequest, PanelTransferCommand, PanelTransferResponse,
     TRANSFER_PROTOCOL_VERSION, TransferAbort, TransferCancelRequest, TransferCancelResponse,
-    TransferCapability, TransferClientSnapshot, TransferCommitSelector, TransferLeaseRequest,
-    TransferLeaseResponse, TransferSessionResponse, TransferTargetBinding,
+    TransferClientSnapshot, TransferCommitSelector, TransferLeaseRequest, TransferLeaseResponse,
+    TransferSessionResponse, TransferTargetBinding,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -51,8 +51,7 @@ pub fn render(
     let generation = LeaseGeneration::new(3);
     let request_id = transfer_request_id("request:lease");
     let zones = [panel_zone(), surface_zone()];
-    let client_snapshot =
-        TransferClientSnapshot::new(client_id.clone(), epoch, Some(LeaseGeneration::new(2)));
+    let client_snapshot = TransferClientSnapshot::new(client_id.clone(), epoch);
     let session_requests = vec![PanelSessionStartRequest::new(
         transfer_request_id("request:start-panel"),
         PanelInstanceId::new("instance:inspector")?,
@@ -198,7 +197,6 @@ fn panel_zone() -> ClientDropZone {
             ClientSize::new(400.0, 260.0).expect("fixture size is valid"),
         ),
         Some(InsertionPosition::new(1)),
-        TransferCapability::MovePanel,
         TransferTargetBinding::PanelRegion {
             host_binding_id: TransferHostBindingId::new("binding:target")
                 .expect("fixture binding is valid"),
@@ -218,7 +216,6 @@ fn surface_zone() -> ClientDropZone {
             ClientSize::new(300.0, 260.0).expect("fixture size is valid"),
         ),
         None,
-        TransferCapability::MoveSurface,
         TransferTargetBinding::SurfaceWindow {
             host_binding_id: TransferHostBindingId::new("binding:surface")
                 .expect("fixture binding is valid"),
@@ -240,9 +237,10 @@ fn aborts(
                 "protocol_version": 1,
                 "request_id": format!("request:transfer-error-{index:02}"),
                 "source": {"domain": "transfer", "code": code},
+                "layout_code": null,
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
-                "session_consumed": index % 2 == 0,
+                "session_consumed": transfer_code_consumes_session(code),
             }))
         })
         .chain(panel_error_codes.iter().enumerate().map(|(index, code)| {
@@ -250,12 +248,48 @@ fn aborts(
                 "protocol_version": 1,
                 "request_id": format!("request:panel-error-{index:02}"),
                 "source": {"domain": "panel", "code": code},
+                "layout_code": if code == "layout_mutation_rejected" {
+                    Some("stale_revision")
+                } else {
+                    None
+                },
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
-                "session_consumed": index % 2 == 0,
+                "session_consumed": panel_code_consumes_session(code),
             }))
         }))
         .collect()
+}
+
+fn transfer_code_consumes_session(code: &str) -> bool {
+    matches!(
+        code,
+        "lease_expired"
+            | "invalid_live_windows"
+            | "target_window_missing"
+            | "stale_window_geometry"
+            | "no_target"
+            | "ambiguous_window"
+            | "ambiguous_zone"
+            | "ineligible_capability"
+    )
+}
+
+fn panel_code_consumes_session(code: &str) -> bool {
+    matches!(
+        code,
+        "unsupported_source"
+            | "unsupported_target"
+            | "cross_document"
+            | "copy_unsupported"
+            | "stale_surface_revision"
+            | "target_changed"
+            | "ineligible_target"
+            | "instance_policy_exceeded"
+            | "invalid_insertion_position"
+            | "layout_mutation_rejected"
+            | "publication_failed"
+    )
 }
 
 fn typed<T: serde::de::DeserializeOwned>(value: Value) -> Result<T, serde_json::Error> {

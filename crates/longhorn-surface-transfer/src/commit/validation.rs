@@ -49,7 +49,7 @@ pub(super) fn require_binding(
 pub(super) fn require_fresh_source(
     document: &SurfaceDocument,
     source: &SurfaceSource<'_>,
-) -> Result<SurfaceId, SurfaceTransferError> {
+) -> Result<(), SurfaceTransferError> {
     if document.revision().get() != source.revision {
         return Err(consumed(
             SurfaceTransferErrorCode::StaleSurfaceRevision,
@@ -80,7 +80,7 @@ pub(super) fn require_fresh_source(
             ),
         ));
     }
-    Ok(surface.id().clone())
+    Ok(())
 }
 
 pub(super) fn require_target(
@@ -169,7 +169,18 @@ pub(super) fn map_mutation_error(error: SurfaceConfigMutationError) -> SurfaceTr
                 SurfaceMutationRejectionCode::EmptyWindowNotAllowed => {
                     SurfaceTransferErrorCode::IneligibleTarget
                 }
-                _ => SurfaceTransferErrorCode::SurfaceMutationRejected,
+                SurfaceMutationRejectionCode::InvalidCurrentDocument
+                | SurfaceMutationRejectionCode::RevisionOverflow
+                | SurfaceMutationRejectionCode::DuplicateSurface
+                | SurfaceMutationRejectionCode::UnknownLayoutSchema
+                | SurfaceMutationRejectionCode::DuplicateHostPreference
+                | SurfaceMutationRejectionCode::MoveTargetUnchanged
+                | SurfaceMutationRejectionCode::IncompleteReorder
+                | SurfaceMutationRejectionCode::DuplicateReorderMember
+                | SurfaceMutationRejectionCode::ForeignReorderMember
+                | SurfaceMutationRejectionCode::InvalidCandidate => {
+                    SurfaceTransferErrorCode::SurfaceMutationRejected
+                }
             };
             consumed(code, rejection.detail()).with_surface_code(rejection.code())
         }

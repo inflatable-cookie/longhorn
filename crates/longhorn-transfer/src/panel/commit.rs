@@ -85,8 +85,7 @@ where
             ),
         ));
     }
-    let panel_instance_id = PanelInstanceId::new(source.subject_id)
-        .expect("panel and transfer subject ids share the same grammar");
+    let panel_instance_id = PanelInstanceId::from(source.subject_id);
     let panel = document.panel_instance(&panel_instance_id).ok_or_else(|| {
         consumed(
             PanelTransferErrorCode::UnknownPanel,

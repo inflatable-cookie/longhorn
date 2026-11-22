@@ -282,7 +282,6 @@ function transferState(
           protocol_version: 1,
           client_id: clientId,
           client_epoch: 1,
-          current_lease_generation: null,
         };
       }
       return invoke(command, arguments_);

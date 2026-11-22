@@ -29,6 +29,7 @@ impl TransferCoordinator {
             publication.client_epoch(),
         )?;
         validate_publication(self.limits, &publication)?;
+        self.reclaim_expired_leases(now);
         if !self.leases.contains_key(publication.window_id())
             && self.leases.len() >= self.limits.maximum_leases()
         {
@@ -117,12 +118,6 @@ fn validate_publication(
                 "drop zone {} insertion position exceeds {}",
                 zone.id(),
                 limits.maximum_insertion_position()
-            )));
-        }
-        if zone.accepted_capability() != zone.target().capability() {
-            return Err(invalid_lease(format!(
-                "drop zone {} capability does not match its target binding",
-                zone.id()
             )));
         }
     }

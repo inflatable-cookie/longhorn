@@ -2,11 +2,12 @@
 
 use longhorn_core::{
     ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, RegionId, SurfaceId,
-    TransferClientId, TransferHostBindingId, TransferRequestId,
+    TransferClientId, TransferHostBindingId, TransferRequestId, WindowId,
 };
 use longhorn_transfer::{
-    ClientDropZone, ClientEpoch, InsertionPosition, LeaseGeneration, PanelSessionStartRequest,
-    TransferCapability, TransferLeaseRequest, TransferRevision, TransferTargetBinding,
+    ClientDropZone, ClientEpoch, InsertionPosition, LeaseGeneration, PanelHostBinding,
+    PanelHostBindings, PanelSessionStartRequest, PanelTransferErrorCode, TransferAbort,
+    TransferAbortSource, TransferLeaseRequest, TransferRevision, TransferTargetBinding,
 };
 use serde_json::json;
 
@@ -24,7 +25,6 @@ fn lease_wire_shape_cannot_supply_window_clock_or_screen_authority() {
                 ClientSize::new(300.0, 200.0).unwrap(),
             ),
             Some(InsertionPosition::new(1)),
-            TransferCapability::MovePanel,
             TransferTargetBinding::PanelRegion {
                 host_binding_id: TransferHostBindingId::new("binding:target").unwrap(),
                 document_id: DomainId::new("app.layout").unwrap(),
@@ -75,6 +75,33 @@ fn strict_wire_deserialization_rejects_future_version_and_spoof_fields() {
     let mut spoofed = valid;
     spoofed["window_id"] = json!("window:other");
     assert!(serde_json::from_value::<PanelSessionStartRequest>(spoofed).is_err());
+}
+
+#[test]
+fn from_panel_promotes_transfer_code_and_preserves_panel_and_layout_codes() {
+    let duplicate = PanelHostBindings::new([
+        PanelHostBinding::direct_window(
+            TransferHostBindingId::new("binding:dup").unwrap(),
+            WindowId::new("window:main").unwrap(),
+            DomainId::new("app.layout").unwrap(),
+            SurfaceId::new("surface:main").unwrap(),
+        ),
+        PanelHostBinding::direct_window(
+            TransferHostBindingId::new("binding:dup").unwrap(),
+            WindowId::new("window:main").unwrap(),
+            DomainId::new("app.layout").unwrap(),
+            SurfaceId::new("surface:main").unwrap(),
+        ),
+    ])
+    .unwrap_err();
+    let panel_abort = TransferAbort::from_panel(request_id("request:panel"), &duplicate);
+    assert_eq!(
+        panel_abort.source(),
+        TransferAbortSource::Panel(PanelTransferErrorCode::InvalidBindingSnapshot)
+    );
+    assert_eq!(panel_abort.layout_code(), None);
+    assert!(!panel_abort.retryable());
+    assert!(!panel_abort.session_consumed());
 }
 
 fn request_id(value: &str) -> TransferRequestId {

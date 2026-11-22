@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-29
+Updated: 2026-11-22
 Depends on: contracts 002, 004, 009, 010, and 014
 Evidence: `010-surface-hosting-and-transfer-boundary.md` (Git history),
 `011-client-svelte-poodle-and-shell-boundary.md` (Git history)
@@ -97,8 +97,7 @@ records:
 - target `LayoutContainerId` and `RegionId` for panel targets
 - rectangle in `ScreenDip`
 - optional bounded insertion position
-- accepted capability
-- target layout or Surface revision
+- target layout or Surface revision (from which the accepted capability is derived: panel region or Surface window)
 - lease generation and expiry
 
 Zones are advisory. They contain no durable model state. Unknown,
@@ -116,9 +115,11 @@ durable event stream.
 
 The host explicitly binds one current client and monotonically advancing epoch
 to each managed window. Epoch change removes the prior lease and invalidates
-active source sessions from the superseded client. Session, current-client,
-lease, per-lease zone, insertion-position, and lifetime limits are finite and
-checked before publication.
+active source sessions from the superseded client; a client snapshot therefore
+reports only the protocol version, client identity, and client epoch. Session,
+current-client, lease, per-lease zone, insertion-position, and lifetime limits
+are finite and checked before publication; expired leases are discarded and do
+not hold lease capacity.
 
 ## Target Resolution
 
@@ -197,9 +198,13 @@ Success returns:
 - target-resolution evidence
 - optional provisioning and cleanup receipt
 
-Abort returns a stable code and current authority evidence when safe. Missing,
-stale, ineligible, expired, ambiguous, replayed, cancelled, cross-document, or
-disappeared targets leave the source document byte-for-byte unchanged.
+Abort returns a stable code (promoting underlying transfer-domain rejections
+and preserving layout/Surface mutation rejection codes) and current authority
+evidence when safe. Transfer aborts are terminal for the request
+(`retryable: false`): callers must acquire fresh authority or start a new
+session rather than replaying a failed request. Missing, stale, ineligible,
+expired, ambiguous, replayed, cancelled, cross-document, or disappeared targets
+leave the source document byte-for-byte unchanged.
 
 Optimistic renderer projection must reconcile to the authoritative response
 and roll back on abort. Optimism never advances durable revision locally.

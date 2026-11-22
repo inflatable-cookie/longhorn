@@ -167,7 +167,7 @@ fn aborts(error_codes: &[String]) -> Result<Vec<SurfaceTransferAbort>, serde_jso
                 },
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
-                "session_consumed": index % 2 == 0,
+                "session_consumed": surface_code_consumes_session(code),
                 "reconciliation_required": code == "host_reconciliation_required",
             }))
         })
@@ -184,6 +184,27 @@ fn aborts(error_codes: &[String]) -> Result<Vec<SurfaceTransferAbort>, serde_jso
             }))
         }))
         .collect()
+}
+
+fn surface_code_consumes_session(code: &str) -> bool {
+    matches!(
+        code,
+        "unsupported_source"
+            | "unsupported_target"
+            | "cross_document"
+            | "stale_surface_revision"
+            | "ineligible_target"
+            | "target_changed"
+            | "invalid_insertion_position"
+            | "empty_display_disabled"
+            | "no_empty_display_target"
+            | "ambiguous_empty_display_target"
+            | "provision_failed"
+            | "provision_receipt_mismatch"
+            | "surface_mutation_rejected"
+            | "publication_failed"
+            | "host_reconciliation_required"
+    )
 }
 
 fn typed<T: serde::de::DeserializeOwned>(value: Value) -> Result<T, serde_json::Error> {

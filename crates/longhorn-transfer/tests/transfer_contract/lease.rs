@@ -1,6 +1,6 @@
 use longhorn_transfer::{
-    ClientEpoch, DropZone, LeaseGeneration, LeasePublication, TransferCapability, TransferClientId,
-    TransferCoordinator, TransferDuration, TransferErrorCode, TransferLimits,
+    ClientEpoch, LeaseGeneration, LeasePublication, TransferClientId, TransferCoordinator,
+    TransferDuration, TransferErrorCode, TransferLimits,
 };
 
 use super::support::{FakeClock, bind, client, limits, panel_zone, publication, rect, window};
@@ -31,9 +31,6 @@ fn invalid_complete_replacements_preserve_the_current_generation() {
         )
         .unwrap();
 
-    let target = panel_zone("zone:template", rect(10, 10, 10, 10), None)
-        .target()
-        .clone();
     let invalid_replacements = vec![
         vec![
             panel_zone("zone:duplicate", rect(10, 10, 20, 20), None),
@@ -43,13 +40,6 @@ fn invalid_complete_replacements_preserve_the_current_generation() {
         vec![panel_zone("zone:empty", rect(10, 10, 0, 20), None)],
         vec![panel_zone("zone:overflow", rect(i32::MAX, 0, 1, 1), None)],
         vec![panel_zone("zone:insertion", rect(10, 10, 20, 20), Some(6))],
-        vec![DropZone::new(
-            longhorn_transfer::DropZoneId::new("zone:capability").unwrap(),
-            rect(10, 10, 20, 20),
-            None,
-            TransferCapability::MoveSurface,
-            target,
-        )],
         vec![
             panel_zone("zone:a", rect(10, 10, 20, 20), None),
             panel_zone("zone:b", rect(40, 10, 20, 20), None),
@@ -225,4 +215,29 @@ fn client_capacity_and_lease_lifetime_fail_before_publication() {
         TransferErrorCode::LeaseCapacity
     );
     assert_eq!(lease_limited.lease_count(), 1);
+
+    clock.set(40);
+    let receipt = lease_limited
+        .publish_lease(
+            &clock,
+            publication(
+                "window:two",
+                "client:two",
+                1,
+                1,
+                rect(200, 0, 100, 100),
+                Vec::new(),
+            ),
+        )
+        .unwrap();
+    assert_eq!(receipt.generation(), LeaseGeneration::new(1));
+    assert_eq!(lease_limited.lease_count(), 1);
+    assert_eq!(
+        lease_limited.current_lease_generation(&window("window:one")),
+        None
+    );
+    assert_eq!(
+        lease_limited.current_lease_generation(&window("window:two")),
+        Some(LeaseGeneration::new(1))
+    );
 }

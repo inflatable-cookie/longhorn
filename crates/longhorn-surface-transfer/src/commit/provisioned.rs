@@ -49,7 +49,7 @@ where
         .map_err(map_empty_target)?;
 
     let document = load_surface(store, domain).map_err(SurfaceTransferError::consumed)?;
-    let surface_id = require_fresh_source(&document, &source)?;
+    require_fresh_source(&document, &source)?;
     require_target(&document, policy, &source.surface_id, target.window_id())?;
     let insertion = insertion_index(
         &document,
@@ -123,18 +123,17 @@ where
             });
         }
     };
-    let committed = publication
+    // The document is durably committed and a native window is provisioned;
+    // never panic post-commit.
+    if publication
         .surface()
         .authoritative_document()
         .surface(&source.surface_id)
-        .expect("successful move retains the Surface");
-    // The document is durably committed and a native window is provisioned;
-    // a binding drift is reconciliation evidence, never a release-profile
-    // abort mid-reconciliation.
-    if committed.id() != &surface_id {
+        .is_none()
+    {
         let failure = SurfaceWindowProvisionFailure::new(
             SurfaceWindowProvisionStage::Commit,
-            "Surface moved but its retained external layout-container binding changed",
+            "Surface commit completed but the moved Surface is absent from the authoritative document",
         );
         return Err(consumed(
             SurfaceTransferErrorCode::HostReconciliationRequired,

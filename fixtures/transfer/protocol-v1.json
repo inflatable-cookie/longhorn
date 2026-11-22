@@ -3,8 +3,7 @@
   "client_snapshot": {
     "protocol_version": 1,
     "client_id": "client:main",
-    "client_epoch": 8,
-    "current_lease_generation": 2
+    "client_epoch": 8
   },
   "session_requests": [
     {
@@ -34,7 +33,6 @@
             }
           },
           "insertion_position": 1,
-          "accepted_capability": "move_panel",
           "target": {
             "kind": "panel_region",
             "host_binding_id": "binding:target",
@@ -57,7 +55,6 @@
             }
           },
           "insertion_position": null,
-          "accepted_capability": "move_surface",
           "target": {
             "kind": "surface_window",
             "host_binding_id": "binding:surface",
@@ -119,9 +116,10 @@
           "domain": "transfer",
           "code": "clock_regressed"
         },
+        "layout_code": null,
         "message": "golden fixture for clock_regressed",
         "retryable": false,
-        "session_consumed": true
+        "session_consumed": false
       }
     }
   ],
@@ -146,6 +144,7 @@
           "domain": "transfer",
           "code": "invalid_lifetime"
         },
+        "layout_code": null,
         "message": "golden fixture for invalid_lifetime",
         "retryable": false,
         "session_consumed": false
@@ -196,9 +195,10 @@
           "domain": "transfer",
           "code": "session_capacity"
         },
+        "layout_code": null,
         "message": "golden fixture for session_capacity",
         "retryable": false,
-        "session_consumed": true
+        "session_consumed": false
       }
     }
   ],
@@ -221,6 +221,7 @@
           "domain": "transfer",
           "code": "session_id_allocation"
         },
+        "layout_code": null,
         "message": "golden fixture for session_id_allocation",
         "retryable": false,
         "session_consumed": false
@@ -235,9 +236,10 @@
         "domain": "transfer",
         "code": "clock_regressed"
       },
+      "layout_code": null,
       "message": "golden fixture for clock_regressed",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -246,6 +248,7 @@
         "domain": "transfer",
         "code": "invalid_lifetime"
       },
+      "layout_code": null,
       "message": "golden fixture for invalid_lifetime",
       "retryable": false,
       "session_consumed": false
@@ -257,9 +260,10 @@
         "domain": "transfer",
         "code": "session_capacity"
       },
+      "layout_code": null,
       "message": "golden fixture for session_capacity",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -268,6 +272,7 @@
         "domain": "transfer",
         "code": "session_id_allocation"
       },
+      "layout_code": null,
       "message": "golden fixture for session_id_allocation",
       "retryable": false,
       "session_consumed": false
@@ -279,9 +284,10 @@
         "domain": "transfer",
         "code": "session_id_collision"
       },
+      "layout_code": null,
       "message": "golden fixture for session_id_collision",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -290,6 +296,7 @@
         "domain": "transfer",
         "code": "unknown_session"
       },
+      "layout_code": null,
       "message": "golden fixture for unknown_session",
       "retryable": false,
       "session_consumed": false
@@ -301,9 +308,10 @@
         "domain": "transfer",
         "code": "session_expired"
       },
+      "layout_code": null,
       "message": "golden fixture for session_expired",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -312,6 +320,7 @@
         "domain": "transfer",
         "code": "session_cancelled"
       },
+      "layout_code": null,
       "message": "golden fixture for session_cancelled",
       "retryable": false,
       "session_consumed": false
@@ -323,9 +332,10 @@
         "domain": "transfer",
         "code": "session_replayed"
       },
+      "layout_code": null,
       "message": "golden fixture for session_replayed",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -334,6 +344,7 @@
         "domain": "transfer",
         "code": "source_window_destroyed"
       },
+      "layout_code": null,
       "message": "golden fixture for source_window_destroyed",
       "retryable": false,
       "session_consumed": false
@@ -345,9 +356,10 @@
         "domain": "transfer",
         "code": "source_client_changed"
       },
+      "layout_code": null,
       "message": "golden fixture for source_client_changed",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -356,6 +368,7 @@
         "domain": "transfer",
         "code": "client_window_capacity"
       },
+      "layout_code": null,
       "message": "golden fixture for client_window_capacity",
       "retryable": false,
       "session_consumed": false
@@ -367,9 +380,10 @@
         "domain": "transfer",
         "code": "unknown_client_epoch"
       },
+      "layout_code": null,
       "message": "golden fixture for unknown_client_epoch",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -378,6 +392,7 @@
         "domain": "transfer",
         "code": "stale_client_epoch"
       },
+      "layout_code": null,
       "message": "golden fixture for stale_client_epoch",
       "retryable": false,
       "session_consumed": false
@@ -389,9 +404,10 @@
         "domain": "transfer",
         "code": "stale_lease_generation"
       },
+      "layout_code": null,
       "message": "golden fixture for stale_lease_generation",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -400,6 +416,7 @@
         "domain": "transfer",
         "code": "lease_capacity"
       },
+      "layout_code": null,
       "message": "golden fixture for lease_capacity",
       "retryable": false,
       "session_consumed": false
@@ -411,9 +428,10 @@
         "domain": "transfer",
         "code": "invalid_lease"
       },
+      "layout_code": null,
       "message": "golden fixture for invalid_lease",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -422,9 +440,10 @@
         "domain": "transfer",
         "code": "lease_expired"
       },
+      "layout_code": null,
       "message": "golden fixture for lease_expired",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -433,6 +452,7 @@
         "domain": "transfer",
         "code": "invalid_live_windows"
       },
+      "layout_code": null,
       "message": "golden fixture for invalid_live_windows",
       "retryable": false,
       "session_consumed": true
@@ -444,9 +464,10 @@
         "domain": "transfer",
         "code": "target_window_missing"
       },
+      "layout_code": null,
       "message": "golden fixture for target_window_missing",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -455,6 +476,7 @@
         "domain": "transfer",
         "code": "stale_window_geometry"
       },
+      "layout_code": null,
       "message": "golden fixture for stale_window_geometry",
       "retryable": false,
       "session_consumed": true
@@ -466,9 +488,10 @@
         "domain": "transfer",
         "code": "no_target"
       },
+      "layout_code": null,
       "message": "golden fixture for no_target",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -477,6 +500,7 @@
         "domain": "transfer",
         "code": "ambiguous_window"
       },
+      "layout_code": null,
       "message": "golden fixture for ambiguous_window",
       "retryable": false,
       "session_consumed": true
@@ -488,9 +512,10 @@
         "domain": "transfer",
         "code": "ambiguous_zone"
       },
+      "layout_code": null,
       "message": "golden fixture for ambiguous_zone",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -499,6 +524,7 @@
         "domain": "transfer",
         "code": "ineligible_capability"
       },
+      "layout_code": null,
       "message": "golden fixture for ineligible_capability",
       "retryable": false,
       "session_consumed": true
@@ -510,9 +536,10 @@
         "domain": "panel",
         "code": "invalid_binding_snapshot"
       },
+      "layout_code": null,
       "message": "golden fixture for invalid_binding_snapshot",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -521,6 +548,7 @@
         "domain": "panel",
         "code": "unknown_host_binding"
       },
+      "layout_code": null,
       "message": "golden fixture for unknown_host_binding",
       "retryable": false,
       "session_consumed": false
@@ -532,9 +560,10 @@
         "domain": "panel",
         "code": "stale_host_binding"
       },
+      "layout_code": null,
       "message": "golden fixture for stale_host_binding",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -543,6 +572,7 @@
         "domain": "panel",
         "code": "layout_load_failed"
       },
+      "layout_code": null,
       "message": "golden fixture for layout_load_failed",
       "retryable": false,
       "session_consumed": false
@@ -554,9 +584,10 @@
         "domain": "panel",
         "code": "layout_unavailable"
       },
+      "layout_code": null,
       "message": "golden fixture for layout_unavailable",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -565,6 +596,7 @@
         "domain": "panel",
         "code": "unknown_panel"
       },
+      "layout_code": null,
       "message": "golden fixture for unknown_panel",
       "retryable": false,
       "session_consumed": false
@@ -576,9 +608,10 @@
         "domain": "panel",
         "code": "panel_not_movable"
       },
+      "layout_code": null,
       "message": "golden fixture for panel_not_movable",
       "retryable": false,
-      "session_consumed": true
+      "session_consumed": false
     },
     {
       "protocol_version": 1,
@@ -587,6 +620,7 @@
         "domain": "panel",
         "code": "source_changed"
       },
+      "layout_code": null,
       "message": "golden fixture for source_changed",
       "retryable": false,
       "session_consumed": false
@@ -598,6 +632,7 @@
         "domain": "panel",
         "code": "unsupported_source"
       },
+      "layout_code": null,
       "message": "golden fixture for unsupported_source",
       "retryable": false,
       "session_consumed": true
@@ -609,9 +644,10 @@
         "domain": "panel",
         "code": "unsupported_target"
       },
+      "layout_code": null,
       "message": "golden fixture for unsupported_target",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -620,6 +656,7 @@
         "domain": "panel",
         "code": "cross_document"
       },
+      "layout_code": null,
       "message": "golden fixture for cross_document",
       "retryable": false,
       "session_consumed": true
@@ -631,9 +668,10 @@
         "domain": "panel",
         "code": "copy_unsupported"
       },
+      "layout_code": null,
       "message": "golden fixture for copy_unsupported",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -642,6 +680,7 @@
         "domain": "panel",
         "code": "stale_surface_revision"
       },
+      "layout_code": null,
       "message": "golden fixture for stale_surface_revision",
       "retryable": false,
       "session_consumed": true
@@ -653,9 +692,10 @@
         "domain": "panel",
         "code": "target_changed"
       },
+      "layout_code": null,
       "message": "golden fixture for target_changed",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -664,6 +704,7 @@
         "domain": "panel",
         "code": "ineligible_target"
       },
+      "layout_code": null,
       "message": "golden fixture for ineligible_target",
       "retryable": false,
       "session_consumed": true
@@ -675,9 +716,10 @@
         "domain": "panel",
         "code": "instance_policy_exceeded"
       },
+      "layout_code": null,
       "message": "golden fixture for instance_policy_exceeded",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -686,6 +728,7 @@
         "domain": "panel",
         "code": "invalid_insertion_position"
       },
+      "layout_code": null,
       "message": "golden fixture for invalid_insertion_position",
       "retryable": false,
       "session_consumed": true
@@ -697,9 +740,10 @@
         "domain": "panel",
         "code": "layout_mutation_rejected"
       },
+      "layout_code": "stale_revision",
       "message": "golden fixture for layout_mutation_rejected",
       "retryable": false,
-      "session_consumed": false
+      "session_consumed": true
     },
     {
       "protocol_version": 1,
@@ -708,6 +752,7 @@
         "domain": "panel",
         "code": "publication_failed"
       },
+      "layout_code": null,
       "message": "golden fixture for publication_failed",
       "retryable": false,
       "session_consumed": true
@@ -719,6 +764,7 @@
         "domain": "panel",
         "code": "transfer_rejected"
       },
+      "layout_code": null,
       "message": "golden fixture for transfer_rejected",
       "retryable": false,
       "session_consumed": false

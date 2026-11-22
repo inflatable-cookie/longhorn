@@ -76,8 +76,7 @@ where
         ));
     }
 
-    let subject_id = TransferSubjectId::new(request.panel_instance_id().as_str())
-        .expect("panel and transfer subject ids share the same grammar");
+    let subject_id = TransferSubjectId::from(request.panel_instance_id());
     let source = TransferSourceAuthority::Panel {
         client_id: request.client_id().clone(),
         client_epoch: request.client_epoch(),
@@ -98,6 +97,39 @@ where
         .map_err(PanelTransferError::from_transfer)
 }
 
+/// Shared load failure classification for registered Surface documents.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SurfaceDocumentLoadError {
+    /// The registered document requires recovery or is currently unavailable.
+    Unavailable(String),
+    /// The underlying configuration store failed to load the document.
+    Failed(String),
+}
+
+/// Loads one registered Surface document and classifies store outcomes.
+#[doc(hidden)]
+pub fn load_registered_surface_document<M>(
+    store: &ConfigStore,
+    domain: &RegisteredSurfaceDomain<M>,
+    label: &str,
+) -> Result<SurfaceDocument, SurfaceDocumentLoadError>
+where
+    M: SurfaceMigration,
+{
+    match store.load(domain) {
+        Ok(LoadOutcome::Ready(loaded)) => Ok(loaded.value),
+        Ok(LoadOutcome::Recovery(state)) => Err(SurfaceDocumentLoadError::Unavailable(format!(
+            "registered {label} requires recovery: {}",
+            state.detail
+        ))),
+        Ok(LoadOutcome::Unavailable(state)) => Err(SurfaceDocumentLoadError::Unavailable(format!(
+            "registered {label} authority is unavailable: {state:?}"
+        ))),
+        Err(error) => Err(SurfaceDocumentLoadError::Failed(error.to_string())),
+    }
+}
+
 pub(crate) fn load_layout<M>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
@@ -105,21 +137,14 @@ pub(crate) fn load_layout<M>(
 where
     M: SurfaceMigration,
 {
-    match store.load(domain) {
-        Ok(LoadOutcome::Ready(loaded)) => Ok(loaded.value),
-        Ok(LoadOutcome::Recovery(state)) => Err(PanelTransferError::new(
-            PanelTransferErrorCode::LayoutUnavailable,
-            format!("registered layout requires recovery: {}", state.detail),
-        )),
-        Ok(LoadOutcome::Unavailable(state)) => Err(PanelTransferError::new(
-            PanelTransferErrorCode::LayoutUnavailable,
-            format!("registered layout authority is unavailable: {state:?}"),
-        )),
-        Err(error) => Err(PanelTransferError::new(
-            PanelTransferErrorCode::LayoutLoadFailed,
-            error.to_string(),
-        )),
-    }
+    load_registered_surface_document(store, domain, "layout").map_err(|error| match error {
+        SurfaceDocumentLoadError::Unavailable(detail) => {
+            PanelTransferError::new(PanelTransferErrorCode::LayoutUnavailable, detail)
+        }
+        SurfaceDocumentLoadError::Failed(detail) => {
+            PanelTransferError::new(PanelTransferErrorCode::LayoutLoadFailed, detail)
+        }
+    })
 }
 
 pub(crate) fn panel_placement(

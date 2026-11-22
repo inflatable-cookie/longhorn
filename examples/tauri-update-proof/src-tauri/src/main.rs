@@ -39,10 +39,9 @@ use longhorn_core::{
 };
 use longhorn_transfer::{
     ClientEpoch, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone, DropZoneId,
-    InsertionPosition, LeaseGeneration, LeasePublication, MonotonicClock, TransferCapability,
-    TransferClientId, TransferCoordinator, TransferDuration, TransferHostBindingId,
-    TransferInstant, TransferLimits, TransferRevision, TransferSessionRequest,
-    TransferSourceAuthority, TransferTargetBinding,
+    InsertionPosition, LeaseGeneration, LeasePublication, MonotonicClock, TransferClientId,
+    TransferCoordinator, TransferDuration, TransferHostBindingId, TransferInstant, TransferLimits,
+    TransferRevision, TransferSessionRequest, TransferSourceAuthority, TransferTargetBinding,
 };
 use longhorn_update::{
     AdmissionAuthority, AdmissionLease, AdmissionRefusal, InstallAuthorization, UpdateGate,
@@ -173,7 +172,6 @@ impl Proof {
             DropZoneId::new("zone:update-proof").map_err(|error| format!("{error:?}"))?,
             ScreenRect::new(ScreenPoint::new(0, 0), ScreenSize::new(400, 300)),
             Some(InsertionPosition::new(0)),
-            TransferCapability::MovePanel,
             TransferTargetBinding::PanelRegion {
                 host_binding_id: TransferHostBindingId::new("host:update-proof")
                     .map_err(|error| format!("{error:?}"))?,

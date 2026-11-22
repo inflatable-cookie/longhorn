@@ -38,7 +38,6 @@ function states(onDispose: () => void, onCancel: () => void) {
           protocol_version: 1,
           client_id: "client:studio",
           client_epoch: 2,
-          current_lease_generation: null,
         };
       }
       if (command === TRANSFER_START_PANEL_COMMAND) {
@@ -67,8 +66,9 @@ function states(onDispose: () => void, onCancel: () => void) {
             protocol_version: 1,
             request_id: request.request_id,
             source: { domain: "transfer", code: "no_target" },
+            layout_code: null,
             message: "proof target rejects after authoritative recheck",
-            retryable: true,
+            retryable: false,
             session_consumed: true,
           },
         };

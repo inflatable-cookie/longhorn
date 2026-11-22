@@ -77,7 +77,22 @@ pub(super) fn map_mutation_error(error: LayoutConfigMutationError) -> PanelTrans
                 LayoutMutationRejectionCode::InvalidInsertionIndex => {
                     PanelTransferErrorCode::InvalidInsertionPosition
                 }
-                _ => PanelTransferErrorCode::LayoutMutationRejected,
+                LayoutMutationRejectionCode::InvalidCurrentDocument
+                | LayoutMutationRejectionCode::RevisionOverflow
+                | LayoutMutationRejectionCode::UnknownSizingSlot
+                | LayoutMutationRejectionCode::UnknownPanelDefinition
+                | LayoutMutationRejectionCode::DuplicatePanelInstance
+                | LayoutMutationRejectionCode::PanelNotCloseable
+                | LayoutMutationRejectionCode::MoveTargetUnchanged
+                | LayoutMutationRejectionCode::IncompleteReorder
+                | LayoutMutationRejectionCode::DuplicateReorderMember
+                | LayoutMutationRejectionCode::ForeignReorderMember
+                | LayoutMutationRejectionCode::InvalidSizingRatio
+                | LayoutMutationRejectionCode::UnsupportedCollapse
+                | LayoutMutationRejectionCode::InvalidCandidate
+                | LayoutMutationRejectionCode::RequestIdConflict => {
+                    PanelTransferErrorCode::LayoutMutationRejected
+                }
             };
             PanelTransferError::from_layout_rejection(code, &rejection)
         }
