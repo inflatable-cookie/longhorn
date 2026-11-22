@@ -595,16 +595,18 @@ fn a_continuation_run_reports_its_anchor_not_the_origin() {
 
 #[test]
 fn project_branch_page_stays_lazy_and_bounded_near_ceilings() {
+    use std::time::Instant;
+
     use longhorn_core::HistoryRevision;
     use longhorn_history::HistoryEntrySequence;
     use longhorn_history_tree::{ForkBranch, ForkHistoryNode, ForkPreferredChild};
 
-    // Build a deep main spine (2,048 nodes) with 512 alternate branches
+    // Build a deep main spine (8,192 nodes) with 2,048 alternate branches
     // forking off the midpoint. The old implementation materialized every
-    // branch's full lineage (~1M node clones per page); the lazy index
-    // resolves a bounded page in O(N + B).
-    let main_depth = 2_048_usize;
-    let fork_count = 512_usize;
+    // branch's full lineage (~8.4M node clones per page); the lazy index
+    // resolves bounded pages in O(N + B) without full-lineage materialization.
+    let main_depth = 8_192_usize;
+    let fork_count = 2_048_usize;
     let mut nodes = Vec::with_capacity(main_depth + fork_count);
     let mut parent = None;
     for index in 1..=main_depth {
@@ -661,17 +663,34 @@ fn project_branch_page_stays_lazy_and_bounded_near_ceilings() {
     )]);
     let graph = ForkHistory::from_state(state).expect("valid deep/wide graph");
 
-    let page = graph
+    let started = Instant::now();
+    let first_page = graph
         .project_branch_page(ForkProjectionPageRequest::new(0, 32).unwrap())
-        .expect("bounded branch page");
-    assert_eq!(page.total_branches(), fork_count + 1);
-    assert_eq!(page.branches().len(), 32);
-    assert!(page.truncated_after());
-    for projected in page.branches() {
+        .expect("bounded first branch page");
+    let middle_page = graph
+        .project_branch_page(ForkProjectionPageRequest::new(fork_count / 2, 32).unwrap())
+        .expect("bounded middle branch page");
+    let elapsed = started.elapsed();
+
+    assert_eq!(first_page.total_branches(), fork_count + 1);
+    assert_eq!(first_page.branches().len(), 32);
+    assert!(first_page.truncated_after());
+    assert_eq!(middle_page.total_branches(), fork_count + 1);
+    assert_eq!(middle_page.branches().len(), 32);
+    assert!(middle_page.truncated_after());
+    for projected in first_page
+        .branches()
+        .iter()
+        .chain(middle_page.branches().iter())
+    {
         assert_eq!(projected.divergence_entry_id(), Some(&anchor));
         assert_eq!(
             projected.divergence_branch_id(),
             Some(&branch_id("branch:main"))
         );
     }
+    assert!(
+        elapsed.as_secs() < 2,
+        "lazy branch-page projection on {main_depth}-node spine with {fork_count} forks took too long: {elapsed:?}"
+    );
 }

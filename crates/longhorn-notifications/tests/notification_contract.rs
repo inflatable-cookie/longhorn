@@ -996,7 +996,7 @@ mod operation {
             &RenderPolicy,
             OperationTerminalEvidence::TeardownOutcome {
                 receipt: &teardown_receipt,
-                outcome: &teardown_receipt.outcomes()[0],
+                outcome_index: 0,
             },
         )
         .unwrap()
@@ -1004,6 +1004,273 @@ mod operation {
         assert_eq!(
             teardown_pub.notification_id().as_str(),
             "notification:operation-evicted-teardown"
+        );
+    }
+
+    #[test]
+    fn observer_rejects_foreign_authority_epoch_record_with_matching_operation_id() {
+        let authority_id = OperationAuthorityId::new("operations:epoch-check").unwrap();
+        let op_id = OperationId::new("operation:render-42").unwrap();
+
+        let make_catalogue = |epoch: u64| {
+            OperationCatalogue::new(
+                authority_id.clone(),
+                OperationAuthorityEpoch::new(epoch).unwrap(),
+                OperationCatalogueLimits::default(),
+            )
+        };
+
+        // Same authority_id and operation_id, different authority epochs:
+        // transition, confirmed queued cancellation, and teardown must all
+        // reject a foreign-epoch record even when state and revision match.
+        let mut epoch1_transition = make_catalogue(1);
+        let mut epoch2_transition = make_catalogue(2);
+        for catalogue in [&mut epoch1_transition, &mut epoch2_transition] {
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Render stems").unwrap(),
+                    OperationState::Running,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+            let rev = catalogue.operation(&op_id).unwrap().revision();
+            catalogue
+                .transition(OperationTransition::new(
+                    catalogue.authority().clone(),
+                    op_id.clone(),
+                    rev,
+                    OperationState::Failed,
+                ))
+                .unwrap();
+        }
+        let mut epoch1_fresh = make_catalogue(1);
+        epoch1_fresh
+            .register(OperationRegistration::new(
+                epoch1_fresh.authority().clone(),
+                epoch1_fresh.revision(),
+                op_id.clone(),
+                OperationKindId::new("loophole.render").unwrap(),
+                None,
+                OperationLabel::new("Render stems").unwrap(),
+                OperationState::Running,
+                OperationCancellationSupport::Supported,
+                None,
+            ))
+            .unwrap();
+        let rev = epoch1_fresh.operation(&op_id).unwrap().revision();
+        let transition_receipt = epoch1_fresh
+            .transition(OperationTransition::new(
+                epoch1_fresh.authority().clone(),
+                op_id.clone(),
+                rev,
+                OperationState::Failed,
+            ))
+            .unwrap();
+        let foreign_transition_record = epoch2_transition.operation(&op_id).unwrap();
+        assert_eq!(
+            foreign_transition_record.operation_id(),
+            transition_receipt.operation_id()
+        );
+        assert_eq!(
+            foreign_transition_record.state(),
+            transition_receipt.committed_state()
+        );
+        assert_eq!(
+            foreign_transition_record.revision(),
+            transition_receipt.committed_operation_revision()
+        );
+        assert_eq!(
+            observe_terminal_operation(
+                &RenderPolicy,
+                foreign_transition_record,
+                &transition_receipt
+            ),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+
+        let mut epoch1_cancel = make_catalogue(1);
+        let mut epoch2_cancel = make_catalogue(2);
+        for catalogue in [&mut epoch1_cancel, &mut epoch2_cancel] {
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Queued").unwrap(),
+                    OperationState::Queued,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+        }
+        let c1_rev = epoch1_cancel.operation(&op_id).unwrap().revision();
+        let cancel_receipt = epoch1_cancel
+            .request_cancellation(
+                OperationCancellationRequest::new(
+                    epoch1_cancel.authority().clone(),
+                    op_id.clone(),
+                    c1_rev,
+                )
+                .with_queued_confirmation(QueuedCancellationConfirmation::ConfirmedUnstarted),
+            )
+            .unwrap();
+        let c2_rev = epoch2_cancel.operation(&op_id).unwrap().revision();
+        epoch2_cancel
+            .request_cancellation(
+                OperationCancellationRequest::new(
+                    epoch2_cancel.authority().clone(),
+                    op_id.clone(),
+                    c2_rev,
+                )
+                .with_queued_confirmation(QueuedCancellationConfirmation::ConfirmedUnstarted),
+            )
+            .unwrap();
+        let foreign_cancel_record = epoch2_cancel.operation(&op_id).unwrap();
+        assert_eq!(
+            observe_terminal_operation(&RenderPolicy, foreign_cancel_record, &cancel_receipt),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+
+        let mut epoch1_teardown = make_catalogue(1);
+        let mut epoch2_teardown = make_catalogue(2);
+        for catalogue in [&mut epoch1_teardown, &mut epoch2_teardown] {
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Teardown").unwrap(),
+                    OperationState::Running,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+        }
+        let t1_rev = epoch1_teardown.operation(&op_id).unwrap().revision();
+        let teardown_receipt = epoch1_teardown
+            .teardown(OperationTeardown::new(
+                epoch1_teardown.authority().clone(),
+                epoch1_teardown.revision(),
+                vec![OperationTeardownResolution::new(
+                    op_id.clone(),
+                    t1_rev,
+                    OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+                )],
+            ))
+            .unwrap();
+        let t2_rev = epoch2_teardown.operation(&op_id).unwrap().revision();
+        epoch2_teardown
+            .teardown(OperationTeardown::new(
+                epoch2_teardown.authority().clone(),
+                epoch2_teardown.revision(),
+                vec![OperationTeardownResolution::new(
+                    op_id.clone(),
+                    t2_rev,
+                    OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+                )],
+            ))
+            .unwrap();
+        let foreign_teardown_record = epoch2_teardown.operation(&op_id).unwrap();
+        assert_eq!(
+            observe_terminal_operation(&RenderPolicy, foreign_teardown_record, &teardown_receipt),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+        assert_eq!(
+            observe_terminal_operation(
+                &RenderPolicy,
+                foreign_teardown_record,
+                OperationTerminalEvidence::TeardownOutcome {
+                    receipt: &teardown_receipt,
+                    outcome_index: 0,
+                },
+            ),
+            Err(OperationNotificationObservationError::OperationMismatch)
+        );
+    }
+
+    #[test]
+    fn observer_teardown_outcome_batch_observation_is_linear() {
+        use std::time::Instant;
+
+        let batch_size = 2_048_usize;
+        let mut catalogue = OperationCatalogue::new(
+            OperationAuthorityId::new("operations:batch-teardown").unwrap(),
+            OperationAuthorityEpoch::new(1).unwrap(),
+            OperationCatalogueLimits::new(batch_size, 0, 0).unwrap(),
+        );
+        let mut resolutions = Vec::with_capacity(batch_size);
+        for index in 0..batch_size {
+            let op_id = OperationId::new(format!("operation:batch-{index:04}")).unwrap();
+            catalogue
+                .register(OperationRegistration::new(
+                    catalogue.authority().clone(),
+                    catalogue.revision(),
+                    op_id.clone(),
+                    OperationKindId::new("loophole.render").unwrap(),
+                    None,
+                    OperationLabel::new("Batch item").unwrap(),
+                    OperationState::Running,
+                    OperationCancellationSupport::Supported,
+                    None,
+                ))
+                .unwrap();
+            let rev = catalogue.operation(&op_id).unwrap().revision();
+            resolutions.push(OperationTeardownResolution::new(
+                op_id,
+                rev,
+                OperationTeardownResolutionOutcome::Complete(OperationState::Interrupted),
+            ));
+        }
+
+        let receipt = catalogue
+            .teardown(OperationTeardown::new(
+                catalogue.authority().clone(),
+                catalogue.revision(),
+                resolutions,
+            ))
+            .unwrap();
+        assert_eq!(receipt.outcomes().len(), batch_size);
+
+        let started = Instant::now();
+        for outcome_index in 0..receipt.outcomes().len() {
+            let publication = observe_terminal_receipt(
+                &RenderPolicy,
+                OperationTerminalEvidence::TeardownOutcome {
+                    receipt: &receipt,
+                    outcome_index,
+                },
+            )
+            .unwrap()
+            .expect("each completed teardown outcome publishes");
+            assert_eq!(
+                publication.notification_id().as_str(),
+                format!("notification:operation-batch-{outcome_index:04}")
+            );
+        }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed.as_secs() < 2,
+            "observing {batch_size} teardown outcomes by index took too long: {elapsed:?}"
+        );
+        assert_eq!(
+            observe_terminal_receipt(
+                &RenderPolicy,
+                OperationTerminalEvidence::TeardownOutcome {
+                    receipt: &receipt,
+                    outcome_index: batch_size,
+                },
+            ),
+            Err(OperationNotificationObservationError::OperationMismatch)
         );
     }
 }

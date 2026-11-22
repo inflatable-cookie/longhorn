@@ -1,6 +1,6 @@
 use std::{error::Error, fmt};
 
-use longhorn_core::{NotificationId, OperationCatalogueRevision, OperationId, OperationRevision};
+use longhorn_core::{NotificationId, OperationCatalogueRevision, OperationId};
 use longhorn_operation::{
     OperationCancellationOutcome, OperationCancellationReceipt, OperationRecord, OperationState,
     OperationTeardownOutcome, OperationTeardownReceipt, OperationTransitionReceipt,
@@ -22,13 +22,14 @@ pub enum OperationTerminalEvidence<'a> {
     /// the supplied operation record id).
     Teardown(&'a OperationTeardownReceipt),
     /// One specific completed outcome from a controlled authority teardown,
-    /// carrying its authoritative post-commit record even under zero terminal
-    /// retention.
+    /// addressed by its index in `receipt.outcomes()` for O(1) batch
+    /// observation and carrying its authoritative post-commit record even under
+    /// zero terminal retention.
     TeardownOutcome {
         /// Committed teardown receipt.
         receipt: &'a OperationTeardownReceipt,
-        /// Completed outcome inside `receipt`.
-        outcome: &'a OperationTeardownOutcome,
+        /// Zero-based index of the completed outcome inside `receipt.outcomes()`.
+        outcome_index: usize,
     },
 }
 
@@ -65,10 +66,14 @@ impl<'a> OperationTerminalEvidence<'a> {
                 Ok(receipt.operation())
             }
             Self::Teardown(_) => Err(OperationNotificationObservationError::OperationMismatch),
-            Self::TeardownOutcome { receipt, outcome } => {
-                if !receipt.outcomes().contains(outcome) {
-                    return Err(OperationNotificationObservationError::OperationMismatch);
-                }
+            Self::TeardownOutcome {
+                receipt,
+                outcome_index,
+            } => {
+                let outcome = receipt
+                    .outcomes()
+                    .get(*outcome_index)
+                    .ok_or(OperationNotificationObservationError::OperationMismatch)?;
                 match outcome {
                     OperationTeardownOutcome::Completed {
                         state, operation, ..
@@ -88,39 +93,17 @@ impl<'a> OperationTerminalEvidence<'a> {
         }
     }
 
-    fn resolve_for(
+    fn resolve_record_for(
         &self,
         operation_id: &OperationId,
-    ) -> Result<(OperationState, OperationRevision), OperationNotificationObservationError> {
+    ) -> Result<&'a OperationRecord, OperationNotificationObservationError> {
         match self {
-            Self::Transition(receipt) => {
-                if !receipt.committed_state().is_terminal() {
-                    return Err(OperationNotificationObservationError::NonTerminalTransition);
-                }
-                if receipt.operation_id() != operation_id {
+            Self::Transition(_) | Self::Cancellation(_) | Self::TeardownOutcome { .. } => {
+                let record = self.resolve_record()?;
+                if record.operation_id() != operation_id {
                     return Err(OperationNotificationObservationError::OperationMismatch);
                 }
-                Ok((
-                    receipt.committed_state(),
-                    receipt.committed_operation_revision(),
-                ))
-            }
-            Self::Cancellation(receipt) => {
-                if receipt.outcome() != OperationCancellationOutcome::Accepted
-                    || receipt.previous_state() != OperationState::Queued
-                    || receipt.committed_state() != OperationState::Cancelled
-                    || receipt.committed_operation_revision()
-                        == receipt.previous_operation_revision()
-                {
-                    return Err(OperationNotificationObservationError::NonTerminalTransition);
-                }
-                if receipt.operation_id() != operation_id {
-                    return Err(OperationNotificationObservationError::OperationMismatch);
-                }
-                Ok((
-                    receipt.committed_state(),
-                    receipt.committed_operation_revision(),
-                ))
+                Ok(record)
             }
             Self::Teardown(receipt) => {
                 let outcome = receipt
@@ -130,41 +113,14 @@ impl<'a> OperationTerminalEvidence<'a> {
                     .ok_or(OperationNotificationObservationError::OperationMismatch)?;
                 match outcome {
                     OperationTeardownOutcome::Completed {
-                        state,
-                        committed_operation_revision,
-                        ..
+                        state, operation, ..
                     } => {
                         if !state.is_terminal() {
                             return Err(
                                 OperationNotificationObservationError::NonTerminalTransition,
                             );
                         }
-                        Ok((*state, *committed_operation_revision))
-                    }
-                    OperationTeardownOutcome::Transferred { .. } => {
-                        Err(OperationNotificationObservationError::NonTerminalTransition)
-                    }
-                }
-            }
-            Self::TeardownOutcome { receipt, outcome } => {
-                if !receipt.outcomes().contains(outcome) {
-                    return Err(OperationNotificationObservationError::OperationMismatch);
-                }
-                if outcome.operation_id() != operation_id {
-                    return Err(OperationNotificationObservationError::OperationMismatch);
-                }
-                match outcome {
-                    OperationTeardownOutcome::Completed {
-                        state,
-                        committed_operation_revision,
-                        ..
-                    } => {
-                        if !state.is_terminal() {
-                            return Err(
-                                OperationNotificationObservationError::NonTerminalTransition,
-                            );
-                        }
-                        Ok((*state, *committed_operation_revision))
+                        Ok(operation)
                     }
                     OperationTeardownOutcome::Transferred { .. } => {
                         Err(OperationNotificationObservationError::NonTerminalTransition)
@@ -274,8 +230,11 @@ where
     E: Into<OperationTerminalEvidence<'a>>,
 {
     let evidence = evidence.into();
-    let (committed_state, committed_revision) = evidence.resolve_for(operation.operation_id())?;
-    if operation.state() != committed_state || operation.revision() != committed_revision {
+    let committed = evidence.resolve_record_for(operation.operation_id())?;
+    if operation.authority() != committed.authority() {
+        return Err(OperationNotificationObservationError::OperationMismatch);
+    }
+    if operation != committed {
         return Err(OperationNotificationObservationError::UncommittedRecord);
     }
     Ok(policy.publication(operation, evidence))
