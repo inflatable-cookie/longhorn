@@ -32,7 +32,9 @@ use tokio::{
     task::JoinHandle,
 };
 
-use crate::{DiscoveryError, DiscoveryFile, enumerate_discovery, resolve_discovery_dir};
+use crate::{
+    DiscoveryError, DiscoveryFile, InstanceToken, enumerate_discovery, resolve_discovery_dir,
+};
 
 /// Protocol version from which the server requires the SEP-2243 header set
 /// (`Mcp-Method`, `Mcp-Name`, `Mcp-Param-*` plus `MCP-Protocol-Version`).
@@ -620,13 +622,15 @@ pub async fn run_carrier(
             "the carrier speaks plain HTTP to 127.0.0.1 only".to_owned(),
         ));
     }
+    // Never send the loopback bearer to a configured HTTP proxy.
     let client = reqwest::Client::builder()
+        .no_proxy()
         .build()
         .map_err(|error| CarrierError::Exchange(format!("HTTP client failed: {error}")))?;
     let shared = Arc::new(CarrierShared {
         client,
         endpoint: selection.endpoint.clone(),
-        token: selection.file.token.as_str().to_owned(),
+        token: selection.file.token,
         session: Mutex::new(SessionState::default()),
         output: tokio::sync::Mutex::new(stdout),
         inflight: tokio::sync::Mutex::new(HashMap::new()),
@@ -673,7 +677,7 @@ type Inflight = HashMap<String, (JoinHandle<()>, Arc<()>)>;
 struct CarrierShared<W> {
     client: reqwest::Client,
     endpoint: String,
-    token: String,
+    token: InstanceToken,
     session: Mutex<SessionState>,
     output: tokio::sync::Mutex<W>,
     inflight: tokio::sync::Mutex<Inflight>,
@@ -775,7 +779,7 @@ where
             .post(&self.endpoint)
             .header("Content-Type", "application/json")
             .header("Accept", "application/json, text/event-stream")
-            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Authorization", format!("Bearer {}", self.token.as_str()))
             .body(raw);
         for (name, value) in headers {
             request = request.header(name, value);

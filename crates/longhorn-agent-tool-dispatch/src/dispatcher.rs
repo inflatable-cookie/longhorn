@@ -1,14 +1,17 @@
 //! Validation-first recording dispatcher.
 
 use crate::{
-    AdmittedCall, BindingStatus, CallbackFailure, CallbackResult, Cancellation, DispatchEffect,
-    DispatchError, DispatchErrorKind, DispatchEvent, DispatchEventKind, DispatchInvocation,
-    DispatchMetrics, DispatchOutcome, RegisteredCapability, SchemaIdentity, TrustedBinding,
+    AdmittedCall, BindingStatus, CallbackFailure, CallbackResult, Cancellation, DispatchDeadline,
+    DispatchEffect, DispatchError, DispatchErrorKind, DispatchEvent, DispatchEventKind,
+    DispatchInvocation, DispatchMetrics, DispatchOutcome, RegisteredCapability, SchemaIdentity,
+    TrustedBinding,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::task::{Context, Poll};
+use std::time::{Duration, Instant};
 
 /// Sendable future returned by callback and dispatcher ports.
 pub type DispatchFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
@@ -88,15 +91,16 @@ pub struct ResultRecorder {
     max_result_bytes: usize,
     effect: DispatchEffect,
     cancellation: Cancellation,
+    deadline_at: Instant,
     state: Arc<Mutex<DispatcherState>>,
 }
 
 impl ResultRecorder {
     /// Accepts the first matching bounded result for the bound call.
     ///
-    /// Cancellation wins before result validation. A second result is
-    /// rejected as duplicate; any result after cancellation or failure is
-    /// rejected as post-terminal.
+    /// Cancellation and deadline expiry win before result validation. A second
+    /// result is rejected as duplicate; any result after cancellation,
+    /// deadline expiry, or failure is rejected as post-terminal.
     pub fn record(&self, result: CallbackResult) -> Result<(), DispatchError> {
         let mut state = locked(&self.state);
         match state.terminal.get(&self.call_id) {
@@ -119,6 +123,11 @@ impl ResultRecorder {
         }
         if self.cancellation.is_cancelled() {
             let error = DispatchError::new(DispatchErrorKind::Cancelled);
+            state.settle_failure(&self.call_id, error);
+            return Err(error);
+        }
+        if Instant::now() >= self.deadline_at {
+            let error = DispatchError::new(DispatchErrorKind::DeadlineExceeded);
             state.settle_failure(&self.call_id, error);
             return Err(error);
         }
@@ -161,6 +170,62 @@ impl std::fmt::Debug for ResultRecorder {
     }
 }
 
+/// RAII cleanup for an admitted call: if the dispatch future is dropped before
+/// normal settlement, removes `call_id` from `active`, records a terminal
+/// cancellation so a retained `ResultRecorder` cannot land later, and frees
+/// the `max_outstanding_calls` slot.
+struct ActiveCallGuard {
+    call_id: String,
+    state: Arc<Mutex<DispatcherState>>,
+    disarmed: bool,
+}
+
+impl Drop for ActiveCallGuard {
+    fn drop(&mut self) {
+        if self.disarmed {
+            return;
+        }
+        let mut state = locked(&self.state);
+        if state.active.contains(&self.call_id) {
+            state.settle_failure(
+                &self.call_id,
+                DispatchError::new(DispatchErrorKind::Cancelled),
+            );
+        }
+    }
+}
+
+/// Polls a callback future while enforcing its monotonic `deadline_at`.
+struct BoundedCallback<'a> {
+    inner: DispatchFuture<'a, Result<(), CallbackFailure>>,
+    deadline_at: Instant,
+}
+
+enum CallbackPoll {
+    Completed(Result<(), CallbackFailure>),
+    DeadlineExceeded,
+}
+
+impl Future for BoundedCallback<'_> {
+    type Output = CallbackPoll;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if Instant::now() >= self.deadline_at {
+            return Poll::Ready(CallbackPoll::DeadlineExceeded);
+        }
+        match self.inner.as_mut().poll(cx) {
+            Poll::Ready(outcome) => Poll::Ready(CallbackPoll::Completed(outcome)),
+            Poll::Pending => {
+                if Instant::now() >= self.deadline_at {
+                    Poll::Ready(CallbackPoll::DeadlineExceeded)
+                } else {
+                    Poll::Pending
+                }
+            }
+        }
+    }
+}
+
 /// Stateful dispatcher that records safe callback-order evidence.
 pub struct RecordingDispatcher<C> {
     expected_registration: RegisteredCapability,
@@ -195,10 +260,14 @@ where
         cancellation: Cancellation,
     ) -> DispatchFuture<'_, Result<DispatchOutcome, DispatchError>> {
         Box::pin(async move {
-            if let Err(error) = self.validate(&invocation) {
-                locked(&self.state).reject(error);
-                return Err(error);
-            }
+            let remaining = match self.validate(&invocation) {
+                Ok(remaining) => remaining,
+                Err(error) => {
+                    locked(&self.state).reject(error);
+                    return Err(error);
+                }
+            };
+            let deadline_at = Instant::now() + remaining;
             let admitted = AdmittedCall::from_invocation(&invocation);
             let recorder = {
                 let mut state = locked(&self.state);
@@ -227,25 +296,44 @@ where
                     max_result_bytes: invocation.registration().bounds().max_result_bytes(),
                     effect: invocation.registration().effect(),
                     cancellation: cancellation.clone(),
+                    deadline_at,
                     state: Arc::clone(&self.state),
                 }
             };
+            let mut active_guard = ActiveCallGuard {
+                call_id: invocation.call_id().to_owned(),
+                state: Arc::clone(&self.state),
+                disarmed: false,
+            };
 
-            let callback = self
-                .callback
-                .invoke(admitted, cancellation.clone(), recorder)
-                .await;
+            let callback = BoundedCallback {
+                inner: self
+                    .callback
+                    .invoke(admitted, cancellation.clone(), recorder),
+                deadline_at,
+            }
+            .await;
             let mut state = locked(&self.state);
             if state.active.contains(invocation.call_id()) {
-                let error = if cancellation.is_cancelled() {
-                    DispatchError::new(DispatchErrorKind::Cancelled)
-                } else if callback.is_err() {
-                    DispatchError::new(DispatchErrorKind::CallbackFailed)
-                } else {
-                    DispatchError::new(DispatchErrorKind::MissingResult)
+                let error = match callback {
+                    CallbackPoll::DeadlineExceeded => {
+                        DispatchError::new(DispatchErrorKind::DeadlineExceeded)
+                    }
+                    CallbackPoll::Completed(outcome) => {
+                        if cancellation.is_cancelled() {
+                            DispatchError::new(DispatchErrorKind::Cancelled)
+                        } else if Instant::now() >= deadline_at {
+                            DispatchError::new(DispatchErrorKind::DeadlineExceeded)
+                        } else if outcome.is_err() {
+                            DispatchError::new(DispatchErrorKind::CallbackFailed)
+                        } else {
+                            DispatchError::new(DispatchErrorKind::MissingResult)
+                        }
+                    }
                 };
                 state.settle_failure(invocation.call_id(), error);
             }
+            active_guard.disarmed = true;
             match state.terminal.get(invocation.call_id()).cloned() {
                 Some(Terminal::Result(outcome)) => Ok(outcome),
                 Some(Terminal::Failed(error)) => Err(error),
@@ -258,7 +346,7 @@ where
         })
     }
 
-    fn validate(&self, invocation: &DispatchInvocation) -> Result<(), DispatchError> {
+    fn validate(&self, invocation: &DispatchInvocation) -> Result<Duration, DispatchError> {
         let actual = invocation.registration();
         let expected = &self.expected_registration;
         if actual.registration_revision() != expected.registration_revision() {
@@ -294,12 +382,15 @@ where
         invocation
             .deadline()
             .validate(actual.bounds().max_call_duration())?;
+        let DispatchDeadline::Active(remaining) = invocation.deadline() else {
+            return Err(DispatchError::new(DispatchErrorKind::DeadlineExceeded));
+        };
         if !actual.bounds().fits_within(expected.bounds())
             || invocation.arguments_for_execution().len() > actual.bounds().max_argument_bytes()
         {
             return Err(DispatchError::new(DispatchErrorKind::LimitExceeded));
         }
-        Ok(())
+        Ok(remaining)
     }
 
     /// Returns ordered payload-free evidence.
@@ -317,7 +408,6 @@ where
             results: state.results,
             cancellations: state.cancellations,
             rejections: state.rejections,
-            mutation_replays: 0,
         }
     }
 }

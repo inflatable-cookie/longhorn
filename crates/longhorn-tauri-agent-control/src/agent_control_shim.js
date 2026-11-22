@@ -584,6 +584,7 @@
     const existing = world[SHIM_GLOBAL];
     if (existing)
       return existing.readEvents.bind(existing);
+    const epoch = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     const ring = [];
     let nextSeq = 1;
     let dropped = 0;
@@ -637,11 +638,15 @@
       replaceState(...args);
       notifyNavigation();
     };
-    return (sinceSeq = 0) => ({
-      events: ring.filter((event) => event.seq > sinceSeq),
-      nextSeq,
-      dropped
-    });
+    return (sinceSeq = 0, sinceEpoch) => {
+      const effectiveSince = sinceEpoch !== undefined && sinceEpoch !== null && sinceEpoch !== epoch ? 0 : sinceSeq;
+      return {
+        epoch,
+        events: ring.filter((event) => event.seq > effectiveSince),
+        nextSeq,
+        dropped
+      };
+    };
   }
   function installOriginTracking(world) {
     let agentOriginSeq = 0;

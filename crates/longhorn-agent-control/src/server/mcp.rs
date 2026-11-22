@@ -1,11 +1,13 @@
 //! rmcp `ServerHandler` over the host's [`ControlHandler`].
 //!
-//! One tool method per vocabulary request; each validates its wire
-//! arguments, awaits the host, and maps the outcome onto a
-//! [`CallToolResult`]. Tool-level failures carry the typed [`ToolError`] as
-//! JSON content so agents read the same error vocabulary the host produced.
+//! One tool method per vocabulary request; each deserializes directly into
+//! the shared vocabulary type (except `resize_window`, whose flat wire shape
+//! adapts through [`ResizeWindowArgs`]), awaits the host, and maps the
+//! outcome onto a [`CallToolResult`]. Tool-level failures carry the typed
+//! [`ToolError`] as JSON content so agents read the same error vocabulary
+//! the host produced.
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use rmcp::{
@@ -21,17 +23,70 @@ use rmcp::{
     tool, tool_handler, tool_router,
 };
 
-use super::args::{
-    AnswerSelectionArgs, ClickArgs, CommandArgs, DragArgs, EvaluateArgs, PressArgs,
-    RejectSelectionArgs, ResizeWindowArgs, ScreenshotArgs, ScrollArgs, SetFileInputArgs,
-    SnapshotArgs, TypeArgs, WaitForArgs,
-};
+use super::args::{ResizeWindowArgs, invalid_params};
 use crate::{
-    AnswerSelectionResult, ControlHandler, EvaluateRequest, EvaluateResult, RejectSelectionResult,
-    SelectionRegistry, ToolError,
+    AnswerSelectionRequest, AnswerSelectionResult, ClickRequest, CommandRequest, ControlHandler,
+    DragRequest, EvaluateRequest, EvaluateResult, PressRequest, RejectSelectionRequest,
+    RejectSelectionResult, ScreenshotRequest, ScrollRequest, SelectionRegistry,
+    SetFileInputRequest, SnapshotRequest, ToolError, TypeRequest, WaitForRequest,
 };
 
 use super::events;
+
+/// Polling cadence for page-event subscriptions (`console`, `error`,
+/// `navigation`).
+///
+/// Selection updates (`longhorn://agent-control/selection`) are pushed over
+/// a `watch` channel with zero polling. Page events live in the in-page shim
+/// ring because WKWebView has no host push channel for them; when at least
+/// one page-event URI is subscribed, each listener polls `readEvents` at
+/// this bounded interval.
+const PAGE_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(50);
+
+/// One batch returned by the in-page shim's `readEvents(sinceSeq, sinceEpoch)`.
+#[derive(Debug, Eq, PartialEq)]
+struct EventBatch {
+    epoch: Option<String>,
+    events: Vec<serde_json::Value>,
+    next_seq: u64,
+    dropped: u64,
+}
+
+/// Cursor tracking one listener's position across document reloads.
+#[derive(Debug, Default, Eq, PartialEq)]
+struct ListenCursor {
+    epoch: Option<String>,
+    seq: u64,
+}
+
+impl ListenCursor {
+    /// Updates the cursor from `batch`.
+    ///
+    /// Returns `true` when the document epoch changed while `events` was empty
+    /// and a non-zero prior cursor was passed (a 1-argument shim/stub that
+    /// ignored `sinceEpoch` and filtered with the old `seq`), signaling the
+    /// caller to immediately re-read from `seq = 0`.
+    fn apply(&mut self, batch: &EventBatch) -> bool {
+        let epoch_changed = match (&self.epoch, &batch.epoch) {
+            (Some(prev), Some(curr)) => prev != curr,
+            _ => false,
+        };
+        if batch.epoch.is_some() {
+            self.epoch = batch.epoch.clone();
+        }
+        if epoch_changed {
+            let had_cursor = self.seq > 0;
+            self.seq = advance_listen_cursor(0, &batch.events);
+            return had_cursor && batch.events.is_empty() && batch.next_seq > 1;
+        }
+        // Cursor is the last delivered event seq, not `nextSeq`. The ring
+        // assigns `nextSeq` to the *next* push and filters `seq > sinceSeq`,
+        // so using `nextSeq` as the cursor drops the first event after
+        // subscribe (Card 237).
+        self.seq = advance_listen_cursor(self.seq, &batch.events);
+        false
+    }
+}
 
 /// MCP service dispatching to the host's control authority.
 #[derive(Clone)]
@@ -80,9 +135,9 @@ where
     )]
     async fn snapshot(
         &self,
-        Parameters(args): Parameters<SnapshotArgs>,
+        Parameters(request): Parameters<SnapshotRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.snapshot(args.into_request()?).await)
+        json_result(self.handler.snapshot(request).await)
     }
 
     #[tool(
@@ -90,9 +145,9 @@ where
     )]
     async fn click(
         &self,
-        Parameters(args): Parameters<ClickArgs>,
+        Parameters(request): Parameters<ClickRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.click(args.into_request()?).await)
+        json_result(self.handler.click(request).await)
     }
 
     #[tool(
@@ -101,9 +156,9 @@ where
     )]
     async fn r#type(
         &self,
-        Parameters(args): Parameters<TypeArgs>,
+        Parameters(request): Parameters<TypeRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.r#type(args.into_request()?).await)
+        json_result(self.handler.r#type(request).await)
     }
 
     #[tool(
@@ -111,9 +166,9 @@ where
     )]
     async fn press(
         &self,
-        Parameters(args): Parameters<PressArgs>,
+        Parameters(request): Parameters<PressRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.press(args.into_request()?).await)
+        json_result(self.handler.press(request).await)
     }
 
     #[tool(
@@ -121,9 +176,9 @@ where
     )]
     async fn scroll(
         &self,
-        Parameters(args): Parameters<ScrollArgs>,
+        Parameters(request): Parameters<ScrollRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.scroll(args.into_request()?).await)
+        json_result(self.handler.scroll(request).await)
     }
 
     #[tool(
@@ -131,9 +186,9 @@ where
     )]
     async fn drag(
         &self,
-        Parameters(args): Parameters<DragArgs>,
+        Parameters(request): Parameters<DragRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.drag(args.into_request()?).await)
+        json_result(self.handler.drag(request).await)
     }
 
     #[tool(
@@ -141,9 +196,12 @@ where
     )]
     async fn set_file_input(
         &self,
-        Parameters(args): Parameters<SetFileInputArgs>,
+        Parameters(request): Parameters<SetFileInputRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.set_file_input(args.into_request()?).await)
+        request
+            .validate()
+            .map_err(|error| invalid_params(error.to_string()))?;
+        json_result(self.handler.set_file_input(request).await)
     }
 
     #[tool(
@@ -151,9 +209,8 @@ where
     )]
     async fn evaluate(
         &self,
-        Parameters(args): Parameters<EvaluateArgs>,
+        Parameters(request): Parameters<EvaluateRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        let request = args.into_request()?;
         #[cfg(feature = "agent-control-evaluate")]
         {
             json_result::<EvaluateResult>(self.handler.evaluate(request).await)
@@ -174,9 +231,12 @@ where
     )]
     async fn wait_for(
         &self,
-        Parameters(args): Parameters<WaitForArgs>,
+        Parameters(request): Parameters<WaitForRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.wait_for(args.into_request()?).await)
+        request
+            .validate()
+            .map_err(|error| invalid_params(error.to_string()))?;
+        json_result(self.handler.wait_for(request).await)
     }
 
     #[tool(
@@ -184,9 +244,9 @@ where
     )]
     async fn screenshot(
         &self,
-        Parameters(args): Parameters<ScreenshotArgs>,
+        Parameters(request): Parameters<ScreenshotRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        match self.handler.screenshot(args.into_request()?).await {
+        match self.handler.screenshot(request).await {
             Ok(result) => Ok(CallToolResult::success(vec![ContentBlock::image(
                 BASE64.encode(result.png),
                 "image/png",
@@ -202,9 +262,9 @@ where
     )]
     async fn command(
         &self,
-        Parameters(args): Parameters<CommandArgs>,
+        Parameters(request): Parameters<CommandRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        json_result(self.handler.command(args.into_request()?).await)
+        json_result(self.handler.command(request).await)
     }
 
     #[tool(description = "List every window the app exposes to the control surface.")]
@@ -229,9 +289,8 @@ where
     )]
     async fn answer_selection(
         &self,
-        Parameters(args): Parameters<AnswerSelectionArgs>,
+        Parameters(request): Parameters<AnswerSelectionRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        let request = args.into_request()?;
         json_result::<AnswerSelectionResult>(
             self.registry
                 .answer(&request.id, &request.paths)
@@ -244,9 +303,8 @@ where
     )]
     async fn reject_selection(
         &self,
-        Parameters(args): Parameters<RejectSelectionArgs>,
+        Parameters(request): Parameters<RejectSelectionRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        let request = args.into_request()?;
         json_result::<RejectSelectionResult>(
             self.registry
                 .reject(&request.id)
@@ -257,14 +315,22 @@ where
     async fn read_events(
         &self,
         since_seq: u64,
-    ) -> Result<(Vec<serde_json::Value>, u64, u64), ToolError> {
+        since_epoch: Option<&str>,
+    ) -> Result<EventBatch, ToolError> {
+        let args = match since_epoch {
+            Some(epoch) => format!(
+                "{since_seq}, {}",
+                serde_json::Value::String(epoch.to_owned())
+            ),
+            None => format!("{since_seq}"),
+        };
         let value = self
             .handler
             .evaluate(EvaluateRequest {
                 window: None,
                 webview: None,
                 js: format!(
-                    "JSON.stringify(globalThis.__longhornAgentControl ? globalThis.__longhornAgentControl.readEvents({since_seq}) : {{events:[], nextSeq:{since_seq}, dropped:0}})"
+                    "JSON.stringify(globalThis.__longhornAgentControl ? globalThis.__longhornAgentControl.readEvents({args}) : {{events:[], nextSeq:{since_seq}, dropped:0}})"
                 ),
             })
             .await?
@@ -277,6 +343,10 @@ where
             }
             other => other,
         };
+        let epoch = parsed
+            .get("epoch")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_owned);
         let events = parsed
             .get("events")
             .and_then(serde_json::Value::as_array)
@@ -290,25 +360,31 @@ where
             .get("dropped")
             .and_then(serde_json::Value::as_u64)
             .unwrap_or(0);
-        Ok((events, next_seq, dropped))
+        Ok(EventBatch {
+            epoch,
+            events,
+            next_seq,
+            dropped,
+        })
     }
 
     async fn read_event_resource(&self, uri: &str) -> Result<String, ErrorData> {
         let kind = events::kind_for_uri(uri).ok_or_else(|| {
             ErrorData::resource_not_found(format!("unknown resource {uri}"), None)
         })?;
-        let (events, next_seq, dropped) = self
-            .read_events(0)
+        let batch = self
+            .read_events(0, None)
             .await
             .map_err(|error| ErrorData::internal_error(error.to_string(), None))?;
-        let filtered: Vec<_> = events
+        let filtered: Vec<_> = batch
+            .events
             .into_iter()
             .filter(|event| event.get("kind").and_then(serde_json::Value::as_str) == Some(kind))
             .collect();
         Ok(serde_json::json!({
             "events": filtered,
-            "nextSeq": next_seq,
-            "dropped": dropped,
+            "nextSeq": batch.next_seq,
+            "dropped": batch.dropped,
         })
         .to_string())
     }
@@ -384,51 +460,66 @@ where
     async fn listen(&self, context: SubscriptionContext) -> Result<(), ErrorData> {
         let sink = context.sink().clone();
         let accepted = context.accepted().clone();
-        let mut seq = 0_u64;
-        let mut selection_generation = self.registry.generation();
+        let mut cursor = ListenCursor::default();
         let selection_subscribed = accepted
             .resource_subscriptions
             .as_ref()
             .is_some_and(|uris| uris.iter().any(|item| item == events::SELECTION_URI));
+        let page_events_subscribed = accepted
+            .resource_subscriptions
+            .as_ref()
+            .is_some_and(|uris| {
+                uris.iter().any(|item| {
+                    item == events::CONSOLE_URI
+                        || item == events::ERROR_URI
+                        || item == events::NAVIGATION_URI
+                })
+            });
+        let mut selection_rx = self.registry.subscribe();
+
         loop {
             tokio::select! {
                 () = context.cancelled() => break,
-                () = tokio::time::sleep(std::time::Duration::from_millis(50)) => {
-                    if selection_subscribed {
-                        let current = self.registry.generation();
-                        if current != selection_generation {
-                            selection_generation = current;
-                            let _ = sink.notify_resource_updated(events::SELECTION_URI).await;
-                        }
+                changed = selection_rx.changed(), if selection_subscribed => {
+                    if changed.is_err() {
+                        break;
                     }
-                    match self.read_events(seq).await {
-                        Ok((events, _next_seq, _dropped)) => {
-                            // Cursor is the last delivered event seq, not
-                            // `nextSeq`. The ring assigns `nextSeq` to the
-                            // *next* push and filters `seq > sinceSeq`, so
-                            // using `nextSeq` as the cursor drops the first
-                            // event after subscribe (Card 237).
-                            seq = advance_listen_cursor(seq, &events);
-                            for event in events {
-                                let Some(uri) = event
-                                    .get("kind")
-                                    .and_then(serde_json::Value::as_str)
-                                    .and_then(events::uri_for_kind)
-                                else {
-                                    continue;
-                                };
-                                let subscribed = accepted
-                                    .resource_subscriptions
-                                    .as_ref()
-                                    .is_some_and(|uris| uris.iter().any(|item| item == uri));
-                                if subscribed {
-                                    let _ = sink.notify_resource_updated(uri).await;
-                                }
-                            }
-                        }
+                    let _ = sink.notify_resource_updated(events::SELECTION_URI).await;
+                }
+                () = tokio::time::sleep(PAGE_EVENT_POLL_INTERVAL), if page_events_subscribed => {
+                    let batch = match self.read_events(cursor.seq, cursor.epoch.as_deref()).await {
+                        Ok(batch) => batch,
                         Err(_) => {
                             // No page yet, or evaluate failed: keep the stream
                             // alive; the next tick retries.
+                            continue;
+                        }
+                    };
+                    let batch = if cursor.apply(&batch) {
+                        match self.read_events(0, cursor.epoch.as_deref()).await {
+                            Ok(fresh) => {
+                                let _ = cursor.apply(&fresh);
+                                fresh
+                            }
+                            Err(_) => continue,
+                        }
+                    } else {
+                        batch
+                    };
+                    for event in batch.events {
+                        let Some(uri) = event
+                            .get("kind")
+                            .and_then(serde_json::Value::as_str)
+                            .and_then(events::uri_for_kind)
+                        else {
+                            continue;
+                        };
+                        let subscribed = accepted
+                            .resource_subscriptions
+                            .as_ref()
+                            .is_some_and(|uris| uris.iter().any(|item| item == uri));
+                        if subscribed {
+                            let _ = sink.notify_resource_updated(uri).await;
                         }
                     }
                 }
@@ -453,7 +544,7 @@ fn advance_listen_cursor(previous: u64, events: &[serde_json::Value]) -> u64 {
 
 #[cfg(test)]
 mod cursor_tests {
-    use super::advance_listen_cursor;
+    use super::{EventBatch, ListenCursor, advance_listen_cursor};
     use serde_json::json;
 
     #[test]
@@ -470,5 +561,57 @@ mod cursor_tests {
         ];
         // nextSeq would be 3 here; using it would drop the next event.
         assert_eq!(advance_listen_cursor(0, &events), 2);
+    }
+
+    #[test]
+    fn epoch_change_resets_cursor_for_reloaded_document() {
+        let mut cursor = ListenCursor::default();
+        let initial = EventBatch {
+            epoch: Some("doc-1".to_owned()),
+            events: vec![
+                json!({"seq": 1, "kind": "console"}),
+                json!({"seq": 5, "kind": "console"}),
+            ],
+            next_seq: 6,
+            dropped: 0,
+        };
+        assert!(!cursor.apply(&initial));
+        assert_eq!(cursor.epoch.as_deref(), Some("doc-1"));
+        assert_eq!(cursor.seq, 5);
+
+        // Reload with an event at seq 1 already returned via sinceEpoch mismatch.
+        let reloaded = EventBatch {
+            epoch: Some("doc-2".to_owned()),
+            events: vec![json!({"seq": 1, "kind": "navigation"})],
+            next_seq: 2,
+            dropped: 0,
+        };
+        assert!(!cursor.apply(&reloaded));
+        assert_eq!(cursor.epoch.as_deref(), Some("doc-2"));
+        assert_eq!(cursor.seq, 1);
+
+        // Reload with no events yet resets seq to 0 so the next seq 1 event is not dropped.
+        let empty_reload = EventBatch {
+            epoch: Some("doc-3".to_owned()),
+            events: vec![],
+            next_seq: 1,
+            dropped: 0,
+        };
+        assert!(!cursor.apply(&empty_reload));
+        assert_eq!(cursor.epoch.as_deref(), Some("doc-3"));
+        assert_eq!(cursor.seq, 0);
+
+        // Reload against a 1-arg stub that ignored sinceEpoch and filtered out seq 1:
+        // signals immediate re-read from seq 0.
+        cursor.seq = 4;
+        let filtered_reload = EventBatch {
+            epoch: Some("doc-4".to_owned()),
+            events: vec![],
+            next_seq: 2,
+            dropped: 0,
+        };
+        assert!(cursor.apply(&filtered_reload));
+        assert_eq!(cursor.epoch.as_deref(), Some("doc-4"));
+        assert_eq!(cursor.seq, 0);
     }
 }

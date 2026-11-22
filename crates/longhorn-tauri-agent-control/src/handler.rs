@@ -379,9 +379,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         &self,
         request: SetFileInputRequest,
     ) -> Result<ActionReceipt, ToolError> {
-        request
-            .validate()
-            .map_err(|message| ToolError::Unsupported { message })?;
+        request.validate()?;
         let (_, _, value) = self
             .eval_js(
                 &request.window,
@@ -401,6 +399,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
     }
 
     async fn wait_for(&self, request: WaitForRequest) -> Result<WaitForResult, ToolError> {
+        request.validate()?;
         let js = shim::wait_for_js(&request.predicate);
         let window = request.window.clone();
         let webview = request.webview.clone();
@@ -525,7 +524,7 @@ mod tests {
             .unwrap_err();
         assert_eq!(
             error,
-            ToolError::Unsupported {
+            ToolError::InvalidArgument {
                 message: "set_file_input decoded total exceeds 8 MiB".to_owned(),
             }
         );
@@ -562,13 +561,13 @@ mod tests {
                 .await
                 .unwrap_err();
             match error {
-                ToolError::Unsupported { message } => {
+                ToolError::InvalidArgument { message } => {
                     assert!(
                         message.contains(needle),
                         "expected {needle:?} in {message:?}"
                     );
                 }
-                other => panic!("expected Unsupported, got {other:?}"),
+                other => panic!("expected InvalidArgument, got {other:?}"),
             }
         }
     }

@@ -42,6 +42,7 @@ struct StubHandler {
     evaluated: Arc<Mutex<Vec<String>>>,
     events: Arc<Mutex<Vec<Value>>>,
     next_seq: Arc<AtomicU64>,
+    epoch: Arc<Mutex<String>>,
 }
 
 impl Default for StubHandler {
@@ -60,6 +61,7 @@ impl Default for StubHandler {
                 "text": "hello from stub"
             })])),
             next_seq: Arc::new(AtomicU64::new(2)),
+            epoch: Arc::new(Mutex::new("epoch-1".to_owned())),
         }
     }
 }
@@ -71,6 +73,7 @@ impl StubHandler {
             evaluated: Arc::new(Mutex::new(Vec::new())),
             events: Arc::new(Mutex::new(Vec::new())),
             next_seq: Arc::new(AtomicU64::new(1)),
+            epoch: Arc::new(Mutex::new("epoch-1".to_owned())),
         }
     }
 
@@ -83,13 +86,27 @@ impl StubHandler {
             "text": text
         }));
     }
+
+    fn reload_document(&self, new_epoch: &str) {
+        let mut events = self.events.lock().unwrap();
+        events.clear();
+        self.next_seq.store(1, Ordering::SeqCst);
+        *self.epoch.lock().unwrap() = new_epoch.to_owned();
+    }
 }
 
-fn parse_read_events_since(js: &str) -> Option<u64> {
+fn parse_read_events_args(js: &str) -> Option<(u64, Option<String>)> {
     let start = js.find("readEvents(")?;
     let rest = &js[start + "readEvents(".len()..];
     let end = rest.find(')')?;
-    rest[..end].trim().parse().ok()
+    let args = rest[..end].trim();
+    if let Some((seq_part, epoch_part)) = args.split_once(',') {
+        let seq = seq_part.trim().parse().ok()?;
+        let epoch: Option<String> = serde_json::from_str(epoch_part.trim()).ok()?;
+        Some((seq, epoch))
+    } else {
+        Some((args.parse().ok()?, None))
+    }
 }
 
 impl StubHandler {
@@ -180,17 +197,23 @@ impl ControlHandler for StubHandler {
     ) -> Result<EvaluateResult, ToolError> {
         self.invocations.fetch_add(1, Ordering::SeqCst);
         self.evaluated.lock().unwrap().push(request.js.clone());
-        if let Some(since) = parse_read_events_since(&request.js) {
+        if let Some((since, since_epoch)) = parse_read_events_args(&request.js) {
+            let current_epoch = self.epoch.lock().unwrap().clone();
+            let effective_since = match since_epoch.as_deref() {
+                Some(ep) if ep != current_epoch => 0,
+                _ => since,
+            };
             let events = self.events.lock().unwrap();
             let filtered: Vec<Value> = events
                 .iter()
-                .filter(|event| event["seq"].as_u64().unwrap_or(0) > since)
+                .filter(|event| event["seq"].as_u64().unwrap_or(0) > effective_since)
                 .cloned()
                 .collect();
             let next_seq = self.next_seq.load(Ordering::SeqCst);
             return Ok(EvaluateResult {
                 value: Value::String(
                     json!({
+                        "epoch": current_epoch,
                         "events": filtered,
                         "nextSeq": next_seq,
                         "dropped": 0
@@ -552,6 +575,94 @@ async fn listen_delivers_the_first_event_after_subscribe() {
     assert!(
         buf.contains("longhorn://agent-control/console"),
         "updated did not name the console URI: {buf}"
+    );
+}
+
+/// Across a page reload, the in-page event ring restarts at seq 1 with a new
+/// document epoch. Listen must reset its cursor and still deliver the new
+/// document's seq 1 event even though the pre-reload cursor was higher.
+#[tokio::test]
+async fn listen_delivers_events_across_page_reload() {
+    let token = InstanceToken::generate().unwrap();
+    let stub = StubHandler::empty_ring();
+    let app = control_router(stub.clone(), token.clone(), SelectionRegistry::new("test"));
+
+    let response = app
+        .clone()
+        .oneshot(McpRequest::authed(&token).listen_console())
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body = response.into_body();
+    let mut buf = String::new();
+
+    async fn pull_until_count(
+        body: &mut axum::body::Body,
+        buf: &mut String,
+        needle: &str,
+        expected: usize,
+        bound: Duration,
+    ) -> bool {
+        let deadline = tokio::time::Instant::now() + bound;
+        while tokio::time::Instant::now() < deadline {
+            if buf.matches(needle).count() >= expected {
+                return true;
+            }
+            match tokio::time::timeout(Duration::from_millis(100), body.frame()).await {
+                Ok(Some(Ok(frame))) => {
+                    if let Ok(data) = frame.into_data() {
+                        buf.push_str(&String::from_utf8_lossy(&data));
+                    }
+                }
+                Ok(Some(Err(_))) | Ok(None) => return buf.matches(needle).count() >= expected,
+                Err(_) => {}
+            }
+        }
+        buf.matches(needle).count() >= expected
+    }
+
+    assert!(
+        pull_until_count(
+            &mut body,
+            &mut buf,
+            "notifications/subscriptions/acknowledged",
+            1,
+            Duration::from_secs(2),
+        )
+        .await,
+        "listen never acknowledged: {buf}"
+    );
+
+    // Advance the pre-reload cursor past seq 1 (push 3 events -> seq = 3).
+    stub.push_console("pre-1");
+    stub.push_console("pre-2");
+    stub.push_console("pre-3");
+    assert!(
+        pull_until_count(
+            &mut body,
+            &mut buf,
+            "notifications/resources/updated",
+            3,
+            Duration::from_secs(2),
+        )
+        .await,
+        "pre-reload events were not delivered: {buf}"
+    );
+
+    // Simulate a page reload: ring resets to seq 1 with a new document epoch.
+    stub.reload_document("epoch-2");
+    stub.push_console("post-reload-seq-1");
+
+    assert!(
+        pull_until_count(
+            &mut body,
+            &mut buf,
+            "notifications/resources/updated",
+            4,
+            Duration::from_secs(2),
+        )
+        .await,
+        "post-reload seq 1 event was lost across reload: {buf}"
     );
 }
 

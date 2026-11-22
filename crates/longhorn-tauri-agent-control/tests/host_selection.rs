@@ -199,7 +199,7 @@ async fn shutdown_fails_typed() {
     match begin.await.unwrap() {
         HostSelection::Agent(Err(error)) => {
             let body: Value = serde_json::from_str(&error).unwrap();
-            assert_eq!(body["error"], "unsupported");
+            assert_eq!(body["error"], "cancelledSelection");
         }
         other => panic!("expected typed shutdown, got {other:?}"),
     }

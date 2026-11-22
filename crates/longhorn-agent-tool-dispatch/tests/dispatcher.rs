@@ -177,7 +177,6 @@ fn valid_call_invokes_one_callback_and_accepts_one_result() {
     assert_eq!(metrics.callbacks, 1);
     assert_eq!(metrics.results, 1);
     assert_eq!(metrics.cancellations, 0);
-    assert_eq!(metrics.mutation_replays, 0);
 }
 
 #[test]
@@ -488,8 +487,8 @@ fn duplicate_call_and_result_are_terminal_and_never_reinvoke() {
     assert_eq!(duplicate.kind(), DispatchErrorKind::DuplicateCall);
     assert_eq!(duplicate_result.kind(), DispatchErrorKind::DuplicateResult);
     assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(dispatcher.metrics().callbacks, 1);
     assert_eq!(dispatcher.metrics().results, 1);
-    assert_eq!(dispatcher.metrics().mutation_replays, 0);
 }
 
 struct RetainingCallback {
@@ -611,9 +610,170 @@ fn cancellation_reaches_in_flight_callback_once_and_blocks_late_result() {
     assert_eq!(error.kind(), DispatchErrorKind::Cancelled);
     assert_eq!(late.kind(), DispatchErrorKind::PostTerminalResult);
     assert_eq!(observations.load(Ordering::SeqCst), 1);
+    assert_eq!(dispatcher.metrics().callbacks, 1);
     assert_eq!(dispatcher.metrics().cancellations, 1);
     assert_eq!(dispatcher.metrics().results, 0);
-    assert_eq!(dispatcher.metrics().mutation_replays, 0);
+}
+
+struct PendingCallback {
+    calls: Arc<AtomicUsize>,
+    retained: Arc<Mutex<Option<ResultRecorder>>>,
+}
+
+impl RecordingCallback for PendingCallback {
+    fn invoke(
+        &self,
+        _call: AdmittedCall,
+        _cancellation: Cancellation,
+        result: ResultRecorder,
+    ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        *self.retained.lock().expect("retained recorder lock") = Some(result);
+        Box::pin(std::future::pending())
+    }
+}
+
+#[test]
+fn deadline_overrun_during_callback_fails_with_deadline_exceeded() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let retained = Arc::new(Mutex::new(None));
+    let dispatcher = RecordingDispatcher::new(
+        expected_registration(),
+        expected_binding(),
+        PendingCallback {
+            calls: Arc::clone(&calls),
+            retained: Arc::clone(&retained),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+    let candidate = DispatchInvocation::new(
+        "slow-call",
+        expected_registration(),
+        expected_binding(),
+        BindingStatus::Current,
+        DispatchDeadline::active(Duration::from_millis(20)),
+        b"argument-secret".to_vec(),
+    )
+    .expect("fixture invocation");
+
+    let error = block_on(dispatcher.dispatch(candidate, cancellation))
+        .expect_err("overrun callback must fail with DeadlineExceeded");
+    assert_eq!(error.kind(), DispatchErrorKind::DeadlineExceeded);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(dispatcher.metrics().results, 0);
+
+    // Late result on the overrun call is rejected as post-terminal.
+    let late = retained
+        .lock()
+        .expect("retained recorder lock")
+        .as_ref()
+        .expect("callback retained recorder")
+        .record(CallbackResult::new(
+            schema("1", "sha256:output"),
+            b"late".to_vec(),
+        ))
+        .expect_err("late result after deadline must fail");
+    assert_eq!(late.kind(), DispatchErrorKind::PostTerminalResult);
+}
+
+#[test]
+fn dropping_dispatch_future_mid_callback_frees_active_capacity_and_blocks_late_result() {
+    struct DropThenComplete {
+        calls: Arc<AtomicUsize>,
+        retained: Arc<Mutex<Option<ResultRecorder>>>,
+    }
+
+    impl RecordingCallback for DropThenComplete {
+        fn invoke(
+            &self,
+            call: AdmittedCall,
+            _cancellation: Cancellation,
+            result: ResultRecorder,
+        ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            if call.call_id() == "dropped-call" {
+                *self.retained.lock().expect("retained recorder lock") = Some(result);
+                return Box::pin(std::future::pending());
+            }
+            Box::pin(ready(
+                result
+                    .record(CallbackResult::new(
+                        schema("1", "sha256:output"),
+                        b"second-ok".to_vec(),
+                    ))
+                    .map_err(|_| CallbackFailure::new()),
+            ))
+        }
+    }
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let retained = Arc::new(Mutex::new(None));
+    // expected_registration() has max_outstanding_calls = 1.
+    let dispatcher = RecordingDispatcher::new(
+        expected_registration(),
+        expected_binding(),
+        DropThenComplete {
+            calls: Arc::clone(&calls),
+            retained: Arc::clone(&retained),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+
+    {
+        let mut future = dispatcher.dispatch(
+            invocation(
+                "dropped-call",
+                expected_registration(),
+                expected_binding(),
+                BindingStatus::Current,
+            ),
+            cancellation.clone(),
+        );
+        let mut context = Context::from_waker(Waker::noop());
+        assert!(matches!(future.as_mut().poll(&mut context), Poll::Pending));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        // Drop `future` mid-callback here.
+    }
+
+    // Late result on the dropped call must fail as post-terminal.
+    let late = retained
+        .lock()
+        .expect("retained recorder lock")
+        .as_ref()
+        .expect("callback retained recorder")
+        .record(CallbackResult::new(
+            schema("1", "sha256:output"),
+            b"late".to_vec(),
+        ))
+        .expect_err("late result on dropped call must fail");
+    assert_eq!(late.kind(), DispatchErrorKind::PostTerminalResult);
+
+    // Replaying the dropped call_id is still refused as DuplicateCall.
+    let replay = block_on(dispatcher.dispatch(
+        invocation(
+            "dropped-call",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation.clone(),
+    ))
+    .expect_err("dropped call_id must not be replayable");
+    assert_eq!(replay.kind(), DispatchErrorKind::DuplicateCall);
+
+    // Capacity (max_outstanding_calls = 1) was freed: a new call succeeds.
+    let outcome = block_on(dispatcher.dispatch(
+        invocation(
+            "follow-up-call",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation,
+    ))
+    .expect("capacity must be freed after dropping the prior dispatch future");
+    assert_eq!(outcome.result().payload_for_delivery(), b"second-ok");
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
 }
 
 #[test]

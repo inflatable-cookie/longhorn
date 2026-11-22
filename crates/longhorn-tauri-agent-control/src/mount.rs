@@ -37,9 +37,15 @@ fn agent_control_plugin<R: Runtime>(registry: SelectionRegistry) -> tauri::plugi
             app.manage(registry);
             Ok(())
         })
+        // Runs at document-start for webviews created after plugin registration.
         .js_init_script(SHIM_SOURCE.to_owned())
-        .on_page_load(|webview, _payload| {
-            let _ = webview.eval(SHIM_SOURCE);
+        // Webviews created before `mount_agent_control` (e.g. from tauri.conf.json)
+        // do not receive retroactive plugin init scripts, so re-inject on
+        // finished loads; `installAgentControlShim` is idempotent per document.
+        .on_page_load(|webview, payload| {
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = webview.eval(SHIM_SOURCE);
+            }
         })
         .build()
 }
@@ -113,6 +119,9 @@ pub enum AgentControlMountError {
     },
     /// Discovery directory resolution rejected the resolved facts.
     Discovery(DiscoveryError),
+    /// Registering the Tauri plugin failed (selection registry and init script
+    /// would not be installed).
+    Plugin(tauri::Error),
 }
 
 impl fmt::Display for AgentControlMountError {
@@ -122,6 +131,12 @@ impl fmt::Display for AgentControlMountError {
                 write!(formatter, "tauri path lookup {operation} failed: {source}")
             }
             Self::Discovery(source) => write!(formatter, "{source}"),
+            Self::Plugin(source) => {
+                write!(
+                    formatter,
+                    "agent-control plugin registration failed: {source}"
+                )
+            }
         }
     }
 }
@@ -129,7 +144,7 @@ impl fmt::Display for AgentControlMountError {
 impl Error for AgentControlMountError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Path { source, .. } => Some(source),
+            Self::Path { source, .. } | Self::Plugin(source) => Some(source),
             Self::Discovery(source) => Some(source),
         }
     }
@@ -230,7 +245,8 @@ pub fn mount_agent_control<R: Runtime>(
 
     // Initialization script for windows created after this mount; eval for
     // windows that already exist (the proof app and the mount fixtures).
-    let _ = app.plugin(agent_control_plugin(registry.clone()));
+    app.plugin(agent_control_plugin(registry.clone()))
+        .map_err(AgentControlMountError::Plugin)?;
     // Walk every webview of every window: `webview_windows()` excludes any
     // window hosting a child webview with a different label (Figmatic
     // adoption finding, 2026-08-20).
