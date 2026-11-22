@@ -92,13 +92,25 @@ export function group(key: string): string {
   return groups.join("-");
 }
 
+/** Matches Rust's `char::is_whitespace` (Unicode `White_Space`: includes U+0085, excludes U+FEFF). */
+const UNICODE_WHITESPACE = /\p{White_Space}/u;
+
+/** Matches Rust's `char::to_ascii_uppercase` so non-ASCII letters like U+017F never fold into ASCII. */
+function toAsciiUpper(character: string): string {
+  const code = character.codePointAt(0)!;
+  if (code >= 0x61 && code <= 0x7a) {
+    return String.fromCharCode(code - 0x20);
+  }
+  return character;
+}
+
 function normalize(
   input: string,
 ): { readonly ok: true; readonly value: string } | { readonly ok: false; readonly problem: LicenceKeyProblem } {
   const symbols: Array<{ readonly original: string; readonly mapped: string }> = [];
   for (const character of input) {
-    if (character === "-" || /\s/u.test(character)) continue;
-    const upper = character.toUpperCase();
+    if (character === "-" || UNICODE_WHITESPACE.test(character)) continue;
+    const upper = toAsciiUpper(character);
     // The confusions Crockford excluded the symbols to avoid.
     const mapped = upper === "I" || upper === "L" ? "1" : upper === "O" ? "0" : upper;
     symbols.push({ original: character, mapped });

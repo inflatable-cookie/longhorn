@@ -37,9 +37,11 @@ merchant of record, or tax jurisdiction.
   network. A remote assertion is only as good as its cache and cannot be
   re-established offline.
 - Policy may require an offline-verifiable basis. Offline grace must never
-  be granted on a basis incapable of surviving being offline. A remote
-  assertion with no lease (`lease_until: None`) is never usable and lapses at
-  its `checked` timestamp.
+  be granted on a basis incapable of surviving being offline. An explicitly
+  leased, cached remote assertion gets only the bounded remote grace in
+  `GracePolicy` (clamped never to exceed offline-signature grace), while a
+  remote assertion with no lease (`lease_until: None`) receives no offline use
+  or grace and lapses immediately at its `checked` timestamp.
 - Longhorn ships signature verification that binds the signed payload's
   `product` to the caller's expected product, so products sharing a signing
   key cannot accept each other's licences. An adapter that establishes trust

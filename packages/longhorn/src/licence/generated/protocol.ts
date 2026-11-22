@@ -24,7 +24,7 @@ until: Timestamp, } | { "state": "useWindowExpired",
  */
 at: Timestamp, } | { "state": "leaseLapsed", 
 /**
- * When grace ran out.
+ * When grace ran out, or when the unleased remote assertion was checked.
  */
 at: Timestamp, } | { "state": "clockRefused" };
 

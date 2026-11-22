@@ -43,9 +43,9 @@ pub fn usability_banner(usability: &Usability, services: &impl HostServices) -> 
             ),
         ),
         Usability::LeaseLapsed { at } => (
-            "Licence could not be renewed",
+            "Licence lease required",
             format!(
-                "Renewal did not succeed and grace ran out on {}.",
+                "No active licence lease as of {}. Reconnect to renew.",
                 services.format_timestamp(at.as_unix_seconds())
             ),
         ),

@@ -288,6 +288,16 @@ pub fn key_conformance_cases() -> Vec<(String, String)> {
     let zero_check = &zero_leading.as_str()[19..];
     record(&format!("*BCDE12345FGHJK6789{zero_check}"));
     record(&format!("ABCDEu2345FGHJK6789{zero_check}"));
+    // Check-only symbols are accepted in the check position, including lower-case `u`.
+    let star_check = LicenceKey::from_body("000000000000000000V").expect("issues");
+    record(star_check.as_str());
+    let u_check = LicenceKey::from_body("0000000000000000020").expect("issues");
+    record(&u_check.as_str().to_lowercase());
+    // Unicode boundaries: ASCII-only case folding (U+017F must not fold to `S`),
+    // and Rust `char::is_whitespace` (U+0085 is whitespace; U+FEFF is not).
+    record(&format!("\u{017f}{}", &key[1..]));
+    record(&format!("\u{0085}{}\u{0085}", issued.grouped()));
+    record(&format!("\u{feff}{key}"));
     cases
 }
 
