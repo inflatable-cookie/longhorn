@@ -68,9 +68,13 @@ impl NotificationLedger {
 
     /// Publishes at most once by the draft's durable producer token.
     ///
-    /// Deduplication checks both active retained records and the ledger's
-    /// bounded per-session token memory (`MAXIMUM_REMEMBERED_PRODUCER_TOKENS`),
-    /// so dismissed, cleared, or pruned records do not reappear on replay.
+    /// Deduplication checks active retained records first, then the ledger's
+    /// bounded per-session FIFO token memory
+    /// ([`crate::MAXIMUM_REMEMBERED_PRODUCER_TOKENS`] = 4,096 distinct tokens,
+    /// oldest evicted first, not persisted across reloads). Within that window,
+    /// dismissed, cleared, or pruned records do not reappear on replay; once
+    /// evicted by 4,096 newer distinct tokens, replay may publish a fresh
+    /// record.
     pub fn publish_once(
         &mut self,
         request: NotificationPublishOnce,

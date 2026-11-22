@@ -17,6 +17,12 @@ pub const MAXIMUM_NOTIFICATION_ENCODED_WEIGHT: u64 = 1 << 40;
 /// Defensive ceiling for one notification page.
 pub const MAXIMUM_NOTIFICATION_PAGE_SIZE: usize = 1_024;
 /// Bounded per-session producer token memory for idempotent publication.
+///
+/// The ledger remembers at most this many distinct committed producer tokens
+/// in FIFO order for the lifetime of the live authority session (not persisted
+/// across reloads). Once full, committing a newer distinct token evicts the
+/// oldest remembered token; replaying an evicted token after its record was
+/// dismissed, cleared, or pruned may publish a fresh record.
 pub const MAXIMUM_REMEMBERED_PRODUCER_TOKENS: usize = 4_096;
 
 bounded_text!(

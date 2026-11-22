@@ -1,6 +1,6 @@
 use longhorn_core::{OperationCatalogueRevision, OperationId, OperationRevision};
 
-use crate::{OperationAuthorityCursor, OperationRemoval, OperationState};
+use crate::{OperationAuthorityCursor, OperationRecord, OperationRemoval, OperationState};
 
 /// One explicit active-operation outcome supplied during controlled teardown.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,6 +72,9 @@ pub enum OperationTeardownOutcome {
         previous_operation_revision: OperationRevision,
         /// Terminal revision committed by teardown.
         committed_operation_revision: OperationRevision,
+        /// Authoritative post-commit operation record, preserved even if
+        /// terminal retention evicted it during teardown.
+        operation: Box<OperationRecord>,
     },
     /// This authority removed the record and named the receiving authority.
     Transferred {
@@ -92,6 +95,15 @@ impl OperationTeardownOutcome {
             Self::Completed { operation_id, .. } | Self::Transferred { operation_id, .. } => {
                 operation_id
             }
+        }
+    }
+
+    /// Returns the authoritative post-commit operation record for completed outcomes.
+    #[must_use]
+    pub fn operation(&self) -> Option<&OperationRecord> {
+        match self {
+            Self::Completed { operation, .. } => Some(operation),
+            Self::Transferred { .. } => None,
         }
     }
 }

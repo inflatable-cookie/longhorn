@@ -40,7 +40,7 @@ pub use model::{
 pub use operation_observer::{
     OperationNotificationObservationError, OperationNotificationPolicy,
     OperationNotificationPublication, OperationTerminalEvidence, observe_terminal_operation,
-    publish_operation_notification,
+    observe_terminal_receipt, publish_operation_notification,
 };
 pub use protocol::*;
 pub use retention::{

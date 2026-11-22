@@ -1365,3 +1365,121 @@ fn prune_to_handles_large_unprotected_graph_near_ceilings_efficiently() {
     assert_eq!(graph.retained_entry_count(), 65);
     assert_eq!(graph.retained_encoded_weight(), 65 * 8);
 }
+
+#[test]
+fn prune_to_bounds_protected_lineage_walk_on_many_pinned_branches() {
+    use std::time::Instant;
+
+    use longhorn_history::HistoryEntrySequence;
+    use longhorn_history_tree::{ForkBranch, ForkHistoryNode, ForkPreferredChild};
+
+    // Build an 8,192-node shared spine with 1,024 pinned branches hanging off
+    // its tip plus 1,024 unprotected forks. Without stopping at already-marked
+    // ancestors, `protected_lineage` would perform ~16M ancestor visits across
+    // the pre/post passes; with early stop it visits each node at most once.
+    let spine_len = 8_192_usize;
+    let pinned_forks = 1_024_usize;
+    let unprotected_forks = 1_024_usize;
+    let mut nodes = Vec::with_capacity(spine_len + pinned_forks + unprotected_forks);
+    let mut parent = None;
+    for index in 1..=spine_len {
+        let id = entry_id(&format!("entry:spine-{index:05}"));
+        nodes.push(ForkHistoryNode::new(
+            id.clone(),
+            parent,
+            metadata("spine"),
+            HistoryEntrySequence::new(index as u64).unwrap(),
+            HistoryRevision::new(index as u64),
+            8,
+            Delta(1),
+        ));
+        parent = Some(id);
+    }
+    let spine_tip = parent.unwrap();
+    let mut branches = Vec::with_capacity(1 + pinned_forks + unprotected_forks);
+    branches.push(ForkBranch::new(
+        branch_id("branch:main"),
+        Some(spine_tip.clone()),
+        branch_metadata(Some("Main"), true),
+    ));
+
+    let mut seq = (spine_len + 1) as u64;
+    let mut first_child = None;
+    for index in 0..pinned_forks {
+        let id = entry_id(&format!("entry:pinned-{index:04}"));
+        if first_child.is_none() {
+            first_child = Some(id.clone());
+        }
+        nodes.push(ForkHistoryNode::new(
+            id.clone(),
+            Some(spine_tip.clone()),
+            metadata("pinned"),
+            HistoryEntrySequence::new(seq).unwrap(),
+            HistoryRevision::new(seq),
+            8,
+            Delta(1),
+        ));
+        branches.push(ForkBranch::new(
+            branch_id(&format!("branch:pinned-{index:04}")),
+            Some(id),
+            branch_metadata(Some("Pinned"), true),
+        ));
+        seq += 1;
+    }
+    for index in 0..unprotected_forks {
+        let id = entry_id(&format!("entry:unprot-{index:04}"));
+        nodes.push(ForkHistoryNode::new(
+            id.clone(),
+            Some(spine_tip.clone()),
+            metadata("unprotected"),
+            HistoryEntrySequence::new(seq).unwrap(),
+            HistoryRevision::new(seq),
+            8,
+            Delta(1),
+        ));
+        branches.push(ForkBranch::new(
+            branch_id(&format!("branch:unprot-{index:04}")),
+            Some(id),
+            branch_metadata(Some("Unprotected"), false),
+        ));
+        seq += 1;
+    }
+
+    let state = ForkHistoryState::new(
+        HistoryId::new("history:pinned-spine").unwrap(),
+        HistoryRevision::new(seq - 1),
+        branch_id("branch:main"),
+        Some(spine_tip.clone()),
+        HistoryEntrySequence::new(seq).unwrap(),
+    )
+    .with_nodes(nodes)
+    .with_branches(branches)
+    .with_preferred_children(vec![ForkPreferredChild::new(
+        Some(spine_tip),
+        first_child.unwrap(),
+    )]);
+    let mut graph = ForkHistory::from_state(state).expect("valid pinned-spine graph");
+
+    let started = Instant::now();
+    let outcome = graph
+        .prune_to(
+            graph.revision(),
+            ForkRetentionLimits::new(16, 16 * 8).expect("valid limits"),
+        )
+        .expect("pinned-spine prune succeeds");
+    let elapsed = started.elapsed();
+
+    let ForkPruningOutcome::Pruned(receipt) = outcome else {
+        panic!("expected pruning outcome");
+    };
+    assert_eq!(receipt.pruned_nodes().len(), unprotected_forks - 16);
+    assert_eq!(receipt.unprotected_entry_count(), 16);
+    assert_eq!(
+        receipt.retained_entry_count(),
+        spine_len + pinned_forks + 16
+    );
+    assert!(
+        elapsed.as_secs() < 5,
+        "protected-lineage prune with {pinned_forks} pinned branches took too long: {elapsed:?}"
+    );
+}

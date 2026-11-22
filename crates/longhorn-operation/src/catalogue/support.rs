@@ -146,20 +146,50 @@ pub(crate) fn terminal_weight(
         })
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum PlannedSlot {
+    Unchanged,
+    Completed(OperationCatalogueRevision),
+    Removed,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum PlannedTerminalChange<'a> {
+    None,
+    Single(usize, OperationCatalogueRevision),
+    Batch(&'a [PlannedSlot]),
+}
+
+impl PlannedTerminalChange<'_> {
+    #[inline]
+    fn slot(&self, index: usize) -> PlannedSlot {
+        match self {
+            Self::None => PlannedSlot::Unchanged,
+            Self::Single(target, revision) => {
+                if *target == index {
+                    PlannedSlot::Completed(*revision)
+                } else {
+                    PlannedSlot::Unchanged
+                }
+            }
+            Self::Batch(slots) => slots[index],
+        }
+    }
+}
+
 pub(crate) fn plan_prune_terminal(
     operations: &[OperationRecord],
     limits: OperationCatalogueLimits,
-    newly_terminal: &[(usize, OperationCatalogueRevision)],
-    removed_indices: &[usize],
+    change: PlannedTerminalChange<'_>,
 ) -> Result<(Vec<usize>, u64), OperationCatalogueError> {
     let mut count = 0usize;
     let mut weight = 0_u64;
     for (index, operation) in operations.iter().enumerate() {
-        if removed_indices.contains(&index) {
-            continue;
-        }
-        let is_terminal = operation.state().is_terminal()
-            || newly_terminal.iter().any(|(target, _)| *target == index);
+        let is_terminal = match change.slot(index) {
+            PlannedSlot::Removed => false,
+            PlannedSlot::Completed(_) => true,
+            PlannedSlot::Unchanged => operation.state().is_terminal(),
+        };
         if is_terminal {
             count += 1;
             weight = weight
@@ -176,18 +206,14 @@ pub(crate) fn plan_prune_terminal(
     let mut candidates: Vec<(OperationCatalogueRevision, crate::OperationSequence, usize)> =
         Vec::with_capacity(count);
     for (index, operation) in operations.iter().enumerate() {
-        if removed_indices.contains(&index) {
-            continue;
-        }
-        let effective_revision = newly_terminal
-            .iter()
-            .find_map(|(target, revision)| (*target == index).then_some(*revision))
-            .or_else(|| {
-                operation
-                    .state()
-                    .is_terminal()
-                    .then_some(operation.last_changed_catalogue_revision())
-            });
+        let effective_revision = match change.slot(index) {
+            PlannedSlot::Removed => None,
+            PlannedSlot::Completed(revision) => Some(revision),
+            PlannedSlot::Unchanged => operation
+                .state()
+                .is_terminal()
+                .then_some(operation.last_changed_catalogue_revision()),
+        };
         if let Some(revision) = effective_revision {
             candidates.push((revision, operation.sequence(), index));
         }

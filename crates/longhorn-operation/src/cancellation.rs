@@ -1,6 +1,6 @@
 use longhorn_core::{OperationCatalogueRevision, OperationId, OperationRevision};
 
-use crate::{OperationAuthorityCursor, OperationRemoval, OperationState};
+use crate::{OperationAuthorityCursor, OperationRecord, OperationRemoval, OperationState};
 
 /// Whether a consumer executor accepts cancellation requests.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -81,6 +81,7 @@ pub enum OperationCancellationOutcome {
 /// Receipt for cancellation admission. Acceptance is not executor completion.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationCancellationReceipt {
+    pub(crate) operation: OperationRecord,
     pub(crate) operation_id: OperationId,
     pub(crate) outcome: OperationCancellationOutcome,
     pub(crate) previous_state: OperationState,
@@ -93,6 +94,13 @@ pub struct OperationCancellationReceipt {
 }
 
 impl OperationCancellationReceipt {
+    /// Returns the authoritative post-admission operation record, preserved
+    /// even if terminal retention evicted it during the same commit.
+    #[must_use]
+    pub const fn operation(&self) -> &OperationRecord {
+        &self.operation
+    }
+
     /// Returns the target operation.
     #[must_use]
     pub const fn operation_id(&self) -> &OperationId {

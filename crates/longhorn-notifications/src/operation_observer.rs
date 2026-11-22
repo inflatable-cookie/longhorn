@@ -2,8 +2,8 @@ use std::{error::Error, fmt};
 
 use longhorn_core::{NotificationId, OperationCatalogueRevision, OperationId, OperationRevision};
 use longhorn_operation::{
-    OperationCancellationReceipt, OperationRecord, OperationState, OperationTeardownOutcome,
-    OperationTeardownReceipt, OperationTransitionReceipt,
+    OperationCancellationOutcome, OperationCancellationReceipt, OperationRecord, OperationState,
+    OperationTeardownOutcome, OperationTeardownReceipt, OperationTransitionReceipt,
 };
 
 use crate::{
@@ -18,8 +18,18 @@ pub enum OperationTerminalEvidence<'a> {
     Transition(&'a OperationTransitionReceipt),
     /// Terminal state reached through a confirmed queued cancellation.
     Cancellation(&'a OperationCancellationReceipt),
-    /// Terminal state reached during controlled authority teardown.
+    /// Terminal state reached during controlled authority teardown (matched by
+    /// the supplied operation record id).
     Teardown(&'a OperationTeardownReceipt),
+    /// One specific completed outcome from a controlled authority teardown,
+    /// carrying its authoritative post-commit record even under zero terminal
+    /// retention.
+    TeardownOutcome {
+        /// Committed teardown receipt.
+        receipt: &'a OperationTeardownReceipt,
+        /// Completed outcome inside `receipt`.
+        outcome: &'a OperationTeardownOutcome,
+    },
 }
 
 impl<'a> OperationTerminalEvidence<'a> {
@@ -29,7 +39,52 @@ impl<'a> OperationTerminalEvidence<'a> {
         match self {
             Self::Transition(receipt) => receipt.committed_catalogue_revision(),
             Self::Cancellation(receipt) => receipt.committed_catalogue_revision(),
-            Self::Teardown(receipt) => receipt.committed_catalogue_revision(),
+            Self::Teardown(receipt) | Self::TeardownOutcome { receipt, .. } => {
+                receipt.committed_catalogue_revision()
+            }
+        }
+    }
+
+    fn resolve_record(&self) -> Result<&'a OperationRecord, OperationNotificationObservationError> {
+        match self {
+            Self::Transition(receipt) => {
+                if !receipt.committed_state().is_terminal() {
+                    return Err(OperationNotificationObservationError::NonTerminalTransition);
+                }
+                Ok(receipt.operation())
+            }
+            Self::Cancellation(receipt) => {
+                if receipt.outcome() != OperationCancellationOutcome::Accepted
+                    || receipt.previous_state() != OperationState::Queued
+                    || receipt.committed_state() != OperationState::Cancelled
+                    || receipt.committed_operation_revision()
+                        == receipt.previous_operation_revision()
+                {
+                    return Err(OperationNotificationObservationError::NonTerminalTransition);
+                }
+                Ok(receipt.operation())
+            }
+            Self::Teardown(_) => Err(OperationNotificationObservationError::OperationMismatch),
+            Self::TeardownOutcome { receipt, outcome } => {
+                if !receipt.outcomes().contains(outcome) {
+                    return Err(OperationNotificationObservationError::OperationMismatch);
+                }
+                match outcome {
+                    OperationTeardownOutcome::Completed {
+                        state, operation, ..
+                    } => {
+                        if !state.is_terminal() {
+                            return Err(
+                                OperationNotificationObservationError::NonTerminalTransition,
+                            );
+                        }
+                        Ok(operation)
+                    }
+                    OperationTeardownOutcome::Transferred { .. } => {
+                        Err(OperationNotificationObservationError::NonTerminalTransition)
+                    }
+                }
+            }
         }
     }
 
@@ -51,7 +106,12 @@ impl<'a> OperationTerminalEvidence<'a> {
                 ))
             }
             Self::Cancellation(receipt) => {
-                if !receipt.committed_state().is_terminal() {
+                if receipt.outcome() != OperationCancellationOutcome::Accepted
+                    || receipt.previous_state() != OperationState::Queued
+                    || receipt.committed_state() != OperationState::Cancelled
+                    || receipt.committed_operation_revision()
+                        == receipt.previous_operation_revision()
+                {
                     return Err(OperationNotificationObservationError::NonTerminalTransition);
                 }
                 if receipt.operation_id() != operation_id {
@@ -68,6 +128,31 @@ impl<'a> OperationTerminalEvidence<'a> {
                     .iter()
                     .find(|outcome| outcome.operation_id() == operation_id)
                     .ok_or(OperationNotificationObservationError::OperationMismatch)?;
+                match outcome {
+                    OperationTeardownOutcome::Completed {
+                        state,
+                        committed_operation_revision,
+                        ..
+                    } => {
+                        if !state.is_terminal() {
+                            return Err(
+                                OperationNotificationObservationError::NonTerminalTransition,
+                            );
+                        }
+                        Ok((*state, *committed_operation_revision))
+                    }
+                    OperationTeardownOutcome::Transferred { .. } => {
+                        Err(OperationNotificationObservationError::NonTerminalTransition)
+                    }
+                }
+            }
+            Self::TeardownOutcome { receipt, outcome } => {
+                if !receipt.outcomes().contains(outcome) {
+                    return Err(OperationNotificationObservationError::OperationMismatch);
+                }
+                if outcome.operation_id() != operation_id {
+                    return Err(OperationNotificationObservationError::OperationMismatch);
+                }
                 match outcome {
                     OperationTeardownOutcome::Completed {
                         state,
@@ -193,6 +278,26 @@ where
     if operation.state() != committed_state || operation.revision() != committed_revision {
         return Err(OperationNotificationObservationError::UncommittedRecord);
     }
+    Ok(policy.publication(operation, evidence))
+}
+
+/// Observes an already-committed terminal receipt directly using the
+/// authoritative post-commit record carried by the receipt, independent of
+/// whether terminal retention evicted the operation during the commit.
+///
+/// Accepts `OperationTerminalEvidence::Transition`,
+/// `OperationTerminalEvidence::Cancellation`, and
+/// `OperationTerminalEvidence::TeardownOutcome`.
+pub fn observe_terminal_receipt<'a, P, E>(
+    policy: &P,
+    evidence: E,
+) -> Result<Option<OperationNotificationPublication>, OperationNotificationObservationError>
+where
+    P: OperationNotificationPolicy,
+    E: Into<OperationTerminalEvidence<'a>>,
+{
+    let evidence = evidence.into();
+    let operation = evidence.resolve_record()?;
     Ok(policy.publication(operation, evidence))
 }
 

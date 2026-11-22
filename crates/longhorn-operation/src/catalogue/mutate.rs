@@ -11,8 +11,8 @@ use crate::{
 };
 
 use super::{
-    OperationCatalogue, apply_planned_evictions, next_operation_revision, plan_prune_terminal,
-    validate_progress, validate_teardown,
+    OperationCatalogue, PlannedSlot, PlannedTerminalChange, apply_planned_evictions,
+    next_operation_revision, plan_prune_terminal, validate_progress, validate_teardown,
 };
 
 impl OperationCatalogue {
@@ -102,14 +102,13 @@ impl OperationCatalogue {
         let previous_operation_revision = operation.revision();
         let committed_operation_revision = next_operation_revision(operation)?;
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let single_terminal = [(index, committed_catalogue_revision)];
-        let newly_terminal = if request.next_state.is_terminal() {
-            single_terminal.as_slice()
+        let planned_change = if request.next_state.is_terminal() {
+            PlannedTerminalChange::Single(index, committed_catalogue_revision)
         } else {
-            &[]
+            PlannedTerminalChange::None
         };
         let (evict_indices, _) =
-            plan_prune_terminal(&self.operations, self.limits, newly_terminal, &[])?;
+            plan_prune_terminal(&self.operations, self.limits, planned_change)?;
         let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
 
         self.operations[index].commit_transition(
@@ -117,11 +116,13 @@ impl OperationCatalogue {
             committed_catalogue_revision,
             request.next_state,
         );
+        let committed_operation = self.operations[index].clone();
         let evicted = apply_planned_evictions(&mut self.operations, &evict_indices);
         let previous_catalogue_revision = self.revision;
         self.terminal_eviction_count = terminal_eviction_count;
         self.revision = committed_catalogue_revision;
         Ok(OperationTransitionReceipt {
+            operation: committed_operation,
             operation_id: request.operation_id,
             previous_state,
             committed_state: request.next_state,
@@ -196,6 +197,7 @@ impl OperationCatalogue {
         };
         if outcome != OperationCancellationOutcome::Accepted {
             return Ok(OperationCancellationReceipt {
+                operation: operation.clone(),
                 operation_id: request.operation_id,
                 outcome,
                 previous_state: operation.state(),
@@ -219,14 +221,13 @@ impl OperationCatalogue {
         };
         let committed_operation_revision = next_operation_revision(operation)?;
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let single_terminal = [(index, committed_catalogue_revision)];
-        let newly_terminal = if committed_state.is_terminal() {
-            single_terminal.as_slice()
+        let planned_change = if committed_state.is_terminal() {
+            PlannedTerminalChange::Single(index, committed_catalogue_revision)
         } else {
-            &[]
+            PlannedTerminalChange::None
         };
         let (evict_indices, _) =
-            plan_prune_terminal(&self.operations, self.limits, newly_terminal, &[])?;
+            plan_prune_terminal(&self.operations, self.limits, planned_change)?;
         let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
 
         self.operations[index].commit_transition(
@@ -234,11 +235,13 @@ impl OperationCatalogue {
             committed_catalogue_revision,
             committed_state,
         );
+        let committed_operation = self.operations[index].clone();
         let evicted = apply_planned_evictions(&mut self.operations, &evict_indices);
         let previous_catalogue_revision = self.revision;
         self.terminal_eviction_count = terminal_eviction_count;
         self.revision = committed_catalogue_revision;
         Ok(OperationCancellationReceipt {
+            operation: committed_operation,
             operation_id: request.operation_id,
             outcome,
             previous_state,
@@ -270,8 +273,11 @@ impl OperationCatalogue {
             });
         }
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let (evict_indices, retained_terminal_encoded_weight) =
-            plan_prune_terminal(&self.operations, request.limits, &[], &[])?;
+        let (evict_indices, retained_terminal_encoded_weight) = plan_prune_terminal(
+            &self.operations,
+            request.limits,
+            PlannedTerminalChange::None,
+        )?;
         let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
 
         let evicted = apply_planned_evictions(&mut self.operations, &evict_indices);
@@ -325,7 +331,7 @@ impl OperationCatalogue {
         self.validate_catalogue_revision(request.expected_catalogue_revision)?;
         validate_teardown(self, &request)?;
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let mut newly_terminal = Vec::new();
+        let mut planned_slots = vec![PlannedSlot::Unchanged; self.operations.len()];
         let mut transferred_indices = Vec::new();
         let mut planned_resolutions = Vec::with_capacity(request.resolutions.len());
         for resolution in request.resolutions {
@@ -337,10 +343,11 @@ impl OperationCatalogue {
             match &resolution.outcome {
                 OperationTeardownResolutionOutcome::Complete(_) => {
                     let committed_revision = next_operation_revision(&self.operations[index])?;
-                    newly_terminal.push((index, committed_catalogue_revision));
+                    planned_slots[index] = PlannedSlot::Completed(committed_catalogue_revision);
                     planned_resolutions.push((index, Some(committed_revision), resolution));
                 }
                 OperationTeardownResolutionOutcome::Transfer(_) => {
+                    planned_slots[index] = PlannedSlot::Removed;
                     transferred_indices.push(index);
                     planned_resolutions.push((index, None, resolution));
                 }
@@ -349,8 +356,7 @@ impl OperationCatalogue {
         let (evict_indices, _) = plan_prune_terminal(
             &self.operations,
             self.limits,
-            &newly_terminal,
-            &transferred_indices,
+            PlannedTerminalChange::Batch(&planned_slots),
         )?;
         let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
 
@@ -371,6 +377,7 @@ impl OperationCatalogue {
                         state,
                         previous_operation_revision: previous_revision,
                         committed_operation_revision: committed_revision,
+                        operation: Box::new(self.operations[index].clone()),
                     });
                 }
                 OperationTeardownResolutionOutcome::Transfer(target_authority) => {

@@ -43,11 +43,11 @@ pub enum OperationCatalogueError {
         /// Missing identity.
         operation_id: OperationId,
     },
-    /// A retry source is missing or is not terminal.
+    /// A retry source names the operation itself or a currently active operation.
     InvalidRetrySource {
         /// Requested retry source.
         operation_id: OperationId,
-        /// Retained non-terminal state, or `None` when absent.
+        /// Retained non-terminal state, or `None` for self-retry.
         state: Option<OperationState>,
     },
     /// Registration selected a non-initial state.
@@ -165,10 +165,17 @@ impl fmt::Display for OperationCatalogueError {
             }
             Self::InvalidRetrySource {
                 operation_id,
-                state,
+                state: Some(state),
             } => write!(
                 formatter,
-                "retry source {operation_id} is not a retained terminal operation (state {state:?})"
+                "retry source {operation_id} is still active in state {state:?}"
+            ),
+            Self::InvalidRetrySource {
+                operation_id,
+                state: None,
+            } => write!(
+                formatter,
+                "retry source {operation_id} cannot reference the new operation itself"
             ),
             Self::InvalidInitialState { state } => write!(
                 formatter,

@@ -457,6 +457,29 @@ impl<P> ForkHistory<P> {
 
     fn protected_lineage(&self) -> Result<BTreeSet<HistoryEntryId>, ForkRetentionError> {
         let mut protected = BTreeSet::new();
+        // Walk each protected head upward only until the first already-protected
+        // ancestor. Because protection is ancestor-closed, every node in the
+        // graph is visited at most once across all pinned branches (O(N + B)).
+        let mut mark_ancestors =
+            |start: Option<&HistoryEntryId>| -> Result<(), ForkRetentionError> {
+                let mut current = start;
+                let mut steps = 0usize;
+                while let Some(entry_id) = current {
+                    if !protected.insert(entry_id.clone()) {
+                        break;
+                    }
+                    if steps >= self.nodes.len() {
+                        return Err(ForkRetentionError::InvalidTopology);
+                    }
+                    let node = self
+                        .nodes
+                        .get(entry_id)
+                        .ok_or(ForkRetentionError::InvalidTopology)?;
+                    current = node.parent_entry_id();
+                    steps += 1;
+                }
+                Ok(())
+            };
         // Pinned and current only. A name used to imply protection, from when
         // a name meant an operator had typed one; auto-naming turned that into
         // "protect everything", which is why a fully-named graph could never
@@ -464,15 +487,9 @@ impl<P> ForkHistory<P> {
         for branch in self.branches.values().filter(|branch| {
             branch.branch_id() == &self.current_branch_id || branch.metadata().pinned()
         }) {
-            protected.extend(
-                self.lineage(branch.head_entry_id())
-                    .map_err(|_| ForkRetentionError::InvalidTopology)?,
-            );
+            mark_ancestors(branch.head_entry_id())?;
         }
-        protected.extend(
-            self.lineage(self.current_node_id.as_ref())
-                .map_err(|_| ForkRetentionError::InvalidTopology)?,
-        );
+        mark_ancestors(self.current_node_id.as_ref())?;
         Ok(protected)
     }
 
