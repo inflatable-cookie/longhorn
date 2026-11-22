@@ -14,6 +14,7 @@ use crate::{
     CommandKeymapReset, CommandKeymapSnapshot, RegisteredCommandKeymapDomain,
 };
 
+use super::keymap_load::KeymapLoad;
 use super::{AcceptedCommit, CommandKeymapServiceError, CommitAbort, Proposal, rejection};
 
 /// Coordinated command keymap load, preview, commit, and reset authority.
@@ -69,11 +70,12 @@ where
         store: &ConfigStore,
         lock_timeout: Duration,
     ) -> Result<CommandKeymapLoadOutcome, CommandKeymapServiceError> {
+        let operation = KeymapLoad::new(&self.domain);
         let loaded = store
-            .with_coordinated_load_set(lock_timeout, |set| set.load(&self.domain))
+            .with_coordinated_load_set(lock_timeout, |set| set.load(&operation))
             .map_err(CommandKeymapServiceError::Coordination)?
             .map_err(CommandKeymapServiceError::Store)?;
-        self.project_load(loaded)
+        self.project_load(&operation, loaded)
     }
 
     /// Previews one patch against exact current coordinated state.
@@ -83,13 +85,14 @@ where
         request: &CommandKeymapPreview,
         lock_timeout: Duration,
     ) -> Result<CommandKeymapPreviewResult, CommandKeymapServiceError> {
+        let operation = KeymapLoad::new(&self.domain);
         store
             .with_coordinated_load_set(lock_timeout, |set| {
                 let loaded = set
-                    .load(&self.domain)
+                    .load(&operation)
                     .map_err(CommandKeymapServiceError::Store)?;
                 let (state, origin, diagnostics) = self.ready_load(loaded)?;
-                let current = self.snapshot(&state, origin, &diagnostics)?;
+                let current = self.snapshot(&operation, &state, origin, &diagnostics)?;
                 if !self.matches_base(
                     request.registry_generation,
                     request.keymap_revision,
@@ -141,7 +144,8 @@ where
             .patch
             .digest()
             .map_err(|error| CommandKeymapServiceError::Encoding(error.to_string()))?;
-        let mutation = store.mutate_checked(&self.domain, options, |context| {
+        let operation = KeymapLoad::new(&self.domain);
+        let mutation = store.mutate_checked(&operation, options, |context| {
             let origin = CommandKeymapLoadOrigin::from(context.origin());
             let diagnostics = context
                 .diagnostics()
@@ -149,7 +153,7 @@ where
                 .map(CommandKeymapDiagnostic::from)
                 .collect::<Vec<_>>();
             let current = self
-                .snapshot(context.value(), origin, &diagnostics)
+                .snapshot(&operation, context.value(), origin, &diagnostics)
                 .map_err(CommitAbort::Operational)?;
             if !self.matches_evidence(&request.evidence, context.value()) {
                 return Err(CommitAbort::Result(Box::new(
@@ -202,7 +206,7 @@ where
         } else {
             (accepted.origin, accepted.diagnostics)
         };
-        let snapshot = self.snapshot(&state, origin, &diagnostics)?;
+        let snapshot = self.snapshot(&operation, &state, origin, &diagnostics)?;
         Ok(CommandKeymapMutationResult::Applied {
             receipt: CommandKeymapMutationReceipt {
                 request_id: request.request_id.clone(),
@@ -229,7 +233,8 @@ where
         request: &CommandKeymapReset,
         options: MutationOptions,
     ) -> Result<CommandKeymapMutationResult, CommandKeymapServiceError> {
-        let mutation = store.mutate_checked(&self.domain, options, |context| {
+        let operation = KeymapLoad::new(&self.domain);
+        let mutation = store.mutate_checked(&operation, options, |context| {
             let origin = CommandKeymapLoadOrigin::from(context.origin());
             let diagnostics = context
                 .diagnostics()
@@ -237,7 +242,7 @@ where
                 .map(CommandKeymapDiagnostic::from)
                 .collect::<Vec<_>>();
             let current = self
-                .snapshot(context.value(), origin, &diagnostics)
+                .snapshot(&operation, context.value(), origin, &diagnostics)
                 .map_err(CommitAbort::Operational)?;
             if !self.matches_base(
                 request.registry_generation,
@@ -255,7 +260,7 @@ where
             if reset.active_preset_id != context.value().active_preset_id
                 || !context.value().overrides.is_empty()
             {
-                reset.revision = context.value().revision.checked_next().ok_or_else(|| {
+                reset.revision = context.value().revision.checked_next().map_err(|_| {
                     CommitAbort::Result(Box::new(CommandKeymapMutationResult::Rejected {
                         rejection: rejection(
                             CommandKeymapRejectionCode::RevisionOverflow,
@@ -291,7 +296,7 @@ where
             (accepted.origin, accepted.diagnostics)
         };
         Ok(CommandKeymapMutationResult::Applied {
-            snapshot: self.snapshot(&state, origin, &diagnostics)?,
+            snapshot: self.snapshot(&operation, &state, origin, &diagnostics)?,
             receipt: CommandKeymapMutationReceipt {
                 request_id: request.request_id.clone(),
                 previous_revision: accepted.previous_revision,

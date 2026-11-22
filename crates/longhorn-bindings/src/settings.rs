@@ -190,7 +190,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         "generate:settings",
         "SETTINGS_VARIANT_FIELDS",
         &declarations,
-    );
+    )?;
 
     Ok(RenderedProtocol {
         variant_fields,

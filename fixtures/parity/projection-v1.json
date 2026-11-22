@@ -149,6 +149,17 @@
       "canCancel": false
     }
   ],
+  "restoreIdentity": [
+    { "identity": { "status": "compatible" }, "label": "Compatible" },
+    {
+      "identity": {
+        "status": "mismatch",
+        "expected": "example.host",
+        "archive": "example.archive"
+      },
+      "label": "Mismatch: host expects example.host, archive declares example.archive"
+    }
+  ],
   "restoreCompatibility": [
     {
       "compatibility": {

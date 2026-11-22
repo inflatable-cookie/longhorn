@@ -12,36 +12,33 @@ impl BridgeConnectionMachine {
         self.authority_epochs.clear();
     }
 
-    pub(crate) fn commit(
+    pub(super) fn commit(
         &mut self,
         state: BridgeConnectionState,
         reason: BridgeConnectionReason,
         clock: &impl BridgeClock,
-        reconnect: Option<BridgeReconnectSchedule>,
     ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
-        self.require_transition(state)?;
-        self.commit_unchecked(state, reason, clock, reconnect)
+        let receipt =
+            self.prepare_transition(state, reason, self.current_session_id.as_ref(), || {
+                Ok((clock.now(), None))
+            })?;
+        Ok(self.apply_transition(receipt))
     }
 
-    pub(crate) fn commit_unchecked(
-        &mut self,
+    pub(super) fn prepare_transition(
+        &self,
         state: BridgeConnectionState,
         reason: BridgeConnectionReason,
-        clock: &impl BridgeClock,
-        reconnect: Option<BridgeReconnectSchedule>,
-    ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
-        self.commit_at(state, reason, clock.now(), reconnect)
-    }
-
-    pub(crate) fn commit_at(
-        &mut self,
-        state: BridgeConnectionState,
-        reason: BridgeConnectionReason,
-        at: crate::BridgeMonotonicMillis,
-        reconnect: Option<BridgeReconnectSchedule>,
+        session_id: Option<&longhorn_core::BridgeSessionId>,
+        timing: impl FnOnce() -> Result<
+            (
+                crate::BridgeMonotonicMillis,
+                Option<BridgeReconnectSchedule>,
+            ),
+            BridgeLifecycleError,
+        >,
     ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
         self.require_transition(state)?;
-        let previous = self.status;
         let current = BridgeConnectionStatus::new(state, Some(reason)).map_err(|error| {
             BridgeLifecycleError::new(
                 BridgeLifecycleErrorCode::InvalidTransition,
@@ -49,22 +46,27 @@ impl BridgeConnectionMachine {
             )
         })?;
         let sequence = self.sequence.next()?;
-        self.status = current;
-        self.sequence = sequence;
+        let (at, reconnect) = timing()?;
         Ok(BridgeConnectionTransitionReceipt::new(
             sequence,
             at,
-            previous,
+            self.status,
             current,
-            self.current_session_id.clone(),
+            session_id.cloned(),
             reconnect,
         ))
     }
 
-    pub(crate) fn require_transition(
-        &self,
-        next: BridgeConnectionState,
-    ) -> Result<(), BridgeLifecycleError> {
+    pub(super) fn apply_transition(
+        &mut self,
+        receipt: BridgeConnectionTransitionReceipt,
+    ) -> BridgeConnectionTransitionReceipt {
+        self.status = receipt.current();
+        self.sequence = receipt.sequence();
+        receipt
+    }
+
+    fn require_transition(&self, next: BridgeConnectionState) -> Result<(), BridgeLifecycleError> {
         let current = self.status.state();
         let admitted = matches!(
             (current, next),

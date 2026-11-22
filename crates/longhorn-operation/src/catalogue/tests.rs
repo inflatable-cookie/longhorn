@@ -38,7 +38,7 @@ fn registration(catalogue: &OperationCatalogue) -> OperationRegistration {
 #[test]
 fn revision_overflow_rejects_without_mutation() {
     let mut catalogue = catalogue();
-    catalogue.revision = OperationCatalogueRevision::new(u64::MAX);
+    catalogue.revision = OperationCatalogueRevision::new(longhorn_core::WireCounter::MAX);
     let before = catalogue.clone();
     let request = registration(&catalogue);
     assert_eq!(
@@ -66,12 +66,13 @@ fn operation_revision_overflow_rejects_without_mutation() {
     let mut catalogue = catalogue();
     let request = registration(&catalogue);
     catalogue.register(request).unwrap();
-    catalogue.operations[0].set_revision_for_test(OperationRevision::new(u64::MAX));
+    catalogue.operations[0]
+        .set_revision_for_test(OperationRevision::new(longhorn_core::WireCounter::MAX));
     let before = catalogue.clone();
     let request = OperationTransition::new(
         catalogue.authority.clone(),
         OperationId::new("operation:overflow").unwrap(),
-        OperationRevision::new(u64::MAX),
+        OperationRevision::new(longhorn_core::WireCounter::MAX),
         OperationState::Succeeded,
     );
     assert_eq!(

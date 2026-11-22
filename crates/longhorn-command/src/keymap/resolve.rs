@@ -77,7 +77,7 @@ impl CommandEffectiveKeymap {
             .collect();
         let is_conflict = winning_invocations.len() > 1;
         let representative_id = matches[0].0.id.clone();
-        let mut candidates = matches
+        let candidates = matches
             .iter()
             .map(|(binding, specificity)| CommandBindingCandidate {
                 binding_id: binding.id.clone(),
@@ -127,10 +127,7 @@ impl CommandEffectiveKeymap {
         {
             return Ok(CommandKeyResolution::Gated {
                 gate: CommandKeyboardGate::TextInput,
-                candidates: {
-                    candidates.shrink_to_fit();
-                    candidates
-                },
+                candidates,
             });
         }
 

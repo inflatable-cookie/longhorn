@@ -160,7 +160,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         "generate:transfer",
         "TRANSFER_VARIANT_FIELDS",
         &declarations,
-    );
+    )?;
 
     Ok(RenderedProtocol {
         variant_fields,

@@ -155,7 +155,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         "generate:history-tree",
         "HISTORY_TREE_VARIANT_FIELDS",
         &declarations,
-    );
+    )?;
 
     Ok(RenderedProtocol {
         contents,

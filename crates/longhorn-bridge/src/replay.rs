@@ -121,7 +121,6 @@ impl<P> BridgeQueryEnvelope<P> {
         retry_class: BridgeRetryClass,
         adapter_allows_retry: bool,
     ) -> BridgeQueryRetryDecision {
-        let _ = self;
         if adapter_allows_retry && !matches!(retry_class, BridgeRetryClass::Never) {
             BridgeQueryRetryDecision::Retry
         } else {

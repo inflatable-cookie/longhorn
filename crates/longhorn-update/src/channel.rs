@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 )]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum Channel {
     /// The default line.
     #[default]

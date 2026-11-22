@@ -57,7 +57,6 @@ impl ClockGuard {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", tag = "state")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum Usability {
     /// Usable, with everything current.
     Active,

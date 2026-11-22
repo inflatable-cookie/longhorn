@@ -1,6 +1,6 @@
 use std::{error::Error, fmt};
 
-use longhorn_core::{BridgeSessionId, DomainId};
+use longhorn_core::{BridgeSessionId, DomainId, WireCounter};
 use serde::{Deserialize, Serialize};
 
 use crate::{BridgeConnectionStatus, BridgeRetryClass};
@@ -10,23 +10,27 @@ use crate::{BridgeConnectionStatus, BridgeRetryClass};
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct BridgeMonotonicMillis(u64);
+pub struct BridgeMonotonicMillis(WireCounter);
 
 impl BridgeMonotonicMillis {
     /// Constructs a monotonic timestamp.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value exceeds [`WireCounter::MAX`].
     #[must_use]
     pub const fn new(value: u64) -> Self {
-        Self(value)
+        Self(WireCounter::new(value))
     }
 
     /// Returns the caller's monotonic value.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 
     pub(crate) fn checked_add(self, delay: BridgeDelayMillis) -> Option<Self> {
-        self.0.checked_add(delay.get()).map(Self)
+        self.0.checked_add(delay.get()).ok().map(Self)
     }
 }
 
@@ -35,19 +39,23 @@ impl BridgeMonotonicMillis {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct BridgeDelayMillis(u64);
+pub struct BridgeDelayMillis(WireCounter);
 
 impl BridgeDelayMillis {
     /// Constructs a delay.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value exceeds [`WireCounter::MAX`].
     #[must_use]
     pub const fn new(value: u64) -> Self {
-        Self(value)
+        Self(WireCounter::new(value))
     }
 
     /// Returns the delay in milliseconds.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 }
 
@@ -76,11 +84,11 @@ impl BridgeRetryAttempt {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct BridgeTransitionSequence(u64);
+pub struct BridgeTransitionSequence(WireCounter);
 
 impl BridgeTransitionSequence {
     pub(crate) fn next(self) -> Result<Self, BridgeLifecycleError> {
-        self.0.checked_add(1).map(Self).ok_or_else(|| {
+        self.0.checked_add(1).map(Self).map_err(|_| {
             BridgeLifecycleError::new(
                 BridgeLifecycleErrorCode::SequenceExhausted,
                 "bridge transition sequence exhausted",
@@ -91,7 +99,7 @@ impl BridgeTransitionSequence {
     /// Returns the serialized sequence.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 }
 

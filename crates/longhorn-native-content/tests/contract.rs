@@ -171,7 +171,11 @@ fn counters_and_domain_ids_reject_invalid_serialized_values() {
     assert!(NativeContentIslandId::new("island:browser-1").is_ok());
     assert!(NativeContentIslandId::new("Uppercase").is_err());
     assert!(NativeContentFailureCode::new("x".repeat(129)).is_err());
-    assert!(NativeContentRevision::new(u64::MAX).checked_next().is_err());
+    assert!(
+        NativeContentRevision::new(longhorn_core::WireCounter::MAX)
+            .checked_next()
+            .is_err()
+    );
 
     let desired = coordinator(NativeContentMechanism::ChildView)
         .desired()

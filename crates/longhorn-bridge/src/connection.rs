@@ -77,6 +77,8 @@ pub enum BridgeConnectionReason {
     TransportLost,
     /// Supervision scheduled a retry.
     RetryScheduled,
+    /// The failure disallows reconnect.
+    RetryForbidden,
     /// Exact protocol versions did not match.
     VersionMismatch,
     /// Endpoint admission or authentication rejected the peer.
@@ -144,7 +146,10 @@ impl BridgeConnectionStatus {
         ),
         (
             BridgeConnectionState::Offline,
-            &[Some(BridgeConnectionReason::TransportLost)],
+            &[
+                Some(BridgeConnectionReason::TransportLost),
+                Some(BridgeConnectionReason::RetryForbidden),
+            ],
         ),
         (
             BridgeConnectionState::Incompatible,
@@ -199,12 +204,13 @@ impl BridgeConnectionStatus {
     /// Returns whether supervision may retry this state.
     #[must_use]
     pub const fn reconnect_permitted(self) -> bool {
-        matches!(
-            self.state,
-            BridgeConnectionState::Degraded
-                | BridgeConnectionState::Reconnecting
-                | BridgeConnectionState::Offline
-        )
+        !matches!(self.reason, Some(BridgeConnectionReason::RetryForbidden))
+            && matches!(
+                self.state,
+                BridgeConnectionState::Degraded
+                    | BridgeConnectionState::Reconnecting
+                    | BridgeConnectionState::Offline
+            )
     }
 }
 

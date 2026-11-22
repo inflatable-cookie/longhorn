@@ -19,7 +19,7 @@ fn identity_revision_and_limit_rejection_matrix_is_typed() {
     );
     assert!(SurfaceRequestId::new("request:surface-create").is_ok());
     assert_eq!(
-        SurfaceRevision::new(u64::MAX).checked_next(),
+        SurfaceRevision::new(longhorn_core::WireCounter::MAX).checked_next(),
         Err(SurfaceRevisionOverflow)
     );
 

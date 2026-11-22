@@ -146,14 +146,14 @@ fn sizing_collapse_overflow_and_invalid_source_fail_unchanged() {
 
     let source = document();
     let overflow = SurfaceDocument::new(
-        SurfaceRevision::new(u64::MAX),
+        SurfaceRevision::new(longhorn_core::WireCounter::MAX),
         source.surfaces().iter().cloned(),
         source.panel_instances().iter().cloned(),
         source.windows().iter().cloned(),
     );
     assert_rejected(
         overflow,
-        SurfaceRevision::new(u64::MAX),
+        SurfaceRevision::new(longhorn_core::WireCounter::MAX),
         LayoutMutationCommand::ActivatePanel {
             panel_instance_id: instance_id("instance:chat"),
         },

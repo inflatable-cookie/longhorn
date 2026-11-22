@@ -11,14 +11,10 @@ impl BridgeConnectionMachine {
         &mut self,
         clock: &impl BridgeClock,
     ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
-        self.require_transition(BridgeConnectionState::Incompatible)?;
-        self.sequence.next()?;
-        self.invalidate_authority();
-        self.commit(
+        self.terminate(
             BridgeConnectionState::Incompatible,
             BridgeConnectionReason::VersionMismatch,
             clock,
-            None,
         )
     }
 
@@ -27,14 +23,10 @@ impl BridgeConnectionMachine {
         &mut self,
         clock: &impl BridgeClock,
     ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
-        self.require_transition(BridgeConnectionState::Unauthorized)?;
-        self.sequence.next()?;
-        self.invalidate_authority();
-        self.commit(
+        self.terminate(
             BridgeConnectionState::Unauthorized,
             BridgeConnectionReason::AuthorizationRejected,
             clock,
-            None,
         )
     }
 
@@ -43,14 +35,10 @@ impl BridgeConnectionMachine {
         &mut self,
         clock: &impl BridgeClock,
     ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
-        self.require_transition(BridgeConnectionState::Failed)?;
-        self.sequence.next()?;
-        self.invalidate_authority();
-        self.commit(
+        self.terminate(
             BridgeConnectionState::Failed,
             BridgeConnectionReason::HostFailure,
             clock,
-            None,
         )
     }
 
@@ -59,14 +47,22 @@ impl BridgeConnectionMachine {
         &mut self,
         clock: &impl BridgeClock,
     ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
-        self.require_transition(BridgeConnectionState::Closed)?;
-        self.sequence.next()?;
-        self.invalidate_authority();
-        self.commit(
+        self.terminate(
             BridgeConnectionState::Closed,
             BridgeConnectionReason::Shutdown,
             clock,
-            None,
         )
+    }
+
+    fn terminate(
+        &mut self,
+        state: BridgeConnectionState,
+        reason: BridgeConnectionReason,
+        clock: &impl BridgeClock,
+    ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
+        let receipt = self.prepare_transition(state, reason, None, || Ok((clock.now(), None)))?;
+        self.invalidate_authority();
+        self.reconnect_not_before = None;
+        Ok(self.apply_transition(receipt))
     }
 }

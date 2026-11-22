@@ -15,6 +15,7 @@ import {
 import {
   canUseArchive,
   compatibilityLabel,
+  identityLabel,
 } from "../../src/config/poodle/restore-model.ts";
 
 /**
@@ -91,6 +92,24 @@ describe("cross-backend projection parity", () => {
         canUseArchive({ compatibility } as never),
         JSON.stringify(testCase),
       ).toBe(testCase.canUseArchive);
+    }
+  });
+
+  it("labels restore identity the same way as the Rust projection", () => {
+    for (const { identity, label } of fixture.restoreIdentity) {
+      if (identity.status === "compatible") {
+        expect(identityLabel({ status: identity.status })).toBe(label);
+      } else {
+        if (identity.status !== "mismatch" || identity.expected === undefined ||
+          identity.archive === undefined) {
+          throw new TypeError("invalid mismatch identity fixture");
+        }
+        expect(identityLabel({
+          status: "mismatch",
+          expected: identity.expected,
+          archive: identity.archive,
+        })).toBe(label);
+      }
     }
   });
 

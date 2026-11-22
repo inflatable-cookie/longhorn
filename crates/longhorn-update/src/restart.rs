@@ -12,7 +12,6 @@ use crate::DeferralCause;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum QuiescenceKind {
     /// Configuration or settings writes that have not reached disk.
     PendingFlush,

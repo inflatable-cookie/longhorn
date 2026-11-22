@@ -234,12 +234,11 @@ impl fmt::Display for OperationCatalogueError {
             Self::TerminalEvictionCountOverflow => {
                 formatter.write_str("terminal operation eviction count overflowed")
             }
-            Self::CatalogueRevisionOverflow => {
-                formatter.write_str("operation catalogue revision cannot advance beyond u64::MAX")
-            }
-            Self::OperationRevisionOverflow => {
-                formatter.write_str("operation revision cannot advance beyond u64::MAX")
-            }
+            Self::CatalogueRevisionOverflow => formatter.write_str(
+                "operation catalogue revision cannot advance beyond the wire counter limit",
+            ),
+            Self::OperationRevisionOverflow => formatter
+                .write_str("operation revision cannot advance beyond the wire counter limit"),
             Self::ProgressSequenceOverflow => {
                 formatter.write_str("operation progress sequence cannot advance beyond u64::MAX")
             }

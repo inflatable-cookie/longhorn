@@ -40,4 +40,5 @@ export const COMMANDS_FIELDS: Record<string, readonly string[]> = {
   "CommandKeymapRejection": ["code", "detail"],
   "CommandKeymapRecovery": ["code", "detail", "sourcePreserved"],
   "CommandKeymapMutationReceipt": ["requestId", "previousRevision", "committedRevision", "outcome", "durability", "patchDigest"],
+  "CommandHostError": ["code", "message", "retryable"],
 };

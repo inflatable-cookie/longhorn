@@ -221,6 +221,161 @@
       }
     }
   ],
+  "runtimeTrace": {
+    "connection": [
+      {
+        "at": 100,
+        "current": {
+          "reason": "connectRequested",
+          "state": "connecting"
+        },
+        "previous": {
+          "reason": null,
+          "state": "idle"
+        },
+        "reconnect": null,
+        "sequence": 1,
+        "sessionId": null
+      },
+      {
+        "at": 100,
+        "current": {
+          "reason": "transportReady",
+          "state": "negotiating"
+        },
+        "previous": {
+          "reason": "connectRequested",
+          "state": "connecting"
+        },
+        "reconnect": null,
+        "sequence": 2,
+        "sessionId": null
+      },
+      {
+        "at": 100,
+        "current": {
+          "reason": "negotiationAccepted",
+          "state": "ready"
+        },
+        "previous": {
+          "reason": "transportReady",
+          "state": "negotiating"
+        },
+        "reconnect": null,
+        "sequence": 3,
+        "sessionId": "session:fixture"
+      },
+      {
+        "at": 100,
+        "current": {
+          "reason": "capabilityChanged",
+          "state": "degraded"
+        },
+        "previous": {
+          "reason": "negotiationAccepted",
+          "state": "ready"
+        },
+        "reconnect": null,
+        "sequence": 4,
+        "sessionId": "session:fixture"
+      },
+      {
+        "at": 100,
+        "current": {
+          "reason": "retryScheduled",
+          "state": "reconnecting"
+        },
+        "previous": {
+          "reason": "capabilityChanged",
+          "state": "degraded"
+        },
+        "reconnect": {
+          "attempt": 1,
+          "notBefore": 125,
+          "retryClass": "afterReconnect"
+        },
+        "sequence": 5,
+        "sessionId": null
+      },
+      {
+        "at": 125,
+        "current": {
+          "reason": "transportReady",
+          "state": "negotiating"
+        },
+        "previous": {
+          "reason": "retryScheduled",
+          "state": "reconnecting"
+        },
+        "reconnect": null,
+        "sequence": 6,
+        "sessionId": null
+      },
+      {
+        "at": 125,
+        "current": {
+          "reason": "transportLost",
+          "state": "offline"
+        },
+        "previous": {
+          "reason": "transportReady",
+          "state": "negotiating"
+        },
+        "reconnect": null,
+        "sequence": 7,
+        "sessionId": null
+      },
+      {
+        "at": 125,
+        "current": {
+          "reason": "shutdown",
+          "state": "closed"
+        },
+        "previous": {
+          "reason": "transportLost",
+          "state": "offline"
+        },
+        "reconnect": null,
+        "sequence": 8,
+        "sessionId": null
+      }
+    ],
+    "earlyTransportRejected": true,
+    "queryRetry": [
+      {
+        "attempt": 1,
+        "notBefore": 125,
+        "retryClass": "afterBackoff"
+      },
+      {
+        "attempt": 2,
+        "notBefore": 150,
+        "retryClass": "afterBackoff"
+      },
+      null,
+      null,
+      null,
+      {
+        "attempt": 1,
+        "notBefore": 125,
+        "retryClass": "afterBackoff"
+      }
+    ],
+    "retryForbidden": {
+      "at": 100,
+      "current": {
+        "reason": "retryForbidden",
+        "state": "offline"
+      },
+      "previous": {
+        "reason": "connectRequested",
+        "state": "connecting"
+      },
+      "reconnect": null,
+      "sequence": 2,
+      "sessionId": null
+    }
+  },
   "semanticTrace": {
     "command_retry": [
       "retrySameRequest",

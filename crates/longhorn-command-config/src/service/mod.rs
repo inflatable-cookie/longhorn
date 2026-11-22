@@ -3,6 +3,7 @@
 mod api;
 mod error;
 mod internal;
+mod keymap_load;
 mod support;
 
 pub use api::CommandKeymapService;

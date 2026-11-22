@@ -1,3 +1,4 @@
+use longhorn_core::{WireCounter, WireCounterOverflow};
 use std::{error::Error, fmt};
 
 use longhorn_core::bytes_to_lowercase_hex;
@@ -7,30 +8,33 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
-pub struct CommandKeymapRevision(u64);
+pub struct CommandKeymapRevision(WireCounter);
 
 impl CommandKeymapRevision {
     /// Initial empty keymap configuration revision.
-    pub const INITIAL: Self = Self(0);
+    pub const INITIAL: Self = Self(WireCounter::ZERO);
 
     /// Constructs a revision.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value exceeds [`WireCounter::MAX`].
     #[must_use]
     pub const fn new(value: u64) -> Self {
-        Self(value)
+        Self(WireCounter::new(value))
     }
 
     /// Returns the serialized value.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 
     /// Returns the next revision without wrapping.
-    #[must_use]
-    pub const fn checked_next(self) -> Option<Self> {
+    pub const fn checked_next(self) -> Result<Self, WireCounterOverflow> {
         match self.0.checked_add(1) {
-            Some(value) => Some(Self(value)),
-            None => None,
+            Ok(value) => Ok(Self(value)),
+            Err(error) => Err(error),
         }
     }
 }
@@ -40,7 +44,7 @@ impl Serialize for CommandKeymapRevision {
     where
         S: Serializer,
     {
-        serializer.serialize_u64(self.0)
+        self.0.serialize(serializer)
     }
 }
 
@@ -49,7 +53,7 @@ impl<'de> Deserialize<'de> for CommandKeymapRevision {
     where
         D: Deserializer<'de>,
     {
-        Ok(Self(u64::deserialize(deserializer)?))
+        WireCounter::deserialize(deserializer).map(Self)
     }
 }
 

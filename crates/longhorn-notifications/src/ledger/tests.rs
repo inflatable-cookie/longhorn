@@ -37,7 +37,7 @@ fn request(ledger: &NotificationLedger, suffix: &str) -> NotificationAdd {
 #[test]
 fn revision_sequence_and_prune_count_overflow_reject_atomically() {
     let mut revision = ledger(2);
-    revision.revision = NotificationLedgerRevision::new(u64::MAX);
+    revision.revision = NotificationLedgerRevision::new(longhorn_core::WireCounter::MAX);
     let before = revision.clone();
     assert_eq!(
         revision.add(request(&revision, "revision")),

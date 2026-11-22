@@ -200,6 +200,22 @@ pub enum DeepLinkError {
     },
 }
 
+impl std::fmt::Display for DeepLinkError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnknownPage(page) => write!(formatter, "unknown settings page {page}"),
+            Self::UnknownAnchor { page_id, anchor_id } => {
+                write!(
+                    formatter,
+                    "unknown settings anchor {anchor_id} on page {page_id}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for DeepLinkError {}
+
 /// A resolved deep link.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedDeepLink<'a> {

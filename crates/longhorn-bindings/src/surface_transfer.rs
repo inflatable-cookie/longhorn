@@ -112,7 +112,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         "generate:surface-transfer",
         "SURFACE_TRANSFER_VARIANT_FIELDS",
         &declarations,
-    );
+    )?;
 
     Ok(RenderedProtocol {
         variant_fields,

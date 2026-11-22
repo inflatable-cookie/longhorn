@@ -28,6 +28,7 @@ export const fixture = record(
     "cancellationReceipt",
     "terminal",
     "semanticTrace",
+    "runtimeTrace",
     "incompatibility",
   ],
 );

@@ -194,16 +194,14 @@ where
     }
 
     fn decode(&self, value: Value) -> Result<Self::Value, DomainIssue> {
-        let state: CommandKeymapState = serde_json::from_value(value)
-            .map_err(|error| DomainIssue::new("command-keymap-decode", error.to_string()))?;
+        let state = decode_state(value)?;
         self.compile_state(&state)?;
         Ok(state)
     }
 
     fn encode(&self, value: &Self::Value) -> Result<Value, DomainIssue> {
         self.compile_state(value)?;
-        serde_json::to_value(value)
-            .map_err(|error| DomainIssue::new("command-keymap-encode", error.to_string()))
+        encode_state(value)
     }
 
     fn validate(&self, value: &Self::Value) -> Result<(), DomainIssue> {
@@ -230,6 +228,16 @@ where
         self.migration
             .migrate_one(from, value, self.migration_target())
     }
+}
+
+pub(crate) fn decode_state(value: Value) -> Result<CommandKeymapState, DomainIssue> {
+    serde_json::from_value(value)
+        .map_err(|error| DomainIssue::new("command-keymap-decode", error.to_string()))
+}
+
+pub(crate) fn encode_state(state: &CommandKeymapState) -> Result<Value, DomainIssue> {
+    serde_json::to_value(state)
+        .map_err(|error| DomainIssue::new("command-keymap-encode", error.to_string()))
 }
 
 /// Invalid registered keymap domain construction.

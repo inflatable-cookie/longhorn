@@ -125,7 +125,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
 
     let (fields, _skipped) = field_map("generate:update", "UPDATE_FIELDS", &declarations);
     let variant_fields =
-        variant_field_map("generate:update", "UPDATE_VARIANT_FIELDS", &declarations);
+        variant_field_map("generate:update", "UPDATE_VARIANT_FIELDS", &declarations)?;
 
     Ok(RenderedProtocol {
         contents,

@@ -124,7 +124,7 @@ pub fn tagged_variants(declaration: &str, tag: &str) -> Result<Vec<String>, Box<
 /// `{ "kind": "branch", branchId: BranchId, }`. So a quoted key with a quoted
 /// value is the tag, and the tag is the one such key every arm shares.
 ///
-/// Detected rather than supplied. Twelve domains do not agree on one key --
+/// Detected rather than supplied. Fifteen domains do not agree on one key --
 /// `kind`, `status` and `state` are all in use -- and a caller that has to
 /// know which is another place the answer is written down twice.
 pub fn detect_discriminant(declaration: &str) -> Option<String> {
@@ -316,6 +316,14 @@ fn check_artifacts(
         })
         .collect();
 
+    let stale = unlisted_artifacts(root, domain, artifacts)?;
+    if !stale.is_empty() {
+        return Err(io::Error::other(format!(
+            "stale generated {domain} artifacts: {}; remove them or restore their generator entries",
+            stale.join(", ")
+        )).into());
+    }
+
     if drifted.is_empty() {
         println!("{domain} bindings and fixtures are current");
         Ok(())
@@ -326,6 +334,47 @@ fn check_artifacts(
         ))
         .into())
     }
+}
+
+fn unlisted_artifacts(
+    root: &Path,
+    domain: &str,
+    artifacts: &[Artifact],
+) -> io::Result<Vec<String>> {
+    let generated = format!("packages/longhorn/src/{domain}/generated");
+    let fixtures = format!("fixtures/{domain}");
+    let mut stale = Vec::new();
+    for (dir, fixtures_only) in [(&generated, false), (&fixtures, true)] {
+        let entries = match fs::read_dir(root.join(dir)) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => continue,
+            Err(error) => return Err(error),
+        };
+        for entry in entries {
+            let entry = entry?;
+            if entry.file_type()?.is_dir() {
+                continue;
+            }
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if fixtures_only
+                && !(name.ends_with(".json")
+                    && (name.starts_with("protocol-v")
+                        || (domain == "layout" && name.contains("-conformance-v"))))
+            {
+                continue;
+            }
+            let path = format!("{dir}/{name}");
+            if !artifacts
+                .iter()
+                .any(|artifact| artifact.relative_path == path)
+            {
+                stale.push(path);
+            }
+        }
+    }
+    stale.sort_unstable();
+    Ok(stale)
 }
 
 /// One generated label map: a constant, the type indexing it, and its
@@ -428,23 +477,25 @@ fn json_string(value: &str) -> String {
     serde_json::to_string(value).expect("serializing a string to JSON cannot fail")
 }
 
-/// Unions with no discriminant to detect, and why each is allowed to have none.
-///
-/// Bridge's enums are externally tagged -- `"unsupported" | { "finite": .. }`
-/// -- so the variant *is* the key and there is nothing to detect. That is a
-/// modelling choice, not a defect, but it must be named: exempting it by
-/// silence would look identical to the failure this check exists to catch.
-///
-/// Named per union rather than per domain, so a new bridge union has to be
-/// considered rather than inheriting the pass.
-const EXTERNALLY_TAGGED: &[&str] = &[
-    "BridgeQueryOutcome",
-    "BridgeCommandOutcome",
-    "BridgeDeduplicationSupport",
-    "BridgeJobTerminalOutcome",
-    "BridgeCancellationOutcome",
-    "BridgeServiceOutcome",
-];
+/// A Serde externally tagged union has one distinct wire key per arm.
+fn is_externally_tagged(arms: &[String]) -> bool {
+    let mut keys = BTreeSet::new();
+    arms.iter().all(|arm| {
+        let arm = arm.trim();
+        if let Ok(serde_json::Value::String(name)) = serde_json::from_str(arm) {
+            return keys.insert(name);
+        }
+        let Some(body) = arm.strip_prefix('{').and_then(|arm| arm.strip_suffix('}')) else {
+            return false;
+        };
+        let fields = field_names(body);
+        let [key] = fields.as_slice() else {
+            return false;
+        };
+        // Unlike an ordinary struct field, ts-rs quotes the wire variant name.
+        body.trim_start().starts_with('"') && keys.insert(key.clone())
+    })
+}
 
 /// Renders the per-variant map beside the flat one.
 ///
@@ -452,15 +503,15 @@ const EXTERNALLY_TAGGED: &[&str] = &[
 /// into `field_map`: that one's values are `readonly string[]`, and a merged
 /// shape would make every consumer narrow before using either.
 ///
-/// # Panics
+/// # Errors
 ///
-/// If a tagged union has no detectable discriminant and is not exempted. The
-/// generator is a build step, so this fails the build: a union absent from the
-/// map reads at the boundary as "no keys allowed", which is the silent failure
-/// Cards 187 to 194 existed to remove. Reporting it and carrying on is what
-/// this replaces.
-#[must_use]
-pub fn variant_field_map(task: &str, constant: &str, declarations: &[String]) -> String {
+/// Returns an error when an object union has neither a shared discriminant
+/// nor distinct external variant keys.
+pub fn variant_field_map(
+    task: &str,
+    constant: &str,
+    declarations: &[String],
+) -> Result<String, Box<dyn Error>> {
     let mut rendered = format!("// @generated by `effigy {task}`; do not edit.\n");
     rendered.push_str("// Allowed field names per tagged-union variant, from the Rust enums.\n");
     rendered.push_str("// Keyed by type, then by discriminant. The discriminant itself is in\n");
@@ -477,37 +528,31 @@ pub fn variant_field_map(task: &str, constant: &str, declarations: &[String]) ->
         format!("\nexport const {constant}_DISCRIMINANTS: Record<string, string> = {{\n");
     let mut unreadable = Vec::new();
     for declaration in declarations {
-        // `tagged_union_name` matches any `|` after the assignment, which a
-        // plain record with a nullable field also has, and a string union has
-        // too. Neither is a tagged union. Filter as `field_map` does -- reject
-        // what `plain_object` accepts -- and additionally require a brace,
-        // which every tagged union has and no string union does.
-        if plain_object(declaration).is_some() || !declaration.contains('{') {
-            continue;
-        }
-        let Some(name) = tagged_union_name(declaration) else {
+        let parsed = strip_ts_comments(declaration);
+        let Some((name, body)) = parsed
+            .trim()
+            .strip_prefix("export type ")
+            .and_then(|value| value.split_once(" = "))
+        else {
             continue;
         };
+        let arms = split_union_arms(body.trim().trim_end_matches(';'));
+        if arms.len() < 2 || !arms.iter().any(|arm| arm.trim_start().starts_with('{')) {
+            continue;
+        }
         let tag = detect_discriminant(declaration);
         let variants = tag
             .as_deref()
             .map(|tag| tagged_field_map(declaration, tag))
             .unwrap_or_default();
-        if variants.is_empty() {
-            // No single key is a quoted literal in every arm, or the arms did
-            // not split. Reported rather than skipped silently, because a
-            // missing entry reads at the boundary as "no keys allowed".
-            // Compared without type parameters: `tagged_union_name` keeps
-            // them, and `BridgeQueryOutcome<S, D>` is the same union as
-            // `BridgeQueryOutcome`.
-            let bare = name.split_once('<').map_or(name.as_str(), |(base, _)| base);
-            if !EXTERNALLY_TAGGED.contains(&bare) {
-                unreadable.push(name);
+        if variants.len() != arms.len() {
+            if !is_externally_tagged(&arms) {
+                unreadable.push(name.to_owned());
             }
             continue;
         }
         rendered.push_str("  ");
-        rendered.push_str(&json_string(&name));
+        rendered.push_str(&json_string(name));
         rendered.push_str(": {\n");
         for (value, fields) in variants {
             let fields: Vec<String> = fields.iter().map(|field| json_string(field)).collect();
@@ -520,7 +565,7 @@ pub fn variant_field_map(task: &str, constant: &str, declarations: &[String]) ->
         rendered.push_str("  },\n");
         if let Some(tag) = tag {
             discriminants.push_str("  ");
-            discriminants.push_str(&json_string(&name));
+            discriminants.push_str(&json_string(name));
             discriminants.push_str(": ");
             discriminants.push_str(&json_string(&tag));
             discriminants.push_str(",\n");
@@ -529,17 +574,14 @@ pub fn variant_field_map(task: &str, constant: &str, declarations: &[String]) ->
     rendered.push_str("};\n");
     discriminants.push_str("};\n");
     rendered.push_str(&discriminants);
-    assert!(
-        unreadable.is_empty(),
-        "`effigy {task}`: no discriminant detected for {}. \
-         Every arm must quote the same key -- `#[serde(tag = \"kind\")]` or \
-         one of the other names `detect_discriminant` finds. If the union is \
-         externally tagged by design, add it to `EXTERNALLY_TAGGED` with the \
-         reason; do not leave it out of the map, because an absent entry reads \
-         at the boundary as \"no keys allowed\".",
-        unreadable.join(", ")
-    );
-    rendered
+    if !unreadable.is_empty() {
+        return Err(io::Error::other(format!(
+            "`effigy {task}`: no discriminant detected for {}",
+            unreadable.join(", ")
+        ))
+        .into());
+    }
+    Ok(rendered)
 }
 
 /// Emits the allowed field names for every plain object type in a domain.
@@ -605,10 +647,7 @@ fn plain_object(declaration: &str) -> Option<(String, String)> {
         .strip_prefix('{')?
         .strip_suffix('}')?;
 
-    // One flat set means one brace group. Any brace inside the body is either
-    // a further object or the next arm of a union, and neither has a single
-    // answer to "which keys are allowed".
-    if body.contains('{') || body.contains('}') {
+    if split_union_arms(remainder.trim().trim_end_matches(';')).len() != 1 {
         return None;
     }
     // A generic type carries its parameters in the declared name —
@@ -936,44 +975,32 @@ branchId: BranchId, };";
         let declaration = "export type EntrySnapshot = { kindId: KindId | null, label: string, };";
         // No panic: a nullable field is not an arm, so there is no union to
         // find a discriminant for.
-        let rendered = variant_field_map("test", "MAP", &[declaration.to_owned()]);
+        let rendered = variant_field_map("test", "MAP", &[declaration.to_owned()]).unwrap();
         assert!(!rendered.contains("EntrySnapshot"));
     }
 
-    /// The check the milestone ends on. A union nobody can read is absent from
-    /// the map, and an absent entry reads at the boundary as "no keys
-    /// allowed" -- so it must stop the build rather than print a line.
     #[test]
-    #[should_panic(expected = "no discriminant detected for Outcome")]
-    fn an_unreadable_union_fails_the_build() {
-        let declaration = "export type Outcome = { \"ok\": Ready } | { \"failed\": Cause };";
-        let _ = variant_field_map("generate:test", "MAP", &[declaration.to_owned()]);
+    fn an_ambiguous_union_returns_an_error() {
+        let declaration = r#"export type Outcome = { "same": Ready } | { "same": Cause };"#;
+        let error =
+            variant_field_map("generate:test", "MAP", &[declaration.to_owned()]).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("no discriminant detected for Outcome")
+        );
     }
 
-    /// Bridge is externally tagged by design. The exemption is what keeps the
-    /// check above from being suppressed wholesale the first time it fires.
     #[test]
-    fn an_externally_tagged_union_is_exempted_by_name() {
+    fn an_externally_tagged_union_has_no_discriminant_map() {
         let declaration =
-            "export type BridgeServiceOutcome = \"unsupported\" | { \"ready\": Service };";
-        let rendered = variant_field_map("generate:bridge", "MAP", &[declaration.to_owned()]);
-        assert!(!rendered.contains("BridgeServiceOutcome"));
+            r#"export type Outcome<S, D> = "unused" | { "ok": S } | { "failed": D };"#;
+        let rendered =
+            variant_field_map("generate:test", "MAP", &[declaration.to_owned()]).unwrap();
+        assert!(!rendered.contains("Outcome"));
     }
 
-    /// The exemption is per union, not per domain, and generics are not part
-    /// of the identity: `BridgeQueryOutcome<S, D>` is the exempted union, and
-    /// a new bridge union is not.
-    #[test]
-    #[should_panic(expected = "BridgeUnnamedOutcome")]
-    fn a_new_bridge_union_does_not_inherit_the_exemption() {
-        let declarations = [
-            "export type BridgeQueryOutcome<S, D> = \"pending\" | { \"ready\": S };".to_owned(),
-            "export type BridgeUnnamedOutcome = \"pending\" | { \"ready\": D };".to_owned(),
-        ];
-        let _ = variant_field_map("generate:bridge", "MAP", &declarations);
-    }
-
-    /// Twelve domains use `kind`, `status` and `state`. Detecting beats being
+    /// Fifteen domains use `kind`, `status` and `state`. Detecting beats being
     /// told, and the detector is what makes one pass enough.
     #[test]
     fn the_discriminant_is_detected_whatever_it_is_called() {

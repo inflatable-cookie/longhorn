@@ -1,4 +1,4 @@
-use std::{fs, time::Duration};
+use std::{cell::Cell, fs, time::Duration};
 
 use longhorn_command::{
     CommandKeyChord, CommandKeymapOverride, CommandPlatform, CommandRegistryGeneration,
@@ -36,6 +36,67 @@ fn default_load_and_catalogue_are_exact() {
     assert_eq!(snapshot.origin, CommandKeymapLoadOrigin::Default);
     assert_eq!(snapshot.state.revision.get(), 0);
     assert_eq!(snapshot.bindings.len(), 2);
+}
+
+#[test]
+fn file_load_compiles_overrides_once_and_rechecks_on_the_next_load() {
+    #[derive(Default)]
+    struct ObserveOverride {
+        checks: Cell<u32>,
+        reject: Cell<bool>,
+    }
+
+    impl CommandReservedChordPolicy for ObserveOverride {
+        fn is_reserved(&self, platform: CommandPlatform, chord: &CommandKeyChord) -> bool {
+            if platform == CommandPlatform::MacOs && chord.code.as_str() == "KeyJ" {
+                self.checks.set(self.checks.get() + 1);
+                return self.reject.get();
+            }
+            false
+        }
+    }
+
+    let domain = RegisteredCommandKeymapDomain::new(
+        descriptor(1),
+        registry(1),
+        vec![preset(
+            "app:default",
+            1,
+            vec![binding("base:open", "KeyO", "app:open")],
+        )],
+        super::support::id("app:default"),
+        ObserveOverride::default(),
+        NoCommandKeymapMigration,
+        CommandKeymapBackupPolicy::Include,
+    )
+    .unwrap();
+    let fixture = Fixture::new();
+    let store = fixture.store(&domain);
+    let mut state = domain.default_state().clone();
+    state.overrides.push(CommandKeymapOverride::Add {
+        binding: binding("override:open", "KeyJ", "app:open"),
+    });
+    fixture.write(&domain, &envelope(1, serde_json::to_value(state).unwrap()));
+    let service = CommandKeymapService::new(domain);
+
+    let CommandKeymapLoadOutcome::Loaded { snapshot } =
+        service.load(&store, Duration::from_secs(2)).unwrap()
+    else {
+        panic!("expected the compiled keymap");
+    };
+    assert_eq!(snapshot.origin, CommandKeymapLoadOrigin::File);
+    assert_eq!(snapshot.bindings.len(), 2);
+    assert_eq!(service.domain().reserved_policy().checks.get(), 1);
+
+    service.domain().reserved_policy().reject.set(true);
+    let CommandKeymapLoadOutcome::Recovery { recovery } =
+        service.load(&store, Duration::from_secs(2)).unwrap()
+    else {
+        panic!("expected the changed reservation to block the load");
+    };
+    assert_eq!(recovery.code, CommandKeymapRecoveryCode::InvalidValue);
+    assert!(recovery.detail.contains("command-keymap-reserved-chord"));
+    assert!(recovery.source_preserved);
 }
 
 #[test]

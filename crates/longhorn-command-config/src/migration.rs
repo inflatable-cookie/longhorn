@@ -119,8 +119,23 @@ impl<P> CommandKeymapMigration<P> for NoCommandKeymapMigration {
 }
 
 pub(crate) fn keymap_issue(error: longhorn_command::CommandKeymapError) -> DomainIssue {
-    DomainIssue::new(
-        format!("command-keymap-{:?}", error.code()).to_ascii_lowercase(),
-        error.detail(),
-    )
+    use longhorn_command::CommandKeymapErrorCode;
+
+    let code = match error.code() {
+        CommandKeymapErrorCode::LimitExceeded => "command-keymap-limit-exceeded",
+        CommandKeymapErrorCode::DuplicateBindingId => "command-keymap-duplicate-binding-id",
+        CommandKeymapErrorCode::DuplicateOverrideTarget => {
+            "command-keymap-duplicate-override-target"
+        }
+        CommandKeymapErrorCode::MissingBaseBinding => "command-keymap-missing-base-binding",
+        CommandKeymapErrorCode::BindingIdCollision => "command-keymap-binding-id-collision",
+        CommandKeymapErrorCode::UnknownCommand => "command-keymap-unknown-command",
+        CommandKeymapErrorCode::UnknownContext => "command-keymap-unknown-context",
+        CommandKeymapErrorCode::ContextNotAllowed => "command-keymap-context-not-allowed",
+        CommandKeymapErrorCode::ShortcutNotEligible => "command-keymap-shortcut-not-eligible",
+        CommandKeymapErrorCode::InvalidArguments => "command-keymap-invalid-arguments",
+        CommandKeymapErrorCode::InvalidModifiers => "command-keymap-invalid-modifiers",
+        CommandKeymapErrorCode::ReservedChord => "command-keymap-reserved-chord",
+    };
+    DomainIssue::new(code, error.detail())
 }

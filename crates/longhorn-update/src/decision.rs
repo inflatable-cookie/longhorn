@@ -7,7 +7,6 @@ use crate::{BuildIdentity, ChannelManifest, InstallId, InstallManager, InstallPr
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum CheckKind {
     /// A background or startup check.
     #[default]
@@ -38,7 +37,6 @@ impl CheckKind {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum OfferReason {
     /// The release is offered to everyone, or to this install's stage.
     Staged,

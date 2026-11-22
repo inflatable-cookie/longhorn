@@ -1,3 +1,4 @@
+use longhorn_core::WireCounter;
 use std::{error::Error, fmt};
 
 use longhorn_core::BridgeCredentialRef;
@@ -144,20 +145,20 @@ pub trait BridgeServiceSupervisor {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct BridgeServiceGeneration(u64);
+pub struct BridgeServiceGeneration(WireCounter);
 
 impl BridgeServiceGeneration {
     fn next(self) -> Result<Self, BridgeSupervisionError> {
         self.0
             .checked_add(1)
             .map(Self)
-            .ok_or(BridgeSupervisionError::GenerationExhausted)
+            .map_err(|_| BridgeSupervisionError::GenerationExhausted)
     }
 
     /// Returns the serialized generation.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 }
 
@@ -203,7 +204,7 @@ impl BridgeServiceMachine {
         Self {
             ownership,
             state: BridgeServiceState::Absent,
-            generation: BridgeServiceGeneration(0),
+            generation: BridgeServiceGeneration(WireCounter::ZERO),
         }
     }
 

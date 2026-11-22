@@ -16,8 +16,7 @@ use super::CommandKeymapServiceError;
 pub(crate) fn snapshot_from_effective<P, M>(
     domain: &RegisteredCommandKeymapDomain<P, M>,
     state: CommandKeymapState,
-    preset_version: longhorn_core::SchemaVersion,
-    effective: CommandEffectiveKeymap,
+    effective: &CommandEffectiveKeymap,
     origin: CommandKeymapLoadOrigin,
     diagnostics: Vec<CommandKeymapDiagnostic>,
 ) -> CommandKeymapSnapshot
@@ -30,7 +29,7 @@ where
         registry_generation: domain.registry().generation(),
         registry_digest: domain.registry().digest().clone(),
         state,
-        active_preset_version: preset_version,
+        active_preset_version: effective.preset_version(),
         bindings: effective.bindings().cloned().collect(),
         conflicts: effective.conflicts().cloned().collect(),
         origin,

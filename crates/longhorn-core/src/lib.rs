@@ -16,6 +16,7 @@ mod schema_version;
 mod settings_id;
 mod store_compatibility;
 mod window_metrics;
+mod wire_counter;
 
 pub use client_geometry::{
     ClientGeometryError, ClientLogicalPx, ClientPoint, ClientRect, ClientSize,
@@ -72,3 +73,4 @@ pub use settings_id::{
 };
 pub use store_compatibility::{CompatibilityStore, FutureSchemaRefusal, FutureSchemaRefused};
 pub use window_metrics::{LiveWindowMetrics, WindowPlacement};
+pub use wire_counter::{WireCounter, WireCounterOverflow};

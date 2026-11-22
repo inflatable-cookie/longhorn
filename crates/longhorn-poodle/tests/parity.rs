@@ -10,7 +10,7 @@
 //! not, because the value is two independent implementations agreeing. See
 //! card 171.
 
-use longhorn_config::RestoreDomainCompatibilityProjection;
+use longhorn_config::{RestoreDomainCompatibilityProjection, RestoreIdentityStatusProjection};
 use longhorn_notifications::NotificationSeverity;
 use longhorn_operation::{
     OperationCancellationSupportProjection, OperationOverallProgressProjection,
@@ -347,5 +347,18 @@ fn domain_with(
         source_schema_version: Some(3),
         target_schema_version: Some(4),
         compatibility,
+    }
+}
+
+#[test]
+fn restore_identity_labels_match_the_shared_fixture() {
+    for case in cases("restoreIdentity") {
+        let identity: RestoreIdentityStatusProjection =
+            serde_json::from_value(case["identity"].clone()).expect("valid restore identity");
+        assert_eq!(
+            config::identity_label(&identity),
+            text(&case, "label"),
+            "{case}"
+        );
     }
 }

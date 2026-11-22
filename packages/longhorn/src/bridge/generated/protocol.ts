@@ -16,7 +16,7 @@ export const BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES = 4096 as const;
 export const BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES = 65536 as const;
 export const BRIDGE_HOST_FORMS = ["direct","tauriLocal","localService","remote","localFirst"] as const;
 export const BRIDGE_CONNECTION_STATES = ["idle","connecting","negotiating","ready","degraded","reconnecting","offline","incompatible","unauthorized","failed","closed"] as const;
-export const BRIDGE_CONNECTION_REASONS = ["connectRequested","transportReady","negotiationAccepted","capabilityChanged","transportLost","retryScheduled","versionMismatch","authorizationRejected","hostFailure","shutdown"] as const;
+export const BRIDGE_CONNECTION_REASONS = ["connectRequested","transportReady","negotiationAccepted","capabilityChanged","transportLost","retryScheduled","retryForbidden","versionMismatch","authorizationRejected","hostFailure","shutdown"] as const;
 export const BRIDGE_AUTHENTICATION_POSTURES = ["notRequired","required","authenticated","rejected"] as const;
 export const BRIDGE_DOMAIN_AVAILABILITIES = ["available","degraded","offline"] as const;
 export const BRIDGE_READ_AUTHORITIES = ["none","projection","authoritative"] as const;
@@ -80,7 +80,7 @@ form: BridgeHostForm, };
 
 export type BridgeConnectionState = "idle" | "connecting" | "negotiating" | "ready" | "degraded" | "reconnecting" | "offline" | "incompatible" | "unauthorized" | "failed" | "closed";
 
-export type BridgeConnectionReason = "connectRequested" | "transportReady" | "negotiationAccepted" | "capabilityChanged" | "transportLost" | "retryScheduled" | "versionMismatch" | "authorizationRejected" | "hostFailure" | "shutdown";
+export type BridgeConnectionReason = "connectRequested" | "transportReady" | "negotiationAccepted" | "capabilityChanged" | "transportLost" | "retryScheduled" | "retryForbidden" | "versionMismatch" | "authorizationRejected" | "hostFailure" | "shutdown";
 
 export type BridgeConnectionStatus = { state: BridgeConnectionState, reason: BridgeConnectionReason | null, };
 
@@ -199,6 +199,10 @@ export type BridgeServiceRequest = { action: BridgeServiceAction, credentialRef:
 export type BridgeServiceGeneration = number;
 
 export type BridgeServiceTransitionReceipt = { generation: BridgeServiceGeneration, ownership: BridgeServiceOwnership, action: BridgeServiceAction, previous: BridgeServiceState, current: BridgeServiceState, outcome: BridgeServiceOutcome, };
+
+export type BridgeHostErrorCode = "authorityUnavailable" | "invalidSession" | "unknownDomain" | "unknownRoute" | "capabilityUnavailable" | "readDenied" | "writeDenied" | "executionDenied" | "staleAuthority" | "invalidAuthority" | "invalidReply" | "payloadCodec" | "stateUnavailable" | "eventUnavailable" | "eventPublication" | "invalidRegistration";
+
+export type BridgeHostError = { "code": BridgeHostErrorCode, "message": string, "retryable": boolean, };
 export const BRIDGE_ADMITTED_CONNECTION_REASONS: Record<
   BridgeConnectionState,
   readonly (BridgeConnectionReason | null)[]
@@ -209,7 +213,7 @@ export const BRIDGE_ADMITTED_CONNECTION_REASONS: Record<
   "ready": ["negotiationAccepted", "capabilityChanged"],
   "degraded": ["capabilityChanged", "transportLost", "hostFailure"],
   "reconnecting": ["retryScheduled", "transportLost"],
-  "offline": ["transportLost"],
+  "offline": ["transportLost", "retryForbidden"],
   "incompatible": ["versionMismatch"],
   "unauthorized": ["authorizationRejected"],
   "failed": ["hostFailure"],

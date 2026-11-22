@@ -1,4 +1,5 @@
 use longhorn_core::{BridgeSessionId, DomainId};
+use longhorn_core::{WireCounter, WireCounterOverflow};
 use serde::{Deserialize, Serialize};
 
 use crate::AuthorityEpoch;
@@ -10,30 +11,33 @@ use crate::AuthorityEpoch;
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct BridgeStreamSequence(u64);
+pub struct BridgeStreamSequence(WireCounter);
 
 impl BridgeStreamSequence {
     /// Initial sequence for an authoritative snapshot or stream.
-    pub const INITIAL: Self = Self(0);
+    pub const INITIAL: Self = Self(WireCounter::ZERO);
 
     /// Constructs a sequence from its serialized value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value exceeds [`WireCounter::MAX`].
     #[must_use]
     pub const fn new(value: u64) -> Self {
-        Self(value)
+        Self(WireCounter::new(value))
     }
 
     /// Returns the serialized value.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 
     /// Returns the next sequence without wrapping.
-    #[must_use]
-    pub const fn checked_next(self) -> Option<Self> {
+    pub const fn checked_next(self) -> Result<Self, WireCounterOverflow> {
         match self.0.checked_add(1) {
-            Some(value) => Some(Self(value)),
-            None => None,
+            Ok(value) => Ok(Self(value)),
+            Err(error) => Err(error),
         }
     }
 }
@@ -274,7 +278,7 @@ impl BridgeStreamTracker {
         if cursor.sequence < current.sequence {
             return BridgeStreamDecision::IgnoreStale;
         }
-        if current.sequence.checked_next() == Some(cursor.sequence) {
+        if current.sequence.checked_next() == Ok(cursor.sequence) {
             self.accepted_cursor = Some(cursor.clone());
             return BridgeStreamDecision::Apply;
         }
