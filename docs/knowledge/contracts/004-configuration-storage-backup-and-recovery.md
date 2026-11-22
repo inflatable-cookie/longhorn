@@ -62,6 +62,8 @@ to the current directory or a home-directory dotfile.
   layout, provenance, warnings, and typed failures.
 - Tauri adapters resolve platform-directory facts through the application path
   API. Tauri's suggested leaf layout does not override the selected profile.
+  On Linux, `runtime_dir` in `TauriDirectorySnapshot::Linux` is optional so a
+  missing `XDG_RUNTIME_DIR` remains absent rather than being invented.
 - Tests receive temporary roots.
 - Filenames are stable, sanitized, and confined below their registered root.
 - Ordinary file access opens a capability-scoped root and resolves only the
@@ -212,6 +214,11 @@ and source state under both store coordinators and remains idempotent.
 ## Read And Migration
 
 - Missing files yield the domain default and a `missing` diagnostic.
+- Live domain documents share one 4 MiB byte bound (`BackupLimits::default().max_domain_bytes()`)
+  across reads, mutations, migration rewrites, restore staging, and ordinary
+  storage transitions so no write path can publish a document that subsequent
+  loads would reject. Pre-existing files exceeding that bound yield
+  `RecoveryKind::ReadFailed` without being overwritten.
 - Invalid files yield a typed recovery state. They are not overwritten during
   load.
 - Future schema versions fail safe and preserve the source.
@@ -479,7 +486,9 @@ ordinary configuration.
   read-back. A store that reports a successful write and reads back empty is
   `Unavailable`, never encrypted to
 - interactive export may use age recipients or a human passphrase
-- unavailable identity reports `locked`, not `corrupt`
+- unavailable identity reports `locked`, not `corrupt`; a failing key provider
+  (for example, a corrupt stored identity) reports `provider-failed`, distinct
+  from `locked`
 - rotation changes new recipients; external key rings retain old identities
 - re-encryption is explicit decrypt-and-write with a new nonce
 - retention preserves archives it cannot authenticate and inspect
@@ -529,12 +538,18 @@ Ordinary failure rolls back and verifies the complete selected set under the
 same guard. Unverified rollback retains the journal and enters
 `restore-recovery-required`.
 
-A crash leaves the journal and private rollback payloads. The next store open
-or mutation completes and verifies rollback before normal writes. Loads that
-detect active recovery return typed unavailable state. A load already in
-flight may complete against an old or new complete single-domain file.
-Callers needing one consistent multi-domain view use a coordinated load-set
-operation.
+A crash leaves the journal and private rollback payloads. `ConfigStore::new`
+performs no I/O or recovery, and bare `ConfigStore::load` stays strictly
+read-only: it never acquires the coordinator or mutates the journal, returning
+`RestoreActive` (for both in-flight and uncleaned terminal journals) or
+`RestoreRecoveryRequired`. Callers recover explicitly through
+`ConfigStore::recover_restore`, `ConfigStore::with_coordinated_load_set`, or the
+next coordinated mutation or restore: interrupted non-terminal journals roll
+back and verify prior state, while already-verified terminal (`Succeeded` or
+`RolledBack`) journals only clean up journal and rollback artifacts without
+modifying live domain files. A load already in flight may complete against an
+old or new complete single-domain file. Callers needing one consistent
+multi-domain view use a coordinated load-set operation.
 
 Terminal results are exact:
 

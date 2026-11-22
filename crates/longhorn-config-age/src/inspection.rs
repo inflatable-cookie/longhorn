@@ -5,8 +5,8 @@ use longhorn_config::inspect_backup_archive;
 
 use crate::{
     AgeBackupInspection, AgeEncryptionMode, AgeEnvelopeEvidence, AgeEnvelopeLimits,
-    AgeEnvelopeReceipt, AgeIdentity, AgeInspectionOutcome, AgePassphrase, BackupEncryptionProvider,
-    bounded::BoundedWriter,
+    AgeEnvelopeReceipt, AgeIdentity, AgeInspectionOutcome, AgePassphrase, AgeProviderError,
+    BackupEncryptionProvider, bounded::BoundedWriter,
 };
 
 pub(crate) struct DecryptedAgeArchive {
@@ -17,6 +17,7 @@ pub(crate) struct DecryptedAgeArchive {
 
 pub(crate) enum DecryptionFailure {
     Locked(AgeEnvelopeEvidence),
+    ProviderFailed(AgeEnvelopeEvidence),
     Corrupt(AgeEnvelopeEvidence),
     Unsupported(AgeEnvelopeEvidence),
 }
@@ -30,7 +31,10 @@ pub fn inspect_with_provider(
 ) -> AgeInspectionOutcome {
     let identities = match provider.decryption_identities() {
         Ok(identities) => identities,
-        Err(_) => return AgeInspectionOutcome::Locked(AgeEnvelopeEvidence::new(ciphertext)),
+        Err(error) => {
+            return classify_provider_error(error, AgeEnvelopeEvidence::new(ciphertext))
+                .into_outcome();
+        }
     };
     inspect_with_identities(&identities, ciphertext, limits)
 }
@@ -68,7 +72,7 @@ pub(crate) fn decrypt_with_provider(
 ) -> Result<DecryptedAgeArchive, DecryptionFailure> {
     let identities = provider
         .decryption_identities()
-        .map_err(|_| DecryptionFailure::Locked(AgeEnvelopeEvidence::new(ciphertext)))?;
+        .map_err(|error| classify_provider_error(error, AgeEnvelopeEvidence::new(ciphertext)))?;
     decrypt_with_identities(&identities, ciphertext, limits)
 }
 
@@ -199,10 +203,23 @@ fn classify_decrypt_error(error: DecryptError, evidence: AgeEnvelopeEvidence) ->
     }
 }
 
+fn classify_provider_error(
+    error: AgeProviderError,
+    evidence: AgeEnvelopeEvidence,
+) -> DecryptionFailure {
+    match error {
+        AgeProviderError::Unavailable | AgeProviderError::InteractionRequired => {
+            DecryptionFailure::Locked(evidence)
+        }
+        AgeProviderError::Failed => DecryptionFailure::ProviderFailed(evidence),
+    }
+}
+
 impl DecryptionFailure {
     fn into_outcome(self) -> AgeInspectionOutcome {
         match self {
             Self::Locked(evidence) => AgeInspectionOutcome::Locked(evidence),
+            Self::ProviderFailed(evidence) => AgeInspectionOutcome::ProviderFailed(evidence),
             Self::Corrupt(evidence) => AgeInspectionOutcome::Corrupt(evidence),
             Self::Unsupported(evidence) => AgeInspectionOutcome::Unsupported(evidence),
         }

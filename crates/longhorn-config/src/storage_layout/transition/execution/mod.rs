@@ -9,7 +9,7 @@ mod tests;
 
 pub(super) use guards::acquire_store_guards;
 #[cfg(test)]
-pub(crate) use orchestrator::{InjectedFailure, execute_inner};
+pub(crate) use orchestrator::{InjectedFailure, execute_inner, recover_inner};
 pub use orchestrator::{execute_storage_transition, recover_storage_transition};
 
 pub(crate) use custom::{capture_custom, restore_custom};

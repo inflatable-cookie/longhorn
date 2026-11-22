@@ -4,8 +4,10 @@ use cap_std::{ambient_authority, fs::Dir};
 use longhorn_core::{DomainId, SchemaVersion};
 
 use crate::{
-    BackupCaptureError, BackupSourceIssue, ConfigDomain, LoadOutcome, LoadedOrigin, RecoveryKind,
-    ResolvedFile, SourceDocument, store::document::SerializedDocument, store::load::load_source,
+    BackupCaptureError, BackupSourceIssue, ConfigDomain, LoadedOrigin, RecoveryKind, ResolvedFile,
+    SourceDocument,
+    store::document::SerializedDocument,
+    store::load::{FileLoadOutcome, load_source},
 };
 
 pub(crate) fn capture_typed_source<D: ConfigDomain>(
@@ -25,7 +27,7 @@ pub(crate) fn capture_typed_source<D: ConfigDomain>(
         .map(|document| document.schema_version);
 
     match load_source(domain, source.clone()) {
-        LoadOutcome::Ready(loaded) => {
+        FileLoadOutcome::Ready(loaded) => {
             debug_assert!(matches!(
                 loaded.origin,
                 LoadedOrigin::File | LoadedOrigin::MigratedInMemory { .. }
@@ -35,7 +37,7 @@ pub(crate) fn capture_typed_source<D: ConfigDomain>(
                 bytes: source.bytes,
             })
         }
-        LoadOutcome::Recovery(recovery) => {
+        FileLoadOutcome::Recovery(recovery) => {
             let Some(source) = recovery.source else {
                 return Err(SourceCaptureError::UnclassifiedRecovery {
                     kind: recovery.kind,
@@ -54,9 +56,6 @@ pub(crate) fn capture_typed_source<D: ConfigDomain>(
                 bytes: source.bytes,
             })
         }
-        LoadOutcome::Unavailable(unavailable) => Err(SourceCaptureError::UnexpectedUnavailable {
-            detail: format!("{unavailable:?}"),
-        }),
     }
 }
 
@@ -120,10 +119,6 @@ pub(super) fn map_source_error(domain: &DomainId, error: SourceCaptureError) -> 
                 detail,
             }
         }
-        SourceCaptureError::UnexpectedUnavailable { detail } => BackupCaptureError::Unreadable {
-            domain: domain.clone(),
-            detail,
-        },
     }
 }
 
@@ -144,7 +139,6 @@ pub(crate) enum CapturedSource {
 pub(crate) enum SourceCaptureError {
     Read(BoundedReadError),
     UnclassifiedRecovery { kind: RecoveryKind, detail: String },
-    UnexpectedUnavailable { detail: String },
 }
 
 impl From<BoundedReadError> for SourceCaptureError {

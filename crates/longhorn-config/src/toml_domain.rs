@@ -11,8 +11,8 @@
 use toml::Spanned;
 use toml::de::{DeInteger, DeTable, DeValue};
 
-use super::store::load::{migrate_from, read_source, validated_default};
-use crate::store::{LoadOutcome, RecoveryKind, RecoveryState, SourceDocument, SourcePosition};
+use super::store::load::{FileLoadOutcome, migrate_from, read_source, validated_default};
+use crate::store::{RecoveryKind, RecoveryState, SourceDocument, SourcePosition};
 use crate::{ConfigDomain, ResolvedFile};
 use longhorn_core::SchemaVersion;
 use serde_json::Value;
@@ -29,14 +29,14 @@ struct SourceRefusal {
 pub(crate) fn load_toml_file<D: ConfigDomain>(
     domain: &D,
     file: &ResolvedFile,
-) -> LoadOutcome<D::Value> {
+) -> FileLoadOutcome<D::Value> {
     let source = match read_source(file) {
         Ok(source) => source,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             return validated_default(domain, Some(file.full_path().to_path_buf()), true);
         }
         Err(error) => {
-            return LoadOutcome::Recovery(RecoveryState {
+            return FileLoadOutcome::Recovery(RecoveryState {
                 kind: RecoveryKind::ReadFailed,
                 path: Some(file.full_path().to_path_buf()),
                 source: None,
@@ -49,12 +49,15 @@ pub(crate) fn load_toml_file<D: ConfigDomain>(
     load_toml_source(domain, source)
 }
 
-fn load_toml_source<D: ConfigDomain>(domain: &D, source: SourceDocument) -> LoadOutcome<D::Value> {
+fn load_toml_source<D: ConfigDomain>(
+    domain: &D,
+    source: SourceDocument,
+) -> FileLoadOutcome<D::Value> {
     // Own the text so recovery states can keep the source bytes.
     let text = match std::str::from_utf8(&source.bytes) {
         Ok(text) => text.to_owned(),
         Err(_) => {
-            return LoadOutcome::Recovery(RecoveryState {
+            return FileLoadOutcome::Recovery(RecoveryState {
                 kind: RecoveryKind::CorruptDocument,
                 path: Some(source.path.clone()),
                 source: Some(source),
@@ -67,7 +70,7 @@ fn load_toml_source<D: ConfigDomain>(domain: &D, source: SourceDocument) -> Load
     let root = match DeTable::parse(&text) {
         Ok(root) => root,
         Err(error) => {
-            return LoadOutcome::Recovery(RecoveryState {
+            return FileLoadOutcome::Recovery(RecoveryState {
                 kind: RecoveryKind::CorruptDocument,
                 path: Some(source.path.clone()),
                 source: Some(source),
@@ -87,7 +90,7 @@ fn load_toml_source<D: ConfigDomain>(domain: &D, source: SourceDocument) -> Load
     };
 
     if version > current_version {
-        return LoadOutcome::Recovery(RecoveryState {
+        return FileLoadOutcome::Recovery(RecoveryState {
             kind: RecoveryKind::FutureSchema,
             path: Some(source.path.clone()),
             source: Some(source),
@@ -122,8 +125,8 @@ fn refused<D: ConfigDomain>(
     refusal: SourceRefusal,
     text: &str,
     kind: RecoveryKind,
-) -> LoadOutcome<D::Value> {
-    LoadOutcome::Recovery(RecoveryState {
+) -> FileLoadOutcome<D::Value> {
+    FileLoadOutcome::Recovery(RecoveryState {
         kind,
         path: Some(source.path.clone()),
         source: Some(source),

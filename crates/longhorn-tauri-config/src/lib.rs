@@ -8,7 +8,6 @@ mod commands;
 mod directory;
 mod error;
 mod handler;
-mod ports;
 
 pub use authority::ConfigOperationsAuthority;
 pub use commands::{
@@ -22,7 +21,3 @@ pub use commands::{
 pub use directory::{TauriDirectorySnapshot, platform_directory_facts};
 pub use error::{ConfigOperationsHostError, ConfigOperationsHostErrorCode};
 pub use handler::ConfigOperationsHandlerAssembly;
-pub use ports::{
-    BackupEncryptionStatusAuthority, BackupExportTargetAuthority, PortableRootAuthority,
-    RestoreArchiveSelectionAuthority, RestoreUnlockAuthority, RestoreUnlockState,
-};

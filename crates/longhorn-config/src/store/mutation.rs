@@ -3,9 +3,11 @@ use crate::{ConfigDomain, DomainIssue, DomainLocation, ResolvedFile};
 use longhorn_storage_layout::{AccessMode, RootKind};
 
 use super::{
-    CheckedMutationContext, CheckedMutationError, CheckedMutationOutcome, ConfigStore, LoadOutcome,
+    CheckedMutationContext, CheckedMutationError, CheckedMutationOutcome, ConfigStore,
     LoadedOrigin, MutationError, MutationOptions, MutationReceipt, MutationRefusal,
-    UnavailableState, document::SerializedDocument, load::load_file, publication::publish,
+    document::SerializedDocument,
+    load::{FileLoadOutcome, load_file},
+    publication::publish,
 };
 
 pub(super) fn mutate<D, F>(
@@ -118,10 +120,8 @@ where
     crate::backup::restore::recover_guarded(store, &guard)
         .map_err(MutationError::RestoreRecovery)
         .map_err(CheckedMutationError::Mutation)?;
-    let loaded = load_file(domain, &file);
-
-    let loaded = match loaded {
-        LoadOutcome::Ready(loaded) => match loaded.origin {
+    let loaded = match load_file(domain, &file) {
+        FileLoadOutcome::Ready(loaded) => match loaded.origin {
             LoadedOrigin::Default | LoadedOrigin::File => loaded,
             LoadedOrigin::MigratedInMemory { from, to } => {
                 return Err(CheckedMutationError::Mutation(MutationError::Refused(
@@ -129,20 +129,10 @@ where
                 )));
             }
         },
-        LoadOutcome::Recovery(recovery) => {
+        FileLoadOutcome::Recovery(recovery) => {
             return Err(CheckedMutationError::Mutation(MutationError::Refused(
                 MutationRefusal::Recovery(recovery),
             )));
-        }
-        LoadOutcome::Unavailable(UnavailableState::Authority { location }) => {
-            return Err(CheckedMutationError::Mutation(MutationError::Refused(
-                MutationRefusal::Unavailable { location },
-            )));
-        }
-        LoadOutcome::Unavailable(
-            UnavailableState::RestoreActive | UnavailableState::RestoreRecoveryRequired,
-        ) => {
-            unreachable!("mutation loads only after coordinated recovery");
         }
     };
 
@@ -192,6 +182,17 @@ where
             detail: error.to_string(),
         })
         .map_err(CheckedMutationError::Mutation)?;
+    let max_bytes = super::load::max_live_domain_bytes();
+    if bytes.len() > max_bytes {
+        return Err(CheckedMutationError::Mutation(
+            MutationError::Serialization {
+                detail: format!(
+                    "serialized domain envelope exceeds {max_bytes}-byte limit ({} bytes)",
+                    bytes.len()
+                ),
+            },
+        ));
+    }
     let durability = publish(&file, &bytes, options.durability)
         .map_err(MutationError::Publication)
         .map_err(CheckedMutationError::Mutation)?;

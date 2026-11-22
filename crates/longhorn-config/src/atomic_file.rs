@@ -27,6 +27,58 @@ pub(crate) fn temporary_name(parent: &Path, file_name: &str) -> PathBuf {
     ))
 }
 
+/// Applies private `0600` permissions on Unix when creating files.
+pub(crate) trait PrivateOpenOptions {
+    fn set_private_mode(&mut self);
+}
+
+impl PrivateOpenOptions for OpenOptions {
+    #[cfg(unix)]
+    fn set_private_mode(&mut self) {
+        use std::os::unix::fs::OpenOptionsExt;
+
+        self.mode(0o600);
+    }
+
+    #[cfg(not(unix))]
+    fn set_private_mode(&mut self) {}
+}
+
+impl PrivateOpenOptions for cap_std::fs::OpenOptions {
+    #[cfg(unix)]
+    fn set_private_mode(&mut self) {
+        use cap_std::fs::OpenOptionsExt;
+
+        self.mode(0o600);
+    }
+
+    #[cfg(not(unix))]
+    fn set_private_mode(&mut self) {}
+}
+
+/// Retries creating a uniquely named temporary file below `parent` until
+/// `open` succeeds or the collision retry limit is reached.
+pub(crate) fn create_unique_temporary<T, F>(
+    parent: &Path,
+    file_name: &str,
+    mut open: F,
+) -> io::Result<(T, PathBuf)>
+where
+    F: FnMut(&Path) -> io::Result<T>,
+{
+    for _ in 0..TEMP_ATTEMPTS {
+        let path = temporary_name(parent, file_name);
+        match open(&path) {
+            Ok(file) => return Ok((file, path)),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Err(io::Error::other(
+        "temporary name collision retry limit reached",
+    ))
+}
+
 /// A uniquely named temporary file created with `create_new`.
 pub(crate) struct UniqueTemporary {
     file: Option<File>,
@@ -37,25 +89,16 @@ impl UniqueTemporary {
     /// Creates the temporary file below `parent`, retrying on name
     /// collisions.
     pub(crate) fn create(parent: &Path, file_name: &str) -> io::Result<Self> {
-        for _ in 0..TEMP_ATTEMPTS {
-            let path = temporary_name(parent, file_name);
+        let (file, path) = create_unique_temporary(parent, file_name, |path| {
             let mut options = OpenOptions::new();
             options.write(true).create_new(true);
-            set_private_mode(&mut options);
-            match options.open(&path) {
-                Ok(file) => {
-                    return Ok(Self {
-                        file: Some(file),
-                        path,
-                    });
-                }
-                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
-                Err(error) => return Err(error),
-            }
-        }
-        Err(io::Error::other(
-            "temporary name collision retry limit reached",
-        ))
+            options.set_private_mode();
+            options.open(path)
+        })?;
+        Ok(Self {
+            file: Some(file),
+            path,
+        })
     }
 
     /// Returns the temporary file's path.
@@ -106,18 +149,8 @@ pub(crate) fn sync_directory(path: &Path) -> io::Result<()> {
 pub(crate) fn write_private_file(path: &Path, bytes: &[u8]) -> io::Result<()> {
     let mut options = OpenOptions::new();
     options.write(true).create_new(true);
-    set_private_mode(&mut options);
+    options.set_private_mode();
     let mut output = options.open(path)?;
     output.write_all(bytes)?;
     output.sync_all()
 }
-
-#[cfg(unix)]
-fn set_private_mode(options: &mut OpenOptions) {
-    use std::os::unix::fs::OpenOptionsExt;
-
-    options.mode(0o600);
-}
-
-#[cfg(not(unix))]
-fn set_private_mode(_options: &mut OpenOptions) {}

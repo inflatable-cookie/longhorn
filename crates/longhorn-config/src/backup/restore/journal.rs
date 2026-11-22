@@ -193,6 +193,7 @@ pub(super) fn load(authority_root: &Path) -> io::Result<Option<RestoreJournal>> 
 
 pub(super) fn publish(authority_root: &Path, journal: &RestoreJournal) -> io::Result<()> {
     journal_file::publish(
+        authority_root,
         &state_directory(authority_root),
         JOURNAL_FILE,
         journal,
@@ -209,7 +210,7 @@ pub(super) fn persist_rollback(
 ) -> io::Result<RestoreJournal> {
     clear_rollback(authority_root)?;
     let rollback_path = rollback_directory(authority_root);
-    fs::create_dir_all(&rollback_path)?;
+    crate::dir_sync::create_dir_all_synced_to_root(authority_root, &rollback_path)?;
     let mut entries = Vec::with_capacity(staging.len());
     for staged in staging {
         let old = rollback
@@ -238,7 +239,7 @@ pub(super) fn persist_rollback(
             rollback_file,
         });
     }
-    sync_directory(&rollback_path)?;
+    crate::dir_sync::sync_ancestors_to_root(authority_root, &rollback_path)?;
     Ok(RestoreJournal::new(
         seed.operation_id,
         seed.plan_digest,

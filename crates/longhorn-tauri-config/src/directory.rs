@@ -35,8 +35,8 @@ pub enum TauriDirectorySnapshot {
         state_dir: PathBuf,
         /// XDG cache base.
         cache_dir: PathBuf,
-        /// XDG runtime base.
-        runtime_dir: PathBuf,
+        /// Optional XDG runtime base (`None` when `XDG_RUNTIME_DIR` is unset).
+        runtime_dir: Option<PathBuf>,
     },
 }
 
@@ -82,16 +82,19 @@ pub fn platform_directory_facts(snapshot: TauriDirectorySnapshot) -> PlatformDir
             state_dir,
             cache_dir,
             runtime_dir,
-        } => PlatformDirectoryFacts::complete(
-            TargetPlatform::Linux,
-            config_dir,
-            local_data_dir.clone(),
-            state_dir.clone(),
-            cache_dir,
-            state_dir,
-            runtime_dir,
-        )
-        .with(PlatformDirectoryFact::SharedData, local_data_dir),
+        } => {
+            let mut facts = PlatformDirectoryFacts::new(TargetPlatform::Linux)
+                .with(PlatformDirectoryFact::Config, config_dir)
+                .with(PlatformDirectoryFact::Data, local_data_dir.clone())
+                .with(PlatformDirectoryFact::State, state_dir.clone())
+                .with(PlatformDirectoryFact::Cache, cache_dir)
+                .with(PlatformDirectoryFact::Log, state_dir)
+                .with(PlatformDirectoryFact::SharedData, local_data_dir);
+            if let Some(runtime_dir) = runtime_dir {
+                facts = facts.with(PlatformDirectoryFact::Runtime, runtime_dir);
+            }
+            facts
+        }
     }
 }
 
@@ -161,7 +164,7 @@ mod tests {
             local_data_dir: "/home/example/.local/share".into(),
             state_dir: "/home/example/.local/state".into(),
             cache_dir: "/home/example/.cache".into(),
-            runtime_dir: "/run/user/1000".into(),
+            runtime_dir: Some("/run/user/1000".into()),
         });
 
         assert_eq!(facts.platform(), TargetPlatform::Linux);
@@ -174,8 +177,30 @@ mod tests {
             Some(Path::new("/home/example/.local/state"))
         );
         assert_eq!(
+            facts.get(PlatformDirectoryFact::Runtime),
+            Some(Path::new("/run/user/1000"))
+        );
+        assert_eq!(
             facts.get(PlatformDirectoryFact::SharedData),
             Some(Path::new("/home/example/.local/share"))
+        );
+    }
+
+    #[test]
+    fn linux_without_runtime_dir_leaves_runtime_fact_absent() {
+        let facts = platform_directory_facts(TauriDirectorySnapshot::Linux {
+            config_dir: "/home/example/.config".into(),
+            local_data_dir: "/home/example/.local/share".into(),
+            state_dir: "/home/example/.local/state".into(),
+            cache_dir: "/home/example/.cache".into(),
+            runtime_dir: None,
+        });
+
+        assert_eq!(facts.platform(), TargetPlatform::Linux);
+        assert_eq!(facts.get(PlatformDirectoryFact::Runtime), None);
+        assert_eq!(
+            facts.get(PlatformDirectoryFact::Config),
+            Some(Path::new("/home/example/.config"))
         );
     }
 }

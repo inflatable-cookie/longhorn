@@ -3,11 +3,11 @@
 //! exactly the paths a Tauri application with the same storage identity
 //! resolves (contract 004).
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use longhorn_storage_layout::{
-    NativePlatformFactsError, PlatformDirectoryFact, PlatformEnvironment, TargetPlatform,
-    native_platform_directory_facts, native_platform_directory_facts_from,
+    PlatformDirectoryFact, PlatformEnvironment, TargetPlatform,
+    native_platform_directory_facts_from,
 };
 use longhorn_tauri_config::{TauriDirectorySnapshot, platform_directory_facts};
 
@@ -81,7 +81,7 @@ fn linux_native_and_tauri_facts_agree_with_and_without_xdg_overrides() {
             local_data_dir: data,
             state_dir: state,
             cache_dir: cache,
-            runtime_dir: runtime.clone(),
+            runtime_dir: Some(runtime.clone()),
         };
         let environment = PlatformEnvironment::default()
             .with_home_dir(Some(home))
@@ -94,6 +94,25 @@ fn linux_native_and_tauri_facts_agree_with_and_without_xdg_overrides() {
 
         assert_parity(snapshot, &environment);
     }
+}
+
+#[test]
+fn linux_native_and_tauri_facts_agree_without_runtime_dir() {
+    let home = PathBuf::from("/home/example");
+    let snapshot = TauriDirectorySnapshot::Linux {
+        config_dir: home.join(".config"),
+        local_data_dir: home.join(".local/share"),
+        state_dir: home.join(".local/state"),
+        cache_dir: home.join(".cache"),
+        runtime_dir: None,
+    };
+    let environment = PlatformEnvironment::default()
+        .with_home_dir(Some(home))
+        .with_temp_dir(Some(PathBuf::from("/tmp")));
+
+    let tauri = platform_directory_facts(snapshot.clone());
+    assert_eq!(tauri.get(PlatformDirectoryFact::Runtime), None);
+    assert_parity(snapshot, &environment);
 }
 
 #[test]
@@ -112,26 +131,21 @@ fn windows_native_and_tauri_facts_agree() {
 }
 
 #[test]
-fn host_lookup_refuses_platforms_without_a_policy() {
-    // The mapping itself is covered per platform above; this pins the
-    // contract that an unsupported host reports typed unavailability instead
-    // of inventing facts.
-    if !matches!(std::env::consts::OS, "macos" | "windows" | "linux") {
-        assert_eq!(
-            native_platform_directory_facts().unwrap_err(),
-            NativePlatformFactsError::UnsupportedPlatform
-        );
-    } else {
-        let facts = native_platform_directory_facts().unwrap();
-        assert!(matches!(
-            facts.platform(),
-            TargetPlatform::MacOs | TargetPlatform::Windows | TargetPlatform::Linux
-        ));
-        // A real host always exposes its temporary directory.
-        assert!(
-            facts
-                .get(PlatformDirectoryFact::Runtime)
-                .is_some_and(Path::is_absolute)
-        );
+fn empty_environment_never_invents_facts_for_any_platform() {
+    let empty = PlatformEnvironment::default();
+    for platform in [
+        TargetPlatform::MacOs,
+        TargetPlatform::Windows,
+        TargetPlatform::Linux,
+    ] {
+        let facts = native_platform_directory_facts_from(platform, &empty);
+        assert_eq!(facts.platform(), platform);
+        for fact in FACTS {
+            assert_eq!(
+                facts.get(fact),
+                None,
+                "{platform:?} must not invent {fact:?} from an empty environment"
+            );
+        }
     }
 }

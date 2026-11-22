@@ -22,9 +22,112 @@
 
 #[cfg(not(windows))]
 use std::fs::File;
-use std::{io, path::Path};
+use std::{
+    fs, io,
+    path::{Component, Path, PathBuf},
+};
 
 use cap_std::fs::Dir;
+
+/// Returns every ancestor relative to a root capability above `relative_parent`
+/// in bottom-up order (ending at `""`, which denotes the root capability).
+///
+/// For `relative_parent = "a/b/c"`, returns `["a/b", "a", ""]`.
+/// For `relative_parent = ""`, returns `[]`.
+pub(crate) fn ancestor_chain_in_dir(relative_parent: &Path) -> Vec<PathBuf> {
+    let mut ancestors = Vec::new();
+    let mut current = PathBuf::new();
+    for component in relative_parent.components() {
+        let Component::Normal(segment) = component else {
+            continue;
+        };
+        ancestors.push(current.clone());
+        current.push(segment);
+    }
+    ancestors.reverse();
+    ancestors
+}
+
+/// Returns every directory from `directory` up to `root` (inclusive) in
+/// bottom-up order. If `directory` is not below `root`, returns `[directory]`.
+pub(crate) fn ancestor_chain_to_root(root: &Path, directory: &Path) -> Vec<PathBuf> {
+    let Ok(relative) = directory.strip_prefix(root) else {
+        return vec![directory.to_path_buf()];
+    };
+    let mut chain = vec![root.to_path_buf()];
+    let mut current = root.to_path_buf();
+    for component in relative.components() {
+        let Component::Normal(segment) = component else {
+            continue;
+        };
+        current.push(segment);
+        chain.push(current.clone());
+    }
+    chain.reverse();
+    chain
+}
+
+/// Ensures `directory` exists and syncs every directory from `directory` up to
+/// `root` (inclusive) in bottom-up order.
+///
+/// Always syncing the full bounded chain to `root` guarantees that both a first
+/// write (even when an earlier helper already created intermediate directories)
+/// and a retry after a prior sync failure make every ancestor durable.
+pub(crate) fn create_dir_all_synced_to_root(root: &Path, directory: &Path) -> io::Result<()> {
+    fs::create_dir_all(directory)?;
+    sync_ancestors_to_root(root, directory)
+}
+
+/// Syncs every directory from `directory` up to `root` (inclusive) in
+/// bottom-up order.
+pub(crate) fn sync_ancestors_to_root(root: &Path, directory: &Path) -> io::Result<()> {
+    for ancestor in ancestor_chain_to_root(root, directory) {
+        sync_dir_path(&ancestor)?;
+    }
+    Ok(())
+}
+
+/// Creates every missing directory in `path` and syncs every parent directory
+/// (including the deepest previously existing ancestor) that received a new
+/// child entry.
+pub(crate) fn create_dir_all_synced(path: &Path) -> io::Result<()> {
+    let mut missing = Vec::new();
+    let mut cursor = path;
+    while !cursor.exists() {
+        missing.push(cursor.to_path_buf());
+        let Some(parent) = cursor.parent() else {
+            break;
+        };
+        if parent == cursor || parent.as_os_str().is_empty() {
+            break;
+        }
+        cursor = parent;
+    }
+
+    let mut parents_to_sync = Vec::new();
+    for directory in missing.into_iter().rev() {
+        match fs::create_dir(&directory) {
+            Ok(()) => {
+                if let Some(parent) = directory.parent()
+                    && !parent.as_os_str().is_empty()
+                {
+                    parents_to_sync.push(parent.to_path_buf());
+                }
+            }
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
+                if !directory.is_dir() {
+                    return Err(error);
+                }
+            }
+            Err(error) => return Err(error),
+        }
+    }
+
+    for parent in parents_to_sync.into_iter().rev() {
+        sync_dir_path(&parent)?;
+    }
+    Ok(())
+}
 
 /// Syncs the directory behind a cap-std capability.
 #[cfg(target_os = "linux")]
@@ -80,5 +183,36 @@ mod tests {
         let handle = Dir::open_ambient_dir(temp.path(), ambient_authority()).unwrap();
         sync_dir_handle(&handle).unwrap();
         sync_dir_path(temp.path()).unwrap();
+    }
+
+    #[test]
+    fn nested_directory_creation_records_every_created_ancestor_and_syncs() {
+        let temp = tempfile::tempdir().unwrap();
+
+        assert_eq!(
+            ancestor_chain_in_dir(Path::new("a/b/c")),
+            vec![PathBuf::from("a/b"), PathBuf::from("a"), PathBuf::from("")]
+        );
+        assert!(ancestor_chain_in_dir(Path::new("")).is_empty());
+
+        let rollback_dir = temp.path().join(".longhorn/restore/rollback");
+        assert_eq!(
+            ancestor_chain_to_root(temp.path(), &rollback_dir),
+            vec![
+                rollback_dir.clone(),
+                temp.path().join(".longhorn/restore"),
+                temp.path().join(".longhorn"),
+                temp.path().to_path_buf(),
+            ]
+        );
+        create_dir_all_synced_to_root(temp.path(), &rollback_dir).unwrap();
+        assert!(rollback_dir.is_dir());
+        // Retrying after directories already exist still syncs the full chain.
+        create_dir_all_synced_to_root(temp.path(), &rollback_dir).unwrap();
+
+        let nested_plain = temp.path().join("plain/x/y/z");
+        create_dir_all_synced(&nested_plain).unwrap();
+        assert!(nested_plain.is_dir());
+        create_dir_all_synced(&nested_plain).unwrap();
     }
 }

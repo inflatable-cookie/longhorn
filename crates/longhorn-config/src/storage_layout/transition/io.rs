@@ -14,7 +14,7 @@ pub(super) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), StorageTrans
             path: path.to_path_buf(),
             detail: "target has no parent".into(),
         })?;
-    fs::create_dir_all(parent).map_err(|error| fs_error(parent, error))?;
+    crate::dir_sync::create_dir_all_synced(parent).map_err(|error| fs_error(parent, error))?;
     let file_name = path
         .file_name()
         .ok_or_else(|| StorageTransitionError::Filesystem {

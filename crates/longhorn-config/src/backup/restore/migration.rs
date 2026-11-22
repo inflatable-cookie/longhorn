@@ -1,9 +1,9 @@
 use crate::StorageRootsResolve;
 use crate::{
-    BackupCatalog, BackupKind, ConfigDomain, ConfigStore, DomainLocation, LoadOutcome,
-    LoadedOrigin, MigrationRewriteError, MigrationRewriteOptions, MigrationRewriteReceipt,
-    RestoreAction, RestoreCurrentEvidence, RestoreExecutionOptions, RestoreExecutionStage,
-    RestoreFailureTerminal, RestoreStaging, Sha256Digest, StoreError,
+    BackupCatalog, BackupKind, ConfigDomain, ConfigStore, DomainLocation, LoadedOrigin,
+    MigrationRewriteError, MigrationRewriteOptions, MigrationRewriteReceipt, RestoreAction,
+    RestoreCurrentEvidence, RestoreExecutionOptions, RestoreExecutionStage, RestoreFailureTerminal,
+    RestoreStaging, Sha256Digest, StoreError,
     store::{document::SerializedDocument, load::load_file},
 };
 use longhorn_storage_layout::{AccessMode, RootKind};
@@ -77,12 +77,9 @@ pub(crate) fn rewrite<D: ConfigDomain>(
         ))
     })?;
     let loaded = match load_file(domain, &file) {
-        LoadOutcome::Ready(loaded) => loaded,
-        LoadOutcome::Recovery(recovery) => {
+        crate::store::load::FileLoadOutcome::Ready(loaded) => loaded,
+        crate::store::load::FileLoadOutcome::Recovery(recovery) => {
             return Err(MigrationRewriteError::Recovery(recovery));
-        }
-        LoadOutcome::Unavailable(unavailable) => {
-            return Err(MigrationRewriteError::Unavailable(unavailable));
         }
     };
     let (from, to) = match loaded.origin {
@@ -106,6 +103,13 @@ pub(crate) fn rewrite<D: ConfigDomain>(
         value,
     ))
     .map_err(|error| MigrationRewriteError::Preparation(error.to_string()))?;
+    let max_bytes = crate::store::load::max_live_domain_bytes();
+    if target.len() > max_bytes {
+        return Err(MigrationRewriteError::Preparation(format!(
+            "migrated domain document exceeds {max_bytes}-byte limit ({} bytes)",
+            target.len()
+        )));
+    }
     let source_sha = Sha256Digest::from_bytes(&source.bytes);
     let target_sha = Sha256Digest::from_bytes(&target);
     let plan_digest = Sha256Digest::from_bytes(

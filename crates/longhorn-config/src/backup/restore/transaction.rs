@@ -72,13 +72,14 @@ pub(super) fn capture_rollback(
                 ));
             }
         }
-        let bytes = live_io::read_exact_state(&file, &expected).map_err(|error| {
-            failure(
+        let bytes = live_io::read_exact_state(&file, &expected).map_err(|error| match error {
+            live_io::ExactStateError::Stale(detail) => stale_failure(&staged.domain, detail),
+            live_io::ExactStateError::Io(error) => failure(
                 RestoreExecutionStage::CaptureRollback,
                 Some(staged.domain.clone()),
                 RestoreFailureTerminal::NoLiveMutation,
                 error,
-            )
+            ),
         })?;
         rollback.push(RollbackEntry {
             domain: staged.domain.clone(),

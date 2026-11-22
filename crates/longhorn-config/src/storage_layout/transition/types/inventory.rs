@@ -63,6 +63,8 @@ pub enum StorageTransitionAction {
     },
     /// Do not migrate this domain.
     Excluded(StorageTransitionExclusion),
+    /// Destination conflicts with source evidence; plan creation is blocked.
+    Conflict,
 }
 
 /// One registered domain in the transition inventory.

@@ -95,6 +95,7 @@ fn action_id(action: &StorageTransitionAction) -> &'static str {
         StorageTransitionAction::Identical => "identical",
         StorageTransitionAction::CustomAdapter { .. } => "custom-adapter",
         StorageTransitionAction::Excluded(_) => "excluded",
+        StorageTransitionAction::Conflict => "conflict",
     }
 }
 

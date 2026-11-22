@@ -312,7 +312,7 @@ fn directory_snapshot<R: Runtime>(
             local_data_dir: lookup("local_data_dir", path.local_data_dir())?,
             state_dir,
             cache_dir: lookup("cache_dir", path.cache_dir())?,
-            runtime_dir: lookup("runtime_dir", path.runtime_dir())?,
+            runtime_dir: path.runtime_dir().ok(),
         })
     }
 }

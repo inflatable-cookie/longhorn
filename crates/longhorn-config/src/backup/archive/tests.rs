@@ -181,6 +181,116 @@ fn assert_consistent_outcome(bytes: &[u8]) {
     }
 }
 
+/// Builds a canonical deflated archive containing a compressible domain payload
+/// and rewrites both the local and central-directory uncompressed-size headers
+/// for the domain entry to `claimed_size` while leaving the real DEFLATE stream
+/// intact.
+fn archive_with_understated_entry_size(actual_payload: &[u8], claimed_size: u32) -> Vec<u8> {
+    let payload_path = "longhorn/domains/example.bomb.json";
+    let manifest = serde_json::to_vec(&json!({
+        "format": "longhorn.config-backup",
+        "formatVersion": 1,
+        "archiveId": "understated-size",
+        "kind": "operational",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "application": {"id": "com.example.test", "version": "1.0.0"},
+        "producer": {"name": "longhorn-config", "version": "0.1.0"},
+        "consistencyGroups": [],
+        "domains": [{
+            "domainId": "example.bomb",
+            "storageClass": "user-config",
+            "sourceState": "present",
+            "schemaVersion": 1,
+            "payloads": [{
+                "path": payload_path,
+                "byteLength": actual_payload.len(),
+                "sha256": Sha256Digest::from_bytes(actual_payload).as_str()
+            }]
+        }],
+        "exclusions": []
+    }))
+    .expect("manifest");
+    let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+    let options = SimpleFileOptions::default()
+        .compression_method(CompressionMethod::Deflated)
+        .compression_level(Some(DEFLATE_LEVEL))
+        .last_modified_time(DateTime::default())
+        .unix_permissions(0o600)
+        .large_file(false);
+    writer.start_file(MANIFEST_PATH, options).expect("manifest");
+    writer.write_all(&manifest).expect("manifest bytes");
+    writer.start_file(payload_path, options).expect("payload");
+    writer.write_all(actual_payload).expect("payload bytes");
+    let mut bytes = writer.finish().expect("archive").into_inner();
+
+    let name_bytes = payload_path.as_bytes();
+    let claimed = claimed_size.to_le_bytes();
+    let mut patched_local = false;
+    let mut patched_central = false;
+    for offset in 0..bytes.len().saturating_sub(46) {
+        if bytes.get(offset..offset + 4) == Some(b"PK\x03\x04") {
+            let name_len = u16::from_le_bytes([bytes[offset + 26], bytes[offset + 27]]) as usize;
+            if bytes.get(offset + 30..offset + 30 + name_len) == Some(name_bytes) {
+                bytes[offset + 22..offset + 26].copy_from_slice(&claimed);
+                patched_local = true;
+            }
+        } else if bytes.get(offset..offset + 4) == Some(b"PK\x01\x02") {
+            let name_len = u16::from_le_bytes([bytes[offset + 28], bytes[offset + 29]]) as usize;
+            if bytes.get(offset + 46..offset + 46 + name_len) == Some(name_bytes) {
+                bytes[offset + 24..offset + 28].copy_from_slice(&claimed);
+                patched_central = true;
+            }
+        }
+    }
+    assert!(
+        patched_local && patched_central,
+        "failed to patch local and central uncompressed size fields"
+    );
+    bytes
+}
+
+#[test]
+fn understated_zip_entry_size_is_rejected_before_inflating_payload() {
+    use super::BackupArchiveError;
+
+    // 16 KiB of zeros compresses to ~35 bytes, while the forged header claims 4 bytes.
+    let actual_payload = vec![0_u8; 16 * 1024];
+    let forged = archive_with_understated_entry_size(&actual_payload, 4);
+
+    // Even under generous limits where the forged 4-byte header passes
+    // metadata preflight, reading stops at the declared size instead of
+    // inflating the full payload and waiting for manifest verification.
+    let generous =
+        BackupArchiveLimits::new(1 << 20, 8, 256, 64 * 1024, 128 * 1024, 10_000).expect("limits");
+    let err = inspect_backup_archive(&forged, generous).unwrap_err();
+    assert!(
+        matches!(
+            err,
+            BackupArchiveError::Read { .. }
+                | BackupArchiveError::TotalTooLarge { .. }
+                | BackupArchiveError::CompressionRatio { .. }
+                | BackupArchiveError::EntryTooLarge { .. }
+        ),
+        "understated header must fail during bounded read, got {err:?}"
+    );
+    assert!(
+        !matches!(err, BackupArchiveError::LengthMismatch { .. }),
+        "must not inflate past the bound and reach manifest LengthMismatch"
+    );
+
+    // When a tighter ratio limit (e.g. 10x on ~35 compressed bytes = 350 bytes)
+    // is smaller than the understated header (e.g. 1024 bytes), codec.rs stops
+    // reading at the ratio limit itself.
+    let forged_mid = archive_with_understated_entry_size(&actual_payload, 1024);
+    let ratio_bound =
+        BackupArchiveLimits::new(1 << 20, 8, 256, 32 * 1024, 64 * 1024, 10).expect("ratio bound");
+    let err = inspect_backup_archive(&forged_mid, ratio_bound).unwrap_err();
+    assert!(
+        matches!(err, BackupArchiveError::CompressionRatio { limit: 10, .. }),
+        "expected CompressionRatio, got {err:?}"
+    );
+}
+
 #[test]
 fn base_archive_is_accepted() {
     let bytes = valid_archive();

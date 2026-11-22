@@ -37,6 +37,7 @@ pub(super) struct JournalDomain {
     pub(super) source: Option<StorageFileEvidence>,
     pub(super) target_expected: Option<StorageFileEvidence>,
     pub(super) custom: bool,
+    pub(super) target_was_absent: bool,
 }
 
 impl TransitionJournal {
@@ -47,6 +48,8 @@ impl TransitionJournal {
             .iter()
             .filter_map(|entry| {
                 let custom = matches!(entry.action, StorageTransitionAction::CustomAdapter { .. });
+                let target_was_absent =
+                    matches!(entry.action, StorageTransitionAction::CopyOrdinary);
                 (!matches!(entry.action, StorageTransitionAction::Excluded(_))).then(|| {
                     JournalDomain {
                         domain: entry.domain.as_str().into(),
@@ -61,6 +64,7 @@ impl TransitionJournal {
                             _ => entry.target_evidence.clone(),
                         },
                         custom,
+                        target_was_absent,
                     }
                 })
             })
@@ -160,6 +164,8 @@ struct JournalDomainDocument {
     source: Option<EvidenceDocument>,
     target_expected: Option<EvidenceDocument>,
     custom: bool,
+    #[serde(default)]
+    target_was_absent: bool,
 }
 
 impl JournalDomainDocument {
@@ -180,6 +186,7 @@ impl JournalDomainDocument {
                 .as_ref()
                 .map(EvidenceDocument::from_evidence),
             custom: domain.custom,
+            target_was_absent: domain.target_was_absent,
         }
     }
 
@@ -197,6 +204,7 @@ impl JournalDomainDocument {
                 .map(EvidenceDocument::into_evidence)
                 .transpose()?,
             custom: self.custom,
+            target_was_absent: self.target_was_absent,
         })
     }
 }

@@ -9,6 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::atomic_file::PrivateOpenOptions;
 use cap_std::{
     ambient_authority,
     fs::{Dir, OpenOptions},
@@ -208,7 +209,7 @@ impl Coordinator {
             .map_err(|error| self.io_failure("cannot open lock directory", error))?;
         let mut options = OpenOptions::new();
         options.read(true).write(true).create(true);
-        set_private_mode(&mut options);
+        options.set_private_mode();
         let file = directory
             .open_with(LOCK_FILE, &options)
             .map_err(|error| self.io_failure("cannot open lock file", error))?;
@@ -299,13 +300,3 @@ fn process_lock_for(identity: &Path) -> ProcessLock {
     locks.insert(identity.to_path_buf(), Arc::downgrade(&lock));
     lock
 }
-
-#[cfg(unix)]
-fn set_private_mode(options: &mut OpenOptions) {
-    use cap_std::fs::OpenOptionsExt;
-
-    options.mode(0o600);
-}
-
-#[cfg(not(unix))]
-fn set_private_mode(_options: &mut OpenOptions) {}
