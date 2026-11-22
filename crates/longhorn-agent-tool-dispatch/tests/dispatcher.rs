@@ -742,6 +742,45 @@ fn waker_replacement_between_polls_still_wakes_callback_at_deadline() {
 }
 
 #[test]
+fn deadline_expiring_before_first_poll_rejects_without_invoking_callback() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let dispatcher = dispatcher(Arc::clone(&calls));
+    let (_, cancellation) = live_cancellation();
+    let candidate = DispatchInvocation::new(
+        "delayed-poll-call",
+        expected_registration(),
+        expected_binding(),
+        BindingStatus::Current,
+        DispatchDeadline::active(Duration::from_millis(20)),
+        b"argument-secret".to_vec(),
+    )
+    .expect("fixture invocation");
+
+    let future = dispatcher.dispatch(candidate, cancellation.clone());
+    std::thread::sleep(Duration::from_millis(35));
+
+    let error = block_on_parked(future)
+        .expect_err("call whose deadline elapsed before polling must fail typed");
+    assert_eq!(error.kind(), DispatchErrorKind::DeadlineExceeded);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    assert_eq!(dispatcher.metrics().callbacks, 0);
+
+    // Capacity (max_outstanding_calls = 1) remains available for the next call.
+    let next = block_on_parked(dispatcher.dispatch(
+        invocation(
+            "after-pre-poll-expiry",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation,
+    ))
+    .expect("next call admitted after pre-poll timeout");
+    assert_eq!(next.result().payload_for_delivery(), b"result-secret");
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
 fn unrepresentable_deadline_fails_typed_without_panicking() {
     let calls = Arc::new(AtomicUsize::new(0));
     let wide = RegisteredCapability::new(
