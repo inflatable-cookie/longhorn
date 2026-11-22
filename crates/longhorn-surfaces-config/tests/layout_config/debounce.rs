@@ -12,8 +12,8 @@ use longhorn_config::{
 use longhorn_config::{DomainDescriptor, DomainFilePath, StorageClass};
 use longhorn_core::{DomainId, SchemaVersion};
 use longhorn_surfaces_config::{
-    LayoutBackupPolicy, LayoutPresentationIntent, LayoutPresentationIntentError,
-    LayoutPresentationStrategy, NoLayoutMigration, RegisteredLayoutDomain, publish_layout_mutation,
+    LayoutPresentationIntent, LayoutPresentationIntentError, LayoutPresentationStrategy,
+    NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy, publish_layout_mutation,
 };
 
 use crate::support::{
@@ -153,7 +153,7 @@ fn structural_publication_does_not_wait_behind_presentation_debounce() {
 fn aggregate_flush_accepts_multiple_explicit_layout_domains() {
     let fixture = Fixture::new();
     let primary = domain();
-    let secondary = RegisteredLayoutDomain::new(
+    let secondary = RegisteredSurfaceDomain::new(
         DomainDescriptor::new(
             DomainId::new("layout.secondary").unwrap(),
             SchemaVersion::new(1).unwrap(),
@@ -163,8 +163,8 @@ fn aggregate_flush_accepts_multiple_explicit_layout_domains() {
         .unwrap(),
         document(),
         registry(),
-        NoLayoutMigration,
-        LayoutBackupPolicy::Include,
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
     )
     .unwrap();
     let mut store = fixture.store();

@@ -1,31 +1,72 @@
+use longhorn_core::SurfaceRevision;
+
 use crate::{
-    LayoutDefinitionRegistry, SurfaceDocument, SurfaceLimits, normalize_document, validate_document,
+    LayoutDefinitionRegistry, SurfaceDocument, SurfaceValidationError, normalize_document,
+    validate_document,
 };
 
 use super::{
     EmptyWindowPolicy, SurfaceMutationReceipt, SurfaceMutationRejection,
-    SurfaceMutationRejectionCode, SurfaceMutationRequest,
-    operation::{apply_command, map_candidate_validation},
+    SurfaceMutationRejectionCode, SurfaceMutationRequest, operation::apply_command,
 };
+
+/// Shared failure stage from [`apply_document_mutation`].
+pub(crate) enum DocumentMutationError<O> {
+    InvalidCurrentDocument(SurfaceValidationError),
+    StaleRevision {
+        expected: SurfaceRevision,
+        current: SurfaceRevision,
+    },
+    RevisionOverflow(String),
+    Operation(O),
+    InvalidCandidate(SurfaceValidationError),
+}
+
+/// Runs the single whole-document mutation pipeline for both Surface and layout commands:
+/// validate current document, verify expected revision, advance revision, apply command
+/// to a private candidate, and normalize + validate the whole candidate once.
+pub(crate) fn apply_document_mutation<Outcome, OpError>(
+    registry: &LayoutDefinitionRegistry,
+    document: &SurfaceDocument,
+    expected_revision: SurfaceRevision,
+    apply_op: impl FnOnce(&mut SurfaceDocument) -> Result<Outcome, OpError>,
+) -> Result<(SurfaceRevision, Outcome, SurfaceDocument), DocumentMutationError<OpError>> {
+    validate_document(registry, document).map_err(DocumentMutationError::InvalidCurrentDocument)?;
+    if expected_revision != document.revision() {
+        return Err(DocumentMutationError::StaleRevision {
+            expected: expected_revision,
+            current: document.revision(),
+        });
+    }
+    let committed_revision = document
+        .revision()
+        .checked_next()
+        .map_err(|error| DocumentMutationError::RevisionOverflow(error.to_string()))?;
+
+    let mut candidate = document.clone();
+    let outcome = apply_op(&mut candidate).map_err(DocumentMutationError::Operation)?;
+    candidate.set_revision(committed_revision);
+    let candidate = normalize_document(registry, &candidate)
+        .map_err(DocumentMutationError::InvalidCandidate)?;
+
+    Ok((committed_revision, outcome, candidate))
+}
 
 /// Stateless authoritative Surface lifecycle engine.
 #[derive(Clone, Copy, Debug)]
 pub struct SurfaceMutationEngine<'a> {
-    limits: SurfaceLimits,
     registry: &'a LayoutDefinitionRegistry,
     empty_window_policy: EmptyWindowPolicy,
 }
 
 impl<'a> SurfaceMutationEngine<'a> {
-    /// Binds mutation to explicit limits, the definition registry, and empty-window policy.
+    /// Binds mutation to one validated definition registry and empty-window policy.
     #[must_use]
     pub const fn new(
-        limits: SurfaceLimits,
         registry: &'a LayoutDefinitionRegistry,
         empty_window_policy: EmptyWindowPolicy,
     ) -> Self {
         Self {
-            limits,
             registry,
             empty_window_policy,
         }
@@ -43,8 +84,21 @@ impl<'a> SurfaceMutationEngine<'a> {
         document: &SurfaceDocument,
         request: &SurfaceMutationRequest,
     ) -> Result<SurfaceMutationReceipt, SurfaceMutationRejection> {
-        if let Err(error) = validate_document(self.limits, document) {
-            return Err(rejection(
+        let (committed_revision, outcome, candidate) = apply_document_mutation(
+            self.registry,
+            document,
+            request.expected_revision(),
+            |candidate| {
+                apply_command(
+                    candidate,
+                    request.command(),
+                    self.registry,
+                    self.empty_window_policy,
+                )
+            },
+        )
+        .map_err(|error| match error {
+            DocumentMutationError::InvalidCurrentDocument(error) => rejection(
                 document,
                 request,
                 SurfaceMutationRejectionCode::InvalidCurrentDocument,
@@ -53,49 +107,36 @@ impl<'a> SurfaceMutationEngine<'a> {
                     error.code(),
                     error.detail()
                 ),
-            ));
-        }
-        if request.expected_revision() != document.revision() {
-            return Err(rejection(
+            ),
+            DocumentMutationError::StaleRevision { expected, current } => rejection(
                 document,
                 request,
                 SurfaceMutationRejectionCode::StaleRevision,
                 format!(
                     "expected Surface revision {}; current revision is {}",
-                    request.expected_revision().get(),
-                    document.revision().get()
+                    expected.get(),
+                    current.get()
                 ),
-            ));
-        }
-        let committed_revision = document.revision().checked_next().map_err(|error| {
-            rejection(
+            ),
+            DocumentMutationError::RevisionOverflow(detail) => rejection(
                 document,
                 request,
                 SurfaceMutationRejectionCode::RevisionOverflow,
-                error.to_string(),
-            )
-        })?;
-
-        let mut candidate = document.clone();
-        let outcome = apply_command(
-            &mut candidate,
-            request.command(),
-            self.registry,
-            self.empty_window_policy,
-        )
-        .map_err(|error| rejection(document, request, error.code, error.detail))?;
-        candidate.set_revision(committed_revision);
-        let candidate = normalize_document(self.limits, &candidate).map_err(|error| {
-            rejection(
+                detail,
+            ),
+            DocumentMutationError::Operation(error) => {
+                rejection(document, request, error.code, error.detail)
+            }
+            DocumentMutationError::InvalidCandidate(error) => rejection(
                 document,
                 request,
-                map_candidate_validation(error.code()),
+                SurfaceMutationRejectionCode::InvalidCandidate,
                 format!(
                     "Surface mutation candidate failed {:?}: {}",
                     error.code(),
                     error.detail()
                 ),
-            )
+            ),
         })?;
 
         Ok(SurfaceMutationReceipt::new(

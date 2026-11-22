@@ -1,6 +1,6 @@
 use longhorn_config::Sha256Digest;
 use longhorn_surfaces::{
-    LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition, PanelDefinition,
+    LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition, SurfaceLimits,
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,7 +20,7 @@ impl LayoutRegistryDigest {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RegistryDigestMaterial<'registry> {
-    limits: LayoutLimits,
+    limits: SurfaceLimits,
     schemas: Vec<&'registry LayoutSchemaDefinition>,
     panel_definitions: Vec<&'registry PanelDefinition>,
 }

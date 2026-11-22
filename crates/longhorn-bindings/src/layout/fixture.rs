@@ -2,15 +2,15 @@ use std::error::Error;
 
 use longhorn_core::{
     LayoutRequestId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
-    SizingSlotId, SurfaceId, SurfaceRevision,
+    SizingSlotId, SurfaceId, SurfaceRevision, WindowId,
 };
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LAYOUT_PROTOCOL_VERSION, LayoutDefinitionRegistry, LayoutLimits,
-    LayoutMutationCommand, LayoutMutationEngine, LayoutMutationReceipt, LayoutMutationRejection,
-    LayoutMutationRequest, LayoutRatio, LayoutSchemaDefinition, PanelDefinition, PanelInstance,
-    PanelInstancePolicy, PlacementSelector, RegionDefinition, RegionState, RegionVisibility,
-    SizingSlotDefinition, SizingSlotState, SurfaceDocument, SurfaceRecord,
-    project_region_visibility,
+    EmptyRegionPolicy, LAYOUT_PROTOCOL_VERSION, LayoutDefinitionRegistry, LayoutMutationCommand,
+    LayoutMutationEngine, LayoutMutationReceipt, LayoutMutationRejection, LayoutMutationRequest,
+    LayoutRatio, LayoutSchemaDefinition, PanelDefinition, PanelInstance, PanelInstancePolicy,
+    ParticipatingWindow, PlacementSelector, RegionDefinition, RegionState, RegionVisibility,
+    SizingSlotDefinition, SizingSlotState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
+    SurfaceRecord, project_region_visibility,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -29,7 +29,7 @@ struct GoldenFixture {
 
 #[derive(Serialize)]
 struct GoldenDefinitions {
-    limits: LayoutLimits,
+    limits: SurfaceLimits,
     schemas: Vec<LayoutSchemaDefinition>,
     panels: Vec<PanelDefinition>,
 }
@@ -215,8 +215,20 @@ fn request(
     LayoutMutationRequest::new(request_id(id), revision, command)
 }
 
-fn limits() -> LayoutLimits {
-    LayoutLimits::new(8, 16, 16, 32, 8, 128, 64).expect("fixture limits are valid")
+fn limits() -> SurfaceLimits {
+    SurfaceLimits::builder()
+        .maximum_schemas(8)
+        .maximum_regions_per_schema(16)
+        .maximum_sizing_slots_per_schema(16)
+        .maximum_panel_definitions(32)
+        .maximum_surfaces(8)
+        .maximum_windows(4)
+        .maximum_host_preferences_per_surface(4)
+        .maximum_label_bytes(64)
+        .maximum_panel_instances(128)
+        .maximum_panel_instances_per_region(64)
+        .build()
+        .expect("fixture limits are valid")
 }
 
 pub(crate) fn schema() -> LayoutSchemaDefinition {
@@ -286,7 +298,7 @@ fn panel_definitions() -> Vec<PanelDefinition> {
             definition_id("panel:activity"),
             [PlacementSelector::Region(region_id("left"))],
             [PlacementSelector::Family(family_id("activity"))],
-            PanelInstancePolicy::OnePerContainer,
+            PanelInstancePolicy::OnePerSurface,
             false,
             false,
         ),
@@ -333,15 +345,22 @@ fn document() -> SurfaceDocument {
                 SizingSlotState::new(slot_id("left-width"), ratio(200_000)),
                 SizingSlotState::new(slot_id("right-width"), ratio(250_000)),
             ],
-            [],
+            [SurfaceHostPreference::new(window_id("window:primary"), 0)],
         )],
         [
             PanelInstance::new(activity, definition_id("panel:activity")),
             PanelInstance::new(chat, definition_id("panel:chat")),
             PanelInstance::new(tool, definition_id("panel:tool")),
         ],
-        [],
+        [ParticipatingWindow::new(
+            window_id("window:primary"),
+            Some(surface_id("surface:primary")),
+        )],
     )
+}
+
+fn window_id(value: &str) -> WindowId {
+    WindowId::new(value).expect("fixture window id is valid")
 }
 
 fn schema_id(value: &str) -> LayoutSchemaId {

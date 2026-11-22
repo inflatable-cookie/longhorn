@@ -6,7 +6,7 @@ use super::super::support::*;
 fn malformed_external_sets_fail_typed() {
     let document = loophole_document();
     let duplicate_surface = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new(
             [surface_id("surface:mix"), surface_id("surface:mix")],
@@ -20,7 +20,7 @@ fn malformed_external_sets_fail_typed() {
     );
 
     let unknown_surface = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new([surface_id("surface:unknown")], [window_id("window:main")]),
     )
@@ -31,7 +31,7 @@ fn malformed_external_sets_fail_typed() {
     );
 
     let duplicate_window = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new(
             [surface_id("surface:mix")],
@@ -45,7 +45,7 @@ fn malformed_external_sets_fail_typed() {
     );
 
     let unknown_window = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new([surface_id("surface:mix")], [window_id("window:unknown")]),
     )
@@ -64,10 +64,18 @@ fn malformed_external_sets_fail_typed() {
             None,
         )],
     );
-    let one_each = longhorn_surfaces::SurfaceLimits::new(1, 1, 1, 16).unwrap();
+    let one_each = registry_with_limits(
+        longhorn_surfaces::SurfaceLimits::builder()
+            .maximum_surfaces(1)
+            .maximum_windows(1)
+            .maximum_host_preferences_per_surface(1)
+            .maximum_label_bytes(16)
+            .build()
+            .unwrap(),
+    );
     assert_eq!(
         resolve_surfaces(
-            one_each,
+            &one_each,
             &one_surface_document,
             &SurfaceResolutionInput::new(
                 [surface_id("surface:only"), surface_id("surface:only")],
@@ -80,7 +88,7 @@ fn malformed_external_sets_fail_typed() {
     );
     assert_eq!(
         resolve_surfaces(
-            one_each,
+            &one_each,
             &one_surface_document,
             &SurfaceResolutionInput::new(
                 [surface_id("surface:only")],

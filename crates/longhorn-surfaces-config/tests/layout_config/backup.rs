@@ -6,7 +6,7 @@ use longhorn_config::{
     StorageClass,
 };
 use longhorn_core::{DomainId, SchemaVersion};
-use longhorn_surfaces_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 
 use crate::support::{Fixture, document, domain, registry};
 
@@ -14,7 +14,7 @@ use crate::support::{Fixture, document, domain, registry};
 fn backup_catalogue_uses_each_layout_domains_explicit_policy() {
     let fixture = Fixture::new();
     let included = domain();
-    let excluded = RegisteredLayoutDomain::new(
+    let excluded = RegisteredSurfaceDomain::new(
         DomainDescriptor::new(
             DomainId::new("layout.session").unwrap(),
             SchemaVersion::new(1).unwrap(),
@@ -24,8 +24,8 @@ fn backup_catalogue_uses_each_layout_domains_explicit_policy() {
         .unwrap(),
         document(),
         registry(),
-        NoLayoutMigration,
-        LayoutBackupPolicy::Exclude(
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Exclude(
             BackupExclusionReason::new("session-layout-is-recreatable").unwrap(),
         ),
     )

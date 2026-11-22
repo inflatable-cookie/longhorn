@@ -1,22 +1,28 @@
 use longhorn_config::{DomainIssue, MigrationStep};
 use longhorn_core::SchemaVersion;
-use longhorn_surfaces::{SurfaceDocument, SurfaceLimits};
+use longhorn_surfaces::{LayoutDefinitionRegistry, SurfaceDocument, SurfaceLimits};
 use serde_json::Value;
 
-use crate::PersistedSurfaceDocument;
+use crate::{LayoutRegistryDigest, PersistedSurfaceDocument};
 
-/// Current Surface codec authority exposed to a consumer migration hook.
+/// Current registry and codec authority exposed to a consumer migration hook.
 #[derive(Clone, Copy, Debug)]
-pub struct SurfaceMigrationTarget {
+pub struct SurfaceMigrationTarget<'target> {
     schema_version: SchemaVersion,
-    limits: SurfaceLimits,
+    registry: &'target LayoutDefinitionRegistry,
+    registry_digest: &'target LayoutRegistryDigest,
 }
 
-impl SurfaceMigrationTarget {
-    pub(crate) const fn new(schema_version: SchemaVersion, limits: SurfaceLimits) -> Self {
+impl<'target> SurfaceMigrationTarget<'target> {
+    pub(crate) const fn new(
+        schema_version: SchemaVersion,
+        registry: &'target LayoutDefinitionRegistry,
+        registry_digest: &'target LayoutRegistryDigest,
+    ) -> Self {
         Self {
             schema_version,
-            limits,
+            registry,
+            registry_digest,
         }
     }
 
@@ -26,20 +32,38 @@ impl SurfaceMigrationTarget {
         self.schema_version
     }
 
+    /// Returns the current validated layout definition registry.
+    #[must_use]
+    pub const fn registry(self) -> &'target LayoutDefinitionRegistry {
+        self.registry
+    }
+
+    /// Returns the current deterministic registry digest.
+    #[must_use]
+    pub const fn registry_digest(self) -> &'target LayoutRegistryDigest {
+        self.registry_digest
+    }
+
     /// Returns the current Surface validation limits.
     #[must_use]
     pub const fn limits(self) -> SurfaceLimits {
-        self.limits
+        self.registry.limits()
     }
 
-    /// Encodes a migrated document in the current raw shape.
+    /// Encodes a migrated document in the current raw shape with the current registry digest.
     pub fn encode_current(self, document: SurfaceDocument) -> Result<Value, DomainIssue> {
-        serde_json::to_value(PersistedSurfaceDocument::new(document))
-            .map_err(|error| DomainIssue::new("surface-migration-encode", error.to_string()))
+        serde_json::to_value(PersistedSurfaceDocument::new(
+            self.registry_digest.clone(),
+            document,
+        ))
+        .map_err(|error| DomainIssue::new("surface-migration-encode", error.to_string()))
     }
 }
 
 /// Consumer-owned validation and one-step migration for older Surface schemas.
+///
+/// A registry change must also bump the domain schema. The migration reaches
+/// the current schema only by emitting the target registry digest.
 pub trait SurfaceMigration {
     /// Validates raw data at an older schema before migration.
     fn validate_raw(&self, schema_version: SchemaVersion, value: &Value)
@@ -50,7 +74,7 @@ pub trait SurfaceMigration {
         &self,
         from: SchemaVersion,
         value: Value,
-        target: SurfaceMigrationTarget,
+        target: SurfaceMigrationTarget<'_>,
     ) -> Result<Option<MigrationStep>, DomainIssue>;
 }
 
@@ -71,7 +95,7 @@ impl SurfaceMigration for NoSurfaceMigration {
         &self,
         _from: SchemaVersion,
         _value: Value,
-        _target: SurfaceMigrationTarget,
+        _target: SurfaceMigrationTarget<'_>,
     ) -> Result<Option<MigrationStep>, DomainIssue> {
         Ok(None)
     }

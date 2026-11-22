@@ -1,5 +1,7 @@
-use crate::layout::validation::{normalize_document, validate_document};
-use crate::{LayoutDefinitionRegistry, SurfaceDocument};
+use crate::{
+    LayoutDefinitionRegistry, SurfaceDocument,
+    mutation::engine::{DocumentMutationError, apply_document_mutation},
+};
 
 use super::{
     BoundedLayoutReplayStore, LayoutMutationReceipt, LayoutMutationRejection,
@@ -32,8 +34,14 @@ impl<'a> LayoutMutationEngine<'a> {
         document: &SurfaceDocument,
         request: &LayoutMutationRequest,
     ) -> Result<LayoutMutationReceipt, LayoutMutationRejection> {
-        if let Err(error) = validate_document(self.registry, document) {
-            return Err(rejection(
+        let (committed_revision, outcome, candidate) = apply_document_mutation(
+            self.registry,
+            document,
+            request.expected_revision(),
+            |candidate| apply_command(self.registry, candidate, request.command()),
+        )
+        .map_err(|error| match error {
+            DocumentMutationError::InvalidCurrentDocument(error) => rejection(
                 document,
                 request,
                 LayoutMutationRejectionCode::InvalidCurrentDocument,
@@ -42,45 +50,36 @@ impl<'a> LayoutMutationEngine<'a> {
                     error.code(),
                     error.detail()
                 ),
-            ));
-        }
-        if request.expected_revision() != document.revision() {
-            return Err(rejection(
+            ),
+            DocumentMutationError::StaleRevision { expected, current } => rejection(
                 document,
                 request,
                 LayoutMutationRejectionCode::StaleRevision,
                 format!(
                     "expected layout revision {}; current revision is {}",
-                    request.expected_revision().get(),
-                    document.revision().get()
+                    expected.get(),
+                    current.get()
                 ),
-            ));
-        }
-        let committed_revision = document.revision().checked_next().map_err(|error| {
-            rejection(
+            ),
+            DocumentMutationError::RevisionOverflow(detail) => rejection(
                 document,
                 request,
                 LayoutMutationRejectionCode::RevisionOverflow,
-                error.to_string(),
-            )
-        })?;
-
-        let mut candidate = document.clone();
-        let outcome = apply_command(self.registry, &mut candidate, request.command())
-            .map_err(|error| rejection(document, request, error.code, error.detail))?;
-        candidate.set_revision(committed_revision);
-        let candidate = normalize_document(self.registry, &candidate).map_err(|error| {
-            let code = map_candidate_validation(error.code());
-            rejection(
+                detail,
+            ),
+            DocumentMutationError::Operation(error) => {
+                rejection(document, request, error.code, error.detail)
+            }
+            DocumentMutationError::InvalidCandidate(error) => rejection(
                 document,
                 request,
-                code,
+                map_candidate_validation(error.code()),
                 format!(
                     "layout mutation candidate failed {:?}: {}",
                     error.code(),
                     error.detail()
                 ),
-            )
+            ),
         })?;
 
         Ok(LayoutMutationReceipt::new(

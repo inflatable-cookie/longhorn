@@ -8,7 +8,7 @@ use longhorn_surface_transfer::{
 use longhorn_surfaces::{EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationRequest};
 use longhorn_surfaces_config::publish_surface_mutation;
 
-use super::{TestDomain, options, registry, surface_id};
+use super::{TestDomain, options, surface_id};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MockMode {
@@ -116,7 +116,6 @@ impl SurfaceWindowProvisioner for StalingProvisioner<'_> {
             self.store,
             self.domain,
             options(),
-            &registry(),
             EmptyWindowPolicy::Allow,
             &SurfaceMutationRequest::new(
                 SurfaceRequestId::new("request:intervening").unwrap(),

@@ -152,7 +152,7 @@ Before commit, the host reloads:
 - target region existence and placement eligibility
 - instance policy and target capability
 
-Source and target must belong to the same `RegisteredLayoutDomain`. The
+Source and target must belong to the same `RegisteredSurfaceDomain`. The
 existing expected-revision `MovePanel` command performs one coordinated
 publication and returns the authoritative layout snapshot.
 

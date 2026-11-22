@@ -3,14 +3,14 @@ use std::collections::BTreeMap;
 use longhorn_core::{LayoutSchemaId, PanelDefinitionId, RegionId};
 
 use super::{
-    DefinitionErrorCode, DefinitionLookupError, DefinitionRegistryError, LayoutLimits,
-    LayoutSchemaDefinition, PanelDefinition, definition_error, validate_panel, validate_schema,
+    DefinitionErrorCode, DefinitionLookupError, DefinitionRegistryError, LayoutSchemaDefinition,
+    PanelDefinition, SurfaceLimits, definition_error, validate_panel, validate_schema,
 };
 
 /// Validated immutable layout and panel definition registry.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LayoutDefinitionRegistry {
-    limits: LayoutLimits,
+    limits: SurfaceLimits,
     schemas: BTreeMap<LayoutSchemaId, LayoutSchemaDefinition>,
     panel_definitions: BTreeMap<PanelDefinitionId, PanelDefinition>,
 }
@@ -18,7 +18,7 @@ pub struct LayoutDefinitionRegistry {
 impl LayoutDefinitionRegistry {
     /// Validates and constructs a registry.
     pub fn new(
-        limits: LayoutLimits,
+        limits: SurfaceLimits,
         schemas: impl IntoIterator<Item = LayoutSchemaDefinition>,
         panel_definitions: impl IntoIterator<Item = PanelDefinition>,
     ) -> Result<Self, DefinitionRegistryError> {
@@ -95,7 +95,7 @@ impl LayoutDefinitionRegistry {
 
     /// Returns explicit registry and document limits.
     #[must_use]
-    pub const fn limits(&self) -> LayoutLimits {
+    pub const fn limits(&self) -> SurfaceLimits {
         self.limits
     }
 

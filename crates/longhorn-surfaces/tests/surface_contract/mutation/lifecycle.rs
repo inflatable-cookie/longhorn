@@ -1,11 +1,11 @@
-use longhorn_core::SurfaceRevision;
+use longhorn_core::{PanelDefinitionId, SurfaceRevision};
 use longhorn_surfaces::{
     EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationEngine, SurfaceMutationOutcome,
-    SurfaceMutationRequest,
+    SurfaceMutationRequest, SurfacePresentation, validate_document,
 };
 
 use crate::support::{
-    host, limits, loophole_document, registry, request_id, schema_id, surface_id, window_id,
+    host, loophole_document, registry, request_id, schema_id, surface_id, window_id,
 };
 
 fn apply(
@@ -14,7 +14,8 @@ fn apply(
     suffix: &str,
     command: SurfaceMutationCommand,
 ) -> longhorn_surfaces::SurfaceMutationReceipt {
-    SurfaceMutationEngine::new(limits(), &registry(), EmptyWindowPolicy::Allow)
+    let reg = registry();
+    let receipt = SurfaceMutationEngine::new(&reg, EmptyWindowPolicy::Allow)
         .apply(
             document,
             &SurfaceMutationRequest::new(
@@ -23,7 +24,9 @@ fn apply(
                 command,
             ),
         )
-        .unwrap()
+        .unwrap();
+    validate_document(&reg, receipt.authoritative_document()).unwrap();
+    receipt
 }
 
 #[test]
@@ -127,5 +130,40 @@ fn create_duplicate_rename_activate_and_reorder_commit_once() {
             .unwrap()
             .active_surface_id(),
         Some(&surface_id("surface:mix-copy"))
+    );
+}
+
+#[test]
+fn duplicate_preserves_focused_presentation() {
+    let focused_panel = PanelDefinitionId::new("panel:console").unwrap();
+    let focused = apply(
+        &loophole_document(),
+        11,
+        "focus",
+        SurfaceMutationCommand::SetSurfacePresentation {
+            surface_id: surface_id("surface:mix"),
+            presentation: SurfacePresentation::FocusedPanel {
+                panel_definition_id: focused_panel.clone(),
+            },
+        },
+    );
+    let duplicated = apply(
+        focused.authoritative_document(),
+        12,
+        "duplicate-focused",
+        SurfaceMutationCommand::DuplicateSurface {
+            source_surface_id: surface_id("surface:mix"),
+            surface_id: surface_id("surface:mix-copy"),
+        },
+    );
+    let copy = duplicated
+        .authoritative_document()
+        .surface(&surface_id("surface:mix-copy"))
+        .unwrap();
+    assert_eq!(
+        copy.presentation(),
+        &SurfacePresentation::FocusedPanel {
+            panel_definition_id: focused_panel,
+        }
     );
 }

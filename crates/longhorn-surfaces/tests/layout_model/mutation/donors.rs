@@ -174,10 +174,16 @@ fn donor_document(schema: &str, regions: &[&str], slots: &[&str]) -> SurfaceDocu
             slots
                 .iter()
                 .map(|id| SizingSlotState::new(slot_id(id), ratio(250_000))),
-            [],
+            [longhorn_surfaces::SurfaceHostPreference::new(
+                window_id("window:main"),
+                0,
+            )],
         )],
         [],
-        [],
+        [longhorn_surfaces::ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:primary")),
+        )],
     )
 }
 

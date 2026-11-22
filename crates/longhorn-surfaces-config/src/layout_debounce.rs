@@ -6,7 +6,7 @@ use longhorn_surfaces::{
     SurfaceDocument,
 };
 
-use crate::layout_mutation::rejection_issue;
+use crate::mutation::layout_rejection_issue;
 
 /// One or more ordered sizing/collapse requests staged for a single flush.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -83,7 +83,7 @@ where
         for request in &intent.requests {
             let receipt = engine
                 .apply(&candidate, request)
-                .map_err(|rejection| rejection_issue(&rejection))?;
+                .map_err(|rejection| layout_rejection_issue(&rejection))?;
             candidate = receipt.authoritative_document().clone();
         }
         *value = candidate;

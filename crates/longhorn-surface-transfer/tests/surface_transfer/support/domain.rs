@@ -13,9 +13,9 @@ use longhorn_surface_transfer::{
     EmptyDisplayProvisionPolicy, EmptyDisplayProvisionTarget, SurfaceTransferPolicy,
 };
 use longhorn_surfaces::{
-    EmptyRegionPolicy, EmptyWindowPolicy, LayoutDefinitionRegistry, LayoutLimits,
-    LayoutSchemaDefinition, ParticipatingWindow, RegionDefinition, SurfaceDocument,
-    SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
+    EmptyRegionPolicy, EmptyWindowPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition,
+    ParticipatingWindow, RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference,
+    SurfaceLimits, SurfaceRecord,
 };
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 use tempfile::TempDir;
@@ -77,7 +77,12 @@ pub fn domain() -> TestDomain {
                     surface_id("surface:a"),
                     schema_id(),
                     Some("A".to_owned()),
-                    [],
+                    [RegionState::new(
+                        longhorn_core::RegionId::new("region:main").unwrap(),
+                        [],
+                        None,
+                        None,
+                    )],
                     [],
                     [
                         preference("window:main", 0),
@@ -89,7 +94,12 @@ pub fn domain() -> TestDomain {
                     surface_id("surface:b"),
                     schema_id(),
                     Some("B".to_owned()),
-                    [],
+                    [RegionState::new(
+                        longhorn_core::RegionId::new("region:main").unwrap(),
+                        [],
+                        None,
+                        None,
+                    )],
                     [],
                     [preference("window:main", 1)],
                 ),
@@ -101,7 +111,7 @@ pub fn domain() -> TestDomain {
                 ParticipatingWindow::new(window_id("window:target"), None),
             ],
         ),
-        SurfaceLimits::new(16, 8, 4, 64).unwrap(),
+        registry(),
         NoSurfaceMigration,
         SurfaceBackupPolicy::Include,
     )
@@ -110,7 +120,19 @@ pub fn domain() -> TestDomain {
 
 pub fn registry() -> LayoutDefinitionRegistry {
     LayoutDefinitionRegistry::new(
-        LayoutLimits::new(8, 8, 8, 64, 8, 64, 16).expect("layout limits are valid"),
+        SurfaceLimits::builder()
+            .maximum_schemas(8)
+            .maximum_regions_per_schema(8)
+            .maximum_sizing_slots_per_schema(8)
+            .maximum_panel_definitions(64)
+            .maximum_surfaces(16)
+            .maximum_windows(8)
+            .maximum_host_preferences_per_surface(4)
+            .maximum_label_bytes(64)
+            .maximum_panel_instances(64)
+            .maximum_panel_instances_per_region(16)
+            .build()
+            .expect("surface limits are valid"),
         [LayoutSchemaDefinition::new(
             schema_id(),
             [RegionDefinition::new(

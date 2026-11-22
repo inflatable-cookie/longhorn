@@ -10,8 +10,8 @@ use longhorn_core::{
 };
 use longhorn_storage_layout::StorageRoots;
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
-    ParticipatingWindow, RegionDefinition, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, ParticipatingWindow,
+    RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
     SurfaceMutationCommand, SurfaceMutationRequest, SurfaceRecord,
 };
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
@@ -101,7 +101,7 @@ pub fn domain() -> TestSurfaceDomain {
     RegisteredSurfaceDomain::new(
         descriptor(1),
         document(),
-        limits(),
+        registry(),
         NoSurfaceMigration,
         SurfaceBackupPolicy::Include,
     )
@@ -109,7 +109,19 @@ pub fn domain() -> TestSurfaceDomain {
 }
 
 pub fn limits() -> SurfaceLimits {
-    SurfaceLimits::new(16, 4, 4, 64).unwrap()
+    SurfaceLimits::builder()
+        .maximum_schemas(8)
+        .maximum_regions_per_schema(8)
+        .maximum_sizing_slots_per_schema(8)
+        .maximum_panel_definitions(64)
+        .maximum_surfaces(16)
+        .maximum_windows(4)
+        .maximum_host_preferences_per_surface(4)
+        .maximum_label_bytes(64)
+        .maximum_panel_instances(64)
+        .maximum_panel_instances_per_region(16)
+        .build()
+        .unwrap()
 }
 
 pub fn document() -> SurfaceDocument {
@@ -126,7 +138,7 @@ pub fn document() -> SurfaceDocument {
 
 pub fn registry() -> LayoutDefinitionRegistry {
     LayoutDefinitionRegistry::new(
-        LayoutLimits::new(8, 8, 8, 64, 8, 64, 16).expect("layout limits are valid"),
+        limits(),
         [LayoutSchemaDefinition::new(
             LayoutSchemaId::new("schema:test").unwrap(),
             [RegionDefinition::new(
@@ -181,7 +193,12 @@ fn surface(id: &str, label: &str, order: u32) -> SurfaceRecord {
         surface_id(id),
         LayoutSchemaId::new("schema:test").unwrap(),
         Some(label.to_owned()),
-        [],
+        [RegionState::new(
+            longhorn_core::RegionId::new("region:main").unwrap(),
+            [],
+            None,
+            None,
+        )],
         [],
         [SurfaceHostPreference::new(window_id("window:main"), order)],
     )

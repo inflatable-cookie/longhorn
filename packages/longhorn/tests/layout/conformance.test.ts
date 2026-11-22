@@ -74,21 +74,21 @@ describe("two-shape layout conformance", () => {
         steps: fixture.steps,
         expected_snapshot: fixture.expected_snapshot,
       });
-      // Card 179: "surface_id" is no longer forbidden here. Layout state is
-      // Surface state now, so a Surface id in the document is the subject of
-      // the protocol rather than host authority leaking into it. window_id
-      // stays forbidden: hosting policy still belongs to the Surface record's
-      // host preferences, not to a region or panel.
-      for (const forbidden of [
-        "window_id",
-        "title",
-        "icon",
-        "body",
-        "resource",
-        "runtime",
-      ]) {
+      for (const forbidden of ["title", "icon", "body", "resource", "runtime"]) {
         expect(protocolState.includes(`"${forbidden}"`)).toBeFalse();
       }
+      // Hosting policy belongs to SurfaceRecord.host_preferences, never to
+      // layout definitions, regions, sizing slots, panel instances, or layout commands.
+      const snapshot = record(fixture.expected_snapshot);
+      const surfaces = array(snapshot.surfaces).map(record);
+      const layoutOnlyState = JSON.stringify({
+        definitions: fixture.definitions,
+        regions: surfaces.map((surface) => surface.regions),
+        sizing_slots: surfaces.map((surface) => surface.sizing_slots),
+        panel_instances: snapshot.panel_instances,
+        commands: array(fixture.steps).map((step) => record(record(step).request).command),
+      });
+      expect(layoutOnlyState.includes('"window_id"')).toBeFalse();
     }
   });
 

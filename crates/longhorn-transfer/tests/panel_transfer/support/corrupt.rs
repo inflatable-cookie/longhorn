@@ -1,12 +1,12 @@
 use std::fs;
 
-use longhorn_surfaces_config::PersistedLayoutDocument;
+use longhorn_surfaces_config::PersistedSurfaceDocument;
 use serde_json::json;
 
 use super::{Fixture, TestDomain, document};
 
 pub fn write_instance_policy_violation(fixture: &Fixture, domain: &TestDomain) {
-    let mut value = serde_json::to_value(PersistedLayoutDocument::new(
+    let mut value = serde_json::to_value(PersistedSurfaceDocument::new(
         domain.registry_digest().clone(),
         document(),
     ))

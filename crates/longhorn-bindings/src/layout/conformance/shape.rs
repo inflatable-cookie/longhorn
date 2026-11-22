@@ -3,9 +3,9 @@ use longhorn_core::{
     SizingSlotId, SurfaceId, WindowId,
 };
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutLimits, LayoutRatio, LayoutSchemaDefinition, PanelDefinition,
-    PanelInstancePolicy, PlacementSelector, RegionDefinition, RegionState, SizingSlotDefinition,
-    SizingSlotState, SurfaceDocument, SurfaceRecord,
+    EmptyRegionPolicy, LayoutRatio, LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy,
+    ParticipatingWindow, PlacementSelector, RegionDefinition, RegionState, SizingSlotDefinition,
+    SizingSlotState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
 };
 use serde::Serialize;
 
@@ -104,6 +104,7 @@ pub(super) fn panels(spec: &ShapeSpec) -> Vec<PanelDefinition> {
 }
 
 pub(super) fn initial_document(spec: &ShapeSpec) -> SurfaceDocument {
+    let window = WindowId::new("window:primary").expect("fixture window id is valid");
     SurfaceDocument::new(
         longhorn_core::SurfaceRevision::INITIAL,
         [SurfaceRecord::new(
@@ -121,15 +122,30 @@ pub(super) fn initial_document(spec: &ShapeSpec) -> SurfaceDocument {
             spec.sizing_slots
                 .iter()
                 .map(|slot| SizingSlotState::new(slot_id(slot.id), ratio(slot.default))),
-            [],
+            [SurfaceHostPreference::new(window.clone(), 0)],
         )],
         [],
-        [],
+        [ParticipatingWindow::new(
+            window,
+            Some(surface_id("surface:primary")),
+        )],
     )
 }
 
-pub(super) fn limits() -> LayoutLimits {
-    LayoutLimits::new(4, 16, 8, 8, 4, 32, 16).expect("conformance limits are valid")
+pub(super) fn limits() -> SurfaceLimits {
+    SurfaceLimits::builder()
+        .maximum_schemas(4)
+        .maximum_regions_per_schema(16)
+        .maximum_sizing_slots_per_schema(8)
+        .maximum_panel_definitions(8)
+        .maximum_surfaces(4)
+        .maximum_windows(4)
+        .maximum_host_preferences_per_surface(4)
+        .maximum_label_bytes(64)
+        .maximum_panel_instances(32)
+        .maximum_panel_instances_per_region(16)
+        .build()
+        .expect("conformance limits are valid")
 }
 
 pub(super) fn surface_bound_spec() -> (&'static str, ShapeSpec) {
@@ -194,7 +210,7 @@ pub(super) fn window_bound_spec() -> (&'static str, ShapeSpec) {
             singleton_region: "center_top",
             singleton_family: "workspace",
             singleton_definition: "panel:tasks",
-            singleton_policy: PanelInstancePolicy::OnePerContainer,
+            singleton_policy: PanelInstancePolicy::OnePerSurface,
             host_binding: HostBinding::Window {
                 window_id: WindowId::new("window:primary").expect("fixture window id is valid"),
                 surface_id: surface_id("surface:primary"),

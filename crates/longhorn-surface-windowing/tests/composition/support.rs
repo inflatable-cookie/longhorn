@@ -10,7 +10,9 @@ use longhorn_display::{
     reconcile_displays,
 };
 use longhorn_surfaces::{
-    ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, ParticipatingWindow,
+    RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
+    SurfaceRecord,
 };
 use longhorn_windowing::{
     PlacementPolicy, WindowPlacementConfig, WindowPlacementResolution, WindowRole,
@@ -33,11 +35,40 @@ impl DisplayIdAllocator for NeverAllocator {
 }
 
 pub fn limits() -> SurfaceLimits {
-    SurfaceLimits::new(8, 4, 4, 64).unwrap()
+    SurfaceLimits::builder()
+        .maximum_surfaces(8)
+        .maximum_windows(4)
+        .maximum_host_preferences_per_surface(4)
+        .maximum_label_bytes(64)
+        .build()
+        .unwrap()
+}
+
+pub fn registry() -> LayoutDefinitionRegistry {
+    LayoutDefinitionRegistry::new(
+        limits(),
+        [LayoutSchemaDefinition::new(
+            schema_id(),
+            [RegionDefinition::new(
+                region_id(),
+                longhorn_core::RegionFamilyId::new("family:main").unwrap(),
+                0,
+                EmptyRegionPolicy::KeepVisible,
+                false,
+            )],
+            [],
+        )],
+        [],
+    )
+    .unwrap()
 }
 
 pub fn schema_id() -> longhorn_core::LayoutSchemaId {
     longhorn_core::LayoutSchemaId::new("schema:composition").expect("schema id is valid")
+}
+
+pub fn region_id() -> longhorn_core::RegionId {
+    longhorn_core::RegionId::new("region:main").expect("region id is valid")
 }
 
 pub fn surface_id(value: &str) -> SurfaceId {
@@ -56,7 +87,7 @@ pub fn document() -> SurfaceDocument {
                 surface_id("surface:mix"),
                 schema_id(),
                 Some("Mix".to_owned()),
-                [],
+                [RegionState::new(region_id(), [], None, None)],
                 [],
                 [
                     SurfaceHostPreference::new(window_id("window:preferred"), 0),
@@ -67,7 +98,7 @@ pub fn document() -> SurfaceDocument {
                 surface_id("surface:edit"),
                 schema_id(),
                 Some("Edit".to_owned()),
-                [],
+                [RegionState::new(region_id(), [], None, None)],
                 [],
                 [SurfaceHostPreference::new(window_id("window:main"), 0)],
             ),

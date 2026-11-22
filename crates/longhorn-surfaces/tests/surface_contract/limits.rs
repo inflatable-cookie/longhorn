@@ -24,13 +24,13 @@ fn identity_revision_and_limit_rejection_matrix_is_typed() {
     );
 
     assert_eq!(
-        SurfaceLimits::new(0, 2, 2, 16),
+        SurfaceLimits::builder().maximum_surfaces(0).build(),
         Err(SurfaceLimitsError::Zero {
             name: "maximum_surfaces"
         })
     );
     assert_eq!(
-        SurfaceLimits::new(2, 4_097, 2, 16),
+        SurfaceLimits::builder().maximum_windows(4_097).build(),
         Err(SurfaceLimitsError::ExceedsHardMaximum {
             name: "maximum_windows",
             maximum: 4_096,
@@ -38,18 +38,34 @@ fn identity_revision_and_limit_rejection_matrix_is_typed() {
         })
     );
     assert_eq!(
-        SurfaceLimits::new(2, 2, 2, 16_385),
+        SurfaceLimits::builder().maximum_label_bytes(16_385).build(),
         Err(SurfaceLimitsError::ExceedsHardMaximum {
             name: "maximum_label_bytes",
             maximum: 16_384,
             actual: 16_385,
         })
     );
+    assert_eq!(
+        SurfaceLimits::builder()
+            .maximum_panel_instances(65_537)
+            .build(),
+        Err(SurfaceLimitsError::ExceedsHardMaximum {
+            name: "maximum_panel_instances",
+            maximum: 65_536,
+            actual: 65_537,
+        })
+    );
 }
 
 #[test]
 fn limits_and_ids_use_strict_serde() {
-    let limits = SurfaceLimits::new(2, 2, 2, 16).unwrap();
+    let limits = SurfaceLimits::builder()
+        .maximum_surfaces(2)
+        .maximum_windows(2)
+        .maximum_host_preferences_per_surface(2)
+        .maximum_label_bytes(16)
+        .build()
+        .unwrap();
     let encoded = serde_json::to_string(&limits).unwrap();
     assert_eq!(
         serde_json::from_str::<SurfaceLimits>(&encoded).unwrap(),
@@ -58,10 +74,16 @@ fn limits_and_ids_use_strict_serde() {
     assert!(
         serde_json::from_str::<SurfaceLimits>(
             r#"{
+                "maximum_schemas":16,
+                "maximum_regions_per_schema":32,
+                "maximum_sizing_slots_per_schema":32,
+                "maximum_panel_definitions":64,
                 "maximum_surfaces":2,
                 "maximum_windows":2,
                 "maximum_host_preferences_per_surface":2,
                 "maximum_label_bytes":16,
+                "maximum_panel_instances":256,
+                "maximum_panel_instances_per_region":64,
                 "hidden_default":true
             }"#
         )

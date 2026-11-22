@@ -1,7 +1,9 @@
 use longhorn_config::{ConfigStore, MutationOptions};
 use longhorn_core::{LayoutRequestId, PanelInstanceId, SurfaceRevision};
 use longhorn_surfaces::{LayoutMutationCommand, LayoutMutationRequest};
-use longhorn_surfaces_config::{LayoutMigration, RegisteredLayoutDomain, publish_layout_mutation};
+use longhorn_surfaces_config::{
+    RegisteredSurfaceDomain, SurfaceMigration, publish_layout_mutation,
+};
 
 use crate::{MonotonicClock, TransferCoordinator};
 
@@ -22,7 +24,7 @@ mod validation;
 /// Consumes one target attempt and publishes one authoritative same-document move.
 pub fn commit_panel_transfer<M>(
     store: &ConfigStore,
-    domain: &RegisteredLayoutDomain<M>,
+    domain: &RegisteredSurfaceDomain<M>,
     coordinator: &mut TransferCoordinator,
     clock: &impl MonotonicClock,
     bindings: &PanelHostBindings,
@@ -30,7 +32,7 @@ pub fn commit_panel_transfer<M>(
     request: PanelTransferCommitRequest,
 ) -> Result<PanelTransferCommitReceipt, PanelTransferError>
 where
-    M: LayoutMigration,
+    M: SurfaceMigration,
 {
     let attempt = coordinator
         .attempt_target_resolution(

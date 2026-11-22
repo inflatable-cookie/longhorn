@@ -6,7 +6,7 @@ use longhorn_transfer::TargetSelector;
 
 use super::support::{
     Fixture, MockMode, MockProvisioner, RuntimeFixture, domain, load_surface, options, policy,
-    policy_with_provision, registry, surface_id, window_id,
+    policy_with_provision, surface_id, window_id,
 };
 
 #[test]
@@ -16,15 +16,12 @@ fn ordinary_move_changes_only_surface_authority_and_retains_layout_binding() {
     fixture.store.register(&domain).unwrap();
     let mut runtime = RuntimeFixture::new();
     let session = runtime.admit(&fixture.store, &domain).unwrap();
-    let layout = registry();
-    let exact_layout = layout.clone();
     let mut provisioner = MockProvisioner::new(MockMode::Success);
     let live_target = runtime.live_target();
 
     let receipt = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &layout,
         &mut runtime.coordinator,
         &runtime.clock,
         &runtime.bindings,
@@ -50,7 +47,6 @@ fn ordinary_move_changes_only_surface_authority_and_retains_layout_binding() {
     );
     assert!(receipt.provisioning().is_none());
     assert!(provisioner.calls.is_empty());
-    assert_eq!(layout, exact_layout);
     let current = load_surface(&fixture.store, &domain);
     let moved = current.surface(&surface_id("surface:a")).unwrap();
     assert_eq!(
@@ -73,7 +69,6 @@ fn empty_display_provisions_hidden_ready_target_then_commits_host() {
     let receipt = commit_surface_transfer(
         &fixture.store,
         &domain,
-        &registry(),
         &mut runtime.coordinator,
         &runtime.clock,
         &runtime.bindings,

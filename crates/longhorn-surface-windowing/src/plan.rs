@@ -6,7 +6,7 @@ use std::{
 
 use longhorn_core::{SurfaceId, SurfaceRevision, WindowId};
 use longhorn_surfaces::{
-    ResolvedSurfaceWindow, SurfaceDocument, SurfaceLimits, SurfaceResolutionError,
+    LayoutDefinitionRegistry, ResolvedSurfaceWindow, SurfaceDocument, SurfaceResolutionError,
     SurfaceResolutionInput, UnresolvedSurface, resolve_surfaces,
 };
 use longhorn_windowing::{DesiredWindow, ResolvedWindowPlacement, WindowPlacementResolution};
@@ -132,7 +132,7 @@ impl Error for SurfaceWindowCompositionError {
 /// Placement remains owned by `longhorn-windowing`. Direct non-Surface window
 /// outcomes are ignored. The visibility callback is consumer policy.
 pub fn compose_surface_window_plan<F>(
-    limits: SurfaceLimits,
+    registry: &LayoutDefinitionRegistry,
     document: &SurfaceDocument,
     admitted_surface_ids: impl IntoIterator<Item = SurfaceId>,
     placement_outcomes: &[WindowPlacementResolution],
@@ -166,7 +166,7 @@ where
     }
 
     let resolution = resolve_surfaces(
-        limits,
+        registry,
         document,
         &SurfaceResolutionInput::new(admitted_surface_ids, placements.keys().cloned()),
     )

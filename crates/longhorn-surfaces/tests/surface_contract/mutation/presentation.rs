@@ -7,7 +7,7 @@ use longhorn_surfaces::{
     SurfacePresentation,
 };
 
-use crate::support::{limits, loophole_document, registry, request_id, surface_id, window_id};
+use crate::support::{loophole_document, registry, request_id, surface_id, window_id};
 
 fn panel(value: &str) -> PanelDefinitionId {
     PanelDefinitionId::new(value).unwrap()
@@ -22,7 +22,7 @@ fn attempt(
     command: SurfaceMutationCommand,
 ) -> Result<longhorn_surfaces::SurfaceMutationReceipt, longhorn_surfaces::SurfaceMutationRejection>
 {
-    SurfaceMutationEngine::new(limits(), &registry(), EmptyWindowPolicy::Allow).apply(
+    SurfaceMutationEngine::new(&registry(), EmptyWindowPolicy::Allow).apply(
         document,
         &SurfaceMutationRequest::new(
             request_id(&format!("request:{suffix}")),

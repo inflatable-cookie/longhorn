@@ -11,7 +11,7 @@ mod resolution;
 mod snapshot;
 mod validation;
 
-pub use limits::{SurfaceLimits, SurfaceLimitsError};
+pub use limits::{SurfaceLimits, SurfaceLimitsBuilder, SurfaceLimitsError};
 pub use model::{
     ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfacePresentation, SurfaceRecord,
 };
@@ -31,16 +31,13 @@ pub use validation::{
     validate_normalized_document,
 };
 
-// Former `longhorn-layout` surface, re-exported at the crate root so the
-// absorbed modules keep their `crate::` paths and so downstream crates change
-// only the crate name in a `use`. Card 179.
+// Former `longhorn-layout` vocabulary, re-exported at the crate root. Card 179.
 pub use layout::LAYOUT_PROTOCOL_VERSION;
 pub use layout::definition::{
     DefinitionErrorCode, DefinitionLookupError, DefinitionRegistryError, EmptyRegionPolicy,
     LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy,
     PlacementSelector, RegionDefinition, SizingSlotDefinition,
 };
-pub use layout::limits::{LayoutLimits, LayoutLimitsError};
 pub use layout::model::{PanelInstance, RegionState, SizingSlotState};
 pub use layout::mutation::{
     BoundedLayoutReplayStore, LayoutMutationCommand, LayoutMutationEngine, LayoutMutationOutcome,
@@ -48,16 +45,6 @@ pub use layout::mutation::{
     LayoutMutationRequest, LayoutReplayStoreError,
 };
 pub use layout::ratio::{LayoutRatio, LayoutRatioError, RATIO_ONE_MILLIONTHS};
-pub use layout::validation::{
-    LayoutValidationCode,
-    LayoutValidationError,
-    // The layout half of one document: regions, sizing slots and panel
-    // placement, checked against the registry. The Surface half -- identity,
-    // hosting policy, window membership -- is validate_document above.
-    normalize_document as normalize_layout,
-    validate_document as validate_layout,
-    validate_normalized_document as validate_normalized_layout,
-};
 pub use layout::visibility::{
     RegionVisibility, RegionVisibilityState, VisibilityProjectionError, project_region_visibility,
 };

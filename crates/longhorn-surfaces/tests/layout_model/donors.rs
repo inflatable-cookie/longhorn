@@ -1,8 +1,9 @@
 use longhorn_core::SurfaceRevision;
 use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
-    PanelInstancePolicy, PlacementSelector, RegionDefinition, RegionState, SizingSlotDefinition,
-    SizingSlotState, SurfaceDocument, SurfaceRecord, normalize_layout, validate_layout,
+    PanelInstancePolicy, ParticipatingWindow, PlacementSelector, RegionDefinition, RegionState,
+    SizingSlotDefinition, SizingSlotState, SurfaceDocument, SurfaceHostPreference, SurfaceRecord,
+    normalize_document, validate_document,
 };
 
 use super::support::*;
@@ -60,7 +61,7 @@ fn loophole_eight_region_shape_uses_only_shared_semantic_types() {
         ["navigation-width", "inspector-width", "utility-height"],
     );
 
-    validate_layout(&registry, &document).unwrap();
+    validate_document(&registry, &document).unwrap();
     assert_eq!(
         registry
             .schema(&schema_id("schema:loophole"))
@@ -69,7 +70,7 @@ fn loophole_eight_region_shape_uses_only_shared_semantic_types() {
             .len(),
         8
     );
-    assert_eq!(normalize_layout(&registry, &document).unwrap(), document);
+    assert_eq!(normalize_document(&registry, &document).unwrap(), document);
 }
 
 #[test]
@@ -109,7 +110,7 @@ fn nucleus_five_region_shape_does_not_require_surfaces_or_windows() {
             definition_id("panel:tasks"),
             [PlacementSelector::Region(region_id("center_top"))],
             [PlacementSelector::Family(family_id("workspace"))],
-            PanelInstancePolicy::OnePerContainer,
+            PanelInstancePolicy::OnePerSurface,
             true,
             true,
         )],
@@ -123,7 +124,7 @@ fn nucleus_five_region_shape_does_not_require_surfaces_or_windows() {
         ["left-center", "center-right", "center-stack", "right-stack"],
     );
 
-    validate_layout(&registry, &document).unwrap();
+    validate_document(&registry, &document).unwrap();
     assert_eq!(
         registry
             .schema(&schema_id("schema:nucleus"))
@@ -161,9 +162,12 @@ fn empty_document<'a>(
             sizing_slots
                 .into_iter()
                 .map(|id| SizingSlotState::new(slot_id(id), ratio(250_000))),
-            [],
+            [SurfaceHostPreference::new(window_id("window:main"), 0)],
         )],
         [],
-        [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:primary")),
+        )],
     )
 }

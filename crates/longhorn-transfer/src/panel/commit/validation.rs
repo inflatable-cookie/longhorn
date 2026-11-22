@@ -1,18 +1,18 @@
 use longhorn_core::{DomainId, SurfaceId, WindowId};
 use longhorn_surfaces::LayoutMutationRejectionCode;
 use longhorn_surfaces_config::{
-    LayoutConfigMutationError, LayoutMigration, RegisteredLayoutDomain,
+    LayoutConfigMutationError, RegisteredSurfaceDomain, SurfaceMigration,
 };
 
 use crate::panel::{PanelHostBinding, PanelTransferError, PanelTransferErrorCode};
 
 pub(super) fn require_same_domain<M>(
-    domain: &RegisteredLayoutDomain<M>,
+    domain: &RegisteredSurfaceDomain<M>,
     source_document_id: &DomainId,
     target_document_id: &DomainId,
 ) -> Result<(), PanelTransferError>
 where
-    M: LayoutMigration,
+    M: SurfaceMigration,
 {
     let registered_id = domain.descriptor().id();
     if source_document_id != target_document_id

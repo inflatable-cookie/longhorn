@@ -53,18 +53,20 @@ pub(super) fn duplicate_surface(
         ));
     }
 
-    // Duplication copies generic metadata and hosting policy, never layout
-    // contents: the copy instantiates the same schema fresh, as it did when the
-    // duplicate bound a new empty surface.
+    // Duplication copies generic metadata (including presentation) and hosting
+    // policy, never layout contents: the copy instantiates the same schema fresh.
     let (regions, sizing_slots) = materialize_schema(registry, source.schema_id())?;
-    document.surfaces_mut().push(SurfaceRecord::new(
-        surface_id.clone(),
-        source.schema_id().clone(),
-        source.label().map(str::to_owned),
-        regions,
-        sizing_slots,
-        duplicate_preferences,
-    ));
+    document
+        .surfaces_mut()
+        .push(SurfaceRecord::with_presentation(
+            surface_id.clone(),
+            source.schema_id().clone(),
+            source.label().map(str::to_owned),
+            source.presentation().clone(),
+            regions,
+            sizing_slots,
+            duplicate_preferences,
+        ));
     Ok(SurfaceMutationOutcome::SurfaceDuplicated {
         source_surface_id: source_surface_id.clone(),
         surface_id: surface_id.clone(),

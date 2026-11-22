@@ -1,13 +1,13 @@
 use longhorn_core::LayoutSchemaId;
 use longhorn_core::SurfaceRevision;
 use longhorn_surfaces::{
-    EmptyWindowPolicy, ParticipatingWindow, SurfaceDocument, SurfaceMutationCommand,
-    SurfaceMutationEngine, SurfaceMutationRejectionCode, SurfaceMutationRequest,
+    EmptyWindowPolicy, ParticipatingWindow, SurfaceDocument, SurfaceLimits, SurfaceMutationCommand,
+    SurfaceMutationEngine, SurfaceMutationRejectionCode, SurfaceMutationRequest, SurfaceRecord,
 };
 
 use crate::support::{
-    host, limits, loophole_document, registry, request_id, schema_id, surface, surface_id,
-    window_id,
+    host, loophole_document, registry, registry_with_limits, request_id, schema_id, surface,
+    surface_id, window_id,
 };
 
 fn reject(
@@ -15,7 +15,7 @@ fn reject(
     expected: u64,
     command: SurfaceMutationCommand,
 ) -> SurfaceMutationRejectionCode {
-    let rejection = SurfaceMutationEngine::new(limits(), &registry(), EmptyWindowPolicy::Reject)
+    let rejection = SurfaceMutationEngine::new(&registry(), EmptyWindowPolicy::Reject)
         .apply(
             source,
             &SurfaceMutationRequest::new(
@@ -146,5 +146,88 @@ fn identity_container_window_order_and_empty_policy_rejections_are_typed() {
             }
         ),
         SurfaceMutationRejectionCode::EmptyWindowNotAllowed
+    );
+}
+
+#[test]
+fn create_and_duplicate_enforce_maximum_surfaces() {
+    let reg = registry_with_limits(
+        SurfaceLimits::builder()
+            .maximum_surfaces(3)
+            .build()
+            .unwrap(),
+    );
+    let source = loophole_document(); // already has 3 Surfaces
+    let engine = SurfaceMutationEngine::new(&reg, EmptyWindowPolicy::Allow);
+
+    let create_err = engine
+        .apply(
+            &source,
+            &SurfaceMutationRequest::new(
+                request_id("request:create-over-limit"),
+                source.revision(),
+                SurfaceMutationCommand::CreateSurface {
+                    surface_id: surface_id("surface:fourth"),
+                    schema_id: schema_id(),
+                    label: None,
+                    host_preferences: vec![host("window:main", 2)],
+                },
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(
+        create_err.code(),
+        SurfaceMutationRejectionCode::InvalidCandidate
+    );
+    assert_eq!(create_err.authoritative_document(), &source);
+
+    let dup_err = engine
+        .apply(
+            &source,
+            &SurfaceMutationRequest::new(
+                request_id("request:dup-over-limit"),
+                source.revision(),
+                SurfaceMutationCommand::DuplicateSurface {
+                    source_surface_id: surface_id("surface:mix"),
+                    surface_id: surface_id("surface:mix-copy"),
+                },
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(
+        dup_err.code(),
+        SurfaceMutationRejectionCode::InvalidCandidate
+    );
+    assert_eq!(dup_err.authoritative_document(), &source);
+}
+
+#[test]
+fn surface_mutation_rejects_layout_invalid_current_document() {
+    let layout_invalid = SurfaceDocument::new(
+        SurfaceRevision::new(1),
+        [SurfaceRecord::new(
+            surface_id("surface:broken"),
+            schema_id(),
+            None,
+            [], // missing schema's region:main
+            [],
+            [host("window:main", 0)],
+        )],
+        [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:broken")),
+        )],
+    );
+    assert_eq!(
+        reject(
+            &layout_invalid,
+            1,
+            SurfaceMutationCommand::RenameSurface {
+                surface_id: surface_id("surface:broken"),
+                label: Some("Still broken".to_owned()),
+            },
+        ),
+        SurfaceMutationRejectionCode::InvalidCurrentDocument
     );
 }

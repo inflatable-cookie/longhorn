@@ -206,7 +206,7 @@ export class PoodleLayoutBinding {
     }).length;
 
     switch (definition.instance_policy.kind) {
-      case "one_per_container":
+      case "one_per_surface":
         return peerCount === 0;
       case "bounded":
         return peerCount < definition.instance_policy.maximum_per_surface;

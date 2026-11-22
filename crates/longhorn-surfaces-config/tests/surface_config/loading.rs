@@ -8,7 +8,7 @@ use longhorn_surfaces_config::{
 };
 use serde_json::{Value, json};
 
-use crate::support::{Fixture, descriptor, document, domain, envelope, limits};
+use crate::support::{Fixture, descriptor, document, domain, envelope, registry};
 
 #[test]
 fn missing_corrupt_future_and_incompatible_sources_remain_distinct() {
@@ -76,7 +76,7 @@ impl SurfaceMigration for OldShapeMigration {
         &self,
         from: SchemaVersion,
         value: Value,
-        target: SurfaceMigrationTarget,
+        target: SurfaceMigrationTarget<'_>,
     ) -> Result<Option<MigrationStep>, DomainIssue> {
         if from.get() != 1 {
             return Ok(None);
@@ -103,7 +103,7 @@ fn document_shape_change_requires_explicit_schema_migration() {
     let current = RegisteredSurfaceDomain::new(
         descriptor(2),
         document(),
-        limits(),
+        registry(),
         OldShapeMigration,
         SurfaceBackupPolicy::Include,
     )
@@ -127,7 +127,7 @@ fn document_shape_change_requires_explicit_schema_migration() {
     let missing = RegisteredSurfaceDomain::new(
         descriptor(2),
         document(),
-        limits(),
+        registry(),
         NoSurfaceMigration,
         SurfaceBackupPolicy::Include,
     )

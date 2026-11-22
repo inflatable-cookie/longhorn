@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::LayoutLimits;
+use crate::SurfaceLimits;
 
 use super::{
     DefinitionErrorCode, DefinitionRegistryError, LayoutSchemaDefinition, PanelDefinition,
@@ -9,7 +9,7 @@ use super::{
 
 pub(super) fn validate_schema(
     schema: &LayoutSchemaDefinition,
-    limits: LayoutLimits,
+    limits: SurfaceLimits,
 ) -> Result<(), DefinitionRegistryError> {
     if schema.regions.is_empty() {
         return Err(definition_error(

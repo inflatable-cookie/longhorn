@@ -1,7 +1,7 @@
 use longhorn_config::{ConfigStore, LoadOutcome};
 use longhorn_core::{PanelInstanceId, RegionId, SurfaceId, TransferSubjectId};
 use longhorn_surfaces::SurfaceDocument;
-use longhorn_surfaces_config::{LayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces_config::{RegisteredSurfaceDomain, SurfaceMigration};
 
 use crate::{
     DragSessionIdAllocator, MonotonicClock, SessionCreationReceipt, TransferCoordinator,
@@ -16,7 +16,7 @@ use super::{
 /// Resolves fresh layout authority and admits one bounded movable-panel session.
 pub fn admit_panel_session<M>(
     store: &ConfigStore,
-    domain: &RegisteredLayoutDomain<M>,
+    domain: &RegisteredSurfaceDomain<M>,
     coordinator: &mut TransferCoordinator,
     clock: &impl MonotonicClock,
     allocator: &mut impl DragSessionIdAllocator,
@@ -24,7 +24,7 @@ pub fn admit_panel_session<M>(
     request: PanelSessionAdmission,
 ) -> Result<SessionCreationReceipt, PanelTransferError>
 where
-    M: LayoutMigration,
+    M: SurfaceMigration,
 {
     let binding = bindings.get(request.host_binding_id())?;
     require_source_binding(domain, binding, &request)?;
@@ -100,10 +100,10 @@ where
 
 pub(crate) fn load_layout<M>(
     store: &ConfigStore,
-    domain: &RegisteredLayoutDomain<M>,
+    domain: &RegisteredSurfaceDomain<M>,
 ) -> Result<SurfaceDocument, PanelTransferError>
 where
-    M: LayoutMigration,
+    M: SurfaceMigration,
 {
     match store.load(domain) {
         Ok(LoadOutcome::Ready(loaded)) => Ok(loaded.value),
@@ -137,12 +137,12 @@ pub(crate) fn panel_placement(
 }
 
 fn require_source_binding<M>(
-    domain: &RegisteredLayoutDomain<M>,
+    domain: &RegisteredSurfaceDomain<M>,
     binding: &PanelHostBinding,
     request: &PanelSessionAdmission,
 ) -> Result<(), PanelTransferError>
 where
-    M: LayoutMigration,
+    M: SurfaceMigration,
 {
     if binding.window_id() != request.source_window_id()
         || binding.document_id() != domain.descriptor().id()

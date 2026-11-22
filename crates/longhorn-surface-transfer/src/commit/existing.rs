@@ -1,6 +1,6 @@
 use longhorn_config::{ConfigStore, MutationOptions};
 use longhorn_core::{SurfaceRequestId, SurfaceRevision};
-use longhorn_surfaces::{LayoutDefinitionRegistry, SurfaceMutationCommand, SurfaceMutationRequest};
+use longhorn_surfaces::{SurfaceMutationCommand, SurfaceMutationRequest};
 use longhorn_surfaces_config::{
     RegisteredSurfaceDomain, SurfaceMigration, publish_surface_mutation,
 };
@@ -24,7 +24,6 @@ use crate::admission::load_surface;
 pub(super) fn commit_existing<M>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
-    registry: &LayoutDefinitionRegistry,
     bindings: &SurfaceHostBindings,
     policy: &SurfaceTransferPolicy,
     options: MutationOptions,
@@ -76,7 +75,6 @@ where
         store,
         domain,
         options,
-        registry,
         policy.empty_window_policy(),
         &mutation,
     )

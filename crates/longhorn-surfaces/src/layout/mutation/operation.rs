@@ -1,6 +1,6 @@
 use longhorn_core::{PanelInstanceId, RegionId, SurfaceId};
 
-use crate::{LayoutDefinitionRegistry, LayoutValidationCode, RegionState, SurfaceDocument};
+use crate::{LayoutDefinitionRegistry, RegionState, SurfaceDocument, SurfaceValidationCode};
 
 use super::{
     LayoutMutationCommand, LayoutMutationOutcome, LayoutMutationRejectionCode,
@@ -77,18 +77,18 @@ pub(super) fn apply_command(
     }
 }
 
-pub(super) fn map_candidate_validation(code: LayoutValidationCode) -> LayoutMutationRejectionCode {
+pub(super) fn map_candidate_validation(code: SurfaceValidationCode) -> LayoutMutationRejectionCode {
     match code {
-        LayoutValidationCode::InstancePolicyExceeded => {
+        SurfaceValidationCode::InstancePolicyExceeded => {
             LayoutMutationRejectionCode::InstancePolicyExceeded
         }
-        LayoutValidationCode::PanelPlacementNotAllowed => {
+        SurfaceValidationCode::PanelPlacementNotAllowed => {
             LayoutMutationRejectionCode::PanelPlacementNotAllowed
         }
-        LayoutValidationCode::SizingRatioOutOfBounds => {
+        SurfaceValidationCode::SizingRatioOutOfBounds => {
             LayoutMutationRejectionCode::InvalidSizingRatio
         }
-        LayoutValidationCode::UnsupportedCollapseState => {
+        SurfaceValidationCode::UnsupportedCollapseState => {
             LayoutMutationRejectionCode::UnsupportedCollapse
         }
         _ => LayoutMutationRejectionCode::InvalidCandidate,
@@ -140,7 +140,12 @@ fn region_mut<'a>(
 }
 
 fn checked_index(insertion_index: u32, maximum: usize) -> Result<usize, OperationRejection> {
-    let index = insertion_index as usize;
+    let index = usize::try_from(insertion_index).map_err(|_| {
+        operation_rejection(
+            LayoutMutationRejectionCode::InvalidInsertionIndex,
+            format!("insertion index {insertion_index} exceeds target length {maximum}"),
+        )
+    })?;
     if index > maximum {
         return Err(operation_rejection(
             LayoutMutationRejectionCode::InvalidInsertionIndex,

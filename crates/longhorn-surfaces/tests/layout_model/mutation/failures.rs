@@ -149,7 +149,7 @@ fn sizing_collapse_overflow_and_invalid_source_fail_unchanged() {
         SurfaceRevision::new(u64::MAX),
         source.surfaces().iter().cloned(),
         source.panel_instances().iter().cloned(),
-        [],
+        source.windows().iter().cloned(),
     );
     assert_rejected(
         overflow,
