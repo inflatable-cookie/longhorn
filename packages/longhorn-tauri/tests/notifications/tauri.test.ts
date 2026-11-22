@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { createTauriNotificationPort } from "../../../longhorn-tauri/src/notifications.ts";
-import { fixture } from "./support.ts";
+import { createTauriNotificationPort } from "../../src/notifications.ts";
+import { fixture } from "../../../longhorn/tests/notifications/support.ts";
 
 describe("Tauri notification composition", () => {
   test("uses two narrow commands and one invalidation event", async () => {

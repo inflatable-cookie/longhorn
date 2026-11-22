@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { createTauriHistoryPort } from "../../../longhorn-tauri/src/history.ts";
-import { fixture } from "./support.ts";
+import { createTauriHistoryPort } from "../../src/history.ts";
+import { fixture } from "../../../longhorn/tests/history/support.ts";
 
 describe("Tauri history composition", () => {
   test("uses three narrow commands and one invalidation event", async () => {

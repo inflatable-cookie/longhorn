@@ -32,10 +32,10 @@ export class BridgeQueryRetryRuntime {
     decision: BridgeQueryRetryDecision,
     retryClass: BridgeRetryClass,
   ): BridgeReconnectSchedule | undefined {
-    retryClass = checkedRetryClass(retryClass);
+    const checkedClass = checkedRetryClass(retryClass);
     if (
       decision !== "retry" ||
-      retryClass === "never" ||
+      checkedClass === "never" ||
       this.#scheduled >= this.#limit
     ) {
       return undefined;
@@ -44,10 +44,10 @@ export class BridgeQueryRetryRuntime {
     const at = checkedMonotonic(this.#clock.now());
     const schedule = {
       attempt,
-      retryClass,
+      retryClass: checkedClass,
       notBefore: checkedDeadline(
         at,
-        this.#backoff.delay(retryClass, attempt),
+        this.#backoff.delay(checkedClass, attempt),
       ),
     };
     this.#scheduled = attempt;

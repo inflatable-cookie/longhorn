@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { createTauriForkHistoryPort } from "../../../longhorn-tauri/src/history-tree.ts";
+import { createTauriForkHistoryPort } from "../../src/history-tree.ts";
 
 describe("Tauri fork-history composition", () => {
   test("uses seven narrow commands and one invalidation event", async () => {

@@ -65,6 +65,18 @@ export class CheckedSnapshotConnection<Snapshot> {
     return [...this.#failures];
   }
 
+  /**
+   * Accepts a snapshot the caller obtained from its own request (for example,
+   * a mutation result), under the same `isNewer` rule the refresh pump uses.
+   * It is a no-op after dispose.
+   */
+  offer(candidate: Snapshot): void {
+    if (this.#disposed) {
+      return;
+    }
+    this.#accept(candidate);
+  }
+
   async dispose(): Promise<void> {
     this.#disposed = true;
 

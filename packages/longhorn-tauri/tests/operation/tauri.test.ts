@@ -6,8 +6,8 @@ import {
   OPERATION_CHANGED_EVENT,
   OPERATION_MUTATE_COMMAND,
   OPERATION_SNAPSHOT_COMMAND,
-} from "../../../longhorn-tauri/src/operation.ts";
-import { fixture } from "./support.ts";
+} from "../../src/operation.ts";
+import { fixture } from "../../../longhorn/tests/operation/support.ts";
 
 describe("Tauri operation composition", () => {
   test("uses three narrow commands and one invalidation event", async () => {

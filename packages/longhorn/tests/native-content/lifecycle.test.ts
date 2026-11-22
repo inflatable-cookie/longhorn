@@ -5,9 +5,20 @@ import {
   NativeContentConnectionDisposedError,
   NativeContentPendingRequestLimitError,
   createDirectNativeContentPort,
+  type ContentSizeDecision,
+  type ContentSizeProposal,
+  type DesiredUpdate,
   type NativeContentPort,
 } from "../../src/native-content/index.ts";
 import { MemoryNativeContentHost, flush, nextUpdate } from "./support.ts";
+
+// Refresh runs through the shared pump, which takes a few more microtasks than
+// a fixed flush, so tests wait for the state they assert on rather than a count.
+async function settleUntil(condition: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 100 && !condition(); attempt += 1) {
+    await flush();
+  }
+}
 
 describe("listener-first and stale-result lifetime", () => {
   test("an event between connect snapshot and response is reconciled", async () => {
@@ -47,7 +58,9 @@ describe("listener-first and stale-result lifetime", () => {
     const pending = connection.updateDesired(nextUpdate(initial, 48));
     await flush();
     host.replaceDesired(96, 2);
-    await flush();
+    await settleUntil(
+      () => connection.current()?.cursor.attach_generation === 2,
+    );
     expect(connection.current()?.cursor.attach_generation).toBe(2);
     expect(connection.current()?.cursor.desired_revision).toBe(2);
     release();
@@ -137,5 +150,65 @@ describe("listener-first and stale-result lifetime", () => {
     release();
     await first;
     await connection.dispose();
+  });
+
+  test("invalid caller input releases its pending slot", async () => {
+    const host = new MemoryNativeContentHost();
+    const connection = new NativeContentClient(host.port(), "island:fixture", {
+      maximumPendingRequests: 1,
+    }).connect();
+    const initial = await connection.ready;
+    // Each invalid request must fail on validation and free its slot; with a
+    // limit of one, a leaked slot would turn the second call into a limit error.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const rejected = connection.updateDesired({} as DesiredUpdate);
+      await expect(rejected).rejects.not.toBeInstanceOf(
+        NativeContentPendingRequestLimitError,
+      );
+    }
+    const decision = connection.decideContentSize(
+      {} as ContentSizeProposal,
+      {} as ContentSizeDecision,
+    );
+    await expect(decision).rejects.not.toBeInstanceOf(
+      NativeContentPendingRequestLimitError,
+    );
+    const committed = await connection.updateDesired(nextUpdate(initial, 48));
+    expect(committed.status).toBe("committed");
+    await connection.dispose();
+  });
+
+  test("a failing unlisten is reported and dispose still settles", async () => {
+    const host = new MemoryNativeContentHost();
+    const direct = host.port();
+    const port: NativeContentPort = {
+      ...direct,
+      listen: () => () => {
+        throw new Error("unlisten failed");
+      },
+    };
+    const connection = new NativeContentClient(port, "island:fixture").connect();
+    await connection.ready;
+    await expect(connection.dispose()).rejects.toThrow("unlisten failed");
+    expect(connection.failures().map((failure) => failure.phase)).toEqual([
+      "unlisten",
+    ]);
+  });
+
+  test("disposing after a failed start resolves without reporting the start failure again", async () => {
+    const host = new MemoryNativeContentHost();
+    const direct = host.port();
+    const port: NativeContentPort = {
+      ...direct,
+      connect: async () => {
+        throw new Error("connect refused");
+      },
+    };
+    const connection = new NativeContentClient(port, "island:fixture").connect();
+    await expect(connection.ready).rejects.toThrow("connect refused");
+    await expect(connection.dispose()).resolves.toBeUndefined();
+    expect(connection.failures().map((failure) => failure.phase)).toEqual([
+      "snapshot",
+    ]);
   });
 });

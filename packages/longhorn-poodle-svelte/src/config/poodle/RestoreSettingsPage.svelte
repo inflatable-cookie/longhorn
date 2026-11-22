@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { errorMessage } from "../../failures.ts";
+  import { formatArchiveTimestamp } from "./format.ts";
   import {
     Button,
     Callout,
@@ -38,7 +40,7 @@
   } from "./restore-model.ts";
   import type { ConfigOperationsPageProps } from "./types.ts";
 
-  type Activity = "idle" | "inspecting" | "planning" | "publishing" | "recovering";
+  type Activity = "idle" | "loading" | "inspecting" | "planning" | "publishing" | "recovering";
 
   let {
     client,
@@ -58,9 +60,6 @@
   let activity = $state<Activity>("idle");
   let error = $state<string | null>(null);
   let notice = $state<string | null>(null);
-  // Its own flag: `refresh` runs under `run("idle", ...)`, so `activity` says
-  // nothing about the first read being in flight.
-  let loading = $state(false);
   let failure = $state<RestoreExecutionFailureProjection | null>(null);
   let execution = $state<RestoreExecutionReceiptProjection | null>(null);
   let adapterReceipt = $state<RestoreAdapterReceiptProjection | null>(null);
@@ -86,7 +85,7 @@
     { value: "hostPicker", label: "Choose archive…" },
     ...(snapshot?.backup?.inventory.archives.map((archive) => ({
       value: archive.archiveSha256,
-      label: `${archive.createdAt} — ${archive.archiveId}`,
+      label: `${formatArchiveTimestamp(archive.createdAt)} — ${archive.archiveId}`,
     })) ?? []),
   ]);
   const conflictOptions: RadioGroupOption[] = [
@@ -99,8 +98,7 @@
   });
 
   async function refresh(): Promise<void> {
-    loading = true;
-    await run("idle", async () => {
+    await run("loading", async () => {
       acceptSnapshot(
         await client.snapshot({
           protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -108,7 +106,6 @@
         }),
       );
     });
-    loading = false;
   }
 
   async function inspect(): Promise<void> {
@@ -136,18 +133,29 @@
     });
   }
 
+  function isDecidedChoice(
+    choice: RestoreChoice | undefined,
+  ): choice is Exclude<RestoreChoice, ""> {
+    return choice === "useArchive" || choice === "keepCurrent";
+  }
+
   async function createPlan(): Promise<void> {
-    if (inspection === null || inspectionGeneration === null || !allChoicesMade) return;
+    const current = inspection;
+    const generation = inspectionGeneration;
+    if (current === null || generation === null || !allChoicesMade) return;
     await run("planning", async () => {
-      const domainChoices: RestoreDomainChoice[] = inspection!.domains.map((domain) => ({
-        domainId: domain.domainId,
-        choice: choices[domain.domainId] as Exclude<RestoreChoice, "">,
-      }));
+      const domainChoices = current.domains.map((domain): RestoreDomainChoice => {
+        const choice = choices[domain.domainId];
+        if (!isDecidedChoice(choice)) {
+          throw new Error(`no restore choice recorded for ${domain.domainId}`);
+        }
+        return { domainId: domain.domainId, choice };
+      });
       const outcome = await client.planRestore({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        generation: inspectionGeneration!,
-        archiveSha256: inspection!.archiveSha256,
+        generation,
+        archiveSha256: current.archiveSha256,
         choices: domainChoices,
       });
       if (outcome.status === "ready") {
@@ -160,13 +168,15 @@
   }
 
   async function execute(): Promise<void> {
-    if (plan === null || planGeneration === null) return;
+    const current = plan;
+    const generation = planGeneration;
+    if (current === null || generation === null) return;
     await run("publishing", async () => {
       const outcome = await client.executeRestore({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        generation: planGeneration!,
-        confirmationDigest: plan!.confirmationDigest,
+        generation,
+        confirmationDigest: current.confirmationDigest,
       });
       if (outcome.status === "succeeded") {
         execution = outcome.receipt;
@@ -191,13 +201,15 @@
     confirmationDigest: string,
     requirement: "failureAtomic" | "allowSeparate",
   ): Promise<void> {
-    if (inspection === null || inspectionGeneration === null) return;
+    const current = inspection;
+    const generation = inspectionGeneration;
+    if (current === null || generation === null) return;
     await run("publishing", async () => {
       const outcome = await client.executeAdapterRestore({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        generation: inspectionGeneration!,
-        archiveSha256: inspection!.archiveSha256,
+        generation,
+        archiveSha256: current.archiveSha256,
         domainId,
         confirmationDigest,
         requirement,
@@ -254,7 +266,7 @@
     try {
       await action();
     } catch (cause) {
-      error = cause instanceof Error ? cause.message : String(cause);
+      error = errorMessage(cause);
     } finally {
       activity = "idle";
     }
@@ -267,7 +279,7 @@
   }
 
   function reject(rejection: ConfigOperationRejection): void {
-    error = `${rejection.code}: ${rejection.detail}`;
+    error = rejection.detail;
     if (rejection.snapshot) acceptSnapshot(rejection.snapshot);
     if (rejection.code === "restorePlanStale" || rejection.code === "authorityChanged") {
       plan = null;
@@ -306,7 +318,7 @@
          composed no restore inspection. Only the third is what the message claims, and a
          Retry beside the other two is either pointless or premature. The load
          is now its own state, so what a reader sees is what happened. -->
-    {#if restore === null && snapshot === null && loading}
+    {#if restore === null && snapshot === null && activity === "loading"}
       <Callout tone="pending" title="Loading restore inspection" announceMode="polite" />
     {:else if snapshot === null}
       <Callout
@@ -377,7 +389,7 @@
           <h3>Verified archive</h3>
           <Grid columns="repeat(auto-fit, minmax(14rem, 1fr))" gap="md">
             <DetailItem label="Archive" value={inspection.archiveId} />
-            <DetailItem label="Created" value={inspection.createdAt} />
+            <DetailItem label="Created" value={formatArchiveTimestamp(inspection.createdAt)} />
             <DetailItem label="Integrity" value={RESTORE_INTEGRITY_LABELS[inspection.integrity]} />
             <DetailItem label="Authenticity" value={RESTORE_AUTHENTICITY_LABELS[inspection.authenticity]} />
             <DetailItem label="Application identity" value={identityLabel(inspection.identity.application)} />

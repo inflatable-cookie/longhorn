@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertValidSettingsLoadCommand } from "../src/settings/validation.ts";
-import { SETTINGS_FIELDS } from "../src/settings/generated/fields.ts";
-import fixture from "../../../fixtures/settings/protocol-v1.json";
+import { assertValidSettingsLoadCommand } from "../../src/settings/validation.ts";
+import { SETTINGS_FIELDS } from "../../src/settings/generated/fields.ts";
+import fixture from "../../../../fixtures/settings/protocol-v1.json";
 
 /**
  * Contract 010's Boundary Validation Target on `settings` — 619 lines of

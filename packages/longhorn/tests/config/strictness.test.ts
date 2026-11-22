@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertValidConfigOperationsSnapshot } from "../src/config/validation.ts";
-import { CONFIG_FIELDS } from "../src/config/generated/fields.ts";
+import { assertValidConfigOperationsSnapshot } from "../../src/config/validation.ts";
+import { CONFIG_FIELDS } from "../../src/config/generated/fields.ts";
 
 /**
  * Contract 010's Boundary Validation Target on `config` — the package the

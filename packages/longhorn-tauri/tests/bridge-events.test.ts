@@ -215,3 +215,87 @@ test("dispose runs both unlistens when terminal disposal rejects", async () => {
   await expect(dispose()).rejects.toThrow("terminal unlisten failed");
   expect(disposed).toEqual([BRIDGE_TERMINAL_EVENT, BRIDGE_PROGRESS_EVENT]);
 });
+
+test("a malformed progress event during terminal registration releases the terminal listener", async () => {
+  const released: string[] = [];
+  const handlers = new Map<string, (payload: unknown) => void>();
+  let completeTerminal!: (unlisten: Unlisten) => void;
+  const transport: EventTransport = {
+    invoke: () => Promise.resolve(undefined),
+    listen: (event, listener) => {
+      handlers.set(event, listener);
+      if (event === BRIDGE_TERMINAL_EVENT) {
+        return new Promise<Unlisten>((resolve) => {
+          completeTerminal = resolve;
+        });
+      }
+      return Promise.resolve(() => {
+        released.push(event);
+      });
+    },
+  };
+  const failures: ConnectionFailure[] = [];
+  const registration = listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: jsonCodec,
+      successCodec: jsonCodec,
+      detailCodec: jsonCodec,
+      terminal: () => {},
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+  // Progress is registered; terminal registration is still in flight.
+  await tick();
+  handlers.get(BRIDGE_PROGRESS_EVENT)?.(42);
+  completeTerminal(() => {
+    released.push(BRIDGE_TERMINAL_EVENT);
+  });
+  await registration;
+  await tick();
+
+  expect(failures.map((failure) => failure.phase)).toEqual(["event"]);
+  // Both registrations are released, the late terminal one as soon as it lands.
+  expect(released).toEqual([BRIDGE_PROGRESS_EVENT, BRIDGE_TERMINAL_EVENT]);
+});
+
+test("a throwing consumer callback is not reported as a malformed event", async () => {
+  const transport = new RecordingEventTransport();
+  const failures: ConnectionFailure[] = [];
+  const terminal: unknown[] = [];
+  await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: jsonCodec,
+      successCodec: jsonCodec,
+      detailCodec: jsonCodec,
+      progress: () => {
+        throw new Error("consumer bug");
+      },
+      terminal: (event) => terminal.push(event),
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+
+  expect(() =>
+    transport.emit(BRIDGE_PROGRESS_EVENT, {
+      requestId: "request:scan",
+      jobId: "job:scan",
+      progress: 20,
+    }),
+  ).toThrow("consumer bug");
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    outcome: { succeeded: { value: 3 } },
+  });
+  await tick();
+
+  expect(failures).toHaveLength(0);
+  expect(transport.listeners.size).toBe(2);
+  expect(terminal).toHaveLength(1);
+});

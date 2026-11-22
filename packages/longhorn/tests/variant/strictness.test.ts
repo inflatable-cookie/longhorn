@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { NATIVE_CONTENT_VARIANT_FIELDS } from "../src/native-content/generated/variant-fields.ts";
-import { NOTIFICATION_VARIANT_FIELDS } from "../src/notifications/generated/variant-fields.ts";
-import { OPERATION_VARIANT_FIELDS } from "../src/operation/generated/variant-fields.ts";
-import { HISTORY_TREE_VARIANT_FIELDS } from "../src/history-tree/generated/variant-fields.ts";
-import { assertValidOperationMutationCommand } from "../src/operation/validation.ts";
-import { assertValidNotificationMutationCommand } from "../src/notifications/validation.ts";
+import { NATIVE_CONTENT_VARIANT_FIELDS } from "../../src/native-content/generated/variant-fields.ts";
+import { NOTIFICATION_VARIANT_FIELDS } from "../../src/notifications/generated/variant-fields.ts";
+import { OPERATION_VARIANT_FIELDS } from "../../src/operation/generated/variant-fields.ts";
+import { HISTORY_TREE_VARIANT_FIELDS } from "../../src/history-tree/generated/variant-fields.ts";
+import { assertValidOperationMutationCommand } from "../../src/operation/validation.ts";
+import { assertValidNotificationMutationCommand } from "../../src/notifications/validation.ts";
 
 // Card 188. Each of these domains hand-wrote its per-variant key lists until
 // now — 32, 25 and 12 of them, as literal arrays inside a switch. The lists

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorMessage } from "../../failures.ts";
   import {
     Button,
     Callout,
@@ -170,7 +171,7 @@
     try {
       await action();
     } catch (cause) {
-      error = cause instanceof Error ? cause.message : String(cause);
+      error = errorMessage(cause);
     } finally {
       busy = false;
     }

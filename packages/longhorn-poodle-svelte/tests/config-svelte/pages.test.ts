@@ -181,8 +181,8 @@ describe("public Poodle config pages", () => {
 
   test.each([
     ["locked", fixture.restoreInspectionStates[1], "Archive locked"],
-    ["corrupt", fixture.restoreInspectionStates[2], "archiveCorrupt"],
-    ["future", fixture.restoreInspectionStates[3], "archiveFutureVersion"],
+    ["corrupt", fixture.restoreInspectionStates[2], "fixture refusal"],
+    ["future", fixture.restoreInspectionStates[3], "fixture refusal"],
   ])("mounts %s archive inspection state", async (_name, outcome, evidence) => {
     const { client, snapshot, transport } = pageFixture();
     transport.responses.set(CONFIG_RESTORE_INSPECT_COMMAND, outcome);
@@ -194,6 +194,8 @@ describe("public Poodle config pages", () => {
 
     await fireEvent.click(screen.getByRole("button", { name: "Inspect archive" }));
     expect(await screen.findByText(new RegExp(evidence))).toBeTruthy();
+    // The operator sees the rejection's detail, not its protocol code.
+    expect(screen.queryByText(/archiveCorrupt|archiveFutureVersion/)).toBeNull();
     expect(transport.calls).toEqual([CONFIG_RESTORE_INSPECT_COMMAND]);
   });
 
@@ -237,7 +239,8 @@ describe("public Poodle config pages", () => {
       screen.getByRole("button", { name: "Review exact plan" }),
     );
 
-    expect(await screen.findByText(/restorePlanStale/)).toBeTruthy();
+    expect(await screen.findByText(/fixture refusal/)).toBeTruthy();
+    expect(screen.queryByText(/restorePlanStale/)).toBeNull();
     expect(
       screen.queryByRole("region", { name: "Exact restore plan" }),
     ).toBeNull();

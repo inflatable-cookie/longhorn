@@ -37,6 +37,10 @@ primitives without copying component source or durable state.
   and rolled back or resynced on failure.
 - Errors, loading, reconnecting, and unsupported capability states are
   explicit.
+- A shell action that fails (apply, guard resolution, reset) stays visible
+  on the page and in any open confirmation until the next action. A session
+  whose stop fails on unmount logs the failure rather than leaving it
+  unhandled.
 - An optional capability lives behind its package subpath. Importing the
   Surface-free root cannot resolve that capability.
 
@@ -64,9 +68,10 @@ primitives without copying component source or durable state.
 - Private MIME values, generated DOM ids, CSS classes, and event-target
   reverse engineering are not public integration seams.
 
-The titlebar-drag helper rejects interactive descendants and modified pointer
-gestures before asking the host to start native dragging. Failure goes through
-an injected reporter.
+The titlebar-drag helper rejects interactive descendants (buttons, links,
+inputs, selects, labels, summaries, editable content, and the button, link,
+tab, and menu-item roles) and modified pointer gestures before asking the host
+to start native dragging. Failure goes through an injected reporter.
 
 ## Shell Composition
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { errorMessage } from "../../failures.ts";
+  import { formatArchiveTimestamp } from "./format.ts";
   import {
     Button,
     Callout,
@@ -101,13 +103,15 @@
   }
 
   async function applyRetention(): Promise<void> {
-    if (snapshot === null || backup?.retention === null) return;
+    const current = snapshot;
+    const retention = backup?.retention;
+    if (current === null || !retention) return;
     await run(async () => {
       const outcome = await client.applyBackupRetention({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        generation: snapshot!.generation,
-        confirmationDigest: backup!.retention!.confirmationDigest,
+        generation: current.generation,
+        confirmationDigest: retention.confirmationDigest,
       });
       if (outcome.status === "applied") {
         acceptSnapshot(outcome.snapshot);
@@ -125,7 +129,7 @@
     try {
       await action();
     } catch (cause) {
-      error = cause instanceof Error ? cause.message : String(cause);
+      error = errorMessage(cause);
     } finally {
       busy = false;
     }
@@ -216,7 +220,7 @@
                 <Surface asRole="group" label={`Backup ${archive.archiveId}`}>
                   <Stack direction="row" justify="between" align="center" gap="md">
                     <Stack gap="sm">
-                      <strong>{archive.createdAt}</strong>
+                      <strong>{formatArchiveTimestamp(archive.createdAt)}</strong>
                       <p>{archive.path}</p>
                       <small>{archive.archiveSha256}</small>
                     </Stack>

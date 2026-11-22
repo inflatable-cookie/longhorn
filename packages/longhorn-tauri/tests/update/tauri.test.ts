@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { createTauriUpdatePort } from "../../../longhorn-tauri/src/update.ts";
-import { fixture } from "./support.ts";
+import { createTauriUpdatePort } from "../../src/update.ts";
+import { fixture } from "../../../longhorn/tests/update/support.ts";
 
 describe("Tauri update composition", () => {
   test("uses seven narrow commands and two events", async () => {

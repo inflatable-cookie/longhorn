@@ -8,6 +8,7 @@
   } from "@inflatable-cookie/poodle-svelte";
   import { tick } from "svelte";
 
+  import { errorMessage, reportFailure } from "../../failures.ts";
   import {
     useSettingsSession,
     type SettingsRendererResolver,
@@ -180,6 +181,18 @@
     if (!session.canLeaveCurrent) session.requestClose();
   }
 
+  // Shell actions (apply, guard resolution, reset) can fail after the session
+  // has already moved on, so the rejection is kept here and shown. The page
+  // callout is the record; the open dialogs cover the page, so they carry it too.
+  let actionFailure = $state<{ readonly error: unknown } | undefined>();
+
+  function runAction(action: () => Promise<unknown>): void {
+    actionFailure = undefined;
+    void action().catch((error: unknown) => {
+      actionFailure = { error };
+    });
+  }
+
   function handleOpenChange(next: boolean): void {
     if (next) {
       open = true;
@@ -223,13 +236,13 @@
       <Callout
         tone="danger"
         title="Settings failed"
-        message={String(session.status.error)}
+        message={errorMessage(session.status.error)}
         announceMode="assertive"
       >
         {#snippet actions()}
           <Button
             variant="secondary"
-            onClick={() => void session.reconnect().catch(() => undefined)}
+            onClick={() => void session.reconnect().catch(reportFailure)}
           >
             Retry
           </Button>
@@ -247,6 +260,15 @@
         data-page-id={currentPage.id}
         data-anchor-id={session.route?.anchorId}
       >
+        {#if actionFailure}
+          <Callout
+            tone="danger"
+            title="Settings action failed"
+            message={errorMessage(actionFailure.error)}
+            announceMode="assertive"
+          />
+        {/if}
+
         {#if session.recovery}
           <Callout
             tone="danger"
@@ -287,7 +309,7 @@
           <Callout
             tone="danger"
             title="Save failed"
-            message={String(unitStatus.error)}
+            message={errorMessage(unitStatus.error)}
             announceMode="assertive"
           />
         {/if}
@@ -309,7 +331,7 @@
               variant="primary"
               loading={session.busy}
               disabled={!session.canApplyCurrent}
-              onClick={() => void session.applyCurrent().catch(() => undefined)}
+              onClick={() => runAction(() => session.applyCurrent())}
             >
               Apply
             </Button>
@@ -324,23 +346,25 @@
   open={session.guard !== undefined}
   role="alertdialog"
   title="Unsaved changes"
-  description="Apply or discard this page before leaving."
+  description={actionFailure
+    ? errorMessage(actionFailure.error)
+    : "Apply or discard this page before leaving."}
   dismissOnBackdrop={false}
   onOpenChange={(next) => {
-    if (!next) void session.resolveGuard("stay").catch(() => undefined);
+    if (!next) runAction(() => session.resolveGuard("stay"));
   }}
 >
   {#snippet actions()}
     <Button
       variant="ghost"
-      onClick={() => void session.resolveGuard("stay").catch(() => undefined)}
+      onClick={() => runAction(() => session.resolveGuard("stay"))}
     >
       Stay
     </Button>
     <Button
       variant="secondary"
       disabled={session.busy}
-      onClick={() => void session.resolveGuard("discard").catch(() => undefined)}
+      onClick={() => runAction(() => session.resolveGuard("discard"))}
     >
       Discard
     </Button>
@@ -348,7 +372,7 @@
       variant="primary"
       loading={session.busy}
       disabled={!session.canApplyCurrent}
-      onClick={() => void session.resolveGuard("apply").catch(() => undefined)}
+      onClick={() => runAction(() => session.resolveGuard("apply"))}
     >
       Apply
     </Button>
@@ -359,22 +383,24 @@
   open={session.resetRequest !== undefined}
   role="alertdialog"
   title="Reset settings"
-  description="Remove the selected user overrides?"
+  description={actionFailure
+    ? errorMessage(actionFailure.error)
+    : "Remove the selected user overrides?"}
   dismissOnBackdrop={false}
   onOpenChange={(next) => {
-    if (!next) void session.resolveReset(false).catch(() => undefined);
+    if (!next) runAction(() => session.resolveReset(false));
   }}
 >
   {#snippet actions()}
     <Button
       variant="secondary"
-      onClick={() => void session.resolveReset(false).catch(() => undefined)}
+      onClick={() => runAction(() => session.resolveReset(false))}
     >
       Cancel
     </Button>
     <Button
       variant="primary"
-      onClick={() => void session.resolveReset(true).catch(() => undefined)}
+      onClick={() => runAction(() => session.resolveReset(true))}
     >
       Reset
     </Button>

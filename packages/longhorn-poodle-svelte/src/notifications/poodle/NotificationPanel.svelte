@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { errorMessage } from "../../failures.ts";
   import { Button, Callout, InlineListSection, Stack, StatusIndicator } from "@inflatable-cookie/poodle-svelte";
   import type { Snippet } from "svelte";
 
@@ -18,7 +19,7 @@
     detail?: Snippet<[NotificationRecordProjection]>;
   } = $props();
 
-  const failure = $derived(session.status.kind === "failed" ? (session.status.error instanceof Error ? session.status.error.message : String(session.status.error)) : null);
+  const failure = $derived(session.status.kind === "failed" ? errorMessage(session.status.error) : null);
 
   function toggle(record: NotificationRecordProjection): void {
     session.select(session.selectedNotificationId === record.notificationId ? undefined : record.notificationId);
@@ -33,7 +34,7 @@
     {#if session.commandRejection}
       <Callout tone="warning" title="Notification action rejected" message={session.commandRejection.rejection.detail} announceMode="polite" />
     {:else if session.commandFailure}
-      <Callout tone="danger" title="Notification action failed" message={session.commandFailure.error instanceof Error ? session.commandFailure.error.message : String(session.commandFailure.error)} announceMode="polite" />
+      <Callout tone="danger" title="Notification action failed" message={errorMessage(session.commandFailure.error)} announceMode="polite" />
     {/if}
 
     <InlineListSection {title} items={session.records} count={session.snapshot?.retainedCount ?? session.records.length} {emptyMessage} framed={false}>

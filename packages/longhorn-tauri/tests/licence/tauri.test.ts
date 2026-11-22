@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { createTauriLicencePort } from "../../../longhorn-tauri/src/licence.ts";
-import { fixture } from "./support.ts";
+import { createTauriLicencePort } from "../../src/licence.ts";
+import { fixture } from "../../../longhorn/tests/licence/support.ts";
 
 describe("Tauri licence composition", () => {
   test("uses six narrow commands and one invalidation event", async () => {

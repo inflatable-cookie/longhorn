@@ -3,8 +3,8 @@ import { describe, expect, test } from "bun:test";
 import {
   assertValidSurfaceSnapshot,
   SurfaceProtocolValidationError,
-} from "../src/surfaces/validation.ts";
-import { SURFACE_PROTOCOL_VERSION } from "../src/surfaces/generated/protocol.ts";
+} from "../../src/surfaces/validation.ts";
+import { SURFACE_PROTOCOL_VERSION } from "../../src/surfaces/generated/protocol.ts";
 
 /**
  * Contract 010's Boundary Validation Target, on the first package migrated to

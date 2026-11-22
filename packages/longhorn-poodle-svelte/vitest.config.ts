@@ -2,9 +2,8 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// Anchored on this file, not the cwd. Note `scripts/test-packages.sh` greps
-// this config for the repo-relative tests path to decide the suite is
-// vitest-owned; keep the literal: packages/longhorn-poodle-svelte/tests
+// Anchored on this file, not the cwd. `scripts/test-packages.sh` lists this
+// package in VITEST_PACKAGES, so keep that list in step with this config.
 const tests = fileURLToPath(new URL("./tests", import.meta.url));
 
 const noExternal = [

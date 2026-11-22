@@ -1,6 +1,8 @@
-import type {
-  ConnectionFailure,
-  ConnectionFailureReporter,
+import {
+  CheckedSnapshotConnection,
+  type ConnectionFailure,
+  type ConnectionFailureReporter,
+  type SnapshotEventAction,
 } from "@inflatable-cookie/longhorn/core";
 
 import {
@@ -11,6 +13,7 @@ import {
   assertValidNativeContentDecisionResult,
   assertValidNativeContentDesiredUpdateRequest,
   assertValidNativeContentDesiredUpdateResult,
+  assertValidNativeContentSnapshot,
   assertValidNativeContentSnapshotRequest,
   assertValidNativeContentSnapshotResult,
 } from "./validation.ts";
@@ -19,13 +22,13 @@ import {
   type ContentSizeDecision,
   type ContentSizeProposal,
   type DesiredUpdate,
-  type NativeContentChangedEvent,
   type NativeContentContentSizeDecisionResult,
   type NativeContentDesiredUpdateResult,
   type NativeContentIslandId,
+  type NativeContentProtocolRejection,
   type NativeContentSnapshot,
 } from "./generated/protocol.ts";
-import type { NativeContentPort, NativeContentUnlisten } from "./ports.ts";
+import type { NativeContentPort } from "./ports.ts";
 
 const DEFAULT_MAXIMUM_PENDING_REQUESTS = 32;
 
@@ -79,21 +82,19 @@ export class NativeContentClient {
   }
 }
 
+/**
+ * Native-content lifetime on the shared snapshot connection: listener first,
+ * connect for the first authoritative snapshot, then refresh on events. This
+ * class adds only what is native-content specific: the connect/snapshot
+ * requests, the event cursor rules and the bounded mutation requests.
+ */
 class CheckedNativeContentConnection implements NativeContentConnection {
   readonly ready: Promise<NativeContentSnapshot>;
   readonly #port: NativeContentPort;
   readonly #islandId: NativeContentIslandId;
   readonly #maximumPendingRequests: number;
-  readonly #listener: ((snapshot: NativeContentSnapshot) => void) | undefined;
-  readonly #onFailure: ConnectionFailureReporter | undefined;
-  readonly #failures: ConnectionFailure[] = [];
+  readonly #connection: CheckedSnapshotConnection<NativeContentSnapshot>;
   readonly #pending = new Set<string>();
-  readonly #queuedEvents: NativeContentChangedEvent[] = [];
-  #snapshot: NativeContentSnapshot | undefined;
-  #unlisten: NativeContentUnlisten | undefined;
-  #cleanup: Promise<void> | undefined;
-  #pump: Promise<void> | undefined;
-  #refreshPending = false;
   #disposed = false;
 
   constructor(
@@ -106,17 +107,32 @@ class CheckedNativeContentConnection implements NativeContentConnection {
     this.#port = port;
     this.#islandId = islandId;
     this.#maximumPendingRequests = maximumPendingRequests;
-    this.#listener = listener;
-    this.#onFailure = onFailure;
-    this.ready = this.#start();
+    this.#connection = new CheckedSnapshotConnection<NativeContentSnapshot>({
+      listen: async (receive) =>
+        port.listen === undefined ? () => {} : port.listen(receive),
+      loadSnapshot: () => this.#loadSnapshot(),
+      validateSnapshot: parseSnapshot,
+      handleEvent: (payload, current) => eventAction(payload, current, islandId),
+      isNewer: isNewerSessionSnapshot,
+      onSnapshot: listener,
+      onFailure,
+      disposedBeforeReadyError: () =>
+        new NativeContentConnectionDisposedError(),
+    });
+    this.ready = this.#connection.ready.then((snapshot) => {
+      if (snapshot === undefined) {
+        throw new NativeContentConnectionUnavailableError();
+      }
+      return snapshot;
+    });
   }
 
   current(): NativeContentSnapshot | undefined {
-    return this.#snapshot;
+    return this.#connection.current();
   }
 
   failures(): readonly ConnectionFailure[] {
-    return [...this.#failures];
+    return this.#connection.failures();
   }
 
   async updateDesired(
@@ -124,21 +140,20 @@ class CheckedNativeContentConnection implements NativeContentConnection {
   ): Promise<NativeContentDesiredUpdateResult> {
     const current = await this.#requireCurrent();
     const requestId = this.#beginRequest();
-    const session = sessionCursor(current);
-    const request = {
-      protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
-      request_id: requestId,
-      island_id: this.#islandId,
-      client_epoch: current.cursor.client_epoch,
-      expected_desired_revision: current.cursor.desired_revision,
-      update,
-    };
-    assertValidNativeContentDesiredUpdateRequest(request);
     try {
+      const request = {
+        protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
+        request_id: requestId,
+        island_id: this.#islandId,
+        client_epoch: current.cursor.client_epoch,
+        expected_desired_revision: current.cursor.desired_revision,
+        update,
+      };
+      assertValidNativeContentDesiredUpdateRequest(request);
       const value = await this.#port.updateDesired(request);
       assertValidNativeContentDesiredUpdateResult(value);
       assertCorrelation(value.request_id, requestId);
-      if (value.status === "committed") this.#offer(value.snapshot, session);
+      if (value.status === "committed") this.#connection.offer(value.snapshot);
       return value;
     } finally {
       this.#pending.delete(requestId);
@@ -151,21 +166,20 @@ class CheckedNativeContentConnection implements NativeContentConnection {
   ): Promise<NativeContentContentSizeDecisionResult> {
     const current = await this.#requireCurrent();
     const requestId = this.#beginRequest();
-    const session = sessionCursor(current);
-    const request = {
-      protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
-      request_id: requestId,
-      island_id: this.#islandId,
-      client_epoch: current.cursor.client_epoch,
-      proposal,
-      decision,
-    };
-    assertValidNativeContentDecisionRequest(request);
     try {
+      const request = {
+        protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
+        request_id: requestId,
+        island_id: this.#islandId,
+        client_epoch: current.cursor.client_epoch,
+        proposal,
+        decision,
+      };
+      assertValidNativeContentDecisionRequest(request);
       const value = await this.#port.decideContentSize(request);
       assertValidNativeContentDecisionResult(value);
       assertCorrelation(value.request_id, requestId);
-      if (value.status === "decided") this.#offer(value.snapshot, session);
+      if (value.status === "decided") this.#connection.offer(value.snapshot);
       return value;
     } finally {
       this.#pending.delete(requestId);
@@ -175,161 +189,62 @@ class CheckedNativeContentConnection implements NativeContentConnection {
   async dispose(): Promise<void> {
     this.#disposed = true;
     this.#pending.clear();
-    await this.#closeListener();
     try {
-      await this.ready;
-    } catch {
-      // Registration/start failures are already retained in failures().
-    }
-    await this.#closeListener();
-  }
-
-  async #start(): Promise<NativeContentSnapshot> {
-    try {
-      this.#unlisten =
-        this.#port.listen === undefined
-          ? () => {}
-          : await this.#port.listen((value) => this.#handleEvent(value));
+      await this.#connection.dispose();
     } catch (error) {
-      this.#recordFailure("registration", error);
-      throw error;
-    }
-
-    if (this.#disposed) {
-      await this.#closeListener();
-      throw new NativeContentConnectionDisposedError();
-    }
-
-    try {
-      const requestId = this.#port.nextRequestId();
-      const request = {
-        protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
-        request_id: requestId,
-        island_id: this.#islandId,
-      };
-      assertValidNativeContentConnectRequest(request);
-      const value = await this.#port.connect(request);
-      assertValidNativeContentConnectResult(value);
-      assertCorrelation(value.request_id, requestId);
-      if (value.status === "rejected") {
-        throw new NativeContentRequestRejectedError(value.rejection);
-      }
-      if (this.#disposed) {
-        await this.#closeListener();
-        throw new NativeContentConnectionDisposedError();
-      }
-      this.#install(value.snapshot);
-      for (const event of this.#queuedEvents.splice(0)) this.#acceptEvent(event);
-      await this.#synchronize();
-      const current = this.#snapshot;
-      if (current === undefined) throw new Error("native-content connect returned no snapshot");
-      return current;
-    } catch (error) {
-      this.#recordFailure("snapshot", error);
-      await this.#closeAfterFailure();
-      throw error;
+      // A failed start is already retained in failures(). Disposing the
+      // connection is not a second failure, so only a teardown error rejects.
+      const reported = this.#connection
+        .failures()
+        .some((failure) => failure.phase !== "unlisten" && failure.error === error);
+      if (!reported) throw error;
     }
   }
 
-  #handleEvent(value: unknown): void {
-    if (this.#disposed || this.#failures.length > 0) return;
-    try {
-      assertValidNativeContentChangedEvent(value);
-      if (value.cursor.island_id !== this.#islandId) return;
-      if (this.#snapshot === undefined) {
-        this.#queuedEvents.push(value);
-        return;
-      }
-      this.#acceptEvent(value);
-    } catch (error) {
-      this.#recordFailure("event", error);
-      void this.#closeAfterFailure();
-    }
+  async #loadSnapshot(): Promise<unknown> {
+    const current = this.#connection.current();
+    return current === undefined ? this.#connect() : this.#refresh(current);
   }
 
-  #acceptEvent(event: NativeContentChangedEvent): void {
-    const current = this.#snapshot;
-    if (current === undefined) return;
-    const currentCursor = current.cursor;
-    if (event.cursor.authority_epoch < currentCursor.authority_epoch) return;
-    if (
-      event.cursor.authority_epoch > currentCursor.authority_epoch ||
-      event.cursor.client_epoch > currentCursor.client_epoch
-    ) {
-      throw new NativeContentSessionReplacedError();
+  async #connect(): Promise<unknown> {
+    const requestId = this.#port.nextRequestId();
+    const request = {
+      protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
+      request_id: requestId,
+      island_id: this.#islandId,
+    };
+    assertValidNativeContentConnectRequest(request);
+    const value = await this.#port.connect(request);
+    assertValidNativeContentConnectResult(value);
+    assertCorrelation(value.request_id, requestId);
+    if (value.status === "rejected") {
+      throw new NativeContentRequestRejectedError(value.rejection);
     }
-    if (event.cursor.client_epoch < currentCursor.client_epoch) return;
-    if (
-      event.cursor.desired_revision <= currentCursor.desired_revision &&
-      event.cursor.observed_revision <= currentCursor.observed_revision
-    ) {
-      return;
-    }
-    this.#refreshPending = true;
-    void this.#synchronize().catch((error) => {
-      this.#recordFailure("snapshot", error);
-      void this.#closeAfterFailure();
-    });
+    return value.snapshot;
   }
 
-  #synchronize(): Promise<void> {
-    if (this.#disposed || this.#failures.length > 0 || !this.#refreshPending) {
-      return Promise.resolve();
+  async #refresh(current: NativeContentSnapshot): Promise<unknown> {
+    const requestId = this.#port.nextRequestId();
+    const request = {
+      protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
+      request_id: requestId,
+      island_id: this.#islandId,
+      client_epoch: current.cursor.client_epoch,
+    };
+    assertValidNativeContentSnapshotRequest(request);
+    const value = await this.#port.snapshot(request);
+    assertValidNativeContentSnapshotResult(value);
+    assertCorrelation(value.request_id, requestId);
+    if (value.status === "rejected") {
+      throw new NativeContentRequestRejectedError(value.rejection);
     }
-    this.#pump ??= this.#runPump().finally(() => {
-      this.#pump = undefined;
-    });
-    return this.#pump;
-  }
-
-  async #runPump(): Promise<void> {
-    while (this.#refreshPending && !this.#disposed && this.#failures.length === 0) {
-      this.#refreshPending = false;
-      const current = this.#snapshot;
-      if (current === undefined) return;
-      const requestId = this.#port.nextRequestId();
-      const request = {
-        protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
-        request_id: requestId,
-        island_id: this.#islandId,
-        client_epoch: current.cursor.client_epoch,
-      };
-      assertValidNativeContentSnapshotRequest(request);
-      const value = await this.#port.snapshot(request);
-      assertValidNativeContentSnapshotResult(value);
-      assertCorrelation(value.request_id, requestId);
-      if (value.status === "rejected") {
-        throw new NativeContentRequestRejectedError(value.rejection);
-      }
-      this.#offer(value.snapshot, sessionCursor(current));
-    }
-  }
-
-  #offer(snapshot: NativeContentSnapshot, session: SessionCursor): void {
-    if (this.#disposed) return;
-    const current = this.#snapshot;
-    if (current === undefined) return;
-    if (
-      current.cursor.authority_epoch !== session.authorityEpoch ||
-      current.cursor.client_epoch !== session.clientEpoch ||
-      snapshot.cursor.authority_epoch !== session.authorityEpoch ||
-      snapshot.cursor.client_epoch !== session.clientEpoch
-    ) {
-      return;
-    }
-    if (!isNewerSnapshot(snapshot, current)) return;
-    this.#install(snapshot);
-  }
-
-  #install(snapshot: NativeContentSnapshot): void {
-    this.#snapshot = snapshot;
-    this.#listener?.(snapshot);
+    return value.snapshot;
   }
 
   async #requireCurrent(): Promise<NativeContentSnapshot> {
     await this.ready;
     if (this.#disposed) throw new NativeContentConnectionDisposedError();
-    const current = this.#snapshot;
+    const current = this.#connection.current();
     if (current === undefined) throw new NativeContentConnectionUnavailableError();
     return current;
   }
@@ -347,42 +262,63 @@ class CheckedNativeContentConnection implements NativeContentConnection {
     this.#pending.add(requestId);
     return requestId;
   }
-
-  #recordFailure(phase: ConnectionFailure["phase"], error: unknown): void {
-    if (this.#failures.some((failure) => failure.phase === phase && failure.error === error)) return;
-    const failure = { phase, error };
-    this.#failures.push(failure);
-    this.#onFailure?.(failure);
-  }
-
-  async #closeAfterFailure(): Promise<void> {
-    try {
-      await this.#closeListener();
-    } catch (error) {
-      this.#recordFailure("unlisten", error);
-    }
-  }
-
-  #closeListener(): Promise<void> {
-    if (this.#cleanup !== undefined) return this.#cleanup;
-    const unlisten = this.#unlisten;
-    if (unlisten === undefined) return Promise.resolve();
-    this.#unlisten = undefined;
-    this.#cleanup = Promise.resolve().then(() => unlisten());
-    return this.#cleanup;
-  }
 }
 
-interface SessionCursor {
-  readonly authorityEpoch: number;
-  readonly clientEpoch: number;
+function parseSnapshot(value: unknown): NativeContentSnapshot {
+  assertValidNativeContentSnapshot(value);
+  return value;
 }
 
-function sessionCursor(snapshot: NativeContentSnapshot): SessionCursor {
-  return {
-    authorityEpoch: snapshot.cursor.authority_epoch,
-    clientEpoch: snapshot.cursor.client_epoch,
-  };
+function eventAction(
+  payload: unknown,
+  current: NativeContentSnapshot | undefined,
+  islandId: NativeContentIslandId,
+): SnapshotEventAction {
+  assertValidNativeContentChangedEvent(payload);
+  const event = payload.cursor;
+  if (event.island_id !== islandId) return { kind: "ignore" };
+  if (current === undefined) return { kind: "refresh" };
+
+  const currentCursor = current.cursor;
+  if (event.authority_epoch < currentCursor.authority_epoch) {
+    return { kind: "ignore" };
+  }
+  if (
+    event.authority_epoch > currentCursor.authority_epoch ||
+    event.client_epoch > currentCursor.client_epoch
+  ) {
+    throw new NativeContentSessionReplacedError();
+  }
+  if (event.client_epoch < currentCursor.client_epoch) {
+    return { kind: "ignore" };
+  }
+  if (
+    event.desired_revision <= currentCursor.desired_revision &&
+    event.observed_revision <= currentCursor.observed_revision
+  ) {
+    return { kind: "ignore" };
+  }
+  return { kind: "refresh" };
+}
+
+/**
+ * A snapshot only replaces the current one within the same authority and
+ * client epoch. A different session cannot arrive by refresh or by request
+ * result: an authority or client epoch change is a session replacement, which
+ * the event path reports as a failure.
+ */
+function isNewerSessionSnapshot(
+  candidate: NativeContentSnapshot,
+  current: NativeContentSnapshot | undefined,
+): boolean {
+  if (current === undefined) return true;
+  if (
+    candidate.cursor.authority_epoch !== current.cursor.authority_epoch ||
+    candidate.cursor.client_epoch !== current.cursor.client_epoch
+  ) {
+    return false;
+  }
+  return isNewerNativeContentSnapshot(candidate, current);
 }
 
 export function isNewerNativeContentSnapshot(
@@ -406,13 +342,6 @@ export function isNewerNativeContentSnapshot(
   );
 }
 
-function isNewerSnapshot(
-  candidate: NativeContentSnapshot,
-  current: NativeContentSnapshot,
-): boolean {
-  return isNewerNativeContentSnapshot(candidate, current);
-}
-
 function assertCorrelation(received: string, expected: string): void {
   if (received !== expected) {
     throw new NativeContentResponseCorrelationError(expected, received);
@@ -432,7 +361,7 @@ export class NativeContentResponseCorrelationError extends Error {
 }
 
 export class NativeContentRequestRejectedError extends Error {
-  constructor(readonly rejection: import("./generated/protocol.ts").NativeContentProtocolRejection) {
+  constructor(readonly rejection: NativeContentProtocolRejection) {
     super(rejection.message);
     this.name = "NativeContentRequestRejectedError";
   }
