@@ -4,9 +4,10 @@
 //! product type, no enum naming a business model. If a model cannot be
 //! written here without a Longhorn change, the abstraction is wrong.
 
+use ed25519_dalek::{Signer, SigningKey};
 use longhorn_licence::{
-    ClockGuard, EntitlementId, Entitlements, GracePolicy, LicencePayload, Limit, Timestamp,
-    Usability, VerifiedLicence, usability,
+    ClockGuard, EntitlementId, Entitlements, GracePolicy, LicencePayload, Limit, SignedLicence,
+    Timestamp, Usability, VerifiedLicence, usability, verify,
 };
 
 const DAY: i64 = 86_400;
@@ -21,8 +22,15 @@ fn id(value: &str) -> EntitlementId {
 
 /// Every model below is built the same way and checked the same way. Only
 /// the two windows differ.
+///
+/// Offline-signed because perpetual, trial, and freemium models omit
+/// `lease_until`, which only an offline-verifiable basis can honestly claim.
 fn licence(payload: LicencePayload) -> VerifiedLicence {
-    VerifiedLicence::from_remote_assertion(payload, at(0))
+    let key = SigningKey::from_bytes(&[5_u8; 32]);
+    let bytes = serde_json::to_vec(&payload).unwrap();
+    let signature = key.sign(&bytes);
+    let signed = SignedLicence::new("models-key", bytes, signature.to_bytes().to_vec());
+    verify(&signed, &key.verifying_key(), &payload.product).unwrap()
 }
 
 fn state(licence: &VerifiedLicence, now: Timestamp) -> Usability {

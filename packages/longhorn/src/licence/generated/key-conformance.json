@@ -38,5 +38,13 @@
   {
     "input": "ABCDE!2345FGHJK6789X",
     "outcome": "unexpectedSymbol:!"
+  },
+  {
+    "input": "*BCDE12345FGHJK6789Z",
+    "outcome": "unexpectedSymbol:*"
+  },
+  {
+    "input": "ABCDEu2345FGHJK6789Z",
+    "outcome": "unexpectedSymbol:u"
   }
 ]

@@ -60,7 +60,7 @@ impl LicenceKey {
     /// `L` read as `1`, `O` reads as `0`. Rejecting these would be rejecting
     /// the customer for the typeface's mistake.
     pub fn parse(input: &str) -> Result<Self, LicenceKeyError> {
-        let normalized = normalize(input)?;
+        let normalized = normalize(input, NormalizeKind::KeyWithCheck)?;
         if normalized.len() < MINIMUM_KEY_SYMBOLS {
             return Err(LicenceKeyError::TooShort {
                 minimum: MINIMUM_KEY_SYMBOLS,
@@ -82,7 +82,7 @@ impl LicenceKey {
     ///
     /// The issuing side of the same rule, kept here so the two cannot drift.
     pub fn from_body(body: &str) -> Result<Self, LicenceKeyError> {
-        let normalized = normalize(body)?;
+        let normalized = normalize(body, NormalizeKind::BodyOnly)?;
         // The body is one symbol shorter than the key it becomes.
         if normalized.len() + 1 < MINIMUM_KEY_SYMBOLS {
             return Err(LicenceKeyError::TooShort {
@@ -126,9 +126,18 @@ impl fmt::Display for LicenceKey {
     }
 }
 
+enum NormalizeKind {
+    BodyOnly,
+    KeyWithCheck,
+}
+
 /// Normalizes typed input into canonical symbols.
-fn normalize(input: &str) -> Result<String, LicenceKeyError> {
-    let mut output = String::with_capacity(input.len());
+///
+/// Body positions accept only Crockford base32 (`ALPHABET`). Only the trailing
+/// check position of a complete key may use the five check-only symbols
+/// (`*~$=U`) from `CHECK_ALPHABET`.
+fn normalize(input: &str, kind: NormalizeKind) -> Result<String, LicenceKeyError> {
+    let mut symbols = Vec::with_capacity(input.len());
     for character in input.chars() {
         if character.is_whitespace() || character == '-' {
             continue;
@@ -140,8 +149,21 @@ fn normalize(input: &str) -> Result<String, LicenceKeyError> {
             'O' => '0',
             other => other,
         };
-        if !mapped.is_ascii() || !CHECK_ALPHABET.contains(&(mapped as u8)) {
-            return Err(LicenceKeyError::UnexpectedSymbol { symbol: character });
+        symbols.push((character, mapped));
+    }
+
+    let last_index = symbols.len().saturating_sub(1);
+    let mut output = String::with_capacity(symbols.len());
+    for (index, (original, mapped)) in symbols.into_iter().enumerate() {
+        let allow_check_alphabet =
+            matches!(kind, NormalizeKind::KeyWithCheck) && index == last_index;
+        let alphabet: &[u8] = if allow_check_alphabet {
+            CHECK_ALPHABET
+        } else {
+            ALPHABET
+        };
+        if !mapped.is_ascii() || !alphabet.contains(&(mapped as u8)) {
+            return Err(LicenceKeyError::UnexpectedSymbol { symbol: original });
         }
         output.push(mapped);
     }
@@ -162,7 +184,7 @@ fn check_symbol(body: &str) -> u8 {
             let value = ALPHABET
                 .iter()
                 .position(|candidate| candidate == symbol)
-                .unwrap_or(0);
+                .expect("normalized key body contains only Crockford base32 symbols");
             value * (index + 1)
         })
         .sum();
@@ -261,6 +283,11 @@ pub fn key_conformance_cases() -> Vec<(String, String)> {
     record("");
     record("ABCDE12345");
     record("ABCDE!2345FGHJK6789X");
+    // Check-only symbols are forbidden in the body.
+    let zero_leading = LicenceKey::from_body("0BCDE12345FGHJK6789").expect("issues");
+    let zero_check = &zero_leading.as_str()[19..];
+    record(&format!("*BCDE12345FGHJK6789{zero_check}"));
+    record(&format!("ABCDEu2345FGHJK6789{zero_check}"));
     cases
 }
 
@@ -399,5 +426,50 @@ mod tests {
         assert!(matches!(error, LicenceKeyError::TooShort { .. }));
         assert!(!error.is_probably_a_typo());
         assert!(error.to_string().contains("at least 20"));
+    }
+
+    #[test]
+    fn check_only_symbols_are_rejected_in_the_key_body() {
+        let zero_leading = LicenceKey::from_body("0BCDE12345FGHJK6789").unwrap();
+        let check = &zero_leading.as_str()[19..];
+
+        for symbol in ['*', '~', '$', '=', 'U', 'u'] {
+            let body = format!("{symbol}BCDE12345FGHJK6789");
+            assert_eq!(
+                LicenceKey::from_body(&body),
+                Err(LicenceKeyError::UnexpectedSymbol { symbol }),
+                "from_body must reject check-only symbol {symbol:?}"
+            );
+            let full = format!("{body}{check}");
+            assert_eq!(
+                LicenceKey::parse(&full),
+                Err(LicenceKeyError::UnexpectedSymbol { symbol }),
+                "parse must reject check-only symbol {symbol:?} in body"
+            );
+        }
+    }
+
+    #[test]
+    fn check_only_symbols_are_accepted_in_the_check_position() {
+        // 000000000000000000* -> find a body whose check symbol is each check-only char.
+        // Sum for "000000000000000000<c>" is value(c) * 19 mod 37.
+        let mut seen_check_only = 0_usize;
+        for &byte in ALPHABET {
+            let body = format!("000000000000000000{}", char::from(byte));
+            let issued = LicenceKey::from_body(&body).unwrap();
+            let check = issued.as_str().as_bytes()[19];
+            if !ALPHABET.contains(&check) {
+                seen_check_only += 1;
+                assert_eq!(LicenceKey::parse(issued.as_str()).unwrap(), issued);
+                assert_eq!(
+                    LicenceKey::parse(&issued.as_str().to_lowercase()).unwrap(),
+                    issued
+                );
+            }
+        }
+        assert!(
+            seen_check_only > 0,
+            "expected at least one issued key to use a check-only symbol"
+        );
     }
 }

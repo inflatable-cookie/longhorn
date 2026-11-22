@@ -13,7 +13,7 @@ use longhorn_core::{CredentialSlot, CredentialStore, MemoryCredentialStore};
 use longhorn_licence::{
     AccountFlow, Activation, ActivationSource, ActivationUrl, ClockGuard, CodeVerifier, Credential,
     GracePolicy, LicencePayload, SignedFileSource, SignedLicence, Span, Timestamp,
-    TokenRedemptionSource, TrustBasis, Usability, asserted_remotely, usability, verify,
+    TokenRedemptionSource, TrustBasis, Usability, VerifiedLicence, usability, verify,
 };
 use longhorn_update::{
     AdmissionAuthority, AdmissionLease, AdmissionRefusal, Artifact, BuildIdentity, Channel,
@@ -210,21 +210,22 @@ pub fn licence_evidence() -> Value {
         payload_bytes.clone(),
         signature.to_bytes().to_vec(),
     );
-    let verified = verify(&signed, &verifying_key).expect("a genuine signature must verify");
+    let verified =
+        verify(&signed, &verifying_key, "proof-product").expect("a genuine signature must verify");
     assert_eq!(verified.payload().product, "proof-product");
 
     let mut tampered = payload_bytes.clone();
     tampered[0] ^= 0x01;
     let forged = SignedLicence::new("proof-key", tampered, signature.to_bytes().to_vec());
     assert!(matches!(
-        verify(&forged, &verifying_key),
+        verify(&forged, &verifying_key, "proof-product"),
         Err(longhorn_licence::VerificationError::SignatureRejected)
     ));
 
     let wrong_key = SigningKey::from_bytes(&[9; 32]).verifying_key();
-    assert!(verify(&signed, &wrong_key).is_err());
+    assert!(verify(&signed, &wrong_key, "proof-product").is_err());
 
-    let file_source = SignedFileSource::new(verifying_key);
+    let file_source = SignedFileSource::new(verifying_key, "proof-product");
     let Activation::Settled(file_licence) = file_source
         .acquire(&Credential::LicenceFile(
             serde_json::to_vec(&signed).unwrap(),
@@ -241,6 +242,7 @@ pub fn licence_evidence() -> Value {
     let token_source = TokenRedemptionSource::new(
         ActivationUrl::new("https://stub.example/redeem").unwrap(),
         verifying_key,
+        "proof-product",
     );
     let redemption_key = longhorn_licence::LicenceKey::from_body("ABCDE12345FGHJK6789")
         .expect("a well-formed redemption key parses");
@@ -259,7 +261,7 @@ pub fn licence_evidence() -> Value {
         TrustBasis::OfflineSignature { .. }
     ));
 
-    let active = asserted_remotely(
+    let active = VerifiedLicence::from_remote_assertion(
         LicencePayload {
             lease_until: Some(now),
             ..payload.clone()
@@ -273,7 +275,7 @@ pub fn licence_evidence() -> Value {
     ));
 
     let day = 86_400;
-    let expired = asserted_remotely(
+    let expired = VerifiedLicence::from_remote_assertion(
         LicencePayload {
             use_until: Some(Timestamp::from_unix_seconds(now.as_unix_seconds() - day)),
             ..payload.clone()
@@ -285,7 +287,7 @@ pub fn licence_evidence() -> Value {
         Usability::UseWindowExpired { .. }
     ));
 
-    let lapsed_lease = asserted_remotely(
+    let lapsed_lease = VerifiedLicence::from_remote_assertion(
         LicencePayload {
             lease_until: Some(Timestamp::from_unix_seconds(
                 now.as_unix_seconds() - 30 * day,
@@ -299,7 +301,7 @@ pub fn licence_evidence() -> Value {
         Usability::LeaseLapsed { .. }
     ));
 
-    let clocked_back = asserted_remotely(payload.clone(), now);
+    let clocked_back = VerifiedLicence::from_remote_assertion(payload.clone(), now);
     let guard = ClockGuard::new(now.saturating_add(Span::from_days(10)));
     assert!(matches!(
         usability(&clocked_back, now, guard, grace),

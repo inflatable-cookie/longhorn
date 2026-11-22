@@ -6,7 +6,7 @@ use longhorn_url::{EndpointClassificationError, LoopbackHttp, classify_endpoint}
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
-use crate::{LicenceKey, SignedLicence, Timestamp, VerificationError, VerifiedLicence, verify};
+use crate::{LicenceKey, SignedLicence, VerificationError, VerifiedLicence, verify};
 
 /// A URL an activation request may be issued against.
 ///
@@ -201,6 +201,9 @@ pub enum ActivationError {
     UnsupportedCredential,
     /// A response arrived for an exchange that was never requested.
     UnexpectedResponse,
+    /// The licence carries no activation slot id, so it cannot be renewed or
+    /// released against a backend.
+    MissingActivationId,
     /// A composed URL was not usable.
     Url(ActivationUrlError),
     /// The licence did not verify.
@@ -233,6 +236,7 @@ impl fmt::Display for ActivationError {
             Self::UnexpectedResponse => {
                 formatter.write_str("a response arrived for no outstanding exchange")
             }
+            Self::MissingActivationId => formatter.write_str("licence has no activation id"),
             Self::Url(error) => write!(formatter, "unusable endpoint: {error}"),
             Self::Verification(error) => write!(formatter, "{error}"),
             Self::MalformedResponse { detail } => {
@@ -242,7 +246,18 @@ impl fmt::Display for ActivationError {
     }
 }
 
-impl Error for ActivationError {}
+impl Error for ActivationError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Url(error) => Some(error),
+            Self::Verification(error) => Some(error),
+            Self::UnsupportedCredential
+            | Self::UnexpectedResponse
+            | Self::MissingActivationId
+            | Self::MalformedResponse { .. } => None,
+        }
+    }
+}
 
 /// A licence file the customer was sent, verified locally.
 ///
@@ -253,13 +268,17 @@ impl Error for ActivationError {}
 #[derive(Clone, Debug)]
 pub struct SignedFileSource {
     key: VerifyingKey,
+    product: String,
 }
 
 impl SignedFileSource {
-    /// Records a source verifying against one public key.
+    /// Records a source verifying licences for `product` against one public key.
     #[must_use]
-    pub const fn new(key: VerifyingKey) -> Self {
-        Self { key }
+    pub fn new(key: VerifyingKey, product: impl Into<String>) -> Self {
+        Self {
+            key,
+            product: product.into(),
+        }
     }
 }
 
@@ -272,7 +291,11 @@ impl ActivationSource for SignedFileSource {
             serde_json::from_slice(bytes).map_err(|error| ActivationError::MalformedResponse {
                 detail: error.to_string(),
             })?;
-        Ok(Activation::Settled(Box::new(verify(&signed, &self.key)?)))
+        Ok(Activation::Settled(Box::new(verify(
+            &signed,
+            &self.key,
+            &self.product,
+        )?)))
     }
 }
 
@@ -285,13 +308,18 @@ impl ActivationSource for SignedFileSource {
 pub struct TokenRedemptionSource {
     endpoint: ActivationUrl,
     key: VerifyingKey,
+    product: String,
 }
 
 impl TokenRedemptionSource {
-    /// Records a source redeeming against one endpoint.
+    /// Records a source redeeming licences for `product` against one endpoint.
     #[must_use]
-    pub const fn new(endpoint: ActivationUrl, key: VerifyingKey) -> Self {
-        Self { endpoint, key }
+    pub fn new(endpoint: ActivationUrl, key: VerifyingKey, product: impl Into<String>) -> Self {
+        Self {
+            endpoint,
+            key,
+            product: product.into(),
+        }
     }
 
     fn exchange(&self, action: &str, payload: &str) -> Activation {
@@ -305,6 +333,13 @@ impl TokenRedemptionSource {
             ActivationRequest::new(self.endpoint.clone(), body)
                 .with_header("Content-Type", "application/json"),
         )
+    }
+
+    fn activation_id(licence: &VerifiedLicence) -> Result<&str, ActivationError> {
+        match licence.payload().activation_id.as_deref() {
+            Some(id) if !id.is_empty() => Ok(id),
+            _ => Err(ActivationError::MissingActivationId),
+        }
     }
 }
 
@@ -323,39 +358,14 @@ impl ActivationSource for TokenRedemptionSource {
                 detail: error.to_string(),
             }
         })?;
-        Ok(verify(&signed, &self.key)?)
+        Ok(verify(&signed, &self.key, &self.product)?)
     }
 
     fn renew(&self, licence: &VerifiedLicence) -> Result<Activation, ActivationError> {
-        Ok(self.exchange(
-            "renew",
-            licence
-                .payload()
-                .activation_id
-                .as_deref()
-                .unwrap_or_default(),
-        ))
+        Ok(self.exchange("renew", Self::activation_id(licence)?))
     }
 
     fn release(&self, licence: &VerifiedLicence) -> Result<Activation, ActivationError> {
-        Ok(self.exchange(
-            "release",
-            licence
-                .payload()
-                .activation_id
-                .as_deref()
-                .unwrap_or_default(),
-        ))
+        Ok(self.exchange("release", Self::activation_id(licence)?))
     }
-}
-
-/// Records that a remote source asserted a licence at a point in time.
-///
-/// The bridge for adapters whose backend returns its own response shape
-/// rather than a signed licence. Naming it explicitly is the point: a
-/// consumer reaching for this is choosing a weaker offline guarantee, and
-/// the type says so.
-#[must_use]
-pub fn asserted_remotely(payload: crate::LicencePayload, checked: Timestamp) -> VerifiedLicence {
-    VerifiedLicence::from_remote_assertion(payload, checked)
 }

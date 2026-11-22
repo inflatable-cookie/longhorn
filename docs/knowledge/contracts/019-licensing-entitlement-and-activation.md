@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-07
+Updated: 2026-11-22
 Architecture: `../architecture/system-architecture.md`
 Research: `020-licensing-entitlement-and-activation.md` (Git history)
 
@@ -22,8 +22,10 @@ merchant of record, or tax jurisdiction.
 - The two windows are independent. Subscription, perpetual-with-maintenance,
   trial, and freemium are all expressible without Longhorn naming any of
   them, and a consumer may express a model Longhorn has not anticipated.
-- The update window is the question the updater asks before offering a
-  release, binding this contract to contract 018.
+- The update window (`VerifiedLicence::may_take_updates`) is the input a
+  consuming application consults alongside contract 018's updater before
+  offering or applying a release. `longhorn-update` does not depend on
+  `longhorn-licence`; enforcing the update window remains consumer policy.
 - Entitlements are opaque consumer-defined identifiers. Longhorn evaluates
   presence and bounds and never enumerates, interprets, or reserves them.
 
@@ -35,8 +37,12 @@ merchant of record, or tax jurisdiction.
   network. A remote assertion is only as good as its cache and cannot be
   re-established offline.
 - Policy may require an offline-verifiable basis. Offline grace must never
-  be granted on a basis incapable of surviving being offline.
-- Longhorn ships signature verification. An adapter that establishes trust
+  be granted on a basis incapable of surviving being offline. A remote
+  assertion with no lease (`lease_until: None`) is never usable and lapses at
+  its `checked` timestamp.
+- Longhorn ships signature verification that binds the signed payload's
+  `product` to the caller's expected product, so products sharing a signing
+  key cannot accept each other's licences. An adapter that establishes trust
   another way declares that basis honestly; it may not present a remote
   assertion as a signature.
 

@@ -246,18 +246,19 @@ impl Authorization {
     }
 }
 
-/// Compares two byte strings without an early exit.
+/// Compares two byte slices without a data-dependent early exit.
 ///
-/// State comparison is a secret comparison. The timing signal from a naive
-/// compare is small, but the mitigation is four lines.
+/// Mismatched lengths still fold over the shared prefix so there is no
+/// early-return branch on length; the length XOR alone decides when lengths
+/// differ. This matches `longhorn-agent-control::token::constant_time_eq` as
+/// the workspace's canonical constant-time equality shape, with `black_box`
+/// to discourage short-circuiting optimizations.
 pub(crate) fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
+    let mut difference = left.len() ^ right.len();
+    for (&a, &b) in left.iter().zip(right.iter()) {
+        difference |= usize::from(a ^ b);
     }
-    left.iter()
-        .zip(right)
-        .fold(0_u8, |difference, (a, b)| difference | (a ^ b))
-        == 0
+    core::hint::black_box(difference) == 0
 }
 
 /// Account authorization failure.

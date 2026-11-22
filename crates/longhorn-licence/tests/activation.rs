@@ -5,7 +5,7 @@ use longhorn_licence::{
     AccountFlow, Activation, ActivationError, ActivationSource, ActivationUrl, ActivationUrlError,
     ClockGuard, CodeVerifier, Credential, GracePolicy, LicenceCredentialProjection, LicenceKey,
     LicencePayload, SignedFileSource, SignedLicence, Timestamp, TokenRedemptionSource, TrustBasis,
-    Usability, VerifiedLicence, asserted_remotely, usability,
+    Usability, VerificationError, VerifiedLicence, usability,
 };
 
 const DAY: i64 = 86_400;
@@ -44,7 +44,7 @@ fn payload() -> LicencePayload {
 
 #[test]
 fn a_licence_file_settles_with_no_network_at_all() {
-    let source = SignedFileSource::new(signing_key().verifying_key());
+    let source = SignedFileSource::new(signing_key().verifying_key(), "example");
 
     let Activation::Settled(licence) = source
         .acquire(&Credential::LicenceFile(licence_file(&payload())))
@@ -59,7 +59,10 @@ fn a_licence_file_settles_with_no_network_at_all() {
 
 #[test]
 fn a_licence_file_signed_by_another_key_is_refused() {
-    let source = SignedFileSource::new(SigningKey::from_bytes(&[3_u8; 32]).verifying_key());
+    let source = SignedFileSource::new(
+        SigningKey::from_bytes(&[3_u8; 32]).verifying_key(),
+        "example",
+    );
 
     assert!(matches!(
         source.acquire(&Credential::LicenceFile(licence_file(&payload()))),
@@ -68,12 +71,27 @@ fn a_licence_file_signed_by_another_key_is_refused() {
 }
 
 #[test]
+fn a_licence_file_for_another_product_is_refused() {
+    let source = SignedFileSource::new(signing_key().verifying_key(), "other-product");
+
+    assert_eq!(
+        source.acquire(&Credential::LicenceFile(licence_file(&payload()))),
+        Err(ActivationError::Verification(
+            VerificationError::ProductMismatch {
+                expected: "other-product".to_owned(),
+                actual: "example".to_owned(),
+            }
+        ))
+    );
+}
+
+#[test]
 fn a_claimed_key_id_is_recorded_as_a_claim_not_evidence() {
     // The envelope key id is not covered by the signature: a licence naming
     // a retired key still verifies against the right key, and the trust
     // basis keeps the claim visibly a claim. Pinned so the behavior is
     // chosen, not accidental.
-    let source = SignedFileSource::new(signing_key().verifying_key());
+    let source = SignedFileSource::new(signing_key().verifying_key(), "example");
     let key = signing_key();
     let bytes = serde_json::to_vec(&payload()).unwrap();
     let signature = key.sign(&bytes);
@@ -99,7 +117,7 @@ fn a_claimed_key_id_is_recorded_as_a_claim_not_evidence() {
 
 #[test]
 fn a_file_source_refuses_credentials_it_does_not_handle() {
-    let source = SignedFileSource::new(signing_key().verifying_key());
+    let source = SignedFileSource::new(signing_key().verifying_key(), "example");
     let key = LicenceKey::from_body("ABCDE12345FGHJK6789").unwrap();
 
     assert_eq!(
@@ -110,8 +128,8 @@ fn a_file_source_refuses_credentials_it_does_not_handle() {
 
 #[test]
 fn a_file_source_holds_no_slot_to_release() {
-    let source = SignedFileSource::new(signing_key().verifying_key());
-    let licence = asserted_remotely(payload(), at(0));
+    let source = SignedFileSource::new(signing_key().verifying_key(), "example");
+    let licence = VerifiedLicence::from_remote_assertion(payload(), at(0));
 
     assert_eq!(source.release(&licence).unwrap(), Activation::Done);
 }
@@ -120,7 +138,7 @@ fn a_file_source_holds_no_slot_to_release() {
 
 #[test]
 fn redeeming_a_key_describes_an_exchange_rather_than_performing_one() {
-    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
     let key = LicenceKey::from_body("ABCDE12345FGHJK6789").unwrap();
 
     let Activation::Exchange(request) = source.acquire(&Credential::Key(key.clone())).unwrap()
@@ -140,7 +158,7 @@ fn redeeming_a_key_describes_an_exchange_rather_than_performing_one() {
 
 #[test]
 fn a_redemption_response_verifies_into_a_licence() {
-    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
 
     let licence = source.accept(&licence_file(&payload())).unwrap();
 
@@ -149,12 +167,28 @@ fn a_redemption_response_verifies_into_a_licence() {
 }
 
 #[test]
+fn a_redemption_response_for_another_product_is_refused() {
+    let source =
+        TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "other-product");
+
+    assert_eq!(
+        source.accept(&licence_file(&payload())),
+        Err(ActivationError::Verification(
+            VerificationError::ProductMismatch {
+                expected: "other-product".to_owned(),
+                actual: "example".to_owned(),
+            }
+        ))
+    );
+}
+
+#[test]
 fn release_carries_the_activation_slot() {
     // Self-service release is the answer to the dominant support ticket, so
     // the interface has to express it rather than leaving each consumer to
     // invent one.
-    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
-    let licence = asserted_remotely(payload(), at(0));
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
+    let licence = VerifiedLicence::from_remote_assertion(payload(), at(0));
 
     let Activation::Exchange(request) = source.release(&licence).unwrap() else {
         panic!("release must reach the backend that holds the slot");
@@ -167,8 +201,8 @@ fn release_carries_the_activation_slot() {
 
 #[test]
 fn renew_carries_the_activation_slot() {
-    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
-    let licence = asserted_remotely(payload(), at(0));
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
+    let licence = VerifiedLicence::from_remote_assertion(payload(), at(0));
 
     let Activation::Exchange(request) = source.renew(&licence).unwrap() else {
         panic!("renewal must reach the backend");
@@ -178,11 +212,37 @@ fn renew_carries_the_activation_slot() {
 }
 
 #[test]
+fn renew_and_release_fail_when_activation_id_is_missing() {
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
+    let without_id = VerifiedLicence::from_remote_assertion(
+        LicencePayload::new("example").with_lease_until(at(30)),
+        at(0),
+    );
+    let empty_id = VerifiedLicence::from_remote_assertion(
+        LicencePayload::new("example")
+            .with_lease_until(at(30))
+            .with_activation_id(""),
+        at(0),
+    );
+
+    for licence in [&without_id, &empty_id] {
+        assert_eq!(
+            source.renew(licence),
+            Err(ActivationError::MissingActivationId)
+        );
+        assert_eq!(
+            source.release(licence),
+            Err(ActivationError::MissingActivationId)
+        );
+    }
+}
+
+#[test]
 fn json_metacharacters_in_a_token_cannot_reshape_the_request() {
     // The body is built with a serializer, not interpolation: a token
     // containing a quote must survive as data, not become structure. An
     // injection attempt is the same test, because it is the same bytes.
-    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
     let hostile = r#"x","action":"release"#;
 
     let Activation::Exchange(request) = source
@@ -201,10 +261,10 @@ fn json_metacharacters_in_a_token_cannot_reshape_the_request() {
 
 #[test]
 fn a_backend_issued_activation_id_with_metacharacters_stays_data() {
-    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key());
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
     let mut shaped = payload();
     shaped.activation_id = Some(r#"slot-7\"""#.to_owned());
-    let licence = asserted_remotely(shaped, at(0));
+    let licence = VerifiedLicence::from_remote_assertion(shaped, at(0));
 
     for exchange in [source.renew(&licence), source.release(&licence)] {
         let Activation::Exchange(request) = exchange.unwrap() else {
@@ -277,7 +337,7 @@ impl ActivationSource for HostedServiceSource {
     fn accept(&self, _response: &[u8]) -> Result<VerifiedLicence, ActivationError> {
         // No signature to check: the guarantee is the TLS session, so the
         // adapter must say so rather than claim one it does not have.
-        Ok(asserted_remotely(payload(), at(1)))
+        Ok(VerifiedLicence::from_remote_assertion(payload(), at(1)))
     }
 }
 
@@ -306,7 +366,7 @@ fn a_consumer_adapter_declaring_a_remote_assertion_inherits_evaluation() {
 
 #[test]
 fn a_source_that_never_requests_an_exchange_refuses_a_response() {
-    let source = SignedFileSource::new(signing_key().verifying_key());
+    let source = SignedFileSource::new(signing_key().verifying_key(), "example");
 
     assert_eq!(
         source.accept(b"{}"),
