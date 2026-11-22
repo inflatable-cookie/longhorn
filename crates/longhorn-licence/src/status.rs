@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GracePolicy, Span, Timestamp, VerifiedLicence};
+use crate::{GracePolicy, Span, Timestamp, TrustBasis, VerifiedLicence};
 
 /// Guards against a clock moved backwards to defeat expiry.
 ///
@@ -75,9 +75,10 @@ pub enum Usability {
         /// When it passed.
         at: Timestamp,
     },
-    /// The lease lapsed and its grace ran out.
+    /// The lease lapsed and its grace ran out, or a remote assertion carried
+    /// no lease at all.
     LeaseLapsed {
-        /// When grace ran out.
+        /// When grace ran out, or when the unleased remote assertion was checked.
         at: Timestamp,
     },
     /// The clock moved backwards far enough to be refused.
@@ -109,6 +110,10 @@ impl Usability {
 /// window comparison below it is meaningless if the clock is not trusted.
 /// The use window runs before the lease, because an expired subscription is
 /// a truer statement than a lapsed lease on an expired subscription.
+///
+/// An absent lease permits indefinite use only for an offline-verifiable
+/// signature; a remote assertion with no lease has no offline validity period
+/// and is immediately reported as lapsed at its `checked` timestamp.
 #[must_use]
 pub fn usability(
     licence: &VerifiedLicence,
@@ -129,7 +134,10 @@ pub fn usability(
     let Some(lease_until) = licence.payload().lease_until else {
         // No lease means no revalidation was ever required, which only an
         // offline-verifiable licence can honestly claim.
-        return Usability::Active;
+        return match licence.basis() {
+            TrustBasis::OfflineSignature { .. } => Usability::Active,
+            TrustBasis::RemoteAssertion { checked } => Usability::LeaseLapsed { at: *checked },
+        };
     };
 
     if now <= lease_until {

@@ -37,7 +37,7 @@ pub use account::{
 };
 pub use activation::{
     Activation, ActivationError, ActivationRequest, ActivationSource, ActivationUrl,
-    ActivationUrlError, Credential, SignedFileSource, TokenRedemptionSource, asserted_remotely,
+    ActivationUrlError, Credential, SignedFileSource, TokenRedemptionSource,
 };
 pub use credential::{MachineId, MachineIdError};
 pub use entitlement::{EntitlementId, EntitlementIdError, Entitlements, Limit};

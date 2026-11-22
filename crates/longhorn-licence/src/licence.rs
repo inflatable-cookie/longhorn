@@ -75,8 +75,9 @@ pub struct LicencePayload {
     ///
     /// Independent of `use_until`, which is what makes
     /// perpetual-with-maintenance expressible: the software keeps working
-    /// after this date, it just stops accepting newer releases. Contract
-    /// 018's updater reads exactly this.
+    /// after this date, it just stops accepting newer releases. Consuming
+    /// applications consult [`VerifiedLicence::may_take_updates`] alongside
+    /// contract 018's updater; `longhorn-update` does not depend on this crate.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub update_until: Option<Timestamp>,
     /// Until when this licence stands without revalidation.
@@ -189,10 +190,12 @@ impl VerifiedLicence {
         &self.payload.entitlements
     }
 
-    /// Returns whether a release published now may be taken.
+    /// Returns whether a release published now falls within the update window.
     ///
-    /// The updater's question. A perpetual licence past its maintenance term
-    /// answers `false` here while remaining perfectly usable.
+    /// Consuming applications consult this alongside contract 018's updater
+    /// before offering or applying a release; `longhorn-update` stays
+    /// decoupled from licensing. A perpetual licence past its maintenance term
+    /// answers `false` here while remaining usable.
     #[must_use]
     pub fn may_take_updates(&self, now: Timestamp) -> bool {
         self.payload.update_until.is_none_or(|until| now <= until)

@@ -38,5 +38,33 @@
   {
     "input": "ABCDE!2345FGHJK6789X",
     "outcome": "unexpectedSymbol:!"
+  },
+  {
+    "input": "*BCDE12345FGHJK6789Z",
+    "outcome": "unexpectedSymbol:*"
+  },
+  {
+    "input": "ABCDEu2345FGHJK6789Z",
+    "outcome": "unexpectedSymbol:u"
+  },
+  {
+    "input": "000000000000000000V*",
+    "outcome": "ok:00000-00000-00000-000V*"
+  },
+  {
+    "input": "0000000000000000020u",
+    "outcome": "ok:00000-00000-00000-0020U"
+  },
+  {
+    "input": "ſBCDE12345FGHJK67894",
+    "outcome": "unexpectedSymbol:ſ"
+  },
+  {
+    "input": "ABCDE-12345-FGHJK-67894",
+    "outcome": "ok:ABCDE-12345-FGHJK-67894"
+  },
+  {
+    "input": "﻿ABCDE12345FGHJK67894",
+    "outcome": "unexpectedSymbol:﻿"
   }
 ]

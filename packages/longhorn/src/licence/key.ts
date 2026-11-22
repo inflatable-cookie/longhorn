@@ -92,17 +92,35 @@ export function group(key: string): string {
   return groups.join("-");
 }
 
+/** Matches Rust's `char::is_whitespace` (Unicode `White_Space`: includes U+0085, excludes U+FEFF). */
+const UNICODE_WHITESPACE = /\p{White_Space}/u;
+
+/** Matches Rust's `char::to_ascii_uppercase` so non-ASCII letters like U+017F never fold into ASCII. */
+function toAsciiUpper(character: string): string {
+  const code = character.codePointAt(0)!;
+  if (code >= 0x61 && code <= 0x7a) {
+    return String.fromCharCode(code - 0x20);
+  }
+  return character;
+}
+
 function normalize(
   input: string,
 ): { readonly ok: true; readonly value: string } | { readonly ok: false; readonly problem: LicenceKeyProblem } {
-  let output = "";
+  const symbols: Array<{ readonly original: string; readonly mapped: string }> = [];
   for (const character of input) {
-    if (character === "-" || /\s/u.test(character)) continue;
-    const upper = character.toUpperCase();
+    if (character === "-" || UNICODE_WHITESPACE.test(character)) continue;
+    const upper = toAsciiUpper(character);
     // The confusions Crockford excluded the symbols to avoid.
     const mapped = upper === "I" || upper === "L" ? "1" : upper === "O" ? "0" : upper;
-    if (!CHECK_ALPHABET.includes(mapped) || mapped.length !== 1) {
-      return { ok: false, problem: { kind: "unexpectedSymbol", symbol: character } };
+    symbols.push({ original: character, mapped });
+  }
+  let output = "";
+  for (let index = 0; index < symbols.length; index += 1) {
+    const { original, mapped } = symbols[index]!;
+    const alphabet = index + 1 < symbols.length ? ALPHABET : CHECK_ALPHABET;
+    if (mapped.length !== 1 || !alphabet.includes(mapped)) {
+      return { ok: false, problem: { kind: "unexpectedSymbol", symbol: original } };
     }
     output += mapped;
   }
@@ -119,7 +137,10 @@ function checkSymbol(body: string): string {
   let sum = 0;
   for (let index = 0; index < body.length; index += 1) {
     const value = ALPHABET.indexOf(body[index]!);
-    sum += (value === -1 ? 0 : value) * (index + 1);
+    if (value === -1) {
+      throw new Error(`normalized key body contains unexpected symbol: ${body[index]}`);
+    }
+    sum += value * (index + 1);
   }
   return CHECK_ALPHABET[sum % 37]!;
 }

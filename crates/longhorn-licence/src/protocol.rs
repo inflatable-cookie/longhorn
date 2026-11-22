@@ -68,9 +68,10 @@ pub enum LicenceUsabilityProjection {
         /// When it passed.
         at: Timestamp,
     },
-    /// The lease lapsed and its grace ran out.
+    /// The lease lapsed and its grace ran out, or a remote assertion carried
+    /// no lease at all.
     LeaseLapsed {
-        /// When grace ran out.
+        /// When grace ran out, or when the unleased remote assertion was checked.
         at: Timestamp,
     },
     /// The clock moved backwards far enough to be refused.

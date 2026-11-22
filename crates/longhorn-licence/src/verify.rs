@@ -37,18 +37,28 @@ impl SignedLicence {
     }
 }
 
-/// Verifies a signed licence against a public key.
+/// Verifies a signed licence against a public key and an expected product.
 ///
 /// The order is deliberate: check the signature over the received bytes
-/// **first**, and only then parse them. Parsing before verifying would run a
-/// deserialiser over unauthenticated input.
+/// **first**, parse them second, and check the product third. Parsing before
+/// verifying would run a deserialiser over unauthenticated input; omitting
+/// the product check would allow a licence signed for product B to verify for
+/// product A whenever products share a signing key.
 ///
 /// The envelope `key_id` is not covered by the signature and is recorded as
 /// the claim it is — see `TrustBasis::OfflineSignature`. Verification keys on
 /// the caller-supplied key alone.
+///
+/// # Errors
+///
+/// Returns [`VerificationError`] when the signature length is invalid, the
+/// signature fails verification against `key`, the signed bytes do not parse
+/// as a [`LicencePayload`], or the payload's `product` does not match
+/// `expected_product`.
 pub fn verify(
     signed: &SignedLicence,
     key: &VerifyingKey,
+    expected_product: &str,
 ) -> Result<VerifiedLicence, VerificationError> {
     let signature_bytes: [u8; Signature::BYTE_SIZE] =
         signed.signature.as_slice().try_into().map_err(|_| {
@@ -67,6 +77,13 @@ pub fn verify(
             detail: error.to_string(),
         }
     })?;
+
+    if payload.product != expected_product {
+        return Err(VerificationError::ProductMismatch {
+            expected: expected_product.to_owned(),
+            actual: payload.product,
+        });
+    }
 
     Ok(VerifiedLicence::from_signature(
         payload,
@@ -91,6 +108,13 @@ pub enum VerificationError {
         /// Parser detail.
         detail: String,
     },
+    /// The signature verified but the licence was issued for a different product.
+    ProductMismatch {
+        /// The product the caller expected.
+        expected: String,
+        /// The product named in the signed payload.
+        actual: String,
+    },
 }
 
 impl fmt::Display for VerificationError {
@@ -103,6 +127,12 @@ impl fmt::Display for VerificationError {
             Self::SignatureRejected => formatter.write_str("licence signature did not verify"),
             Self::MalformedPayload { detail } => {
                 write!(formatter, "signed bytes are not a licence: {detail}")
+            }
+            Self::ProductMismatch { expected, actual } => {
+                write!(
+                    formatter,
+                    "licence is for `{actual}`, expected `{expected}`"
+                )
             }
         }
     }

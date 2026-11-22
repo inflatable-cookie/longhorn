@@ -32,7 +32,12 @@ fn leased(until: i64) -> LicencePayload {
 
 #[test]
 fn a_signature_is_offline_verifiable_and_a_remote_assertion_is_not() {
-    let signed = verify(&sign(&leased(30)), &signing_key().verifying_key()).unwrap();
+    let signed = verify(
+        &sign(&leased(30)),
+        &signing_key().verifying_key(),
+        "example",
+    )
+    .unwrap();
     let remote = VerifiedLicence::from_remote_assertion(leased(30), at(0));
 
     assert!(signed.basis().is_offline_verifiable());
@@ -51,7 +56,12 @@ fn a_remote_assertion_gets_less_grace_than_a_signature() {
     let grace = GracePolicy::new(Span::from_days(30), Span::from_days(7));
     let guard = ClockGuard::new(at(0));
 
-    let signed = verify(&sign(&leased(30)), &signing_key().verifying_key()).unwrap();
+    let signed = verify(
+        &sign(&leased(30)),
+        &signing_key().verifying_key(),
+        "example",
+    )
+    .unwrap();
     let remote = VerifiedLicence::from_remote_assertion(leased(30), at(0));
 
     assert_eq!(
@@ -98,7 +108,12 @@ fn an_unreachable_backend_within_the_lease_changes_nothing() {
 
 #[test]
 fn grace_is_usable_and_does_not_warrant_attention() {
-    let licence = verify(&sign(&leased(30)), &signing_key().verifying_key()).unwrap();
+    let licence = verify(
+        &sign(&leased(30)),
+        &signing_key().verifying_key(),
+        "example",
+    )
+    .unwrap();
 
     let state = usability(
         &licence,
@@ -115,10 +130,11 @@ fn grace_is_usable_and_does_not_warrant_attention() {
 }
 
 #[test]
-fn a_licence_with_no_lease_never_needs_revalidating() {
+fn a_licence_with_no_lease_never_needs_revalidating_when_offline_signed() {
     let perpetual = verify(
         &sign(&LicencePayload::new("example")),
         &signing_key().verifying_key(),
+        "example",
     )
     .unwrap();
 
@@ -131,6 +147,22 @@ fn a_licence_with_no_lease_never_needs_revalidating() {
         ),
         Usability::Active
     );
+}
+
+#[test]
+fn a_remote_assertion_without_a_lease_is_never_usable() {
+    // Contract 019 forbids offline use or grace on a basis that cannot survive
+    // offline. Without an explicit lease, a remote assertion lapses
+    // immediately at its checked timestamp rather than staying Active forever.
+    let remote = VerifiedLicence::from_remote_assertion(LicencePayload::new("example"), at(10));
+    let guard = ClockGuard::new(at(10));
+    let grace = GracePolicy::new(Span::from_days(30), Span::from_days(30));
+
+    for now in [at(10), at(11), at(100)] {
+        let state = usability(&remote, now, guard, grace);
+        assert_eq!(state, Usability::LeaseLapsed { at: at(10) });
+        assert!(!state.is_usable());
+    }
 }
 
 #[test]
@@ -218,7 +250,7 @@ fn a_tampered_payload_fails_verification() {
     signed.payload[last] ^= 0x01;
 
     assert_eq!(
-        verify(&signed, &signing_key().verifying_key()),
+        verify(&signed, &signing_key().verifying_key(), "example"),
         Err(VerificationError::SignatureRejected)
     );
 }
@@ -229,7 +261,7 @@ fn a_signature_from_another_key_is_rejected() {
     let other = SigningKey::from_bytes(&[9_u8; 32]);
 
     assert_eq!(
-        verify(&signed, &other.verifying_key()),
+        verify(&signed, &other.verifying_key(), "example"),
         Err(VerificationError::SignatureRejected)
     );
 }
@@ -240,7 +272,7 @@ fn a_malformed_signature_is_reported_as_such() {
     signed.signature.truncate(10);
 
     assert!(matches!(
-        verify(&signed, &signing_key().verifying_key()),
+        verify(&signed, &signing_key().verifying_key(), "example"),
         Err(VerificationError::MalformedSignature { actual: 10, .. })
     ));
 }
@@ -258,7 +290,7 @@ fn the_verified_payload_is_the_bytes_that_were_signed() {
     let signature = key.sign(&bytes);
     let signed = SignedLicence::new("test-key", bytes, signature.to_bytes().to_vec());
 
-    let verified = verify(&signed, &key.verifying_key()).unwrap();
+    let verified = verify(&signed, &key.verifying_key(), "example").unwrap();
 
     assert_eq!(verified.payload(), &payload);
 }
@@ -271,7 +303,20 @@ fn signed_bytes_that_are_not_a_licence_are_reported_after_verification() {
     let signed = SignedLicence::new("test-key", bytes, signature.to_bytes().to_vec());
 
     assert!(matches!(
-        verify(&signed, &key.verifying_key()),
+        verify(&signed, &key.verifying_key(), "example"),
         Err(VerificationError::MalformedPayload { .. })
     ));
+}
+
+#[test]
+fn a_licence_signed_for_another_product_is_rejected() {
+    let signed = sign(&leased(30));
+
+    assert_eq!(
+        verify(&signed, &signing_key().verifying_key(), "other-product"),
+        Err(VerificationError::ProductMismatch {
+            expected: "other-product".to_owned(),
+            actual: "example".to_owned(),
+        })
+    );
 }
