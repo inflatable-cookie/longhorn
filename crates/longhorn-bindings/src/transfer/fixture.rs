@@ -84,6 +84,10 @@ pub fn render(
         session_id,
     )];
     let aborts = aborts(transfer_error_codes, panel_error_codes)?;
+    let session_abort = find_transfer_abort(&aborts, "session_capacity");
+    let lease_abort = find_transfer_abort(&aborts, "invalid_lease");
+    let commit_abort = find_transfer_abort(&aborts, "no_target");
+    let cancel_abort = find_transfer_abort(&aborts, "unknown_session");
     let session_responses = vec![
         typed(json!({
             "status": "started",
@@ -96,7 +100,7 @@ pub fn render(
                 }
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[0]}))?,
+        typed(json!({"status": "aborted", "abort": session_abort}))?,
     ];
     let lease_responses = vec![
         typed(json!({
@@ -110,7 +114,7 @@ pub fn render(
                 "zone_count": 2,
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[1]}))?,
+        typed(json!({"status": "aborted", "abort": lease_abort}))?,
     ];
     let commit_responses = vec![
         typed(json!({
@@ -147,7 +151,7 @@ pub fn render(
                 }
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[2]}))?,
+        typed(json!({"status": "aborted", "abort": commit_abort}))?,
     ];
     let cancel_responses = vec![
         typed(json!({
@@ -159,7 +163,7 @@ pub fn render(
                 "status": "cancelled",
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[3]}))?,
+        typed(json!({"status": "aborted", "abort": cancel_abort}))?,
     ];
     let fixture = GoldenFixture {
         protocol_version: TRANSFER_PROTOCOL_VERSION,
@@ -249,7 +253,7 @@ fn aborts(
                 "request_id": format!("request:panel-error-{index:02}"),
                 "source": {"domain": "panel", "code": code},
                 "layout_code": if code == "layout_mutation_rejected" {
-                    Some("stale_revision")
+                    Some("move_target_unchanged")
                 } else {
                     None
                 },
@@ -259,6 +263,17 @@ fn aborts(
             }))
         }))
         .collect()
+}
+
+fn find_transfer_abort<'a>(aborts: &'a [TransferAbort], code: &str) -> &'a TransferAbort {
+    aborts
+        .iter()
+        .find(|abort| {
+            serde_json::to_value(abort.source())
+                .ok()
+                .is_some_and(|value| value["domain"] == "transfer" && value["code"] == code)
+        })
+        .unwrap_or_else(|| panic!("missing transfer abort fixture for {code}"))
 }
 
 fn transfer_code_consumes_session(code: &str) -> bool {
@@ -275,6 +290,9 @@ fn transfer_code_consumes_session(code: &str) -> bool {
     )
 }
 
+// Codes that can occur during either admission or commit (such as
+// `unknown_host_binding` or `stale_host_binding`) are represented in their
+// unconsumed admission phase here; commit-only codes are always consumed.
 fn panel_code_consumes_session(code: &str) -> bool {
     matches!(
         code,

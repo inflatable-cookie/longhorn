@@ -46,13 +46,13 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:surface-error-00",
+        "request_id": "request:surface-error-05",
         "source": {
           "domain": "surface_transfer",
-          "code": "invalid_binding_snapshot"
+          "code": "unknown_surface"
         },
         "surface_code": null,
-        "message": "golden fixture for invalid_binding_snapshot",
+        "message": "golden fixture for unknown_surface",
         "retryable": false,
         "session_consumed": false,
         "reconciliation_required": false
@@ -127,15 +127,15 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:surface-error-01",
+        "request_id": "request:transfer-error",
         "source": {
-          "domain": "surface_transfer",
-          "code": "unknown_host_binding"
+          "domain": "transfer",
+          "code": "lease_expired"
         },
         "surface_code": null,
-        "message": "golden fixture for unknown_host_binding",
+        "message": "golden transfer failure",
         "retryable": false,
-        "session_consumed": false,
+        "session_consumed": true,
         "reconciliation_required": false
       }
     }
@@ -395,7 +395,7 @@
         "domain": "surface_transfer",
         "code": "surface_mutation_rejected"
       },
-      "surface_code": "stale_revision",
+      "surface_code": "move_target_unchanged",
       "message": "golden fixture for surface_mutation_rejected",
       "retryable": false,
       "session_consumed": true,

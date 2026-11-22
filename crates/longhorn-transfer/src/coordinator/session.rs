@@ -50,6 +50,7 @@ impl TransferCoordinator {
             ClientBinding {
                 client_id: client_id.clone(),
                 epoch,
+                last_lease_generation: None,
             },
         );
         self.leases.remove(&window_id);

@@ -111,13 +111,13 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:transfer-error-00",
+        "request_id": "request:transfer-error-02",
         "source": {
           "domain": "transfer",
-          "code": "clock_regressed"
+          "code": "session_capacity"
         },
         "layout_code": null,
-        "message": "golden fixture for clock_regressed",
+        "message": "golden fixture for session_capacity",
         "retryable": false,
         "session_consumed": false
       }
@@ -139,13 +139,13 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:transfer-error-01",
+        "request_id": "request:transfer-error-16",
         "source": {
           "domain": "transfer",
-          "code": "invalid_lifetime"
+          "code": "invalid_lease"
         },
         "layout_code": null,
-        "message": "golden fixture for invalid_lifetime",
+        "message": "golden fixture for invalid_lease",
         "retryable": false,
         "session_consumed": false
       }
@@ -190,15 +190,15 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:transfer-error-02",
+        "request_id": "request:transfer-error-21",
         "source": {
           "domain": "transfer",
-          "code": "session_capacity"
+          "code": "no_target"
         },
         "layout_code": null,
-        "message": "golden fixture for session_capacity",
+        "message": "golden fixture for no_target",
         "retryable": false,
-        "session_consumed": false
+        "session_consumed": true
       }
     }
   ],
@@ -216,13 +216,13 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:transfer-error-03",
+        "request_id": "request:transfer-error-05",
         "source": {
           "domain": "transfer",
-          "code": "session_id_allocation"
+          "code": "unknown_session"
         },
         "layout_code": null,
-        "message": "golden fixture for session_id_allocation",
+        "message": "golden fixture for unknown_session",
         "retryable": false,
         "session_consumed": false
       }
@@ -740,7 +740,7 @@
         "domain": "panel",
         "code": "layout_mutation_rejected"
       },
-      "layout_code": "stale_revision",
+      "layout_code": "move_target_unchanged",
       "message": "golden fixture for layout_mutation_rejected",
       "retryable": false,
       "session_consumed": true

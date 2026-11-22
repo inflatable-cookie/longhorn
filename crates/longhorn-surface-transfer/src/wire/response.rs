@@ -205,7 +205,10 @@ impl SurfaceTransferAbort {
         self.session_consumed
     }
 
-    /// Returns whether durable Surface state committed and host reconciliation is required.
+    /// Returns whether unresolved host state requires explicit reconciliation.
+    ///
+    /// This is set both when durable Surface state committed but host commit
+    /// failed, and when pre-commit cleanup of a provisioned window failed.
     #[must_use]
     pub const fn reconciliation_required(&self) -> bool {
         self.reconciliation_required
