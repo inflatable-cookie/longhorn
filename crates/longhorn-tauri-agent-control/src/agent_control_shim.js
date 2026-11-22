@@ -29,7 +29,7 @@
     "IFRAME"
   ]);
   function prop(element, name) {
-    return element[name];
+    return Reflect.get(element, name);
   }
   function unresolved(element) {
     return { ok: false, error: { error: "unresolvedRef", element } };
@@ -47,7 +47,7 @@
   }
   function refPrefix(document) {
     const view = document.defaultView;
-    const value = view?.[REF_PREFIX_GLOBAL];
+    const value = view ? Reflect.get(view, REF_PREFIX_GLOBAL) : undefined;
     return typeof value === "string" ? value : "";
   }
   function allocRef(document) {
@@ -465,9 +465,7 @@
     dispatchMouse(world, source, "mousedown", from);
     dispatchMouse(world, target, "pointermove", to);
     dispatchMouse(world, target, "mousemove", to);
-    const transfer = typeof DataTransfer === "function" ? new DataTransfer : { setData() {}, getData() {
-      return "";
-    } };
+    const transfer = typeof DataTransfer === "function" ? new DataTransfer : { setData() {}, getData: () => "" };
     const dragEvent = (type, current, point) => {
       const event = new world.MouseEvent(type, {
         bubbles: true,

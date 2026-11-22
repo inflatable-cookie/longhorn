@@ -95,6 +95,28 @@ describe("operation Svelte and public Poodle adapters", () => {
     expect(port.unlistenCount).toBe(2);
   });
 
+  it("closes the cancellation dialog when the request fails and shows the failure", async () => {
+    const loophole = createMountedSession(loopholeSnapshot());
+    loophole.port.cancel = async () => {
+      throw new Error("host refused cancellation");
+    };
+    const renderPanel = render(OperationPanelHarness, {
+      props: { session: loophole.session, shape: "loophole" },
+    });
+    await waitFor(() => {
+      expect(loophole.session.status.kind).toBe("ready");
+    });
+
+    await fireEvent.click(renderPanel.getByRole("button", { name: "Cancel Render final sequence" }));
+    await fireEvent.click(renderPanel.getByRole("button", { name: "Request cancellation" }));
+    await waitFor(() => {
+      expect(renderPanel.getByText("host refused cancellation")).toBeTruthy();
+      expect(renderPanel.queryByRole("alertdialog", { name: "Cancel operation?" })).toBeNull();
+    });
+
+    await renderPanel.unmount();
+  });
+
   it("projects Soundcheck and Loophole through the same controlled panel", async () => {
     const soundcheck = createMountedSession(soundcheckSnapshot());
     const loophole = createMountedSession(loopholeSnapshot());

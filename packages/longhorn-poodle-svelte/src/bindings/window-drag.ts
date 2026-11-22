@@ -18,13 +18,21 @@
 // so an accidental double click can be taken back. Elsewhere it lands on the
 // second press.
 
+// Anything the operator can activate, type into or toggle must keep its own
+// pointer behaviour, so a press on it never starts a window drag.
 const INTERACTIVE_SELECTOR = [
   "button",
   "a",
   "input",
   "textarea",
   "select",
+  "label",
+  "summary",
+  "[contenteditable]:not([contenteditable='false'])",
   "[role='button']",
+  "[role='link']",
+  "[role='tab']",
+  "[role='menuitem']",
   "[data-no-window-drag]",
 ].join(",");
 

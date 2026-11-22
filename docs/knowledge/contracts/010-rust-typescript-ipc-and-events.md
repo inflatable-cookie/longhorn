@@ -64,6 +64,11 @@ Teardown is idempotent and safe when an asynchronous listener registration
 completes after disposal. Events are projections and invalidation hints, not
 durable delivery. Query-only domains do not require an event transport.
 
+A malformed event ends its subscription and is reported as an event failure.
+An error thrown by a consumer callback is not a transport failure and does not
+end the subscription. A job's terminal event that arrives before its listener
+is registered is not replayed; see Q-007.
+
 ## Session Lifecycle
 
 - A session ends when its window does. Hosts wire

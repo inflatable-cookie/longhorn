@@ -47,3 +47,16 @@ Answer: it no longer exists and is retired. Tom, 2026-10-22: "If it's not in
 ~/Dev/projects now, it won't exist now and we can get rid of it." No checkout
 or repository for it was found (2026-10-21). The removal of its live references
 is a Queue task.
+
+## Q-007 — Can a fast bridge job's terminal event land before its listener is registered?
+
+Status: open
+Context: `listenTauriBridgeJob` correlates on the request ID and the job ID,
+and the job ID is only known once the job has started. A job that finishes
+before the terminal listener is registered therefore emits its terminal event
+to nobody. The bridge has no job-status query, so nothing resyncs it, and
+contract 010 makes events non-durable. Decide between a host job-status query
+the consumer calls after registering, or a replayed terminal on the host
+side. It needs a Rust and contract change; the TypeScript listener cannot
+close it alone. Owner file:
+[contract 010](contracts/010-rust-typescript-ipc-and-events.md).

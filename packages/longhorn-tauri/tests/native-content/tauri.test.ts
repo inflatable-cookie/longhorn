@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { NativeContentClient } from "../../src/native-content/index.ts";
+import { NativeContentClient } from "@inflatable-cookie/longhorn/native-content";
 import {
   NATIVE_CONTENT_CHANGED_EVENT,
   NATIVE_CONTENT_CONNECT_COMMAND,
@@ -8,8 +8,8 @@ import {
   NATIVE_CONTENT_SNAPSHOT_COMMAND,
   NATIVE_CONTENT_UPDATE_DESIRED_COMMAND,
   createTauriNativeContentPort,
-} from "../../../longhorn-tauri/src/native-content.ts";
-import { MemoryNativeContentHost, flush, nextUpdate } from "./support.ts";
+} from "../../src/native-content.ts";
+import { MemoryNativeContentHost, flush, nextUpdate } from "../../../longhorn/tests/native-content/support.ts";
 
 describe("Tauri-shaped transport assembly", () => {
   test("uses four narrow commands and one product-neutral event", async () => {

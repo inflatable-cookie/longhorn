@@ -1,3 +1,5 @@
+import { errorMessage } from "../failures.ts";
+
 import {
   CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
   decodeDockPanelSubject,
@@ -110,7 +112,7 @@ export function createPanelTransferDropTarget(
         report(options.reportError, error);
         return {
           status: "failed",
-          reason: error instanceof Error ? error.message : String(error),
+          reason: errorMessage(error),
         };
       } finally {
         notifyTerminal(options.onTerminal, options.reportError);

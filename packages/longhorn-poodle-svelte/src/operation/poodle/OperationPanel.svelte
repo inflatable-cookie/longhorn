@@ -10,6 +10,7 @@
     StatusIndicator,
   } from "@inflatable-cookie/poodle-svelte";
   import type { Snippet } from "svelte";
+  import { errorMessage } from "../../failures.ts";
 
   import type { OperationEntryProjection } from "@inflatable-cookie/longhorn/operation/protocol";
   import type { OperationSession } from "../svelte/session.svelte.ts";
@@ -42,9 +43,7 @@
   const loading = $derived(session.status.kind === "loading");
   const failure = $derived(
     session.status.kind === "failed"
-      ? session.status.error instanceof Error
-        ? session.status.error.message
-        : String(session.status.error)
+      ? errorMessage(session.status.error)
       : null,
   );
 
@@ -59,7 +58,9 @@
   async function confirmCancellation(): Promise<void> {
     const operation = cancellationTarget;
     if (operation === undefined) return;
-    await session.cancel(operation.operationId);
+    // A failed request is recorded on the session and shown by the command
+    // callout, so the dialog closes either way rather than staying over it.
+    await session.cancel(operation.operationId).catch(() => undefined);
     cancellationTarget = undefined;
   }
 
@@ -146,9 +147,7 @@
       <Callout
         tone="danger"
         title="Operation action failed"
-        message={session.commandFailure.error instanceof Error
-          ? session.commandFailure.error.message
-          : String(session.commandFailure.error)}
+        message={errorMessage(session.commandFailure.error)}
         announceMode="polite"
       />
     {/if}

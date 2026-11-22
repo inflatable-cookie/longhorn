@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertValidCommandCatalogueChangedEvent } from "../src/commands/validation.ts";
-import { COMMANDS_FIELDS } from "../src/commands/generated/fields.ts";
+import { assertValidCommandCatalogueChangedEvent } from "../../src/commands/validation.ts";
+import { COMMANDS_FIELDS } from "../../src/commands/generated/fields.ts";
 
 /**
- * Contract 010's Boundary Validation Target on `commands` — 387 lines of
- * validation, twelve Rust `MAXIMUM_*` constants, and no key checking at all
- * before this.
+ * Boundary validation for `commands`, against contract 010's Boundary
+ * Validation Target: unknown keys are rejected, and each bounded field is
+ * checked against its Rust `MAXIMUM_*` constant.
  */
 describe("commands boundary strictness", () => {
   const valid = {

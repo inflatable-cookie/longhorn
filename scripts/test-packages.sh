@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Runs the bun-native package suites.
 #
-# Vitest suites live beside them under per-package vitest configs, so the
-# split is derived from the configs rather than a hardcoded package list.
+# Vitest suites live beside them under per-package vitest configs. Those
+# packages are listed by hand here, so the split does not depend on what a
+# config file happens to contain. A package that moves to vitest is added to
+# VITEST_PACKAGES and its tests are then run by `test:vitest`.
 #
 # Note also that `bun test <dir>` treats its argument as a substring filter,
 # not a path, so a bare tests/ argument would also match tests-svelte/.
@@ -10,6 +12,10 @@
 set -euo pipefail
 
 cd "$(cd "$(dirname "$0")/.." && pwd)"
+
+VITEST_PACKAGES=(
+  longhorn-poodle-svelte
+)
 
 requested_package="${1:-}"
 if [[ $# -gt 1 ]]; then
@@ -22,8 +28,11 @@ if [[ -n "$requested_package" && ! -d "packages/$requested_package/tests" ]]; th
 fi
 
 vitest_owned_tests_dir() {
-  local config="packages/$1/vitest.config.ts"
-  [[ -f "$config" ]] && grep -q "packages/$1/tests" "$config"
+  local vitest_package
+  for vitest_package in "${VITEST_PACKAGES[@]}"; do
+    [[ "$vitest_package" == "$1" ]] && return 0
+  done
+  return 1
 }
 
 files=()

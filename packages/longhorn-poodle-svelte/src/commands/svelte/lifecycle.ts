@@ -1,5 +1,7 @@
 import { onMount } from "svelte";
 
+import { reportFailure } from "../../failures.ts";
+
 import type { CommandSession } from "./session.svelte.ts";
 
 export function useCommandSession(getSession: () => CommandSession): void {
@@ -7,7 +9,7 @@ export function useCommandSession(getSession: () => CommandSession): void {
     const session = getSession();
     void session.start().catch(() => undefined);
     return () => {
-      void session.stop();
+      void session.stop().catch(reportFailure);
     };
   });
 }

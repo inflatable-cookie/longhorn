@@ -97,14 +97,13 @@ export function connectSettingsScope(
     },
     handleEvent: (value, snapshot) =>
       scopeEventAction(value, snapshot, options),
-    isNewer: (candidate, snapshot) => {
-      const accepted = isNewerScope(candidate, snapshot);
-      if (accepted) {
-        current = candidate;
-      }
-      return accepted;
+    isNewer: isNewerScope,
+    // Recorded here, once the connection has accepted the snapshot, so the
+    // predicate itself stays a pure comparison.
+    onSnapshot: (snapshot) => {
+      current = snapshot;
+      options.onSnapshot?.(snapshot);
     },
-    onSnapshot: options.onSnapshot,
     onFailure: options.onFailure,
     disposedBeforeReadyError: () =>
       new SettingsConnectionDisposedError(options.scopeId),

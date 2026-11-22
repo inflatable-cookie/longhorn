@@ -48,7 +48,8 @@ function isFormControl(element: Element): element is FormControl {
 }
 
 function prop<T>(element: Element, name: string): T | undefined {
-  return (element as unknown as Record<string, T | undefined>)[name];
+  // The caller names the property type; the page object carries no type of its own.
+  return Reflect.get(element, name) as T | undefined;
 }
 
 export type ToolErrorBody =
@@ -153,8 +154,8 @@ function resolveRef(document: Document, element: string): Element | null {
 }
 
 function refPrefix(document: Document): string {
-  const view = document.defaultView as unknown as Record<string, unknown> | null;
-  const value = view?.[REF_PREFIX_GLOBAL];
+  const view = document.defaultView;
+  const value: unknown = view ? Reflect.get(view, REF_PREFIX_GLOBAL) : undefined;
   return typeof value === "string" ? value : "";
 }
 
@@ -603,10 +604,11 @@ function drag(
   dispatchMouse(world, source, "mousedown", from);
   dispatchMouse(world, target, "pointermove", to);
   dispatchMouse(world, target, "mousemove", to);
-  const transfer: DataTransfer =
+  // Only the two methods are read, so a page without DataTransfer gets a stand-in with just those.
+  const transfer: Pick<DataTransfer, "setData" | "getData"> =
     typeof DataTransfer === "function"
       ? new DataTransfer()
-      : ({ setData() {}, getData() { return ""; } } as unknown as DataTransfer);
+      : { setData() {}, getData: () => "" };
   const dragEvent = (type: string, current: Element, point: { x: number; y: number }) => {
     const event = new world.MouseEvent(type, {
       bubbles: true,

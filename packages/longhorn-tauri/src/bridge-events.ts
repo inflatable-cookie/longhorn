@@ -76,6 +76,11 @@ export interface BridgeJobListeners<Progress, Success, Detail> {
 /**
  * Installs request/job-correlated progress and terminal listeners.
  * Wrong-correlation and post-terminal messages never reach consumers.
+ *
+ * Contract 010 makes events projections, not durable delivery, and the bridge
+ * has no job-status query. A terminal that fires before its listener is
+ * registered (the jobId is only known once the job has started) is therefore
+ * not recovered here; see docs/knowledge/questions.md.
  */
 export async function listenTauriBridgeJob<Progress, Success, Detail>(
   requestId: BridgeRequestId,
@@ -84,70 +89,88 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   transport: EventTransport = new TauriEventTransport(),
 ): Promise<Unlisten> {
   const tracker = new BridgeJobTracker(requestId, jobId);
-  let failed = false;
-  let disposeProgress: Unlisten | undefined;
-  let disposeTerminal: Unlisten | undefined;
+  // Set once the job has failed or been closed. Nothing reaches the consumer
+  // after that, and a registration that completes later is released at once.
+  let stopped = false;
+  const unlistens: Unlisten[] = [];
 
-  const close = async (): Promise<void> => {
-    const pending = [disposeTerminal, disposeProgress].filter(
-      (unlisten): unlisten is Unlisten => unlisten !== undefined,
+  // Last registered, first released.
+  const teardown = async (): Promise<void> => {
+    const pending = unlistens.splice(0).reverse();
+    const results = await Promise.allSettled(
+      pending.map((unlisten) => unlisten()),
     );
-    disposeTerminal = undefined;
-    disposeProgress = undefined;
-    const results = await Promise.allSettled(pending.map((unlisten) => unlisten()));
     for (const result of results) {
       if (result.status === "rejected") throw result.reason;
     }
   };
 
-  const report = (error: unknown): void => {
-    if (failed) return;
-    failed = true;
+  const fail = (error: unknown): void => {
+    if (stopped) return;
+    stopped = true;
     listeners.onFailure?.({ phase: "event", error });
-    void close().catch((teardownError) => {
+    void teardown().catch((teardownError) => {
       listeners.onFailure?.({ phase: "unlisten", error: teardownError });
     });
   };
 
-  disposeProgress = await transport.listen(
-    BRIDGE_PROGRESS_EVENT,
-    (value) => {
-      if (failed) return;
-      try {
-        const event = parseBridgeProgressEvent(
-          value,
-          listeners.progressCodec,
-        );
-        if (tracker.classifyProgress(event) === "accept") {
-          listeners.progress?.(event);
-        }
-      } catch (error) {
-        report(error);
-      }
-    },
-  );
+  const adopt = async (unlisten: Unlisten): Promise<void> => {
+    if (!stopped) {
+      unlistens.push(unlisten);
+      return;
+    }
+    try {
+      await unlisten();
+    } catch (error) {
+      listeners.onFailure?.({ phase: "unlisten", error });
+    }
+  };
+
+  const onProgress = (value: unknown): void => {
+    if (stopped) return;
+    let event: BridgeProgressEvent<Progress>;
+    try {
+      event = parseBridgeProgressEvent(value, listeners.progressCodec);
+    } catch (error) {
+      fail(error);
+      return;
+    }
+    // Consumer callbacks are not transport failures: a throw here propagates
+    // to the event source and leaves the job's listeners in place.
+    if (tracker.classifyProgress(event) === "accept") {
+      listeners.progress?.(event);
+    }
+  };
+
+  const onTerminal = (value: unknown): void => {
+    if (stopped) return;
+    let event: BridgeJobTerminalEvent<Success, Detail>;
+    try {
+      event = parseBridgeJobTerminalEvent(
+        value,
+        listeners.successCodec,
+        listeners.detailCodec,
+      );
+    } catch (error) {
+      fail(error);
+      return;
+    }
+    if (tracker.classifyTerminal(event) === "accept") {
+      listeners.terminal(event);
+    }
+  };
+
+  const close = async (): Promise<void> => {
+    stopped = true;
+    await teardown();
+  };
+
   try {
-    disposeTerminal = await transport.listen(
-      BRIDGE_TERMINAL_EVENT,
-      (value) => {
-        if (failed) return;
-        try {
-          const event = parseBridgeJobTerminalEvent(
-            value,
-            listeners.successCodec,
-            listeners.detailCodec,
-          );
-          if (tracker.classifyTerminal(event) === "accept") {
-            listeners.terminal(event);
-          }
-        } catch (error) {
-          report(error);
-        }
-      },
-    );
+    await adopt(await transport.listen(BRIDGE_PROGRESS_EVENT, onProgress));
+    await adopt(await transport.listen(BRIDGE_TERMINAL_EVENT, onTerminal));
   } catch (error) {
-    await disposeProgress();
-    disposeProgress = undefined;
+    stopped = true;
+    await teardown();
     throw error;
   }
   return close;

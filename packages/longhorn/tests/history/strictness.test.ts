@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { assertValidHistoryChangedEvent } from "../src/history/validation.ts";
-import { HISTORY_FIELDS } from "../src/history/generated/fields.ts";
-import { assertForkChangedEvent } from "../src/history-tree/validation.ts";
-import { HISTORY_TREE_FIELDS } from "../src/history-tree/generated/fields.ts";
+import { assertValidHistoryChangedEvent } from "../../src/history/validation.ts";
+import { HISTORY_FIELDS } from "../../src/history/generated/fields.ts";
+import { assertForkChangedEvent } from "../../src/history-tree/validation.ts";
+import { HISTORY_TREE_FIELDS } from "../../src/history-tree/generated/fields.ts";
 
 /**
  * `history` and `history-tree` were already strict — both rejected an unknown

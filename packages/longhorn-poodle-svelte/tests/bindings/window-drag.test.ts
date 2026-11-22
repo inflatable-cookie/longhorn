@@ -57,6 +57,41 @@ describe("windowDrag", () => {
     action.destroy();
   });
 
+  it("keeps the press on controls that are not buttons, links or inputs", () => {
+    const node = document.createElement("header");
+    const plain = document.createElement("span");
+    const tab = document.createElement("span");
+    tab.setAttribute("role", "tab");
+    const menuItem = document.createElement("span");
+    menuItem.setAttribute("role", "menuitem");
+    const roleLink = document.createElement("span");
+    roleLink.setAttribute("role", "link");
+    const label = document.createElement("label");
+    const summary = document.createElement("summary");
+    const editable = document.createElement("div");
+    editable.setAttribute("contenteditable", "true");
+    const readonly = document.createElement("div");
+    readonly.setAttribute("contenteditable", "false");
+    node.append(plain, tab, menuItem, roleLink, label, summary, editable, readonly);
+    document.body.append(node);
+    const startDragging = vi.fn();
+    const action = windowDrag(node, {
+      startDragging,
+      reportError: () => {},
+    });
+
+    for (const target of [tab, menuItem, roleLink, label, summary, editable]) {
+      target.dispatchEvent(press());
+    }
+    expect(startDragging).not.toHaveBeenCalled();
+
+    // A non-editable container is still chrome, so it drags as before.
+    readonly.dispatchEvent(press());
+    expect(startDragging).toHaveBeenCalledTimes(1);
+    action.destroy();
+    node.remove();
+  });
+
   it("zooms on the second press away from macOS", () => {
     const node = document.createElement("header");
     const plain = document.createElement("span");

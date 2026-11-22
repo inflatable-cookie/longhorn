@@ -3,9 +3,9 @@ import { describe, expect, test } from "bun:test";
 import {
   assertValidTransferClientSnapshot,
   TransferProtocolValidationError,
-} from "../src/transfer/validation.ts";
-import { TRANSFER_FIELDS } from "../src/transfer/generated/fields.ts";
-import { SURFACE_TRANSFER_FIELDS } from "../src/surface-transfer/generated/fields.ts";
+} from "../../src/transfer/validation.ts";
+import { TRANSFER_FIELDS } from "../../src/transfer/generated/fields.ts";
+import { SURFACE_TRANSFER_FIELDS } from "../../src/surface-transfer/generated/fields.ts";
 
 /**
  * Contract 010's Boundary Validation Target on the transfer packages.
