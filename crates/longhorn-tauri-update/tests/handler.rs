@@ -4,21 +4,21 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 
 use longhorn_tauri_update::{
-    TauriUpdateState, UpdateHandlerAssembly, UpdateHostAuthority, UpdateHostError,
-    UpdateHostService, longhorn_update_apply, longhorn_update_cancel, longhorn_update_check,
-    longhorn_update_defer, longhorn_update_prepare, longhorn_update_select_channel,
-    longhorn_update_snapshot, update_changed_event,
+    TauriUpdateState, UPDATE_CHANGED_EVENT, UpdateHandlerAssembly, UpdateHostAuthority,
+    UpdateHostError, UpdateHostService, longhorn_update_apply, longhorn_update_cancel,
+    longhorn_update_check, longhorn_update_defer, longhorn_update_prepare,
+    longhorn_update_select_channel, longhorn_update_snapshot, update_changed_event,
 };
 use longhorn_update::{
     ArtifactFetch, Channel, DeferralCause, EndpointUrl, FetchError, FetchProgress,
     PreparedTransfer, SourceRequest, UpdateApplyCommand, UpdateAvailabilityProjection,
-    UpdateCancelCommand, UpdateChangedKind, UpdateCheckCommand, UpdateDeferCommand,
-    UpdateOutcomeProjection, UpdatePrepareCommand, UpdatePrepareStart, UpdateProgressEvent,
-    UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
+    UpdateCancelCommand, UpdateChangedEvent, UpdateChangedKind, UpdateCheckCommand,
+    UpdateDeferCommand, UpdateOutcomeProjection, UpdatePrepareCommand, UpdatePrepareStart,
+    UpdateProgressEvent, UpdateProgressProjection, UpdateProtocolVersion, UpdateRejectionCode,
     UpdateSelectChannelCommand, UpdateSnapshot,
 };
 use semver::Version;
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
 struct Authority {
     calls: Arc<Mutex<Vec<String>>>,
@@ -249,6 +249,15 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
         .build()
         .unwrap();
 
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let received = Arc::clone(&events);
+    app.listen(UPDATE_CHANGED_EVENT, move |event| {
+        received
+            .lock()
+            .unwrap()
+            .push(serde_json::from_str::<UpdateChangedEvent>(event.payload()).unwrap());
+    });
+
     assert_eq!(
         longhorn_update_snapshot(window.clone(), app.state()).unwrap(),
         snapshot()
@@ -304,6 +313,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
                 protocol_version: UpdateProtocolVersion::CURRENT,
                 authority_epoch: 4,
                 version: "1.4.0".to_owned(),
+                digest: "ab".repeat(32),
             }
         )
         .unwrap(),
@@ -336,10 +346,22 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
         ]
     );
     assert_eq!(fetch.calls.load(Ordering::SeqCst), 1);
+    let events = events.lock().unwrap();
+    assert!(events.iter().all(|event| event.authority_epoch == 4));
+    assert_eq!(
+        events.iter().map(|event| event.kind).collect::<Vec<_>>(),
+        [
+            UpdateChangedKind::Checked,
+            UpdateChangedKind::ChannelSelected,
+            UpdateChangedKind::Deferred,
+            UpdateChangedKind::Progressed,
+            UpdateChangedKind::Progressed,
+        ]
+    );
 }
 
 #[test]
-fn serialized_service_and_committed_event_remain_payload_free() {
+fn serialized_service_returns_the_committed_outcome() {
     let fetch = Arc::new(Fetch::reporting(Vec::new()));
     let service =
         UpdateHandlerAssembly::new(Authority::new(Arc::new(Mutex::new(Vec::new()))), fetch);
@@ -349,10 +371,6 @@ fn serialized_service_and_committed_event_remain_payload_free() {
     )
     .unwrap();
     assert_eq!(outcome, committed());
-
-    let event = update_changed_event(&committed(), UpdateChangedKind::Checked).unwrap();
-    assert_eq!(event.authority_epoch, 4);
-    assert_eq!(event.kind, UpdateChangedKind::Checked);
 }
 
 /// A rejection leaves the state as it was, so there is nothing to invalidate
@@ -378,6 +396,7 @@ fn every_command_passes_the_caller_through_unchanged() {
             protocol_version: UpdateProtocolVersion::CURRENT,
             authority_epoch: 4,
             version: "1.4.0".to_owned(),
+            digest: "ab".repeat(32),
         },
     ));
 

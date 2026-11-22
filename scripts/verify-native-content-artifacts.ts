@@ -335,6 +335,7 @@ async function packAndRunRustArtifacts() {
   const crates = [
     "longhorn-core",
     "longhorn-native-content",
+    "longhorn-url",
     "longhorn-tauri-native-content-child-view",
     "longhorn-native-content-isolated-window",
     "longhorn-native-content-backing-surface",
@@ -390,6 +391,7 @@ async function packAndRunRustArtifacts() {
       "longhorn-core",
       "longhorn-native-content",
       "longhorn-tauri-native-content-child-view",
+      "longhorn-url",
     ],
     soundcheck: [
       "longhorn-core",
@@ -738,7 +740,7 @@ async function verifyPrototypeDisposition() {
 
 function rustWorkspaceManifest(): string {
   return `[workspace]
-members = ["consumers/common", "consumers/pure", "consumers/nucleus", "consumers/soundcheck", "consumers/jetstream", "crates/longhorn-core", "crates/longhorn-native-content", "crates/longhorn-tauri-native-content-child-view", "crates/longhorn-native-content-isolated-window", "crates/longhorn-native-content-backing-surface"]
+members = ["consumers/common", "consumers/pure", "consumers/nucleus", "consumers/soundcheck", "consumers/jetstream", "crates/longhorn-core", "crates/longhorn-native-content", "crates/longhorn-url", "crates/longhorn-tauri-native-content-child-view", "crates/longhorn-native-content-isolated-window", "crates/longhorn-native-content-backing-surface"]
 resolver = "2"
 
 [workspace.package]
@@ -751,6 +753,7 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 [workspace.dependencies]
 longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
 longhorn-native-content = { path = "crates/longhorn-native-content", version = "${LONGHORN_VERSION}" }
+longhorn-url = { path = "crates/longhorn-url", version = "${LONGHORN_VERSION}" }
 longhorn-tauri-native-content-child-view = { path = "crates/longhorn-tauri-native-content-child-view", version = "${LONGHORN_VERSION}" }
 longhorn-native-content-isolated-window = { path = "crates/longhorn-native-content-isolated-window", version = "${LONGHORN_VERSION}" }
 longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "${LONGHORN_VERSION}" }

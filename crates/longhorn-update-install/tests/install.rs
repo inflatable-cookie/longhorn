@@ -316,6 +316,25 @@ fn a_tampered_artifact_never_reaches_the_installer() {
 }
 
 #[test]
+fn an_extra_top_level_entry_refuses_the_entire_update() {
+    let fixture = Fixture::new();
+    let bytes = archive(
+        ".",
+        &[
+            ("Example.app/Contents/marker", b"new"),
+            ("extra.txt", b"unexpected"),
+        ],
+    );
+    let signature = sign(&fixture.fixtures.pair, &bytes);
+    let failure = fixture
+        .installer()
+        .apply(&verified(&fixture, bytes, &signature))
+        .unwrap_err();
+    assert!(matches!(failure, InstallFailure::MalformedArtifact { .. }));
+    assert_eq!(fixture.marker(), "old");
+}
+
+#[test]
 fn a_signed_archive_escaping_the_destination_is_refused() {
     // A signature proves origin, not good intent. An archive stays untrusted
     // input after it verifies, so traversal is checked on a *signed* archive.

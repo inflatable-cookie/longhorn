@@ -34,6 +34,8 @@
 //! when something asks for one, and a deferral covers a version rather than a
 //! duration.
 
+use std::sync::Arc;
+
 use semver::Version;
 
 use crate::{
@@ -53,10 +55,22 @@ use crate::{
 /// transfer whose bytes belong to a context that is gone.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PreparedTransfer {
+    token: TransferToken,
     epoch: u64,
     version: Version,
     request: SourceRequest,
 }
+
+#[derive(Clone, Debug)]
+struct TransferToken(Arc<()>);
+
+impl PartialEq for TransferToken {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for TransferToken {}
 
 impl PreparedTransfer {
     /// Records a transfer a host is about to run on the controller's behalf.
@@ -66,8 +80,9 @@ impl PreparedTransfer {
     /// an injected authority a test or an adapter implements can stand in for
     /// the controller without reassembling its offer logic.
     #[must_use]
-    pub const fn new(authority_epoch: u64, version: Version, request: SourceRequest) -> Self {
+    pub fn new(authority_epoch: u64, version: Version, request: SourceRequest) -> Self {
         Self {
+            token: TransferToken(Arc::new(())),
             epoch: authority_epoch,
             version,
             request,
@@ -136,18 +151,8 @@ pub struct UpdateController<'port> {
     /// exist: a surface can hold an update through "Later" without the
     /// controller re-fetching or re-verifying it.
     staged: Option<StagedArtifact>,
-    /// Whether a split prepare's transfer is in flight.
-    ///
-    /// `begin_prepare` and `complete_prepare` are two calls with a transfer
-    /// between them, so something has to remember that the interval is open.
-    /// The convenience `prepare` closes it within one call.
-    preparing: bool,
-    /// A cancel that arrived while a transfer was in flight.
-    ///
-    /// The transfer cannot be stopped once the host is running it, so the
-    /// cancel takes effect where it can: `complete_prepare` discards what the
-    /// transfer delivers rather than retaining it.
-    discard_transfer: bool,
+    /// The only transfer whose completion may change retained state.
+    active_transfer: Option<TransferToken>,
 }
 
 impl<'port> UpdateController<'port> {
@@ -175,16 +180,11 @@ impl<'port> UpdateController<'port> {
             fetch,
             authority_epoch: 1,
             manifest: None,
-            // Nothing has been checked, which is not the same as being up to
-            // date. `UpToDate` is what an actual check found; this is the
-            // honest state before one, and the two differ to a surface that
-            // says "last checked".
-            availability: UpdateAvailability::UpToDate,
+            availability: UpdateAvailability::NotChecked,
             deferral: None,
             progress: UpdateProgressProjection::Idle,
             staged: None,
-            preparing: false,
-            discard_transfer: false,
+            active_transfer: None,
         }
     }
 
@@ -264,7 +264,8 @@ impl<'port> UpdateController<'port> {
         // never saw. This is what makes `StaleAuthority` fireable.
         self.authority_epoch += 1;
         self.manifest = None;
-        self.availability = UpdateAvailability::UpToDate;
+        self.availability = UpdateAvailability::NotChecked;
+        self.active_transfer = None;
         self.deferral = None;
         // The staged artifact belongs to the channel that was followed. It is
         // dropped rather than carried into the new one: the new channel may
@@ -314,21 +315,15 @@ impl<'port> UpdateController<'port> {
             }
         };
 
-        // A new prepare supersedes whatever was staged: exactly one staged
-        // artifact is retained per controller.
+        let transfer = PreparedTransfer::new(self.authority_epoch, version, request);
+        self.active_transfer = Some(transfer.token.clone());
         self.staged = None;
-        self.preparing = true;
-        self.discard_transfer = false;
         self.progress = UpdateProgressProjection::Downloading {
             received: 0,
             expected: None,
             fraction: None,
         };
-        UpdatePrepareStart::Transfer(PreparedTransfer {
-            epoch: self.authority_epoch,
-            version,
-            request,
-        })
+        UpdatePrepareStart::Transfer(transfer)
     }
 
     /// Verifies and retains what a started transfer delivered.
@@ -337,21 +332,13 @@ impl<'port> UpdateController<'port> {
         transfer: &PreparedTransfer,
         delivered: Result<Vec<u8>, FetchError>,
     ) -> UpdateOutcomeProjection {
-        self.preparing = false;
-
-        // A channel switch during the transfer replaced the authority
-        // lifetime, so the bytes belong to a context that is gone.
         if transfer.epoch != self.authority_epoch {
-            self.progress = UpdateProgressProjection::Idle;
             return self.reject(UpdateRejectionCode::StaleAuthority);
         }
-        // The operator cancelled while the transfer was running. The transfer
-        // could not be stopped; what it delivered will not be retained.
-        if self.discard_transfer {
-            self.discard_transfer = false;
-            self.progress = UpdateProgressProjection::Idle;
-            return self.commit();
+        if self.active_transfer.as_ref() != Some(&transfer.token) {
+            return self.reject(UpdateRejectionCode::NoOffer);
         }
+        self.active_transfer = None;
 
         let bytes = match delivered {
             Ok(bytes) => bytes,
@@ -397,11 +384,7 @@ impl<'port> UpdateController<'port> {
             }
         };
 
-        self.staged = Some(StagedArtifact::new(
-            version.clone(),
-            self.build.channel,
-            verified,
-        ));
+        self.staged = Some(StagedArtifact::new(self.build.channel, verified));
         self.progress = UpdateProgressProjection::ReadyToInstall {
             version: version.to_string(),
         };
@@ -456,7 +439,9 @@ impl<'port> UpdateController<'port> {
         let Some(staged) = self.staged.take() else {
             return self.reject(UpdateRejectionCode::NoOffer);
         };
-        if staged.version().to_string() != command.version {
+        if staged.version().to_string() != command.version
+            || staged.digest().as_str() != command.digest
+        {
             self.staged = Some(staged);
             return self.reject(UpdateRejectionCode::NoOffer);
         }
@@ -520,9 +505,7 @@ impl<'port> UpdateController<'port> {
         if let Some(stale) = self.refuse_if_stale(command.authority_epoch) {
             return stale;
         }
-        if self.preparing {
-            self.discard_transfer = true;
-        }
+        self.active_transfer = None;
         self.staged = None;
         self.progress = UpdateProgressProjection::Idle;
         self.commit()

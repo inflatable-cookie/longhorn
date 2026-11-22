@@ -65,14 +65,13 @@ impl Error for TargetTripleError {}
 
 /// One downloadable build.
 ///
-/// The signature travels with the artifact and is verified by the installer,
-/// never by this crate.
+/// The controller verifies the detached signature before staging the bytes.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Artifact {
     /// Where the artifact can be fetched.
     pub url: String,
-    /// Detached signature, passed through to the installer unread.
+    /// Detached signature over the downloaded bytes.
     pub signature: String,
 }
 

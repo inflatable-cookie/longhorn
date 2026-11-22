@@ -25,6 +25,8 @@ describe("Rust-generated update protocol", () => {
     assertUpdateSnapshot(value.aheadSnapshot);
     assertUpdateSnapshot(value.withheldSnapshot);
     assertUpdateSnapshot(value.upToDateSnapshot);
+    assertUpdateSnapshot(value.notCheckedSnapshot);
+    expect(() => assertUpdateApplyCommand({ ...value.applyCommand, digest: "wrong" })).toThrow();
     assertUpdateCheckCommand(value.checkCommand);
     assertUpdateSelectChannelCommand(value.selectChannelCommand);
     assertUpdateDeferCommand(value.deferCommand);

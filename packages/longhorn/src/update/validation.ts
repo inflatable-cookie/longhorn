@@ -106,7 +106,9 @@ export function assertUpdatePrepareCommand(value: unknown): asserts value is Upd
 
 export function assertUpdateApplyCommand(value: unknown): asserts value is UpdateApplyCommand {
   commandBase(value, UPDATE_FIELDS.UpdateApplyCommand);
-  version(object(value, "$").version, "$.version");
+  const root = object(value, "$");
+  version(root.version, "$.version");
+  digest(root.digest, "$.digest");
 }
 
 export function assertUpdateCancelCommand(value: unknown): asserts value is UpdateCancelCommand {

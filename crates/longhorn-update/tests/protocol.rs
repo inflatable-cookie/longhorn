@@ -168,6 +168,7 @@ fn every_command_round_trips_and_carries_the_protocol_line() {
         protocol_version: UpdateProtocolVersion::CURRENT,
         authority_epoch: epoch,
         version: "1.3.0".to_owned(),
+        digest: "ab".repeat(32),
     };
     let cancelled = UpdateCancelCommand {
         protocol_version: UpdateProtocolVersion::CURRENT,

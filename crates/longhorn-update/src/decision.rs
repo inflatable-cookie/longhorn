@@ -70,10 +70,12 @@ pub struct UpdateOffer {
     pub notes: Option<String>,
 }
 
-/// The outcome of one update check.
+/// What is known about an update for the selected channel.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", tag = "state")]
 pub enum UpdateAvailability {
+    /// No check has completed for the selected channel.
+    NotChecked,
     /// An update is available now.
     Offer(UpdateOffer),
     /// The install is already on the channel's current version.

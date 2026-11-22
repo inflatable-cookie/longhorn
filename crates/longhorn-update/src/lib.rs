@@ -1,13 +1,9 @@
 //! Pure update policy for Longhorn: channels, version comparison, staged
 //! rollout, deferral, and the restart interlock.
 //!
-//! This crate decides *whether* to offer an update. It never fetches, never
-//! verifies a signature, and never installs — those belong to the source
-//! adapters and to `longhorn-update-install` respectively. Keeping
-//! verification out of here is deliberate: it is what allows the artifact
-//! host to be untrusted infrastructure.
-//!
-//! Everything is pure. No network, no filesystem, no clock.
+//! This crate decides whether to offer an update and verifies downloaded
+//! bytes against the pinned signing key. Host ports perform network and
+//! filesystem I/O. `longhorn-update-install` provides bundle replacement.
 
 mod admission;
 mod channel;

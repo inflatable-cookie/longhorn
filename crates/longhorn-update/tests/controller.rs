@@ -389,6 +389,9 @@ fn apply(version: &str) -> UpdateApplyCommand {
         protocol_version: UpdateProtocolVersion::CURRENT,
         authority_epoch: 1,
         version: version.to_owned(),
+        digest: longhorn_update::ArtifactDigest::of(ARTIFACT)
+            .as_str()
+            .to_owned(),
     }
 }
 
@@ -436,7 +439,7 @@ fn a_manifest_for_the_wrong_channel_is_refused_and_not_stored() {
     let snapshot = controller.snapshot();
     assert!(matches!(
         snapshot.availability,
-        longhorn_update::UpdateAvailabilityProjection::UpToDate
+        longhorn_update::UpdateAvailabilityProjection::NotChecked
     ));
 }
 
@@ -495,9 +498,8 @@ fn a_stale_authority_epoch_is_refused_on_every_command() {
     );
     let applied = controller.apply(
         &UpdateApplyCommand {
-            protocol_version: UpdateProtocolVersion::CURRENT,
             authority_epoch: stale,
-            version: "1.4.0".to_owned(),
+            ..apply("1.4.0")
         },
         &UpdateGate::new(Vec::new(), &GRANTING),
         &Installer,
@@ -666,7 +668,8 @@ fn a_cancel_during_a_split_transfer_discards_what_arrives() {
     controller.cancel(&cancel());
     let completed = controller.complete_prepare(&transfer, Ok(ARTIFACT.to_vec()));
 
-    let snapshot = committed(&completed);
+    assert_eq!(rejection(&completed), UpdateRejectionCode::NoOffer);
+    let snapshot = controller.snapshot();
     assert_eq!(snapshot.progress, UpdateProgressProjection::Idle);
     assert!(snapshot.staged.is_none());
 }
@@ -957,7 +960,7 @@ fn selecting_a_channel_clears_the_previous_offer() {
     assert_eq!(snapshot.channel, Channel::Beta);
     assert!(matches!(
         snapshot.availability,
-        longhorn_update::UpdateAvailabilityProjection::UpToDate
+        longhorn_update::UpdateAvailabilityProjection::NotChecked
     ));
 }
 
@@ -1099,4 +1102,82 @@ fn a_failed_replacement_still_releases_the_lease() {
     assert_eq!(authority.acquisitions.get(), 1);
     assert_eq!(authority.releases.get(), 1);
     assert!(!authority.held.get());
+}
+
+#[test]
+fn availability_is_not_checked_before_any_check() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let controller = controller(&signing, &source, &fetch, writable());
+    assert_eq!(
+        controller.snapshot().availability,
+        longhorn_update::UpdateAvailabilityProjection::NotChecked
+    );
+}
+
+#[test]
+fn only_the_latest_prepare_can_stage_bytes() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+
+    let first = transfer(&mut controller, &prepare("1.4.0"));
+    let second = transfer(&mut controller, &prepare("1.4.0"));
+    let downloading = controller.snapshot();
+    let obsolete = controller.complete_prepare(&first, Ok(ARTIFACT.to_vec()));
+    assert_eq!(rejection(&obsolete), UpdateRejectionCode::NoOffer);
+    assert_eq!(controller.snapshot(), downloading);
+
+    let completed = controller.complete_prepare(&second, Ok(ARTIFACT.to_vec()));
+    let staged = committed(&completed);
+    assert!(staged.staged.is_some());
+    let obsolete = controller.complete_prepare(&first, Ok(ARTIFACT.to_vec()));
+    assert_eq!(rejection(&obsolete), UpdateRejectionCode::NoOffer);
+    assert_eq!(&controller.snapshot(), staged);
+}
+
+#[test]
+fn a_cancelled_transfer_cannot_complete_a_new_prepare() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+
+    let cancelled = transfer(&mut controller, &prepare("1.4.0"));
+    controller.cancel(&cancel());
+    let current = transfer(&mut controller, &prepare("1.4.0"));
+    let downloading = controller.snapshot();
+    let discarded = controller.complete_prepare(&cancelled, Ok(ARTIFACT.to_vec()));
+    assert_eq!(rejection(&discarded), UpdateRejectionCode::NoOffer);
+    assert_eq!(controller.snapshot(), downloading);
+
+    let completed = controller.complete_prepare(&current, Ok(ARTIFACT.to_vec()));
+    assert!(committed(&completed).staged.is_some());
+}
+
+#[test]
+fn apply_refuses_a_digest_for_different_bytes_at_the_same_version() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+    let staged = controller.snapshot();
+
+    let outcome = controller.apply(
+        &UpdateApplyCommand {
+            digest: longhorn_update::ArtifactDigest::of(b"other build")
+                .as_str()
+                .to_owned(),
+            ..apply("1.4.0")
+        },
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
+    assert_eq!(rejection(&outcome), UpdateRejectionCode::NoOffer);
+    assert_eq!(controller.snapshot(), staged);
 }

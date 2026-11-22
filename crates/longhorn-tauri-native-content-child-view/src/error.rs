@@ -12,7 +12,7 @@ pub enum ChildViewError {
     InvalidLabel,
     /// Host and child transport labels must differ.
     DuplicateTransportLabel,
-    /// The initial child source is not a remote HTTP or HTTPS URL.
+    /// The initial child source is neither HTTPS nor loopback HTTP.
     InvalidContentSource,
     /// A bundled document path is empty, oversized, absolute, escaping, or
     /// outside the bounded grammar.
@@ -125,7 +125,7 @@ impl fmt::Display for ChildViewError {
                 formatter.write_str("host and child transport labels must differ")
             }
             Self::InvalidContentSource => {
-                formatter.write_str("child content source must be remote HTTP or HTTPS")
+                formatter.write_str("child content source must use HTTPS or loopback HTTP")
             }
             Self::InvalidBundledContentSource => formatter.write_str(
                 "bundled child document must be a bounded relative path inside the application assets",

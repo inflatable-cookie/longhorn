@@ -66,6 +66,22 @@ class Port implements UpdatePort {
 }
 
 describe("update surface bindings", () => {
+  it("offers a check before reporting that the install is up to date", async () => {
+    const port = new Port();
+    port.state = snapshot({ availability: { state: "notChecked" } });
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller } });
+
+    expect(mounted.getByRole("button", { name: "Check for updates" })).toBeDefined();
+    expect(mounted.container.textContent).not.toContain("up to date");
+
+    port.state = snapshot();
+    port.notify();
+    await waitFor(() => expect(mounted.container.textContent).toContain("up to date"));
+    mounted.unmount();
+  });
+
   /**
    * The claim the binding exists for. `UpdateController` is a plain class, so
    * `controller.availability` is not a tracked dependency: without something

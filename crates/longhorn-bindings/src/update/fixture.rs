@@ -48,13 +48,14 @@ pub fn render() -> Result<String, Box<dyn Error>> {
     };
     // A deferred install: the artifact stays staged and ReadyToInstall is a
     // retained state rather than a moment between two calls.
+    let staged_digest = "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069";
     let staged_snapshot = UpdateSnapshot {
         availability: UpdateAvailabilityProjection::UpToDate,
         deferral: None,
         staged: Some(UpdateStagedArtifactProjection {
             version: "1.3.0-nightly.5".into(),
             channel: Channel::Nightly,
-            digest: "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069".into(),
+            digest: staged_digest.into(),
         }),
         progress: UpdateProgressProjection::ReadyToInstall {
             version: "1.3.0-nightly.5".into(),
@@ -129,6 +130,13 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         "stagedSnapshot": to_value(staged_snapshot)?,
         "aheadSnapshot": to_value(ahead_snapshot)?,
         "withheldSnapshot": to_value(withheld_snapshot)?,
+        "notCheckedSnapshot": to_value(UpdateSnapshot {
+            availability: UpdateAvailabilityProjection::NotChecked,
+            deferral: None,
+            staged: None,
+            progress: UpdateProgressProjection::Idle,
+            ..snapshot.clone()
+        })?,
         "upToDateSnapshot": to_value(UpdateSnapshot {
             availability: UpdateAvailabilityProjection::UpToDate,
             deferral: None,
@@ -164,6 +172,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
             protocol_version: UpdateProtocolVersion::CURRENT,
             authority_epoch: epoch,
             version: "1.3.0-nightly.5".into(),
+            digest: staged_digest.into(),
         })?,
         "cancelCommand": to_value(UpdateCancelCommand {
             protocol_version: UpdateProtocolVersion::CURRENT,

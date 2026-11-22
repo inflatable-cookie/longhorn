@@ -1,6 +1,6 @@
 //! Plan validation and native operation execution.
 
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::VecDeque, sync::Arc};
 
 use longhorn_native_content::{
     ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
@@ -13,7 +13,7 @@ use crate::{
     TeardownOutcome,
 };
 
-use super::{Attachment, IsolatedWindowAdapter, compare_generation, current_attachment_mut};
+use super::{Attachment, IsolatedWindowAdapter, compare_generation, state::MAX_TEARDOWN_REPORTS};
 
 impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
     pub(crate) fn validate_plan(&self, plan: &ApplyPlan) -> Result<(), IsolatedWindowError> {
@@ -96,7 +96,16 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                     .state
                     .lock()
                     .map_err(|_| IsolatedWindowError::Poisoned)?;
-                current_attachment_mut(&mut state, generation)?.last_host_size = Some(*size);
+                let latest = state.latest_generation;
+                let retired = state.retired_generation;
+                let attachment = gate_attached(
+                    latest,
+                    retired,
+                    state.attachment.as_mut(),
+                    generation,
+                    |attachment| attachment.generation,
+                )?;
+                attachment.last_host_size = Some(*size);
                 Ok(())
             }
             NativeContentOperation::Show => {
@@ -168,7 +177,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 failed: false,
                 last_host_size: None,
                 requests: Vec::new(),
-                seen_request_ids: HashSet::new(),
+                recent_request_ids: VecDeque::new(),
             });
         }
 
@@ -227,23 +236,21 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
-            if !gate_detach(
+            let Some(attachment) = gate_detach(
                 state.retired_generation,
-                state.attachment.as_ref().map(|attachment| {
-                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
-                }),
+                state.attachment.as_mut(),
                 generation,
-            )? {
+                |attachment| {
+                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+                },
+            )?
+            else {
                 return Ok(());
-            }
-            let attachment = state
-                .attachment
-                .as_mut()
-                .expect("validated attachment is current");
+            };
             let handle = attachment
                 .handle
                 .clone()
-                .expect("validated attachment completed attach");
+                .ok_or(IsolatedWindowError::AttachInProgress)?;
             attachment.detaching = true;
             handle
         };
@@ -260,7 +267,12 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .state
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
-            state.teardown_reports.push((generation, outcome.clone()));
+            if state.teardown_reports.len() == MAX_TEARDOWN_REPORTS {
+                state.teardown_reports.pop_front();
+            }
+            state
+                .teardown_reports
+                .push_back((generation, outcome.clone()));
             if matches!(outcome, TeardownOutcome::TimedOut { .. }) {
                 if let Some(attachment) = state.attachment.as_mut()
                     && attachment.generation == generation
@@ -299,19 +311,13 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .state
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
-        compare_generation(state.latest_generation, generation)?;
-        gate_attached(
+        let attachment = gate_attached(
+            state.latest_generation,
             state.retired_generation,
-            state
-                .attachment
-                .as_ref()
-                .map(|attachment| attachment.generation),
+            state.attachment.as_ref(),
             generation,
+            |attachment| attachment.generation,
         )?;
-        let attachment = state
-            .attachment
-            .as_ref()
-            .expect("validated attachment is current");
         if attachment.failed {
             return Err(IsolatedWindowError::FailedGeneration);
         }

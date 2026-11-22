@@ -104,7 +104,7 @@ popups, and permissions remain outside this operation.
 ## Child-view Bundled Local Source
 
 The child-view seam's initial source is a bounded typed carrier,
-`ChildViewSource`: the historical remote HTTP/HTTPS URL, or a bundled local
+`ChildViewSource`: an HTTPS URL, a loopback HTTP URL, or a bundled local
 document. A bundled document is one validated relative path inside the
 application bundle (ASCII alphanumerics plus `-`, `_`, `.`, `/`; no absolute,
 empty, `.`, `..`, backslash, or URL-syntax components), so the path can
@@ -154,6 +154,11 @@ absent generations before native work. Two extensions are mechanism-specific:
 - an isolated-window owner can fail terminally while its island lives on, so
   the failed generation rejects further work and yields only to exactly the
   next generation.
+
+The isolated-window adapter admits up to 128 pending requests. It deduplicates
+all pending request IDs and the latest 256 accepted IDs per generation.
+Capacity refusals leave the ID available for retry. The teardown report
+snapshot retains the latest 128 reports in chronological order.
 
 Registration does not create content. Unregistration does not imply that a
 consumer-owned process, plugin, or renderer shut down successfully.

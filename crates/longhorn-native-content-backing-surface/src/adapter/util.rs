@@ -70,18 +70,13 @@ pub(crate) fn current_attachment<H>(
 ) -> Result<&Attachment<H>, BackingSurfaceError> {
     compare_generation(state.latest_generation, generation)?;
     reject_invalidated(state.invalidated_generation, generation)?;
-    gate_attached(
+    Ok(gate_attached(
+        None,
         state.retired_generation,
-        state
-            .attachment
-            .as_ref()
-            .map(|attachment| attachment.generation),
+        state.attachment.as_ref(),
         generation,
-    )?;
-    Ok(state
-        .attachment
-        .as_ref()
-        .expect("validated attachment is current"))
+        |attachment| attachment.generation,
+    )?)
 }
 
 pub(crate) fn current_attachment_mut<H>(
@@ -90,16 +85,11 @@ pub(crate) fn current_attachment_mut<H>(
 ) -> Result<&mut Attachment<H>, BackingSurfaceError> {
     compare_generation(state.latest_generation, generation)?;
     reject_invalidated(state.invalidated_generation, generation)?;
-    gate_attached(
+    Ok(gate_attached(
+        None,
         state.retired_generation,
-        state
-            .attachment
-            .as_ref()
-            .map(|attachment| attachment.generation),
+        state.attachment.as_mut(),
         generation,
-    )?;
-    Ok(state
-        .attachment
-        .as_mut()
-        .expect("validated attachment is current"))
+        |attachment| attachment.generation,
+    )?)
 }

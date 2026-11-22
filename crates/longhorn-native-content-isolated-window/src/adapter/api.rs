@@ -16,7 +16,7 @@ use crate::{
 
 use super::{
     IsolatedWindowAdapter, MAX_PENDING_CONTENT_REQUESTS, compare_attached_generation,
-    compare_generation, current_attachment_mut,
+    compare_generation, state::MAX_RECENT_CONTENT_REQUEST_IDS,
 };
 
 impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
@@ -61,17 +61,15 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             compare_generation(state.latest_generation, generation)?;
             match state.attachment.as_ref() {
                 None => None,
-                Some(attachment) if attachment.generation != generation => {
-                    return Err(
-                        compare_attached_generation(attachment.generation, generation).into(),
-                    );
+                Some(attachment) => {
+                    compare_attached_generation(attachment.generation, generation)?;
+                    Some((
+                        attachment.handle.clone(),
+                        attachment.ready,
+                        attachment.detaching,
+                        attachment.failed,
+                    ))
                 }
-                Some(attachment) => Some((
-                    attachment.handle.clone(),
-                    attachment.ready,
-                    attachment.detaching,
-                    attachment.failed,
-                )),
             }
         };
 
@@ -141,14 +139,21 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .state
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
-        let attachment = current_attachment_mut(&mut state, generation)?;
+        let latest = state.latest_generation;
+        let retired = state.retired_generation;
+        let attachment = gate_attached(
+            latest,
+            retired,
+            state.attachment.as_mut(),
+            generation,
+            |attachment| attachment.generation,
+        )?;
         if attachment.failed {
             return Err(IsolatedWindowError::FailedGeneration);
         }
         Ok(std::mem::take(&mut attachment.requests))
     }
 
-    /// Applies consumer policy to one resize request without mutating desired state.
     /// Applies consumer policy to one resize request without mutating desired state.
     pub fn decide_resize(
         &self,
@@ -162,9 +167,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             return Err(IsolatedWindowError::NotResizeRequest);
         };
         let desired = authority.desired();
-        if desired.generation() != generation {
-            return Err(compare_attached_generation(desired.generation(), generation).into());
-        }
+        compare_attached_generation(desired.generation(), generation)?;
         let scale = f64::from(desired.scale().thousandths());
         let semantic = ClientSize::new(
             f64::from(size.width()) * 1000.0 / scale,
@@ -193,17 +196,20 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .set_resizable(&handle, resizable, self.spec.request_timeout())
     }
 
-    /// Returns all exact teardown reports without consuming them.
+    /// Returns the latest 128 teardown reports, oldest first, without consuming them.
     pub fn teardown_reports(
         &self,
     ) -> Result<Vec<(AttachGeneration, TeardownOutcome)>, IsolatedWindowError> {
         self.state
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)
-            .map(|state| state.teardown_reports.clone())
+            .map(|state| state.teardown_reports.iter().cloned().collect())
     }
 
     /// Admits callbacks only while exact island and generation remain current.
+    ///
+    /// Request IDs are deduplicated while pending and for the most recent 256
+    /// accepted requests in this generation. A capacity refusal is retryable.
     pub fn admit_runtime_event(
         &self,
         event: IsolatedWindowRuntimeEvent,
@@ -219,41 +225,43 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .state
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
-            compare_generation(state.latest_generation, generation)?;
-            gate_attached(
-                state.retired_generation,
-                state
-                    .attachment
-                    .as_ref()
-                    .map(|attachment| attachment.generation),
+            let latest = state.latest_generation;
+            let retired = state.retired_generation;
+            let attachment = gate_attached(
+                latest,
+                retired,
+                state.attachment.as_mut(),
                 generation,
+                |attachment| attachment.generation,
             )?;
-            let attachment = state
-                .attachment
-                .as_mut()
-                .expect("validated attachment is current");
             match &event.kind {
                 IsolatedWindowRuntimeEventKind::Progress { .. } => {}
                 IsolatedWindowRuntimeEventKind::Ready { .. } => attachment.ready = true,
                 IsolatedWindowRuntimeEventKind::ContentRequest { request } => {
-                    if !attachment
-                        .seen_request_ids
-                        .insert(request.request_id.clone())
+                    if attachment.recent_request_ids.contains(&request.request_id)
+                        || attachment
+                            .requests
+                            .iter()
+                            .any(|pending| pending.request_id == request.request_id)
                     {
                         return Err(IsolatedWindowError::DuplicateCorrelation);
                     }
                     if attachment.requests.len() >= MAX_PENDING_CONTENT_REQUESTS {
                         return Err(IsolatedWindowError::RequestCapacity);
                     }
-                    if matches!(
-                        request.request,
-                        IsolatedContentRequestKind::Resize { size }
-                            if attachment.last_host_size == Some(size)
-                    ) {
+                    if attachment.recent_request_ids.len() == MAX_RECENT_CONTENT_REQUEST_IDS {
+                        attachment.recent_request_ids.pop_front();
+                    }
+                    attachment
+                        .recent_request_ids
+                        .push_back(request.request_id.clone());
+                    if let IsolatedContentRequestKind::Resize { size } = request.request
+                        && attachment.last_host_size == Some(size)
+                    {
                         emitted = None;
                         suppressed = Some(IsolatedWindowAdapterEvent::ResizeCycleSuppressed {
                             generation,
-                            size: attachment.last_host_size.expect("matched host size"),
+                            size,
                         });
                     } else {
                         attachment.requests.push(request.clone());

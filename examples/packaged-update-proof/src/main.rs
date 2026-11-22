@@ -689,10 +689,15 @@ fn drive_controller(
     );
     let transferred = fetch.calls.get() >= 2 && bundle_version(&installed)? == current.to_string();
 
+    let staged = controller
+        .snapshot()
+        .staged
+        .ok_or("prepare did not stage an artifact")?;
     let apply_command = UpdateApplyCommand {
         protocol_version: UpdateProtocolVersion::CURRENT,
         authority_epoch: controller.authority_epoch(),
-        version: next.to_string(),
+        version: staged.version,
+        digest: staged.digest,
     };
     let deferred = controller.apply(
         &apply_command,

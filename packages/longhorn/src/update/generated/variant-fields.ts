@@ -12,6 +12,7 @@ export const UPDATE_VARIANT_FIELDS: Record<string, Record<string, readonly strin
     "installFailed": ["cause", "detail"],
   },
   "UpdateAvailabilityProjection": {
+    "notChecked": ["state"],
     "offer": ["state", "version", "reason", "notes"],
     "upToDate": ["state"],
     "aheadOfChannel": ["state", "installed", "channel"],

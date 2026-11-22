@@ -20,18 +20,8 @@ pub fn observe_install(executable: &Path) -> InstallLocation {
     let mut location =
         InstallLocation::unknown().with_executable_path(executable.to_string_lossy());
 
-    // Sandboxes announce themselves, and they are definitive, so they are
-    // read first and nothing below can contradict them.
-    for (variable, manager) in [
-        ("FLATPAK_ID", InstallManager::Flatpak),
-        ("SNAP_NAME", InstallManager::Snap),
-        ("APPIMAGE", InstallManager::AppImage),
-    ] {
-        if let Ok(value) = env::var(variable)
-            && !value.is_empty()
-        {
-            return location.with_sandbox(manager, value);
-        }
+    if let Some((manager, id)) = sandbox_identity(executable, |name| env::var(name).ok()) {
+        return location.with_sandbox(manager, id);
     }
 
     if let Some(bundle) = macos_bundle(executable) {
@@ -54,6 +44,40 @@ pub fn observe_install(executable: &Path) -> InstallLocation {
     }
 
     location
+}
+
+/// Package variables can be inherited by unrelated child processes. Only
+/// record an identity when the executable belongs to that package's tree.
+fn sandbox_identity(
+    executable: &Path,
+    variable: impl Fn(&str) -> Option<String>,
+) -> Option<(InstallManager, String)> {
+    let executable = executable.canonicalize().ok()?;
+    let within = |root: &Path| {
+        root.is_absolute()
+            && root.canonicalize().is_ok_and(|root| {
+                root.parent().is_some() && executable != root && executable.starts_with(root)
+            })
+    };
+    if let Some(id) = variable("FLATPAK_ID").filter(|id| !id.is_empty())
+        && Path::new("/.flatpak-info").is_file()
+        && within(Path::new("/app"))
+    {
+        return Some((InstallManager::Flatpak, id));
+    }
+    if let Some(id) = variable("SNAP_NAME").filter(|id| !id.is_empty())
+        && let Some(root) = variable("SNAP")
+        && within(Path::new(&root))
+    {
+        return Some((InstallManager::Snap, id));
+    }
+    if let Some(image) = variable("APPIMAGE").filter(|image| Path::new(image).is_absolute())
+        && let Some(root) = variable("APPDIR")
+        && within(Path::new(&root))
+    {
+        return Some((InstallManager::AppImage, image));
+    }
+    None
 }
 
 /// Where a Caskroom might be, most likely first.
@@ -125,6 +149,42 @@ fn macos_bundle(executable: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn package_environment_only_applies_to_executables_in_the_package() {
+        let fixture = tempfile::tempdir().unwrap();
+        let package = fixture.path().join("package");
+        let inside = package.join("bin");
+        let outside = fixture.path().join("outside");
+        fs::create_dir(&package).unwrap();
+        fs::write(&inside, b"inside").unwrap();
+        fs::write(&outside, b"outside").unwrap();
+        for (manager, id_name, id, root_name) in [
+            (InstallManager::Snap, "SNAP_NAME", "terminal", "SNAP"),
+            (
+                InstallManager::AppImage,
+                "APPIMAGE",
+                "/Applications/Terminal.AppImage",
+                "APPDIR",
+            ),
+        ] {
+            let variable = |name: &str| match name {
+                name if name == id_name => Some(id.to_owned()),
+                name if name == root_name => Some(package.to_string_lossy().into_owned()),
+                _ => None,
+            };
+            assert_eq!(
+                sandbox_identity(&inside, variable),
+                Some((manager, id.to_owned()))
+            );
+            assert_eq!(sandbox_identity(&outside, variable), None);
+        }
+        assert_eq!(
+            sandbox_identity(&outside, |name| (name == "FLATPAK_ID")
+                .then(|| "org.example.Terminal".to_owned())),
+            None
+        );
+    }
 
     #[test]
     fn a_bundle_is_only_found_where_one_exists() {
