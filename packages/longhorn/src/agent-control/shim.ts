@@ -792,6 +792,9 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
   const notifyNavigation = () => {
     push({ seq: nextSeq, kind: "navigation", url: world.location.href });
   };
+  // Record the initial document load so full-document navigations and reloads
+  // are observable through `longhorn://agent-control/navigation` as seq 1.
+  notifyNavigation();
   world.addEventListener("hashchange", notifyNavigation);
   world.addEventListener("popstate", notifyNavigation);
   const history = world.history;

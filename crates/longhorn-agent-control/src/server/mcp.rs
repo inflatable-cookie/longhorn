@@ -7,7 +7,7 @@
 //! [`ToolError`] as JSON content so agents read the same error vocabulary
 //! the host produced.
 
-use std::{sync::Arc, time::Duration};
+use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use rmcp::{
@@ -39,9 +39,15 @@ use super::events;
 /// Selection updates (`longhorn://agent-control/selection`) are pushed over
 /// a `watch` channel with zero polling. Page events live in the in-page shim
 /// ring because WKWebView has no host push channel for them; when at least
-/// one page-event URI is subscribed, each listener polls `readEvents` at
-/// this bounded interval.
+/// one page-event URI is subscribed, each listener polls `readEvents` on a
+/// retained interval at this cadence (never reset by selection wakes).
 const PAGE_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(50);
+
+/// Per-poll evaluation bound for `readEvents` inside `listen`, separate from
+/// [`PAGE_EVENT_POLL_INTERVAL`], so a wedged WebKit evaluation cannot hang a
+/// listener indefinitely. In-flight evaluations are polled concurrently with
+/// cancellation and selection pushes.
+const PAGE_EVENT_EVAL_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// One batch returned by the in-page shim's `readEvents(sinceSeq, sinceEpoch)`.
 #[derive(Debug, Eq, PartialEq)]
@@ -201,7 +207,7 @@ where
         request
             .validate()
             .map_err(|error| invalid_params(error.to_string()))?;
-        json_result(self.handler.set_file_input(request).await)
+        json_result(self.handler.set_file_input_prevalidated(request).await)
     }
 
     #[tool(
@@ -476,6 +482,14 @@ where
                 })
             });
         let mut selection_rx = self.registry.subscribe();
+        let mut page_interval = tokio::time::interval_at(
+            tokio::time::Instant::now() + PAGE_EVENT_POLL_INTERVAL,
+            PAGE_EVENT_POLL_INTERVAL,
+        );
+        page_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut pending_eval: Option<
+            Pin<Box<dyn Future<Output = Option<EventBatch>> + Send + '_>>,
+        > = None;
 
         loop {
             tokio::select! {
@@ -486,26 +500,28 @@ where
                     }
                     let _ = sink.notify_resource_updated(events::SELECTION_URI).await;
                 }
-                () = tokio::time::sleep(PAGE_EVENT_POLL_INTERVAL), if page_events_subscribed => {
-                    let batch = match self.read_events(cursor.seq, cursor.epoch.as_deref()).await {
-                        Ok(batch) => batch,
-                        Err(_) => {
-                            // No page yet, or evaluate failed: keep the stream
-                            // alive; the next tick retries.
-                            continue;
-                        }
+                batch = async { pending_eval.as_mut().expect("checked is_some").await }, if pending_eval.is_some() => {
+                    pending_eval = None;
+                    let Some(batch) = batch else {
+                        // No page yet, evaluate failed, or timed out: keep the
+                        // stream alive; the next tick retries.
+                        continue;
                     };
-                    let batch = if cursor.apply(&batch) {
-                        match self.read_events(0, cursor.epoch.as_deref()).await {
-                            Ok(fresh) => {
-                                let _ = cursor.apply(&fresh);
-                                fresh
-                            }
-                            Err(_) => continue,
-                        }
-                    } else {
-                        batch
-                    };
+                    if cursor.apply(&batch) {
+                        // 1-arg shim/stub ignored sinceEpoch and filtered with
+                        // the old seq; immediately schedule a fresh seq=0 read.
+                        let epoch = cursor.epoch.clone();
+                        pending_eval = Some(Box::pin(async move {
+                            tokio::time::timeout(
+                                PAGE_EVENT_EVAL_TIMEOUT,
+                                self.read_events(0, epoch.as_deref()),
+                            )
+                            .await
+                            .ok()
+                            .and_then(Result::ok)
+                        }));
+                        continue;
+                    }
                     for event in batch.events {
                         let Some(uri) = event
                             .get("kind")
@@ -522,6 +538,19 @@ where
                             let _ = sink.notify_resource_updated(uri).await;
                         }
                     }
+                }
+                _ = page_interval.tick(), if page_events_subscribed && pending_eval.is_none() => {
+                    let seq = cursor.seq;
+                    let epoch = cursor.epoch.clone();
+                    pending_eval = Some(Box::pin(async move {
+                        tokio::time::timeout(
+                            PAGE_EVENT_EVAL_TIMEOUT,
+                            self.read_events(seq, epoch.as_deref()),
+                        )
+                        .await
+                        .ok()
+                        .and_then(Result::ok)
+                    }));
                 }
             }
         }

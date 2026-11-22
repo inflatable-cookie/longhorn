@@ -48,8 +48,14 @@ agent can use while the app runs unfocused in the background.
   listen sink rejects custom notifications and logging, so those events
   do not ride as first-class MCP notification methods. Request-scoped
   notifications (progress) stay on their own request stream. The page-event
-  resource bodies carry bounded event rings and drop counters; the selection
-  resource carries current pending requests.
+  resource bodies carry bounded 64-event rings, drop counters, and a
+  per-document `epoch` so `listen` resets its sequence cursor across full
+  document reloads (within the bounded ring) and observes initial document
+  load as a `navigation` event; the selection resource carries current
+  pending requests. Selection updates are pushed over a watch channel with
+  zero polling; page-event subscriptions poll `readEvents` on a retained
+  50 ms interval with a 2 s per-evaluation bound run concurrently with
+  cancellation and selection notifications.
 - Closing a request's response stream cancels that request.
 
 ### Availability And Security
@@ -121,7 +127,10 @@ agent can use while the app runs unfocused in the background.
   description. A Promise is not awaited. Return a value, or `JSON.stringify`
   it, synchronously.
 - `wait_for`: predicate over the semantic tree or page state, bounded by
-  timeout. Waiting is DOM-relative, never time- or animation-relative:
+  `timeoutMs` (capped at 300,000 ms; larger values fail as invalid
+  argument / invalid params). Each predicate evaluation is bounded by the
+  same deadline so a wedged check still times out with `waitTimeout`.
+  Waiting is DOM-relative, never time- or animation-relative:
   WKWebView coalesces DOM timers in every window state and stops
   `requestAnimationFrame` entirely while the window is not key (Card 227),
   so rAF-driven visuals must not be awaited and elapsed time proves
@@ -165,8 +174,12 @@ agent can use while the app runs unfocused in the background.
   The default path is a hint, never an answer. The pending state is readable
   and updated on the selection resource so a subscribed agent can discover
   a request before its timeout. An unanswered request expires with a typed
-  error; a request cannot be answered after expiry or by another instance.
-  Cancellation and shutdown also settle it explicitly.
+  `expiredSelection` error; a request cannot be answered after expiry or by
+  another instance. Cancellation and shutdown settle the waiter explicitly
+  with `cancelledSelection`. Settled and expired tombstones are retained
+  for a bounded window (300 s, up to 256 tombstones, oldest evicted first)
+  so late answers receive `settledSelection` or `expiredSelection` before
+  evicted ids revert to `unknownSelection`.
 - `answer_selection { id, paths }` supplies the selection; `reject_selection
   { id, reason }` declines it and resolves the app call as `null` (the
   plugin's cancellation result). Unknown, expired, already-settled, malformed,
@@ -202,7 +215,9 @@ agent can use while the app runs unfocused in the background.
   content inline. The shim sets the input's `files` and dispatches `input`
   and `change`. The target must be a file input; `multiple` and the input's
   `accept` list are checked before delivery; the decoded total is capped at
-  8 MiB per call. Longhorn never reads a filesystem path for this tool — the
+  8 MiB per call, and empty file lists, empty names, invalid base64, or
+  over-cap payloads fail typed as `invalidArgument` (or JSON-RPC invalid
+  params at the MCP edge). Longhorn never reads a filesystem path for this tool — the
   agent is the byte source — and the bytes reach only the named input.
 
 ### Boundaries

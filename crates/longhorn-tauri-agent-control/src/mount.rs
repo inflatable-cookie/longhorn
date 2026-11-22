@@ -40,12 +40,12 @@ fn agent_control_plugin<R: Runtime>(registry: SelectionRegistry) -> tauri::plugi
         // Runs at document-start for webviews created after plugin registration.
         .js_init_script(SHIM_SOURCE.to_owned())
         // Webviews created before `mount_agent_control` (e.g. from tauri.conf.json)
-        // do not receive retroactive plugin init scripts, so re-inject on
-        // finished loads; `installAgentControlShim` is idempotent per document.
-        .on_page_load(|webview, payload| {
-            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
-                let _ = webview.eval(SHIM_SOURCE);
-            }
+        // do not receive retroactive plugin init scripts. On Wry/WKWebView,
+        // `Started` fires at navigation commit so evaluating on every load
+        // event installs the ring before document scripts finish; `Finished`
+        // covers any late context and `installAgentControlShim` is idempotent.
+        .on_page_load(|webview, _payload| {
+            let _ = webview.eval(SHIM_SOURCE);
         })
         .build()
 }

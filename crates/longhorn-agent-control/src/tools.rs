@@ -462,28 +462,58 @@ impl SetFileInputRequest {
                     message: "set_file_input file name must be non-empty".to_owned(),
                 });
             }
-            let size = decode_file_input_base64(&file.content_base64).ok_or_else(|| {
-                ToolError::InvalidArgument {
-                    message: format!("set_file_input file {:?} is not valid base64", file.name),
+            let remaining = MAX_FILE_INPUT_BYTES.saturating_sub(total);
+            match decoded_file_input_len(&file.content_base64, remaining) {
+                Ok(size) => {
+                    total = total.saturating_add(size);
                 }
-            })?;
-            total = total.saturating_add(size);
-            if total > MAX_FILE_INPUT_BYTES {
-                return Err(ToolError::InvalidArgument {
-                    message: "set_file_input decoded total exceeds 8 MiB".to_owned(),
-                });
+                Err(Base64CheckError::Invalid) => {
+                    return Err(ToolError::InvalidArgument {
+                        message: format!("set_file_input file {:?} is not valid base64", file.name),
+                    });
+                }
+                Err(Base64CheckError::ExceedsCap) => {
+                    return Err(ToolError::InvalidArgument {
+                        message: "set_file_input decoded total exceeds 8 MiB".to_owned(),
+                    });
+                }
             }
         }
         Ok(())
     }
 }
 
-fn decode_file_input_base64(content_base64: &str) -> Option<usize> {
-    use base64::{Engine as _, engine::general_purpose::STANDARD};
-    STANDARD
-        .decode(content_base64.as_bytes())
-        .ok()
-        .map(|bytes| bytes.len())
+enum Base64CheckError {
+    Invalid,
+    ExceedsCap,
+}
+
+/// Validates standard base64 and counts decoded bytes without allocating a
+/// full decoded buffer, stopping as soon as the cap is exceeded.
+fn decoded_file_input_len(
+    content_base64: &str,
+    max_bytes: usize,
+) -> Result<usize, Base64CheckError> {
+    use std::io::Read as _;
+
+    let mut decoder = base64::read::DecoderReader::new(
+        content_base64.as_bytes(),
+        &base64::engine::general_purpose::STANDARD,
+    );
+    let mut buf = [0u8; 4096];
+    let mut total = 0usize;
+    loop {
+        let read = decoder
+            .read(&mut buf)
+            .map_err(|_| Base64CheckError::Invalid)?;
+        if read == 0 {
+            return Ok(total);
+        }
+        total = total.saturating_add(read);
+        if total > max_bytes {
+            return Err(Base64CheckError::ExceedsCap);
+        }
+    }
 }
 
 /// Receipt for the action family (`click`, `type`, `press`, `scroll`,
@@ -568,6 +598,7 @@ pub struct WaitForRequest {
     pub predicate: WaitPredicate,
     /// Hard bound in milliseconds (at most [`MAX_WAIT_TIMEOUT_MS`]); expiry is
     /// [`ToolError::WaitTimeout`].
+    #[schemars(range(max = 300_000))]
     pub timeout_ms: u32,
 }
 
@@ -1091,6 +1122,11 @@ mod tests {
             over.validate().unwrap_err(),
             ToolError::InvalidArgument { .. }
         ));
+        let schema = serde_json::to_value(rmcp::schemars::schema_for!(WaitForRequest)).unwrap();
+        assert_eq!(
+            schema["properties"]["timeoutMs"]["maximum"],
+            serde_json::json!(MAX_WAIT_TIMEOUT_MS)
+        );
     }
 
     #[test]

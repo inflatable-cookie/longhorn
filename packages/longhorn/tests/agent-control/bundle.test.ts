@@ -48,15 +48,20 @@ describe("agent-control packaging", () => {
     expect(early.dropped).toBe(0);
     expect(EVENT_BUFFER_LIMIT).toBeGreaterThan(0);
 
-    // A reloaded document gets a fresh epoch; passing the old cursor + old
-    // epoch resets to seq 0 so the new document's first event is not lost.
+    // A reloaded document gets a fresh epoch, records its full-document load
+    // as a navigation event at seq 1, and passing the old cursor + old epoch
+    // resets to seq 0 so neither the navigation nor early events are lost.
     const reloaded = openPage(`<button>Reloaded</button>`);
     const reloadedApi = install(reloaded);
-    reloaded.console.log("after-reload");
+    reloaded.console.log("before-load-finish");
     const afterReload = reloadedApi.readEvents(later.nextSeq - 1, later.epoch);
     expect(afterReload.epoch).not.toBe(early.epoch);
-    expect(afterReload.events.map((event) => ("text" in event ? event.text : ""))).toEqual([
-      "after-reload",
-    ]);
+    expect(afterReload.events[0]?.kind).toBe("navigation");
+    expect(afterReload.events[0]?.seq).toBe(1);
+    expect(
+      afterReload.events
+        .filter((event) => event.kind === "console")
+        .map((event) => ("text" in event ? event.text : "")),
+    ).toEqual(["before-load-finish"]);
   });
 });

@@ -69,6 +69,19 @@ pub trait ControlHandler: Send + Sync + 'static {
         request: SetFileInputRequest,
     ) -> impl Future<Output = Result<ActionReceipt, ToolError>> + Send;
 
+    /// Dispatches a `set_file_input` request that the caller already validated
+    /// via [`SetFileInputRequest::validate`].
+    ///
+    /// The default implementation forwards to [`ControlHandler::set_file_input`];
+    /// hosts that validate inside `set_file_input` override this to avoid
+    /// decoding the payload twice on the MCP path.
+    fn set_file_input_prevalidated(
+        &self,
+        request: SetFileInputRequest,
+    ) -> impl Future<Output = Result<ActionReceipt, ToolError>> + Send {
+        self.set_file_input(request)
+    }
+
     /// Runs JavaScript in the page. Escape hatch, not the primary path.
     fn evaluate(
         &self,

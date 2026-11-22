@@ -380,6 +380,13 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         request: SetFileInputRequest,
     ) -> Result<ActionReceipt, ToolError> {
         request.validate()?;
+        self.set_file_input_prevalidated(request).await
+    }
+
+    async fn set_file_input_prevalidated(
+        &self,
+        request: SetFileInputRequest,
+    ) -> Result<ActionReceipt, ToolError> {
         let (_, _, value) = self
             .eval_js(
                 &request.window,

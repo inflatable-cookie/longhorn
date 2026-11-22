@@ -625,6 +625,7 @@
     const notifyNavigation = () => {
       push({ seq: nextSeq, kind: "navigation", url: world.location.href });
     };
+    notifyNavigation();
     world.addEventListener("hashchange", notifyNavigation);
     world.addEventListener("popstate", notifyNavigation);
     const history = world.history;

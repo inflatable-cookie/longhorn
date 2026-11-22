@@ -18,12 +18,15 @@ use std::{
         atomic::{AtomicU64, Ordering},
     },
     task::{Context, Poll},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::{Deserialize, Serialize};
-use tokio::sync::{oneshot, watch};
+use tokio::{
+    sync::{oneshot, watch},
+    time::Instant,
+};
 
 use crate::{SelectionId, ToolError};
 
@@ -291,9 +294,7 @@ impl SelectionRegistry {
         Ok(SelectionWait {
             id: id.clone(),
             registry: self.clone(),
-            timeout: Box::pin(tokio::time::sleep_until(tokio::time::Instant::from_std(
-                deadline,
-            ))),
+            timeout: Box::pin(tokio::time::sleep_until(deadline)),
             rx,
             settled: false,
         })
@@ -302,6 +303,7 @@ impl SelectionRegistry {
     /// Agent answer: validate cardinality and path kind, then settle once.
     pub fn answer(&self, id: &SelectionId, paths: &[String]) -> Result<(), ToolError> {
         self.sweep();
+        let now = Instant::now();
         let mut slots = self.inner.slots.lock().expect("selection registry mutex");
         match slots.get(id) {
             None => {
@@ -317,17 +319,16 @@ impl SelectionRegistry {
                 validate_answer(spec, paths)?;
             }
         }
-        let Some(SlotState::Pending { tx, .. }) = slots.insert(
-            id.clone(),
-            SlotState::Settled {
-                settled_at: Instant::now(),
-            },
-        ) else {
+        let Some(SlotState::Pending { tx, .. }) =
+            slots.insert(id.clone(), SlotState::Settled { settled_at: now })
+        else {
             return Err(ToolError::UnknownSelection { id: id.clone() });
         };
-        prune_tombstones(&mut slots, Instant::now());
-        drop(slots);
+        // Publish the authoritative outcome while holding the lock so a racing
+        // waiter wakeup cannot observe a missing slot before `rx` is ready.
         let _ = tx.send(SelectionOutcome::Answered(paths.to_vec()));
+        prune_tombstones(&mut slots, now);
+        drop(slots);
         self.bump();
         Ok(())
     }
@@ -391,9 +392,9 @@ impl SelectionRegistry {
         let Some(SlotState::Pending { tx, .. }) = slots.insert(id.clone(), tombstone) else {
             return Err(ToolError::UnknownSelection { id: id.clone() });
         };
+        let _ = tx.send(outcome);
         prune_tombstones(&mut slots, now);
         drop(slots);
-        let _ = tx.send(outcome);
         self.bump();
         Ok(())
     }
@@ -487,14 +488,14 @@ impl Future for SelectionWait {
             return Poll::Ready(outcome.unwrap_or(SelectionOutcome::Cancelled));
         }
         if Pin::new(&mut this.timeout).poll(cx).is_ready() {
-            // Single expiry path: sweep() settles every past-deadline slot
-            // and sends `SelectionOutcome::Expired` on its oneshot.
+            // Single expiry path on the shared Tokio clock: sweep() atomically
+            // settles past-deadline slots and sends the authoritative outcome
+            // on `tx` while holding the lock.
             this.registry.sweep();
-            this.settled = true;
-            return Poll::Ready(match Pin::new(&mut this.rx).poll(cx) {
-                Poll::Ready(Ok(outcome)) => outcome,
-                Poll::Ready(Err(_)) | Poll::Pending => SelectionOutcome::Expired,
-            });
+            if let Poll::Ready(outcome) = Pin::new(&mut this.rx).poll(cx) {
+                this.settled = true;
+                return Poll::Ready(outcome.unwrap_or(SelectionOutcome::Cancelled));
+            }
         }
         Poll::Pending
     }
@@ -811,6 +812,19 @@ mod tests {
         assert_eq!(
             registry.reject(latest).unwrap_err(),
             ToolError::SettledSelection { id: latest.clone() }
+        );
+    }
+
+    #[tokio::test]
+    async fn expiry_settles_registry_and_waiter_atomically_on_shared_clock() {
+        let registry = SelectionRegistry::with_ttl("app:1", Duration::from_millis(25));
+        let wait = registry.begin(open_file_request()).unwrap();
+        let id = wait.id().clone();
+        assert_eq!(wait.await, SelectionOutcome::Expired);
+        assert!(registry.pending().is_empty());
+        assert_eq!(
+            registry.answer(&id, &["/nope".to_owned()]).unwrap_err(),
+            ToolError::ExpiredSelection { id }
         );
     }
 }
