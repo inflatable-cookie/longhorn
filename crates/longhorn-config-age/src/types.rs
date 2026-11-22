@@ -159,6 +159,8 @@ pub enum AgeInspectionOutcome {
     Verified(Box<AgeBackupInspection>),
     /// No supplied identity could authenticate the envelope.
     Locked(AgeEnvelopeEvidence),
+    /// Injected key authority failed (for example, a corrupt stored identity).
+    ProviderFailed(AgeEnvelopeEvidence),
     /// Envelope was malformed, truncated, modified, or failed authentication.
     Corrupt(AgeEnvelopeEvidence),
     /// Envelope format or configured safety bound is unsupported.
@@ -178,9 +180,10 @@ impl AgeInspectionOutcome {
     pub fn evidence(&self) -> &AgeEnvelopeEvidence {
         match self {
             Self::Verified(inspection) => inspection.receipt().evidence(),
-            Self::Locked(evidence) | Self::Corrupt(evidence) | Self::Unsupported(evidence) => {
-                evidence
-            }
+            Self::Locked(evidence)
+            | Self::ProviderFailed(evidence)
+            | Self::Corrupt(evidence)
+            | Self::Unsupported(evidence) => evidence,
             Self::InnerArchiveRejected { evidence, .. } => evidence,
         }
     }

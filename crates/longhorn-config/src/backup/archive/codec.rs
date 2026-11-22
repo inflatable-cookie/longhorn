@@ -58,8 +58,42 @@ pub fn inspect_backup_archive(
         if index > 0 {
             previous = Some(path.clone());
         }
-        total = total
+        if total
             .checked_add(entry.size())
+            .is_none_or(|declared_total| declared_total > limits.max_total_bytes() as u64)
+        {
+            return Err(BackupArchiveError::TotalTooLarge {
+                limit: limits.max_total_bytes(),
+                observed: total.saturating_add(entry.size()),
+            });
+        }
+        let compressed_size = entry.compressed_size();
+        let remaining_total = (limits.max_total_bytes() as u64).saturating_sub(total);
+        let max_by_ratio =
+            compressed_size.saturating_mul(u64::from(limits.max_compression_ratio()));
+        let read_limit = (limits.max_entry_bytes() as u64)
+            .min(remaining_total)
+            .min(max_by_ratio);
+        let initial_capacity = usize::try_from(entry.size().min(read_limit)).unwrap_or(0);
+        let mut entry_bytes = Vec::with_capacity(initial_capacity);
+        entry
+            .by_ref()
+            .take(read_limit.saturating_add(1))
+            .read_to_end(&mut entry_bytes)
+            .map_err(|error| BackupArchiveError::Read {
+                path: path.clone(),
+                detail: error.to_string(),
+            })?;
+        let actual_len = entry_bytes.len() as u64;
+        if entry_bytes.len() > limits.max_entry_bytes() {
+            return Err(BackupArchiveError::EntryTooLarge {
+                path,
+                limit: limits.max_entry_bytes(),
+                observed: actual_len,
+            });
+        }
+        total = total
+            .checked_add(actual_len)
             .ok_or(BackupArchiveError::TotalTooLarge {
                 limit: limits.max_total_bytes(),
                 observed: u64::MAX,
@@ -70,20 +104,12 @@ pub fn inspect_backup_archive(
                 observed: total,
             });
         }
-        let mut entry_bytes = Vec::with_capacity(usize::try_from(entry.size()).unwrap_or(0));
-        entry
-            .by_ref()
-            .take(limits.max_entry_bytes() as u64 + 1)
-            .read_to_end(&mut entry_bytes)
-            .map_err(|error| BackupArchiveError::Read {
-                path: path.clone(),
-                detail: error.to_string(),
-            })?;
-        if entry_bytes.len() > limits.max_entry_bytes() {
-            return Err(BackupArchiveError::EntryTooLarge {
+        if ratio_exceeds(actual_len, compressed_size, limits.max_compression_ratio()) {
+            return Err(BackupArchiveError::CompressionRatio {
                 path,
-                limit: limits.max_entry_bytes(),
-                observed: entry_bytes.len() as u64,
+                limit: limits.max_compression_ratio(),
+                compressed: compressed_size,
+                uncompressed: actual_len,
             });
         }
         entries.push((path, entry_bytes));

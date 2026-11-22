@@ -212,7 +212,7 @@ fn coordinated_load_set_holds_one_generation_guard_across_member_reads() {
 }
 
 #[test]
-fn terminal_journal_self_heals_on_bare_load_while_active_phases_still_block() {
+fn bare_load_stays_read_only_for_terminal_and_active_journals_until_explicit_recovery() {
     let fixture = Fixture::new();
     let domain = config_domain();
     let bytes = document(
@@ -246,7 +246,7 @@ fn terminal_journal_self_heals_on_bare_load_while_active_phases_still_block() {
         .replace("PHASE", phase)
     };
 
-    // A crash mid-apply keeps blocking bare loads.
+    // A crash mid-apply blocks bare loads without touching the journal.
     fs::write(journal_dir.join("journal.json"), journal("applying")).unwrap();
     assert_eq!(
         store.restore_operation_state(),
@@ -254,25 +254,37 @@ fn terminal_journal_self_heals_on_bare_load_while_active_phases_still_block() {
     );
     assert!(matches!(
         store.load(&domain).unwrap(),
-        LoadOutcome::Unavailable(_)
+        LoadOutcome::Unavailable(longhorn_config::UnavailableState::RestoreActive)
     ));
     assert!(journal_dir.join("journal.json").exists());
 
-    // A crash after completion self-heals and returns data.
-    fs::write(journal_dir.join("journal.json"), journal("succeeded")).unwrap();
-    let loaded = store.load(&domain).unwrap();
-    assert!(matches!(loaded, LoadOutcome::Ready(_)));
-    assert!(!journal_dir.join("journal.json").exists());
-    assert_eq!(
-        store.restore_operation_state(),
-        RestoreOperationState::Inactive
-    );
+    // A crash after completion also keeps bare loads read-only (never takes
+    // the coordinator or mutates the journal); explicit recovery cleans it.
+    for phase in ["succeeded", "rolled-back"] {
+        fs::write(journal_dir.join("journal.json"), journal(phase)).unwrap();
+        assert!(matches!(
+            store.load(&domain).unwrap(),
+            LoadOutcome::Unavailable(longhorn_config::UnavailableState::RestoreActive)
+        ));
+        assert!(journal_dir.join("journal.json").exists());
 
-    // Same for a rolled-back terminal phase.
-    fs::write(journal_dir.join("journal.json"), journal("rolled-back")).unwrap();
-    assert!(matches!(
-        store.load(&domain).unwrap(),
-        LoadOutcome::Ready(_)
-    ));
-    assert!(!journal_dir.join("journal.json").exists());
+        let receipt = store
+            .recover_restore(longhorn_config::RestoreRecoveryOptions::new(
+                Duration::from_secs(1),
+            ))
+            .unwrap();
+        assert_eq!(
+            receipt.outcome(),
+            longhorn_config::RestoreRecoveryOutcome::TerminalCleanup
+        );
+        assert!(!journal_dir.join("journal.json").exists());
+        assert_eq!(
+            store.restore_operation_state(),
+            RestoreOperationState::Inactive
+        );
+        assert!(matches!(
+            store.load(&domain).unwrap(),
+            LoadOutcome::Ready(_)
+        ));
+    }
 }

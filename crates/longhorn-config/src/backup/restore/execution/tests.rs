@@ -275,3 +275,46 @@ fn safety_metadata_kind_is_explicit() {
     .unwrap();
     assert_eq!(metadata.kind(), BackupKind::PreRestore);
 }
+
+#[test]
+fn stale_current_file_during_rollback_capture_reports_recheck_current() {
+    let fixture = Fixture::new();
+    let initial = br#"{"domain":"test.restore","schemaVersion":1,"value":{}}"#;
+    fs::write(&fixture.target, initial).unwrap();
+    let target_bytes = br#"{"domain":"test.restore","schemaVersion":1,"value":{"a":1}}"#.to_vec();
+    let staging = RestoreStaging {
+        archive_sha256: Sha256Digest::from_bytes(b"archive"),
+        plan_digest: Sha256Digest::from_bytes(b"plan"),
+        receipt: crate::RestoreStagingReceipt {
+            selected: 1,
+            documents: 1,
+            deletions: 0,
+            unchanged: 0,
+            total_document_bytes: target_bytes.len() as u64,
+        },
+        domains: vec![StagedDomain {
+            domain: fixture.domain.descriptor.id().clone(),
+            action: RestoreAction::Replace,
+            path: fixture.target.clone(),
+            current: RestoreCurrentEvidence::Present {
+                byte_length: initial.len() as u64,
+                sha256: Sha256Digest::from_bytes(initial),
+            },
+            schema_version: Some(SchemaVersion::new(1).unwrap()),
+            bytes: Some(target_bytes),
+        }],
+    };
+    // Mutate the live file after staging so the staged current evidence is stale.
+    fs::write(
+        &fixture.target,
+        br#"{"domain":"test.restore","schemaVersion":1,"value":{"changed":true}}"#,
+    )
+    .unwrap();
+
+    let error =
+        transaction::capture_rollback(&fixture.store, &staging, crate::BackupLimits::default())
+            .err()
+            .expect("stale file must be rejected");
+    assert_eq!(error.stage, RestoreExecutionStage::RecheckCurrent);
+    assert_eq!(error.terminal, RestoreFailureTerminal::NoLiveMutation);
+}

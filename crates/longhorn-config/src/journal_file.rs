@@ -67,7 +67,7 @@ pub(crate) fn publish<J: Serialize>(
     journal: &J,
     subject: &str,
 ) -> io::Result<()> {
-    fs::create_dir_all(directory)?;
+    crate::dir_sync::create_dir_all_synced(directory)?;
     let bytes = serde_json::to_vec_pretty(journal)
         .map_err(|error| io::Error::other(format!("cannot encode {subject}: {error}")))?;
     let mut temporary = UniqueTemporary::create(directory, file_name)?;

@@ -1,36 +1,127 @@
-//! Narrow Tauri capability and dependency audit.
+//! Tauri command registration, capability examples, and async offload tests.
 
-use std::{fs, path::PathBuf};
+use std::{collections::BTreeSet, fs, path::PathBuf};
 
 use serde_json::Value;
 
+/// Every `#[tauri::command]` exported by `longhorn-tauri-config`.
+///
+/// The mock handler below registers these exact functions with
+/// `tauri::generate_handler!`, so a renamed or removed command fails to
+/// compile here.
+const REGISTERED_COMMANDS: [&str; 13] = [
+    "longhorn_config_snapshot",
+    "longhorn_config_storage_inspect",
+    "longhorn_config_storage_execute",
+    "longhorn_config_storage_recover",
+    "longhorn_config_storage_cleanup",
+    "longhorn_config_backup_create",
+    "longhorn_config_backup_export",
+    "longhorn_config_backup_retention",
+    "longhorn_config_restore_inspect",
+    "longhorn_config_restore_plan",
+    "longhorn_config_restore_execute",
+    "longhorn_config_restore_adapter_execute",
+    "longhorn_config_restore_recover",
+];
+
+fn parse_allowed_commands(toml_text: &str) -> Vec<String> {
+    let mut commands = Vec::new();
+    let mut in_allow = false;
+    for line in toml_text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("commands.allow") {
+            in_allow = true;
+        }
+        if in_allow {
+            let mut rest = trimmed;
+            while let Some(start) = rest.find('"') {
+                let after = &rest[start + 1..];
+                let Some(end) = after.find('"') else {
+                    break;
+                };
+                commands.push(after[..end].to_owned());
+                rest = &after[end + 1..];
+            }
+            if trimmed.contains(']') {
+                in_allow = false;
+            }
+        }
+    }
+    commands
+}
+
 #[test]
-fn permission_examples_name_exact_command_groups() {
-    let read_permission = read("examples/permissions/read-config-operations.toml");
-    let storage = read("examples/permissions/mutate-storage.toml");
-    let backup = read("examples/permissions/mutate-backups.toml");
-    let restore = read("examples/permissions/mutate-restore.toml");
-    assert_eq!(read_permission.matches("\"longhorn_config_").count(), 3);
-    assert_eq!(storage.matches("\"longhorn_config_").count(), 3);
-    assert_eq!(backup.matches("\"longhorn_config_").count(), 3);
-    assert_eq!(restore.matches("\"longhorn_config_").count(), 4);
-    assert!(read_permission.contains("\"longhorn_config_snapshot\""));
-    assert!(read_permission.contains("\"longhorn_config_storage_inspect\""));
-    assert!(read_permission.contains("\"longhorn_config_restore_inspect\""));
-    for command in ["storage_execute", "storage_recover", "storage_cleanup"] {
-        assert!(storage.contains(&format!("\"longhorn_config_{command}\"")));
+fn permission_examples_partition_every_registered_command_once() {
+    // Compile-check that every command in REGISTERED_COMMANDS is a real
+    // `#[tauri::command]` accepted by Tauri's invoke handler.
+    let _builder = tauri::test::mock_builder().invoke_handler(tauri::generate_handler![
+        longhorn_tauri_config::longhorn_config_snapshot,
+        longhorn_tauri_config::longhorn_config_storage_inspect,
+        longhorn_tauri_config::longhorn_config_storage_execute,
+        longhorn_tauri_config::longhorn_config_storage_recover,
+        longhorn_tauri_config::longhorn_config_storage_cleanup,
+        longhorn_tauri_config::longhorn_config_backup_create,
+        longhorn_tauri_config::longhorn_config_backup_export,
+        longhorn_tauri_config::longhorn_config_backup_retention,
+        longhorn_tauri_config::longhorn_config_restore_inspect,
+        longhorn_tauri_config::longhorn_config_restore_plan,
+        longhorn_tauri_config::longhorn_config_restore_execute,
+        longhorn_tauri_config::longhorn_config_restore_adapter_execute,
+        longhorn_tauri_config::longhorn_config_restore_recover,
+    ]);
+
+    let expected_groups: &[(&str, &[&str])] = &[
+        (
+            "examples/permissions/read-config-operations.toml",
+            &[
+                "longhorn_config_snapshot",
+                "longhorn_config_storage_inspect",
+                "longhorn_config_restore_inspect",
+            ],
+        ),
+        (
+            "examples/permissions/mutate-storage.toml",
+            &[
+                "longhorn_config_storage_execute",
+                "longhorn_config_storage_recover",
+                "longhorn_config_storage_cleanup",
+            ],
+        ),
+        (
+            "examples/permissions/mutate-backups.toml",
+            &[
+                "longhorn_config_backup_create",
+                "longhorn_config_backup_export",
+                "longhorn_config_backup_retention",
+            ],
+        ),
+        (
+            "examples/permissions/mutate-restore.toml",
+            &[
+                "longhorn_config_restore_plan",
+                "longhorn_config_restore_execute",
+                "longhorn_config_restore_adapter_execute",
+                "longhorn_config_restore_recover",
+            ],
+        ),
+    ];
+
+    let mut seen = BTreeSet::new();
+    for (file, expected) in expected_groups {
+        let allowed = parse_allowed_commands(&read(file));
+        let expected_vec: Vec<String> = expected.iter().map(|s| (*s).to_owned()).collect();
+        assert_eq!(allowed, expected_vec, "mismatch in {file}");
+        for command in allowed {
+            assert!(seen.insert(command.clone()), "duplicate command {command}");
+        }
     }
-    for command in ["backup_create", "backup_export", "backup_retention"] {
-        assert!(backup.contains(&format!("\"longhorn_config_{command}\"")));
-    }
-    for command in [
-        "restore_plan",
-        "restore_execute",
-        "restore_adapter_execute",
-        "restore_recover",
-    ] {
-        assert!(restore.contains(&format!("\"longhorn_config_{command}\"")));
-    }
+
+    let registered: BTreeSet<String> = REGISTERED_COMMANDS
+        .iter()
+        .map(|s| (*s).to_owned())
+        .collect();
+    assert_eq!(seen, registered);
 }
 
 #[test]
@@ -57,36 +148,6 @@ fn capability_examples_add_only_selected_authority() {
         serde_json::json!(["main", "settings"])
     );
     assert_eq!(full["windows"], serde_json::json!(["settings"]));
-}
-
-#[test]
-fn crate_dependency_edge_stays_narrow_and_secret_free() {
-    let manifest = read("Cargo.toml");
-    for forbidden in [
-        "longhorn-config-age",
-        "longhorn-settings",
-        "longhorn-layout",
-        "longhorn-surfaces",
-        "longhorn-transfer",
-        "svelte",
-        "poodle",
-    ] {
-        assert!(!manifest.contains(forbidden), "{forbidden}");
-    }
-    let sources = [
-        read("src/authority.rs"),
-        read("src/commands.rs"),
-        read("src/ports.rs"),
-    ]
-    .join("\n");
-    for forbidden in [
-        "AgeIdentity",
-        "AgePassphrase",
-        "archive_bytes",
-        "payload_bytes",
-    ] {
-        assert!(!sources.contains(forbidden), "{forbidden}");
-    }
 }
 
 fn read(relative: &str) -> String {

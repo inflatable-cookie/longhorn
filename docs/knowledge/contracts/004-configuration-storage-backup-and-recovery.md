@@ -62,6 +62,8 @@ to the current directory or a home-directory dotfile.
   layout, provenance, warnings, and typed failures.
 - Tauri adapters resolve platform-directory facts through the application path
   API. Tauri's suggested leaf layout does not override the selected profile.
+  On Linux, `runtime_dir` in `TauriDirectorySnapshot::Linux` is optional so a
+  missing `XDG_RUNTIME_DIR` remains absent rather than being invented.
 - Tests receive temporary roots.
 - Filenames are stable, sanitized, and confined below their registered root.
 - Ordinary file access opens a capability-scoped root and resolves only the
@@ -479,7 +481,9 @@ ordinary configuration.
   read-back. A store that reports a successful write and reads back empty is
   `Unavailable`, never encrypted to
 - interactive export may use age recipients or a human passphrase
-- unavailable identity reports `locked`, not `corrupt`
+- unavailable identity reports `locked`, not `corrupt`; a failing key provider
+  (for example, a corrupt stored identity) reports `provider-failed`, distinct
+  from `locked`
 - rotation changes new recipients; external key rings retain old identities
 - re-encryption is explicit decrypt-and-write with a new nonce
 - retention preserves archives it cannot authenticate and inspect

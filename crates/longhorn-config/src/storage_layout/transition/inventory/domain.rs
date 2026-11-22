@@ -79,11 +79,7 @@ pub(crate) fn inspect_domain(
                         path: None,
                         detail: "custom target semantic evidence conflicts".into(),
                     });
-                    StorageTransitionAction::CustomAdapter {
-                        source_adapter: source.id().clone(),
-                        target_adapter: target.id().clone(),
-                        participation: target.capabilities().restore().clone(),
-                    }
+                    StorageTransitionAction::Conflict
                 }
             };
             Ok(StorageTransitionDomain {
@@ -157,8 +153,7 @@ fn inspect_ordinary(
             (StorageFileEvidence::Absent, StorageFileEvidence::Absent) => {
                 StorageTransitionAction::Absent
             }
-            (StorageFileEvidence::Present { sha256: left, .. }, StorageFileEvidence::Absent) => {
-                let _ = left;
+            (StorageFileEvidence::Present { .. }, StorageFileEvidence::Absent) => {
                 StorageTransitionAction::CopyOrdinary
             }
             (
@@ -172,7 +167,7 @@ fn inspect_ordinary(
                     path: Some(target.full_path().to_path_buf()),
                     detail: "ordinary target evidence conflicts".into(),
                 });
-                StorageTransitionAction::CopyOrdinary
+                StorageTransitionAction::Conflict
             }
         }
     };

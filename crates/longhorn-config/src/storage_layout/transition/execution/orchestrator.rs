@@ -54,6 +54,18 @@ pub fn recover_storage_transition(
     )
     .map_err(StorageTransitionError::Locator)?;
     verify_journal_authority(request, &active, target_committed)?;
+    if !target_committed {
+        // Remove ordinary target copies written before the aborted locator
+        // commit so a later retry does not fail with TargetOccupied.
+        for entry in &active.domains {
+            if !entry.custom
+                && entry.target_was_absent
+                && let Some(target_path) = entry.target_path.as_deref()
+            {
+                io::remove_file(target_path)?;
+            }
+        }
+    }
     journal::cleanup(&request.bootstrap, &active.transition_id)?;
     Ok(Some(StorageTransitionRecoveryReceipt {
         transition_id: active.transition_id,
@@ -140,7 +152,8 @@ pub(crate) fn execute_inner(
             StorageTransitionAction::Absent
             | StorageTransitionAction::SameAuthority
             | StorageTransitionAction::Identical
-            | StorageTransitionAction::Excluded(_) => {}
+            | StorageTransitionAction::Excluded(_)
+            | StorageTransitionAction::Conflict => {}
         }
     }
     if injected == Some(InjectedFailure::BeforeLocator) {

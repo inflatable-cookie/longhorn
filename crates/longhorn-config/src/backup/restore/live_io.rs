@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     io::{self, Read},
     path::Path,
 };
@@ -9,10 +10,30 @@ use crate::{DurabilityRequirement, ResolvedFile, store::publication::publish};
 
 use super::journal::JournalEvidence;
 
+pub(super) enum ExactStateError {
+    Stale(String),
+    Io(io::Error),
+}
+
+impl fmt::Display for ExactStateError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Stale(detail) => formatter.write_str(detail),
+            Self::Io(error) => error.fmt(formatter),
+        }
+    }
+}
+
+impl From<io::Error> for ExactStateError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
 pub(super) fn read_exact_state(
     file: &ResolvedFile,
     expected: &JournalEvidence,
-) -> io::Result<Option<Vec<u8>>> {
+) -> Result<Option<Vec<u8>>, ExactStateError> {
     let root = Dir::open_ambient_dir(file.root(), ambient_authority())?;
     let mut input = match root.open(file.relative_path().as_path()) {
         Ok(input) => input,
@@ -20,22 +41,24 @@ pub(super) fn read_exact_state(
             return if expected.matches(None) {
                 Ok(None)
             } else {
-                Err(io::Error::other("registered source is unexpectedly absent"))
+                Err(ExactStateError::Stale(
+                    "registered source is unexpectedly absent".into(),
+                ))
             };
         }
-        Err(error) => return Err(error),
+        Err(error) => return Err(ExactStateError::Io(error)),
     };
     let observed = input.metadata()?.len();
     let expected_length = match expected {
         JournalEvidence::Absent => {
-            return Err(io::Error::other(
-                "registered source is unexpectedly present",
+            return Err(ExactStateError::Stale(
+                "registered source is unexpectedly present".into(),
             ));
         }
         JournalEvidence::Present { byte_length, .. } => *byte_length,
     };
     if observed != expected_length {
-        return Err(io::Error::other(format!(
+        return Err(ExactStateError::Stale(format!(
             "registered source length changed: expected {expected_length}, observed {observed}"
         )));
     }
@@ -47,8 +70,8 @@ pub(super) fn read_exact_state(
         .take(observed.saturating_add(1))
         .read_to_end(&mut bytes)?;
     if !expected.matches(Some(&bytes)) {
-        return Err(io::Error::other(
-            "registered source digest changed after confirmation",
+        return Err(ExactStateError::Stale(
+            "registered source digest changed after confirmation".into(),
         ));
     }
     Ok(Some(bytes))
@@ -71,7 +94,12 @@ pub(super) fn publish_state(file: &ResolvedFile, bytes: Option<&[u8]>) -> io::Re
 }
 
 pub(super) fn verify_state(file: &ResolvedFile, expected: &JournalEvidence) -> io::Result<()> {
-    read_exact_state(file, expected).map(|_| ())
+    read_exact_state(file, expected)
+        .map(|_| ())
+        .map_err(|error| match error {
+            ExactStateError::Stale(detail) => io::Error::other(detail),
+            ExactStateError::Io(error) => error,
+        })
 }
 
 fn delete_state(file: &ResolvedFile) -> io::Result<()> {

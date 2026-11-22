@@ -1,6 +1,6 @@
 use std::{
     ffi::OsStr,
-    io::{self, Write},
+    io::Write,
     path::{Path, PathBuf},
 };
 
@@ -10,7 +10,7 @@ use cap_std::{
 };
 
 use crate::ResolvedFile;
-use crate::atomic_file::{TEMP_ATTEMPTS, temporary_name};
+use crate::atomic_file::{PrivateOpenOptions, create_unique_temporary};
 
 use super::{Durability, DurabilityRequirement, PublicationFailure, PublicationStage};
 
@@ -34,17 +34,19 @@ fn publish_inner(
     let relative = target.relative_path().as_path();
     let parent_path = relative.parent().unwrap_or_else(|| Path::new(""));
 
-    if !parent_path.as_os_str().is_empty() {
+    let created_parents = if parent_path.as_os_str().is_empty() {
+        Vec::new()
+    } else {
         inject(target, PublicationStage::CreateParent, injected_failure)?;
-        root.create_dir_all(parent_path).map_err(|error| {
+        crate::dir_sync::create_dir_all_collecting_parents(&root, parent_path).map_err(|error| {
             failure(
                 target,
                 PublicationStage::CreateParent,
                 false,
                 error.to_string(),
             )
-        })?;
-    }
+        })?
+    };
 
     inject(target, PublicationStage::OpenParent, injected_failure)?;
     let parent = if parent_path.as_os_str().is_empty() {
@@ -115,7 +117,7 @@ fn publish_inner(
 
     let directory_sync = inject(target, PublicationStage::SyncDirectory, injected_failure)
         .and_then(|()| {
-            crate::dir_sync::sync_dir_handle(&parent).map_err(|error| {
+            sync_published_directories(&root, &parent, &created_parents).map_err(|error| {
                 failure(
                     target,
                     PublicationStage::SyncDirectory,
@@ -132,6 +134,23 @@ fn publish_inner(
     }
 }
 
+fn sync_published_directories(
+    root: &Dir,
+    parent: &Dir,
+    created_parents: &[PathBuf],
+) -> std::io::Result<()> {
+    crate::dir_sync::sync_dir_handle(parent)?;
+    for ancestor in created_parents.iter().rev() {
+        if ancestor.as_os_str().is_empty() {
+            crate::dir_sync::sync_dir_handle(root)?;
+        } else {
+            let directory = root.open_dir(ancestor)?;
+            crate::dir_sync::sync_dir_handle(&directory)?;
+        }
+    }
+    Ok(())
+}
+
 fn create_temporary(
     target: &ResolvedFile,
     parent: &Dir,
@@ -141,32 +160,20 @@ fn create_temporary(
     inject(target, PublicationStage::CreateTemporary, injected_failure)?;
     let display_name = file_name.to_string_lossy();
 
-    for _ in 0..TEMP_ATTEMPTS {
-        let name = temporary_name(Path::new(""), &display_name);
+    create_unique_temporary(Path::new(""), &display_name, |name| {
         let mut options = OpenOptions::new();
         options.write(true).create_new(true);
-        set_private_mode(&mut options);
-
-        match parent.open_with(&name, &options) {
-            Ok(file) => return Ok((file, name)),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
-            Err(error) => {
-                return Err(failure(
-                    target,
-                    PublicationStage::CreateTemporary,
-                    false,
-                    error.to_string(),
-                ));
-            }
-        }
-    }
-
-    Err(failure(
-        target,
-        PublicationStage::CreateTemporary,
-        false,
-        "temporary name collision retry limit reached",
-    ))
+        options.set_private_mode();
+        parent.open_with(name, &options)
+    })
+    .map_err(|error| {
+        failure(
+            target,
+            PublicationStage::CreateTemporary,
+            false,
+            error.to_string(),
+        )
+    })
 }
 
 fn inject(
@@ -210,16 +217,6 @@ fn failure(
         detail: detail.into(),
     }
 }
-
-#[cfg(unix)]
-fn set_private_mode(options: &mut OpenOptions) {
-    use cap_std::fs::OpenOptionsExt;
-
-    options.mode(0o600);
-}
-
-#[cfg(not(unix))]
-fn set_private_mode(_options: &mut OpenOptions) {}
 
 #[cfg(test)]
 mod tests;

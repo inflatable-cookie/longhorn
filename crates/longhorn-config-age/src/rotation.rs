@@ -33,6 +33,9 @@ pub fn reencrypt_operational_backup(
 fn map_source(failure: DecryptionFailure) -> AgeReencryptionError {
     match failure {
         DecryptionFailure::Locked(evidence) => AgeReencryptionError::SourceLocked(evidence),
+        DecryptionFailure::ProviderFailed(evidence) => {
+            AgeReencryptionError::SourceProviderFailed(evidence)
+        }
         DecryptionFailure::Corrupt(evidence) => AgeReencryptionError::SourceCorrupt(evidence),
         DecryptionFailure::Unsupported(evidence) => {
             AgeReencryptionError::SourceUnsupported(evidence)

@@ -29,10 +29,7 @@ impl Write for BoundedWriter {
         let remaining = self.limit.saturating_sub(self.bytes.len());
         if input.len() > remaining {
             self.exceeded = true;
-            return Err(io::Error::new(
-                io::ErrorKind::OutOfMemory,
-                "bounded age output exceeded",
-            ));
+            return Err(io::Error::other("bounded age output exceeded"));
         }
         self.bytes.extend_from_slice(input);
         Ok(input.len())

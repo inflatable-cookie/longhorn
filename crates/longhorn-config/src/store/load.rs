@@ -1,17 +1,39 @@
-use std::{io, path::PathBuf};
+use std::{
+    io::{self, Read},
+    path::PathBuf,
+};
 
 use cap_std::{ambient_authority, fs::Dir};
 use longhorn_core::SchemaVersion;
 use serde_json::Value;
 
-use crate::{ConfigDomain, DomainIssue, MigrationStep, ResolvedFile};
+use crate::{BackupLimits, ConfigDomain, DomainIssue, MigrationStep, ResolvedFile};
 
 use super::{
     LoadDiagnostic, LoadDiagnosticCode, LoadOutcome, LoadedConfig, LoadedOrigin, RecoveryKind,
     RecoveryState, SourceDocument, SourcePosition, document::SerializedDocument,
 };
 
-pub(crate) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> LoadOutcome<D::Value> {
+/// Result of reading and decoding one domain file, excluding store-level
+/// unavailability states that file loading cannot produce.
+pub(crate) enum FileLoadOutcome<T> {
+    Ready(LoadedConfig<T>),
+    Recovery(RecoveryState),
+}
+
+impl<T> FileLoadOutcome<T> {
+    pub(crate) fn into_load_outcome(self) -> LoadOutcome<T> {
+        match self {
+            Self::Ready(loaded) => LoadOutcome::Ready(loaded),
+            Self::Recovery(recovery) => LoadOutcome::Recovery(recovery),
+        }
+    }
+}
+
+pub(crate) fn load_file<D: ConfigDomain>(
+    domain: &D,
+    file: &ResolvedFile,
+) -> FileLoadOutcome<D::Value> {
     #[cfg(feature = "toml")]
     if domain.descriptor().is_human_toml() {
         return crate::toml_domain::load_toml_file(domain, file);
@@ -23,7 +45,7 @@ pub(crate) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> Loa
             return validated_default(domain, Some(file.full_path().to_path_buf()), true);
         }
         Err(error) => {
-            return LoadOutcome::Recovery(RecoveryState {
+            return FileLoadOutcome::Recovery(RecoveryState {
                 kind: RecoveryKind::ReadFailed,
                 path: Some(file.full_path().to_path_buf()),
                 source: None,
@@ -37,8 +59,31 @@ pub(crate) fn load_file<D: ConfigDomain>(domain: &D, file: &ResolvedFile) -> Loa
 }
 
 pub(crate) fn read_source(file: &ResolvedFile) -> io::Result<SourceDocument> {
+    let max_bytes = BackupLimits::default().max_domain_bytes();
     let directory = Dir::open_ambient_dir(file.root(), ambient_authority())?;
-    let bytes = directory.read(file.relative_path().as_path())?;
+    let input = directory.open(file.relative_path().as_path())?;
+    let observed = usize::try_from(input.metadata()?.len()).unwrap_or(usize::MAX);
+    if observed > max_bytes {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("domain file exceeds {max_bytes}-byte limit ({observed} bytes)"),
+        ));
+    }
+    let read_limit = u64::try_from(max_bytes)
+        .ok()
+        .and_then(|limit| limit.checked_add(1))
+        .expect("domain byte limit fits u64");
+    let mut bytes = Vec::with_capacity(observed);
+    input.take(read_limit).read_to_end(&mut bytes)?;
+    if bytes.len() > max_bytes {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "domain file exceeds {max_bytes}-byte limit ({} bytes)",
+                bytes.len()
+            ),
+        ));
+    }
 
     Ok(SourceDocument {
         path: file.full_path().to_path_buf(),
@@ -50,10 +95,10 @@ pub(crate) fn validated_default<D: ConfigDomain>(
     domain: &D,
     path: Option<PathBuf>,
     missing: bool,
-) -> LoadOutcome<D::Value> {
+) -> FileLoadOutcome<D::Value> {
     let value = domain.default_value();
     if let Err(issue) = domain.validate(&value) {
-        return LoadOutcome::Recovery(recovery_from_issue(
+        return FileLoadOutcome::Recovery(recovery_from_issue(
             RecoveryKind::InvalidDefault,
             path,
             None,
@@ -71,7 +116,7 @@ pub(crate) fn validated_default<D: ConfigDomain>(
         Vec::new()
     };
 
-    LoadOutcome::Ready(LoadedConfig {
+    FileLoadOutcome::Ready(LoadedConfig {
         value,
         schema_version: domain.descriptor().schema_version(),
         origin: LoadedOrigin::Default,
@@ -83,11 +128,11 @@ pub(crate) fn validated_default<D: ConfigDomain>(
 pub(crate) fn load_source<D: ConfigDomain>(
     domain: &D,
     source: SourceDocument,
-) -> LoadOutcome<D::Value> {
+) -> FileLoadOutcome<D::Value> {
     let document: SerializedDocument = match serde_json::from_slice(&source.bytes) {
         Ok(document) => document,
         Err(error) => {
-            return LoadOutcome::Recovery(RecoveryState {
+            return FileLoadOutcome::Recovery(RecoveryState {
                 kind: RecoveryKind::CorruptDocument,
                 path: Some(source.path.clone()),
                 source: Some(source),
@@ -99,7 +144,7 @@ pub(crate) fn load_source<D: ConfigDomain>(
 
     let descriptor = domain.descriptor();
     if document.domain != *descriptor.id() {
-        return LoadOutcome::Recovery(RecoveryState {
+        return FileLoadOutcome::Recovery(RecoveryState {
             kind: RecoveryKind::DomainMismatch,
             path: Some(source.path.clone()),
             source: Some(source),
@@ -113,7 +158,7 @@ pub(crate) fn load_source<D: ConfigDomain>(
     }
 
     if document.schema_version > descriptor.schema_version() {
-        return LoadOutcome::Recovery(RecoveryState {
+        return FileLoadOutcome::Recovery(RecoveryState {
             kind: RecoveryKind::FutureSchema,
             path: Some(source.path.clone()),
             source: Some(source),
@@ -133,7 +178,7 @@ fn migrate_and_decode<D: ConfigDomain>(
     domain: &D,
     source: SourceDocument,
     document: SerializedDocument,
-) -> LoadOutcome<D::Value> {
+) -> FileLoadOutcome<D::Value> {
     migrate_from(
         domain,
         source,
@@ -152,13 +197,13 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
     version: SchemaVersion,
     mut value: Value,
     content_position: Option<SourcePosition>,
-) -> LoadOutcome<D::Value> {
+) -> FileLoadOutcome<D::Value> {
     let descriptor = domain.descriptor();
     let mut version = version;
     let source_version = version;
 
     if let Err(issue) = domain.validate_raw(version, &value) {
-        return LoadOutcome::Recovery(recovery_from_issue(
+        return FileLoadOutcome::Recovery(recovery_from_issue(
             RecoveryKind::InvalidValue,
             Some(source.path.clone()),
             Some(source),
@@ -171,7 +216,7 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
         let expected = match version.checked_next() {
             Some(expected) => expected,
             None => {
-                return LoadOutcome::Recovery(RecoveryState {
+                return FileLoadOutcome::Recovery(RecoveryState {
                     kind: RecoveryKind::InvalidMigrationStep,
                     path: Some(source.path.clone()),
                     source: Some(source),
@@ -184,7 +229,7 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
         let step = match domain.migrate_one(version, value) {
             Ok(Some(step)) => step,
             Ok(None) => {
-                return LoadOutcome::Recovery(RecoveryState {
+                return FileLoadOutcome::Recovery(RecoveryState {
                     kind: RecoveryKind::MissingMigration,
                     path: Some(source.path.clone()),
                     source: Some(source),
@@ -193,7 +238,7 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
                 });
             }
             Err(issue) => {
-                return LoadOutcome::Recovery(recovery_from_issue(
+                return FileLoadOutcome::Recovery(recovery_from_issue(
                     RecoveryKind::MigrationFailed,
                     Some(source.path.clone()),
                     Some(source),
@@ -204,11 +249,13 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
         };
 
         if step.schema_version != expected || step.schema_version > descriptor.schema_version() {
-            return LoadOutcome::Recovery(invalid_migration_step(source, version, expected, step));
+            return FileLoadOutcome::Recovery(invalid_migration_step(
+                source, version, expected, step,
+            ));
         }
 
         if let Err(issue) = domain.validate_raw(step.schema_version, &step.value) {
-            return LoadOutcome::Recovery(recovery_from_issue(
+            return FileLoadOutcome::Recovery(recovery_from_issue(
                 RecoveryKind::InvalidValue,
                 Some(source.path.clone()),
                 Some(source),
@@ -224,7 +271,7 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
     let decoded = match domain.decode(value) {
         Ok(decoded) => decoded,
         Err(issue) => {
-            return LoadOutcome::Recovery(recovery_from_issue(
+            return FileLoadOutcome::Recovery(recovery_from_issue(
                 RecoveryKind::DecodeFailed,
                 Some(source.path.clone()),
                 Some(source),
@@ -234,7 +281,7 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
         }
     };
     if let Err(issue) = domain.validate(&decoded) {
-        return LoadOutcome::Recovery(recovery_from_issue(
+        return FileLoadOutcome::Recovery(recovery_from_issue(
             RecoveryKind::InvalidValue,
             Some(source.path.clone()),
             Some(source),
@@ -252,7 +299,7 @@ pub(crate) fn migrate_from<D: ConfigDomain>(
         }
     };
 
-    LoadOutcome::Ready(LoadedConfig {
+    FileLoadOutcome::Ready(LoadedConfig {
         value: decoded,
         schema_version: version,
         origin,
@@ -292,5 +339,53 @@ fn recovery_from_issue(
         source,
         detail: format!("{}: {}", issue.code, issue.message),
         position,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use longhorn_core::{DomainId, SchemaVersion};
+    use longhorn_storage_layout::StorageRoots;
+    use tempfile::TempDir;
+
+    use crate::{
+        DomainDescriptor, DomainFilePath, DomainLocation, StorageClass, StorageRootsResolve,
+    };
+
+    use super::*;
+
+    #[test]
+    fn read_source_rejects_domain_file_exceeding_byte_limit() {
+        let temp = TempDir::new().unwrap();
+        let config = temp.path().join("config");
+        fs::create_dir_all(&config).unwrap();
+        let roots = StorageRoots::new(
+            &config,
+            temp.path().join("data"),
+            temp.path().join("state"),
+            temp.path().join("cache"),
+            temp.path().join("runtime"),
+            temp.path().join("log"),
+            temp.path().join("backups"),
+        )
+        .unwrap();
+        let descriptor = DomainDescriptor::new(
+            DomainId::new("example.oversized").unwrap(),
+            SchemaVersion::new(1).unwrap(),
+            StorageClass::UserConfig,
+            Some(DomainFilePath::new("oversized.json").unwrap()),
+        )
+        .unwrap();
+        let DomainLocation::File(file) = roots.resolve(&descriptor) else {
+            panic!("expected file location");
+        };
+        let oversized = BackupLimits::default().max_domain_bytes() + 1;
+        fs::write(file.full_path(), vec![b' '; oversized]).unwrap();
+
+        let error = read_source(&file).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("exceeds"));
     }
 }

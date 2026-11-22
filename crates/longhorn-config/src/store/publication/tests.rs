@@ -100,3 +100,50 @@ fn durable_publication_syncs_the_directory_on_this_platform() {
     assert_eq!(durability, Durability::FileAndDirectorySynced);
     assert_eq!(fs::read(target.full_path()).unwrap(), b"durable");
 }
+
+#[test]
+fn nested_path_first_write_reaches_full_directory_durability() {
+    let temp = TempDir::new().unwrap();
+    let root = temp.path().join("config");
+    fs::create_dir_all(&root).unwrap();
+    let roots = StorageRoots::new(
+        &root,
+        temp.path().join("data"),
+        temp.path().join("state"),
+        temp.path().join("cache"),
+        temp.path().join("runtime"),
+        temp.path().join("log"),
+        temp.path().join("backups"),
+    )
+    .unwrap();
+    let descriptor = DomainDescriptor::new(
+        DomainId::new("example.nested").unwrap(),
+        SchemaVersion::new(1).unwrap(),
+        StorageClass::UserConfig,
+        Some(DomainFilePath::new("nested/deep/dir/preferences.json").unwrap()),
+    )
+    .unwrap();
+    let DomainLocation::File(target) = roots.resolve(&descriptor) else {
+        panic!("expected file");
+    };
+    assert!(!target.full_path().parent().unwrap().exists());
+
+    let durability = publish(
+        &target,
+        b"nested-first-write",
+        DurabilityRequirement::Durable,
+    )
+    .expect("nested first write must create and sync every ancestor");
+    assert_eq!(durability, Durability::FileAndDirectorySynced);
+    assert_eq!(fs::read(target.full_path()).unwrap(), b"nested-first-write");
+
+    let journal_dir = temp.path().join("data/.longhorn/deep/journal");
+    crate::journal_file::publish(
+        &journal_dir,
+        "journal.json",
+        &serde_json::json!({"version": 1}),
+        "test journal",
+    )
+    .expect("nested journal publish must create and sync every ancestor");
+    assert!(journal_dir.join("journal.json").is_file());
+}

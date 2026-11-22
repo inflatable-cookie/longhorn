@@ -252,6 +252,7 @@ fn transition_action_id(value: &StorageTransitionAction) -> String {
         StorageTransitionAction::Identical => "identical".into(),
         StorageTransitionAction::CustomAdapter { .. } => "customAdapter".into(),
         StorageTransitionAction::Excluded(_) => "excluded".into(),
+        StorageTransitionAction::Conflict => "conflict".into(),
     }
 }
 

@@ -75,17 +75,16 @@ impl ConfigStore {
     }
 
     /// Loads, validates, and when required migrates a registered domain.
+    ///
+    /// Reads never acquire the store coordinator or write to disk. If a
+    /// restore journal (including an uncleaned terminal journal) is present,
+    /// callers recover it explicitly through [`Self::recover_restore`],
+    /// [`Self::with_coordinated_load_set`], or the next coordinated write.
     pub fn load<D: ConfigDomain>(&self, domain: &D) -> Result<LoadOutcome<D::Value>, StoreError> {
         self.ensure_registered(domain)?;
         match self.restore_operation_state() {
             RestoreOperationState::Active => {
-                // A journal already in a terminal phase is a
-                // crash-after-completion artifact; heal it the way
-                // coordinated load-sets do instead of wedging every bare
-                // load until someone calls recovery explicitly.
-                if !self.try_self_heal_terminal_restore() {
-                    return Ok(LoadOutcome::Unavailable(UnavailableState::RestoreActive));
-                }
+                return Ok(LoadOutcome::Unavailable(UnavailableState::RestoreActive));
             }
             RestoreOperationState::RecoveryRequired => {
                 return Ok(LoadOutcome::Unavailable(
@@ -97,34 +96,17 @@ impl ConfigStore {
         Ok(self.load_registered(domain))
     }
 
-    /// Non-blocking best-effort cleanup of a terminal restore journal.
-    /// Returns whether loads may proceed. Contended coordination, grouped
-    /// journals, and genuinely active restores all leave the journal alone.
-    fn try_self_heal_terminal_restore(&self) -> bool {
-        if !crate::backup::restore::ordinary_terminal_phase_pending(self) {
-            return false;
-        }
-        let Ok(guard) = self.coordinator.acquire(std::time::Duration::ZERO) else {
-            return false;
-        };
-        if crate::backup::restore::recover_guarded(self, &guard).is_err() {
-            return false;
-        }
-        matches!(
-            self.restore_operation_state(),
-            RestoreOperationState::Inactive
-        )
-    }
-
     fn load_registered<D: ConfigDomain>(&self, domain: &D) -> LoadOutcome<D::Value> {
         let location = self.roots.resolve(domain.descriptor());
 
         match location {
-            DomainLocation::DefaultsOnly => validated_default(domain, None, false),
+            DomainLocation::DefaultsOnly => {
+                validated_default(domain, None, false).into_load_outcome()
+            }
             DomainLocation::SecureStoreRequired | DomainLocation::RootRequired { .. } => {
                 LoadOutcome::Unavailable(UnavailableState::Authority { location })
             }
-            DomainLocation::File(file) => load_file(domain, &file),
+            DomainLocation::File(file) => load_file(domain, &file).into_load_outcome(),
         }
     }
 
@@ -263,7 +245,11 @@ impl ConfigStore {
         crate::backup::restore::operation_state(self)
     }
 
-    /// Returns the safety archive digest pinned by an unresolved journal.
+    /// Returns the safety archive digest pinned by an unresolved restore journal.
+    ///
+    /// Consumers must pass this pin into `plan_backup_retention` (contract 004)
+    /// whenever it returns `Some`, otherwise retention can prune the safety
+    /// archive needed to recover an interrupted restore.
     pub fn restore_safety_pin(&self) -> Result<Option<Sha256Digest>, RestoreRecoveryError> {
         crate::backup::restore::safety_pin(self)
     }

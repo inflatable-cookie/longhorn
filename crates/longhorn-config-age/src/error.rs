@@ -71,6 +71,8 @@ impl From<AgeProviderError> for AgeEncryptionError {
 pub enum AgeReencryptionError {
     /// Source identity is unavailable or did not match.
     SourceLocked(AgeEnvelopeEvidence),
+    /// Source key authority failed (for example, a corrupt stored identity).
+    SourceProviderFailed(AgeEnvelopeEvidence),
     /// Source envelope is damaged.
     SourceCorrupt(AgeEnvelopeEvidence),
     /// Source envelope or configured bound is unsupported.
@@ -90,6 +92,7 @@ impl fmt::Display for AgeReencryptionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::SourceLocked(_) => formatter.write_str("source age envelope is locked"),
+            Self::SourceProviderFailed(_) => formatter.write_str("source age key authority failed"),
             Self::SourceCorrupt(_) => formatter.write_str("source age envelope is corrupt"),
             Self::SourceUnsupported(_) => formatter.write_str("source age envelope is unsupported"),
             Self::SourceInnerArchive { .. } => {

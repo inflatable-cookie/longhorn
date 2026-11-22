@@ -5,9 +5,8 @@ use longhorn_core::SchemaVersion;
 use crate::StorageRootsResolve;
 use crate::{
     BackupArchiveInspection, BackupCatalog, BackupSourceIssue, BackupSourceState, ConfigDomain,
-    ConfigStore, DomainLocation, LoadOutcome, LoadedOrigin, RecoveryKind, Sha256Digest,
-    SourceDocument, backup::CatalogDecision, store::document::SerializedDocument,
-    store::load::load_source,
+    ConfigStore, DomainLocation, LoadedOrigin, RecoveryKind, Sha256Digest, SourceDocument,
+    backup::CatalogDecision, store::document::SerializedDocument, store::load::load_source,
 };
 
 use super::{
@@ -187,8 +186,8 @@ pub(crate) fn prepare_typed_source<D: ConfigDomain>(
         bytes: bytes.to_vec(),
     };
     let loaded = match load_source(domain, source) {
-        LoadOutcome::Ready(loaded) => loaded,
-        LoadOutcome::Recovery(recovery) => {
+        crate::store::load::FileLoadOutcome::Ready(loaded) => loaded,
+        crate::store::load::FileLoadOutcome::Recovery(recovery) => {
             let issue = backup_issue(recovery.kind).ok_or_else(|| {
                 PrepareSourceError::Target(format!(
                     "unclassified source recovery: {}",
@@ -196,12 +195,6 @@ pub(crate) fn prepare_typed_source<D: ConfigDomain>(
                 ))
             })?;
             return Err(PrepareSourceError::Source(issue));
-        }
-        LoadOutcome::Unavailable(unavailable) => {
-            return Err(PrepareSourceError::Target(format!(
-                "unexpected unavailable source: {:?}",
-                unavailable
-            )));
         }
     };
     let source_schema_version = match loaded.origin {

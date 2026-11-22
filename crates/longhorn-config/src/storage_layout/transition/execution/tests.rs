@@ -90,6 +90,176 @@ fn failure_after_locator_recovers_verified_target_authority() {
     );
 }
 
+#[test]
+fn source_retained_recovery_removes_partial_target_so_retry_succeeds() {
+    let temp = tempdir().unwrap();
+    let identity = StorageIdentity::new("com.example.retry").unwrap();
+    let facts = PlatformDirectoryFacts::complete(
+        TargetPlatform::Linux,
+        temp.path().join("native/config"),
+        temp.path().join("native/data"),
+        temp.path().join("native/state"),
+        temp.path().join("native/cache"),
+        temp.path().join("native/log"),
+        temp.path().join("native/runtime"),
+    );
+    let source =
+        resolve_storage_layout(&StorageLayoutRequest::new(identity.clone(), facts.clone()))
+            .unwrap();
+    let portable_root = temp.path().join("portable");
+    let target_selection = StorageProfileSelection::portable(&portable_root).unwrap();
+    let target = resolve_storage_layout(
+        &StorageLayoutRequest::new(identity.clone(), facts.clone())
+            .with_profile(StorageProfile::PortableV1)
+            .with_portable_root(portable_root),
+    )
+    .unwrap();
+    for layout in [&source, &target] {
+        for root in layout.diagnostic().roots() {
+            fs::create_dir_all(root.path()).unwrap();
+        }
+    }
+    let domain = Domain::new();
+    let DomainLocation::File(source_file) = source.storage_roots().resolve(domain.descriptor())
+    else {
+        unreachable!()
+    };
+    let DomainLocation::File(target_file) = target.storage_roots().resolve(domain.descriptor())
+    else {
+        unreachable!()
+    };
+    fs::write(source_file.full_path(), b"v1-source").unwrap();
+    let mut source_store = ConfigStore::new(
+        source.storage_roots().clone(),
+        CoordinationAuthority::new(source.storage_roots().data()).unwrap(),
+    );
+    let mut target_store = ConfigStore::new(
+        target.storage_roots().clone(),
+        CoordinationAuthority::new(target.storage_roots().data()).unwrap(),
+    );
+    source_store.register(&domain).unwrap();
+    target_store.register(&domain).unwrap();
+    let mut catalog = StorageTransitionCatalog::new();
+    catalog.include(&domain).unwrap();
+    let bootstrap = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    let request = StorageTransitionRequest::new(
+        &source_store,
+        &target_store,
+        &source,
+        &target,
+        target_selection,
+        &catalog,
+        bootstrap,
+    );
+    let preview = inspect_storage_transition(&request).unwrap();
+    let plan = plan_storage_transition(&preview).unwrap();
+    let err = execute_inner(
+        &request,
+        &plan,
+        plan.confirmation_digest(),
+        StorageTransitionExecutionOptions::new("attempt-1", Duration::from_secs(2)).unwrap(),
+        Some(InjectedFailure::BeforeLocator),
+    )
+    .unwrap_err();
+    assert!(matches!(err, StorageTransitionError::RecoveryRequired(_)));
+    assert!(target_file.full_path().is_file());
+
+    let recovery = recover_storage_transition(&request, Duration::from_secs(2))
+        .unwrap()
+        .unwrap();
+    assert_eq!(recovery.outcome(), StorageTransitionOutcome::SourceRetained);
+    assert!(
+        !target_file.full_path().exists(),
+        "SourceRetained recovery must remove partial target copies"
+    );
+
+    // Source mutates after staying on SourceRetained; retrying must not fail with TargetOccupied.
+    fs::write(source_file.full_path(), b"v2-source").unwrap();
+    let retry_preview = inspect_storage_transition(&request).unwrap();
+    assert!(retry_preview.conflicts().is_empty());
+    let retry_plan = plan_storage_transition(&retry_preview).unwrap();
+    let receipt = execute_storage_transition(
+        &request,
+        &retry_plan,
+        retry_plan.confirmation_digest(),
+        StorageTransitionExecutionOptions::new("attempt-2", Duration::from_secs(2)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(receipt.outcome(), StorageTransitionOutcome::TargetCommitted);
+    assert_eq!(fs::read(target_file.full_path()).unwrap(), b"v2-source");
+}
+
+#[test]
+fn occupied_ordinary_target_records_conflict_action_instead_of_copy() {
+    let temp = tempdir().unwrap();
+    let identity = StorageIdentity::new("com.example.conflict").unwrap();
+    let facts = PlatformDirectoryFacts::complete(
+        TargetPlatform::Linux,
+        temp.path().join("native/config"),
+        temp.path().join("native/data"),
+        temp.path().join("native/state"),
+        temp.path().join("native/cache"),
+        temp.path().join("native/log"),
+        temp.path().join("native/runtime"),
+    );
+    let source =
+        resolve_storage_layout(&StorageLayoutRequest::new(identity.clone(), facts.clone()))
+            .unwrap();
+    let portable_root = temp.path().join("portable");
+    let target_selection = StorageProfileSelection::portable(&portable_root).unwrap();
+    let target = resolve_storage_layout(
+        &StorageLayoutRequest::new(identity.clone(), facts.clone())
+            .with_profile(StorageProfile::PortableV1)
+            .with_portable_root(portable_root),
+    )
+    .unwrap();
+    for layout in [&source, &target] {
+        for root in layout.diagnostic().roots() {
+            fs::create_dir_all(root.path()).unwrap();
+        }
+    }
+    let domain = Domain::new();
+    let DomainLocation::File(source_file) = source.storage_roots().resolve(domain.descriptor())
+    else {
+        unreachable!()
+    };
+    let DomainLocation::File(target_file) = target.storage_roots().resolve(domain.descriptor())
+    else {
+        unreachable!()
+    };
+    fs::write(source_file.full_path(), b"source-data").unwrap();
+    fs::write(target_file.full_path(), b"conflicting-target-data").unwrap();
+    let mut source_store = ConfigStore::new(
+        source.storage_roots().clone(),
+        CoordinationAuthority::new(source.storage_roots().data()).unwrap(),
+    );
+    let mut target_store = ConfigStore::new(
+        target.storage_roots().clone(),
+        CoordinationAuthority::new(target.storage_roots().data()).unwrap(),
+    );
+    source_store.register(&domain).unwrap();
+    target_store.register(&domain).unwrap();
+    let mut catalog = StorageTransitionCatalog::new();
+    catalog.include(&domain).unwrap();
+    let bootstrap = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    let request = StorageTransitionRequest::new(
+        &source_store,
+        &target_store,
+        &source,
+        &target,
+        target_selection,
+        &catalog,
+        bootstrap,
+    );
+
+    let preview = inspect_storage_transition(&request).unwrap();
+    assert_eq!(preview.conflicts().len(), 1);
+    assert_eq!(
+        preview.domains()[0].action(),
+        &crate::StorageTransitionAction::Conflict
+    );
+}
+
 fn run_failure(injected: InjectedFailure) -> StorageTransitionOutcome {
     let temp = tempdir().unwrap();
     let identity = StorageIdentity::new("com.example.failure").unwrap();
