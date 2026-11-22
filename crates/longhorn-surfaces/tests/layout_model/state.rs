@@ -2,7 +2,7 @@ use longhorn_core::SurfaceRevision;
 use longhorn_surfaces::{
     LayoutRatio, PanelInstance, ParticipatingWindow, RegionState, SizingSlotState, SurfaceDocument,
     SurfaceHostPreference, SurfaceRecord, SurfaceValidationCode, normalize_document,
-    validate_document, validate_normalized_document,
+    validate_document, validate_normalized_document, validate_normalized_layout,
 };
 
 use super::support::*;
@@ -86,7 +86,14 @@ fn normalization_canonicalizes_structure_but_preserves_tab_order() {
         surface.region(&region_id("center")).unwrap().collapsed(),
         None
     );
+    assert_eq!(
+        validate_normalized_layout(&registry(), &input)
+            .unwrap_err()
+            .code(),
+        SurfaceValidationCode::NonCanonicalDocument
+    );
     validate_normalized_document(&registry(), &normalized).unwrap();
+    validate_normalized_layout(&registry(), &normalized).unwrap();
 }
 
 #[test]

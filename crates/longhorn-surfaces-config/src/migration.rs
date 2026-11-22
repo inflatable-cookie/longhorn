@@ -1,6 +1,9 @@
 use longhorn_config::{DomainIssue, MigrationStep};
 use longhorn_core::SchemaVersion;
-use longhorn_surfaces::{LayoutDefinitionRegistry, SurfaceDocument, SurfaceLimits};
+use longhorn_surfaces::{
+    LayoutDefinitionRegistry, SurfaceDocument, SurfaceLimits, normalize_document,
+};
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::{LayoutRegistryDigest, PersistedSurfaceDocument};
@@ -98,5 +101,91 @@ impl SurfaceMigration for NoSurfaceMigration {
         _target: SurfaceMigrationTarget<'_>,
     ) -> Result<Option<MigrationStep>, DomainIssue> {
         Ok(None)
+    }
+}
+
+/// Built-in one-step migration from pre-unification persisted Surface/layout files.
+///
+/// Accepts both legacy raw value shapes at `from_version`:
+/// - the former digest-less Surface wrapper (`{"document": <SurfaceDocument>}`)
+/// - the former layout wrapper (`{"registryDigest": <digest>, "document": <SurfaceDocument>}`)
+///
+/// The inner [`SurfaceDocument`] is normalized and validated against the current
+/// [`LayoutDefinitionRegistry`] before re-encoding with the current registry
+/// digest. Documents that fail whole-document validation (for example, when a
+/// schema change requires a consumer product decision) return a typed
+/// [`DomainIssue`] so the store enters recovery and leaves the original bytes
+/// untouched on disk.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LegacySurfaceFormatMigration {
+    from_version: SchemaVersion,
+}
+
+impl LegacySurfaceFormatMigration {
+    /// Constructs a migration from `from_version` to the domain's current schema.
+    #[must_use]
+    pub const fn new(from_version: SchemaVersion) -> Self {
+        Self { from_version }
+    }
+
+    /// Returns the legacy schema version accepted by this migration.
+    #[must_use]
+    pub const fn from_version(self) -> SchemaVersion {
+        self.from_version
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct LegacyPersistedSurfaceDocument {
+    #[serde(default)]
+    #[allow(dead_code)]
+    registry_digest: Option<LayoutRegistryDigest>,
+    document: SurfaceDocument,
+}
+
+impl SurfaceMigration for LegacySurfaceFormatMigration {
+    fn validate_raw(
+        &self,
+        schema_version: SchemaVersion,
+        value: &Value,
+    ) -> Result<(), DomainIssue> {
+        if schema_version != self.from_version {
+            return Err(DomainIssue::new(
+                "legacy-surface-schema",
+                format!(
+                    "expected legacy schema version {}, found {}",
+                    self.from_version.get(),
+                    schema_version.get()
+                ),
+            ));
+        }
+        serde_json::from_value::<LegacyPersistedSurfaceDocument>(value.clone())
+            .map(|_| ())
+            .map_err(|error| DomainIssue::new("legacy-surface-raw-shape", error.to_string()))
+    }
+
+    fn migrate_one(
+        &self,
+        from: SchemaVersion,
+        value: Value,
+        target: SurfaceMigrationTarget<'_>,
+    ) -> Result<Option<MigrationStep>, DomainIssue> {
+        if from != self.from_version {
+            return Ok(None);
+        }
+        let legacy: LegacyPersistedSurfaceDocument = serde_json::from_value(value)
+            .map_err(|error| DomainIssue::new("legacy-surface-decode", error.to_string()))?;
+        let normalized =
+            normalize_document(target.registry(), &legacy.document).map_err(|error| {
+                DomainIssue::new(
+                    format!("surface-validation-{:?}", error.code()).to_ascii_lowercase(),
+                    error.detail(),
+                )
+            })?;
+        Ok(Some(MigrationStep {
+            schema_version: target.schema_version(),
+            value: target.encode_current(normalized)?,
+        }))
     }
 }

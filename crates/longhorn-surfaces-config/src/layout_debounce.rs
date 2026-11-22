@@ -1,12 +1,14 @@
 use std::{error::Error, fmt};
 
-use longhorn_config::{DebounceStrategy, DomainIssue};
+use longhorn_config::{
+    ConfigStore, DebounceClock, DebouncePolicy, DebounceStrategy, DebouncedMutation, DomainIssue,
+    StoreError,
+};
 use longhorn_surfaces::{
     LayoutDefinitionRegistry, LayoutMutationCommand, LayoutMutationEngine, LayoutMutationRequest,
-    SurfaceDocument,
 };
 
-use crate::mutation::layout_rejection_issue;
+use crate::{RegisteredSurfaceDomain, SurfaceMigration, mutation::layout_rejection_issue};
 
 /// One or more ordered sizing/collapse requests staged for a single flush.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -47,23 +49,53 @@ impl fmt::Display for LayoutPresentationIntentError {
 
 impl Error for LayoutPresentationIntentError {}
 
-/// Ordered presentation intent strategy over fresh authoritative state.
+/// Ordered presentation intent strategy bound to one registered Surface domain's registry.
+///
+/// Construct a lane through [`debounced_layout_presentation`] so the strategy
+/// always uses the exact [`LayoutDefinitionRegistry`] owned by the domain being
+/// flushed.
 #[derive(Clone, Copy, Debug)]
 pub struct LayoutPresentationStrategy<'registry> {
     registry: &'registry LayoutDefinitionRegistry,
 }
 
-impl<'registry> LayoutPresentationStrategy<'registry> {
-    /// Binds presentation mutation to one immutable definition registry.
-    #[must_use]
-    pub const fn new(registry: &'registry LayoutDefinitionRegistry) -> Self {
-        Self { registry }
-    }
+/// Creates a presentation-only debounce lane bound to `domain`'s definition registry.
+///
+/// Deriving the strategy's registry directly from `domain` prevents a debounced
+/// sizing or collapse flush from normalizing against a different registry than
+/// the domain being published.
+///
+/// # Errors
+///
+/// Returns [`StoreError`] if `domain` is not registered with `store` or its
+/// identity does not match the registered descriptor.
+pub fn debounced_layout_presentation<'config, M, C>(
+    store: &'config ConfigStore,
+    domain: &'config RegisteredSurfaceDomain<M>,
+    clock: C,
+    policy: DebouncePolicy,
+) -> Result<
+    DebouncedMutation<'config, RegisteredSurfaceDomain<M>, LayoutPresentationStrategy<'config>, C>,
+    StoreError,
+>
+where
+    M: SurfaceMigration,
+    C: DebounceClock,
+{
+    DebouncedMutation::new(
+        store,
+        domain,
+        LayoutPresentationStrategy {
+            registry: domain.registry(),
+        },
+        clock,
+        policy,
+    )
 }
 
-impl<D> DebounceStrategy<D> for LayoutPresentationStrategy<'_>
+impl<M> DebounceStrategy<RegisteredSurfaceDomain<M>> for LayoutPresentationStrategy<'_>
 where
-    D: longhorn_config::ConfigDomain<Value = SurfaceDocument>,
+    M: SurfaceMigration,
 {
     type Intent = LayoutPresentationIntent;
 
@@ -77,7 +109,11 @@ where
         Ok(LayoutPresentationIntent { requests })
     }
 
-    fn apply(&self, intent: &Self::Intent, value: &mut D::Value) -> Result<(), DomainIssue> {
+    fn apply(
+        &self,
+        intent: &Self::Intent,
+        value: &mut longhorn_surfaces::SurfaceDocument,
+    ) -> Result<(), DomainIssue> {
         let engine = LayoutMutationEngine::new(self.registry);
         let mut candidate = value.clone();
         for request in &intent.requests {

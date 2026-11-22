@@ -13,9 +13,12 @@ pub use domain::{
 };
 pub use layout_debounce::{
     LayoutPresentationIntent, LayoutPresentationIntentError, LayoutPresentationStrategy,
+    debounced_layout_presentation,
 };
 pub use layout_digest::{LayoutRegistryDigest, compute_layout_registry_digest};
-pub use migration::{NoSurfaceMigration, SurfaceMigration, SurfaceMigrationTarget};
+pub use migration::{
+    LegacySurfaceFormatMigration, NoSurfaceMigration, SurfaceMigration, SurfaceMigrationTarget,
+};
 pub use mutation::{
     LayoutConfigMutationError, LayoutConfigPublicationReceipt, SurfaceConfigMutationError,
     SurfaceConfigPublicationReceipt, publish_layout_mutation, publish_surface_mutation,

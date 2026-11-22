@@ -28,7 +28,7 @@ pub use resolution::{
 pub use snapshot::{SurfaceChangedEvent, SurfaceProtocolEpoch, SurfaceSnapshot};
 pub use validation::{
     SurfaceValidationCode, SurfaceValidationError, normalize_document, validate_document,
-    validate_normalized_document,
+    validate_normalized_document, validate_normalized_layout,
 };
 
 // Former `longhorn-layout` vocabulary, re-exported at the crate root. Card 179.

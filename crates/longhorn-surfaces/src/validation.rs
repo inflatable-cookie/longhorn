@@ -610,6 +610,24 @@ pub fn validate_normalized_document(
     }
 }
 
+/// Requires a valid Surface document's layout and topology to already use
+/// canonical structural order.
+///
+/// Intended for fixture verification and strict-load canonical checks where
+/// callers want to reject non-canonical ordering rather than re-sorting it.
+/// Delegates to [`validate_normalized_document`] on the unified validator.
+///
+/// # Errors
+///
+/// Returns [`SurfaceValidationError`] if `document` fails [`validate_document`]
+/// or is not already in canonical normalized form.
+pub fn validate_normalized_layout(
+    registry: &LayoutDefinitionRegistry,
+    document: &SurfaceDocument,
+) -> Result<(), SurfaceValidationError> {
+    validate_normalized_document(registry, document)
+}
+
 fn instance_limit_error(
     definition_id: &PanelDefinitionId,
     actual: usize,

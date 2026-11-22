@@ -7,13 +7,22 @@ use std::{
 
 use longhorn_config::{
     ConfigStore, CoordinationFailureKind, DebounceFlushSet, DebouncePolicy, DebounceTerminal,
-    DebouncedMutation, FlushOutcome, LoadOutcome, MutationError, StageError,
+    FlushOutcome, LoadOutcome, MutationError, StageError,
 };
 use longhorn_config::{DomainDescriptor, DomainFilePath, StorageClass};
-use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_core::{
+    DomainId, LayoutSchemaId, PanelDefinitionId, RegionFamilyId, RegionId, SchemaVersion,
+    SizingSlotId,
+};
+use longhorn_surfaces::{
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutRatio, LayoutSchemaDefinition,
+    PanelDefinition, PanelInstancePolicy, PlacementSelector, RegionDefinition,
+    SizingSlotDefinition, SurfaceLimits, validate_normalized_document,
+};
 use longhorn_surfaces_config::{
-    LayoutPresentationIntent, LayoutPresentationIntentError, LayoutPresentationStrategy,
-    NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy, publish_layout_mutation,
+    LayoutPresentationIntent, LayoutPresentationIntentError, NoSurfaceMigration,
+    RegisteredSurfaceDomain, SurfaceBackupPolicy, debounced_layout_presentation,
+    publish_layout_mutation,
 };
 
 use crate::support::{
@@ -44,10 +53,9 @@ fn ordered_presentation_requests_publish_once_over_fresh_state() {
     let domain = domain();
     let mut store = fixture.store();
     store.register(&domain).unwrap();
-    let mut lane = DebouncedMutation::new(
+    let mut lane = debounced_layout_presentation(
         &store,
         &domain,
-        LayoutPresentationStrategy::new(domain.registry()),
         FixedClock,
         policy(2, Duration::from_secs(1)),
     )
@@ -83,10 +91,9 @@ fn pending_weight_rejection_preserves_existing_generation() {
     let domain = domain();
     let mut store = fixture.store();
     store.register(&domain).unwrap();
-    let mut lane = DebouncedMutation::new(
+    let mut lane = debounced_layout_presentation(
         &store,
         &domain,
-        LayoutPresentationStrategy::new(domain.registry()),
         FixedClock,
         policy(1, Duration::from_secs(1)),
     )
@@ -118,10 +125,9 @@ fn structural_publication_does_not_wait_behind_presentation_debounce() {
     let domain = domain();
     let mut store = fixture.store();
     store.register(&domain).unwrap();
-    let mut lane = DebouncedMutation::new(
+    let mut lane = debounced_layout_presentation(
         &store,
         &domain,
-        LayoutPresentationStrategy::new(domain.registry()),
         FixedClock,
         policy(1, Duration::from_secs(1)),
     )
@@ -170,18 +176,16 @@ fn aggregate_flush_accepts_multiple_explicit_layout_domains() {
     let mut store = fixture.store();
     store.register(&primary).unwrap();
     store.register(&secondary).unwrap();
-    let mut first = DebouncedMutation::new(
+    let mut first = debounced_layout_presentation(
         &store,
         &primary,
-        LayoutPresentationStrategy::new(primary.registry()),
         FixedClock,
         policy(1, Duration::from_secs(1)),
     )
     .unwrap();
-    let mut second = DebouncedMutation::new(
+    let mut second = debounced_layout_presentation(
         &store,
         &secondary,
-        LayoutPresentationStrategy::new(secondary.registry()),
         FixedClock,
         policy(1, Duration::from_secs(1)),
     )
@@ -232,10 +236,9 @@ fn timeout_retains_same_pending_generation_for_explicit_retry() {
     let domain = domain();
     let mut store = fixture.store();
     store.register(&domain).unwrap();
-    let mut lane = DebouncedMutation::new(
+    let mut lane = debounced_layout_presentation(
         &store,
         &domain,
-        LayoutPresentationStrategy::new(domain.registry()),
         FixedClock,
         policy(1, Duration::from_millis(50)),
     )
@@ -272,6 +275,169 @@ fn timeout_retains_same_pending_generation_for_explicit_retry() {
             ..
         }) if generation == staged.generation
     ));
+}
+
+#[test]
+fn debounce_lanes_bind_each_domain_to_its_own_registry_order_and_sizing_bounds() {
+    let fixture = Fixture::new();
+    let primary = domain();
+    let reversed_and_narrower_registry = LayoutDefinitionRegistry::new(
+        SurfaceLimits::builder()
+            .maximum_schemas(8)
+            .maximum_regions_per_schema(8)
+            .maximum_sizing_slots_per_schema(8)
+            .maximum_panel_definitions(8)
+            .maximum_surfaces(8)
+            .maximum_windows(4)
+            .maximum_host_preferences_per_surface(4)
+            .maximum_label_bytes(64)
+            .maximum_panel_instances(32)
+            .maximum_panel_instances_per_region(16)
+            .build()
+            .unwrap(),
+        [LayoutSchemaDefinition::new(
+            LayoutSchemaId::new("schema:workspace").unwrap(),
+            [
+                // Intentionally opposite region order (`main` before `left`) from `registry()`.
+                RegionDefinition::new(
+                    RegionId::new("main").unwrap(),
+                    RegionFamilyId::new("content").unwrap(),
+                    10,
+                    EmptyRegionPolicy::KeepVisible,
+                    false,
+                ),
+                RegionDefinition::new(
+                    RegionId::new("left").unwrap(),
+                    RegionFamilyId::new("side").unwrap(),
+                    20,
+                    EmptyRegionPolicy::KeepVisible,
+                    true,
+                ),
+            ],
+            // Narrower sizing bounds [180_000, 350_000] than `registry()` [100_000, 500_000].
+            [SizingSlotDefinition::new(
+                SizingSlotId::new("left-width").unwrap(),
+                10,
+                LayoutRatio::from_millionths(180_000).unwrap(),
+                LayoutRatio::from_millionths(200_000).unwrap(),
+                LayoutRatio::from_millionths(350_000).unwrap(),
+            )],
+        )],
+        [
+            PanelDefinition::new(
+                PanelDefinitionId::new("panel:activity").unwrap(),
+                [PlacementSelector::Region(RegionId::new("left").unwrap())],
+                [PlacementSelector::Region(RegionId::new("left").unwrap())],
+                PanelInstancePolicy::Singleton,
+                false,
+                false,
+            ),
+            PanelDefinition::new(
+                PanelDefinitionId::new("panel:tool").unwrap(),
+                [PlacementSelector::Region(RegionId::new("main").unwrap())],
+                [PlacementSelector::Region(RegionId::new("main").unwrap())],
+                PanelInstancePolicy::Multiple,
+                true,
+                true,
+            ),
+        ],
+    )
+    .unwrap();
+    let secondary = RegisteredSurfaceDomain::new(
+        DomainDescriptor::new(
+            DomainId::new("layout.reversed").unwrap(),
+            SchemaVersion::new(1).unwrap(),
+            StorageClass::MachineState,
+            Some(DomainFilePath::new("workspace/reversed-layout.json").unwrap()),
+        )
+        .unwrap(),
+        document(),
+        reversed_and_narrower_registry,
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
+    )
+    .unwrap();
+
+    let mut store = fixture.store();
+    store.register(&primary).unwrap();
+    store.register(&secondary).unwrap();
+
+    let mut primary_lane = debounced_layout_presentation(
+        &store,
+        &primary,
+        FixedClock,
+        policy(2, Duration::from_secs(1)),
+    )
+    .unwrap();
+    let mut secondary_lane = debounced_layout_presentation(
+        &store,
+        &secondary,
+        FixedClock,
+        policy(2, Duration::from_secs(1)),
+    )
+    .unwrap();
+
+    // 150_000 is valid in `primary` ([100_000, 500_000]) but out of bounds in `secondary` ([180_000, 350_000]).
+    primary_lane
+        .stage(LayoutPresentationIntent::new(sizing_request(7, 150_000)).unwrap())
+        .unwrap();
+    secondary_lane
+        .stage(LayoutPresentationIntent::new(sizing_request(7, 150_000)).unwrap())
+        .unwrap();
+
+    assert!(matches!(
+        primary_lane.flush_forced(),
+        FlushOutcome::Terminal(DebounceTerminal::Published { .. })
+    ));
+    assert!(matches!(
+        secondary_lane.flush_forced(),
+        FlushOutcome::Terminal(DebounceTerminal::Failed {
+            error: MutationError::Patch(_),
+            ..
+        })
+    ));
+
+    // A valid sizing update on `secondary` must flush in `secondary`'s canonical region order (`main`, `left`).
+    let mut secondary_valid_lane = debounced_layout_presentation(
+        &store,
+        &secondary,
+        FixedClock,
+        policy(2, Duration::from_secs(1)),
+    )
+    .unwrap();
+    secondary_valid_lane
+        .stage(LayoutPresentationIntent::new(sizing_request(7, 300_000)).unwrap())
+        .unwrap();
+    assert!(matches!(
+        secondary_valid_lane.flush_forced(),
+        FlushOutcome::Terminal(DebounceTerminal::Published { .. })
+    ));
+
+    let LoadOutcome::Ready(primary_loaded) = store.load(&primary).unwrap() else {
+        panic!("primary domain should load after debounced flush");
+    };
+    let LoadOutcome::Ready(secondary_loaded) = store.load(&secondary).unwrap() else {
+        panic!("secondary domain should load after debounced flush");
+    };
+
+    validate_normalized_document(primary.registry(), &primary_loaded.value).unwrap();
+    validate_normalized_document(secondary.registry(), &secondary_loaded.value).unwrap();
+    assert_eq!(
+        primary_loaded.value.surfaces()[0]
+            .regions()
+            .iter()
+            .map(|region| region.region_id().as_str())
+            .collect::<Vec<_>>(),
+        vec!["left", "main"]
+    );
+    assert_eq!(
+        secondary_loaded.value.surfaces()[0]
+            .regions()
+            .iter()
+            .map(|region| region.region_id().as_str())
+            .collect::<Vec<_>>(),
+        vec!["main", "left"]
+    );
 }
 
 fn external_fixture(root: &std::path::Path) -> ConfigStore {
