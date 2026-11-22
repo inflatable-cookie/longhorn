@@ -29,33 +29,62 @@ use std::{
 
 use cap_std::fs::Dir;
 
-/// Creates every missing directory in `relative` below `root` and returns the
-/// relative paths (from `root`, where `""` denotes `root` itself) of every
-/// parent directory that received a new child entry and therefore must be
-/// synced for first-write durability.
-pub(crate) fn create_dir_all_collecting_parents(
-    root: &Dir,
-    relative: &Path,
-) -> io::Result<Vec<PathBuf>> {
+/// Returns every ancestor relative to a root capability above `relative_parent`
+/// in bottom-up order (ending at `""`, which denotes the root capability).
+///
+/// For `relative_parent = "a/b/c"`, returns `["a/b", "a", ""]`.
+/// For `relative_parent = ""`, returns `[]`.
+pub(crate) fn ancestor_chain_in_dir(relative_parent: &Path) -> Vec<PathBuf> {
+    let mut ancestors = Vec::new();
     let mut current = PathBuf::new();
-    let mut parents_to_sync = Vec::new();
+    for component in relative_parent.components() {
+        let Component::Normal(segment) = component else {
+            continue;
+        };
+        ancestors.push(current.clone());
+        current.push(segment);
+    }
+    ancestors.reverse();
+    ancestors
+}
+
+/// Returns every directory from `directory` up to `root` (inclusive) in
+/// bottom-up order. If `directory` is not below `root`, returns `[directory]`.
+pub(crate) fn ancestor_chain_to_root(root: &Path, directory: &Path) -> Vec<PathBuf> {
+    let Ok(relative) = directory.strip_prefix(root) else {
+        return vec![directory.to_path_buf()];
+    };
+    let mut chain = vec![root.to_path_buf()];
+    let mut current = root.to_path_buf();
     for component in relative.components() {
         let Component::Normal(segment) = component else {
             continue;
         };
-        let parent = current.clone();
         current.push(segment);
-        match root.create_dir(&current) {
-            Ok(()) => parents_to_sync.push(parent),
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                if !root.metadata(&current)?.is_dir() {
-                    return Err(error);
-                }
-            }
-            Err(error) => return Err(error),
-        }
+        chain.push(current.clone());
     }
-    Ok(parents_to_sync)
+    chain.reverse();
+    chain
+}
+
+/// Ensures `directory` exists and syncs every directory from `directory` up to
+/// `root` (inclusive) in bottom-up order.
+///
+/// Always syncing the full bounded chain to `root` guarantees that both a first
+/// write (even when an earlier helper already created intermediate directories)
+/// and a retry after a prior sync failure make every ancestor durable.
+pub(crate) fn create_dir_all_synced_to_root(root: &Path, directory: &Path) -> io::Result<()> {
+    fs::create_dir_all(directory)?;
+    sync_ancestors_to_root(root, directory)
+}
+
+/// Syncs every directory from `directory` up to `root` (inclusive) in
+/// bottom-up order.
+pub(crate) fn sync_ancestors_to_root(root: &Path, directory: &Path) -> io::Result<()> {
+    for ancestor in ancestor_chain_to_root(root, directory) {
+        sync_dir_path(&ancestor)?;
+    }
+    Ok(())
 }
 
 /// Creates every missing directory in `path` and syncs every parent directory
@@ -159,17 +188,27 @@ mod tests {
     #[test]
     fn nested_directory_creation_records_every_created_ancestor_and_syncs() {
         let temp = tempfile::tempdir().unwrap();
-        let root = Dir::open_ambient_dir(temp.path(), ambient_authority()).unwrap();
 
-        let created = create_dir_all_collecting_parents(&root, Path::new("a/b/c")).unwrap();
         assert_eq!(
-            created,
-            vec![PathBuf::from(""), PathBuf::from("a"), PathBuf::from("a/b")]
+            ancestor_chain_in_dir(Path::new("a/b/c")),
+            vec![PathBuf::from("a/b"), PathBuf::from("a"), PathBuf::from("")]
         );
-        assert!(temp.path().join("a/b/c").is_dir());
+        assert!(ancestor_chain_in_dir(Path::new("")).is_empty());
 
-        let repeated = create_dir_all_collecting_parents(&root, Path::new("a/b/c")).unwrap();
-        assert!(repeated.is_empty());
+        let rollback_dir = temp.path().join(".longhorn/restore/rollback");
+        assert_eq!(
+            ancestor_chain_to_root(temp.path(), &rollback_dir),
+            vec![
+                rollback_dir.clone(),
+                temp.path().join(".longhorn/restore"),
+                temp.path().join(".longhorn"),
+                temp.path().to_path_buf(),
+            ]
+        );
+        create_dir_all_synced_to_root(temp.path(), &rollback_dir).unwrap();
+        assert!(rollback_dir.is_dir());
+        // Retrying after directories already exist still syncs the full chain.
+        create_dir_all_synced_to_root(temp.path(), &rollback_dir).unwrap();
 
         let nested_plain = temp.path().join("plain/x/y/z");
         create_dir_all_synced(&nested_plain).unwrap();

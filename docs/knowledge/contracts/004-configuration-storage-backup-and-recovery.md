@@ -214,6 +214,11 @@ and source state under both store coordinators and remains idempotent.
 ## Read And Migration
 
 - Missing files yield the domain default and a `missing` diagnostic.
+- Live domain documents share one 4 MiB byte bound (`BackupLimits::default().max_domain_bytes()`)
+  across reads, mutations, migration rewrites, and restore staging so no write
+  path can publish a document that subsequent loads would reject. Pre-existing
+  files exceeding that bound yield `RecoveryKind::ReadFailed` without being
+  overwritten.
 - Invalid files yield a typed recovery state. They are not overwritten during
   load.
 - Future schema versions fail safe and preserve the source.
@@ -533,12 +538,18 @@ Ordinary failure rolls back and verifies the complete selected set under the
 same guard. Unverified rollback retains the journal and enters
 `restore-recovery-required`.
 
-A crash leaves the journal and private rollback payloads. The next store open
-or mutation completes and verifies rollback before normal writes. Loads that
-detect active recovery return typed unavailable state. A load already in
-flight may complete against an old or new complete single-domain file.
-Callers needing one consistent multi-domain view use a coordinated load-set
-operation.
+A crash leaves the journal and private rollback payloads. `ConfigStore::new`
+performs no I/O or recovery, and bare `ConfigStore::load` stays strictly
+read-only: it never acquires the coordinator or mutates the journal, returning
+`RestoreActive` (for both in-flight and uncleaned terminal journals) or
+`RestoreRecoveryRequired`. Callers recover explicitly through
+`ConfigStore::recover_restore`, `ConfigStore::with_coordinated_load_set`, or the
+next coordinated mutation or restore: interrupted non-terminal journals roll
+back and verify prior state, while already-verified terminal (`Succeeded` or
+`RolledBack`) journals only clean up journal and rollback artifacts without
+modifying live domain files. A load already in flight may complete against an
+old or new complete single-domain file. Callers needing one consistent
+multi-domain view use a coordinated load-set operation.
 
 Terminal results are exact:
 

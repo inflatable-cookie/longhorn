@@ -58,60 +58,16 @@ pub fn inspect_backup_archive(
         if index > 0 {
             previous = Some(path.clone());
         }
-        if total
-            .checked_add(entry.size())
-            .is_none_or(|declared_total| declared_total > limits.max_total_bytes() as u64)
-        {
-            return Err(BackupArchiveError::TotalTooLarge {
-                limit: limits.max_total_bytes(),
-                observed: total.saturating_add(entry.size()),
-            });
-        }
+        let declared_size = entry.size();
         let compressed_size = entry.compressed_size();
-        let remaining_total = (limits.max_total_bytes() as u64).saturating_sub(total);
-        let max_by_ratio =
-            compressed_size.saturating_mul(u64::from(limits.max_compression_ratio()));
-        let read_limit = (limits.max_entry_bytes() as u64)
-            .min(remaining_total)
-            .min(max_by_ratio);
-        let initial_capacity = usize::try_from(entry.size().min(read_limit)).unwrap_or(0);
-        let mut entry_bytes = Vec::with_capacity(initial_capacity);
-        entry
-            .by_ref()
-            .take(read_limit.saturating_add(1))
-            .read_to_end(&mut entry_bytes)
-            .map_err(|error| BackupArchiveError::Read {
-                path: path.clone(),
-                detail: error.to_string(),
-            })?;
-        let actual_len = entry_bytes.len() as u64;
-        if entry_bytes.len() > limits.max_entry_bytes() {
-            return Err(BackupArchiveError::EntryTooLarge {
-                path,
-                limit: limits.max_entry_bytes(),
-                observed: actual_len,
-            });
-        }
-        total = total
-            .checked_add(actual_len)
-            .ok_or(BackupArchiveError::TotalTooLarge {
-                limit: limits.max_total_bytes(),
-                observed: u64::MAX,
-            })?;
-        if total > limits.max_total_bytes() as u64 {
-            return Err(BackupArchiveError::TotalTooLarge {
-                limit: limits.max_total_bytes(),
-                observed: total,
-            });
-        }
-        if ratio_exceeds(actual_len, compressed_size, limits.max_compression_ratio()) {
-            return Err(BackupArchiveError::CompressionRatio {
-                path,
-                limit: limits.max_compression_ratio(),
-                compressed: compressed_size,
-                uncompressed: actual_len,
-            });
-        }
+        let entry_bytes = read_entry_bounded(
+            entry.by_ref(),
+            path.clone(),
+            declared_size,
+            compressed_size,
+            &mut total,
+            limits,
+        )?;
         entries.push((path, entry_bytes));
     }
 
@@ -294,6 +250,68 @@ fn verify_inventory(
     Ok(())
 }
 
+fn read_entry_bounded<R: Read>(
+    reader: R,
+    path: String,
+    declared_size: u64,
+    compressed_size: u64,
+    total: &mut u64,
+    limits: BackupArchiveLimits,
+) -> Result<Vec<u8>, BackupArchiveError> {
+    if total
+        .checked_add(declared_size)
+        .is_none_or(|declared_total| declared_total > limits.max_total_bytes() as u64)
+    {
+        return Err(BackupArchiveError::TotalTooLarge {
+            limit: limits.max_total_bytes(),
+            observed: total.saturating_add(declared_size),
+        });
+    }
+    let remaining_total = (limits.max_total_bytes() as u64).saturating_sub(*total);
+    let max_by_ratio = compressed_size.saturating_mul(u64::from(limits.max_compression_ratio()));
+    let read_limit = (limits.max_entry_bytes() as u64)
+        .min(remaining_total)
+        .min(max_by_ratio);
+    let initial_capacity = usize::try_from(declared_size.min(read_limit)).unwrap_or(0);
+    let mut entry_bytes = Vec::with_capacity(initial_capacity);
+    reader
+        .take(read_limit.saturating_add(1))
+        .read_to_end(&mut entry_bytes)
+        .map_err(|error| BackupArchiveError::Read {
+            path: path.clone(),
+            detail: error.to_string(),
+        })?;
+    let actual_len = entry_bytes.len() as u64;
+    if entry_bytes.len() > limits.max_entry_bytes() {
+        return Err(BackupArchiveError::EntryTooLarge {
+            path,
+            limit: limits.max_entry_bytes(),
+            observed: actual_len,
+        });
+    }
+    *total = total
+        .checked_add(actual_len)
+        .ok_or(BackupArchiveError::TotalTooLarge {
+            limit: limits.max_total_bytes(),
+            observed: u64::MAX,
+        })?;
+    if *total > limits.max_total_bytes() as u64 {
+        return Err(BackupArchiveError::TotalTooLarge {
+            limit: limits.max_total_bytes(),
+            observed: *total,
+        });
+    }
+    if ratio_exceeds(actual_len, compressed_size, limits.max_compression_ratio()) {
+        return Err(BackupArchiveError::CompressionRatio {
+            path,
+            limit: limits.max_compression_ratio(),
+            compressed: compressed_size,
+            uncompressed: actual_len,
+        });
+    }
+    Ok(entry_bytes)
+}
+
 fn ratio_exceeds(uncompressed: u64, compressed: u64, limit: u32) -> bool {
     if uncompressed == 0 {
         return false;
@@ -331,5 +349,112 @@ mod tests {
         assert!(!ratio_exceeds(200, 1, 200));
         assert!(ratio_exceeds(201, 1, 200));
         assert!(!ratio_exceeds(u64::MAX, u64::MAX, u32::MAX));
+    }
+
+    struct CountingZeroReader {
+        remaining: usize,
+        bytes_read: std::rc::Rc<std::cell::Cell<usize>>,
+    }
+
+    impl Read for CountingZeroReader {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            let count = buf.len().min(self.remaining);
+            buf[..count].fill(0);
+            self.remaining -= count;
+            self.bytes_read.set(self.bytes_read.get() + count);
+            Ok(count)
+        }
+    }
+
+    #[test]
+    fn read_entry_bounded_stops_at_total_ratio_and_entry_limits_with_understated_header() {
+        let counter = || std::rc::Rc::new(std::cell::Cell::new(0_usize));
+
+        // 1. Aggregate total stopping point: declared=4 passes preflight,
+        //    remaining_total=1096 stops reading at 1097 bytes (never 1 MiB).
+        let read_count = counter();
+        let reader = CountingZeroReader {
+            remaining: 1024 * 1024,
+            bytes_read: std::rc::Rc::clone(&read_count),
+        };
+        let mut total = 3000_u64;
+        let limits =
+            BackupArchiveLimits::new(1 << 20, 8, 256, 4096, 4096, 200).expect("total limits");
+        let err = read_entry_bounded(
+            reader,
+            "longhorn/domains/a.json".into(),
+            4,
+            4096,
+            &mut total,
+            limits,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            BackupArchiveError::TotalTooLarge {
+                limit: 4096,
+                observed: 4097,
+            }
+        );
+        assert_eq!(read_count.get(), 1097);
+
+        // 2. Actual ratio stopping point: declared=4 vs compressed=10 (ratio 0.4 <= 10)
+        //    passes metadata, but actual bytes stop at 10*10 + 1 = 101 bytes.
+        let read_count = counter();
+        let reader = CountingZeroReader {
+            remaining: 1024 * 1024,
+            bytes_read: std::rc::Rc::clone(&read_count),
+        };
+        let mut total = 0_u64;
+        let limits =
+            BackupArchiveLimits::new(1 << 20, 8, 256, 4096, 8192, 10).expect("ratio limits");
+        let err = read_entry_bounded(
+            reader,
+            "longhorn/domains/b.json".into(),
+            4,
+            10,
+            &mut total,
+            limits,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            BackupArchiveError::CompressionRatio {
+                path: "longhorn/domains/b.json".into(),
+                limit: 10,
+                compressed: 10,
+                uncompressed: 101,
+            }
+        );
+        assert_eq!(read_count.get(), 101);
+
+        // 3. Per-entry stopping point: declared=4 passes metadata, actual bytes
+        //    stop at max_entry_bytes + 1 = 257 bytes.
+        let read_count = counter();
+        let reader = CountingZeroReader {
+            remaining: 1024 * 1024,
+            bytes_read: std::rc::Rc::clone(&read_count),
+        };
+        let mut total = 0_u64;
+        let limits =
+            BackupArchiveLimits::new(1 << 20, 8, 256, 256, 4096, 200).expect("entry limits");
+        let err = read_entry_bounded(
+            reader,
+            "longhorn/domains/c.json".into(),
+            4,
+            256,
+            &mut total,
+            limits,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            BackupArchiveError::EntryTooLarge {
+                path: "longhorn/domains/c.json".into(),
+                limit: 256,
+                observed: 257,
+            }
+        );
+        assert_eq!(read_count.get(), 257);
     }
 }

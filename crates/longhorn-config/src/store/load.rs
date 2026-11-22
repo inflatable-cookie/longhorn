@@ -58,8 +58,15 @@ pub(crate) fn load_file<D: ConfigDomain>(
     load_source(domain, source)
 }
 
+/// Maximum byte length of a live domain document on disk, shared across
+/// reads, mutations, migration rewrites, and restore staging so no write path
+/// can publish a document that subsequent loads would reject.
+pub(crate) fn max_live_domain_bytes() -> usize {
+    BackupLimits::default().max_domain_bytes()
+}
+
 pub(crate) fn read_source(file: &ResolvedFile) -> io::Result<SourceDocument> {
-    let max_bytes = BackupLimits::default().max_domain_bytes();
+    let max_bytes = max_live_domain_bytes();
     let directory = Dir::open_ambient_dir(file.root(), ambient_authority())?;
     let input = directory.open(file.relative_path().as_path())?;
     let observed = usize::try_from(input.metadata()?.len()).unwrap_or(usize::MAX);
@@ -387,5 +394,111 @@ mod tests {
         let error = read_source(&file).unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
         assert!(error.to_string().contains("exceeds"));
+    }
+
+    #[test]
+    fn mutation_rejects_oversized_document_before_replacing_existing_file() {
+        use std::time::Duration;
+
+        use crate::{
+            ConfigStore, CoordinationAuthority, DurabilityRequirement, MutationError,
+            MutationOptions,
+        };
+
+        struct BlobDomain(DomainDescriptor);
+
+        impl ConfigDomain for BlobDomain {
+            type Value = String;
+
+            fn descriptor(&self) -> &DomainDescriptor {
+                &self.0
+            }
+
+            fn default_value(&self) -> Self::Value {
+                "initial".to_owned()
+            }
+
+            fn decode(&self, value: Value) -> Result<Self::Value, DomainIssue> {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or_else(|| DomainIssue::new("type", "expected string"))
+            }
+
+            fn encode(&self, value: &Self::Value) -> Result<Value, DomainIssue> {
+                Ok(Value::String(value.clone()))
+            }
+
+            fn validate(&self, _value: &Self::Value) -> Result<(), DomainIssue> {
+                Ok(())
+            }
+
+            fn validate_raw(
+                &self,
+                _schema_version: SchemaVersion,
+                _value: &Value,
+            ) -> Result<(), DomainIssue> {
+                Ok(())
+            }
+
+            fn migrate_one(
+                &self,
+                _from: SchemaVersion,
+                _value: Value,
+            ) -> Result<Option<MigrationStep>, DomainIssue> {
+                Ok(None)
+            }
+        }
+
+        let temp = TempDir::new().unwrap();
+        let config = temp.path().join("config");
+        let data = temp.path().join("data");
+        fs::create_dir_all(&config).unwrap();
+        fs::create_dir_all(&data).unwrap();
+        let roots = StorageRoots::new(
+            &config,
+            &data,
+            temp.path().join("state"),
+            temp.path().join("cache"),
+            temp.path().join("runtime"),
+            temp.path().join("log"),
+            temp.path().join("backups"),
+        )
+        .unwrap();
+        let coordination = CoordinationAuthority::new(&data).unwrap();
+        let mut store = ConfigStore::new(roots, coordination);
+        let domain = BlobDomain(
+            DomainDescriptor::new(
+                DomainId::new("example.blob").unwrap(),
+                SchemaVersion::new(1).unwrap(),
+                StorageClass::UserConfig,
+                Some(DomainFilePath::new("blob.json").unwrap()),
+            )
+            .unwrap(),
+        );
+        store.register(&domain).unwrap();
+
+        let options = MutationOptions::new(Duration::from_secs(1), DurabilityRequirement::Durable);
+        store
+            .mutate(&domain, options, |value| {
+                *value = "safe-value".to_owned();
+                Ok(())
+            })
+            .unwrap();
+
+        let oversized = "x".repeat(max_live_domain_bytes() + 1);
+        let err = store
+            .mutate(&domain, options, |value| {
+                *value = oversized;
+                Ok(())
+            })
+            .unwrap_err();
+        assert!(matches!(err, MutationError::Serialization { .. }));
+
+        // The previous valid document must remain intact and readable.
+        let LoadOutcome::Ready(loaded) = store.load(&domain).unwrap() else {
+            panic!("expected previous valid document to remain readable");
+        };
+        assert_eq!(loaded.value, "safe-value");
     }
 }

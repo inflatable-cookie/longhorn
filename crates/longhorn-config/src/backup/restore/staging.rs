@@ -221,6 +221,13 @@ pub(crate) fn prepare_typed_source<D: ConfigDomain>(
     );
     let bytes = serde_json::to_vec_pretty(&document)
         .map_err(|error| PrepareSourceError::Target(format!("serialize: {error}")))?;
+    let max_bytes = crate::store::load::max_live_domain_bytes();
+    if bytes.len() > max_bytes {
+        return Err(PrepareSourceError::Target(format!(
+            "staged domain document exceeds {max_bytes}-byte limit ({} bytes)",
+            bytes.len()
+        )));
+    }
     Ok(PreparedRestoreSource {
         source_schema_version,
         schema_version: domain.descriptor().schema_version(),

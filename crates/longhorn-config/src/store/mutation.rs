@@ -182,6 +182,17 @@ where
             detail: error.to_string(),
         })
         .map_err(CheckedMutationError::Mutation)?;
+    let max_bytes = super::load::max_live_domain_bytes();
+    if bytes.len() > max_bytes {
+        return Err(CheckedMutationError::Mutation(
+            MutationError::Serialization {
+                detail: format!(
+                    "serialized domain envelope exceeds {max_bytes}-byte limit ({} bytes)",
+                    bytes.len()
+                ),
+            },
+        ));
+    }
     let durability = publish(&file, &bytes, options.durability)
         .map_err(MutationError::Publication)
         .map_err(CheckedMutationError::Mutation)?;

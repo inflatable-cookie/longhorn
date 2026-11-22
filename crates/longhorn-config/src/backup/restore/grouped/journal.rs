@@ -153,7 +153,7 @@ pub(super) fn persist_prepared(
 ) -> io::Result<GroupedRestoreJournal> {
     clear_state(authority_root)?;
     let payload_root = payload_directory(authority_root);
-    fs::create_dir_all(&payload_root)?;
+    crate::dir_sync::create_dir_all_synced_to_root(authority_root, &payload_root)?;
     let mut entries = Vec::with_capacity(prepared.len());
     for (domain_index, domain) in prepared.iter().enumerate() {
         entries.push(GroupedJournalEntry {
@@ -176,7 +176,7 @@ pub(super) fn persist_prepared(
             )?,
         });
     }
-    sync_directory(&payload_root)?;
+    crate::dir_sync::sync_ancestors_to_root(authority_root, &payload_root)?;
     let journal = GroupedRestoreJournal {
         version: JOURNAL_VERSION,
         operation_id,
@@ -234,8 +234,8 @@ pub(super) fn read_payloads(
 }
 
 pub(super) fn publish(authority_root: &Path, journal: &GroupedRestoreJournal) -> io::Result<()> {
-    sync_directory(authority_root)?;
     journal_file::publish(
+        authority_root,
         &state_directory(authority_root),
         JOURNAL_FILE,
         journal,

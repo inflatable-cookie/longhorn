@@ -103,6 +103,13 @@ pub(crate) fn rewrite<D: ConfigDomain>(
         value,
     ))
     .map_err(|error| MigrationRewriteError::Preparation(error.to_string()))?;
+    let max_bytes = crate::store::load::max_live_domain_bytes();
+    if target.len() > max_bytes {
+        return Err(MigrationRewriteError::Preparation(format!(
+            "migrated domain document exceeds {max_bytes}-byte limit ({} bytes)",
+            target.len()
+        )));
+    }
     let source_sha = Sha256Digest::from_bytes(&source.bytes);
     let target_sha = Sha256Digest::from_bytes(&target);
     let plan_digest = Sha256Digest::from_bytes(

@@ -60,14 +60,16 @@ where
     Ok(Some(journal))
 }
 
-/// Serializes and atomically publishes a journal document below `directory`.
+/// Serializes and atomically publishes a journal document below `directory`,
+/// ensuring every ancestor from `directory` up to `sync_root` is durable.
 pub(crate) fn publish<J: Serialize>(
+    sync_root: &Path,
     directory: &Path,
     file_name: &str,
     journal: &J,
     subject: &str,
 ) -> io::Result<()> {
-    crate::dir_sync::create_dir_all_synced(directory)?;
+    crate::dir_sync::create_dir_all_synced_to_root(sync_root, directory)?;
     let bytes = serde_json::to_vec_pretty(journal)
         .map_err(|error| io::Error::other(format!("cannot encode {subject}: {error}")))?;
     let mut temporary = UniqueTemporary::create(directory, file_name)?;
@@ -76,5 +78,7 @@ pub(crate) fn publish<J: Serialize>(
         .map_err(|error| io::Error::other(format!("cannot publish {subject}: {error}")))?;
     temporary
         .commit(&directory.join(file_name))
-        .map_err(|error| io::Error::other(format!("cannot publish {subject}: {error}")))
+        .map_err(|error| io::Error::other(format!("cannot publish {subject}: {error}")))?;
+    crate::dir_sync::sync_ancestors_to_root(sync_root, directory)
+        .map_err(|error| io::Error::other(format!("cannot sync ancestors for {subject}: {error}")))
 }

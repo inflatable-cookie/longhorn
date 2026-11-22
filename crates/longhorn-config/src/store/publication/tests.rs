@@ -128,22 +128,37 @@ fn nested_path_first_write_reaches_full_directory_durability() {
     };
     assert!(!target.full_path().parent().unwrap().exists());
 
+    // Simulate a first-write SyncDirectory failure: directories now exist on
+    // disk, so a subsequent retry must still sync the full ancestor chain.
+    let failed = publish_inner(
+        &target,
+        b"first-attempt",
+        DurabilityRequirement::Durable,
+        Some(PublicationStage::SyncDirectory),
+    )
+    .unwrap_err();
+    assert_eq!(failed.stage, PublicationStage::SyncDirectory);
+    assert!(target.full_path().parent().unwrap().is_dir());
+
     let durability = publish(
         &target,
         b"nested-first-write",
         DurabilityRequirement::Durable,
     )
-    .expect("nested first write must create and sync every ancestor");
+    .expect("retry after SyncDirectory failure must still sync every ancestor");
     assert_eq!(durability, Durability::FileAndDirectorySynced);
     assert_eq!(fs::read(target.full_path()).unwrap(), b"nested-first-write");
 
-    let journal_dir = temp.path().join("data/.longhorn/deep/journal");
+    let authority_root = temp.path().join("data");
+    fs::create_dir_all(&authority_root).unwrap();
+    let journal_dir = authority_root.join(".longhorn/restore");
     crate::journal_file::publish(
+        &authority_root,
         &journal_dir,
         "journal.json",
         &serde_json::json!({"version": 1}),
         "test journal",
     )
-    .expect("nested journal publish must create and sync every ancestor");
+    .expect("nested journal publish must create and sync every ancestor up to authority root");
     assert!(journal_dir.join("journal.json").is_file());
 }

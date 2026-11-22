@@ -34,19 +34,17 @@ fn publish_inner(
     let relative = target.relative_path().as_path();
     let parent_path = relative.parent().unwrap_or_else(|| Path::new(""));
 
-    let created_parents = if parent_path.as_os_str().is_empty() {
-        Vec::new()
-    } else {
+    if !parent_path.as_os_str().is_empty() {
         inject(target, PublicationStage::CreateParent, injected_failure)?;
-        crate::dir_sync::create_dir_all_collecting_parents(&root, parent_path).map_err(|error| {
+        root.create_dir_all(parent_path).map_err(|error| {
             failure(
                 target,
                 PublicationStage::CreateParent,
                 false,
                 error.to_string(),
             )
-        })?
-    };
+        })?;
+    }
 
     inject(target, PublicationStage::OpenParent, injected_failure)?;
     let parent = if parent_path.as_os_str().is_empty() {
@@ -117,7 +115,7 @@ fn publish_inner(
 
     let directory_sync = inject(target, PublicationStage::SyncDirectory, injected_failure)
         .and_then(|()| {
-            sync_published_directories(&root, &parent, &created_parents).map_err(|error| {
+            sync_published_directories(&root, &parent, parent_path).map_err(|error| {
                 failure(
                     target,
                     PublicationStage::SyncDirectory,
@@ -134,17 +132,13 @@ fn publish_inner(
     }
 }
 
-fn sync_published_directories(
-    root: &Dir,
-    parent: &Dir,
-    created_parents: &[PathBuf],
-) -> std::io::Result<()> {
+fn sync_published_directories(root: &Dir, parent: &Dir, parent_path: &Path) -> std::io::Result<()> {
     crate::dir_sync::sync_dir_handle(parent)?;
-    for ancestor in created_parents.iter().rev() {
+    for ancestor in crate::dir_sync::ancestor_chain_in_dir(parent_path) {
         if ancestor.as_os_str().is_empty() {
             crate::dir_sync::sync_dir_handle(root)?;
         } else {
-            let directory = root.open_dir(ancestor)?;
+            let directory = root.open_dir(&ancestor)?;
             crate::dir_sync::sync_dir_handle(&directory)?;
         }
     }
