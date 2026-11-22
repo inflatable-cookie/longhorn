@@ -703,6 +703,45 @@ fn deadline_overrun_during_callback_fails_with_deadline_exceeded() {
 }
 
 #[test]
+fn waker_replacement_between_polls_still_wakes_callback_at_deadline() {
+    struct AlwaysPending;
+
+    impl RecordingCallback for AlwaysPending {
+        fn invoke(
+            &self,
+            _call: AdmittedCall,
+            _cancellation: Cancellation,
+            _result: ResultRecorder,
+        ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+            Box::pin(std::future::pending())
+        }
+    }
+
+    let dispatcher =
+        RecordingDispatcher::new(expected_registration(), expected_binding(), AlwaysPending);
+    let (_, cancellation) = live_cancellation();
+    let candidate = DispatchInvocation::new(
+        "waker-replace",
+        expected_registration(),
+        expected_binding(),
+        BindingStatus::Current,
+        DispatchDeadline::active(Duration::from_millis(25)),
+        b"argument-secret".to_vec(),
+    )
+    .expect("fixture invocation");
+
+    let mut future = dispatcher.dispatch(candidate, cancellation);
+    // First poll registers a noop waker; second poll replaces it with a real
+    // park-and-wake waker, which must still wake when the deadline elapses.
+    let mut noop_cx = Context::from_waker(Waker::noop());
+    assert!(matches!(future.as_mut().poll(&mut noop_cx), Poll::Pending));
+
+    let error = block_on_parked(future)
+        .expect_err("re-registered waker must still wake on deadline expiry");
+    assert_eq!(error.kind(), DispatchErrorKind::DeadlineExceeded);
+}
+
+#[test]
 fn unrepresentable_deadline_fails_typed_without_panicking() {
     let calls = Arc::new(AtomicUsize::new(0));
     let wide = RegisteredCapability::new(

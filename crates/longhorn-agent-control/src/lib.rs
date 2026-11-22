@@ -44,6 +44,6 @@ pub use tools::{
     MAX_WAIT_TIMEOUT_MS, PageState, PressRequest, RejectSelectionRequest, RejectSelectionResult,
     ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest, SelectionId,
     SemanticNode, SetFileInputRequest, SnapshotRequest, SnapshotResult, ToolError, TypeRequest,
-    WaitForRequest, WaitForResult, WaitPredicate, WebviewLabel, WebviewTarget, WindowInfo,
-    WindowTarget,
+    ValidatedSetFileInputRequest, WaitForRequest, WaitForResult, WaitPredicate, WebviewLabel,
+    WebviewTarget, WindowInfo, WindowTarget,
 };

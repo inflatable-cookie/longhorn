@@ -23,8 +23,8 @@ use longhorn_agent_control::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, ControlHandler, DragRequest,
     EvaluateRequest, EvaluateResult, ListWindowsRequest, ListWindowsResult, PressRequest,
     ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest, SetFileInputRequest,
-    SnapshotRequest, SnapshotResult, ToolError, TypeRequest, WaitForRequest, WaitForResult,
-    WebviewLabel, WebviewTarget, WindowInfo, WindowTarget,
+    SnapshotRequest, SnapshotResult, ToolError, TypeRequest, ValidatedSetFileInputRequest,
+    WaitForRequest, WaitForResult, WebviewLabel, WebviewTarget, WindowInfo, WindowTarget,
 };
 use longhorn_core::{ClientSize, WindowId};
 use serde_json::Value;
@@ -379,14 +379,15 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         &self,
         request: SetFileInputRequest,
     ) -> Result<ActionReceipt, ToolError> {
-        request.validate()?;
-        self.set_file_input_prevalidated(request).await
+        let validated = request.into_validated()?;
+        self.set_file_input_prevalidated(validated).await
     }
 
     async fn set_file_input_prevalidated(
         &self,
-        request: SetFileInputRequest,
+        request: ValidatedSetFileInputRequest,
     ) -> Result<ActionReceipt, ToolError> {
+        let request = request.as_request();
         let (_, _, value) = self
             .eval_js(
                 &request.window,

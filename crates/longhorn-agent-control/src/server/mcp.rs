@@ -204,10 +204,10 @@ where
         &self,
         Parameters(request): Parameters<SetFileInputRequest>,
     ) -> Result<CallToolResult, ErrorData> {
-        request
-            .validate()
+        let validated = request
+            .into_validated()
             .map_err(|error| invalid_params(error.to_string()))?;
-        json_result(self.handler.set_file_input_prevalidated(request).await)
+        json_result(self.handler.set_file_input_prevalidated(validated).await)
     }
 
     #[tool(
@@ -387,12 +387,15 @@ where
             .into_iter()
             .filter(|event| event.get("kind").and_then(serde_json::Value::as_str) == Some(kind))
             .collect();
-        Ok(serde_json::json!({
+        let mut body = serde_json::json!({
             "events": filtered,
             "nextSeq": batch.next_seq,
             "dropped": batch.dropped,
-        })
-        .to_string())
+        });
+        if let Some(epoch) = batch.epoch {
+            body["epoch"] = serde_json::Value::String(epoch);
+        }
+        Ok(body.to_string())
     }
 }
 

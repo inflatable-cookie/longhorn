@@ -12,7 +12,8 @@ use crate::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, DragRequest, EvaluateRequest,
     EvaluateResult, ListWindowsRequest, ListWindowsResult, PressRequest, ResizeWindowRequest,
     ScreenshotRequest, ScreenshotResult, ScrollRequest, SetFileInputRequest, SnapshotRequest,
-    SnapshotResult, ToolError, TypeRequest, WaitForRequest, WaitForResult,
+    SnapshotResult, ToolError, TypeRequest, ValidatedSetFileInputRequest, WaitForRequest,
+    WaitForResult,
 };
 
 /// Tool authority the host implements and the MCP server dispatches to.
@@ -69,17 +70,18 @@ pub trait ControlHandler: Send + Sync + 'static {
         request: SetFileInputRequest,
     ) -> impl Future<Output = Result<ActionReceipt, ToolError>> + Send;
 
-    /// Dispatches a `set_file_input` request that the caller already validated
-    /// via [`SetFileInputRequest::validate`].
+    /// Dispatches a `set_file_input` request proven valid via
+    /// [`SetFileInputRequest::into_validated`].
     ///
     /// The default implementation forwards to [`ControlHandler::set_file_input`];
     /// hosts that validate inside `set_file_input` override this to avoid
-    /// decoding the payload twice on the MCP path.
+    /// decoding the payload twice on the MCP path while keeping unchecked
+    /// requests impossible to construct.
     fn set_file_input_prevalidated(
         &self,
-        request: SetFileInputRequest,
+        request: ValidatedSetFileInputRequest,
     ) -> impl Future<Output = Result<ActionReceipt, ToolError>> + Send {
-        self.set_file_input(request)
+        self.set_file_input(request.into_inner())
     }
 
     /// Runs JavaScript in the page. Escape hatch, not the primary path.

@@ -505,6 +505,7 @@ async fn event_resources_are_listed_and_readable() {
     let body: Value = serde_json::from_str(text).unwrap();
     assert_eq!(body["events"][0]["text"], "hello from stub");
     assert_eq!(body["dropped"], 0);
+    assert_eq!(body["epoch"], "epoch-1");
 }
 
 /// One `console.log` after subscribe must produce `resources/updated`.
@@ -706,10 +707,12 @@ async fn listen_mixed_selection_and_page_events_does_not_starve_page_polls() {
     let mut body = response.into_body();
     let mut buf = String::new();
 
-    // Drive selection updates every 10 ms (5x faster than the 50 ms page poll).
+    // Drive selection updates continuously every 10 ms (5x faster than the 50 ms
+    // page poll) until both actual `notifications/resources/updated` messages
+    // arrive; never stop churning before the assertion completes.
     let reg = registry.clone();
     let spammer = tokio::spawn(async move {
-        for _ in 0..25 {
+        loop {
             let wait = reg
                 .begin(longhorn_agent_control::BeginSelectionRequest {
                     kind: longhorn_agent_control::SelectionKind::Open,
@@ -731,17 +734,35 @@ async fn listen_mixed_selection_and_page_events_does_not_starve_page_polls() {
 
     stub.push_console("during-selection-burst");
 
+    let mut saw_selection_update = false;
+    let mut saw_console_update = false;
+    let mut pending_line = String::new();
     let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
-    while tokio::time::Instant::now() < deadline {
-        if buf.contains("longhorn://agent-control/console")
-            && buf.contains("longhorn://agent-control/selection")
-        {
-            break;
-        }
+    while tokio::time::Instant::now() < deadline && !(saw_selection_update && saw_console_update) {
         match tokio::time::timeout(Duration::from_millis(50), body.frame()).await {
             Ok(Some(Ok(frame))) => {
                 if let Ok(data) = frame.into_data() {
-                    buf.push_str(&String::from_utf8_lossy(&data));
+                    let chunk = String::from_utf8_lossy(&data);
+                    buf.push_str(&chunk);
+                    pending_line.push_str(&chunk);
+                    while let Some(pos) = pending_line.find('\n') {
+                        let line = pending_line[..pos].trim_end_matches('\r');
+                        if let Some(payload) = line.strip_prefix("data: ")
+                            && let Ok(msg) = serde_json::from_str::<Value>(payload)
+                            && msg["method"] == "notifications/resources/updated"
+                        {
+                            match msg["params"]["uri"].as_str() {
+                                Some("longhorn://agent-control/selection") => {
+                                    saw_selection_update = true;
+                                }
+                                Some("longhorn://agent-control/console") => {
+                                    saw_console_update = true;
+                                }
+                                _ => {}
+                            }
+                        }
+                        pending_line.drain(..=pos);
+                    }
                 }
             }
             Ok(Some(Err(_))) | Ok(None) => break,
@@ -751,12 +772,12 @@ async fn listen_mixed_selection_and_page_events_does_not_starve_page_polls() {
     spammer.abort();
 
     assert!(
-        buf.contains("longhorn://agent-control/selection"),
-        "selection update missing in mixed listen: {buf}"
+        saw_selection_update,
+        "selection notifications/resources/updated missing in mixed listen: {buf}"
     );
     assert!(
-        buf.contains("longhorn://agent-control/console"),
-        "console event was starved by selection updates: {buf}"
+        saw_console_update,
+        "console notifications/resources/updated was starved by selection churn: {buf}"
     );
 }
 

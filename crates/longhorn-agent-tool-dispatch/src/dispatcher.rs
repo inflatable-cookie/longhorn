@@ -6,11 +6,10 @@ use crate::{
     DispatchInvocation, DispatchMetrics, DispatchOutcome, RegisteredCapability, SchemaIdentity,
     TrustedBinding,
 };
-use std::cmp::Reverse;
-use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::task::{Context, Poll, Waker};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -216,29 +215,41 @@ struct TimerDriver {
 
 struct TimerState {
     next_id: u64,
-    entries: BTreeMap<u64, (Instant, Waker)>,
-    heap: BinaryHeap<Reverse<(Instant, u64)>>,
+    /// Active deadlines ordered by `(deadline, id)` so the earliest deadline is
+    /// always first and cancellation removes entries immediately in O(log N).
+    entries: BTreeMap<(Instant, u64), Waker>,
 }
 
 impl TimerDriver {
-    fn global() -> &'static Self {
-        static DRIVER: OnceLock<TimerDriver> = OnceLock::new();
-        DRIVER.get_or_init(|| {
-            let driver = TimerDriver {
-                state: Mutex::new(TimerState {
-                    next_id: 1,
-                    entries: BTreeMap::new(),
-                    heap: BinaryHeap::new(),
-                }),
-                wake_thread: Condvar::new(),
-            };
-            // Spawn once for the process; the daemon thread parks on `Condvar`
-            // whenever no deadline is registered.
-            let _ = thread::Builder::new()
-                .name("longhorn-dispatch-timer".to_owned())
-                .spawn(|| Self::run(Self::global()));
-            driver
-        })
+    fn new_stopped() -> Self {
+        Self {
+            state: Mutex::new(TimerState {
+                next_id: 1,
+                entries: BTreeMap::new(),
+            }),
+            wake_thread: Condvar::new(),
+        }
+    }
+
+    fn try_global() -> Result<Arc<Self>, DispatchError> {
+        static DRIVER: Mutex<Option<Arc<TimerDriver>>> = Mutex::new(None);
+        let mut guard = DRIVER
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(driver) = guard.as_ref() {
+            return Ok(Arc::clone(driver));
+        }
+        let driver = Arc::new(Self::new_stopped());
+        let worker = Arc::clone(&driver);
+        // Spawn once for the process; the daemon thread parks on `Condvar`
+        // whenever no deadline is registered. If thread creation fails, do not
+        // cache an unbacked driver so dispatch refuses typed before admission.
+        thread::Builder::new()
+            .name("longhorn-dispatch-timer".to_owned())
+            .spawn(move || worker.run())
+            .map_err(|_| DispatchError::new(DispatchErrorKind::LimitExceeded))?;
+        *guard = Some(Arc::clone(&driver));
+        Ok(driver)
     }
 
     fn run(&self) {
@@ -249,18 +260,12 @@ impl TimerDriver {
         loop {
             let now = Instant::now();
             let mut ready = Vec::new();
-            while let Some(&Reverse((deadline, id))) = guard.heap.peek() {
+            while let Some(&(deadline, id)) = guard.entries.keys().next() {
                 if deadline > now {
                     break;
                 }
-                guard.heap.pop();
-                if let Some((registered_deadline, waker)) = guard.entries.remove(&id) {
-                    if registered_deadline <= now {
-                        ready.push(waker);
-                    } else {
-                        guard.entries.insert(id, (registered_deadline, waker));
-                        guard.heap.push(Reverse((registered_deadline, id)));
-                    }
+                if let Some(waker) = guard.entries.remove(&(deadline, id)) {
+                    ready.push(waker);
                 }
             }
             if !ready.is_empty() {
@@ -274,14 +279,14 @@ impl TimerDriver {
                     .unwrap_or_else(std::sync::PoisonError::into_inner);
                 continue;
             }
-            match guard.heap.peek() {
+            match guard.entries.keys().next().copied() {
                 None => {
                     guard = self
                         .wake_thread
                         .wait(guard)
                         .unwrap_or_else(std::sync::PoisonError::into_inner);
                 }
-                Some(&Reverse((earliest, _))) => {
+                Some((earliest, _)) => {
                     let wait = earliest.saturating_duration_since(Instant::now());
                     if !wait.is_zero() {
                         let (next, _) = self
@@ -295,36 +300,63 @@ impl TimerDriver {
         }
     }
 
-    fn register(&self, existing: Option<u64>, deadline: Instant, waker: Waker) -> u64 {
+    /// Registers or refreshes a deadline waker under the driver lock.
+    ///
+    /// Returns `None` if `deadline` has already elapsed (after removing any
+    /// `existing` entry), ensuring a concurrent expiry never leaves a pending
+    /// future without a wakeup.
+    fn register(
+        &self,
+        existing: Option<(Instant, u64)>,
+        deadline: Instant,
+        waker: Waker,
+    ) -> Option<(Instant, u64)> {
         let mut guard = self
             .state
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let id = existing.unwrap_or_else(|| {
-            let id = guard.next_id;
-            guard.next_id = guard.next_id.wrapping_add(1).max(1);
-            id
-        });
-        let notify = guard
-            .heap
-            .peek()
-            .is_none_or(|&Reverse((earliest, _))| deadline < earliest);
-        guard.entries.insert(id, (deadline, waker));
-        if existing.is_none() {
-            guard.heap.push(Reverse((deadline, id)));
+        if let Some(old_key) = existing {
+            guard.entries.remove(&old_key);
         }
+        if Instant::now() >= deadline {
+            return None;
+        }
+        let id = existing.map_or_else(
+            || {
+                let id = guard.next_id;
+                guard.next_id = guard.next_id.wrapping_add(1).max(1);
+                id
+            },
+            |(_, id)| id,
+        );
+        let key = (deadline, id);
+        let notify = guard
+            .entries
+            .keys()
+            .next()
+            .is_none_or(|&(earliest, _)| deadline < earliest);
+        guard.entries.insert(key, waker);
         if notify {
             self.wake_thread.notify_one();
         }
-        id
+        Some(key)
     }
 
-    fn cancel(&self, id: u64) {
+    fn cancel(&self, key: (Instant, u64)) {
         let mut guard = self
             .state
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        guard.entries.remove(&id);
+        guard.entries.remove(&key);
+    }
+
+    #[cfg(test)]
+    fn pending_count(&self) -> usize {
+        self.state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .entries
+            .len()
     }
 }
 
@@ -332,7 +364,8 @@ impl TimerDriver {
 struct BoundedCallback<'a> {
     inner: DispatchFuture<'a, Result<(), CallbackFailure>>,
     deadline_at: Instant,
-    timer_id: Option<u64>,
+    driver: Arc<TimerDriver>,
+    timer_key: Option<(Instant, u64)>,
 }
 
 enum CallbackPoll {
@@ -342,8 +375,8 @@ enum CallbackPoll {
 
 impl Drop for BoundedCallback<'_> {
     fn drop(&mut self) {
-        if let Some(id) = self.timer_id.take() {
-            TimerDriver::global().cancel(id);
+        if let Some(key) = self.timer_key.take() {
+            self.driver.cancel(key);
         }
     }
 }
@@ -353,20 +386,27 @@ impl Future for BoundedCallback<'_> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if Instant::now() >= self.deadline_at {
+            if let Some(key) = self.timer_key.take() {
+                self.driver.cancel(key);
+            }
             return Poll::Ready(CallbackPoll::DeadlineExceeded);
         }
         match self.inner.as_mut().poll(cx) {
-            Poll::Ready(outcome) => Poll::Ready(CallbackPoll::Completed(outcome)),
-            Poll::Pending => {
-                if Instant::now() >= self.deadline_at {
-                    return Poll::Ready(CallbackPoll::DeadlineExceeded);
+            Poll::Ready(outcome) => {
+                if let Some(key) = self.timer_key.take() {
+                    self.driver.cancel(key);
                 }
-                let id = TimerDriver::global().register(
-                    self.timer_id,
-                    self.deadline_at,
-                    cx.waker().clone(),
-                );
-                self.timer_id = Some(id);
+                Poll::Ready(CallbackPoll::Completed(outcome))
+            }
+            Poll::Pending => {
+                let existing = self.timer_key.take();
+                let Some(key) =
+                    self.driver
+                        .register(existing, self.deadline_at, cx.waker().clone())
+                else {
+                    return Poll::Ready(CallbackPoll::DeadlineExceeded);
+                };
+                self.timer_key = Some(key);
                 Poll::Pending
             }
         }
@@ -419,6 +459,13 @@ where
                 locked(&self.state).reject(error);
                 return Err(error);
             };
+            let driver = match TimerDriver::try_global() {
+                Ok(driver) => driver,
+                Err(error) => {
+                    locked(&self.state).reject(error);
+                    return Err(error);
+                }
+            };
             let admitted = AdmittedCall::from_invocation(&invocation);
             let recorder = {
                 let mut state = locked(&self.state);
@@ -462,7 +509,8 @@ where
                     .callback
                     .invoke(admitted, cancellation.clone(), recorder),
                 deadline_at,
-                timer_id: None,
+                driver,
+                timer_key: None,
             }
             .await;
             let mut state = locked(&self.state);
@@ -602,4 +650,45 @@ fn locked(state: &Mutex<DispatcherState>) -> MutexGuard<'_, DispatcherState> {
     state
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn timer_driver_removes_cancelled_far_future_entries_immediately() {
+        let driver = TimerDriver::new_stopped();
+        let deadline = Instant::now() + Duration::from_secs(3600);
+        let mut keys = Vec::new();
+        for _ in 0..100 {
+            let key = driver
+                .register(None, deadline, Waker::noop().clone())
+                .expect("future deadline registers");
+            keys.push(key);
+        }
+        assert_eq!(driver.pending_count(), 100);
+        for key in keys {
+            driver.cancel(key);
+        }
+        assert_eq!(driver.pending_count(), 0);
+    }
+
+    #[test]
+    fn timer_driver_elapsed_registration_returns_none_and_clears_existing() {
+        let driver = TimerDriver::new_stopped();
+        let future = Instant::now() + Duration::from_secs(60);
+        let key = driver
+            .register(None, future, Waker::noop().clone())
+            .expect("future deadline registers");
+        assert_eq!(driver.pending_count(), 1);
+
+        let elapsed = Instant::now();
+        assert!(
+            driver
+                .register(Some(key), elapsed, Waker::noop().clone())
+                .is_none()
+        );
+        assert_eq!(driver.pending_count(), 0);
+    }
 }

@@ -447,8 +447,9 @@ pub struct SetFileInputRequest {
 impl SetFileInputRequest {
     /// Checks names, base64, non-empty list, and the decoded 8 MiB cap.
     ///
-    /// Structural serde still admits an empty list. The MCP server and host
-    /// `ControlHandler` share this single validation entry point.
+    /// Structural serde still admits an empty list. Prefer
+    /// [`SetFileInputRequest::into_validated`] when forwarding to a host
+    /// handler so validation is enforced by the type system.
     pub fn validate(&self) -> Result<(), ToolError> {
         if self.files.is_empty() {
             return Err(ToolError::InvalidArgument {
@@ -480,6 +481,37 @@ impl SetFileInputRequest {
             }
         }
         Ok(())
+    }
+
+    /// Validates this request and wraps it in an opaque
+    /// [`ValidatedSetFileInputRequest`] that can only be constructed after
+    /// passing [`SetFileInputRequest::validate`].
+    pub fn into_validated(self) -> Result<ValidatedSetFileInputRequest, ToolError> {
+        self.validate()?;
+        Ok(ValidatedSetFileInputRequest(self))
+    }
+}
+
+/// A [`SetFileInputRequest`] proven to have passed
+/// [`SetFileInputRequest::validate`].
+///
+/// The inner field is private so no caller can bypass the 8 MiB decoded cap,
+/// base64 check, or non-empty file/name checks when calling
+/// [`crate::ControlHandler::set_file_input_prevalidated`].
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidatedSetFileInputRequest(SetFileInputRequest);
+
+impl ValidatedSetFileInputRequest {
+    /// Borrows the validated request.
+    #[must_use]
+    pub const fn as_request(&self) -> &SetFileInputRequest {
+        &self.0
+    }
+
+    /// Unwraps the validated request.
+    #[must_use]
+    pub fn into_inner(self) -> SetFileInputRequest {
+        self.0
     }
 }
 
