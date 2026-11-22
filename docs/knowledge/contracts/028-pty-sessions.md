@@ -137,9 +137,10 @@ close-on-exec flags, `setsid`, controlling-terminal ioctl, terminal sizing, and
 process-group signals. Close-on-exec is set atomically on slave opens
 (`OFlags::CLOEXEC`) and descriptor duplications (`fcntl_dupfd_cloexec`) on all
 supported targets, and atomically on master opens on Linux and FreeBSD
-(`OpenptFlags::CLOEXEC`) and on macOS (`posix_openpt` with `O_CLOEXEC`). On
-`ios` and `illumos` (where `posix_openpt` `O_CLOEXEC` support is unverified or
-unsupported), `FD_CLOEXEC` is set immediately after `openpt` returns.
+(`OpenptFlags::CLOEXEC`) and on macOS and illumos (`posix_openpt` with
+`O_CLOEXEC`). Only `ios` (where `posix_openpt` `O_CLOEXEC` support is
+unverified) falls back to setting `FD_CLOEXEC` immediately after `openpt`
+returns.
 `O_NONBLOCK` is set on the master open file description before duplication:
 both the reader copy (poll-driven non-blocking reads) and the control copy
 (non-blocking writes that release the lifecycle lock on `WouldBlock` so a full

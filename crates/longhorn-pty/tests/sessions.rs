@@ -54,15 +54,37 @@ fn open(spec: CommandSpec) -> (PtySession, Receiver<PtyEvent>) {
     }
 }
 
+fn probe_openpt_flags() -> OpenptFlags {
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
+    {
+        OpenptFlags::RDWR | OpenptFlags::NOCTTY | OpenptFlags::CLOEXEC
+    }
+    #[cfg(any(target_os = "macos", target_os = "illumos"))]
+    {
+        OpenptFlags::RDWR
+            | OpenptFlags::NOCTTY
+            | OpenptFlags::from_bits_retain(rustix::fs::OFlags::CLOEXEC.bits())
+    }
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "freebsd",
+        target_os = "macos",
+        target_os = "illumos"
+    )))]
+    {
+        OpenptFlags::RDWR | OpenptFlags::NOCTTY
+    }
+}
+
 /// Reports the OS state at the moment an open failure surfaced.
 ///
 /// `Failure` carries the raw OS error code of the failed step, and this
-/// evidence-only probe adds the current process descriptor count and a direct
-/// `openpt` probe to help distinguish host pool exhaustion from local limits.
-/// It runs once on the already-failed path, never retries `PtySession::open`,
-/// and never gates success.
+/// evidence-only probe uses the same master-open flags as production `open`
+/// plus the current process descriptor count so a successful probe cannot mask
+/// a flag mismatch. It runs once on the already-failed path, never retries
+/// `PtySession::open`, and never gates success.
 fn open_failure_os_evidence() -> String {
-    let master_probe = match rustix::pty::openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY) {
+    let master_probe = match rustix::pty::openpt(probe_openpt_flags()) {
         Ok(descriptor) => {
             let descriptor_number = descriptor.as_raw_fd();
             drop(descriptor);

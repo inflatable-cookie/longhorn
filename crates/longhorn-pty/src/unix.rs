@@ -14,7 +14,12 @@ use rustix::event::{PollFd, PollFlags, Timespec, poll};
 use rustix::fd::OwnedFd;
 use rustix::fs::{Mode, OFlags, fcntl_getfl, fcntl_setfl, open as open_file};
 use rustix::io::{Errno, fcntl_dupfd_cloexec};
-#[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "macos")))]
+#[cfg(not(any(
+    target_os = "linux",
+    target_os = "freebsd",
+    target_os = "macos",
+    target_os = "illumos"
+)))]
 use rustix::io::{FdFlags, fcntl_setfd};
 use rustix::process::{
     Pid, Signal, WaitId, WaitIdOptions, WaitOptions, WaitStatus, ioctl_tiocsctty,
@@ -55,11 +60,11 @@ struct Process {
 
 fn open_master() -> Result<OwnedFd, Failure> {
     // Linux (via `/dev/ptmx` in rustix) and FreeBSD expose `OpenptFlags::CLOEXEC`.
-    // macOS `posix_openpt` also accepts `O_CLOEXEC` atomically, even though
-    // rustix does not expose the named `OpenptFlags::CLOEXEC` constant there.
-    // On `ios` and `illumos`, `posix_openpt` `O_CLOEXEC` support is unverified
-    // or unsupported, so those targets set `FD_CLOEXEC` immediately after
-    // `openpt` returns.
+    // macOS and illumos `posix_openpt` forward flags directly to `/dev/ptmx` and
+    // accept `O_CLOEXEC` atomically at open time, even though rustix does not
+    // expose the named `OpenptFlags::CLOEXEC` constant on those targets.
+    // On `ios`, `posix_openpt` `O_CLOEXEC` support is unverified, so that target
+    // sets `FD_CLOEXEC` immediately after `openpt` returns.
     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     {
         openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY | OpenptFlags::CLOEXEC).map_err(|errno| {
@@ -68,7 +73,7 @@ fn open_master() -> Result<OwnedFd, Failure> {
             }
         })
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "illumos"))]
     {
         let flags = OpenptFlags::RDWR
             | OpenptFlags::NOCTTY
@@ -77,7 +82,12 @@ fn open_master() -> Result<OwnedFd, Failure> {
             raw_os_error: errno.raw_os_error(),
         })
     }
-    #[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "macos")))]
+    #[cfg(not(any(
+        target_os = "linux",
+        target_os = "freebsd",
+        target_os = "macos",
+        target_os = "illumos"
+    )))]
     {
         let master =
             openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY).map_err(|errno| Failure::OpenPty {
