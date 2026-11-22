@@ -11,6 +11,13 @@ pub use probe::{HostProbeOperation, ProbeTarget, TauriProbeError, TauriScaleFact
 /// Whole-desktop coordinate-mapping failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DesktopMappingError {
+    /// The nominated mapper does not describe the current native host.
+    UnsupportedPlatform {
+        /// Rust target operating system.
+        platform: &'static str,
+    },
+    /// The mapped snapshot omitted geometry needed for lifecycle work.
+    MissingLifecycleGeometry,
     /// More than one scale exists and the uniform mapper cannot establish a plane.
     MixedScaleUnavailable {
         /// Distinct validated scales in ascending order.
@@ -28,6 +35,12 @@ pub enum DesktopMappingError {
 impl fmt::Display for DesktopMappingError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::UnsupportedPlatform { platform } => {
+                write!(formatter, "desktop mapper does not support {platform}")
+            }
+            Self::MissingLifecycleGeometry => {
+                formatter.write_str("desktop mapping omitted lifecycle geometry")
+            }
             Self::MixedScaleUnavailable { scales } => write!(
                 formatter,
                 "uniform desktop mapping unavailable for {} distinct scales",
@@ -145,6 +158,8 @@ impl From<DesktopMappingError> for DesktopObservationError {
 /// End-to-end Tauri observation failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TauriObservationError {
+    /// A rejected native window is still tracked for cleanup.
+    PendingWindowDiscard(WindowId),
     /// Physical host probing failed.
     Probe(TauriProbeError),
     /// Whole-desktop mapping or projection failed.
@@ -154,6 +169,12 @@ pub enum TauriObservationError {
 impl fmt::Display for TauriObservationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::PendingWindowDiscard(window_id) => {
+                write!(
+                    formatter,
+                    "rejected window {window_id} still needs native cleanup"
+                )
+            }
             Self::Probe(source) => write!(formatter, "Tauri probe failed: {source}"),
             Self::Projection(source) => write!(formatter, "desktop projection failed: {source}"),
         }
@@ -165,6 +186,7 @@ impl Error for TauriObservationError {
         match self {
             Self::Probe(source) => Some(source),
             Self::Projection(source) => Some(source),
+            Self::PendingWindowDiscard(_) => None,
         }
     }
 }

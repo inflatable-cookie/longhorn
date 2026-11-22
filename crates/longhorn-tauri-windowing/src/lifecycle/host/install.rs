@@ -102,35 +102,30 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         window_id: WindowId,
     ) -> Result<(), TauriWindowLifecycleError> {
         self.ensure_active()?;
-        let previous = {
-            let windows = self.lock_windows()?;
+        let reschedule = {
+            let mut windows = self.lock_windows()?;
             if windows.contains_key(&window_id) {
                 return Err(TauriWindowLifecycleError::DuplicateWindow { window_id });
             }
-            windows
+            let previous = windows
                 .iter()
                 .find(|(_, installed)| installed.window.label() == transport_handle.as_str())
                 .map(|(window_id, _)| window_id.clone())
                 .ok_or_else(|| TauriWindowLifecycleError::UnknownWindowHandle {
                     transport_handle: transport_handle.clone(),
-                })?
-        };
-        // Coordinator state migrates with the identity; pending deadlines are
-        // re-scheduled under the new id, and any wake still queued under the
-        // previous id fails as unknown and counts as superseded.
-        let reschedule = self
-            .lock_coordinator()?
-            .retag(&previous, &window_id)
-            .map_err(coordination_error)?;
-        {
-            let mut windows = self.lock_windows()?;
+                })?;
+            let reschedule = self
+                .lock_coordinator()?
+                .retag(&previous, &window_id)
+                .map_err(coordination_error)?;
             let installed = windows.remove(&previous).ok_or_else(|| {
                 TauriWindowLifecycleError::UnknownWindowHandle {
                     transport_handle: transport_handle.clone(),
                 }
             })?;
             windows.insert(window_id.clone(), installed);
-        }
+            reschedule
+        };
         let mut actions = Vec::new();
         self.execute_directives(reschedule, &mut actions, &mut FlushDisposition::Inline)?;
         for action in actions {

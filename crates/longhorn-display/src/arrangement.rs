@@ -199,35 +199,3 @@ impl fmt::Display for ArrangementSignatureError {
 }
 
 impl Error for ArrangementSignatureError {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{DisplayBuiltinStatus, DisplayLabel};
-
-    fn facts(x: i32, main: bool) -> DisplayFacts {
-        DisplayFacts::new(
-            Some(DisplayLabel::new("Desk").unwrap()),
-            main,
-            DisplayBuiltinStatus::External,
-            ScreenRect::new(ScreenPoint::new(x, 0), ScreenSize::new(1920, 1080)),
-            ScreenRect::new(ScreenPoint::new(x, 24), ScreenSize::new(1920, 1056)),
-            ScaleFactor::from_thousandths(2000).unwrap(),
-        )
-    }
-
-    #[test]
-    fn generated_signatures_are_strictly_parseable() {
-        let a = DisplayId::new("display:a").unwrap();
-        let b = DisplayId::new("display:b").unwrap();
-        let a_facts = facts(0, true);
-        let b_facts = facts(1920, false);
-        let signature = build_signature([(&b, &b_facts), (&a, &a_facts)]);
-
-        assert_eq!(
-            ArrangementSignature::parse(signature.as_str()),
-            Ok(signature)
-        );
-        assert!(ArrangementSignature::parse("longhorn-arrangement-v2|empty").is_err());
-    }
-}

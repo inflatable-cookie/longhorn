@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use longhorn_core::{RoundingMode, ScreenRect, ScreenSize};
+use longhorn_core::{RoundingMode, ScaleFactor, ScreenRect, ScreenSize};
 use longhorn_display::ObservationId;
 use longhorn_windowing::HostWindowHandle;
 use serde::{Deserialize, Serialize};
@@ -130,6 +130,11 @@ impl MappedDesktopGeometry {
 
 /// Maps one complete physical desktop into one coherent global logical plane.
 pub trait DesktopCoordinateMapper {
+    /// Whether this mapper describes the current native host's coordinate plane.
+    fn supports_current_platform(&self) -> bool {
+        true
+    }
+
     /// Maps every display and managed window or rejects the complete snapshot.
     fn map_desktop(
         &self,
@@ -174,36 +179,7 @@ impl DesktopCoordinateMapper for UniformScaleMapper {
             return Ok(MappedDesktopGeometry::default());
         };
 
-        let displays = snapshot
-            .displays()
-            .iter()
-            .map(|display| {
-                Ok(MappedDisplayGeometry::new(
-                    display.metadata().observation_id().clone(),
-                    scale.physical_rect_to_screen(
-                        display.facts().full_bounds(),
-                        RoundingMode::Nearest,
-                    )?,
-                    scale.physical_rect_to_screen(
-                        display.facts().work_area(),
-                        RoundingMode::Nearest,
-                    )?,
-                ))
-            })
-            .collect::<Result<Vec<_>, DesktopMappingError>>()?;
-        let windows = snapshot
-            .windows()
-            .iter()
-            .map(|window| {
-                Ok(MappedWindowGeometry::new(
-                    window.transport_handle().clone(),
-                    scale.physical_rect_to_screen(window.outer_bounds(), RoundingMode::Nearest)?,
-                    scale.physical_size_to_screen(window.inner_size(), RoundingMode::Nearest)?,
-                ))
-            })
-            .collect::<Result<Vec<_>, DesktopMappingError>>()?;
-
-        Ok(MappedDesktopGeometry::new(displays, windows))
+        map_desktop_by_scale(snapshot, |_| scale)
     }
 }
 
@@ -240,43 +216,64 @@ impl DesktopCoordinateMapper for UniformScaleMapper {
 pub struct LogicalLayoutMapper;
 
 impl DesktopCoordinateMapper for LogicalLayoutMapper {
+    fn supports_current_platform(&self) -> bool {
+        cfg!(any(target_os = "macos", target_os = "linux"))
+    }
+
     fn map_desktop(
         &self,
         snapshot: &PhysicalDesktopSnapshot,
     ) -> Result<MappedDesktopGeometry, DesktopMappingError> {
-        let displays = snapshot
-            .displays()
-            .iter()
-            .map(|display| {
-                let scale = display.facts().scale();
-                Ok(MappedDisplayGeometry::new(
-                    display.metadata().observation_id().clone(),
-                    scale.physical_rect_to_screen(
-                        display.facts().full_bounds(),
-                        RoundingMode::Nearest,
-                    )?,
-                    scale.physical_rect_to_screen(
-                        display.facts().work_area(),
-                        RoundingMode::Nearest,
-                    )?,
-                ))
-            })
-            .collect::<Result<Vec<_>, DesktopMappingError>>()?;
-        let windows = snapshot
-            .windows()
-            .iter()
-            .map(|window| {
-                let scale = window.scale();
-                Ok(MappedWindowGeometry::new(
-                    window.transport_handle().clone(),
-                    scale.physical_rect_to_screen(window.outer_bounds(), RoundingMode::Nearest)?,
-                    scale.physical_size_to_screen(window.inner_size(), RoundingMode::Nearest)?,
-                ))
-            })
-            .collect::<Result<Vec<_>, DesktopMappingError>>()?;
-
-        Ok(MappedDesktopGeometry::new(displays, windows))
+        map_desktop_by_scale(snapshot, |scale| scale)
     }
+}
+
+pub(crate) fn ensure_mapper_platform(
+    mapper: &(impl DesktopCoordinateMapper + ?Sized),
+) -> Result<(), DesktopMappingError> {
+    if mapper.supports_current_platform() {
+        Ok(())
+    } else {
+        Err(DesktopMappingError::UnsupportedPlatform {
+            platform: std::env::consts::OS,
+        })
+    }
+}
+
+pub(crate) fn map_desktop_by_scale(
+    snapshot: &PhysicalDesktopSnapshot,
+    map_scale: impl Fn(ScaleFactor) -> ScaleFactor,
+) -> Result<MappedDesktopGeometry, DesktopMappingError> {
+    let displays = snapshot
+        .displays()
+        .iter()
+        .map(|display| {
+            let scale = map_scale(display.facts().scale());
+            Ok(MappedDisplayGeometry::new(
+                display.metadata().observation_id().clone(),
+                scale.physical_rect_to_screen(
+                    display.facts().full_bounds(),
+                    RoundingMode::Nearest,
+                )?,
+                scale
+                    .physical_rect_to_screen(display.facts().work_area(), RoundingMode::Nearest)?,
+            ))
+        })
+        .collect::<Result<Vec<_>, DesktopMappingError>>()?;
+    let windows = snapshot
+        .windows()
+        .iter()
+        .map(|window| {
+            let scale = map_scale(window.scale());
+            Ok(MappedWindowGeometry::new(
+                window.transport_handle().clone(),
+                scale.physical_rect_to_screen(window.outer_bounds(), RoundingMode::Nearest)?,
+                scale.physical_size_to_screen(window.inner_size(), RoundingMode::Nearest)?,
+            ))
+        })
+        .collect::<Result<Vec<_>, DesktopMappingError>>()?;
+
+    Ok(MappedDesktopGeometry::new(displays, windows))
 }
 
 /// The desktop mapper Longhorn composes for the target platform.

@@ -9,13 +9,14 @@ use std::{
 };
 
 use longhorn_core::WindowId;
-use longhorn_windowing::{MonotonicMillis, WindowLifecycleEvent};
+use longhorn_windowing::{
+    MonotonicMillis, ScheduledWindowLifecycleWake, WindowLifecycleClock, WindowLifecycleEvent,
+    WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
+};
 
 use super::{
-    TauriAsyncWindowLifecycleScheduler, WindowLifecycleClock, WindowLifecycleScheduler,
-    WindowLifecycleWakeHandler, WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
+    TauriAsyncWindowLifecycleScheduler, WindowLifecycleScheduler, WindowLifecycleWakeHandler,
 };
-use crate::ScheduledWindowLifecycleWake;
 
 struct FixedClock;
 

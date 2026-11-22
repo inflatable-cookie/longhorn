@@ -7,15 +7,18 @@ use std::{
     },
 };
 
-use longhorn_core::{ScaleFactor, ScreenPoint, ScreenSize, WindowId, WindowPlacement};
+use longhorn_core::{ScreenPoint, ScreenSize, WindowId, WindowPlacement};
 use longhorn_tauri_windowing::{
-    CapturedDisplayAssociation, CapturedWindowPlacement, ScheduledWindowLifecycleWake,
-    TauriWindowLifecycleHost, TauriWindowLifecycleServices, UniformWindowGeometryMapper,
-    WindowCaptureBackend, WindowLifecycleClock, WindowLifecycleReport, WindowLifecycleReporter,
-    WindowLifecycleScheduler, WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
-    WindowPlacementSink, WindowRevealBackend, WindowUserCloseHandler,
+    TauriWindowCaptureError, TauriWindowLifecycleHost, TauriWindowLifecycleServices,
+    WindowCaptureBackend, WindowLifecycleReport, WindowLifecycleReporter, WindowLifecycleScheduler,
+    WindowRevealBackend,
 };
-use longhorn_windowing::{MonotonicMillis, WindowLifecycleDuration, WindowLifecyclePolicy};
+use longhorn_windowing::{
+    CapturedDisplayAssociation, CapturedWindowPlacement, MonotonicMillis,
+    ScheduledWindowLifecycleWake, WindowLifecycleClock, WindowLifecycleDuration,
+    WindowLifecyclePolicy, WindowPlacementFlushCompletion, WindowPlacementFlushTicket,
+    WindowPlacementSink, WindowUserCloseHandler,
+};
 use tauri::{App, WebviewWindow, WebviewWindowBuilder, test::MockRuntime};
 
 pub(super) fn id(value: &str) -> WindowId {
@@ -98,7 +101,7 @@ impl WindowCaptureBackend<MockRuntime> for TestCapture {
         _window_id: &WindowId,
         _window: &WebviewWindow<MockRuntime>,
         _retained_normal: Option<WindowPlacement>,
-    ) -> Result<CapturedWindowPlacement, String> {
+    ) -> Result<CapturedWindowPlacement, TauriWindowCaptureError> {
         let mut outcomes = self.outcomes.lock().unwrap();
         let outcome = outcomes
             .pop_front()
@@ -106,7 +109,7 @@ impl WindowCaptureBackend<MockRuntime> for TestCapture {
         if outcomes.is_empty() && outcome.is_ok() {
             outcomes.push_back(outcome.clone());
         }
-        outcome
+        outcome.map_err(|detail| TauriWindowCaptureError::Provider { detail })
     }
 }
 
@@ -120,7 +123,7 @@ pub(super) enum FlushMode {
 
 pub(super) struct TestSink {
     pub(super) staged: Mutex<Vec<CapturedWindowPlacement>>,
-    requests: Mutex<Vec<longhorn_tauri_windowing::WindowFlushRequest>>,
+    requests: Mutex<Vec<longhorn_windowing::WindowFlushRequest>>,
     mode: Mutex<FlushMode>,
     held: Mutex<Vec<mpsc::Sender<WindowPlacementFlushCompletion>>>,
     stage_hook: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
@@ -137,7 +140,7 @@ impl TestSink {
         }
     }
 
-    pub(super) fn requests(&self) -> Vec<longhorn_tauri_windowing::WindowFlushRequest> {
+    pub(super) fn requests(&self) -> Vec<longhorn_windowing::WindowFlushRequest> {
         self.requests.lock().unwrap().clone()
     }
 
@@ -158,7 +161,7 @@ impl WindowPlacementSink for TestSink {
 
     fn request_flush(
         &self,
-        request: &longhorn_tauri_windowing::WindowFlushRequest,
+        request: &longhorn_windowing::WindowFlushRequest,
     ) -> Result<WindowPlacementFlushTicket, String> {
         self.requests.lock().unwrap().push(request.clone());
         let (sender, receiver) = mpsc::channel();
@@ -238,15 +241,11 @@ pub(super) fn harness(
     let user_close = Arc::new(TestUserClose::default());
     let reporter = Arc::new(TestReporter::default());
     let reveal = Arc::new(TestReveal::default());
-    let mapper = Arc::new(UniformWindowGeometryMapper::new(
-        ScaleFactor::from_thousandths(1000).unwrap(),
-    ));
     let host = Arc::new(TauriWindowLifecycleHost::new(
         policy(flush_millis),
         TauriWindowLifecycleServices::new(
             clock.clone(),
             scheduler.clone(),
-            mapper,
             capture,
             sink.clone(),
             user_close.clone(),

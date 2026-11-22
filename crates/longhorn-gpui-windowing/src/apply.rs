@@ -2,15 +2,17 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use longhorn_core::{WindowId, WindowPlacement};
 use longhorn_windowing::{
-    DesiredWindow, HostCapability, HostWindowHandle, WindowDiffDiagnostic, WindowDiffInput,
-    WindowOperation, WindowOperationKind, plan_window_diff,
+    ApplyGeneration, DesiredWindow, HostCapability, HostWindowHandle, PlannedWindowOperation,
+    WindowApplyHost, WindowDiffDiagnostic, WindowDiffError, WindowDiffInput, WindowOperation,
+    WindowOperationKind, accept_created_window, apply_window_diff,
 };
 
 use crate::{
     GpuiApplyAttempt, GpuiApplyConvergence, GpuiApplyError, GpuiApplyFailure, GpuiApplyFailureKind,
-    GpuiApplyOutcome, GpuiApplyReadback, GpuiApplyReceipt, GpuiDisplayFactsSource, GpuiLogicalRect,
-    GpuiLogicalSize, GpuiWindowBackend, GpuiWindowCall, GpuiWindowCreateRequest,
-    GpuiWindowRegistry, GpuiWindowRegistryError, gpui_deferred_settlement, gpui_host_capabilities,
+    GpuiApplyOutcome, GpuiApplyReadback, GpuiApplyReceipt, GpuiDesktopObservation,
+    GpuiDisplayFactsSource, GpuiLogicalRect, GpuiLogicalSize, GpuiObservationError,
+    GpuiWindowBackend, GpuiWindowCall, GpuiWindowCreateRequest, GpuiWindowRegistry,
+    GpuiWindowRegistryError, gpui_deferred_settlement, gpui_host_capabilities,
     observe_gpui_desktop,
 };
 
@@ -101,9 +103,11 @@ impl GpuiApplyOutcomeBundle {
     /// Returns whether every desired window reached its desired state.
     #[must_use]
     pub fn desired_state_reached(&self) -> bool {
-        self.dispositions
-            .iter()
-            .all(GpuiDiagnosticDisposition::is_reached)
+        matches!(self.receipt.readback(), GpuiApplyReadback::Complete { .. })
+            && self
+                .dispositions
+                .iter()
+                .all(GpuiDiagnosticDisposition::is_reached)
             && self
                 .receipt
                 .attempts()
@@ -139,77 +143,99 @@ pub fn execute_gpui_window_apply(
 ) -> Result<GpuiApplyOutcomeBundle, GpuiApplyError> {
     let input = input.with_capabilities(gpui_host_capabilities(backend.can_create()));
     let desired = desired_state(input.desired_windows());
-    let plan = plan_window_diff(&input).map_err(GpuiApplyError::Planning)?;
-    registry
-        .begin_generation(plan.generation())
-        .map_err(GpuiApplyError::Registry)?;
-
-    let mut blocked = BTreeMap::<WindowId, WindowOperationKind>::new();
-    let mut created = BTreeSet::<WindowId>::new();
-    let mut attempts = Vec::with_capacity(plan.operations().len());
-    for planned in plan.operations() {
-        let operation = planned.operation();
-        let window_id = operation.window_id().clone();
-        if let Some(blocked_by) = blocked.get(&window_id).copied() {
-            attempts.push(GpuiApplyAttempt::new(
-                planned.generation(),
-                window_id,
-                operation.transport_handle().cloned(),
-                operation.kind(),
-                GpuiApplyOutcome::DependencySkipped { blocked_by },
-            ));
-            continue;
-        }
-
-        let attempt = execute_operation(
-            &mut registry,
-            backend,
-            &desired,
-            planned.generation(),
-            operation,
-        );
-        match attempt.outcome() {
-            GpuiApplyOutcome::Failed { .. } => {
-                blocked.insert(window_id, operation.kind());
-            }
-            GpuiApplyOutcome::Succeeded { .. }
-                if operation.kind() == WindowOperationKind::Create =>
-            {
-                created.insert(window_id);
-            }
-            _ => {}
-        }
-        attempts.push(attempt);
-    }
-
-    let dispositions = plan
+    let mut host = GpuiApplyHost {
+        registry: &mut registry,
+        backend,
+        displays,
+        desired: &desired,
+    };
+    let run = apply_window_diff(&mut host, input, &gpui_deferred_settlement())?;
+    let dispositions = run
+        .plan
         .diagnostics()
         .iter()
-        .filter_map(|diagnostic| classify(diagnostic, &created, &desired))
+        .filter_map(|diagnostic| classify(diagnostic, &run.created, &desired))
         .collect();
-
-    let readback = match observe_gpui_desktop(backend, &registry, displays) {
-        Ok(observation) => {
-            let convergence_input = input.with_live_windows(observation.windows().iter().cloned());
-            let convergence = match plan_window_diff(&convergence_input) {
-                Ok(receipt) => GpuiApplyConvergence::Planned(
-                    receipt.without_deferred(&gpui_deferred_settlement()),
-                ),
+    let readback = match run.readback {
+        Ok((observation, convergence)) => GpuiApplyReadback::Complete {
+            observation,
+            convergence: match convergence {
+                Ok(plan) => GpuiApplyConvergence::Planned(plan),
                 Err(error) => GpuiApplyConvergence::Invalid(error),
-            };
-            GpuiApplyReadback::Complete {
-                observation,
-                convergence,
-            }
-        }
+            },
+        },
         Err(error) => GpuiApplyReadback::Failed(error),
     };
-
     Ok(GpuiApplyOutcomeBundle {
         registry,
-        receipt: GpuiApplyReceipt::new(plan, attempts, readback),
+        receipt: GpuiApplyReceipt::new(run.plan, run.attempts, readback),
         dispositions,
     })
+}
+
+struct GpuiApplyHost<'a, B, D> {
+    registry: &'a mut GpuiWindowRegistry,
+    backend: &'a mut B,
+    displays: &'a mut D,
+    desired: &'a BTreeMap<WindowId, DesiredState>,
+}
+
+impl<B: GpuiWindowBackend, D: GpuiDisplayFactsSource> WindowApplyHost for GpuiApplyHost<'_, B, D> {
+    type Attempt = GpuiApplyAttempt;
+    type Observation = GpuiDesktopObservation;
+    type ApplyError = GpuiApplyError;
+    type ReadbackError = GpuiObservationError;
+
+    fn begin(&mut self, generation: ApplyGeneration) -> Result<(), Self::ApplyError> {
+        self.registry
+            .begin_generation(generation)
+            .map_err(GpuiApplyError::Registry)?;
+        let backend = &mut self.backend;
+        self.registry
+            .pending_discards
+            .retain(|_, window| backend.close(*window).is_err());
+        Ok(())
+    }
+
+    fn execute(&mut self, planned: &PlannedWindowOperation) -> (Self::Attempt, bool) {
+        let attempt = execute_operation(
+            self.registry,
+            self.backend,
+            self.desired,
+            planned.generation(),
+            planned.operation(),
+        );
+        let succeeded = matches!(attempt.outcome(), GpuiApplyOutcome::Succeeded { .. });
+        (attempt, succeeded)
+    }
+
+    fn skip(
+        &self,
+        planned: &PlannedWindowOperation,
+        blocked_by: WindowOperationKind,
+    ) -> Self::Attempt {
+        let operation = planned.operation();
+        GpuiApplyAttempt::new(
+            planned.generation(),
+            operation.window_id().clone(),
+            operation.transport_handle().cloned(),
+            operation.kind(),
+            GpuiApplyOutcome::DependencySkipped { blocked_by },
+        )
+    }
+
+    fn readback(&mut self) -> Result<Self::Observation, Self::ReadbackError> {
+        if let Some((id, _)) = self.registry.pending_discards.first_key_value() {
+            return Err(GpuiObservationError::PendingWindowDiscard(id.clone()));
+        }
+        observe_gpui_desktop(self.backend, self.registry, self.displays)
+    }
+}
+
+impl From<WindowDiffError> for GpuiApplyError {
+    fn from(error: WindowDiffError) -> Self {
+        Self::Planning(error)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -281,7 +307,7 @@ fn execute_operation(
     registry: &mut GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
     desired: &BTreeMap<WindowId, DesiredState>,
-    generation: longhorn_windowing::ApplyGeneration,
+    generation: ApplyGeneration,
     operation: &WindowOperation,
 ) -> GpuiApplyAttempt {
     match operation {
@@ -298,7 +324,7 @@ fn execute_operation(
 
 fn execute_retag(
     registry: &mut GpuiWindowRegistry,
-    generation: longhorn_windowing::ApplyGeneration,
+    generation: ApplyGeneration,
     window_id: &WindowId,
     transport_handle: &HostWindowHandle,
     operation: &WindowOperation,
@@ -340,10 +366,20 @@ fn execute_create(
     registry: &mut GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
     desired: &BTreeMap<WindowId, DesiredState>,
-    generation: longhorn_windowing::ApplyGeneration,
+    generation: ApplyGeneration,
     window_id: &WindowId,
     operation: &WindowOperation,
 ) -> GpuiApplyAttempt {
+    if let Err(error) = registry.check_new_id(window_id) {
+        return failed(
+            generation,
+            window_id.clone(),
+            None,
+            WindowOperationKind::Create,
+            Vec::new(),
+            registry_failure(GpuiWindowCall::RegistryInsert, &error),
+        );
+    }
     registry.record_evidence(None, operation.clone());
 
     // The plan says "create a neutral hidden unmaximized slot". GPUI has no
@@ -387,7 +423,11 @@ fn execute_create(
     let mut completed = completed;
     completed.push(GpuiWindowCall::OpenWindow);
 
-    match registry.insert_created(window_id.clone(), key) {
+    match accept_created_window(
+        key,
+        |key| registry.insert_created(window_id.clone(), *key),
+        |key| backend.close(*key),
+    ) {
         Ok(handle) => {
             completed.push(GpuiWindowCall::RegistryInsert);
             succeeded(
@@ -398,21 +438,40 @@ fn execute_create(
                 completed,
             )
         }
-        Err(error) => failed(
-            generation,
-            window_id.clone(),
-            None,
-            WindowOperationKind::Create,
-            completed,
-            registry_failure(GpuiWindowCall::RegistryInsert, &error),
-        ),
+        Err(rejected) => {
+            let failure = match rejected.cleanup {
+                Ok(()) => {
+                    completed.push(GpuiWindowCall::DiscardCreated);
+                    registry_failure(GpuiWindowCall::RegistryInsert, &rejected.reason)
+                }
+                Err((key, error)) => {
+                    registry.pending_discards.insert(window_id.clone(), key);
+                    GpuiApplyFailure::new(
+                        GpuiWindowCall::RegistryInsert,
+                        GpuiApplyFailureKind::Registry,
+                        format!(
+                            "{}; could not discard created window: {error}",
+                            rejected.reason
+                        ),
+                    )
+                }
+            };
+            failed(
+                generation,
+                window_id.clone(),
+                None,
+                WindowOperationKind::Create,
+                completed,
+                failure,
+            )
+        }
     }
 }
 
 fn execute_existing(
     registry: &mut GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
-    generation: longhorn_windowing::ApplyGeneration,
+    generation: ApplyGeneration,
     operation: &WindowOperation,
 ) -> GpuiApplyAttempt {
     let window_id = operation.window_id().clone();
@@ -536,7 +595,7 @@ fn native_call(
 }
 
 fn succeeded(
-    generation: longhorn_windowing::ApplyGeneration,
+    generation: ApplyGeneration,
     window_id: WindowId,
     transport_handle: Option<HostWindowHandle>,
     operation: WindowOperationKind,
@@ -552,7 +611,7 @@ fn succeeded(
 }
 
 fn failed(
-    generation: longhorn_windowing::ApplyGeneration,
+    generation: ApplyGeneration,
     window_id: WindowId,
     transport_handle: Option<HostWindowHandle>,
     operation: WindowOperationKind,

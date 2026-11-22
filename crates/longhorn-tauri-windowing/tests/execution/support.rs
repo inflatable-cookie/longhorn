@@ -187,4 +187,14 @@ impl<R: Runtime> WindowMutationBackend<R> for RecordingBackend {
     fn close(&mut self, _window: &WebviewWindow<R>) -> Result<(), NativeWindowMutationError> {
         self.call(NativeWindowCall::Close)
     }
+
+    fn discard_created(
+        &mut self,
+        window: &WebviewWindow<R>,
+    ) -> Result<(), NativeWindowMutationError> {
+        self.call(NativeWindowCall::DiscardCreated)?;
+        window
+            .destroy()
+            .map_err(|error| NativeWindowMutationError::new(error.to_string()))
+    }
 }

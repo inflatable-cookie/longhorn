@@ -230,3 +230,39 @@ fn the_platform_default_is_the_right_mapper_for_this_target() {
         );
     }
 }
+
+#[test]
+fn unsupported_mapper_is_rejected_before_native_observation() {
+    use longhorn_tauri_windowing::{
+        DefaultDisplayMetadata, DesktopObservationError, MappedDesktopGeometry,
+        TauriObservationError, observe_tauri_desktop_with,
+    };
+
+    struct UndescribedHostMapper;
+
+    impl DesktopCoordinateMapper for UndescribedHostMapper {
+        fn supports_current_platform(&self) -> bool {
+            false
+        }
+
+        fn map_desktop(
+            &self,
+            _snapshot: &PhysicalDesktopSnapshot,
+        ) -> Result<MappedDesktopGeometry, DesktopMappingError> {
+            panic!("an unsupported mapper should not run");
+        }
+    }
+
+    let app = tauri::test::mock_app();
+    assert!(matches!(
+        observe_tauri_desktop_with(
+            app.handle(),
+            &[],
+            &mut DefaultDisplayMetadata,
+            &UndescribedHostMapper,
+        ),
+        Err(TauriObservationError::Projection(
+            DesktopObservationError::Mapping(DesktopMappingError::UnsupportedPlatform { .. },)
+        ))
+    ));
+}

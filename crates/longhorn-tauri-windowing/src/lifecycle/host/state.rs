@@ -6,12 +6,13 @@ use std::{
 };
 
 use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{WindowLifecycleCoordinator, WindowLifecyclePolicy};
+use longhorn_windowing::{
+    WindowFlushScope, WindowFlushTarget, WindowLifecycleCoordinator, WindowLifecyclePolicy,
+};
 use tauri::{Runtime, WebviewWindow};
 
 use crate::lifecycle::{
-    TauriWindowLifecycleError, TauriWindowLifecycleServices, WindowFlushScope, WindowFlushTarget,
-    WindowLifecycleWakeHandler,
+    TauriWindowLifecycleError, TauriWindowLifecycleServices, WindowLifecycleWakeHandler,
 };
 
 pub(crate) struct InstalledWindow<R: Runtime> {

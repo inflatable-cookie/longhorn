@@ -1,15 +1,13 @@
-use std::sync::mpsc::RecvTimeoutError;
-
 use longhorn_core::WindowId;
-use longhorn_windowing::{CaptureGeneration, WindowLifecycleDirective, WindowLifecycleEvent};
+use longhorn_windowing::{
+    CaptureGeneration, ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest,
+    WindowFlushScope, WindowFlushTarget, WindowLifecycleDirective, WindowLifecycleEvent,
+    flush_window_placements,
+};
 use tauri::Runtime;
 
 use super::{FlushDisposition, PendingFlush, TauriWindowLifecycleHost, coordination_error};
-use crate::lifecycle::{
-    ScheduledWindowLifecycleWake, TauriWindowLifecycleAction, TauriWindowLifecycleError,
-    WindowFlushOutcome, WindowFlushRequest, WindowFlushScope, WindowFlushTarget,
-    WindowPlacementFlushCompletion,
-};
+use crate::lifecycle::{TauriWindowLifecycleAction, TauriWindowLifecycleError};
 
 impl<R: Runtime> TauriWindowLifecycleHost<R> {
     pub(super) fn execute_directives(
@@ -101,7 +99,7 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                         Err(detail) => {
                             actions.push(TauriWindowLifecycleAction::CaptureFailed {
                                 generation,
-                                detail,
+                                detail: detail.to_string(),
                             });
                             self.reset_failed_capture(&window_id, generation)?;
                         }
@@ -153,8 +151,7 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                         }
                     }
                 }
-                WindowLifecycleDirective::Forget { window_id } => {
-                    self.lock_windows()?.remove(&window_id);
+                WindowLifecycleDirective::Forget { .. } => {
                     actions.push(TauriWindowLifecycleAction::Forgotten);
                 }
             }
@@ -193,17 +190,6 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
     }
 
     pub(super) fn flush(&self, request: &WindowFlushRequest) -> WindowFlushOutcome {
-        let ticket = match self.services.sink.request_flush(request) {
-            Ok(ticket) => ticket,
-            Err(detail) => return WindowFlushOutcome::RequestFailed { detail },
-        };
-        match ticket.wait(request.timeout().as_millis()) {
-            Ok(WindowPlacementFlushCompletion::Succeeded) => WindowFlushOutcome::Succeeded,
-            Ok(WindowPlacementFlushCompletion::Failed(detail)) => {
-                WindowFlushOutcome::SinkFailed { detail }
-            }
-            Err(RecvTimeoutError::Timeout) => WindowFlushOutcome::TimedOut,
-            Err(RecvTimeoutError::Disconnected) => WindowFlushOutcome::Disconnected,
-        }
+        flush_window_placements(self.services.sink.as_ref(), request)
     }
 }

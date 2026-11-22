@@ -1,13 +1,15 @@
 //! Tauri and lifecycle event handling.
 
 use longhorn_core::WindowId;
-use longhorn_windowing::WindowLifecycleEvent;
+use longhorn_windowing::{
+    ScheduledWindowLifecycleWake, WindowFlushRequest, WindowLifecycleEvent,
+    WindowLifecycleEventKind,
+};
 use tauri::{Runtime, WindowEvent};
 
 use crate::lifecycle::{
-    ScheduledWindowLifecycleWake, TauriWindowLifecycleAction, TauriWindowLifecycleError,
-    TauriWindowLifecycleReceipt, WindowFlushRequest, WindowLifecycleReport,
-    translate_tauri_window_event,
+    TauriWindowLifecycleAction, TauriWindowLifecycleError, TauriWindowLifecycleReceipt,
+    WindowLifecycleReport, translate_tauri_window_event,
 };
 
 use super::{FlushDisposition, PendingFlush, TauriWindowLifecycleHost, coordination_error};
@@ -29,8 +31,12 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                     window_id: window_id.clone(),
                 })?
         };
-        let translated =
-            translate_tauri_window_event(window_id, &window, event, self.services.mapper.as_ref())?;
+        let translated = translate_tauri_window_event(
+            window_id,
+            &window,
+            event,
+            &crate::PlatformDesktopMapper::default(),
+        )?;
         translated
             .map(|event| {
                 let (mut receipt, pending) = self.handle_event_collecting(event)?;
@@ -69,24 +75,22 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
     ) -> Result<TauriWindowLifecycleReceipt, TauriWindowLifecycleError> {
         self.ensure_active()?;
         let window_id = event.window_id().clone();
-        self.ensure_installed(&window_id)?;
         let event_kind = event.kind();
+        let at = self.services.clock.now();
         let directives = {
-            let mut coordinator = self.lock_coordinator()?;
-            coordinator
-                .handle(self.services.clock.now(), event)
-                .map_err(coordination_error)?
+            let mut windows = self.lock_windows()?;
+            if !windows.contains_key(&window_id) {
+                return Err(TauriWindowLifecycleError::UnknownWindow { window_id });
+            }
+            let directives = self
+                .lock_coordinator()?
+                .handle(at, event)
+                .map_err(coordination_error)?;
+            if event_kind == WindowLifecycleEventKind::Destroyed {
+                windows.remove(&window_id);
+            }
+            directives
         };
-        // A concurrent Destroyed between the installed check and the
-        // coordinator call removes both entries; the coordinator would have
-        // just recreated its state for this event, so release it instead of
-        // leaking a tracked entry for a forgotten window.
-        if event_kind != longhorn_windowing::WindowLifecycleEventKind::Destroyed
-            && !self.lock_windows()?.contains_key(&window_id)
-        {
-            self.lock_coordinator()?.release(&window_id);
-            return Err(TauriWindowLifecycleError::UnknownWindow { window_id });
-        }
         let mut actions = Vec::new();
         self.execute_directives(directives, &mut actions, flushes)?;
         Ok(TauriWindowLifecycleReceipt::new(

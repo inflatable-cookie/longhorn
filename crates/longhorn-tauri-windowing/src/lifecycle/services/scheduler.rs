@@ -1,12 +1,10 @@
+use longhorn_windowing::{ScheduledWindowLifecycleWake, WindowLifecycleClock};
 use std::{
     sync::{Arc, OnceLock, Weak},
     time::Duration,
 };
 
 use longhorn_core::WindowId;
-
-use super::super::ScheduledWindowLifecycleWake;
-use super::WindowLifecycleClock;
 
 /// Host-owned timer or event-loop scheduling seam.
 pub trait WindowLifecycleScheduler: Send + Sync {
@@ -51,7 +49,7 @@ pub(crate) struct SchedulerState {
 }
 
 pub(crate) struct SchedulerInner {
-    pub(crate) clock: Arc<dyn WindowLifecycleClock>,
+    pub(crate) clock: Arc<dyn WindowLifecycleClock + Send + Sync>,
     pub(crate) handler: OnceLock<Weak<dyn WindowLifecycleWakeHandler>>,
     pub(crate) state: std::sync::Mutex<SchedulerState>,
     pub(crate) wakeup: std::sync::Condvar,
@@ -67,7 +65,7 @@ pub struct TauriAsyncWindowLifecycleScheduler {
 impl TauriAsyncWindowLifecycleScheduler {
     /// Constructs an unbound scheduler over the host's monotonic clock.
     #[must_use]
-    pub fn new(clock: Arc<dyn WindowLifecycleClock>) -> Self {
+    pub fn new(clock: Arc<dyn WindowLifecycleClock + Send + Sync>) -> Self {
         Self {
             inner: Arc::new(SchedulerInner {
                 clock,

@@ -6,6 +6,7 @@ mod flush;
 mod model;
 mod persistence;
 mod placement_sink;
+mod ports;
 mod state;
 mod time;
 mod transitions;
@@ -27,5 +28,10 @@ pub use model::{
 };
 pub use placement_sink::{
     WindowPlacementFlushCompletion, WindowPlacementFlushTicket, WindowPlacementSink,
+    flush_window_placements,
 };
 pub use time::{MonotonicMillis, WindowLifecycleDuration, WindowLifecycleError};
+
+pub use ports::{
+    NoopWindowUserCloseHandler, ProcessMonotonicClock, WindowLifecycleClock, WindowUserCloseHandler,
+};

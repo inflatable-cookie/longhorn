@@ -128,15 +128,22 @@ the host suppress feedback from its own mutations.
 - Longhorn chooses the mapper, not the consuming application. Which mapper is
   correct follows from the target platform, about which an application knows
   nothing Longhorn does not, so `observe_tauri_desktop`,
-  `TauriDesktopReadback::new`, and `plan_tauri_window_restore` take no mapper.
-  A nominated mapper stays available for a test double or an undescribed host.
+  `TauriDesktopReadback::new`, `plan_tauri_window_restore`, and
+  `TauriWindowCaptureBackend::new` take no mapper. Native event translation,
+  capture, and readback use the same platform mapper. A nominated desktop
+  mapper stays available for a test double or an undescribed host.
 - The consequence is the point: a platform mapper that lands later reaches
   every consumer on the next Longhorn revision without an application change.
 - A managed-window probe is complete or fails. An unreadable managed window
   cannot disappear from a snapshot and trigger duplicate creation by omission.
-- Native apply is ordered and non-transactional. Every attempted operation
-  returns a per-operation result. Failure blocks dependent later operations for
-  that window, not independent windows.
+- Both hosts execute the ordered, non-transactional apply in
+  `longhorn-windowing`. Every operation has a receipt. A failed retag blocks
+  operations for its target and operations that depended on freeing its source
+  identity. Independent windows continue.
+- The registry checks the target identity before opening a window. If
+  validation or registry admission rejects a newly opened window, the host
+  discards it. If native cleanup fails, the registry retains the window for
+  retry and readback reports the outstanding cleanup.
 - A fresh live readback decides convergence. An apply receipt never fabricates
   successful native state.
 - Host bookkeeping records the apply generation before issuing a native
@@ -153,8 +160,10 @@ the host suppress feedback from its own mutations.
 - Capture produces a persistence proposal through an injected sink. The Tauri
   adapter does not depend on configuration storage or mutate product schemas.
 - Close and shutdown request bounded explicit flush and return an inspectable
-  receipt. Failure remains observable; an event callback never waits
-  indefinitely.
+  receipt. Both hosts feed successful and failed captures back to the shared
+  coordinator. Shutdown sends one sorted aggregate of ready targets, with
+  capture generations where known. Per-window and sink failures remain
+  observable.
 - User close is reported to consumer policy. The adapter does not disable,
   delete, or otherwise rewrite desired product state by inference.
 - A window remains hidden until placement is applied and the consumer's page

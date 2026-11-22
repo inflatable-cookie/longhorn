@@ -66,6 +66,14 @@ pub trait WindowMutationBackend<R: Runtime>: Send {
 
     /// Requests window close.
     fn close(&mut self, window: &WebviewWindow<R>) -> Result<(), NativeWindowMutationError>;
+
+    /// Destroys a fresh factory window that failed admission, bypassing close policy.
+    fn discard_created(
+        &mut self,
+        window: &WebviewWindow<R>,
+    ) -> Result<(), NativeWindowMutationError> {
+        host(window.destroy())
+    }
 }
 
 /// Direct Tauri 2 mutation backend.

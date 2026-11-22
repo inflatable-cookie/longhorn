@@ -1,34 +1,43 @@
-use longhorn_core::{PhysicalPoint, PhysicalSize, WindowId};
+use longhorn_core::WindowId;
 use longhorn_windowing::WindowLifecycleEvent;
 use tauri::{Runtime, WebviewWindow, WindowEvent};
 
-use super::{TauriWindowLifecycleError, WindowGeometryMapper};
-use crate::scale_factor_from_tauri;
+use super::{TauriWindowLifecycleError, capture::map_lifecycle_window};
+use crate::{DesktopCoordinateMapper, DesktopMappingError, scale_factor_from_tauri};
 
 /// Translates one Tauri event without persistence or product policy.
 pub fn translate_tauri_window_event<R: Runtime>(
     window_id: &WindowId,
     window: &WebviewWindow<R>,
     event: &WindowEvent,
-    mapper: &dyn WindowGeometryMapper,
+    mapper: &(impl DesktopCoordinateMapper + ?Sized),
 ) -> Result<Option<WindowLifecycleEvent>, TauriWindowLifecycleError> {
     let translated = match event {
-        WindowEvent::Moved(position) => {
-            let scale = window_scale(window)?;
-            Some(WindowLifecycleEvent::Moved {
-                window_id: window_id.clone(),
-                outer_origin: mapper
-                    .map_outer_origin(PhysicalPoint::new(position.x, position.y), scale)
-                    .map_err(translation_error)?,
-            })
-        }
-        WindowEvent::Resized(size) => {
-            let scale = window_scale(window)?;
-            Some(WindowLifecycleEvent::Resized {
-                window_id: window_id.clone(),
-                inner_size: mapper
-                    .map_inner_size(PhysicalSize::new(size.width, size.height), scale)
-                    .map_err(translation_error)?,
+        WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
+            let (snapshot, mapped) = map_lifecycle_window(window_id, window, Some(event), mapper)
+                .map_err(|error| translation_error(error.to_string()))?;
+            let geometry = snapshot
+                .windows()
+                .first()
+                .and_then(|raw| {
+                    mapped
+                        .windows()
+                        .iter()
+                        .find(|geometry| geometry.transport_handle() == raw.transport_handle())
+                })
+                .ok_or_else(|| {
+                    translation_error(DesktopMappingError::MissingLifecycleGeometry.to_string())
+                })?;
+            Some(if matches!(event, WindowEvent::Moved(_)) {
+                WindowLifecycleEvent::Moved {
+                    window_id: window_id.clone(),
+                    outer_origin: geometry.outer_bounds().origin(),
+                }
+            } else {
+                WindowLifecycleEvent::Resized {
+                    window_id: window_id.clone(),
+                    inner_size: geometry.inner_size(),
+                }
             })
         }
         WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
@@ -56,15 +65,6 @@ pub fn translate_tauri_window_event<R: Runtime>(
 
 fn event_scale(value: f64) -> Result<longhorn_core::ScaleFactor, TauriWindowLifecycleError> {
     scale_factor_from_tauri(value).map_err(|error| translation_error(error.to_string()))
-}
-
-fn window_scale<R: Runtime>(
-    window: &WebviewWindow<R>,
-) -> Result<longhorn_core::ScaleFactor, TauriWindowLifecycleError> {
-    let value = window
-        .scale_factor()
-        .map_err(|error| translation_error(format!("window scale probe failed: {error}")))?;
-    event_scale(value)
 }
 
 fn translation_error(detail: impl Into<String>) -> TauriWindowLifecycleError {

@@ -1,5 +1,7 @@
 use longhorn_core::WindowId;
-use longhorn_windowing::{ApplyGeneration, HostWindowHandle, WindowOperation, WindowOperationKind};
+use longhorn_windowing::{
+    ApplyGeneration, HostWindowHandle, WindowOperation, WindowOperationKind, accept_created_window,
+};
 use tauri::{AppHandle, Runtime};
 
 use crate::{
@@ -34,9 +36,9 @@ where
             transport_handle,
             operation,
         ),
-        WindowOperation::Create { .. } => execute_create(
-            app, registry, factory, generation, window_id, kind, operation,
-        ),
+        WindowOperation::Create { .. } => {
+            execute_create(app, registry, factory, backend, generation, operation)
+        }
         _ => execute_existing(registry, backend, generation, operation),
     }
 }
@@ -92,19 +94,31 @@ fn execute_retag<R: Runtime>(
     }
 }
 
-fn execute_create<R, F>(
+fn execute_create<R, F, B>(
     app: &AppHandle<R>,
     registry: &mut ManagedWindowRegistry<R>,
     factory: &mut F,
+    backend: &mut B,
     generation: ApplyGeneration,
-    window_id: WindowId,
-    kind: WindowOperationKind,
     operation: &WindowOperation,
 ) -> WindowApplyAttempt
 where
     R: Runtime,
     F: TauriWindowFactory<R>,
+    B: WindowMutationBackend<R>,
 {
+    let window_id = operation.window_id().clone();
+    let kind = operation.kind();
+    if let Err(error) = registry.check_new_id(&window_id) {
+        return failed_attempt(
+            generation,
+            window_id,
+            None,
+            kind,
+            Vec::new(),
+            registry_failure(NativeWindowCall::RegistryInsert, error),
+        );
+    }
     if let Err(error) = registry.record_evidence(None, operation.clone()) {
         return failed_attempt(
             generation,
@@ -129,70 +143,77 @@ where
         }
     };
     let mut completed = vec![NativeWindowCall::FactoryCreate];
-    match factory.validate_neutral(&window) {
-        Ok(()) => {
+    let mut rejected_handle = None;
+    let accepted = accept_created_window(
+        window,
+        |window| {
+            if let Err(error) = factory.validate_neutral(window) {
+                let call = match &error {
+                    WindowFactoryError::Maximized
+                    | WindowFactoryError::MaximizedInspectionFailed { .. } => {
+                        completed.push(NativeWindowCall::ValidateHidden);
+                        NativeWindowCall::ValidateUnmaximized
+                    }
+                    _ => NativeWindowCall::ValidateHidden,
+                };
+                return Err(factory_failure(call, error));
+            }
             completed.push(NativeWindowCall::ValidateHidden);
             completed.push(NativeWindowCall::ValidateUnmaximized);
-        }
-        Err(error) => {
-            let call = match &error {
-                WindowFactoryError::Maximized
-                | WindowFactoryError::MaximizedInspectionFailed { .. } => {
-                    completed.push(NativeWindowCall::ValidateHidden);
-                    NativeWindowCall::ValidateUnmaximized
-                }
-                _ => NativeWindowCall::ValidateHidden,
-            };
-            return failed_attempt(
-                generation,
-                window_id,
-                None,
-                kind,
-                completed,
-                factory_failure(call, error),
-            );
-        }
-    }
-
-    match registry.insert_created(window_id.clone(), window) {
-        Ok(handle) => {
+            let handle = registry
+                .insert_created(window_id.clone(), window.clone())
+                .map_err(|error| {
+                    let call = match &error {
+                        ManagedWindowRegistryError::DynamicRegistrationFailed {
+                            transport_handle,
+                            ..
+                        } => {
+                            rejected_handle = Some(transport_handle.clone());
+                            completed.push(NativeWindowCall::RegistryInsert);
+                            NativeWindowCall::InstallLifecycleListener
+                        }
+                        _ => NativeWindowCall::RegistryInsert,
+                    };
+                    registry_failure(call, error)
+                })?;
             completed.push(NativeWindowCall::RegistryInsert);
             if registry.registers_created_windows() {
                 completed.push(NativeWindowCall::InstallLifecycleListener);
             }
-            succeeded_attempt(generation, window_id, Some(handle), kind, completed)
-        }
-        Err(error) => failed_attempt(
-            generation,
-            window_id,
-            match &error {
-                ManagedWindowRegistryError::DynamicRegistrationFailed {
-                    transport_handle, ..
-                } => Some(transport_handle.clone()),
-                _ => None,
-            },
-            kind,
-            {
-                if matches!(
-                    error,
-                    ManagedWindowRegistryError::DynamicRegistrationFailed { .. }
-                ) {
-                    completed.push(NativeWindowCall::RegistryInsert);
+            Ok(handle)
+        },
+        |window| backend.discard_created(window),
+    );
+    match accepted {
+        Ok(handle) => succeeded_attempt(generation, window_id, Some(handle), kind, completed),
+        Err(rejected) => {
+            let failure = rejected.reason;
+            let failure = match rejected.cleanup {
+                Ok(()) => {
+                    completed.push(NativeWindowCall::DiscardCreated);
+                    failure
                 }
-                completed
-            },
-            registry_failure(
-                if matches!(
-                    error,
-                    ManagedWindowRegistryError::DynamicRegistrationFailed { .. }
-                ) {
-                    NativeWindowCall::InstallLifecycleListener
-                } else {
-                    NativeWindowCall::RegistryInsert
-                },
-                error,
-            ),
-        ),
+                Err((window, error)) => {
+                    registry.pending_discards.insert(window_id.clone(), window);
+                    WindowApplyFailure::new(
+                        failure.call(),
+                        failure.kind(),
+                        format!(
+                            "{}; could not discard created window: {error}",
+                            failure.detail()
+                        ),
+                    )
+                }
+            };
+            failed_attempt(
+                generation,
+                window_id,
+                rejected_handle,
+                kind,
+                completed,
+                failure,
+            )
+        }
     }
 }
 
@@ -289,7 +310,13 @@ where
             NativeWindowCall::Close,
             &mut completed,
         ),
-        WindowOperation::Retag { .. } | WindowOperation::Create { .. } => unreachable!(),
+        WindowOperation::Retag { .. } | WindowOperation::Create { .. } => {
+            Err(WindowApplyFailure::new(
+                NativeWindowCall::ResolveManagedWindow,
+                WindowApplyFailureKind::Registry,
+                format!("{kind:?} does not mutate an existing window"),
+            ))
+        }
     };
 
     match result {

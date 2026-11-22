@@ -32,7 +32,7 @@ impl SessionDomain {
         Self {
             descriptor: DomainDescriptor::new(
                 DomainId::new("test.window-session").unwrap(),
-                SchemaVersion::new(1).unwrap(),
+                SchemaVersion::new(2).unwrap(),
                 StorageClass::MachineState,
                 Some(DomainFilePath::new("window-session.json").unwrap()),
             )
@@ -69,7 +69,7 @@ impl ConfigDomain for SessionDomain {
         schema_version: SchemaVersion,
         value: &Value,
     ) -> Result<(), DomainIssue> {
-        if schema_version.get() == 1 && value.is_object() {
+        if matches!(schema_version.get(), 1 | 2) && value.is_object() {
             Ok(())
         } else {
             Err(DomainIssue::new("shape", "invalid session document"))
@@ -78,10 +78,18 @@ impl ConfigDomain for SessionDomain {
 
     fn migrate_one(
         &self,
-        _from: SchemaVersion,
-        _value: Value,
+        from: SchemaVersion,
+        value: Value,
     ) -> Result<Option<MigrationStep>, DomainIssue> {
-        Ok(None)
+        if from.get() != 1 {
+            return Ok(None);
+        }
+        let mut value = value;
+        value["panel_ratio"] = serde_json::json!(0.5);
+        Ok(Some(MigrationStep {
+            schema_version: SchemaVersion::new(2).unwrap(),
+            value,
+        }))
     }
 }
 
@@ -204,4 +212,147 @@ fn flush_only_publishes_requested_windows() {
             .collect::<Vec<_>>(),
         ["window:b"]
     );
+}
+
+#[test]
+fn failed_mutation_keeps_the_staged_placement_for_retry() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let (_temp, store) = store();
+    let fail_once = AtomicBool::new(true);
+    let sink = ConfigWindowPlacementSink::new(
+        store,
+        SessionDomain::new(),
+        MutationOptions::new(Duration::from_secs(2), DurabilityRequirement::Atomic),
+        move |session: &mut Session, captured| {
+            session
+                .placements
+                .insert("window:main".to_owned(), captured.clone());
+            if fail_once.swap(false, Ordering::SeqCst) {
+                return Err(DomainIssue::new("injected", "placement patch failed"));
+            }
+            Ok(())
+        },
+    )
+    .unwrap();
+    let captured = placement("window:main", 800);
+    let request = request("window:main");
+    sink.stage(&captured).unwrap();
+
+    assert!(matches!(
+        longhorn_windowing::flush_window_placements(&sink, &request),
+        longhorn_windowing::WindowFlushOutcome::SinkFailed { .. }
+    ));
+    assert_eq!(
+        longhorn_windowing::flush_window_placements(&sink, &request),
+        longhorn_windowing::WindowFlushOutcome::Succeeded
+    );
+    let LoadOutcome::Ready(loaded) = sink.load().unwrap() else {
+        panic!("session should load after retry");
+    };
+    assert_eq!(loaded.value.placements["window:main"], captured);
+}
+
+#[test]
+fn placement_staged_during_flush_is_published_by_the_next_flush() {
+    use std::sync::{Mutex, mpsc};
+
+    let (_temp, store) = store();
+    let (started_tx, started_rx) = mpsc::sync_channel(1);
+    let (staged_tx, staged_rx) = mpsc::sync_channel(1);
+    let gate = Mutex::new(Some(staged_rx));
+    let sink = ConfigWindowPlacementSink::new(
+        store,
+        SessionDomain::new(),
+        MutationOptions::new(Duration::from_secs(2), DurabilityRequirement::Atomic),
+        move |session: &mut Session, captured| {
+            if let Some(staged) = gate.lock().unwrap().take() {
+                started_tx.send(()).unwrap();
+                staged.recv_timeout(Duration::from_secs(2)).unwrap();
+            }
+            session
+                .placements
+                .insert("window:main".to_owned(), captured.clone());
+            Ok(())
+        },
+    )
+    .unwrap();
+
+    let original = placement("window:main", 800);
+    let newer = placement("window:main", 1_200);
+    let request = request("window:main");
+    sink.stage(&original).unwrap();
+    std::thread::scope(|scope| {
+        let first = scope.spawn(|| longhorn_windowing::flush_window_placements(&sink, &request));
+        started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        sink.stage(&newer).unwrap();
+        staged_tx.send(()).unwrap();
+        assert_eq!(
+            first.join().unwrap(),
+            longhorn_windowing::WindowFlushOutcome::Succeeded
+        );
+    });
+    let LoadOutcome::Ready(loaded) = sink.load().unwrap() else {
+        panic!("session should load after the first flush");
+    };
+    assert_eq!(loaded.value.placements["window:main"], original);
+
+    assert_eq!(
+        longhorn_windowing::flush_window_placements(&sink, &request),
+        longhorn_windowing::WindowFlushOutcome::Succeeded
+    );
+    let LoadOutcome::Ready(loaded) = sink.load().unwrap() else {
+        panic!("session should load after the second flush");
+    };
+    assert_eq!(loaded.value.placements["window:main"], newer);
+}
+
+#[test]
+fn migrated_domain_rewrite_publishes_the_new_schema_with_a_safety_backup() {
+    use longhorn_config::{
+        BackupApplication, BackupArchiveFileName, BackupArchiveLimits, BackupCaptureOptions,
+        BackupKind, BackupLimits, BackupMetadata, BackupOperationalRoot, BackupProducer,
+        MigrationRewriteOptions, RestoreSafetyBackupOptions,
+    };
+
+    let (temp, store) = store();
+    let file = temp.path().join("state/window-session.json");
+    let original = serde_json::json!({
+        "domain": "test.window-session",
+        "schemaVersion": 1,
+        "value": { "placements": {}, "panel_ratio": 0.25 }
+    });
+    fs::write(&file, serde_json::to_vec(&original).unwrap()).unwrap();
+    let sink = ConfigWindowPlacementSink::new(
+        store,
+        SessionDomain::new(),
+        MutationOptions::new(Duration::from_secs(2), DurabilityRequirement::Atomic),
+        |_, _| Ok(()),
+    )
+    .unwrap();
+    let backup = RestoreSafetyBackupOptions::new(
+        BackupMetadata::new(
+            "before-placement-migration",
+            BackupKind::PreMigration,
+            "2026-11-22T12:00:00Z",
+            BackupApplication::new("com.example.desktop", "2").unwrap(),
+            BackupProducer::new("longhorn-config", "2").unwrap(),
+        )
+        .unwrap(),
+        BackupOperationalRoot::new(temp.path().join("backup")).unwrap(),
+        BackupArchiveFileName::new("before-placement-migration.longhorn-backup").unwrap(),
+        BackupCaptureOptions::new(Duration::from_secs(2), BackupLimits::default()),
+        BackupArchiveLimits::default(),
+    );
+
+    let receipt = sink
+        .rewrite_migrated_domain(MigrationRewriteOptions::new(Duration::from_secs(2), backup))
+        .unwrap();
+
+    assert_eq!(receipt.from().get(), 1);
+    assert_eq!(receipt.to().get(), 2);
+    assert!(receipt.safety_backup().path.is_file());
+    let rewritten: Value = serde_json::from_slice(&fs::read(file).unwrap()).unwrap();
+    assert_eq!(rewritten["schemaVersion"], 2);
+    assert_eq!(rewritten["value"]["panel_ratio"], 0.5);
 }

@@ -28,6 +28,8 @@ pub enum GpuiWindowCall {
     Activate,
     /// Remove the window.
     Close,
+    /// Discard a native window that failed admission.
+    DiscardCreated,
 }
 
 /// Stable category for one failed operation.

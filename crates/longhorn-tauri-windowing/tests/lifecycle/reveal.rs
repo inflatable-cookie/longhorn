@@ -1,13 +1,13 @@
 use std::sync::{Arc, atomic::Ordering};
 
 use longhorn_core::{
-    LiveWindowMetrics, ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement,
+    LiveWindowMetrics, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement,
 };
 use longhorn_tauri_windowing::{
     DesktopObservation, ManagedDesktopReadback, ManagedWebviewWindow, ManagedWindowRegistry,
     NativeWindowMutationError, NoWindowFactory, TauriObservationError, TauriWindowLifecycleHost,
-    TauriWindowLifecycleServices, UniformWindowGeometryMapper, WindowMutationBackend,
-    WindowRevealStatus, execute_tauri_window_apply,
+    TauriWindowLifecycleServices, WindowMutationBackend, WindowRevealStatus,
+    execute_tauri_window_apply_in_place,
 };
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostCapabilities, HostWindowHandle, LiveWindow, WindowDiffInput,
@@ -104,9 +104,6 @@ fn reveal_waits_for_page_ready_and_converged_hidden_placement() {
         TauriWindowLifecycleServices::new(
             Arc::new(TestClock::default()),
             Arc::new(TestScheduler::default()),
-            Arc::new(UniformWindowGeometryMapper::new(
-                ScaleFactor::from_thousandths(1000).unwrap(),
-            )),
             Arc::new(TestCapture::repeating(&window_id)),
             sink,
             Arc::new(TestUserClose::default()),
@@ -134,25 +131,25 @@ fn reveal_waits_for_page_ready_and_converged_hidden_placement() {
         ApplyGeneration::new(3),
     )
     .for_hidden_restore();
-    let registry = ManagedWindowRegistry::new(
+    let mut registry = ManagedWindowRegistry::new(
         [ManagedWebviewWindow::new(Some(window_id.clone()), window)],
         None,
     )
     .unwrap()
     .with_apply_observer(host.clone());
-    let outcome = execute_tauri_window_apply(
+    let receipt = execute_tauri_window_apply_in_place(
         app.handle(),
         input,
-        registry,
-        NoWindowFactory,
-        NativeSuccess,
-        StaticReadback(DesktopObservation::new(
+        &mut registry,
+        &mut NoWindowFactory,
+        &mut NativeSuccess,
+        &mut StaticReadback(DesktopObservation::new(
             Vec::new(),
             vec![live(window_id, target)],
         )),
     )
     .unwrap();
-    let receipts = host.mark_apply_converged(outcome.receipt()).unwrap();
+    let receipts = host.mark_apply_converged(&receipt).unwrap();
 
     assert!(matches!(receipts[0].status(), WindowRevealStatus::Revealed));
     assert_eq!(reveal.0.load(Ordering::SeqCst), 1);

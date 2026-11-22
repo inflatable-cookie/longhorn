@@ -6,11 +6,11 @@
 //! provide.
 
 use std::{
-    sync::mpsc::{Receiver, channel},
+    sync::mpsc::{Receiver, RecvTimeoutError, channel},
     time::Duration,
 };
 
-use super::{CapturedWindowPlacement, WindowFlushRequest};
+use super::{CapturedWindowPlacement, WindowFlushOutcome, WindowFlushRequest};
 
 /// Sink-owned stage and bounded flush authority.
 pub trait WindowPlacementSink: Send + Sync {
@@ -72,5 +72,24 @@ impl WindowPlacementFlushTicket {
     ) -> Result<WindowPlacementFlushCompletion, std::sync::mpsc::RecvTimeoutError> {
         self.receiver
             .recv_timeout(Duration::from_millis(timeout_millis))
+    }
+}
+
+/// Requests a sink flush and returns its terminal outcome within the wait bound.
+pub fn flush_window_placements(
+    sink: &dyn WindowPlacementSink,
+    request: &WindowFlushRequest,
+) -> WindowFlushOutcome {
+    let ticket = match sink.request_flush(request) {
+        Ok(ticket) => ticket,
+        Err(detail) => return WindowFlushOutcome::RequestFailed { detail },
+    };
+    match ticket.wait(request.timeout().as_millis()) {
+        Ok(WindowPlacementFlushCompletion::Succeeded) => WindowFlushOutcome::Succeeded,
+        Ok(WindowPlacementFlushCompletion::Failed(detail)) => {
+            WindowFlushOutcome::SinkFailed { detail }
+        }
+        Err(RecvTimeoutError::Timeout) => WindowFlushOutcome::TimedOut,
+        Err(RecvTimeoutError::Disconnected) => WindowFlushOutcome::Disconnected,
     }
 }

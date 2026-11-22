@@ -1,13 +1,11 @@
 //! Lifecycle reports and reveal/shutdown receipts.
 
 use longhorn_core::WindowId;
+use longhorn_windowing::WindowFlushOutcome;
 use longhorn_windowing::WindowLifecycleEventKind;
 use serde::{Deserialize, Serialize};
 
-use super::{
-    TauriWindowLifecycleAction, TauriWindowLifecycleError, TauriWindowLifecycleReceipt,
-    WindowFlushOutcome,
-};
+use super::{TauriWindowLifecycleAction, TauriWindowLifecycleError, TauriWindowLifecycleReceipt};
 
 /// Asynchronously reported listener result.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

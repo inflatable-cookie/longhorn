@@ -53,19 +53,6 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
         }
     }
 
-    pub(crate) fn ensure_installed(
-        &self,
-        window_id: &WindowId,
-    ) -> Result<(), TauriWindowLifecycleError> {
-        if self.lock_windows()?.contains_key(window_id) {
-            Ok(())
-        } else {
-            Err(TauriWindowLifecycleError::UnknownWindow {
-                window_id: window_id.clone(),
-            })
-        }
-    }
-
     pub(crate) fn window_id_for_handle(
         &self,
         transport_handle: &HostWindowHandle,

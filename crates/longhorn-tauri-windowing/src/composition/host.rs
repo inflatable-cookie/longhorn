@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 
 use longhorn_core::WindowId;
-use longhorn_windowing::{WindowDiffInput, WindowLifecycleEvent};
+use longhorn_windowing::{ScheduledWindowLifecycleWake, WindowDiffInput, WindowLifecycleEvent};
 use tauri::{AppHandle, Runtime};
 
 use super::{
@@ -10,9 +10,8 @@ use super::{
     TauriWindowHostTeardownStatus,
 };
 use crate::{
-    ManagedDesktopReadback, ManagedWindowRegistry, ScheduledWindowLifecycleWake,
-    TauriWindowFactory, TauriWindowLifecycleReceipt, WindowMutationBackend, WindowRevealReceipt,
-    execute_tauri_window_apply_in_place,
+    ManagedDesktopReadback, ManagedWindowRegistry, TauriWindowFactory, TauriWindowLifecycleReceipt,
+    WindowMutationBackend, WindowRevealReceipt, execute_tauri_window_apply_in_place,
 };
 
 impl<R: Runtime> TauriWindowHost<R> {

@@ -4,10 +4,11 @@ use longhorn_core::WindowId;
 use longhorn_tauri_windowing::{
     NativeWindowCall, NoWindowFactory, PredeclaredTauriWindow, TauriWindowFactory,
     TauriWindowHostInitializationStatus, TauriWindowHostTeardownStatus, WindowApplyOutcome,
-    WindowFactoryError, WindowFlushOutcome, WindowRevealStatus, assemble_tauri_window_host,
+    WindowFactoryError, WindowRevealStatus, assemble_tauri_window_host,
 };
 use longhorn_windowing::{
-    HostCapability, ProtectedPrimaryPolicy, WindowLifecycleEvent, WindowOperationKind,
+    HostCapability, ProtectedPrimaryPolicy, WindowFlushOutcome, WindowLifecycleEvent,
+    WindowOperationKind,
 };
 use tauri::{AppHandle, WebviewWindow, WebviewWindowBuilder, test::MockRuntime};
 

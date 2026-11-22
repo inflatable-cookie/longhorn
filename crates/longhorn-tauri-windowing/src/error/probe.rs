@@ -40,6 +40,8 @@ pub enum HostProbeOperation {
     AvailableMonitors,
     /// Read the primary monitor.
     PrimaryMonitor,
+    /// Read the monitor associated with a window.
+    CurrentMonitor,
     /// Read window scale.
     WindowScale,
     /// Read outer-frame position.
@@ -61,6 +63,7 @@ impl fmt::Display for HostProbeOperation {
         let name = match self {
             Self::AvailableMonitors => "available_monitors",
             Self::PrimaryMonitor => "primary_monitor",
+            Self::CurrentMonitor => "current_monitor",
             Self::WindowScale => "window_scale",
             Self::OuterPosition => "outer_position",
             Self::OuterSize => "outer_size",

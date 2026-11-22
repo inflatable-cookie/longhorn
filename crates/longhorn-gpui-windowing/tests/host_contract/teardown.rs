@@ -24,16 +24,16 @@ use std::sync::{
 
 use longhorn_core::WindowId;
 use longhorn_gpui_windowing::{
-    GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleClock, GpuiLifecycleScheduler,
-    GpuiWindowCaptureBackend, GpuiWindowEvent, GpuiWindowKey, GpuiWindowLifecycleHost,
-    GpuiWindowLifecycleServices, GpuiWindowQuiescenceProbe, NoopGpuiUserCloseHandler,
-    close_is_safe,
+    GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleScheduler, GpuiWindowCaptureBackend,
+    GpuiWindowEvent, GpuiWindowKey, GpuiWindowLifecycleHost, GpuiWindowLifecycleServices,
+    GpuiWindowQuiescenceProbe, close_is_safe,
 };
 use longhorn_update::QuiescenceProbe;
 use longhorn_windowing::{
     CapturedDisplayAssociation, CapturedWindowPlacement, MonotonicMillis,
-    ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowLifecycleEvent, WindowLifecyclePolicy,
-    WindowPlacementFlushTicket, WindowPlacementSink,
+    NoopWindowUserCloseHandler, ScheduledWindowLifecycleWake, WindowFlushOutcome,
+    WindowLifecycleClock, WindowLifecycleEvent, WindowLifecyclePolicy, WindowPlacementFlushTicket,
+    WindowPlacementSink,
 };
 
 use super::support::{id, placement};
@@ -43,7 +43,7 @@ const WINDOWS: usize = 13;
 
 struct SteppingClock(AtomicU64);
 
-impl GpuiLifecycleClock for SteppingClock {
+impl WindowLifecycleClock for SteppingClock {
     fn now(&self) -> MonotonicMillis {
         // Advances on every read, so no two events in a run share a reading.
         // A teardown bug that only shows when two things happen in the same
@@ -64,14 +64,19 @@ impl GpuiLifecycleScheduler for CountingScheduler {
     }
 }
 
-struct MovingCapture;
+struct MovingCapture {
+    fail_on: Option<GpuiWindowKey>,
+}
 
 impl GpuiWindowCaptureBackend for MovingCapture {
     fn capture(
         &mut self,
         window_id: &WindowId,
-        _key: GpuiWindowKey,
+        key: GpuiWindowKey,
     ) -> Result<CapturedWindowPlacement, String> {
+        if self.fail_on == Some(key) {
+            return Err("window capture refused".to_owned());
+        }
         Ok(CapturedWindowPlacement::new(
             window_id.clone(),
             placement(20, 30, 900, 700),
@@ -87,6 +92,7 @@ impl GpuiWindowCaptureBackend for MovingCapture {
 struct LoadedSink {
     staged: Mutex<Vec<WindowId>>,
     flushes: AtomicUsize,
+    requests: Mutex<Vec<longhorn_windowing::WindowFlushRequest>>,
     failing: AtomicBool,
 }
 
@@ -127,8 +133,9 @@ impl WindowPlacementSink for LoadedSink {
 
     fn request_flush(
         &self,
-        _request: &longhorn_windowing::WindowFlushRequest,
+        request: &longhorn_windowing::WindowFlushRequest,
     ) -> Result<WindowPlacementFlushTicket, String> {
+        self.requests.lock().unwrap().push(request.clone());
         self.flushes.fetch_add(1, Ordering::Relaxed);
         if self.failing.load(Ordering::Relaxed) {
             Ok(WindowPlacementFlushTicket::failed("store is busy"))
@@ -142,17 +149,21 @@ type Host = GpuiWindowLifecycleHost<
     SteppingClock,
     CountingScheduler,
     MovingCapture,
-    NoopGpuiUserCloseHandler,
+    NoopWindowUserCloseHandler,
 >;
 
 fn loaded_host(sink: &Arc<LoadedSink>) -> Host {
+    host_with_capture(sink, MovingCapture { fail_on: None })
+}
+
+fn host_with_capture(sink: &Arc<LoadedSink>, capture: MovingCapture) -> Host {
     GpuiWindowLifecycleHost::new(
         WindowLifecyclePolicy::recommended(),
         GpuiWindowLifecycleServices {
             clock: SteppingClock(AtomicU64::new(1_000)),
             scheduler: CountingScheduler::default(),
-            capture: MovingCapture,
-            user_close: NoopGpuiUserCloseHandler,
+            capture,
+            user_close: NoopWindowUserCloseHandler,
             sink: Box::new(SharedSink(Arc::clone(sink))),
         },
     )
@@ -240,10 +251,7 @@ fn nothing_closes_while_a_flush_is_failing() {
     // written must not close, because closing is what makes the loss
     // permanent.
     //
-    // These windows are installed and left alone, so the close goes straight
-    // to the flush. A window with a capture still pending takes a different
-    // path — see `a_close_with_a_pending_capture_stages_without_flushing`,
-    // which records what that path actually does.
+    // With no pending captures, close can request a flush immediately.
     let sink = Arc::new(LoadedSink::default());
     let mut host = loaded_host(&sink);
     for index in 0..WINDOWS {
@@ -295,17 +303,7 @@ fn nothing_closes_while_a_flush_is_failing() {
 }
 
 #[test]
-fn a_close_with_a_pending_capture_stages_without_flushing() {
-    // Recorded rather than asserted as correct. A window moved just before it
-    // is closed takes its final capture during the close, stages it, reports
-    // the user close, and permits the close — with no flush in the same pass
-    // and none scheduled. The placement reaches the sink's staging and its
-    // durability then depends on whatever flushes next.
-    //
-    // The behaviour belongs to the shared coordinator, not to this adapter,
-    // so both backends have it. Whether a per-window close should force its
-    // own flush is a contract question rather than an adapter bug, and it is
-    // written into contract 020's current state rather than changed here.
+fn a_close_with_a_pending_capture_flushes_the_exact_generation() {
     let sink = Arc::new(LoadedSink::default());
     let mut host = loaded_host(&sink);
     host.install(window(0), GpuiWindowKey::new(1));
@@ -325,14 +323,10 @@ fn a_close_with_a_pending_capture_stages_without_flushing() {
             .iter()
             .any(|action| matches!(action, GpuiLifecycleAction::Captured { .. }))
     );
-    assert!(
-        !receipt
-            .actions()
-            .iter()
-            .any(|action| matches!(action, GpuiLifecycleAction::Flushed { .. })),
-        "a flush appeared; update this test and contract 020's current state: {:?}",
-        receipt.actions()
-    );
+    assert!(receipt.actions().iter().any(|action| matches!(
+        action, GpuiLifecycleAction::Flushed { request, outcome: WindowFlushOutcome::Succeeded }
+            if request.targets()[0].generation().is_some()
+    )));
     assert_eq!(decision, GpuiCloseDecision::Close);
     assert_eq!(sink.staged.lock().unwrap().len(), 1);
 }
@@ -394,37 +388,39 @@ fn a_destroy_for_a_window_already_torn_down_is_refused_rather_than_ignored() {
 }
 
 #[test]
-fn a_shutdown_flush_writes_what_a_close_left_staged() {
-    // The gap a real run found. A window moved and then closed captures,
-    // stages, permits the close, and never writes — measured against a real
-    // store, where the file still held the old position. Tauri does not lose
-    // it: it prevents every user close and its `shutdown_flush` gets a later
-    // chance. This is that later chance for GPUI, which had none.
+fn a_shutdown_flush_reports_a_failed_capture_and_flushes_the_other_generation() {
     let sink = Arc::new(LoadedSink::default());
-    let mut host = loaded_host(&sink);
-    install_all(&mut host);
-
-    // Close every window the way a user would. Each stages and none writes.
-    for index in 0..WINDOWS {
-        host.handle_close_requested(&window(index))
-            .expect("close request is accepted");
+    let mut host = host_with_capture(
+        &sink,
+        MovingCapture {
+            fail_on: Some(GpuiWindowKey::new(1)),
+        },
+    );
+    for index in 0..2 {
+        host.install(
+            window(index),
+            GpuiWindowKey::new(u64::try_from(index + 1).unwrap()),
+        );
+        host.handle_lifecycle_event(WindowLifecycleEvent::Moved {
+            window_id: window(index),
+            outer_origin: longhorn_core::ScreenPoint::new(10, 10),
+        })
+        .unwrap();
     }
-    let staged_after_closes = sink.staged.lock().unwrap().len();
-    assert!(
-        staged_after_closes > 0,
-        "the closes staged nothing, so this test proves nothing"
-    );
 
-    let before = sink.flushes.load(Ordering::Relaxed);
-    let receipt = host.shutdown_flush();
+    let receipt: longhorn_gpui_windowing::GpuiShutdownReceipt = host.shutdown_flush();
 
-    assert_eq!(receipt.per_window().len(), WINDOWS);
+    assert_eq!(receipt.per_window().len(), 2);
+    assert!(receipt.per_window()[0].actions().iter().any(|action| matches!(
+        action, GpuiLifecycleAction::CaptureFailed { detail } if detail == "window capture refused"
+    )));
     assert_eq!(receipt.outcome(), Some(&WindowFlushOutcome::Succeeded));
-    assert!(receipt.is_complete());
-    assert!(
-        sink.flushes.load(Ordering::Relaxed) > before,
-        "the sink was never asked to write at shutdown"
-    );
+    assert!(!receipt.is_complete());
+    let requests = sink.requests.lock().unwrap();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].targets().len(), 1);
+    assert_eq!(requests[0].targets()[0].window_id(), &window(1));
+    assert!(requests[0].targets()[0].generation().is_some());
 }
 
 #[test]

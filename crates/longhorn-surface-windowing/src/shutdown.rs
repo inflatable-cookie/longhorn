@@ -54,10 +54,16 @@ where
 impl<SurfaceError, WindowError, SurfaceReceipt> Error
     for SurfaceWindowShutdownError<SurfaceError, WindowError, SurfaceReceipt>
 where
-    SurfaceError: Error,
-    WindowError: Error,
+    SurfaceError: Error + 'static,
+    WindowError: Error + 'static,
     SurfaceReceipt: fmt::Debug,
 {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Surface(error) => Some(error),
+            Self::Window { source, .. } => Some(source),
+        }
+    }
 }
 
 /// Flushes Surface persistence before invoking the existing window-host shutdown.

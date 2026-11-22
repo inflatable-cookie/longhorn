@@ -3,8 +3,9 @@ use longhorn_tauri_windowing::{
     ApplyReadback, HostProbeOperation, ManagedWindowRegistryError, NativeWindowCall,
     NoWindowFactory, PredeclaredTauriWindow, TauriObservationError, TauriProbeError,
     TauriWindowFactory, TauriWindowHostError, TauriWindowHostInitializationError,
-    WindowApplyOutcome, WindowFactoryError, WindowFlushOutcome, assemble_tauri_window_host,
+    WindowApplyOutcome, WindowFactoryError, assemble_tauri_window_host,
 };
+use longhorn_windowing::WindowFlushOutcome;
 use longhorn_windowing::WindowLifecycleEvent;
 use tauri::{AppHandle, WebviewWindow, WebviewWindowBuilder, test::MockRuntime};
 

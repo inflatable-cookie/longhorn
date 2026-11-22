@@ -1,6 +1,6 @@
 use longhorn_tauri_windowing::{
     ApplyConvergence, ApplyReadback, NativeWindowCall, NoWindowFactory, WindowApplyOutcome,
-    execute_tauri_window_apply,
+    execute_tauri_window_apply_in_place,
 };
 use longhorn_windowing::{FocusPolicy, WindowOperationKind};
 
@@ -51,7 +51,7 @@ fn every_native_operation_executes_and_fresh_readback_converges() {
         live(Some("window:b"), "b", 0, 0, 300, 200, false, false, false),
         live(Some("window:d"), "d", 80, 90, 500, 350, false, true, false),
     ];
-    let (app, registry) = registry(
+    let (app, mut registry) = registry(
         [
             (Some("window:a"), "a"),
             (Some("window:b"), "b"),
@@ -60,18 +60,18 @@ fn every_native_operation_executes_and_fresh_readback_converges() {
         ],
         None,
     );
-    let backend = RecordingBackend::default();
+    let mut backend = RecordingBackend::default();
     let inspection = backend.clone();
     let input = input(desired_windows, live_windows, 7)
         .with_focus_policy(FocusPolicy::Focus(id("window:a")));
 
-    let outcome = execute_tauri_window_apply(
+    let receipt = execute_tauri_window_apply_in_place(
         app.handle(),
         input,
-        registry,
-        NoWindowFactory,
-        backend,
-        StaticReadback::new(fresh),
+        &mut registry,
+        &mut NoWindowFactory,
+        &mut backend,
+        &mut StaticReadback::new(fresh),
     )
     .unwrap();
 
@@ -94,26 +94,22 @@ fn every_native_operation_executes_and_fresh_readback_converges() {
             NativeWindowCall::Close,
         ]
     );
-    assert!(outcome.receipt().is_converged());
-    assert_eq!(
-        outcome.registry().evidence().len(),
-        outcome.receipt().attempts().len()
-    );
-    assert!(outcome.registry().evidence().iter().any(|evidence| {
+    assert!(receipt.is_converged());
+    assert_eq!(registry.evidence().len(), receipt.attempts().len());
+    assert!(registry.evidence().iter().any(|evidence| {
         evidence.generation().get() == 7
             && evidence.window_id() == &id("window:stale")
             && evidence.operation_kind() == WindowOperationKind::Close
             && evidence.transport_handle().map(|handle| handle.as_str()) == Some("stale")
     }));
     assert!(
-        outcome
-            .registry()
+        registry
             .managed_windows()
             .iter()
             .all(|window| window.window_id() != Some(&id("window:stale")))
     );
     assert!(matches!(
-        outcome.receipt().readback(),
+        receipt.readback(),
         ApplyReadback::Complete {
             convergence: ApplyConvergence::Planned(receipt),
             ..
@@ -125,27 +121,27 @@ fn every_native_operation_executes_and_fresh_readback_converges() {
 fn matching_fresh_state_repeats_as_an_empty_apply() {
     let target = placement(15, 25, 640, 480);
     let matching = live(Some("window:a"), "a", 15, 25, 640, 480, false, true, false);
-    let (app, registry) = registry([(Some("window:a"), "a")], None);
-    let backend = RecordingBackend::default();
+    let (app, mut registry) = registry([(Some("window:a"), "a")], None);
+    let mut backend = RecordingBackend::default();
     let inspection = backend.clone();
 
-    let outcome = execute_tauri_window_apply(
+    let receipt = execute_tauri_window_apply_in_place(
         app.handle(),
         input(
             [desired("window:a", target, false, true)],
             [matching.clone()],
             9,
         ),
-        registry,
-        NoWindowFactory,
-        backend,
-        StaticReadback::new([matching]),
+        &mut registry,
+        &mut NoWindowFactory,
+        &mut backend,
+        &mut StaticReadback::new([matching]),
     )
     .unwrap();
 
-    assert!(outcome.receipt().plan().is_empty());
-    assert!(outcome.receipt().attempts().is_empty());
-    assert!(outcome.receipt().is_converged());
+    assert!(receipt.plan().is_empty());
+    assert!(receipt.attempts().is_empty());
+    assert!(receipt.is_converged());
     assert!(inspection.calls().is_empty());
 }
 
@@ -161,25 +157,24 @@ fn a_failed_resize_skips_dependents_but_not_other_windows() {
         live(Some("window:a"), "a", 10, 10, 400, 300, false, false, false),
         live(Some("window:b"), "b", 0, 0, 300, 200, false, true, false),
     ];
-    let (app, registry) = registry([(Some("window:a"), "a"), (Some("window:b"), "b")], None);
-    let backend = RecordingBackend::failing(NativeWindowCall::SetInnerSize);
+    let (app, mut registry) = registry([(Some("window:a"), "a"), (Some("window:b"), "b")], None);
+    let mut backend = RecordingBackend::failing(NativeWindowCall::SetInnerSize);
     let inspection = backend.clone();
 
-    let outcome = execute_tauri_window_apply(
+    let receipt = execute_tauri_window_apply_in_place(
         app.handle(),
         input(desired_windows, live_windows.clone(), 8),
-        registry,
-        NoWindowFactory,
-        backend,
-        StaticReadback::new(live_windows),
+        &mut registry,
+        &mut NoWindowFactory,
+        &mut backend,
+        &mut StaticReadback::new(live_windows),
     )
     .unwrap();
 
     // The axes are separate operations now, so the move succeeds on its own
     // and only the resize fails. Before the split both lived in one attempt
     // and a successful move was reported inside a failure.
-    let moved = outcome
-        .receipt()
+    let moved = receipt
         .attempts()
         .iter()
         .find(|attempt| attempt.operation() == WindowOperationKind::Move)
@@ -190,8 +185,7 @@ fn a_failed_resize_skips_dependents_but_not_other_windows() {
             if completed_calls == &[NativeWindowCall::SetOuterPosition]
     ));
 
-    let resized = outcome
-        .receipt()
+    let resized = receipt
         .attempts()
         .iter()
         .find(|attempt| attempt.operation() == WindowOperationKind::Resize)
@@ -204,7 +198,7 @@ fn a_failed_resize_skips_dependents_but_not_other_windows() {
         } if completed_calls.is_empty()
             && failure.call() == NativeWindowCall::SetInnerSize
     ));
-    assert!(outcome.receipt().attempts().iter().any(|attempt| {
+    assert!(receipt.attempts().iter().any(|attempt| {
         attempt.window_id() == &id("window:a")
             && matches!(
                 attempt.outcome(),
@@ -213,7 +207,7 @@ fn a_failed_resize_skips_dependents_but_not_other_windows() {
                 }
             )
     }));
-    assert!(outcome.receipt().attempts().iter().any(|attempt| {
+    assert!(receipt.attempts().iter().any(|attempt| {
         attempt.window_id() == &id("window:b")
             && attempt.operation() == WindowOperationKind::Hide
             && matches!(attempt.outcome(), WindowApplyOutcome::Succeeded { .. })
@@ -226,5 +220,5 @@ fn a_failed_resize_skips_dependents_but_not_other_windows() {
             NativeWindowCall::Hide,
         ]
     );
-    assert!(!outcome.receipt().is_converged());
+    assert!(!receipt.is_converged());
 }

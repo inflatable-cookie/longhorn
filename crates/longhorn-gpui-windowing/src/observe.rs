@@ -343,3 +343,9 @@ fn observe_key(
             detail: error.detail().to_string(),
         })
 }
+
+impl AsRef<[longhorn_windowing::LiveWindow]> for GpuiDesktopObservation {
+    fn as_ref(&self) -> &[longhorn_windowing::LiveWindow] {
+        self.windows()
+    }
+}

@@ -154,6 +154,8 @@ impl Error for GpuiDisplayError {
 /// Window observation failure at the GPUI edge.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GpuiObservationError {
+    /// A rejected native window is still tracked for cleanup.
+    PendingWindowDiscard(WindowId),
     /// A GPUI window key violated opaque handle syntax.
     InvalidTransportHandle {
         /// The rejected key.
@@ -191,6 +193,12 @@ pub enum GpuiObservationError {
 impl fmt::Display for GpuiObservationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::PendingWindowDiscard(window_id) => {
+                write!(
+                    formatter,
+                    "rejected window {window_id} still needs native cleanup"
+                )
+            }
             Self::InvalidTransportHandle { key, .. } => {
                 write!(formatter, "invalid gpui window key {key:?}")
             }

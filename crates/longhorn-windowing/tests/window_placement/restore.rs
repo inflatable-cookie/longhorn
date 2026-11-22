@@ -69,7 +69,11 @@ fn exact_saved_evidence_recovers_a_reallocated_display_id() {
         restored.target_display_id(),
         &display_id("display:new-side")
     );
-    assert_eq!(restored.reason(), &PlacementReason::ConfiguredHome);
+    assert_eq!(restored.reason(), &PlacementReason::ConfiguredFallback);
+    assert_eq!(
+        restored.configured_home_display_id(),
+        Some(&display_id("display:old-side"))
+    );
 }
 
 #[test]
@@ -93,6 +97,10 @@ fn missing_saved_display_uses_intersection_then_main() {
         .unwrap(),
     );
     assert_eq!(overlapping.target_display_id(), &display_id("display:side"));
+    assert_eq!(
+        overlapping.configured_home_display_id(),
+        Some(&display_id("display:gone"))
+    );
     assert!(matches!(
         overlapping.reason(),
         PlacementReason::UsefulIntersection { .. }

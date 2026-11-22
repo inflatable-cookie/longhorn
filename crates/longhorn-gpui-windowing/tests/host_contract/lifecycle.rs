@@ -9,22 +9,23 @@ use std::sync::{
 
 use longhorn_core::WindowId;
 use longhorn_gpui_windowing::{
-    GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleClock, GpuiLifecycleScheduler,
-    GpuiLogicalRect, GpuiLogicalSize, GpuiUserCloseHandler, GpuiWindowCaptureBackend,
-    GpuiWindowEvent, GpuiWindowKey, GpuiWindowLifecycleHost, GpuiWindowLifecycleServices,
-    GpuiWindowQuiescenceProbe, NoopGpuiUserCloseHandler, translate_gpui_window_event,
+    GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleScheduler, GpuiLogicalRect,
+    GpuiLogicalSize, GpuiWindowCaptureBackend, GpuiWindowEvent, GpuiWindowKey,
+    GpuiWindowLifecycleHost, GpuiWindowLifecycleServices, GpuiWindowQuiescenceProbe,
+    translate_gpui_window_event,
 };
 use longhorn_update::{QuiescenceKind, QuiescenceProbe};
 use longhorn_windowing::{
     CapturedDisplayAssociation, CapturedWindowPlacement, MonotonicMillis,
-    ScheduledWindowLifecycleWake, WindowLifecycleEvent, WindowLifecyclePolicy, WindowPlacementSink,
+    NoopWindowUserCloseHandler, ScheduledWindowLifecycleWake, WindowLifecycleClock,
+    WindowLifecycleEvent, WindowLifecyclePolicy, WindowPlacementSink, WindowUserCloseHandler,
 };
 
 use super::support::{id, placement, scale};
 
 struct FixedClock(AtomicU64);
 
-impl GpuiLifecycleClock for FixedClock {
+impl WindowLifecycleClock for FixedClock {
     fn now(&self) -> MonotonicMillis {
         MonotonicMillis::new(self.0.load(Ordering::Relaxed))
     }
@@ -85,15 +86,15 @@ impl WindowPlacementSink for RecordingSink {
 
 struct RefusingCloseHandler;
 
-impl GpuiUserCloseHandler for RefusingCloseHandler {
-    fn user_close(&mut self, _window_id: &WindowId) -> Result<(), String> {
+impl WindowUserCloseHandler for RefusingCloseHandler {
+    fn user_close(&self, _window_id: &WindowId) -> Result<(), String> {
         Err("product policy refused".to_owned())
     }
 }
 
 type Host<U> = GpuiWindowLifecycleHost<FixedClock, RecordingScheduler, FixedCapture, U>;
 
-fn host<U: GpuiUserCloseHandler>(user_close: U) -> Host<U> {
+fn host<U: WindowUserCloseHandler>(user_close: U) -> Host<U> {
     GpuiWindowLifecycleHost::new(
         WindowLifecyclePolicy::recommended(),
         GpuiWindowLifecycleServices {
@@ -195,7 +196,7 @@ fn every_contract_020_lifecycle_event_has_a_translation() {
 fn a_close_request_flushes_and_then_permits_the_close() {
     // With nothing pending the pure coordinator asks for a bounded flush and
     // reports the user close. There is no capture, because nothing changed.
-    let mut host = host(NoopGpuiUserCloseHandler);
+    let mut host = host(NoopWindowUserCloseHandler);
     host.install(id("main"), GpuiWindowKey::new(1));
 
     let (decision, receipt) = host.handle_close_requested(&id("main")).unwrap();
@@ -218,7 +219,7 @@ fn a_close_request_flushes_and_then_permits_the_close() {
 
 #[test]
 fn a_close_request_after_a_move_captures_the_final_state_first() {
-    let mut host = host(NoopGpuiUserCloseHandler);
+    let mut host = host(NoopWindowUserCloseHandler);
     host.install(id("main"), GpuiWindowKey::new(1));
     host.handle_lifecycle_event(WindowLifecycleEvent::Moved {
         window_id: id("main"),
@@ -280,7 +281,7 @@ fn the_host_reports_its_own_outstanding_work_to_the_restart_interlock() {
 
 #[test]
 fn an_event_for_an_uninstalled_window_is_refused() {
-    let mut host = host(NoopGpuiUserCloseHandler);
+    let mut host = host(NoopWindowUserCloseHandler);
 
     assert!(
         host.handle_gpui_event(

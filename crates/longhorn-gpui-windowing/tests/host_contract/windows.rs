@@ -137,3 +137,98 @@ fn a_host_that_cannot_create_says_so_rather_than_failing_the_apply() {
     assert!(!bundle.desired_state_reached());
     assert!(host.calls.is_empty());
 }
+
+#[test]
+fn failed_retag_blocks_creation_of_its_source_id() {
+    use longhorn_core::{LiveWindowMetrics, ScreenRect};
+    use longhorn_windowing::{LiveWindow, ProtectedPrimaryPolicy};
+
+    let (mut host, primary) = FakeGpuiHost::new().with_existing_window(
+        longhorn_gpui_windowing::GpuiLogicalRect::new(0.0, 0.0, 800.0, 600.0),
+        longhorn_gpui_windowing::GpuiLogicalSize::new(800.0, 600.0),
+        false,
+    );
+    let registry = GpuiWindowRegistry::new(
+        [
+            ManagedGpuiWindow::new(primary, Some(id("source"))),
+            ManagedGpuiWindow::new(GpuiWindowKey::new(99), Some(id("target"))),
+        ],
+        Some(handle_of(primary)),
+    )
+    .unwrap();
+    let wanted = placement(0, 0, 800, 600);
+    let live = LiveWindow::new(
+        Some(id("source")),
+        handle_of(primary),
+        LiveWindowMetrics::new(
+            ScreenRect::new(wanted.outer_origin(), wanted.inner_size()),
+            wanted.inner_size(),
+        ),
+        false,
+        true,
+        false,
+    );
+    let input = plan(
+        [
+            desired("source", wanted, false, true),
+            desired("target", wanted, false, true),
+            desired("independent", wanted, false, true),
+        ],
+        1,
+    )
+    .with_live_windows([live])
+    .with_protected_primary(ProtectedPrimaryPolicy::Reuse {
+        transport_handle: handle_of(primary),
+        window_id: id("target"),
+    });
+
+    let bundle =
+        execute_gpui_window_apply(input, registry, &mut host, &mut BareDisplayFacts).unwrap();
+    assert!(matches!(
+        bundle.receipt().attempts()[0].outcome(),
+        GpuiApplyOutcome::Failed { failure, .. } if failure.call() == GpuiWindowCall::RegistryRetag
+    ));
+    let source_create = bundle
+        .receipt()
+        .attempts()
+        .iter()
+        .find(|attempt| {
+            attempt.operation() == WindowOperationKind::Create
+                && attempt.window_id() == &id("source")
+        })
+        .unwrap();
+    assert!(matches!(
+        source_create.outcome(),
+        GpuiApplyOutcome::DependencySkipped {
+            blocked_by: WindowOperationKind::Retag
+        }
+    ));
+    assert!(host.calls.contains(&Call::Create(id("independent"))));
+    assert!(!host.calls.contains(&Call::Create(id("source"))));
+    assert!(host.is_open(primary));
+}
+
+#[test]
+fn a_new_native_window_is_discarded_when_its_key_collides_with_a_stale_registry_entry() {
+    let key = GpuiWindowKey::new(1);
+    let mut host = FakeGpuiHost::new();
+    let registry =
+        GpuiWindowRegistry::new([ManagedGpuiWindow::new(key, Some(id("stale")))], None).unwrap();
+    let input = plan([desired("new", placement(0, 0, 800, 600), false, true)], 1);
+
+    let bundle =
+        execute_gpui_window_apply(input, registry, &mut host, &mut BareDisplayFacts).unwrap();
+
+    assert!(!host.is_open(key));
+    assert_eq!(host.calls, vec![Call::Create(id("new")), Call::Close(key)]);
+    assert_eq!(
+        bundle.registry().managed_windows()[0].window_id(),
+        Some(&id("stale"))
+    );
+    assert!(matches!(
+        bundle.receipt().attempts()[0].outcome(),
+        GpuiApplyOutcome::Failed { completed_calls, failure }
+            if failure.call() == GpuiWindowCall::RegistryInsert
+                && completed_calls.last() == Some(&GpuiWindowCall::DiscardCreated)
+    ));
+}

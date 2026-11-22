@@ -13,12 +13,10 @@ mod scale;
 pub use apply::{
     ApplyConvergence, ApplyReadback, ManagedDesktopReadback, ManagedWindowRegistry,
     ManagedWindowRegistryError, NativeWindowCall, NativeWindowMutationError, NoWindowFactory,
-    ProgrammaticApplyEvidence, TauriApplyError, TauriApplyOutcome, TauriApplyReceipt,
-    TauriDesktopReadback, TauriDispatchError, TauriWindowFactory, TauriWindowMutationBackend,
-    WindowApplyAttempt, WindowApplyFailure, WindowApplyFailureKind, WindowApplyOutcome,
-    WindowFactoryError, WindowMutationBackend, dispatch_tauri_window_apply,
-    execute_tauri_window_apply, execute_tauri_window_apply_in_place, tauri_deferred_settlement,
-    tauri_host_capabilities,
+    ProgrammaticApplyEvidence, TauriApplyError, TauriApplyReceipt, TauriDesktopReadback,
+    TauriWindowFactory, TauriWindowMutationBackend, WindowApplyAttempt, WindowApplyFailure,
+    WindowApplyFailureKind, WindowApplyOutcome, WindowFactoryError, WindowMutationBackend,
+    execute_tauri_window_apply_in_place, tauri_deferred_settlement, tauri_host_capabilities,
 };
 pub use composition::{
     PredeclaredTauriWindow, TauriWindowHost, TauriWindowHostApplyReceipt, TauriWindowHostError,
@@ -32,17 +30,13 @@ pub use error::{
     TauriObservationError, TauriProbeError, TauriScaleFactorError,
 };
 pub use lifecycle::{
-    CapturedDisplayAssociation, CapturedDisplayEvidence, CapturedWindowPlacement,
-    NoopWindowLifecycleReporter, NoopWindowUserCloseHandler, ProcessMonotonicClock,
-    ProgrammaticApplyObserver, ScheduledWindowLifecycleWake, TauriAsyncWindowLifecycleScheduler,
-    TauriWindowCaptureBackend, TauriWindowLifecycleAction, TauriWindowLifecycleError,
-    TauriWindowLifecycleHost, TauriWindowLifecycleReceipt, TauriWindowLifecycleServices,
-    TauriWindowRevealBackend, UniformWindowGeometryMapper, WindowCaptureBackend,
-    WindowFlushOutcome, WindowFlushRequest, WindowFlushScope, WindowFlushTarget,
-    WindowGeometryMapper, WindowLifecycleClock, WindowLifecycleReport, WindowLifecycleReporter,
-    WindowLifecycleScheduler, WindowLifecycleWakeHandler, WindowPlacementFlushCompletion,
-    WindowPlacementFlushTicket, WindowPlacementSink, WindowRevealBackend, WindowRevealReceipt,
-    WindowRevealStatus, WindowScaleGeometryMapper, WindowShutdownReceipt, WindowUserCloseHandler,
+    NoopWindowLifecycleReporter, ProgrammaticApplyObserver, TauriAsyncWindowLifecycleScheduler,
+    TauriWindowCaptureBackend, TauriWindowCaptureError, TauriWindowLifecycleAction,
+    TauriWindowLifecycleError, TauriWindowLifecycleHost, TauriWindowLifecycleReceipt,
+    TauriWindowLifecycleServices, TauriWindowRevealBackend, UniformWindowGeometryMapper,
+    WindowCaptureBackend, WindowGeometryMapper, WindowLifecycleReport, WindowLifecycleReporter,
+    WindowLifecycleScheduler, WindowLifecycleWakeHandler, WindowRevealBackend, WindowRevealReceipt,
+    WindowRevealStatus, WindowScaleGeometryMapper, WindowShutdownReceipt,
     translate_tauri_window_event,
 };
 pub use mapping::{
