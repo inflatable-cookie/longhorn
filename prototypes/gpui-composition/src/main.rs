@@ -19,8 +19,8 @@ mod store;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use gpui::{
-    App, AppContext, Bounds, Context, InteractiveElement, IntoElement, MouseButton,
-    ParentElement, Render, Styled, Window, WindowBounds, WindowOptions, div, point, px, size,
+    App, AppContext, Bounds, Context, InteractiveElement, IntoElement, MouseButton, ParentElement,
+    Render, Styled, Window, WindowBounds, WindowOptions, div, point, px, size,
 };
 use longhorn_core::{
     HostServices, NotificationAuthorityId, NotificationId, NotificationSourceId, WindowId,
@@ -34,8 +34,8 @@ use longhorn_poodle::project_notification_stack;
 use longhorn_transfer::TransferClientId;
 use poodle_adapter::ThemeProvider;
 use poodle_gpui::GpuiThemeProvider;
-use poodle_render::toast_stack::{self, ToastStackHandlers};
 use poodle_render::RenderContext;
+use poodle_render::toast_stack::{self, ToastStackHandlers};
 
 // ---------------------------------------------------------------------------
 // Step 3. Supply `HostServices`, before anything that formats or folds.

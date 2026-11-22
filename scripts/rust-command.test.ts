@@ -195,6 +195,30 @@ describe("Rust command routing", () => {
 
     expect(result.exitCode).toBe(7);
   });
+
+  test("invokes scripts/rust-command.sh directly so the executable bit cannot regress", async () => {
+    const { bin, capture } = await sandbox(["oxide", "cargo"]);
+    const proc = Bun.spawn([helper, ...CLIPPY], {
+      env: {
+        PATH: `${bin}:/bin`,
+        HOME: process.env.HOME ?? "/tmp",
+        RUST_COMMAND_CAPTURE: capture,
+        GITHUB_ACTIONS: "",
+        EFFIGY_OXIDE_ESCAPE: "",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [exitCode, stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+    ]);
+    const run = await readFile(capture, "utf8").catch(() => "");
+
+    expect(exitCode).toBe(0);
+    expect(stderr).toContain("rust runner: oxide clippy --workspace -- -D warnings");
+    expect(run).toContain("tool=oxide\narg=clippy\narg=--workspace\n");
+  });
 });
 
 describe("Rust exec routing", () => {

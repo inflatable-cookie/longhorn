@@ -46,28 +46,43 @@ fn main() {
         .map(|command| catalogue.execute_protocol_mutation(command).unwrap())
         .collect::<Vec<_>>();
     let expected_trace = trace(&results);
-    println!("{}", json!({
-        "shape": "minimal-operation",
-        "publicTrace": expected_trace,
-        "rendererFixture": {
-            "snapshotResponse": snapshot_response,
-            "commands": commands,
-            "results": results,
-            "expectedTrace": expected_trace
-        }
-    }));
+    println!(
+        "{}",
+        json!({
+            "shape": "minimal-operation",
+            "publicTrace": expected_trace,
+            "rendererFixture": {
+                "snapshotResponse": snapshot_response,
+                "commands": commands,
+                "results": results,
+                "expectedTrace": expected_trace
+            }
+        })
+    );
 }
 
 fn trace(results: &[OperationMutationResult]) -> Value {
-    Value::Array(results.iter().map(|result| {
-        let snapshot = snapshot(result);
-        let mut states = snapshot.active.iter().chain(&snapshot.recent).map(|entry| json!({
-            "operationId": entry.operation_id,
-            "state": entry.state
-        })).collect::<Vec<_>>();
-        states.sort_by_key(|entry| entry["operationId"].as_str().unwrap().to_owned());
-        json!({ "revision": snapshot.catalogue_revision, "states": states })
-    }).collect())
+    Value::Array(
+        results
+            .iter()
+            .map(|result| {
+                let snapshot = snapshot(result);
+                let mut states = snapshot
+                    .active
+                    .iter()
+                    .chain(&snapshot.recent)
+                    .map(|entry| {
+                        json!({
+                            "operationId": entry.operation_id,
+                            "state": entry.state
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                states.sort_by_key(|entry| entry["operationId"].as_str().unwrap().to_owned());
+                json!({ "revision": snapshot.catalogue_revision, "states": states })
+            })
+            .collect(),
+    )
 }
 
 fn snapshot(result: &OperationMutationResult) -> &OperationSnapshot {
@@ -86,9 +101,16 @@ fn catalogue() -> OperationCatalogue {
 }
 
 fn authority() -> OperationAuthorityProjection {
-    OperationAuthorityProjection { authority_id: id("authority:minimal"), authority_epoch: 1 }
+    OperationAuthorityProjection {
+        authority_id: id("authority:minimal"),
+        authority_epoch: 1,
+    }
 }
 
-fn id<T>(value: &str) -> T where T: std::str::FromStr, T::Err: std::fmt::Debug {
+fn id<T>(value: &str) -> T
+where
+    T: std::str::FromStr,
+    T::Err: std::fmt::Debug,
+{
     value.parse().unwrap()
 }

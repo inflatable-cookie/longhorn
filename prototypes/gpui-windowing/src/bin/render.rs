@@ -16,8 +16,8 @@
 //! being proved is "this draws", and a person has to look.
 
 use gpui::{
-    App, AppContext, Bounds, Context, IntoElement, ParentElement, Render, Styled,
-    Window, WindowBounds, WindowOptions, div, px, size,
+    App, AppContext, Bounds, Context, IntoElement, ParentElement, Render, Styled, Window,
+    WindowBounds, WindowOptions, div, px, size,
 };
 use longhorn_core::HostServices;
 use longhorn_core::{NotificationAuthorityId, NotificationId, NotificationSourceId};
@@ -34,7 +34,7 @@ use longhorn_update::{InstallManager, UpdateAvailability};
 use poodle_adapter::ThemeProvider;
 use poodle_gpui::GpuiThemeProvider;
 use poodle_render::toast_stack::ToastStackHandlers;
-use poodle_render::{banner, progress, status_indicator, toast_stack, RenderContext};
+use poodle_render::{RenderContext, banner, progress, status_indicator, toast_stack};
 use semver::Version;
 
 /// Builds a ledger holding one notification per severity.

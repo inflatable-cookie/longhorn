@@ -19,8 +19,20 @@ export const MSRV_TOOLCHAIN = declared;
 /** The exact Cargo `rust-version` for generated manifests. */
 export const MSRV = declared;
 
+/** Parse `[workspace.package].rust-version` from a Cargo.toml manifest. */
+export function parseWorkspaceRustVersion(manifest: string): string | undefined {
+  const parsed = Bun.TOML.parse(manifest) as {
+    workspace?: { package?: { "rust-version"?: unknown } };
+  };
+  const value = parsed.workspace?.package?.["rust-version"];
+  return typeof value === "string" ? value : undefined;
+}
+
 // Cross-check at import: the workspace's own rust-version must agree.
 const workspace = await readFile(resolve(import.meta.dir, "../Cargo.toml"), "utf8");
-if (!workspace.includes(`rust-version = "${MSRV}"`)) {
-  throw new Error(`Cargo.toml rust-version disagrees with the ${MSRV} floor`);
+const workspaceRustVersion = parseWorkspaceRustVersion(workspace);
+if (workspaceRustVersion !== MSRV) {
+  throw new Error(
+    `Cargo.toml [workspace.package].rust-version (${String(workspaceRustVersion)}) disagrees with the ${MSRV} floor`,
+  );
 }

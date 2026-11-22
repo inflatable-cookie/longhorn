@@ -115,17 +115,22 @@ lease; unmarked = no lease, ordinary priority).
 
 ### Rust
 
-**`fmt:rust`** — role: format. Runs `fmt --check` through
+**`fmt:rust`** — role: format. Runs `scripts/fmt-rust.ts`: `fmt --check` through
 `scripts/rust-command.sh` over a package list from the same script's `metadata
---no-deps`, so it never walks a path dependency into a sibling repo and the
-whole selector is `oxide` locally and `cargo` on a runner. Owns every
-workspace member's Rust source: `crates/*/{src,tests,
-examples,benches}/**`, `crates/*/build.rs`, `examples/*/src-tauri/**`,
-`examples/*/rust/**`, `examples/nucleus-no-surface-proof/**`,
-`examples/packaged-update-proof/**`, `examples/update-licence-proof/rust/**`.
+--no-deps` (never `--all`, so it never walks a path dependency into a sibling
+repo), `fmt --check` through `scripts/rust-command.sh` across all eight
+`prototypes/*/` workspaces, and `rustfmt --edition 2024 --check` over staged
+example template sources under
+`examples/{desktop-support-conformance,history-system-proof,operation-notification-proof,native-content-system-proof,history-tree-artifact-proof,greenfield-compositions}/**`
+(whose manifests inherit `*.workspace = true` from runtime-generated workspaces).
+Owns every workspace member's Rust source (`crates/*/{src,tests,examples,benches}/**`,
+`crates/*/build.rs`, `examples/*/src-tauri/**`, `examples/*/rust/**`,
+`examples/nucleus-no-surface-proof/**`, `examples/packaged-update-proof/**`,
+`examples/update-licence-proof/rust/**`), every prototype workspace's Rust
+source, and those staged example Rust sources.
 Propagation: per-file; manifest add/remove changes the member set.
 Companions: none. Admission: unmarked (seconds). In `health` and `qa`. Limits:
-prototypes are separate workspaces; does not compile.
+does not compile.
 
 **`lint:rust`** — role: compile/lint, default features. `cargo clippy
 --workspace --all-targets --locked -- -D warnings`. Owns the Rust workspace
@@ -274,7 +279,7 @@ manifests. Admission: unmarked; release gate (`rustdoc`) and member of the
 `prototype-dependencies` QA group. Not in the `qa` aggregate. Limits: default
 features only; slowest of the cheap gates.
 
-**`check:prototypes`** — role: compile. `cargo check --all-targets --locked`
+**`check:prototypes`** — role: compile/lint. `cargo clippy --all-targets --locked -- -D warnings`
 in each `prototypes/*/` workspace. Owns `prototypes/*/**` (each has its own
 `Cargo.lock`) and every workspace crate a prototype path-depends on, directly
 or through a local prototype crate. The edges:
@@ -797,19 +802,13 @@ workspace, minutes each):
 | `verify-history-tree-artifacts.ts` | `proof-install.ts`, `poodle-release.ts`, `workspace-dependencies.ts`, `msrv.ts`, `longhorn-version.ts` | core, history, history-tree, tauri-history-tree | `history-tree` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/history-tree-artifact-proof/**` | yes | None; copied lock and isolated Rust/TypeScript consumer closure is not mapped to a member group |
 | `verify-operation-notification-artifacts.ts` | `scripts/operation-notification-artifact-proof/**`, `msrv.ts`, `workspace-dependencies.ts`, `poodle-release.ts`, `longhorn-version.ts` | core, bridge, operation, notifications, tauri-operation, tauri-notifications | `operation`, `notifications` | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/operation-notification-proof/**` | yes | None; copied lock and isolated Cargo/TypeScript closure is not mapped to a member group |
 | `verify-native-content-artifacts.ts` | `proof-install.ts`, `poodle-release.ts`, `workspace-dependencies.ts`, `msrv.ts`, `longhorn-version.ts` | core, native-content, tauri-native-content-child-view, native-content-isolated-window, native-content-backing-surface, url | `native-content` | longhorn, longhorn-poodle-svelte | `examples/native-content-system-proof/**`; `examples/tauri-native-content-{backing-surface,child-view,isolated-window}-proof/**`; `prototypes/native-content/**`; three prototype Cargo manifests; fixture and generated protocol | yes | None; also invokes `check:bindings`, whose transitive compile closure is an existing planner gap |
-| `verify-greenfield-card125.ts` | `proof-install.ts`, `msrv.ts`, `poodle-release.ts`, `longhorn-version.ts` | 24 crates (below) | — | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/greenfield-compositions/**`; `fixtures/greenfield/card125/composition-matrix-v1.json` (read and checked by default; written only with `WRITE_GREENFIELD_RECEIPT=1`) | yes | None; generated Cargo workspace/24-crate compile closure is not mapped to a member group |
+| `verify-greenfield-card125.ts` | `proof-install.ts`, `msrv.ts`, `poodle-release.ts`, `longhorn-version.ts` | 25 crates (`allRustCrates` in `scripts/verify-greenfield-card125.ts`) | — | longhorn, longhorn-poodle-svelte, longhorn-tauri | `examples/greenfield-compositions/**`; `fixtures/greenfield/card125/composition-matrix-v1.json` (read and checked by default; written only with `WRITE_GREENFIELD_RECEIPT=1`) | yes | None; generated Cargo workspace/25-crate compile closure is not mapped to a member group |
 | `verify-pack-typecheck.ts` | `proof-install.ts`, `poodle-release.ts` | none | — | `@inflatable-cookie/longhorn`, `@inflatable-cookie/longhorn-poodle-svelte` | both `packages/<package>/**` trees; root `package.json`; `bun.lock`; registry Poodle at newest and floor; two peer-range stages | no | Existing selector; new `longhorn-pack-typecheck` group |
 | `verify-desktop-support-conformance.ts` | none | archive-path, core, diagnostics, git-workspace, pty, redact, support-log, tool-provision | — | none | `examples/desktop-support-conformance/**`; the consumer's assertions, including a live install against the crate's loopback `fixture-server`, a live `/bin/sh` PTY session, real local Git, and a loopback device-flow sign-in with an askpass fetch | yes | New: `proof:desktop-support-conformance`, `desktop-support-conformance` group (Unix hosts only) |
 
-The 24 Rust crates greenfield stages are `longhorn-bridge`,
-`longhorn-command`, `longhorn-command-config`, `longhorn-command-settings`,
-`longhorn-config`, `longhorn-core`, `longhorn-display`, `longhorn-history`,
-`longhorn-settings`, `longhorn-settings-config`, `longhorn-surface-transfer`,
-`longhorn-surface-windowing`, `longhorn-surfaces`, `longhorn-surfaces-config`,
-`longhorn-tauri-bridge`, `longhorn-tauri-command`, `longhorn-tauri-config`,
-`longhorn-tauri-history`, `longhorn-tauri-settings`, `longhorn-tauri-transfer`,
-`longhorn-tauri-windowing`, `longhorn-transfer`, `longhorn-windowing`,
-`longhorn-windowing-config`.
+The canonical list of 25 Rust crates staged by greenfield lives in
+`allRustCrates` in [`scripts/verify-greenfield-card125.ts`](../../scripts/verify-greenfield-card125.ts);
+see [Greenfield Composition Matrix](architecture/greenfield-composition-matrix.md#artifact-proof).
 
 **Companions and limits.** A source change that a member stages also selects
 the ordinary gates for that source: `check:ts`/`test:ts`/`test:vitest` for
@@ -838,7 +837,7 @@ crate (`longhorn-core` feeds 40+ manifests) and a leaf crate
 three. `prototype-dependencies` runs `docs:rust` and `check:prototypes` when a
 prototype path-depends on the changed crate; its coverage is checked against
 the resolved prototype manifests. `proof:artifacts` also applies when a proof
-member stages the crate (the greenfield member alone stages 24). Evidence missing
+member stages the crate (the greenfield member alone stages 25; see [`scripts/verify-greenfield-card125.ts`](../../scripts/verify-greenfield-card125.ts)). Evidence missing
 for narrowing: no per-crate `test:rust:<crate>` selector exists, and `cargo`
 alone is not an admissible Effigy selector.
 

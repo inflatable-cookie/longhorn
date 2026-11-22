@@ -30,8 +30,9 @@ use longhorn_git_workspace::{
     GitCredential, GitCredentialBridge, GitFailure, GitFailureCode, GitPolicy, GithubAuthProgress,
     GithubTokenClient, RemoteAccessFailure, SwitchReading, SyncReading, SyncStop,
     classify_remote_failure, create_owned_staging, fresh_access_token, has_switch_blocking_dirt,
-    read_credential_presence, remote_for_display, remote_identity, remotes_match, remove_owned_staging,
-    rename_exclusive, run_device_flow, staging_parent, target_already_present, write_grant,
+    read_credential_presence, remote_for_display, remote_identity, remotes_match,
+    remove_owned_staging, rename_exclusive, run_device_flow, staging_parent,
+    target_already_present, write_grant,
 };
 use longhorn_redact::{RedactionRules, Redactor};
 use secrecy::{ExposeSecret as _, SecretString};
@@ -243,7 +244,11 @@ impl Fixture {
         checked(&seed, &config, &["push", "-u", "origin", "main"]);
         // A bare repository keeps its own HEAD; a clone of it must land on the
         // branch the seed published.
-        checked(&remote, &config, &["symbolic-ref", "HEAD", "refs/heads/main"]);
+        checked(
+            &remote,
+            &config,
+            &["symbolic-ref", "HEAD", "refs/heads/main"],
+        );
         Self {
             temp,
             config,
@@ -275,7 +280,11 @@ impl Fixture {
 
 /// Sets the author and committer identity fixture commits use.
 fn identity(root: &Path, config: &Path) {
-    checked(root, config, &["config", "user.name", "Conformance Fixture"]);
+    checked(
+        root,
+        config,
+        &["config", "user.name", "Conformance Fixture"],
+    );
     checked(
         root,
         config,
@@ -344,10 +353,7 @@ pub(crate) fn run() -> String {
     // exclusive rename into place.
     let target = fixture.temp.path().join("workspace");
     assert_eq!(staging_parent(&target), Some(fixture.temp.path()));
-    assert!(
-        !target_already_present(&target),
-        "the target starts absent"
-    );
+    assert!(!target_already_present(&target), "the target starts absent");
     let staging = create_owned_staging(fixture.temp.path(), OsStr::new("workspace"))
         .expect("one owned staging folder");
     let cancel = AtomicBool::new(false);
@@ -420,12 +426,7 @@ pub(crate) fn run() -> String {
     let abandoned = create_owned_staging(fixture.temp.path(), OsStr::new("unreachable"))
         .expect("one owned staging folder for the refused clone");
     let failure = git
-        .clone_into(
-            &absent_remote.to_string_lossy(),
-            &abandoned,
-            &cancel,
-            None,
-        )
+        .clone_into(&absent_remote.to_string_lossy(), &abandoned, &cancel, None)
         .expect_err("a remote that does not exist refuses the clone");
     assert!(
         matches!(failure, CloneFailure::Refused { .. }),
@@ -439,10 +440,7 @@ pub(crate) fn run() -> String {
     // the caller's credential is refused before Git runs, and a missing
     // repository is read from Git's own words.
     assert_eq!(
-        git.preflight_remote(
-            "https://github.com/example-owner/absent-repository",
-            None
-        ),
+        git.preflight_remote("https://github.com/example-owner/absent-repository", None),
         Err(RemoteAccessFailure::CredentialHelperMissing)
     );
     assert_eq!(
@@ -470,8 +468,7 @@ pub(crate) fn run() -> String {
     // fast-forwarded, then a local commit is pushed. The seed worktree
     // publishes the first one; the sign-in half uses a fresh checkout, because
     // the local commit below moves the remote past the seed.
-    fs::write(fixture.seed.join("notes.md"), "base\nfrom the peer\n")
-        .expect("the peer's change");
+    fs::write(fixture.seed.join("notes.md"), "base\nfrom the peer\n").expect("the peer's change");
     checked(&fixture.seed, &fixture.config, &["commit", "-am", "Peer"]);
     checked(&fixture.seed, &fixture.config, &["push", "origin", "main"]);
     let peer_head = checked(&fixture.seed, &fixture.config, &["rev-parse", "HEAD"]);
@@ -593,9 +590,14 @@ pub(crate) fn run() -> String {
     );
 
     // Tracked work blocks a switch and stops a sync at the dirty step.
-    fs::write(target.join("notes.md"), "base\nfrom the peer\nlocal\nedited\n")
-        .expect("tracked work");
-    let dirty = git.status(&target).expect("the status of the dirty worktree");
+    fs::write(
+        target.join("notes.md"),
+        "base\nfrom the peer\nlocal\nedited\n",
+    )
+    .expect("tracked work");
+    let dirty = git
+        .status(&target)
+        .expect("the status of the dirty worktree");
     assert_eq!(dirty.modified, 1);
     assert!(has_switch_blocking_dirt(
         &git.inspect_worktree(&target).expect("the dirty worktree")
@@ -671,13 +673,13 @@ pub(crate) fn run() -> String {
         create_from_integration_base,
         "an expected branch nobody observed has to be created"
     );
-    fs::write(target.join("notes.md"), "base\nfrom the peer\nlocal\nedited\n")
-        .expect("tracked work on the wrong branch");
+    fs::write(
+        target.join("notes.md"),
+        "base\nfrom the peer\nlocal\nedited\n",
+    )
+    .expect("tracked work on the wrong branch");
     let blocked = git.read_attach(&target, "main", &fixture.remote_url());
-    let AttachReading::WrongBranchDirty {
-        current_branch, ..
-    } = blocked
-    else {
+    let AttachReading::WrongBranchDirty { current_branch, .. } = blocked else {
         panic!("tracked work on another branch is a dirty wrong branch: {blocked:?}");
     };
     assert_eq!(current_branch, "topic");
@@ -725,7 +727,11 @@ fn sign_in(fixture: &Fixture, target: &Path) -> String {
         grant.access_expires_at.is_some(),
         "the token endpoint declared an expiry"
     );
-    assert_eq!(progress.len(), 1, "one poll answered the flow: {progress:?}");
+    assert_eq!(
+        progress.len(),
+        1,
+        "one poll answered the flow: {progress:?}"
+    );
     let GithubAuthProgress::AwaitingVerification {
         user_code,
         verification_uri,
@@ -735,8 +741,7 @@ fn sign_in(fixture: &Fixture, target: &Path) -> String {
     };
     assert_eq!(user_code, USER_CODE);
     assert_eq!(
-        verification_uri,
-        GITHUB_DEVICE_VERIFICATION_URL,
+        verification_uri, GITHUB_DEVICE_VERIFICATION_URL,
         "the reported page is GitHub's own"
     );
 
@@ -769,10 +774,18 @@ fn sign_in(fixture: &Fixture, target: &Path) -> String {
 
     // An access token outside the refresh skew is read from the store without
     // an exchange.
-    let client = GithubTokenClient::loopback_for_tests(&token_url).expect("a loopback token client");
-    let token = fresh_access_token(&scope, CLIENT_ID, &client, std::time::SystemTime::now(), false, None)
-        .expect("the stored grant is readable")
-        .expect("the operator is signed in");
+    let client =
+        GithubTokenClient::loopback_for_tests(&token_url).expect("a loopback token client");
+    let token = fresh_access_token(
+        &scope,
+        CLIENT_ID,
+        &client,
+        std::time::SystemTime::now(),
+        false,
+        None,
+    )
+    .expect("the stored grant is readable")
+    .expect("the operator is signed in");
     assert_eq!(token.expose_secret(), TOKEN);
     let polls = server.bodies_for(ACCESS_TOKEN_PATH);
     assert_eq!(
@@ -808,11 +821,7 @@ fn sign_in(fixture: &Fixture, target: &Path) -> String {
         ),
     );
     let helper = {
-        let policy = BridgePolicy::new(
-            &fixture.config,
-            token.clone(),
-            recording_rule(&recorder),
-        );
+        let policy = BridgePolicy::new(&fixture.config, token.clone(), recording_rule(&recorder));
         let git = Git::new(&policy, redactor());
 
         // A status read never asks the policy for a credential.
@@ -881,8 +890,11 @@ fn sign_in(fixture: &Fixture, target: &Path) -> String {
     // A real fetch through the same bridge: the local bare repository stands in
     // for the GitHub remote, and the token is nowhere in the returned text.
     let peer = fixture.peer("remote-peer");
-    fs::write(peer.join("notes.md"), "base\nfrom the peer\nlocal\nremote\n")
-        .expect("the peer's change");
+    fs::write(
+        peer.join("notes.md"),
+        "base\nfrom the peer\nlocal\nremote\n",
+    )
+    .expect("the peer's change");
     checked(&peer, &fixture.config, &["commit", "-am", "Remote change"]);
     checked(&peer, &fixture.config, &["push", "origin", "main"]);
     let peer_head = checked(&peer, &fixture.config, &["rev-parse", "HEAD"]);

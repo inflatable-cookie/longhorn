@@ -97,7 +97,7 @@ public-release gate.
 
 Each renderer installs from produced tarballs outside sibling workspace
 resolution. Each graph has one Svelte `5.56.8` runtime and one Tauri API
-`2.11.1` runtime. Each Rust root checks offline with Rust `1.85.0`, the exact
+`2.11.1` runtime. Each Rust root checks offline with Rust `1.85.0` (the historical MSRV at the 2026-08-02 freeze; current workspace MSRV lives in [`release-baselines/rust-toolchains.env`](../../release-baselines/rust-toolchains.env)), the exact
 candidate lock, and Tauri `2.11.5` where selected. The greenfield optional-
 server proof separately checks `--no-default-features` local authority.
 

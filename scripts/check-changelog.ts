@@ -13,7 +13,10 @@
 // that shape alike (`effigy.release.status.v1`); they differ on which changelog
 // text they accept, which is why `EFFIGY_BIN` exists.
 
-import { resolve } from "node:path";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
 
 const defaultRepoRoot = resolve(import.meta.dir, "..");
 const EMPTY_UNRELEASED = "unreleased changelog section has no entries";
@@ -75,16 +78,78 @@ export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
   };
 }
 
+type ReleaseConfig = {
+  "version-file"?: string;
+  "version-path"?: string;
+  changelog?: string;
+  "pre-1-0"?: boolean;
+  "tag-format"?: string;
+};
+
+async function readReleaseTable(repoRoot: string): Promise<string> {
+  let releaseConfig: ReleaseConfig | undefined;
+  for (const relativePath of ["config/release.toml", "effigy.toml"]) {
+    const content = await readFile(join(repoRoot, relativePath), "utf8").catch(() => null);
+    if (content === null) continue;
+    const parsed = Bun.TOML.parse(content) as { release?: ReleaseConfig };
+    if (parsed.release) {
+      releaseConfig = parsed.release;
+      break;
+    }
+  }
+  const versionFile = releaseConfig?.["version-file"] ?? "Cargo.toml";
+  const versionPath = releaseConfig?.["version-path"] ?? "workspace.package.version";
+  const changelog = releaseConfig?.changelog ?? "CHANGELOG.md";
+  const pre10 = releaseConfig?.["pre-1-0"] ?? true;
+  const tagFormat = releaseConfig?.["tag-format"] ?? "v{version}";
+  return [
+    "[release]",
+    `version-file = ${JSON.stringify(versionFile)}`,
+    `version-path = ${JSON.stringify(versionPath)}`,
+    `changelog = ${JSON.stringify(changelog)}`,
+    `pre-1-0 = ${String(pre10)}`,
+    `tag-format = ${JSON.stringify(tagFormat)}`,
+    "",
+  ].join("\n");
+}
+
 export async function checkChangelog(repoRoot = defaultRepoRoot): Promise<ChangelogVerdict> {
-  const proc = Bun.spawn([effigyBinary(), "--json", "release", "status"], {
-    cwd: repoRoot,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const stdout = await new Response(proc.stdout).text();
-  // The JSON is the verdict. The exit code is nonzero for the empty-section gap too.
-  await proc.exited;
-  return judgeReleaseStatus(stdout);
+  // Stage only CHANGELOG.md, the workspace version, and the [release] table so
+  // a checkout's release journal or workspace state never fails the parse check.
+  const stage = await mkdtemp(join(tmpdir(), "check-changelog-stage-"));
+  try {
+    const [changelog, cargoManifest, effigyToml] = await Promise.all([
+      readFile(join(repoRoot, "CHANGELOG.md"), "utf8"),
+      readFile(join(repoRoot, "Cargo.toml"), "utf8"),
+      readReleaseTable(repoRoot),
+    ]);
+    const version = parseWorkspacePackageVersion(cargoManifest);
+    const minimalCargo = [
+      "[workspace]",
+      "members = []",
+      "",
+      "[workspace.package]",
+      `version = ${JSON.stringify(version)}`,
+      "",
+    ].join("\n");
+    await Promise.all([
+      writeFile(join(stage, "CHANGELOG.md"), changelog),
+      writeFile(join(stage, "Cargo.toml"), minimalCargo),
+      writeFile(join(stage, "effigy.toml"), effigyToml),
+    ]);
+
+    const proc = Bun.spawn([effigyBinary(), "--json", "release", "status"], {
+      cwd: stage,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const stdout = await new Response(proc.stdout).text();
+    // The JSON is the verdict. The exit code is nonzero for the empty-section gap too.
+    await proc.exited;
+    return judgeReleaseStatus(stdout);
+  } finally {
+    await rm(stage, { recursive: true, force: true });
+  }
 }
 
 if (import.meta.main) {

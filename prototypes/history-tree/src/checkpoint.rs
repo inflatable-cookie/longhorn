@@ -128,10 +128,10 @@ impl<P> ForkHistory<P> {
                 actual: consumer_reference.len(),
             });
         }
-        if let Some(entry_id) = &after_entry_id {
-            if !self.nodes.contains_key(entry_id) {
-                return Err(ForkCheckpointError::UnknownEntry(entry_id.clone()));
-            }
+        if let Some(entry_id) = &after_entry_id
+            && !self.nodes.contains_key(entry_id)
+        {
+            return Err(ForkCheckpointError::UnknownEntry(entry_id.clone()));
         }
         let committed_revision = self
             .revision
