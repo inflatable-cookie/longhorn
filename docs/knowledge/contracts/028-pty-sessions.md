@@ -59,15 +59,20 @@ session to further operations. A later write, resize, or close returns
 child exit can only target the still-unreaped process group; no signal is sent
 after reaping, so the child pid or group cannot be reused as a signal target.
 
-Close marks the session as closing before it sends `SIGHUP` to the process
-group. Reaping is held until close finishes, preserving the group identity
-through escalation. After the fixed 300 ms grace period, Longhorn probes the
-group and sends `SIGKILL` if it remains. Close then drops its control master
-descriptor and allows the reaper to record the direct child's final status.
-The nonblocking output reader drains currently readable bytes after the leader
-is reaped, then sends the one exit result. A descendant that keeps the slave
-open cannot prevent that result; output written after the direct child exits is
-not delivered.
+Close marks the session as closing, drops its control master descriptor, and
+notifies any output reader blocked on a full queue before sending `SIGHUP` to
+the process group. When the child has already exited or `waitpid` has already
+failed, `close` still drops the control master descriptor and notifies any
+back-pressured reader so the PTY pair is released, while returning
+`Failure::Ended` (or `Failure::Wait`) and sending no signal. Reaping is held
+until close finishes, preserving the group identity through escalation. After
+the fixed 300 ms grace period, Longhorn probes the group and sends `SIGKILL` if
+it remains, marks the session closed, and allows the reaper to record the
+direct child's final status. When the receiver queue is not full, the
+nonblocking output reader drains currently readable bytes after the leader is
+reaped, then sends the one exit result. A descendant that keeps the slave open
+cannot prevent that result; output written after the direct child exits is not
+delivered.
 
 A group that is already gone counts as closed, and so does a group that holds
 only zombies. `ESRCH` always means gone. macOS and BSDs answer `EPERM` for a
@@ -92,12 +97,17 @@ eight output events, and the reader holds at most one additional 8 KiB chunk
 while blocked on a full queue. Thus the crate retains no more than 72 KiB of
 output payload per session, plus fixed channel and buffer metadata. When the
 queue is full, the reader waits; the PTY kernel buffer then fills and applies
-back-pressure to the child. Chunks are not dropped, coalesced, or accumulated
-in an unbounded buffer. A consumer that stops reading can therefore pause the
-child until it resumes or closes the session. Calling `close()` wakes a reader
-that is waiting on a full queue so the reader immediately releases both its
-master copy and the retained slave descriptor back to the OS, even if the
-consumer keeps the receiver alive without reading.
+back-pressure to the child. While the session remains open, chunks are not
+dropped, coalesced, or accumulated in an unbounded buffer; a consumer that
+stops reading pauses the child until it resumes or closes the session. Calling
+`close()` (including on an already-exited session or via `Drop`) wakes a reader
+that is waiting on a full queue. In that close-under-backpressure path, the
+reader discards the single unsent chunk it was holding and stops draining
+further PTY output so it immediately releases both its master copy and the
+retained slave descriptor back to the OS, even if the consumer keeps the
+receiver alive without reading. Events already queued in the receiver (up to
+eight chunks) remain readable, followed by the terminal `PtyEvent::Exit` (or
+`PtyEvent::Failure`) once the consumer reads from the receiver.
 
 ## Failures and platform behavior
 
@@ -126,9 +136,10 @@ crate uses `rustix` for PTY allocation, descriptor duplication and
 close-on-exec flags, `setsid`, controlling-terminal ioctl, terminal sizing, and
 process-group signals. Close-on-exec is set atomically on slave opens
 (`OFlags::CLOEXEC`) and descriptor duplications (`fcntl_dupfd_cloexec`) on all
-supported targets, and atomically on master opens (`OpenptFlags::CLOEXEC`) on
-Linux and FreeBSD. On macOS, iOS, and illumos, `posix_openpt` does not accept
-`O_CLOEXEC`, so `FD_CLOEXEC` is set immediately after `openpt` returns.
+supported targets, and atomically on master opens on Linux and FreeBSD
+(`OpenptFlags::CLOEXEC`) and on macOS (`posix_openpt` with `O_CLOEXEC`). On
+`ios` and `illumos` (where `posix_openpt` `O_CLOEXEC` support is unverified or
+unsupported), `FD_CLOEXEC` is set immediately after `openpt` returns.
 `O_NONBLOCK` is set on the master open file description before duplication:
 both the reader copy (poll-driven non-blocking reads) and the control copy
 (non-blocking writes that release the lifecycle lock on `WouldBlock` so a full

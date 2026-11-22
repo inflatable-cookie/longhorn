@@ -14,7 +14,7 @@ use rustix::event::{PollFd, PollFlags, Timespec, poll};
 use rustix::fd::OwnedFd;
 use rustix::fs::{Mode, OFlags, fcntl_getfl, fcntl_setfl, open as open_file};
 use rustix::io::{Errno, fcntl_dupfd_cloexec};
-#[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
+#[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "macos")))]
 use rustix::io::{FdFlags, fcntl_setfd};
 use rustix::process::{
     Pid, Signal, WaitId, WaitIdOptions, WaitOptions, WaitStatus, ioctl_tiocsctty,
@@ -54,10 +54,12 @@ struct Process {
 }
 
 fn open_master() -> Result<OwnedFd, Failure> {
-    // Linux (via `/dev/ptmx` in rustix) and FreeBSD accept `O_CLOEXEC`
-    // atomically in `openpt`. macOS, iOS, and illumos do not expose
-    // `O_CLOEXEC` on `posix_openpt`, so those targets set `FD_CLOEXEC`
-    // immediately after `openpt` returns.
+    // Linux (via `/dev/ptmx` in rustix) and FreeBSD expose `OpenptFlags::CLOEXEC`.
+    // macOS `posix_openpt` also accepts `O_CLOEXEC` atomically, even though
+    // rustix does not expose the named `OpenptFlags::CLOEXEC` constant there.
+    // On `ios` and `illumos`, `posix_openpt` `O_CLOEXEC` support is unverified
+    // or unsupported, so those targets set `FD_CLOEXEC` immediately after
+    // `openpt` returns.
     #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     {
         openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY | OpenptFlags::CLOEXEC).map_err(|errno| {
@@ -66,7 +68,16 @@ fn open_master() -> Result<OwnedFd, Failure> {
             }
         })
     }
-    #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
+    #[cfg(target_os = "macos")]
+    {
+        let flags = OpenptFlags::RDWR
+            | OpenptFlags::NOCTTY
+            | OpenptFlags::from_bits_retain(OFlags::CLOEXEC.bits());
+        openpt(flags).map_err(|errno| Failure::OpenPty {
+            raw_os_error: errno.raw_os_error(),
+        })
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "macos")))]
     {
         let master =
             openpt(OpenptFlags::RDWR | OpenptFlags::NOCTTY).map_err(|errno| Failure::OpenPty {
@@ -558,7 +569,24 @@ fn leader_exited_uncollected(process_group: Pid) -> Result<bool, Errno> {
 fn close_shared(shared: &Shared) -> Result<(), Failure> {
     let process_group = {
         let mut process = process_lock(shared);
-        if !poll_exit(&mut process, &shared.changed)? {
+        let live = match poll_exit(&mut process, &shared.changed) {
+            Ok(live) => live,
+            Err(failure) => {
+                process.closed = true;
+                master_lock(shared).take();
+                shared.changed.notify_all();
+                return Err(failure);
+            }
+        };
+        if !live {
+            // Even when the child already exited (or the session is already
+            // ended), drop the control master and wake any reader blocked on a
+            // full queue so the PTY pair is released without sending a signal.
+            if !process.closing {
+                process.closed = true;
+            }
+            master_lock(shared).take();
+            shared.changed.notify_all();
             return Err(Failure::Ended);
         }
         process.closing = true;
@@ -695,6 +723,16 @@ mod tests {
         assert!(
             matches!(outcome, SendOutcome::Stop),
             "closing the session stops a send blocked on a full queue"
+        );
+    }
+
+    #[test]
+    fn open_master_sets_cloexec_flag() {
+        let master = open_master().expect("a PTY master opens");
+        let flags = rustix::io::fcntl_getfd(&master).expect("master descriptor flags are readable");
+        assert!(
+            flags.contains(rustix::io::FdFlags::CLOEXEC),
+            "master descriptor has FD_CLOEXEC set: {flags:?}"
         );
     }
 }

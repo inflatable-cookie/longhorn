@@ -293,9 +293,10 @@ fn exit_codes_and_signals_are_typed_and_map_to_shell_codes() {
 
 #[test]
 fn close_escalates_when_the_child_ignores_hangup() {
-    let (session, receiver) = open(shell(
-        "trap '' HUP; printf READY; while :; do sleep 1; done",
-    ));
+    let parent_pid = std::process::id();
+    let (session, receiver) = open(shell(&format!(
+        "trap '' HUP; printf READY; while kill -0 {parent_pid} 2>/dev/null; do sleep 1; done"
+    )));
     let _ready = receive_until_text(&receiver, "READY");
     let started = Instant::now();
     close_or_diagnose(
@@ -310,11 +311,14 @@ fn close_escalates_when_the_child_ignores_hangup() {
 
 #[test]
 fn close_escalates_to_a_grandchild_in_the_same_process_group() {
+    let parent_pid = std::process::id();
     let directory = tempfile::tempdir().expect("a unique test directory is available");
     let marker = directory.path().join("grandchild-survived");
-    let script =
-        "trap '' HUP; (trap '' HUP; sleep 1; printf alive > \"$MARKER\") & printf READY; wait";
-    let mut spec = shell(script);
+    // Self-terminates after 1s even if the test process is killed mid-run.
+    let script = format!(
+        "trap '' HUP; (trap '' HUP; sleep 1; if kill -0 {parent_pid} 2>/dev/null; then printf alive > \"$MARKER\"; fi) & printf READY; wait"
+    );
+    let mut spec = shell(&script);
     spec.environment
         .insert(OsString::from("MARKER"), marker.as_os_str().to_owned());
     let (session, receiver) = open(spec);
@@ -334,7 +338,10 @@ fn close_escalates_to_a_grandchild_in_the_same_process_group() {
 /// it after the grace period. Close must count that group as closed.
 #[test]
 fn close_succeeds_when_hangup_ends_the_group() {
-    let (session, receiver) = open(shell("printf READY; while :; do sleep 1; done"));
+    let parent_pid = std::process::id();
+    let (session, receiver) = open(shell(&format!(
+        "printf READY; while kill -0 {parent_pid} 2>/dev/null; do sleep 1; done"
+    )));
     let _ready = receive_until_text(&receiver, "READY");
     close_or_diagnose(
         &session,
@@ -543,12 +550,13 @@ fn check_stress_signal(id: usize, signal: i32) {
 }
 
 fn check_stress_close(id: usize) {
+    let parent_pid = std::process::id();
     let marker = format!("marker-close-{id}");
     // The trap comes before the marker. Otherwise a hangup that lands between
     // them ends the shell itself and close sees a zombie-only group, which is
     // a different case from the escalation this check covers.
     let (session, receiver) = open(shell(&format!(
-        "trap '' HUP; printf '{marker}'; while :; do sleep 1; done"
+        "trap '' HUP; printf '{marker}'; while kill -0 {parent_pid} 2>/dev/null; do sleep 1; done"
     )));
     // The marker arriving here proves the session was alive, streaming, and
     // ignoring hangup before close; nothing is written after it, so the
