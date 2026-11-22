@@ -7,18 +7,18 @@ use longhorn_config::{
 };
 use longhorn_core::{
     DomainId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId,
-    SchemaVersion, SurfaceId, SurfaceRevision,
+    SchemaVersion, SurfaceId, SurfaceRevision, WindowId,
 };
 use longhorn_storage_layout::StorageRoots;
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
-    PanelDefinition, PanelInstance, PanelInstancePolicy, PlacementSelector, RegionDefinition,
-    RegionState, SurfaceDocument, SurfaceRecord,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
+    PanelInstance, PanelInstancePolicy, ParticipatingWindow, PlacementSelector, RegionDefinition,
+    RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
 };
-use longhorn_surfaces_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 use tempfile::TempDir;
 
-pub type TestDomain = RegisteredLayoutDomain<NoLayoutMigration>;
+pub type TestDomain = RegisteredSurfaceDomain<NoSurfaceMigration>;
 
 pub struct Fixture {
     _temp: TempDir,
@@ -71,7 +71,7 @@ impl Fixture {
 }
 
 pub fn domain() -> TestDomain {
-    RegisteredLayoutDomain::new(
+    RegisteredSurfaceDomain::new(
         DomainDescriptor::new(
             domain_id(),
             SchemaVersion::new(1).unwrap(),
@@ -81,15 +81,27 @@ pub fn domain() -> TestDomain {
         .unwrap(),
         document(),
         registry(),
-        NoLayoutMigration,
-        LayoutBackupPolicy::Include,
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
     )
     .unwrap()
 }
 
 pub fn registry() -> LayoutDefinitionRegistry {
     LayoutDefinitionRegistry::new(
-        LayoutLimits::new(4, 4, 4, 4, 4, 16, 8).unwrap(),
+        SurfaceLimits::builder()
+            .maximum_schemas(4)
+            .maximum_regions_per_schema(4)
+            .maximum_sizing_slots_per_schema(4)
+            .maximum_panel_definitions(4)
+            .maximum_surfaces(4)
+            .maximum_windows(4)
+            .maximum_host_preferences_per_surface(4)
+            .maximum_label_bytes(64)
+            .maximum_panel_instances(16)
+            .maximum_panel_instances_per_region(8)
+            .build()
+            .unwrap(),
         [LayoutSchemaDefinition::new(
             schema_id(),
             [
@@ -135,6 +147,7 @@ pub fn registry() -> LayoutDefinitionRegistry {
 pub fn document() -> SurfaceDocument {
     let tool = tool_panel();
     let fixed = fixed_panel();
+    let window = WindowId::new("window:main").unwrap();
     SurfaceDocument::new(
         SurfaceRevision::new(7),
         [
@@ -152,7 +165,7 @@ pub fn document() -> SurfaceDocument {
                     ),
                 ],
                 [],
-                [],
+                [SurfaceHostPreference::new(window.clone(), 0)],
             ),
             SurfaceRecord::new(
                 target_container(),
@@ -163,14 +176,14 @@ pub fn document() -> SurfaceDocument {
                     RegionState::new(side_region(), [], None, Some(false)),
                 ],
                 [],
-                [],
+                [SurfaceHostPreference::new(window.clone(), 1)],
             ),
         ],
         [
             PanelInstance::new(tool, tool_definition()),
             PanelInstance::new(fixed, fixed_definition()),
         ],
-        [],
+        [ParticipatingWindow::new(window, Some(source_container()))],
     )
 }
 

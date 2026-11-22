@@ -1,5 +1,4 @@
 use longhorn_config::{ConfigStore, MutationOptions};
-use longhorn_surfaces::LayoutDefinitionRegistry;
 use longhorn_surfaces_config::{
     RegisteredSurfaceDomain, SurfaceMigration, publish_surface_mutation,
 };
@@ -27,7 +26,6 @@ use crate::admission::load_surface;
 pub(super) fn commit_provisioned<M, P>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
-    registry: &LayoutDefinitionRegistry,
     bindings: &SurfaceHostBindings,
     policy: &SurfaceTransferPolicy,
     provisioner: &mut P,
@@ -106,7 +104,6 @@ where
         store,
         domain,
         options,
-        registry,
         policy.empty_window_policy(),
         &mutation,
     ) {

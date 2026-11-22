@@ -6,25 +6,38 @@ use longhorn_config::{
 };
 use longhorn_core::SchemaVersion;
 use longhorn_surfaces::{
-    SurfaceDocument, SurfaceLimits, SurfaceValidationCode, normalize_document, validate_document,
+    LayoutDefinitionRegistry, SurfaceDocument, SurfaceLimits, SurfaceValidationCode,
+    normalize_document, validate_document,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::{SurfaceMigration, SurfaceMigrationTarget};
+use crate::{
+    LayoutRegistryDigest, SurfaceMigration, SurfaceMigrationTarget, compute_layout_registry_digest,
+};
 
 /// Current raw value stored inside the generic configuration envelope.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PersistedSurfaceDocument {
+    registry_digest: LayoutRegistryDigest,
     document: SurfaceDocument,
 }
 
 impl PersistedSurfaceDocument {
-    /// Constructs a current raw Surface value.
+    /// Constructs a current raw Surface value bound to its registry digest.
     #[must_use]
-    pub const fn new(document: SurfaceDocument) -> Self {
-        Self { document }
+    pub const fn new(registry_digest: LayoutRegistryDigest, document: SurfaceDocument) -> Self {
+        Self {
+            registry_digest,
+            document,
+        }
+    }
+
+    /// Returns the definition registry digest that interprets the document.
+    #[must_use]
+    pub const fn registry_digest(&self) -> &LayoutRegistryDigest {
+        &self.registry_digest
     }
 
     /// Returns the complete authoritative Surface document.
@@ -48,7 +61,8 @@ pub enum SurfaceBackupPolicy {
 pub struct RegisteredSurfaceDomain<M> {
     descriptor: DomainDescriptor,
     default: SurfaceDocument,
-    limits: SurfaceLimits,
+    registry: LayoutDefinitionRegistry,
+    registry_digest: LayoutRegistryDigest,
     migration: M,
     backup_policy: SurfaceBackupPolicy,
 }
@@ -58,23 +72,36 @@ where
     M: SurfaceMigration,
 {
     /// Constructs a domain from complete consumer-supplied authority.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RegisteredSurfaceDomainError::InvalidDefault`] if `default` fails
+    /// whole-document validation against `registry`, or
+    /// [`RegisteredSurfaceDomainError::RegistryEncoding`] if the registry cannot
+    /// be serialized for digesting.
     pub fn new(
         descriptor: DomainDescriptor,
         default: SurfaceDocument,
-        limits: SurfaceLimits,
+        registry: LayoutDefinitionRegistry,
         migration: M,
         backup_policy: SurfaceBackupPolicy,
     ) -> Result<Self, RegisteredSurfaceDomainError> {
-        let default = normalize_document(limits, &default).map_err(|error| {
+        let default = normalize_document(&registry, &default).map_err(|error| {
             RegisteredSurfaceDomainError::InvalidDefault {
                 code: error.code(),
                 detail: error.detail().to_owned(),
             }
         })?;
+        let registry_digest = compute_layout_registry_digest(&registry).map_err(|error| {
+            RegisteredSurfaceDomainError::RegistryEncoding {
+                detail: error.to_string(),
+            }
+        })?;
         Ok(Self {
             descriptor,
             default,
-            limits,
+            registry,
+            registry_digest,
             migration,
             backup_policy,
         })
@@ -86,10 +113,22 @@ where
         &self.descriptor
     }
 
-    /// Returns the configured Surface validation limits.
+    /// Returns the validated immutable definition registry.
+    #[must_use]
+    pub const fn registry(&self) -> &LayoutDefinitionRegistry {
+        &self.registry
+    }
+
+    /// Returns the deterministic current registry digest.
+    #[must_use]
+    pub const fn registry_digest(&self) -> &LayoutRegistryDigest {
+        &self.registry_digest
+    }
+
+    /// Returns the configured Surface validation limits from the registry.
     #[must_use]
     pub const fn limits(&self) -> SurfaceLimits {
-        self.limits
+        self.registry.limits()
     }
 
     /// Returns the explicit backup participation policy.
@@ -109,8 +148,26 @@ where
         }
     }
 
-    fn migration_target(&self) -> SurfaceMigrationTarget {
-        SurfaceMigrationTarget::new(self.descriptor.schema_version(), self.limits)
+    fn migration_target(&self) -> SurfaceMigrationTarget<'_> {
+        SurfaceMigrationTarget::new(
+            self.descriptor.schema_version(),
+            &self.registry,
+            &self.registry_digest,
+        )
+    }
+
+    fn validate_persisted(&self, value: &PersistedSurfaceDocument) -> Result<(), DomainIssue> {
+        if value.registry_digest != self.registry_digest {
+            return Err(DomainIssue::new(
+                "surface-registry-mismatch",
+                format!(
+                    "stored registry digest {} does not match current digest {}",
+                    value.registry_digest.as_str(),
+                    self.registry_digest.as_str()
+                ),
+            ));
+        }
+        validate_document(&self.registry, &value.document).map_err(surface_validation_issue)
     }
 }
 
@@ -131,18 +188,21 @@ where
     fn decode(&self, value: Value) -> Result<Self::Value, DomainIssue> {
         let persisted: PersistedSurfaceDocument = serde_json::from_value(value)
             .map_err(|error| DomainIssue::new("surface-decode", error.to_string()))?;
-        validate_document(self.limits, &persisted.document).map_err(surface_validation_issue)?;
+        self.validate_persisted(&persisted)?;
         Ok(persisted.document)
     }
 
     fn encode(&self, value: &Self::Value) -> Result<Value, DomainIssue> {
-        validate_document(self.limits, value).map_err(surface_validation_issue)?;
-        serde_json::to_value(PersistedSurfaceDocument::new(value.clone()))
-            .map_err(|error| DomainIssue::new("surface-encode", error.to_string()))
+        validate_document(&self.registry, value).map_err(surface_validation_issue)?;
+        serde_json::to_value(PersistedSurfaceDocument::new(
+            self.registry_digest.clone(),
+            value.clone(),
+        ))
+        .map_err(|error| DomainIssue::new("surface-encode", error.to_string()))
     }
 
     fn validate(&self, value: &Self::Value) -> Result<(), DomainIssue> {
-        validate_document(self.limits, value).map_err(surface_validation_issue)
+        validate_document(&self.registry, value).map_err(surface_validation_issue)
     }
 
     fn validate_raw(
@@ -153,7 +213,7 @@ where
         if schema_version == self.descriptor.schema_version() {
             let persisted: PersistedSurfaceDocument = serde_json::from_value(value.clone())
                 .map_err(|error| DomainIssue::new("surface-raw-shape", error.to_string()))?;
-            validate_document(self.limits, &persisted.document).map_err(surface_validation_issue)
+            self.validate_persisted(&persisted)
         } else {
             self.migration.validate_raw(schema_version, value)
         }
@@ -186,6 +246,11 @@ pub enum RegisteredSurfaceDomainError {
         /// Validation detail.
         detail: String,
     },
+    /// Canonical registry JSON could not be encoded for hashing.
+    RegistryEncoding {
+        /// Serializer detail.
+        detail: String,
+    },
 }
 
 impl fmt::Display for RegisteredSurfaceDomainError {
@@ -193,6 +258,9 @@ impl fmt::Display for RegisteredSurfaceDomainError {
         match self {
             Self::InvalidDefault { code, detail } => {
                 write!(formatter, "invalid Surface default ({code:?}): {detail}")
+            }
+            Self::RegistryEncoding { detail } => {
+                write!(formatter, "cannot encode layout registry: {detail}")
             }
         }
     }

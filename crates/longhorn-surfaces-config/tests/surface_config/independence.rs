@@ -2,18 +2,24 @@ use longhorn_config::{
     ConfigDomain, DomainDescriptor, DomainFilePath, DomainIssue, LoadOutcome, MigrationStep,
     StorageClass,
 };
-use longhorn_core::{DomainId, LayoutSchemaId, RegionFamilyId, RegionId, SchemaVersion};
-use longhorn_surfaces::EmptyWindowPolicy;
-use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
-    RegionDefinition, RegionState, SurfaceDocument, SurfaceRecord,
+use longhorn_core::{
+    DomainId, LayoutRequestId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId,
+    RegionId, SchemaVersion, SurfaceRevision,
 };
-use longhorn_surfaces_config::publish_surface_mutation;
-use longhorn_surfaces_config::{LayoutBackupPolicy, NoLayoutMigration, RegisteredLayoutDomain};
+use longhorn_surfaces::{
+    EmptyRegionPolicy, EmptyWindowPolicy, LayoutDefinitionRegistry, LayoutMutationCommand,
+    LayoutMutationRequest, LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy,
+    ParticipatingWindow, PlacementSelector, RegionDefinition, RegionState, SurfaceDocument,
+    SurfaceHostPreference, SurfaceMutationCommand, SurfaceMutationRequest, SurfaceRecord,
+};
+use longhorn_surfaces_config::{
+    NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy, publish_layout_mutation,
+    publish_surface_mutation,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::support::{Fixture, document, domain, options, rename_request, surface_id};
+use crate::support::{Fixture, descriptor, limits, options, rename_request, surface_id, window_id};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -86,84 +92,98 @@ impl ConfigDomain for WindowDomain {
 }
 
 #[test]
-fn surface_layout_and_window_domains_publish_independently() {
+fn single_surface_domain_serves_surface_and_layout_mutations_independently_of_window_domain() {
     let fixture = Fixture::new();
-    let surfaces = domain();
-    let layout = layout_domain();
+    let surfaces = unified_surface_domain();
     let window = WindowDomain::new();
     let mut store = fixture.store();
     store.register(&surfaces).unwrap();
-    store.register(&layout).unwrap();
     store.register(&window).unwrap();
 
-    store
-        .mutate(&layout, options(), |_document| Ok(()))
-        .unwrap();
     store
         .mutate(&window, options(), |state| {
             state.width = 1440;
             Ok(())
         })
         .unwrap();
-    publish_surface_mutation(
+
+    // 1. Surface mutation advances revision 7 -> 8.
+    let renamed = publish_surface_mutation(
         &store,
         &surfaces,
         options(),
-        &layout_registry(),
         EmptyWindowPolicy::Allow,
         &rename_request(7, "Independent"),
     )
     .unwrap();
+    assert_eq!(renamed.surface().committed_revision().get(), 8);
+
+    // 2. Layout mutation on the exact same RegisteredSurfaceDomain advances 8 -> 9.
+    let panel_id = PanelInstanceId::new("panel:tool:1").unwrap();
+    let created = publish_layout_mutation(
+        &store,
+        &surfaces,
+        options(),
+        &LayoutMutationRequest::new(
+            LayoutRequestId::new("request:create-panel").unwrap(),
+            SurfaceRevision::new(8),
+            LayoutMutationCommand::CreatePanel {
+                panel_instance_id: panel_id.clone(),
+                panel_definition_id: PanelDefinitionId::new("panel:tool").unwrap(),
+                surface_id: surface_id("surface:a"),
+                region_id: RegionId::new("region:main").unwrap(),
+                insertion_index: 0,
+            },
+        ),
+    )
+    .unwrap();
+    assert_eq!(created.layout().committed_revision().get(), 9);
+
+    // 3. Closing surface:a removes its panel instance in the same commit (9 -> 10)
+    //    and leaves the persisted document valid for reloading.
+    let closed = publish_surface_mutation(
+        &store,
+        &surfaces,
+        options(),
+        EmptyWindowPolicy::Allow,
+        &SurfaceMutationRequest::new(
+            longhorn_core::SurfaceRequestId::new("request:close-surface-a").unwrap(),
+            SurfaceRevision::new(9),
+            SurfaceMutationCommand::CloseSurface {
+                surface_id: surface_id("surface:a"),
+            },
+        ),
+    )
+    .unwrap();
+    assert_eq!(closed.surface().committed_revision().get(), 10);
 
     let LoadOutcome::Ready(surface_state) = store.load(&surfaces).unwrap() else {
         panic!("Surface state should load");
     };
-    let LoadOutcome::Ready(layout_state) = store.load(&layout).unwrap() else {
-        panic!("layout state should load");
-    };
     let LoadOutcome::Ready(window_state) = store.load(&window).unwrap() else {
         panic!("window state should load");
     };
-    assert_eq!(
+    assert_eq!(surface_state.value.revision().get(), 10);
+    assert!(
         surface_state
             .value
             .surface(&surface_id("surface:a"))
-            .unwrap()
-            .label(),
-        Some("Independent")
+            .is_none()
     );
-    assert_eq!(layout_state.value.revision().get(), 3);
+    assert!(surface_state.value.panel_instance(&panel_id).is_none());
     assert_eq!(window_state.value.width, 1440);
-    assert_ne!(fixture.path(&surfaces), fixture.path(&layout));
     assert_ne!(fixture.path(&surfaces), fixture.path(&window));
-    assert_ne!(fixture.path(&layout), fixture.path(&window));
-    assert_eq!(document().revision().get(), 7);
 }
 
-fn layout_domain() -> RegisteredLayoutDomain<NoLayoutMigration> {
-    RegisteredLayoutDomain::new(
-        DomainDescriptor::new(
-            DomainId::new("layout.workspace").unwrap(),
-            SchemaVersion::new(1).unwrap(),
-            StorageClass::MachineState,
-            Some(DomainFilePath::new("workspace/layout.json").unwrap()),
-        )
-        .unwrap(),
-        seeded_document(),
-        layout_registry(),
-        NoLayoutMigration,
-        LayoutBackupPolicy::Include,
-    )
-    .unwrap()
-}
-
-fn layout_registry() -> LayoutDefinitionRegistry {
-    LayoutDefinitionRegistry::new(
-        LayoutLimits::new(2, 2, 2, 2, 8, 8, 8).unwrap(),
+fn unified_surface_domain() -> RegisteredSurfaceDomain<NoSurfaceMigration> {
+    let schema_id = LayoutSchemaId::new("schema:test").unwrap();
+    let region_id = RegionId::new("region:main").unwrap();
+    let registry = LayoutDefinitionRegistry::new(
+        limits(),
         [LayoutSchemaDefinition::new(
-            LayoutSchemaId::new("schema:test").unwrap(),
+            schema_id.clone(),
             [RegionDefinition::new(
-                RegionId::new("region:main").unwrap(),
+                region_id.clone(),
                 RegionFamilyId::new("family:main").unwrap(),
                 0,
                 EmptyRegionPolicy::KeepVisible,
@@ -171,32 +191,48 @@ fn layout_registry() -> LayoutDefinitionRegistry {
             )],
             [],
         )],
+        [PanelDefinition::new(
+            PanelDefinitionId::new("panel:tool").unwrap(),
+            [PlacementSelector::Region(region_id.clone())],
+            [PlacementSelector::Region(region_id.clone())],
+            PanelInstancePolicy::Multiple,
+            true,
+            true,
+        )],
+    )
+    .unwrap();
+    let doc = SurfaceDocument::new(
+        SurfaceRevision::new(7),
+        [
+            SurfaceRecord::new(
+                surface_id("surface:a"),
+                schema_id.clone(),
+                Some("A".to_owned()),
+                [RegionState::new(region_id.clone(), [], None, None)],
+                [],
+                [SurfaceHostPreference::new(window_id("window:main"), 0)],
+            ),
+            SurfaceRecord::new(
+                surface_id("surface:b"),
+                schema_id,
+                Some("B".to_owned()),
+                [RegionState::new(region_id, [], None, None)],
+                [],
+                [SurfaceHostPreference::new(window_id("window:main"), 1)],
+            ),
+        ],
         [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:a")),
+        )],
+    );
+    RegisteredSurfaceDomain::new(
+        descriptor(1),
+        doc,
+        registry,
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
     )
     .unwrap()
-}
-
-fn seeded_document() -> SurfaceDocument {
-    SurfaceDocument::new(
-        longhorn_core::SurfaceRevision::new(3),
-        ["surface:a", "surface:b", "surface:c"]
-            .into_iter()
-            .map(|id| {
-                SurfaceRecord::new(
-                    surface_id(id),
-                    LayoutSchemaId::new("schema:test").unwrap(),
-                    None,
-                    [RegionState::new(
-                        RegionId::new("region:main").unwrap(),
-                        [],
-                        None,
-                        None,
-                    )],
-                    [],
-                    [],
-                )
-            }),
-        [],
-        [],
-    )
 }

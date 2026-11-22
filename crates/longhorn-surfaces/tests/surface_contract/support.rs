@@ -1,12 +1,28 @@
-use longhorn_core::{LayoutSchemaId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
+use longhorn_core::{
+    LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, RegionId, SurfaceId,
+    SurfaceRequestId, SurfaceRevision, WindowId,
+};
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition,
-    ParticipatingWindow, RegionDefinition, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
-    SurfaceRecord, SurfaceValidationCode, validate_document,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
+    PanelInstancePolicy, ParticipatingWindow, PlacementSelector, RegionDefinition, RegionState,
+    SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceRecord, SurfaceValidationCode,
+    validate_document,
 };
 
 pub fn limits() -> SurfaceLimits {
-    SurfaceLimits::new(8, 4, 4, 64).unwrap()
+    SurfaceLimits::builder()
+        .maximum_schemas(8)
+        .maximum_regions_per_schema(8)
+        .maximum_sizing_slots_per_schema(8)
+        .maximum_panel_definitions(64)
+        .maximum_surfaces(8)
+        .maximum_windows(4)
+        .maximum_host_preferences_per_surface(4)
+        .maximum_label_bytes(64)
+        .maximum_panel_instances(64)
+        .maximum_panel_instances_per_region(16)
+        .build()
+        .unwrap()
 }
 
 pub fn surface_id(value: &str) -> SurfaceId {
@@ -29,6 +45,18 @@ pub fn schema_id() -> LayoutSchemaId {
     LayoutSchemaId::new("schema:loophole").expect("schema id is valid")
 }
 
+pub fn region_id() -> RegionId {
+    RegionId::new("region:main").expect("region id is valid")
+}
+
+pub fn panel_definition_id(value: &str) -> PanelDefinitionId {
+    PanelDefinitionId::new(value).unwrap()
+}
+
+pub fn panel_instance_id(value: &str) -> PanelInstanceId {
+    PanelInstanceId::new(value).unwrap()
+}
+
 pub fn surface(
     id: &str,
     label: Option<&str>,
@@ -38,7 +66,7 @@ pub fn surface(
         surface_id(id),
         schema_id(),
         label.map(ToOwned::to_owned),
-        [],
+        [RegionState::new(region_id(), [], None, None)],
         [],
         preferences,
     )
@@ -72,27 +100,40 @@ pub fn loophole_document() -> SurfaceDocument {
 }
 
 pub fn registry() -> LayoutDefinitionRegistry {
+    registry_with_limits(limits())
+}
+
+pub fn registry_with_limits(limits: SurfaceLimits) -> LayoutDefinitionRegistry {
     LayoutDefinitionRegistry::new(
-        LayoutLimits::new(8, 8, 8, 64, 8, 64, 16).expect("layout limits are valid"),
+        limits,
         [LayoutSchemaDefinition::new(
             schema_id(),
             [RegionDefinition::new(
-                longhorn_core::RegionId::new("region:main").expect("region id is valid"),
-                longhorn_core::RegionFamilyId::new("family:main").expect("family id is valid"),
+                region_id(),
+                RegionFamilyId::new("family:main").expect("family id is valid"),
                 0,
                 EmptyRegionPolicy::KeepVisible,
                 false,
             )],
             [],
         )],
-        [],
+        [PanelDefinition::new(
+            panel_definition_id("panel:tool"),
+            [PlacementSelector::Region(region_id())],
+            [PlacementSelector::Region(region_id())],
+            PanelInstancePolicy::Multiple,
+            true,
+            true,
+        )],
     )
     .expect("registry is valid")
 }
 
 pub fn assert_code(document: SurfaceDocument, expected: SurfaceValidationCode) {
     assert_eq!(
-        validate_document(limits(), &document).unwrap_err().code(),
+        validate_document(&registry(), &document)
+            .unwrap_err()
+            .code(),
         expected
     );
 }

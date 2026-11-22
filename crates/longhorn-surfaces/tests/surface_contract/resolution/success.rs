@@ -7,7 +7,7 @@ fn preferred_and_fallback_resolution_table_is_exact() {
     let document = loophole_document();
 
     let preferred = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new(
             [
@@ -46,7 +46,7 @@ fn preferred_and_fallback_resolution_table_is_exact() {
     );
 
     let fallback = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new(
             [
@@ -87,7 +87,7 @@ fn presence_and_missing_windows_are_typed_without_mutation() {
     let before = document.clone();
 
     let absent = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new(
             [surface_id("surface:mix"), surface_id("surface:plugins")],
@@ -111,7 +111,7 @@ fn presence_and_missing_windows_are_typed_without_mutation() {
     );
 
     let unavailable = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new(
             [
@@ -143,7 +143,7 @@ fn structural_and_external_input_permutations_produce_one_snapshot() {
         document.windows().iter().rev().cloned(),
     );
     let first = resolve_surfaces(
-        limits(),
+        &registry(),
         &document,
         &SurfaceResolutionInput::new(
             [
@@ -156,7 +156,7 @@ fn structural_and_external_input_permutations_produce_one_snapshot() {
     )
     .unwrap();
     let second = resolve_surfaces(
-        limits(),
+        &registry(),
         &permuted,
         &SurfaceResolutionInput::new(
             [

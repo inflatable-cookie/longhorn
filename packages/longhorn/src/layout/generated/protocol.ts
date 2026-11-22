@@ -26,7 +26,7 @@ export type SurfaceRevision = number;
 
 export type LayoutRatio = number;
 
-export type LayoutLimits = { maximum_schemas: number, maximum_regions_per_schema: number, maximum_sizing_slots_per_schema: number, maximum_panel_definitions: number, maximum_surfaces: number, maximum_panel_instances: number, maximum_panel_instances_per_region: number, };
+export type SurfaceLimits = { maximum_schemas: number, maximum_regions_per_schema: number, maximum_sizing_slots_per_schema: number, maximum_panel_definitions: number, maximum_surfaces: number, maximum_windows: number, maximum_host_preferences_per_surface: number, maximum_label_bytes: number, maximum_panel_instances: number, maximum_panel_instances_per_region: number, };
 
 export type EmptyRegionPolicy = "keep_visible" | "hide_when_empty";
 
@@ -38,7 +38,7 @@ export type LayoutSchemaDefinition = { id: LayoutSchemaId, regions: Array<Region
 
 export type PlacementSelector = { "kind": "region", "id": RegionId } | { "kind": "family", "id": RegionFamilyId };
 
-export type PanelInstancePolicy = { "kind": "singleton" } | { "kind": "one_per_container" } | { "kind": "bounded", 
+export type PanelInstancePolicy = { "kind": "singleton" } | { "kind": "one_per_surface" } | { "kind": "bounded", 
 /**
  * Maximum instances in the complete document.
  */

@@ -2,8 +2,8 @@ use std::error::Error;
 
 use longhorn_core::{PanelDefinitionId, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId};
 use longhorn_surfaces::{
-    EmptyWindowPolicy, ParticipatingWindow, SURFACE_PROTOCOL_VERSION, SurfaceChangedEvent,
-    SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceMutationCommand,
+    EmptyWindowPolicy, ParticipatingWindow, RegionState, SURFACE_PROTOCOL_VERSION, SizingSlotState,
+    SurfaceChangedEvent, SurfaceDocument, SurfaceHostPreference, SurfaceMutationCommand,
     SurfaceMutationEngine, SurfaceMutationReceipt, SurfaceMutationRejection,
     SurfaceMutationRequest, SurfaceMutationResponse, SurfacePresentation, SurfaceProtocolEpoch,
     SurfaceRecord, SurfaceSnapshot,
@@ -35,11 +35,7 @@ pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
     let source = document();
     let requests = requests(source.revision());
     let registry = crate::layout::fixture::registry()?;
-    let engine = SurfaceMutationEngine::new(
-        SurfaceLimits::new(8, 4, 4, 64)?,
-        &registry,
-        EmptyWindowPolicy::Allow,
-    );
+    let engine = SurfaceMutationEngine::new(&registry, EmptyWindowPolicy::Allow);
     let receipts: Vec<_> = requests
         .iter()
         .map(|request| engine.apply(&source, request))
@@ -236,12 +232,25 @@ fn surface(
     label: Option<&str>,
     preferences: impl IntoIterator<Item = SurfaceHostPreference>,
 ) -> SurfaceRecord {
+    let schema = crate::layout::fixture::schema();
+    let regions = schema.regions().iter().map(|region| {
+        RegionState::new(
+            region.id().clone(),
+            [],
+            None,
+            region.is_collapsible().then_some(false),
+        )
+    });
+    let sizing_slots = schema
+        .sizing_slots()
+        .iter()
+        .map(|slot| SizingSlotState::new(slot.id().clone(), slot.default()));
     SurfaceRecord::new(
         surface_id(id),
-        schema_id(),
+        schema.id().clone(),
         label.map(ToOwned::to_owned),
-        [],
-        [],
+        regions,
+        sizing_slots,
         preferences,
     )
 }

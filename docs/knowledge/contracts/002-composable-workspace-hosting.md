@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-08-15
+Updated: 2026-11-22
 Evidence: `010-surface-hosting-and-transfer-boundary.md` (Git history)
 
 ## Problem
@@ -117,10 +117,11 @@ Creation and duplication take caller-supplied fresh ids and reject collisions.
 Duplication copies only generic Surface metadata and hosting policy. It does
 not clone layout contents, panels, or product resources.
 
-Close removes Surface topology. Longhorn does not delete layout or product
-state by inference. A consumer policy decides whether a participating window
-may become empty; the Loophole donor's last-Surface rule is not a hidden
-default.
+Close removes the Surface, its regions, its sizing slots, and all panel
+instances placed in its regions in the same commit. Longhorn does not delete
+product resources by inference. A consumer policy decides whether a
+participating window may become empty; the Loophole donor's last-Surface rule
+is not a hidden default.
 
 Move and reorder preserve the active member when it remains present. Removing
 the active member selects the Surface now at its former index, then the
@@ -149,10 +150,11 @@ The persistence adapter follows the same rules as the absorbed layout lane
 - explicit recovery on future, corrupt, or incompatible state
 - no inferred project, user, workspace, or filename
 
-Surface topology, layout state, and window geometry remain distinct domains.
-A single command cannot replace one domain with another. Multi-domain cleanup
-or cloning is an explicit consumer workflow until a later transaction contract
-is promoted.
+Surface topology and layout state share one `SurfaceDocument`, one validator
+against one `LayoutDefinitionRegistry` and `SurfaceLimits`, and one registered
+configuration domain (`RegisteredSurfaceDomain`) carrying the registry digest.
+Window geometry remains a distinct domain; a single command cannot replace a
+window domain with a Surface domain or copy renderer-supplied geometry into one.
 
 ## Window Host Integration
 
@@ -269,8 +271,12 @@ exist. Durable state contains no derived visibility and no product payload.
 ## Layout Normalization
 
 Current-schema commands operate only on valid input. Corrupt or future state
-enters the configuration recovery path instead of being silently repaired.
-Explicit migrations may translate older documents before validation.
+enters the configuration recovery path instead of being silently repaired;
+consumers that prefer to open on the registered default arrangement when stored
+state is unreadable may opt in explicitly through `load_or_default`
+(`LayoutFallback`), which returns the default in memory and leaves the stored
+file untouched on disk. Explicit migrations may translate older documents before
+validation.
 
 Successful mutation normalizes:
 
@@ -370,7 +376,19 @@ migration. The generic configuration envelope owns schema version. The raw
 layout value owns the registry digest and complete document. A current-schema
 digest mismatch enters recovery. The consumer must bump the domain schema and
 provide the ordered migration hook before Longhorn can reinterpret stored ids
-or policy.
+or policy. To upgrade pre-unification persisted files, consumers bump their
+`DomainDescriptor` schema version, attach
+`LegacySurfaceFormatMigration::digestless(old_version)` (for the former
+digest-less `{"document": ...}` Surface value),
+`LegacySurfaceFormatMigration::with_expected_digest(old_version, prior_digest)`
+(for a former layout value, verifying its stored `registryDigest` matches the
+exact expected prior digest), or a custom `SurfaceMigration` when schema
+changes require product-owned translation, and rewrite migrated files through
+`ConfigStore::rewrite_migrated_domain`, which writes a pre-migration safety
+backup of the original bytes before publishing the new schema and registry
+digest; files with an unexpected digest or whose inner document fails
+whole-document validation against the new registry enter recovery with their
+original bytes preserved on disk.
 
 ## Layout Rust And TypeScript
 

@@ -5,7 +5,7 @@ use super::support::*;
 #[test]
 fn loophole_shape_resolves_multiple_surfaces_across_multiple_windows() {
     let result = resolve_surfaces(
-        limits(),
+        &registry(),
         &loophole_document(),
         &SurfaceResolutionInput::new(
             [
@@ -35,22 +35,22 @@ fn loophole_shape_resolves_multiple_surfaces_across_multiple_windows() {
 }
 
 #[test]
-fn external_layout_bindings_remain_opaque_and_payload_free() {
+fn resolution_projects_only_surface_identity_schema_label_and_host_preference() {
     let result = resolve_surfaces(
-        limits(),
+        &registry(),
         &loophole_document(),
         &SurfaceResolutionInput::new([surface_id("surface:mix")], [window_id("window:main")]),
     )
     .unwrap();
-    let value = serde_json::to_value(result).unwrap();
-    let encoded = value.to_string();
 
-    // Card 179: the resolution payload names the Surface, and a Surface is the
-    // layout, so "regions" is no longer evidence of a layout leak here -- the
-    // resolution result still carries none.
-    assert!(encoded.contains("surface:mix"));
-    assert!(!encoded.contains("panels"));
-    assert!(!encoded.contains("display"));
-    assert!(!encoded.contains("geometry"));
-    assert!(!encoded.contains("predicate"));
+    assert_eq!(result.windows().len(), 1);
+    let window = &result.windows()[0];
+    assert_eq!(window.window_id(), &window_id("window:main"));
+    assert_eq!(window.active_surface_id(), Some(&surface_id("surface:mix")));
+    assert_eq!(window.surfaces().len(), 1);
+    let resolved = &window.surfaces()[0];
+    assert_eq!(resolved.surface_id(), &surface_id("surface:mix"));
+    assert_eq!(resolved.schema_id(), &schema_id());
+    assert_eq!(resolved.label(), Some("Mix"));
+    assert_eq!(resolved.host_preference_index(), 0);
 }

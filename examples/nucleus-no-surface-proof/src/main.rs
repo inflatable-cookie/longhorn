@@ -7,7 +7,9 @@ use longhorn_core::{
     DomainId, LayoutSchemaId, RegionId, ScreenPoint, ScreenSize, SurfaceId, SurfaceRevision,
     TransferHostBindingId, WindowId, WindowPlacement,
 };
-use longhorn_surfaces::{RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceRecord};
+use longhorn_surfaces::{
+    ParticipatingWindow, RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceRecord,
+};
 use longhorn_transfer::{PanelHostBinding, PanelHostBindings};
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostCapabilities, WindowDiffInput, plan_window_diff,
@@ -32,7 +34,10 @@ fn main() {
             [SurfaceHostPreference::new(window_id.clone(), 0)],
         )],
         [],
-        [],
+        [ParticipatingWindow::new(
+            window_id.clone(),
+            Some(surface_id.clone()),
+        )],
     );
     let desired = DesiredWindow::new(
         window_id.clone(),

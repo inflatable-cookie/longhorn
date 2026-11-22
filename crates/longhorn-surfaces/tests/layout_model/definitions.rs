@@ -1,7 +1,7 @@
 use longhorn_surfaces::{
-    DefinitionErrorCode, EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutLimits,
-    LayoutLimitsError, LayoutRatio, LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy,
-    PlacementSelector, RegionDefinition, SizingSlotDefinition,
+    DefinitionErrorCode, EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutRatio,
+    LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy, PlacementSelector,
+    RegionDefinition, SizingSlotDefinition, SurfaceLimits, SurfaceLimitsError,
 };
 
 use super::support::*;
@@ -9,14 +9,14 @@ use super::support::*;
 #[test]
 fn finite_limits_reject_zero_and_excessive_values() {
     assert_eq!(
-        LayoutLimits::new(0, 1, 1, 1, 1, 1, 1),
-        Err(LayoutLimitsError::Zero {
+        SurfaceLimits::builder().maximum_schemas(0).build(),
+        Err(SurfaceLimitsError::Zero {
             name: "maximum_schemas"
         })
     );
     assert!(matches!(
-        LayoutLimits::new(4_097, 1, 1, 1, 1, 1, 1),
-        Err(LayoutLimitsError::ExceedsHardMaximum {
+        SurfaceLimits::builder().maximum_schemas(4_097).build(),
+        Err(SurfaceLimitsError::ExceedsHardMaximum {
             name: "maximum_schemas",
             maximum: 4_096,
             actual: 4_097,
@@ -25,7 +25,7 @@ fn finite_limits_reject_zero_and_excessive_values() {
 
     let serialized = serde_json::to_value(limits()).unwrap();
     assert_eq!(
-        serde_json::from_value::<LayoutLimits>(serialized).unwrap(),
+        serde_json::from_value::<SurfaceLimits>(serialized).unwrap(),
         limits()
     );
 
@@ -34,7 +34,7 @@ fn finite_limits_reject_zero_and_excessive_values() {
         .as_object_mut()
         .unwrap()
         .insert("maximum_surfaces".into(), 0.into());
-    assert!(serde_json::from_value::<LayoutLimits>(invalid).is_err());
+    assert!(serde_json::from_value::<SurfaceLimits>(invalid).is_err());
 }
 
 #[test]

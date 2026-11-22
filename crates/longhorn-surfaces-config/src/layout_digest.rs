@@ -1,6 +1,6 @@
-use longhorn_config::Sha256Digest;
+use longhorn_config::{Sha256Digest, Sha256DigestError};
 use longhorn_surfaces::{
-    LayoutDefinitionRegistry, LayoutLimits, LayoutSchemaDefinition, PanelDefinition,
+    LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition, SurfaceLimits,
 };
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +10,22 @@ use serde::{Deserialize, Serialize};
 pub struct LayoutRegistryDigest(Sha256Digest);
 
 impl LayoutRegistryDigest {
+    /// Validates an existing lowercase hexadecimal SHA-256 registry digest.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Sha256DigestError`] if `value` is not a 64-character lowercase
+    /// hexadecimal SHA-256 digest.
+    pub fn new(value: impl Into<String>) -> Result<Self, Sha256DigestError> {
+        Sha256Digest::new(value).map(Self)
+    }
+
+    /// Wraps a verified [`Sha256Digest`] as a registry digest.
+    #[must_use]
+    pub const fn from_sha256(digest: Sha256Digest) -> Self {
+        Self(digest)
+    }
+
     /// Returns the lowercase hexadecimal SHA-256 value.
     #[must_use]
     pub fn as_str(&self) -> &str {
@@ -20,7 +36,7 @@ impl LayoutRegistryDigest {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RegistryDigestMaterial<'registry> {
-    limits: LayoutLimits,
+    limits: SurfaceLimits,
     schemas: Vec<&'registry LayoutSchemaDefinition>,
     panel_definitions: Vec<&'registry PanelDefinition>,
 }

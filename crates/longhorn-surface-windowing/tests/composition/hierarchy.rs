@@ -5,7 +5,9 @@ use longhorn_surface_windowing::compose_surface_window_plan;
 use longhorn_surfaces::{PanelInstance, RegionState, SurfaceDocument, SurfaceRecord};
 use longhorn_windowing::WindowRole;
 
-use crate::support::{display, document, inventory, limits, resolve, surface_id};
+use crate::support::{
+    display, document, inventory, registry as layout_registry, resolve, surface_id,
+};
 
 #[test]
 fn loophole_fixture_resolves_window_surface_region_and_panel() {
@@ -14,7 +16,7 @@ fn loophole_fixture_resolves_window_surface_region_and_panel() {
         display("display:right", 1600, 1200, false),
     ]);
     let plan = compose_surface_window_plan(
-        limits(),
+        &layout_registry(),
         &document(),
         [surface_id("surface:mix"), surface_id("surface:edit")],
         &[

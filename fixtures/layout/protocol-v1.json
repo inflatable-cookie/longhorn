@@ -7,6 +7,9 @@
       "maximum_sizing_slots_per_schema": 16,
       "maximum_panel_definitions": 32,
       "maximum_surfaces": 8,
+      "maximum_windows": 4,
+      "maximum_host_preferences_per_surface": 4,
+      "maximum_label_bytes": 64,
       "maximum_panel_instances": 128,
       "maximum_panel_instances_per_region": 64
     },
@@ -110,7 +113,7 @@
           }
         ],
         "instance_policy": {
-          "kind": "one_per_container"
+          "kind": "one_per_surface"
         },
         "movable": false,
         "closeable": false
@@ -185,7 +188,12 @@
               "ratio": 250000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -202,7 +210,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     },
     {
       "revision": 8,
@@ -251,7 +264,12 @@
               "ratio": 250000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -272,7 +290,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     },
     {
       "revision": 8,
@@ -318,7 +341,12 @@
               "ratio": 250000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -331,7 +359,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     },
     {
       "revision": 8,
@@ -378,7 +411,12 @@
               "ratio": 250000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -395,7 +433,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     },
     {
       "revision": 8,
@@ -442,7 +485,12 @@
               "ratio": 250000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -459,7 +507,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     },
     {
       "revision": 8,
@@ -507,7 +560,12 @@
               "ratio": 250000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -524,7 +582,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     },
     {
       "revision": 8,
@@ -571,7 +634,12 @@
               "ratio": 400000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -588,7 +656,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     },
     {
       "revision": 8,
@@ -635,7 +708,12 @@
               "ratio": 250000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -652,7 +730,12 @@
           "definition_id": "panel:tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     }
   ],
   "commands": [
@@ -788,7 +871,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -809,7 +897,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -867,7 +960,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -880,7 +978,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -939,7 +1042,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -956,7 +1064,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1017,7 +1130,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1034,7 +1152,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1097,7 +1220,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1114,7 +1242,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1173,7 +1306,12 @@
                 "ratio": 400000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1190,7 +1328,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1249,7 +1392,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1266,7 +1414,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     }
   ],
@@ -1321,7 +1474,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1338,7 +1496,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1391,7 +1554,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1408,7 +1576,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1461,7 +1634,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1478,7 +1656,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1531,7 +1714,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1548,7 +1736,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1601,7 +1794,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1618,7 +1816,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1671,7 +1874,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1688,7 +1896,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1741,7 +1954,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1758,7 +1976,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1811,7 +2034,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1828,7 +2056,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1881,7 +2114,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1898,7 +2136,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -1951,7 +2194,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1968,7 +2216,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2021,7 +2274,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2038,7 +2296,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2091,7 +2354,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2108,7 +2376,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2161,7 +2434,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2178,7 +2456,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2231,7 +2514,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2248,7 +2536,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2301,7 +2594,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2318,7 +2616,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2371,7 +2674,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2388,7 +2696,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2441,7 +2754,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2458,7 +2776,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2511,7 +2834,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2528,7 +2856,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2581,7 +2914,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2598,7 +2936,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2651,7 +2994,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2668,7 +3016,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2721,7 +3074,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2738,7 +3096,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     {
@@ -2791,7 +3154,12 @@
                 "ratio": 250000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -2808,7 +3176,12 @@
             "definition_id": "panel:tool"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     }
   ],

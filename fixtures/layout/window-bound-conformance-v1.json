@@ -14,6 +14,9 @@
       "maximum_sizing_slots_per_schema": 8,
       "maximum_panel_definitions": 8,
       "maximum_surfaces": 4,
+      "maximum_windows": 4,
+      "maximum_host_preferences_per_surface": 4,
+      "maximum_label_bytes": 64,
       "maximum_panel_instances": 32,
       "maximum_panel_instances_per_region": 16
     },
@@ -123,7 +126,7 @@
           }
         ],
         "instance_policy": {
-          "kind": "one_per_container"
+          "kind": "one_per_surface"
         },
         "movable": true,
         "closeable": true
@@ -190,11 +193,21 @@
             "ratio": 740000
           }
         ],
-        "host_preferences": []
+        "host_preferences": [
+          {
+            "window_id": "window:primary",
+            "order": 0
+          }
+        ]
       }
     ],
     "panel_instances": [],
-    "windows": []
+    "windows": [
+      {
+        "id": "window:primary",
+        "active_surface_id": "surface:primary"
+      }
+    ]
   },
   "steps": [
     {
@@ -283,7 +296,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -292,7 +310,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     },
@@ -383,7 +406,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -396,7 +424,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     },
@@ -483,7 +516,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -496,7 +534,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     },
@@ -590,7 +633,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -603,7 +651,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     },
@@ -697,7 +750,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -710,7 +768,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     },
@@ -800,7 +863,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -813,7 +881,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     },
@@ -903,7 +976,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -916,7 +994,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     },
@@ -1002,7 +1085,12 @@
                   "ratio": 740000
                 }
               ],
-              "host_preferences": []
+              "host_preferences": [
+                {
+                  "window_id": "window:primary",
+                  "order": 0
+                }
+              ]
             }
           ],
           "panel_instances": [
@@ -1011,7 +1099,12 @@
               "definition_id": "panel:workspace-tool"
             }
           ],
-          "windows": []
+          "windows": [
+            {
+              "id": "window:primary",
+              "active_surface_id": "surface:primary"
+            }
+          ]
         }
       }
     }
@@ -1090,7 +1183,12 @@
                 "ratio": 740000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1099,7 +1197,12 @@
             "definition_id": "panel:tasks"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     },
     "second_rejection": {
@@ -1169,7 +1272,12 @@
                 "ratio": 740000
               }
             ],
-            "host_preferences": []
+            "host_preferences": [
+              {
+                "window_id": "window:primary",
+                "order": 0
+              }
+            ]
           }
         ],
         "panel_instances": [
@@ -1178,7 +1286,12 @@
             "definition_id": "panel:tasks"
           }
         ],
-        "windows": []
+        "windows": [
+          {
+            "id": "window:primary",
+            "active_surface_id": "surface:primary"
+          }
+        ]
       }
     }
   },
@@ -1293,7 +1406,12 @@
               "ratio": 740000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -1302,7 +1420,12 @@
           "definition_id": "panel:workspace-tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     }
   },
   "invalid_rejection": {
@@ -1372,7 +1495,12 @@
               "ratio": 740000
             }
           ],
-          "host_preferences": []
+          "host_preferences": [
+            {
+              "window_id": "window:primary",
+              "order": 0
+            }
+          ]
         }
       ],
       "panel_instances": [
@@ -1381,7 +1509,12 @@
           "definition_id": "panel:workspace-tool"
         }
       ],
-      "windows": []
+      "windows": [
+        {
+          "id": "window:primary",
+          "active_surface_id": "surface:primary"
+        }
+      ]
     }
   },
   "expected_snapshot": {
@@ -1446,7 +1579,12 @@
             "ratio": 740000
           }
         ],
-        "host_preferences": []
+        "host_preferences": [
+          {
+            "window_id": "window:primary",
+            "order": 0
+          }
+        ]
       }
     ],
     "panel_instances": [
@@ -1455,6 +1593,11 @@
         "definition_id": "panel:workspace-tool"
       }
     ],
-    "windows": []
+    "windows": [
+      {
+        "id": "window:primary",
+        "active_surface_id": "surface:primary"
+      }
+    ]
   }
 }

@@ -1,4 +1,6 @@
-use longhorn_core::{SurfaceId, WindowId};
+use std::collections::BTreeSet;
+
+use longhorn_core::{PanelInstanceId, SurfaceId, WindowId};
 
 use crate::SurfaceDocument;
 
@@ -50,11 +52,11 @@ pub(super) fn move_surface(
         ));
     }
 
-    let source_order = ordered_members(document, &source_window_id);
-    let former_index = source_order
+    let source_primary_order = primary_members(document, &source_window_id);
+    let former_index = source_primary_order
         .iter()
         .position(|member| member == surface_id)
-        .expect("source preference supplies membership");
+        .expect("source primary preference supplies primary membership");
     let mut target_order = ordered_members(document, target_window_id);
     target_order.retain(|member| member != surface_id);
     let insertion_index = usize::try_from(insertion_index).map_err(|_| invalid_index())?;
@@ -120,6 +122,12 @@ pub(super) fn close_surface(
         })
         .collect::<Vec<_>>();
 
+    let removed_panels: BTreeSet<PanelInstanceId> = surface
+        .regions()
+        .iter()
+        .flat_map(|region| region.panel_instance_ids().iter().cloned())
+        .collect();
+
     if empty_policy == EmptyWindowPolicy::Reject {
         for (window_id, _) in &former_memberships {
             if ordered_members(document, window_id).len() == 1 {
@@ -134,6 +142,11 @@ pub(super) fn close_surface(
     document
         .surfaces_mut()
         .retain(|surface| surface.id() != surface_id);
+    if !removed_panels.is_empty() {
+        document
+            .panel_instances_mut()
+            .retain(|instance| !removed_panels.contains(instance.id()));
+    }
     for (window_id, former_index) in former_memberships {
         let remaining = ordered_members(document, &window_id);
         set_window_order(document, &window_id, &remaining);

@@ -13,7 +13,7 @@ use longhorn_config::{
 use longhorn_core::{DomainId, SchemaVersion};
 use longhorn_surfaces::LayoutMutationRejectionCode;
 use longhorn_surfaces_config::{
-    LayoutConfigMutationError, NoLayoutMigration, RegisteredLayoutDomain, publish_layout_mutation,
+    LayoutConfigMutationError, NoSurfaceMigration, RegisteredSurfaceDomain, publish_layout_mutation,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -222,12 +222,12 @@ impl ConfigDomain for WindowDomain {
 fn independent_layout_and_window_domains_cannot_replace_each_other() {
     let fixture = Fixture::new();
     let layout = Arc::new(
-        RegisteredLayoutDomain::new(
+        RegisteredSurfaceDomain::new(
             crate::support::descriptor(1),
             document(),
             registry(),
-            NoLayoutMigration,
-            longhorn_surfaces_config::LayoutBackupPolicy::Include,
+            NoSurfaceMigration,
+            longhorn_surfaces_config::SurfaceBackupPolicy::Include,
         )
         .unwrap(),
     );

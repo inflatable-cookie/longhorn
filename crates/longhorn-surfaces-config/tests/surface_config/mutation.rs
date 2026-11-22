@@ -10,7 +10,7 @@ use longhorn_config::LoadOutcome;
 use longhorn_surfaces::{EmptyWindowPolicy, SurfaceMutationRejectionCode};
 use longhorn_surfaces_config::{SurfaceConfigMutationError, publish_surface_mutation};
 
-use crate::support::{Fixture, domain, options, registry, rename_request, surface_id};
+use crate::support::{Fixture, domain, options, rename_request, surface_id};
 
 #[test]
 fn immediate_publication_uses_fresh_complete_state() {
@@ -22,7 +22,6 @@ fn immediate_publication_uses_fresh_complete_state() {
         &store,
         &domain,
         options(),
-        &registry(),
         EmptyWindowPolicy::Allow,
         &rename_request(7, "Renamed"),
     )
@@ -49,12 +48,10 @@ fn immediate_publication_uses_fresh_complete_state() {
 fn two_same_revision_writers_admit_exactly_one() {
     let fixture = Fixture::new();
     let domain = Arc::new(domain());
-    let layout = Arc::new(registry());
     let barrier = Arc::new(Barrier::new(3));
     let mut handles = Vec::new();
     for request in [rename_request(7, "First"), rename_request(7, "Second")] {
         let domain = Arc::clone(&domain);
-        let layout = Arc::clone(&layout);
         let barrier = Arc::clone(&barrier);
         let roots = fixture.roots();
         let coordination = fixture.coordination();
@@ -66,7 +63,6 @@ fn two_same_revision_writers_admit_exactly_one() {
                 &store,
                 domain.as_ref(),
                 options(),
-                layout.as_ref(),
                 EmptyWindowPolicy::Allow,
                 &request,
             )

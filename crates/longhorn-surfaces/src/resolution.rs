@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use longhorn_core::{SurfaceId, WindowId};
 
-use crate::{SurfaceDocument, SurfaceLimits, normalize_document};
+use crate::{LayoutDefinitionRegistry, SurfaceDocument, normalize_document};
 
 mod error;
 mod model;
@@ -17,16 +17,17 @@ use error::resolution_error;
 
 /// Resolves current presence against available declared candidate windows.
 pub fn resolve_surfaces(
-    limits: SurfaceLimits,
+    registry: &LayoutDefinitionRegistry,
     document: &SurfaceDocument,
     input: &SurfaceResolutionInput,
 ) -> Result<SurfaceResolution, SurfaceResolutionError> {
-    let document = normalize_document(limits, document).map_err(|error| {
+    let document = normalize_document(registry, document).map_err(|error| {
         resolution_error(
             SurfaceResolutionErrorCode::InvalidDocument,
             error.to_string(),
         )
     })?;
+    let limits = registry.limits();
 
     if input.admitted_surface_ids().len() > limits.maximum_surfaces() {
         return Err(resolution_error(

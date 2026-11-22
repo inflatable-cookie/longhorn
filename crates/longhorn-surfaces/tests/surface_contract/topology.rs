@@ -111,9 +111,17 @@ fn topology_rejects_bad_active_count_and_label_state() {
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_eq!(
-        longhorn_surfaces::validate_document(SurfaceLimits::new(2, 2, 2, 4).unwrap(), &long_label)
-            .unwrap_err()
-            .code(),
+        longhorn_surfaces::validate_document(
+            &registry_with_limits(
+                SurfaceLimits::builder()
+                    .maximum_label_bytes(4)
+                    .build()
+                    .unwrap()
+            ),
+            &long_label,
+        )
+        .unwrap_err()
+        .code(),
         SurfaceValidationCode::LabelTooLong
     );
 
@@ -127,9 +135,17 @@ fn topology_rejects_bad_active_count_and_label_state() {
         [ParticipatingWindow::new(window_id("window:a"), None)],
     );
     assert_eq!(
-        longhorn_surfaces::validate_document(SurfaceLimits::new(1, 2, 2, 16).unwrap(), &excessive)
-            .unwrap_err()
-            .code(),
+        longhorn_surfaces::validate_document(
+            &registry_with_limits(
+                SurfaceLimits::builder()
+                    .maximum_surfaces(1)
+                    .build()
+                    .unwrap()
+            ),
+            &excessive,
+        )
+        .unwrap_err()
+        .code(),
         SurfaceValidationCode::TooManySurfaces
     );
 
@@ -144,8 +160,8 @@ fn topology_rejects_bad_active_count_and_label_state() {
     );
     assert_eq!(
         longhorn_surfaces::validate_document(
-            SurfaceLimits::new(2, 1, 2, 16).unwrap(),
-            &too_many_windows
+            &registry_with_limits(SurfaceLimits::builder().maximum_windows(1).build().unwrap()),
+            &too_many_windows,
         )
         .unwrap_err()
         .code(),
@@ -167,8 +183,13 @@ fn topology_rejects_bad_active_count_and_label_state() {
     );
     assert_eq!(
         longhorn_surfaces::validate_document(
-            SurfaceLimits::new(2, 2, 1, 16).unwrap(),
-            &too_many_preferences
+            &registry_with_limits(
+                SurfaceLimits::builder()
+                    .maximum_host_preferences_per_surface(1)
+                    .build()
+                    .unwrap()
+            ),
+            &too_many_preferences,
         )
         .unwrap_err()
         .code(),
@@ -186,7 +207,7 @@ fn normalization_canonicalizes_structure_and_preserves_declared_host_priority() 
         source.windows().iter().rev().cloned(),
     );
 
-    let normalized = normalize_document(limits(), &permuted).unwrap();
+    let normalized = normalize_document(&registry(), &permuted).unwrap();
     assert_eq!(
         normalized
             .surfaces()
@@ -206,12 +227,12 @@ fn normalization_canonicalizes_structure_and_preserves_declared_host_priority() 
         vec!["window:main", "window:tools"]
     );
     assert_eq!(
-        normalize_document(limits(), &normalized).unwrap(),
+        normalize_document(&registry(), &normalized).unwrap(),
         normalized
     );
-    validate_normalized_document(limits(), &normalized).unwrap();
+    validate_normalized_document(&registry(), &normalized).unwrap();
     assert_eq!(
-        validate_normalized_document(limits(), &permuted)
+        validate_normalized_document(&registry(), &permuted)
             .unwrap_err()
             .code(),
         SurfaceValidationCode::NonCanonicalDocument

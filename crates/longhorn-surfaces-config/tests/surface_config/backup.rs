@@ -6,7 +6,7 @@ use longhorn_config::{
 use longhorn_core::{DomainId, SchemaVersion};
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 
-use crate::support::{Fixture, document, domain, limits};
+use crate::support::{Fixture, document, domain, registry};
 
 #[test]
 fn backup_catalogue_preserves_include_and_exclude_policy() {
@@ -21,7 +21,7 @@ fn backup_catalogue_preserves_include_and_exclude_policy() {
         )
         .unwrap(),
         document(),
-        limits(),
+        registry(),
         NoSurfaceMigration,
         SurfaceBackupPolicy::Exclude(
             BackupExclusionReason::new("session-surfaces-are-recreatable").unwrap(),

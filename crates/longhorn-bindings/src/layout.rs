@@ -5,12 +5,12 @@ use longhorn_core::{
     SizingSlotId, SurfaceId, SurfaceRevision, WindowId,
 };
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LAYOUT_PROTOCOL_VERSION, LayoutLimits, LayoutMutationCommand,
-    LayoutMutationOutcome, LayoutMutationReceipt, LayoutMutationRejection,
-    LayoutMutationRejectionCode, LayoutMutationRequest, LayoutRatio, LayoutSchemaDefinition,
-    PanelDefinition, PanelInstance, PanelInstancePolicy, ParticipatingWindow, PlacementSelector,
-    RegionDefinition, RegionState, RegionVisibility, RegionVisibilityState, SizingSlotDefinition,
-    SizingSlotState, SurfaceDocument, SurfaceHostPreference, SurfacePresentation, SurfaceRecord,
+    EmptyRegionPolicy, LAYOUT_PROTOCOL_VERSION, LayoutMutationCommand, LayoutMutationOutcome,
+    LayoutMutationReceipt, LayoutMutationRejection, LayoutMutationRejectionCode,
+    LayoutMutationRequest, LayoutRatio, LayoutSchemaDefinition, PanelDefinition, PanelInstance,
+    PanelInstancePolicy, ParticipatingWindow, PlacementSelector, RegionDefinition, RegionState,
+    RegionVisibility, RegionVisibilityState, SizingSlotDefinition, SizingSlotState,
+    SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfacePresentation, SurfaceRecord,
 };
 use ts_rs::TS;
 
@@ -73,7 +73,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         LayoutRequestId::decl(config()),
         SurfaceRevision::decl(config()),
         LayoutRatio::decl(config()),
-        LayoutLimits::decl(config()),
+        SurfaceLimits::decl(config()),
         EmptyRegionPolicy::decl(config()),
         RegionDefinition::decl(config()),
         SizingSlotDefinition::decl(config()),

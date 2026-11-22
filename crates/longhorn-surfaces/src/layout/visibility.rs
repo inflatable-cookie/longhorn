@@ -3,8 +3,10 @@ use std::{error::Error, fmt};
 use longhorn_core::{PanelDefinitionId, RegionId, SurfaceId};
 use serde::{Deserialize, Serialize};
 
-use crate::layout::validation::validate_document;
-use crate::{EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutValidationError, SurfaceDocument};
+use crate::{
+    EmptyRegionPolicy, LayoutDefinitionRegistry, SurfaceDocument, SurfaceValidationError,
+    validate_document,
+};
 
 /// Projected presentation state for one semantic region.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -75,7 +77,7 @@ pub fn project_region_visibility(
                 panel.is_movable()
                     && registry
                         .is_panel_allowed_in(surface.schema_id(), panel.id(), definition.id())
-                        .unwrap_or(false)
+                        .expect("schema, panel definition, and region were validated")
             });
 
         projection.push(RegionVisibility {
@@ -96,7 +98,7 @@ pub fn project_region_visibility(
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VisibilityProjectionError {
     /// The source document was invalid.
-    InvalidDocument(LayoutValidationError),
+    InvalidDocument(SurfaceValidationError),
     /// The requested layout surface did not exist.
     UnknownSurface(SurfaceId),
     /// The transient panel definition was not registered.

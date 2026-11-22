@@ -2,14 +2,14 @@ use longhorn_core::{ScreenPoint, ScreenSize, WindowPlacement};
 use longhorn_surface_windowing::{SurfaceWindowCompositionErrorCode, compose_surface_window_plan};
 use longhorn_windowing::{DesiredWindow, WindowPlacementResolution, WindowRole};
 
-use crate::support::{display, document, inventory, limits, resolve, surface_id, window_id};
+use crate::support::{display, document, inventory, registry, resolve, surface_id, window_id};
 
 #[test]
 fn missing_and_returning_preferred_window_do_not_rewrite_surface_state() {
     let source = document();
     let main_only = inventory(&[display("display:main", 0, 1600, true)]);
     let fallback = compose_surface_window_plan(
-        limits(),
+        &registry(),
         &source,
         [surface_id("surface:mix"), surface_id("surface:edit")],
         &[
@@ -39,7 +39,7 @@ fn missing_and_returning_preferred_window_do_not_rewrite_surface_state() {
         display("display:right", 1600, 1200, false),
     ]);
     let returned = compose_surface_window_plan(
-        limits(),
+        &registry(),
         &source,
         [surface_id("surface:mix"), surface_id("surface:edit")],
         &[
@@ -87,7 +87,7 @@ fn direct_window_outcomes_are_ignored_and_visibility_stays_caller_owned() {
         },
     );
     let plan = compose_surface_window_plan(
-        limits(),
+        &registry(),
         &document(),
         [surface_id("surface:edit")],
         &[
@@ -111,7 +111,7 @@ fn temporary_display_fallback_remains_window_evidence_not_surface_adoption() {
     let source = document();
     let displays = inventory(&[display("display:main", 0, 1600, true)]);
     let plan = compose_surface_window_plan(
-        limits(),
+        &registry(),
         &source,
         [surface_id("surface:edit")],
         &[resolve(
@@ -142,7 +142,7 @@ fn duplicate_participating_placement_is_typed() {
         &displays,
     );
     let error = compose_surface_window_plan(
-        limits(),
+        &registry(),
         &document(),
         [surface_id("surface:edit")],
         &[placement.clone(), placement],
@@ -159,7 +159,7 @@ fn duplicate_participating_placement_is_typed() {
 fn desired_windows_remain_plain_windowing_inputs() {
     let displays = inventory(&[display("display:main", 0, 1600, true)]);
     let plan = compose_surface_window_plan(
-        limits(),
+        &registry(),
         &document(),
         [surface_id("surface:edit")],
         &[resolve(

@@ -10,7 +10,9 @@ use longhorn_display::{
 };
 use longhorn_surface_windowing::{SurfaceWindowPlan, compose_surface_window_plan};
 use longhorn_surfaces::{
-    ParticipatingWindow, SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, ParticipatingWindow,
+    RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
+    SurfaceRecord,
 };
 use longhorn_tauri_windowing::{TauriWindowFactory, WindowFactoryError};
 use longhorn_windowing::{
@@ -55,8 +57,30 @@ impl TauriWindowFactory<MockRuntime> for SurfaceWindowFactory {
 
 pub(super) fn surface_plan(document: &SurfaceDocument) -> SurfaceWindowPlan {
     let inventory = display_inventory();
+    let registry = LayoutDefinitionRegistry::new(
+        SurfaceLimits::builder()
+            .maximum_surfaces(8)
+            .maximum_windows(4)
+            .maximum_host_preferences_per_surface(4)
+            .maximum_label_bytes(64)
+            .build()
+            .unwrap(),
+        [LayoutSchemaDefinition::new(
+            longhorn_core::LayoutSchemaId::new("schema:composition").unwrap(),
+            [RegionDefinition::new(
+                longhorn_core::RegionId::new("region:main").unwrap(),
+                longhorn_core::RegionFamilyId::new("family:main").unwrap(),
+                0,
+                EmptyRegionPolicy::KeepVisible,
+                false,
+            )],
+            [],
+        )],
+        [],
+    )
+    .unwrap();
     compose_surface_window_plan(
-        SurfaceLimits::new(8, 4, 4, 64).unwrap(),
+        &registry,
         document,
         [surface_id("surface:main"), surface_id("surface:workspace")],
         &[
@@ -69,6 +93,7 @@ pub(super) fn surface_plan(document: &SurfaceDocument) -> SurfaceWindowPlan {
 }
 
 pub(super) fn surface_document() -> SurfaceDocument {
+    let region_id = longhorn_core::RegionId::new("region:main").unwrap();
     SurfaceDocument::new(
         SurfaceRevision::new(12),
         [
@@ -76,7 +101,7 @@ pub(super) fn surface_document() -> SurfaceDocument {
                 surface_id("surface:main"),
                 longhorn_core::LayoutSchemaId::new("schema:composition").unwrap(),
                 None,
-                [],
+                [RegionState::new(region_id.clone(), [], None, None)],
                 [],
                 [SurfaceHostPreference::new(id("window:main"), 0)],
             ),
@@ -84,7 +109,7 @@ pub(super) fn surface_document() -> SurfaceDocument {
                 surface_id("surface:workspace"),
                 longhorn_core::LayoutSchemaId::new("schema:composition").unwrap(),
                 None,
-                [],
+                [RegionState::new(region_id, [], None, None)],
                 [],
                 [SurfaceHostPreference::new(id("window:workspace"), 0)],
             ),

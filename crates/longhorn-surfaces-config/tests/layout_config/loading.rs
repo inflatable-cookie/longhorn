@@ -3,8 +3,8 @@ use longhorn_config::{
 };
 use longhorn_core::SchemaVersion;
 use longhorn_surfaces_config::{
-    LayoutBackupPolicy, LayoutMigration, LayoutMigrationTarget, NoLayoutMigration,
-    PersistedLayoutDocument, RegisteredLayoutDomain, compute_layout_registry_digest,
+    NoSurfaceMigration, PersistedSurfaceDocument, RegisteredSurfaceDomain, SurfaceBackupPolicy,
+    SurfaceMigration, SurfaceMigrationTarget, compute_layout_registry_digest,
 };
 use serde_json::Value;
 
@@ -66,12 +66,12 @@ fn future_schema_and_registry_mismatch_preserve_exact_source() {
     assert_eq!(recovery.kind, RecoveryKind::FutureSchema);
     assert_eq!(recovery.source.unwrap().bytes, future);
 
-    let changed = RegisteredLayoutDomain::new(
+    let changed = RegisteredSurfaceDomain::new(
         descriptor(1),
         document(),
         registry_with_maximum_schemas(9),
-        NoLayoutMigration,
-        LayoutBackupPolicy::Include,
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
     )
     .unwrap();
     let mismatch = envelope("layout.workspace", 1, current_value(&domain));
@@ -82,14 +82,14 @@ fn future_schema_and_registry_mismatch_preserve_exact_source() {
         panic!("registry mismatch should enter recovery");
     };
     assert_eq!(recovery.kind, RecoveryKind::InvalidValue);
-    assert!(recovery.detail.contains("layout-registry-mismatch"));
+    assert!(recovery.detail.contains("surface-registry-mismatch"));
     assert_eq!(recovery.source.unwrap().bytes, mismatch);
 }
 
 #[derive(Clone, Copy, Debug)]
 struct RegistryMigration;
 
-impl LayoutMigration for RegistryMigration {
+impl SurfaceMigration for RegistryMigration {
     fn validate_raw(
         &self,
         schema_version: SchemaVersion,
@@ -98,7 +98,7 @@ impl LayoutMigration for RegistryMigration {
         if schema_version.get() != 1 {
             return Err(DomainIssue::new("old-layout-schema", "expected schema 1"));
         }
-        serde_json::from_value::<PersistedLayoutDocument>(value.clone())
+        serde_json::from_value::<PersistedSurfaceDocument>(value.clone())
             .map(|_| ())
             .map_err(|error| DomainIssue::new("old-layout-shape", error.to_string()))
     }
@@ -107,12 +107,12 @@ impl LayoutMigration for RegistryMigration {
         &self,
         from: SchemaVersion,
         value: Value,
-        target: LayoutMigrationTarget<'_>,
+        target: SurfaceMigrationTarget<'_>,
     ) -> Result<Option<MigrationStep>, DomainIssue> {
         if from.get() != 1 {
             return Ok(None);
         }
-        let old: PersistedLayoutDocument = serde_json::from_value(value)
+        let old: PersistedSurfaceDocument = serde_json::from_value(value)
             .map_err(|error| DomainIssue::new("old-layout-decode", error.to_string()))?;
         Ok(Some(MigrationStep {
             schema_version: target.schema_version(),
@@ -127,12 +127,12 @@ fn registry_change_loads_only_through_explicit_schema_migration() {
     let old = domain();
     let old_bytes = envelope("layout.workspace", 1, current_value(&old));
     let current_registry = registry_with_maximum_schemas(9);
-    let current = RegisteredLayoutDomain::new(
+    let current = RegisteredSurfaceDomain::new(
         descriptor(2),
         document(),
         current_registry,
         RegistryMigration,
-        LayoutBackupPolicy::Include,
+        SurfaceBackupPolicy::Include,
     )
     .unwrap();
     fixture.write(&current, &old_bytes);
@@ -173,12 +173,12 @@ fn registry_digest_is_canonical_and_policy_sensitive() {
 fn missing_old_migration_is_inspectable() {
     let fixture = Fixture::new();
     let old = domain();
-    let current = RegisteredLayoutDomain::new(
+    let current = RegisteredSurfaceDomain::new(
         descriptor(2),
         document(),
         registry(),
-        NoLayoutMigration,
-        LayoutBackupPolicy::Include,
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
     )
     .unwrap();
     let bytes = envelope("layout.workspace", 1, current_value(&old));

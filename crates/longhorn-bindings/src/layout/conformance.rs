@@ -2,10 +2,10 @@ use std::{error::Error, io};
 
 use longhorn_core::{RegionId, SurfaceRevision};
 use longhorn_surfaces::{
-    LAYOUT_PROTOCOL_VERSION, LayoutDefinitionRegistry, LayoutLimits, LayoutMutationCommand,
-    LayoutMutationEngine, LayoutMutationReceipt, LayoutMutationRejection,
-    LayoutMutationRejectionCode, LayoutMutationRequest, LayoutSchemaDefinition, PanelDefinition,
-    RegionVisibility, SurfaceDocument, project_region_visibility,
+    LAYOUT_PROTOCOL_VERSION, LayoutDefinitionRegistry, LayoutMutationCommand, LayoutMutationEngine,
+    LayoutMutationReceipt, LayoutMutationRejection, LayoutMutationRejectionCode,
+    LayoutMutationRequest, LayoutSchemaDefinition, PanelDefinition, RegionVisibility,
+    SurfaceDocument, SurfaceLimits, project_region_visibility,
 };
 use serde::Serialize;
 
@@ -36,7 +36,7 @@ struct ConformanceFixture {
 
 #[derive(Serialize)]
 struct FixtureDefinitions {
-    limits: LayoutLimits,
+    limits: SurfaceLimits,
     schema: LayoutSchemaDefinition,
     panels: Vec<PanelDefinition>,
 }

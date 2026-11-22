@@ -1,7 +1,7 @@
 use longhorn_core::{LayoutSchemaId, PanelDefinitionId, RegionFamilyId, RegionId, SizingSlotId};
 use serde::{Deserialize, Serialize};
 
-use crate::{LayoutLimits, LayoutRatio};
+use crate::{LayoutRatio, SurfaceLimits};
 
 mod error;
 mod registry;
@@ -235,8 +235,8 @@ impl PlacementSelector {
 pub enum PanelInstancePolicy {
     /// At most one instance may exist in the complete document.
     Singleton,
-    /// At most one instance may exist in each surface.
-    OnePerContainer,
+    /// At most one instance may exist in each Surface.
+    OnePerSurface,
     /// Explicit document and per-surface maxima.
     Bounded {
         /// Maximum instances in the complete document.

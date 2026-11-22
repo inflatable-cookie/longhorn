@@ -284,10 +284,10 @@ fn structural_input_permutations_produce_one_receipt() {
             None,
             source_surface.regions().iter().rev().cloned(),
             source_surface.sizing_slots().iter().rev().cloned(),
-            [],
+            source_surface.host_preferences().iter().cloned(),
         )],
         canonical.panel_instances().iter().rev().cloned(),
-        [],
+        canonical.windows().iter().cloned(),
     );
     let request = LayoutMutationRequest::new(
         request_id("request:permutation"),

@@ -1,7 +1,8 @@
 use longhorn_core::SurfaceRevision;
 use longhorn_surfaces::{
-    LayoutRatio, LayoutValidationCode, PanelInstance, RegionState, SizingSlotState,
-    SurfaceDocument, SurfaceRecord, normalize_layout, validate_layout, validate_normalized_layout,
+    LayoutRatio, PanelInstance, ParticipatingWindow, RegionState, SizingSlotState, SurfaceDocument,
+    SurfaceHostPreference, SurfaceRecord, SurfaceValidationCode, normalize_document,
+    validate_document, validate_normalized_document, validate_normalized_layout,
 };
 
 use super::support::*;
@@ -31,17 +32,20 @@ fn normalization_canonicalizes_structure_but_preserves_tab_order() {
                 SizingSlotState::new(slot_id("right-width"), ratio(250_000)),
                 SizingSlotState::new(slot_id("left-width"), ratio(200_000)),
             ],
-            [],
+            [SurfaceHostPreference::new(window_id("window:main"), 0)],
         )],
         [
             PanelInstance::new(tool.clone(), definition_id("panel:tool")),
             PanelInstance::new(chat.clone(), definition_id("panel:chat")),
             PanelInstance::new(activity.clone(), definition_id("panel:activity")),
         ],
-        [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:primary")),
+        )],
     );
 
-    let normalized = normalize_layout(&registry(), &input).unwrap();
+    let normalized = normalize_document(&registry(), &input).unwrap();
     let surface = normalized.surfaces().first().unwrap();
 
     assert_eq!(
@@ -82,14 +86,21 @@ fn normalization_canonicalizes_structure_but_preserves_tab_order() {
         surface.region(&region_id("center")).unwrap().collapsed(),
         None
     );
+    assert_eq!(
+        validate_normalized_layout(&registry(), &input)
+            .unwrap_err()
+            .code(),
+        SurfaceValidationCode::NonCanonicalDocument
+    );
+    validate_normalized_document(&registry(), &normalized).unwrap();
     validate_normalized_layout(&registry(), &normalized).unwrap();
 }
 
 #[test]
 fn normalization_is_idempotent_and_serde_round_trips() {
     let registry = registry();
-    let first = normalize_layout(&registry, &document()).unwrap();
-    let second = normalize_layout(&registry, &first).unwrap();
+    let first = normalize_document(&registry, &document()).unwrap();
+    let second = normalize_document(&registry, &first).unwrap();
     let encoded = serde_json::to_vec(&second).unwrap();
     let decoded: SurfaceDocument = serde_json::from_slice(&encoded).unwrap();
 
@@ -125,7 +136,10 @@ fn validation_rejects_active_duplicate_unplaced_and_bad_sizing_state() {
         ],
         ratio(250_000),
     );
-    assert_code(invalid_active, LayoutValidationCode::ActivePanelNotInRegion);
+    assert_code(
+        invalid_active,
+        SurfaceValidationCode::ActivePanelNotInRegion,
+    );
 
     let duplicate = single_surface_document(
         [
@@ -154,7 +168,7 @@ fn validation_rejects_active_duplicate_unplaced_and_bad_sizing_state() {
         ],
         ratio(250_000),
     );
-    assert_code(duplicate, LayoutValidationCode::DuplicatePanelPlacement);
+    assert_code(duplicate, SurfaceValidationCode::DuplicatePanelPlacement);
 
     let unplaced = single_surface_document(
         [
@@ -173,11 +187,11 @@ fn validation_rejects_active_duplicate_unplaced_and_bad_sizing_state() {
         ],
         ratio(250_000),
     );
-    assert_code(unplaced, LayoutValidationCode::UnplacedPanelInstance);
+    assert_code(unplaced, SurfaceValidationCode::UnplacedPanelInstance);
 
     assert_code(
         document_with_right_ratio(ratio(900_000)),
-        LayoutValidationCode::SizingRatioOutOfBounds,
+        SurfaceValidationCode::SizingRatioOutOfBounds,
     );
 }
 
@@ -200,7 +214,7 @@ fn validation_rejects_incomplete_and_unsupported_region_state() {
         )],
         ratio(250_000),
     );
-    assert_code(incomplete, LayoutValidationCode::IncompleteRegionState);
+    assert_code(incomplete, SurfaceValidationCode::IncompleteRegionState);
 
     let mut regions = document().surfaces()[0].regions().to_vec();
     regions[1] = RegionState::new(
@@ -217,14 +231,17 @@ fn validation_rejects_incomplete_and_unsupported_region_state() {
             None,
             regions,
             document().surfaces()[0].sizing_slots().iter().cloned(),
-            [],
+            [SurfaceHostPreference::new(window_id("window:main"), 0)],
         )],
         document().panel_instances().iter().cloned(),
-        [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:primary")),
+        )],
     );
     assert_code(
         invalid_collapse,
-        LayoutValidationCode::UnsupportedCollapseState,
+        SurfaceValidationCode::UnsupportedCollapseState,
     );
 }
 
@@ -252,16 +269,19 @@ fn singleton_policy_is_enforced_across_the_document() {
                 SizingSlotState::new(slot_id("left-width"), ratio(200_000)),
                 SizingSlotState::new(slot_id("right-width"), ratio(250_000)),
             ],
-            [],
+            [SurfaceHostPreference::new(window_id("window:main"), 0)],
         )],
         [
             PanelInstance::new(first, definition_id("panel:chat")),
             PanelInstance::new(second, definition_id("panel:chat")),
         ],
-        [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:primary")),
+        )],
     );
 
-    assert_code(document, LayoutValidationCode::InstancePolicyExceeded);
+    assert_code(document, SurfaceValidationCode::InstancePolicyExceeded);
 }
 
 #[test]
@@ -302,10 +322,13 @@ fn single_surface_document(
                 SizingSlotState::new(slot_id("left-width"), ratio(200_000)),
                 SizingSlotState::new(slot_id("right-width"), right_ratio),
             ],
-            [],
+            [SurfaceHostPreference::new(window_id("window:main"), 0)],
         )],
         panel_instances,
-        [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:primary")),
+        )],
     )
 }
 
@@ -318,9 +341,11 @@ fn document_with_right_ratio(right_ratio: LayoutRatio) -> SurfaceDocument {
     )
 }
 
-fn assert_code(document: SurfaceDocument, expected: LayoutValidationCode) {
+fn assert_code(document: SurfaceDocument, expected: SurfaceValidationCode) {
     assert_eq!(
-        validate_layout(&registry(), &document).unwrap_err().code(),
+        validate_document(&registry(), &document)
+            .unwrap_err()
+            .code(),
         expected
     );
 }

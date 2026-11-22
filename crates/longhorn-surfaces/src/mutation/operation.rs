@@ -4,7 +4,7 @@ use longhorn_core::{LayoutSchemaId, SurfaceId};
 
 use crate::{
     LayoutDefinitionRegistry, RegionState, SizingSlotState, SurfaceDocument, SurfaceHostPreference,
-    SurfacePresentation, SurfaceRecord, SurfaceValidationCode,
+    SurfacePresentation, SurfaceRecord,
 };
 
 use super::{
@@ -177,12 +177,6 @@ fn reject_repeated_preferences(
         }
     }
     Ok(())
-}
-
-pub(super) fn map_candidate_validation(
-    _code: SurfaceValidationCode,
-) -> SurfaceMutationRejectionCode {
-    SurfaceMutationRejectionCode::InvalidCandidate
 }
 
 mod close_move;
