@@ -1,5 +1,5 @@
 [package]
-name = "longhorn-nucleus-no-surface-proof"
+name = "longhorn-window-bound-hosting-proof"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

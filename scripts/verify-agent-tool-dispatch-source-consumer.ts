@@ -1,7 +1,7 @@
 // Reproduces g02.036 L1 in a disposable provider-free source consumer.
 // Resolved paths stay process-local; the receipt contains symbolic keys only.
 
-import { createHash } from "node:crypto";
+import { run, sha256 } from "./proof-support.ts";
 import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -172,34 +172,8 @@ async function sourceGraphDigests(longhorn: string, swallowtail: string): Promis
   return sha256(Buffer.concat(parts));
 }
 
-function sha256(value: string | Uint8Array): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
 function requireEnvironment(key: string): string {
   const value = process.env[key];
   if (!value) throw new Error(`${key} is required`);
   return value;
-}
-
-async function run(
-  command: string[],
-  cwd: string,
-  environment: Record<string, string> = {},
-): Promise<string> {
-  const subprocess = Bun.spawn(command, {
-    cwd,
-    env: { ...process.env, ...environment },
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(subprocess.stdout).text(),
-    new Response(subprocess.stderr).text(),
-    subprocess.exited,
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(`${command.join(" ")} failed\n${stdout}\n${stderr}`);
-  }
-  return stdout;
 }

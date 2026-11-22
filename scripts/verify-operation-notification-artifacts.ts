@@ -8,7 +8,8 @@ import {
   packTypescriptArtifacts,
 } from "./operation-notification-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./operation-notification-artifact-proof/consumers.ts";
-import { containsKey, run } from "./operation-notification-artifact-proof/shared.ts";
+import { runArtifactCommand as run } from "./proof-support.ts";
+import { containsKey } from "./operation-notification-artifact-proof/shared.ts";
 import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");

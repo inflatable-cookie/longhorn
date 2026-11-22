@@ -23,8 +23,8 @@
 // Final Cargo outputs for the compile stay in a private directory on external
 // build scratch; the staged consumers live under the run's temp root.
 
+import { runSync as run, sha256 } from "./proof-support.ts";
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -60,20 +60,6 @@ function resolveRepository(root: string): string {
   return probe.stdout.trim();
 }
 
-function run(command: readonly string[], cwd: string): string {
-  const result = spawnSync(command[0], command.slice(1), {
-    cwd,
-    encoding: "utf8",
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    throw new Error(
-      `command failed (${result.status}): ${command.join(" ")}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
-    );
-  }
-  return result.stdout;
-}
-
 function attempt(command: readonly string[], cwd: string): { ok: boolean; output: string } {
   const result = spawnSync(command[0], command.slice(1), {
     cwd,
@@ -84,10 +70,6 @@ function attempt(command: readonly string[], cwd: string): { ok: boolean; output
     ok: result.status === 0,
     output: `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim(),
   };
-}
-
-function sha256(value: string | Uint8Array): string {
-  return createHash("sha256").update(value).digest("hex");
 }
 
 function releaseMsrv(): string {

@@ -50,18 +50,21 @@ by the greenfield examples.
 | `verify-operation-notification-artifacts.ts` | operations and notifications together |
 | `verify-native-content-artifacts.ts` | native content, including the three Tauri examples |
 | `verify-poodle-preview.ts` | the Poodle projection renders under both backends |
-| `verify-greenfield-card125.ts` | the greenfield compositions carry no donor vocabulary |
-| `verify-guides-card126.ts` | the guides match the generated API surface |
+| `verify-greenfield-compositions.ts` | the greenfield compositions carry no donor vocabulary |
+| `verify-guide-corpus.ts` | the guides match the generated API surface |
 | `verify-documented-commands.ts` | every command the examples' READMEs name exists |
 | `verify-pack-typecheck.ts` | the packed adapter typechecks against a bare stage whose only Poodle source is the registry, at both the newest and the lowest release each framework peer range admits (Svelte and Poodle) |
 
-`proof:guides-card126` runs `verify-guides-card126.ts` on its own and remains
+Artifact verifiers share command execution, file dependencies, digests and
+inventory assertions in [`proof-support.ts`](proof-support.ts).
+
+`proof:guide-corpus` runs `verify-guide-corpus.ts` on its own and remains
 one of the fourteen `proof:artifacts` members. The maintained
 `longhorn-getting-started-docs` group pairs it with the guide link checks.
 
 The rest are wired individually: `check:api-reference` runs
-`generate-api-reference-card126.ts`, and `verify-held-surface.ts`,
-`verify-host-protocol.ts` and `verify-private-candidate-docs-card127.ts` are
+`generate-api-reference.ts`, and `verify-held-surface.ts`,
+`verify-host-protocol.ts` and `verify-private-candidate-docs.ts` are
 each their own selector. `check:agent-control-skill` runs
 `verify-agent-control-skill.ts` (skill-vs-vocabulary drift, finder fixtures,
 install fixtures). `check:config-age:security` runs
@@ -148,11 +151,11 @@ should be argued for.
 
 `check:repo-containment`, also in `qa`, is stricter about location: Cargo
 `path`, package `file:` / `link:`, and `join(repoRoot, "../…")` must resolve
-inside this tree. Its allowed-escape list still names `verify-greenfield-card125.ts`
+inside this tree. Its allowed-escape list still names `verify-greenfield-compositions.ts`
 and the disposable g02.036 source-consumer runner described above; no standing
 consumer proof may take a `*_REPO` override.
 
-`verify-greenfield-card125.ts` separately enforces the absence of donor
+`verify-greenfield-compositions.ts` separately enforces the absence of donor
 vocabulary inside the greenfield example root.
 
 ## CI rehearsal
@@ -164,7 +167,8 @@ defects from local `qa` during the first release runs:
    a fresh worktree may have no `node_modules`, so the rehearsal installs it
 2. `check:repo-containment` + `check:consumer-isolation` — no sibling path
 3. `check:bun-links` — no active bun global link; registered ones are reported
-4. `check:runner-tools` — scripts must not invoke `rg`; a `release:gates` cargo plugin must be installed in the same `release.yml` job, before `effigy release:gates`
+4. `check:runner-tools` checks scripts for tools absent from clean runners,
+   validates release-gate tool installs, and checks the Rust CI jobs' Bun pins.
 5. `rust-command.sh fetch --locked` under a fresh `CARGO_HOME`, then offline
    metadata through the same switch point
 6. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output

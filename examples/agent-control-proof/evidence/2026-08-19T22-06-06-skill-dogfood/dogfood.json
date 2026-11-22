@@ -1,6 +1,6 @@
 {
   "schema": "longhorn.agent-control-skill-dogfood.v1",
-  "app": "/Users/tom/.t3/worktrees/longhorn/t3code-72ca9155/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "app": "/Users/example/.t3/worktrees/longhorn/t3code-72ca9155/target/release/bundle/macos/Longhorn Agent Control Proof.app",
   "pid": 72698,
   "url": "http://127.0.0.1:59606/mcp",
   "finder": {
@@ -14,7 +14,7 @@
         "open",
         "-g",
         "-a",
-        "/Users/tom/.t3/worktrees/longhorn/t3code-72ca9155/target/release/bundle/macos/Longhorn Agent Control Proof.app"
+        "/Users/example/.t3/worktrees/longhorn/t3code-72ca9155/target/release/bundle/macos/Longhorn Agent Control Proof.app"
       ],
       "code": 0,
       "stdout": "",

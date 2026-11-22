@@ -268,24 +268,26 @@ Satisfied, with the proof named:
 - ref stability fixtures: snapshot, mutate DOM, re-resolve; stale ref fails
   explicitly — Card 232 shim fixtures and Card 233 marshalling
 - unfocused-and-occluded screenshot proof on packaged macOS — Card 231
-  freshness matrix (`examples/agent-control-proof/evidence/`)
+  freshness matrix ([2026-08-19 packaged run](../../../examples/agent-control-proof/evidence/2026-08-19T17-41-52-packaged/matrix.json))
 - whole-window screenshot composition across child webviews: both-surfaces
   baseline failure, then every window state fresh for parent and island,
   pixel-exact bounds, clipping, overlap order, and hidden-island absence on
   packaged macOS — Card 238 freshness matrix v2
-  (`examples/agent-control-proof/evidence/`)
+  ([baseline failure](../../../examples/agent-control-proof/evidence/2026-08-20T13-53-08-packaged/matrix.json),
+  [passing composition](../../../examples/agent-control-proof/evidence/2026-08-20T14-14-36-packaged/matrix.json))
 - Origin-rejection and bad-token fixtures — Cards 229-230
 - discovery lifecycle: create, enumerate, stale-pid detection and sweep,
   cleanup — Cards 229-231
 - two concurrent clients interleaving on one instance without interference —
-  Card 229 loopback journal plus Card 234 packaged two-client snapshot and
-  listen streams
+  Card 229 loopback journal plus Card 234 [packaged two-client snapshot and
+  listen streams](../../../examples/agent-control-proof/evidence/2026-08-19T20-34-25-e2e/e2e.json)
 - one packaged consumer app driven end-to-end by an MCP client while the
-  app never holds OS focus — Card 234 `examples/agent-control-proof/e2e.ts`
+  app never holds OS focus —
+  Card 234 [packaged end-to-end run](../../../examples/agent-control-proof/evidence/2026-08-19T20-34-25-e2e/e2e.json)
 - opted-in child webview driven end-to-end (snapshot, click, type, drag,
   wait_for, evaluate) unfocused, plus closed-child `Unsupported`,
   cross-webview `UnresolvedRef`, and two-client UI/island interleave —
-  Card 240 `examples/agent-control-proof/e2e.ts` (schema v2)
+  Card 240 [child-webview end-to-end run](../../../examples/agent-control-proof/evidence/2026-08-20T15-55-00-e2e/e2e.json)
 
 Narrowed, explicitly:
 

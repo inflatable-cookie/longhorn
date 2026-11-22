@@ -1,7 +1,8 @@
+import { parseTrace, digest, fileDependency, assertExactSet, runArtifactCommand as run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
@@ -292,16 +293,6 @@ all = "deny"
 `;
 }
 
-async function digest(path: string): Promise<string> { return createHash("sha256").update(await readFile(path)).digest("hex"); }
-async function run(command: readonly string[], cwd: string): Promise<string> {
-  const subprocess = Bun.spawn(command, { cwd, env: { ...process.env, COPYFILE_DISABLE: "1" }, stdout: "pipe", stderr: "pipe" });
-  const [exitCode, stdout, stderr] = await Promise.all([subprocess.exited, new Response(subprocess.stdout).text(), new Response(subprocess.stderr).text()]);
-  if (exitCode !== 0) throw new Error(`${command.join(" ")} failed in ${cwd}\n${stdout}\n${stderr}`);
-  return `${stdout}\n${stderr}`;
-}
-function fileDependency(path: string): string { return `file:${path}`; }
-function assertExactSet(label: string, actual: readonly string[], expected: readonly string[]): void { const left = [...actual].sort(); const right = [...expected].sort(); if (JSON.stringify(left) !== JSON.stringify(right)) throw new Error(`${label} mismatch: ${left.join(", ")} != ${right.join(", ")}`); }
-function parseTrace(output: string): Json { const line = output.split("\n").find((candidate) => candidate.trim().startsWith("{")); if (line === undefined) throw new Error("proof emitted no JSON trace"); return JSON.parse(line) as Json; }
 function containsKey(value: unknown, key: string): boolean { if (Array.isArray(value)) return value.some((entry) => containsKey(entry, key)); if (value !== null && typeof value === "object") return Object.entries(value).some(([candidate, entry]) => candidate === key || containsKey(entry, key)); return false; }
 function equalJson(left: unknown, right: unknown): boolean { return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right)); }
 function canonical(value: unknown): unknown { if (Array.isArray(value)) return value.map(canonical); if (value !== null && typeof value === "object") return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)).map(([key, entry]) => [key, canonical(entry)])); return value; }

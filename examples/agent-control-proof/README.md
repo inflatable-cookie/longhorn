@@ -27,7 +27,12 @@ Its contract-006 registry (`proof:ping`, `proof:window.minimize`,
 `proof:window.restore`) exists so the matrix scripts window state through
 the same `command` tool an agent uses, proving the registry path end to end.
 
-## Running the packaged freshness matrix (macOS, operator's display)
+## Manual packaged runs
+
+Run these drivers by hand from the repository root on macOS. They use the
+operator's display and can change which window is frontmost.
+
+### Freshness matrix
 
 ```sh
 cd examples/agent-control-proof
@@ -57,7 +62,7 @@ It needs the operator's display for about a minute and opens one Terminal
 window (closed afterwards); coordinate the run rather than assuming the
 desktop is free.
 
-## Running the packaged end-to-end driver (macOS, operator's display)
+### End-to-end driver
 
 ```sh
 bun examples/agent-control-proof/e2e.ts
@@ -72,9 +77,10 @@ then the Card 240 island drive (the same six motions inside opted-in
 never held OS focus (System Events) and that no OS pointer motion exists
 in the path. Evidence lands in `evidence/<timestamp>-e2e/`.
 
-## Running the skill-only dogfood pass (macOS, operator's display)
+### Skill-only dogfood pass
 
 ```sh
+cd examples/agent-control-proof
 bunx @tauri-apps/cli build
 cd ../..
 bun examples/agent-control-proof/dogfood.ts
@@ -85,3 +91,5 @@ canonical skill (`skills/agent-control/SKILL.md`) for finder, raw-POST
 connection, and snapshot → click → type → wait_for → screenshot → command
 → listen. Evidence lands in `evidence/<timestamp>-skill-dogfood/`. The
 token is redacted; the app must stay unfocused.
+
+See the [retained dogfood run](evidence/2026-08-19T22-06-06-skill-dogfood/dogfood.json).

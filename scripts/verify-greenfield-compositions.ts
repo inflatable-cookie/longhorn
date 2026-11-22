@@ -1,5 +1,6 @@
+import { digest, fileDependency, run, assertExactSet, sha256 } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   cp,
   lstat,
@@ -38,7 +39,7 @@ type ArtifactIdentity = { name: string; filename: string; sha256: string };
 const repoRoot = resolve(import.meta.dir, "..");
 const bunCommand = ["bun"] as const;
 const exampleRoot = join(repoRoot, "examples/greenfield-compositions");
-const receiptPath = join(repoRoot, "fixtures/greenfield/card125/composition-matrix-v1.json");
+const receiptPath = join(repoRoot, "fixtures/greenfield/composition-matrix-v1.json");
 const longhornTypescriptPackages = [
   ["@inflatable-cookie/longhorn", "packages/longhorn"],
   ["@inflatable-cookie/longhorn-poodle-svelte", "packages/longhorn-poodle-svelte"],
@@ -54,7 +55,7 @@ const poodlePackages = [
 const LONGHORN_VERSION = longhornVersion();
 const publishedPoodle = poodleRelease();
 const POODLE_VERSION = publishedPoodle.version;
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-card125-"));
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-compositions-"));
 // Private final Cargo outputs for the staged workspace, on external build
 // scratch. The intermediates keep the build directory each exec lease supplies.
 const buildScratch = await taskScratch("longhorn-greenfield-rust");
@@ -301,17 +302,17 @@ async function verifyReceipt(report: {
   // are not compared against the receipt: every id is a hash over packed
   // contents, so any change to any crate or package moves them, and asserting
   // equality would re-freeze the tree through the back door.
-  equalSet(report.artifacts.typescript.map(({ name }) => name), receipt.artifacts.inventories.typescript, "receipt TypeScript inventory");
-  equalSet(report.artifacts.poodle.map(({ name }) => name), receipt.artifacts.inventories.poodle, "receipt Poodle inventory");
-  equalSet(report.artifacts.rust.map(({ name }) => name), receipt.artifacts.inventories.rust, "receipt Rust inventory");
+  assertExactSet("receipt TypeScript inventory", report.artifacts.typescript.map(({ name }) => name), receipt.artifacts.inventories.typescript);
+  assertExactSet("receipt Poodle inventory", report.artifacts.poodle.map(({ name }) => name), receipt.artifacts.inventories.poodle);
+  assertExactSet("receipt Rust inventory", report.artifacts.rust.map(({ name }) => name), receipt.artifacts.inventories.rust);
   for (const shape of report.shapes) {
     const expected = receipt.shapes[shape.shape];
     if (!shape.rust) throw new Error(`${shape.shape} Rust report missing`);
-    equalSet(shape.hierarchy, expected.hierarchy, `${shape.shape} receipt hierarchy`);
-    equalSet(shape.typescriptPackages, expected.typescript, `${shape.shape} receipt TypeScript graph`);
-    equalSet(shape.rust.rustPackages, expected.rust, `${shape.shape} receipt Rust graph`);
+    assertExactSet(`${shape.shape} receipt hierarchy`, shape.hierarchy, expected.hierarchy);
+    assertExactSet(`${shape.shape} receipt TypeScript graph`, shape.typescriptPackages, expected.typescript);
+    assertExactSet(`${shape.shape} receipt Rust graph`, shape.rust.rustPackages, expected.rust);
   }
-  equalSet(report.optionalServerLocal.rustPackages, receipt.optionalServerLocalRust, "receipt optional-server local graph");
+  assertExactSet("receipt optional-server local graph", report.optionalServerLocal.rustPackages, receipt.optionalServerLocalRust);
   if (JSON.stringify(receipt.audits) !== JSON.stringify(report.audits)) throw new Error("greenfield audit receipt drift");
 }
 
@@ -377,7 +378,7 @@ async function verifyExampleSources(): Promise<void> {
   }
   const svelteFiles = (await readdir(exampleRoot, { recursive: true }))
     .filter((path) => path.endsWith(".svelte"));
-  equalSet(svelteFiles, ["common/App.svelte"], "greenfield Svelte implementation inventory");
+  assertExactSet("greenfield Svelte implementation inventory", svelteFiles, ["common/App.svelte"]);
   const shell = await readFile(join(exampleRoot, "common/App.svelte"), "utf8");
   if (!shell.includes('from "@inflatable-cookie/poodle-svelte"') || !shell.includes('import "@inflatable-cookie/poodle-core/tokens/styles.css"')) {
     throw new Error("greenfield shell does not compose public Poodle roots");
@@ -437,10 +438,10 @@ async function verifyRenderers(artifacts: Map<string, string>) {
     if (!/1 passed/.test(tests)) throw new Error(`${shape} mounted lifecycle test did not pass`);
 
     const installedLonghorn = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name === "longhorn" || name.startsWith("longhorn-")).map((name) => `@inflatable-cookie/${name}`).sort();
-    equalSet(installedLonghorn, policy.typescript, `${shape} TypeScript graph`);
+    assertExactSet(`${shape} TypeScript graph`, installedLonghorn, policy.typescript);
     for (const name of policy.forbiddenTypescript) await assertAbsent(stage, name);
     const installedPoodle = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name.startsWith("poodle-")).map((name) => `@inflatable-cookie/${name}`).sort();
-    equalSet(installedPoodle, [...poodlePackages], `${shape} Poodle graph`);
+    assertExactSet(`${shape} Poodle graph`, installedPoodle, [...poodlePackages]);
     await assertOnePackage(stage, "svelte", "5.56.8");
     await assertOnePackage(stage, "@tauri-apps/api", "2.10.1");
     await assertSingleRuntime(stage, "svelte");
@@ -451,8 +452,8 @@ async function verifyRenderers(artifacts: Map<string, string>) {
       schema: string; shape: string; hierarchy: string[]; permissions: string[]; failurePosture: string;
     };
     if (capability.schema !== "longhorn.greenfield-capability.v1" || capability.shape !== shape) throw new Error(`${shape} capability identity drift`);
-    equalSet(capability.hierarchy, policy.hierarchy, `${shape} hierarchy`);
-    equalSet(capability.permissions, policy.permissions, `${shape} permissions`);
+    assertExactSet(`${shape} hierarchy`, capability.hierarchy, policy.hierarchy);
+    assertExactSet(`${shape} permissions`, capability.permissions, policy.permissions);
     if (!capability.failurePosture.includes("visible") && shape !== "optional-server") throw new Error(`${shape} hides failure posture`);
     const selectedSource = await readFile(join(stage, shape, "src/selected.ts"), "utf8");
     // Card 164: selected.ts names subpaths now, and the policy names packages.
@@ -471,7 +472,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
         },
       ),
     )];
-    equalSet(selectedNames, policy.typescript, `${shape} selected imports`);
+    assertExactSet(`${shape} selected imports`, selectedNames, policy.typescript);
     const lock = await readFile(join(stage, "bun.lock"), "utf8");
     if (/workspace:|link:/.test(lock) || lock.includes(join(repoRoot, "packages"))) {
       throw new Error(`${shape} renderer lock resolved live source`);
@@ -539,7 +540,7 @@ async function verifyRustArtifacts() {
     }
     const tree = await run(staged(["cargo", "tree", "-p", packageName, "--offline", "--edges", "normal", "--prefix", "none"]), workspace);
     const graph = rustLonghornPackages(tree);
-    equalSet(graph, policies[shape].rust, `${shape} Rust graph`);
+    assertExactSet(`${shape} Rust graph`, graph, policies[shape].rust);
     for (const forbidden of policies[shape].forbiddenRust) {
       if (graph.includes(forbidden)) throw new Error(`${shape} acquired forbidden Rust edge ${forbidden}`);
     }
@@ -549,7 +550,7 @@ async function verifyRustArtifacts() {
   const localTrace = JSON.parse(localOutput.trim()) as Record<string, unknown>;
   const localTree = await run(staged(["cargo", "tree", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--edges", "normal", "--prefix", "none"]), workspace);
   const localGraph = rustLonghornPackages(localTree);
-  equalSet(localGraph, baseRust, "optional-server local Rust graph");
+  assertExactSet("optional-server local Rust graph", localGraph, baseRust);
   if (localTrace.service !== "absent-local-authority-ready" || localTrace.reload !== "file") throw new Error("optional server local authority failed");
   return {
     identities,
@@ -577,7 +578,6 @@ async function privateWorkspaceManifest(): Promise<string> {
 function rewriteArtifactDependencies(dependencies: Record<string, string>, artifacts: Map<string, string>) {
   return Object.fromEntries(Object.entries(dependencies).map(([name, version]) => [name, artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version]));
 }
-function fileDependency(path: string): string { return `file:${path}`; }
 async function assertAbsent(stage: string, name: string): Promise<void> {
   try { await lstat(join(stage, "node_modules", ...name.split("/"))); } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
@@ -602,19 +602,7 @@ async function assertSingleRuntime(stage: string, name: string): Promise<void> {
 function rustLonghornPackages(tree: string): string[] {
   return [...new Set(tree.split("\n").map((line) => line.trim().split(/\s+/)[0] ?? "").filter((name) => name.startsWith("longhorn-") && !name.startsWith("longhorn-greenfield")))].sort();
 }
-function equalSet(actual: readonly string[], expected: readonly string[], label: string): void {
-  const left = [...actual].sort();
-  const right = [...expected].sort();
-  if (JSON.stringify(left) !== JSON.stringify(right)) throw new Error(`${label}: expected ${JSON.stringify(right)}, received ${JSON.stringify(left)}`);
-}
 function artifactSet(identities: ArtifactIdentity[]): string {
-  return createHash("sha256").update(identities.map(({ name, sha256 }) => `${name}:${sha256}`).sort().join("\n")).digest("hex");
+  return sha256(identities.map(({ name, sha256 }) => `${name}:${sha256}`).sort().join("\n"));
 }
-async function digest(path: string): Promise<string> { return createHash("sha256").update(await readFile(path)).digest("hex"); }
 async function git(root: string, args: string[]): Promise<string> { return (await run(["git", ...args], root)).trim(); }
-async function run(command: string[], cwd: string): Promise<string> {
-  const process = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
-  const [stdout, stderr, exitCode] = await Promise.all([new Response(process.stdout).text(), new Response(process.stderr).text(), process.exited]);
-  if (exitCode !== 0) throw new Error(`${command.join(" ")} failed in ${cwd}\n${stdout}\n${stderr}`);
-  return stdout;
-}
