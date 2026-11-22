@@ -3,7 +3,7 @@
 Status: active compiled boundary
 Owner: Longhorn
 Tier: core
-Updated: 2026-11-03
+Updated: 2026-11-22
 
 ## Boundary
 
@@ -59,15 +59,20 @@ session to further operations. A later write, resize, or close returns
 child exit can only target the still-unreaped process group; no signal is sent
 after reaping, so the child pid or group cannot be reused as a signal target.
 
-Close marks the session as closing before it sends `SIGHUP` to the process
-group. Reaping is held until close finishes, preserving the group identity
-through escalation. After the fixed 300 ms grace period, Longhorn probes the
-group and sends `SIGKILL` if it remains. Close then drops its control master
-descriptor and allows the reaper to record the direct child's final status.
-The nonblocking output reader drains currently readable bytes after the leader
-is reaped, then sends the one exit result. A descendant that keeps the slave
-open cannot prevent that result; output written after the direct child exits is
-not delivered.
+Close marks the session as closing, drops its control master descriptor, and
+notifies any output reader blocked on a full queue before sending `SIGHUP` to
+the process group. When the child has already exited or `waitpid` has already
+failed, `close` still drops the control master descriptor and notifies any
+back-pressured reader so the PTY pair is released, while returning
+`Failure::Ended` (or `Failure::Wait`) and sending no signal. Reaping is held
+until close finishes, preserving the group identity through escalation. After
+the fixed 300 ms grace period, Longhorn probes the group and sends `SIGKILL` if
+it remains, marks the session closed, and allows the reaper to record the
+direct child's final status. When the receiver queue is not full, the
+nonblocking output reader drains currently readable bytes after the leader is
+reaped, then sends the one exit result. A descendant that keeps the slave open
+cannot prevent that result; output written after the direct child exits is not
+delivered.
 
 A group that is already gone counts as closed, and so does a group that holds
 only zombies. `ESRCH` always means gone. macOS and BSDs answer `EPERM` for a
@@ -92,37 +97,57 @@ eight output events, and the reader holds at most one additional 8 KiB chunk
 while blocked on a full queue. Thus the crate retains no more than 72 KiB of
 output payload per session, plus fixed channel and buffer metadata. When the
 queue is full, the reader waits; the PTY kernel buffer then fills and applies
-back-pressure to the child. Chunks are not dropped, coalesced, or accumulated
-in an unbounded buffer. A consumer that stops reading can therefore pause the
-child until it resumes or closes the session.
+back-pressure to the child. While the session remains open, chunks are not
+dropped, coalesced, or accumulated in an unbounded buffer; a consumer that
+stops reading pauses the child until it resumes or closes the session. Calling
+`close()` (including on an already-exited session or via `Drop`) wakes a reader
+that is waiting on a full queue. In that close-under-backpressure path, the
+reader discards the single unsent chunk it was holding and stops draining
+further PTY output so it immediately releases both its master copy and the
+retained slave descriptor back to the OS, even if the consumer keeps the
+receiver alive without reading. Events already queued in the receiver (up to
+eight chunks) remain readable, followed by the terminal `PtyEvent::Exit` (or
+`PtyEvent::Failure`) once the consumer reads from the receiver.
 
 ## Failures and platform behavior
 
-Failures are `Failure` enum values, not diagnostic strings. Classes cover PTY
-master/slave setup (`OpenPty`, `GrantPty`, `UnlockPty`, `PtyName`, `OpenSlave`),
-descriptor duplication and flags, spawn and worker creation, input, resize,
-signal, output read, child wait, ended sessions, and unsupported targets.
-Every openpt, grantpt, ptsname, and dup failure is checked and classified.
+Failures are typed `Failure` enum values, not localized or path-bearing
+diagnostic strings. Classes cover PTY master/slave setup (`OpenPty`,
+`GrantPty`, `UnlockPty`, `PtyName`, `OpenSlave`), descriptor duplication and
+flags, spawn and worker creation, input, resize, signal, output read, child
+wait, ended sessions, and unsupported targets. Every `openpt`, `grantpt`,
+`ptsname`, and descriptor-duplication failure is checked and classified.
 
-A `Failure` intentionally does not carry the OS errno of the failed setup step,
-so a historical `OpenPty` receipt alone cannot distinguish host resource
-exhaustion from other open causes. The measured signatures on the qualification
-host (macOS): a depleted host pseudo-terminal pool fails `openpt` with `ENXIO`
-(the pool is finite: 502 concurrent masters opened before the next failed),
-while a process descriptor-table limit fails with `EMFILE`; concurrent
-open/close churn with free slots never failed. One release-qualification
-`OpenPty` occurrence matched the pool-depletion mechanism by exclusion: the
-suite's own descriptor peak (25) and live sessions stay far below both limits,
-and the discarded errno cannot confirm the historical value. The sessions
-suite probes the OS once on an open failure and reports that evidence in the
-failure panic; it never retries `open`.
+Every OS-backed `Failure` variant carries the numeric `raw_os_error` reported
+by the OS (`Failure::raw_os_error()`), and `Display` appends `(os error <code>)`
+when present. Because only the numeric errno is carried — never paths,
+environment values, or command arguments — errors remain typed and
+redaction-safe while distinguishing host pool exhaustion (`ENXIO` on macOS,
+`EAGAIN` on Linux) from process descriptor limits (`EMFILE`) or other causes.
+The measured signatures on the qualification host (macOS): a depleted host
+pseudo-terminal pool fails `openpt` with `ENXIO` (the pool is finite: 502
+concurrent masters opened before the next failed), while a process
+descriptor-table limit fails with `EMFILE`; concurrent open/close churn with
+free slots never failed. The sessions suite also probes the OS once on an open
+failure and reports that evidence in the failure panic; it never retries `open`.
 
-On supported Unix targets, the crate uses `rustix` for PTY allocation,
-descriptor duplication and close-on-exec flags, `setsid`, controlling-terminal
-ioctl, terminal sizing, and process-group signals. The only unsafe boundary is
-the `pre_exec` closure, which calls only `setsid` and the controlling-terminal
-ioctl. On non-Unix targets, the crate compiles and `open` returns
-`Failure::Unsupported`.
+On supported Unix targets (`linux`, `macos`, `ios`, `freebsd`, `illumos`), the
+crate uses `rustix` for PTY allocation, descriptor duplication and
+close-on-exec flags, `setsid`, controlling-terminal ioctl, terminal sizing, and
+process-group signals. Close-on-exec is set atomically on slave opens
+(`OFlags::CLOEXEC`) and descriptor duplications (`fcntl_dupfd_cloexec`) on all
+supported targets, and atomically on master opens on Linux and FreeBSD
+(`OpenptFlags::CLOEXEC`) and on macOS and illumos (`posix_openpt` with
+`O_CLOEXEC`). Only `ios` (where `posix_openpt` `O_CLOEXEC` support is
+unverified) falls back to setting `FD_CLOEXEC` immediately after `openpt`
+returns.
+`O_NONBLOCK` is set on the master open file description before duplication:
+both the reader copy (poll-driven non-blocking reads) and the control copy
+(non-blocking writes that release the lifecycle lock on `WouldBlock` so a full
+input buffer cannot deadlock `close` or `resize`) share that file description
+and rely on it. The only unsafe boundary is the `pre_exec` closure, which calls
+only `setsid` and the controlling-terminal ioctl. On non-Unix targets, the
+crate compiles and `open` returns `Failure::Unsupported`.
 
 ## Generic and product-owned behavior
 

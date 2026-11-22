@@ -19,6 +19,15 @@ mod api;
 ))]
 mod unix;
 
+#[cfg(any(
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "freebsd",
+    target_os = "illumos",
+))]
+use unix as imp;
+
 #[cfg(not(any(
     target_os = "linux",
     target_os = "macos",
@@ -27,6 +36,15 @@ mod unix;
     target_os = "illumos",
 )))]
 mod unsupported;
+
+#[cfg(not(any(
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "freebsd",
+    target_os = "illumos",
+)))]
+use unsupported as imp;
 
 pub use api::{
     CLOSE_GRACE_PERIOD, CommandSpec, DEFAULT_SIZE, ExitResult, Failure, MAX_BUFFERED_OUTPUT_BYTES,

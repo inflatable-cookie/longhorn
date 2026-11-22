@@ -5,22 +5,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
-#[cfg(any(
-    target_os = "linux",
-    target_os = "macos",
-    target_os = "ios",
-    target_os = "freebsd",
-    target_os = "illumos",
-))]
-use crate::unix;
-#[cfg(not(any(
-    target_os = "linux",
-    target_os = "macos",
-    target_os = "ios",
-    target_os = "freebsd",
-    target_os = "illumos",
-)))]
-use crate::unsupported;
+use crate::imp;
 
 /// Maximum bytes in one output event.
 pub const OUTPUT_CHUNK_BYTES: usize = 8 * 1024;
@@ -110,62 +95,135 @@ pub enum PtyEvent {
 }
 
 /// Classified failure from opening or controlling a session.
+///
+/// OS-backed failures carry the numeric OS error code (`raw_os_error`) rather
+/// than localized or path-bearing diagnostic strings, keeping errors typed and
+/// redaction-safe.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Failure {
     /// Opening the PTY master failed.
-    OpenPty,
+    OpenPty {
+        /// Raw OS error code from `openpt`.
+        raw_os_error: i32,
+    },
     /// Granting access to the PTY slave failed.
-    GrantPty,
+    GrantPty {
+        /// Raw OS error code from `grantpt`.
+        raw_os_error: i32,
+    },
     /// Unlocking the PTY slave failed.
-    UnlockPty,
+    UnlockPty {
+        /// Raw OS error code from `unlockpt`.
+        raw_os_error: i32,
+    },
     /// Resolving the PTY slave name failed.
-    PtyName,
+    PtyName {
+        /// Raw OS error code from `ptsname`.
+        raw_os_error: i32,
+    },
     /// Opening the PTY slave failed.
-    OpenSlave,
+    OpenSlave {
+        /// Raw OS error code from opening the PTY slave device.
+        raw_os_error: i32,
+    },
     /// Duplicating a PTY descriptor failed.
-    DuplicateDescriptor,
-    /// Setting close-on-exec on a PTY descriptor failed.
-    DescriptorFlags,
+    DuplicateDescriptor {
+        /// Raw OS error code from duplicating the descriptor.
+        raw_os_error: i32,
+    },
+    /// Setting close-on-exec or non-blocking flags on a PTY descriptor failed.
+    DescriptorFlags {
+        /// Raw OS error code from updating descriptor flags.
+        raw_os_error: i32,
+    },
     /// Configuring the child command failed to start it.
-    Spawn,
+    Spawn {
+        /// Raw OS error code from spawning the child, when reported.
+        raw_os_error: Option<i32>,
+    },
     /// Creating a session worker thread failed.
-    WorkerSpawn,
+    WorkerSpawn {
+        /// Raw OS error code from spawning the worker thread, when reported.
+        raw_os_error: Option<i32>,
+    },
     /// Writing bytes to the child failed.
-    WriteInput,
+    WriteInput {
+        /// Raw OS error code from writing to the PTY master, when reported.
+        raw_os_error: Option<i32>,
+    },
     /// Resizing the PTY failed.
-    Resize,
+    Resize {
+        /// Raw OS error code from setting the terminal window size.
+        raw_os_error: i32,
+    },
     /// Sending a process-group signal failed.
-    Signal,
+    Signal {
+        /// Raw OS error code from signalling the child process group.
+        raw_os_error: i32,
+    },
     /// Reading child output failed.
-    ReadOutput,
+    ReadOutput {
+        /// Raw OS error code from reading or polling the PTY master, when reported.
+        raw_os_error: Option<i32>,
+    },
     /// Waiting for or classifying the child status failed.
-    Wait,
+    Wait {
+        /// Raw OS error code from waiting on the child process.
+        raw_os_error: i32,
+    },
     /// The child has exited or the session has been closed.
     Ended,
     /// PTY sessions are not supported on this target.
     Unsupported,
 }
 
+impl Failure {
+    /// Returns the raw OS error code associated with this failure, if any.
+    pub const fn raw_os_error(self) -> Option<i32> {
+        match self {
+            Self::OpenPty { raw_os_error }
+            | Self::GrantPty { raw_os_error }
+            | Self::UnlockPty { raw_os_error }
+            | Self::PtyName { raw_os_error }
+            | Self::OpenSlave { raw_os_error }
+            | Self::DuplicateDescriptor { raw_os_error }
+            | Self::DescriptorFlags { raw_os_error }
+            | Self::Resize { raw_os_error }
+            | Self::Signal { raw_os_error }
+            | Self::Wait { raw_os_error } => Some(raw_os_error),
+            Self::Spawn { raw_os_error }
+            | Self::WorkerSpawn { raw_os_error }
+            | Self::WriteInput { raw_os_error }
+            | Self::ReadOutput { raw_os_error } => raw_os_error,
+            Self::Ended | Self::Unsupported => None,
+        }
+    }
+}
+
 impl fmt::Display for Failure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::OpenPty => "opening the pseudo-terminal failed",
-            Self::GrantPty => "granting the pseudo-terminal slave failed",
-            Self::UnlockPty => "unlocking the pseudo-terminal slave failed",
-            Self::PtyName => "resolving the pseudo-terminal slave name failed",
-            Self::OpenSlave => "opening the pseudo-terminal slave failed",
-            Self::DuplicateDescriptor => "duplicating a pseudo-terminal descriptor failed",
-            Self::DescriptorFlags => "setting pseudo-terminal descriptor flags failed",
-            Self::Spawn => "starting the child process failed",
-            Self::WorkerSpawn => "starting a session worker failed",
-            Self::WriteInput => "writing to the child failed",
-            Self::Resize => "resizing the pseudo-terminal failed",
-            Self::Signal => "signalling the child process group failed",
-            Self::ReadOutput => "reading child output failed",
-            Self::Wait => "waiting for the child process failed",
+        let message = match self {
+            Self::OpenPty { .. } => "opening the pseudo-terminal failed",
+            Self::GrantPty { .. } => "granting the pseudo-terminal slave failed",
+            Self::UnlockPty { .. } => "unlocking the pseudo-terminal slave failed",
+            Self::PtyName { .. } => "resolving the pseudo-terminal slave name failed",
+            Self::OpenSlave { .. } => "opening the pseudo-terminal slave failed",
+            Self::DuplicateDescriptor { .. } => "duplicating a pseudo-terminal descriptor failed",
+            Self::DescriptorFlags { .. } => "setting pseudo-terminal descriptor flags failed",
+            Self::Spawn { .. } => "starting the child process failed",
+            Self::WorkerSpawn { .. } => "starting a session worker failed",
+            Self::WriteInput { .. } => "writing to the child failed",
+            Self::Resize { .. } => "resizing the pseudo-terminal failed",
+            Self::Signal { .. } => "signalling the child process group failed",
+            Self::ReadOutput { .. } => "reading child output failed",
+            Self::Wait { .. } => "waiting for the child process failed",
             Self::Ended => "the session has ended",
             Self::Unsupported => "pseudo-terminal sessions are unsupported on this target",
-        })
+        };
+        match self.raw_os_error() {
+            Some(code) => write!(f, "{message} (os error {code})"),
+            None => f.write_str(message),
+        }
     }
 }
 
@@ -173,22 +231,7 @@ impl std::error::Error for Failure {}
 
 /// One running child process attached to a pseudo-terminal.
 pub struct PtySession {
-    #[cfg(any(
-        target_os = "linux",
-        target_os = "macos",
-        target_os = "ios",
-        target_os = "freebsd",
-        target_os = "illumos",
-    ))]
-    pub(crate) inner: unix::Inner,
-    #[cfg(not(any(
-        target_os = "linux",
-        target_os = "macos",
-        target_os = "ios",
-        target_os = "freebsd",
-        target_os = "illumos",
-    )))]
-    _private: (),
+    pub(crate) inner: imp::Inner,
 }
 
 impl fmt::Debug for PtySession {
@@ -200,99 +243,23 @@ impl fmt::Debug for PtySession {
 impl PtySession {
     /// Starts the configured process and returns its bounded event receiver.
     pub fn open(spec: CommandSpec) -> Result<(Self, Receiver<PtyEvent>), Failure> {
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        ))]
-        {
-            unix::open(spec)
-        }
-        #[cfg(not(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        )))]
-        {
-            unsupported::open(spec)
-        }
+        imp::open(spec)
     }
 
     /// Writes all supplied bytes to the child's terminal input.
     pub fn write(&self, bytes: &[u8]) -> Result<(), Failure> {
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        ))]
-        {
-            unix::write(self, bytes)
-        }
-        #[cfg(not(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        )))]
-        {
-            unsupported::write(self, bytes)
-        }
+        imp::write(self, bytes)
     }
 
     /// Sets the terminal size and sends `SIGWINCH` to the child process group.
     pub fn resize(&self, size: PtySize) -> Result<(), Failure> {
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        ))]
-        {
-            unix::resize(self, size)
-        }
-        #[cfg(not(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        )))]
-        {
-            unsupported::resize(self, size)
-        }
+        imp::resize(self, size)
     }
 
     /// Hangs up the process group, then kills it after the bounded grace period
     /// if any process in the group remains.
     pub fn close(&self) -> Result<(), Failure> {
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        ))]
-        {
-            unix::close(self)
-        }
-        #[cfg(not(any(
-            target_os = "linux",
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "freebsd",
-            target_os = "illumos",
-        )))]
-        {
-            unsupported::close(self)
-        }
+        imp::close(self)
     }
 }
 
