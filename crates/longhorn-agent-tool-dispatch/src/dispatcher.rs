@@ -446,6 +446,18 @@ where
         invocation: DispatchInvocation,
         cancellation: Cancellation,
     ) -> DispatchFuture<'_, Result<DispatchOutcome, DispatchError>> {
+        self.dispatch_with_stage_hook(invocation, cancellation, |_| {})
+    }
+
+    fn dispatch_with_stage_hook<F>(
+        &self,
+        invocation: DispatchInvocation,
+        cancellation: Cancellation,
+        mut on_stage: F,
+    ) -> DispatchFuture<'_, Result<DispatchOutcome, DispatchError>>
+    where
+        F: FnMut(AdmissionStage) + Send + 'static,
+    {
         let dispatch_started_at = Instant::now();
         Box::pin(async move {
             let remaining = match self.validate(&invocation) {
@@ -472,12 +484,32 @@ where
                     return Err(error);
                 }
             };
+            // Pre-allocate all owned admission/callback values before entering
+            // the final deadline check so no allocation occurs between the last
+            // clock check and synchronous `RecordingCallback::invoke`.
             let admitted = AdmittedCall::from_invocation(&invocation);
-            let recorder = {
+            let call_id = invocation.call_id().to_owned();
+            let in_flight_key = call_id.clone();
+            let recorder = ResultRecorder {
+                call_id: call_id.clone(),
+                expected_schema: invocation.registration().output_schema().clone(),
+                max_result_bytes: invocation.registration().bounds().max_result_bytes(),
+                effect: invocation.registration().effect(),
+                cancellation: cancellation.clone(),
+                deadline_at,
+                state: Arc::clone(&self.state),
+            };
+            let mut active_guard = ActiveCallGuard {
+                call_id: call_id.clone(),
+                state: Arc::clone(&self.state),
+                disarmed: true,
+            };
+            let callback_cancellation = cancellation.clone();
+
+            on_stage(AdmissionStage::BeforeLock);
+            {
                 let mut state = locked(&self.state);
-                if state.in_flight.contains(invocation.call_id())
-                    || state.terminal.contains_key(invocation.call_id())
-                {
+                if state.in_flight.contains(&call_id) || state.terminal.contains_key(&call_id) {
                     let error = DispatchError::new(DispatchErrorKind::DuplicateCall);
                     state.reject(error);
                     return Err(error);
@@ -490,36 +522,33 @@ where
                     state.reject(error);
                     return Err(error);
                 }
+                let events_len_before = state.events.len();
+                state.events.reserve(2);
+                state.in_flight.insert(in_flight_key);
+                state.record(DispatchEventKind::Validated);
+                state.callbacks = state.callbacks.saturating_add(1);
+                state.record(DispatchEventKind::CallbackInvoked);
+
+                on_stage(AdmissionStage::BeforeCallbackEntry);
+                // Final deadline check after all setup, allocations, and
+                // bookkeeping: if expired, roll back the reservation and
+                // events atomically before releasing the lock or invoking the
+                // callback.
                 if Instant::now() >= deadline_at {
+                    state.in_flight.remove(&call_id);
+                    state.callbacks = state.callbacks.saturating_sub(1);
+                    state.events.truncate(events_len_before);
                     let error = DispatchError::new(DispatchErrorKind::DeadlineExceeded);
                     state.reject(error);
                     return Err(error);
                 }
-                let recorder = ResultRecorder {
-                    call_id: invocation.call_id().to_owned(),
-                    expected_schema: invocation.registration().output_schema().clone(),
-                    max_result_bytes: invocation.registration().bounds().max_result_bytes(),
-                    effect: invocation.registration().effect(),
-                    cancellation: cancellation.clone(),
-                    deadline_at,
-                    state: Arc::clone(&self.state),
-                };
-                state.in_flight.insert(invocation.call_id().to_owned());
-                state.record(DispatchEventKind::Validated);
-                state.callbacks = state.callbacks.saturating_add(1);
-                state.record(DispatchEventKind::CallbackInvoked);
-                recorder
-            };
-            let mut active_guard = ActiveCallGuard {
-                call_id: invocation.call_id().to_owned(),
-                state: Arc::clone(&self.state),
-                disarmed: false,
-            };
+                active_guard.disarmed = false;
+            }
 
             let callback = BoundedCallback {
                 inner: self
                     .callback
-                    .invoke(admitted, cancellation.clone(), recorder),
+                    .invoke(admitted, callback_cancellation, recorder),
                 deadline_at,
                 driver,
                 timer_key: None,
@@ -658,6 +687,12 @@ fn validate_schema(
     }
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum AdmissionStage {
+    BeforeLock,
+    BeforeCallbackEntry,
+}
+
 fn locked(state: &Mutex<DispatcherState>) -> MutexGuard<'_, DispatcherState> {
     state
         .lock()
@@ -770,15 +805,24 @@ mod tests {
         )
         .expect("stalled invocation");
 
-        // Hold the dispatcher state lock across the call's deadline so admission
-        // stalls past expiry after timer setup.
+        // Hold the dispatcher state lock until the worker explicitly signals
+        // that it passed the initial deadline check and is entering admission,
+        // then hold the lock across the remaining budget before releasing it.
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel();
         let result = {
             let guard = locked(&dispatcher.state);
             let worker_dispatcher = Arc::clone(&dispatcher);
             let worker_cancellation = cancellation.clone();
             let handle = thread::spawn(move || {
-                let mut future =
-                    worker_dispatcher.dispatch(stalled_invocation, worker_cancellation);
+                let mut future = worker_dispatcher.dispatch_with_stage_hook(
+                    stalled_invocation,
+                    worker_cancellation,
+                    move |stage| {
+                        if stage == AdmissionStage::BeforeLock {
+                            entered_tx.send(()).expect("signal admission lock entry");
+                        }
+                    },
+                );
                 let mut cx = Context::from_waker(Waker::noop());
                 loop {
                     match future.as_mut().poll(&mut cx) {
@@ -787,6 +831,9 @@ mod tests {
                     }
                 }
             });
+            entered_rx
+                .recv_timeout(Duration::from_secs(5))
+                .expect("worker passed first check and reached admission lock");
             thread::sleep(Duration::from_millis(35));
             drop(guard);
             handle.join().expect("worker thread joins")
@@ -796,18 +843,28 @@ mod tests {
         assert_eq!(error.kind(), DispatchErrorKind::DeadlineExceeded);
         assert_eq!(calls.load(Ordering::SeqCst), 0);
         assert_eq!(dispatcher.metrics().callbacks, 0);
+        assert_eq!(
+            dispatcher
+                .events()
+                .into_iter()
+                .map(|event| event.kind())
+                .collect::<Vec<_>>(),
+            vec![DispatchEventKind::Rejected(
+                DispatchErrorKind::DeadlineExceeded
+            )]
+        );
 
         // Capacity (max_outstanding_calls = 1) must still be available for the next call.
         let next_invocation = DispatchInvocation::new(
             "follow-up",
-            registration,
-            binding,
+            registration.clone(),
+            binding.clone(),
             BindingStatus::Current,
             DispatchDeadline::active(Duration::from_secs(1)),
             b"arg".to_vec(),
         )
         .expect("follow-up invocation");
-        let mut next_future = dispatcher.dispatch(next_invocation, cancellation);
+        let mut next_future = dispatcher.dispatch(next_invocation, cancellation.clone());
         let mut cx = Context::from_waker(Waker::noop());
         let outcome = match next_future.as_mut().poll(&mut cx) {
             Poll::Ready(Ok(outcome)) => outcome,
@@ -815,5 +872,51 @@ mod tests {
         };
         assert_eq!(outcome.result().payload_for_delivery(), b"ok");
         assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+        // Also verify expiry after all admission allocations and bookkeeping
+        // right at the callback-entry boundary rolls back cleanly and never
+        // invokes the callback.
+        let late_entry = DispatchInvocation::new(
+            "late-callback-entry",
+            registration.clone(),
+            binding.clone(),
+            BindingStatus::Current,
+            DispatchDeadline::active(Duration::from_millis(20)),
+            b"arg".to_vec(),
+        )
+        .expect("late-entry invocation");
+        let mut late_future =
+            dispatcher.dispatch_with_stage_hook(late_entry, cancellation.clone(), |stage| {
+                if stage == AdmissionStage::BeforeCallbackEntry {
+                    thread::sleep(Duration::from_millis(35));
+                }
+            });
+        let late_error = match late_future.as_mut().poll(&mut cx) {
+            Poll::Ready(Err(error)) => error,
+            other => panic!("expired callback-entry check must time out, got {other:?}"),
+        };
+        assert_eq!(late_error.kind(), DispatchErrorKind::DeadlineExceeded);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert_eq!(dispatcher.metrics().callbacks, 1);
+
+        // Capacity and remaining call budget (max_calls_per_binding = 2) are
+        // still intact after the rollback, so a second real call succeeds.
+        let final_invocation = DispatchInvocation::new(
+            "after-rollback",
+            registration,
+            binding,
+            BindingStatus::Current,
+            DispatchDeadline::active(Duration::from_secs(1)),
+            b"arg".to_vec(),
+        )
+        .expect("final invocation");
+        let mut final_future = dispatcher.dispatch(final_invocation, cancellation);
+        let final_outcome = match final_future.as_mut().poll(&mut cx) {
+            Poll::Ready(Ok(outcome)) => outcome,
+            other => panic!("call after rollback must succeed, got {other:?}"),
+        };
+        assert_eq!(final_outcome.result().payload_for_delivery(), b"ok");
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        assert_eq!(dispatcher.metrics().callbacks, 2);
     }
 }
