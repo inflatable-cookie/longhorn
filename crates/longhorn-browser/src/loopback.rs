@@ -239,8 +239,10 @@ fn answer(mut stream: TcpStream, deadline: Instant) -> Result<Answer, LoopbackEr
 
     let callback = parse_callback(query);
     // The browser gets its page whether or not the query parsed: the
-    // operator's tab is not the place to debug a malformed redirect.
-    respond(&mut stream, "200 OK", RESPONSE_PAGE)?;
+    // operator's tab is not the place to debug a malformed redirect. The page
+    // is courtesy, though. A browser that hung up after a valid callback must
+    // not cost the sign-in its result, so a failed write is dropped here.
+    drop(respond(&mut stream, "200 OK", RESPONSE_PAGE));
     callback
         .map(Answer::Callback)
         .ok_or(LoopbackError::MalformedCallback)

@@ -169,7 +169,8 @@ configuration, arbitrary per-purpose overrides, or secrets.
 Explicit host input may bypass the locator. A missing locator selects the
 compiled default. An unreadable, corrupt, future, or unknown-profile locator
 returns typed recovery state; it never silently falls back and strands an
-existing store.
+existing store. Writing the locator refuses an explicit root that is not UTF-8,
+rather than writing a lossy copy of it.
 
 Profile change is a migration:
 

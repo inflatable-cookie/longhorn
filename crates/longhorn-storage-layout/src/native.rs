@@ -48,15 +48,19 @@ impl PlatformEnvironment {
         }
     }
 
+    /// Reads only the variables one fact's platform rule consults. The home
+    /// directory is read once, for every rule that falls back to it: all
+    /// facts on macOS and Linux except the runtime directory.
     fn from_process_for(platform: TargetPlatform, fact: PlatformDirectoryFact) -> Self {
         let variable = |name: &str| env::var_os(name).map(PathBuf::from);
         let mut environment = Self::default();
+        if platform != TargetPlatform::Windows && fact != PlatformDirectoryFact::Runtime {
+            environment.home_dir = variable("HOME");
+        }
         match (platform, fact) {
-            (TargetPlatform::MacOs, PlatformDirectoryFact::Runtime)
-            | (TargetPlatform::Windows, PlatformDirectoryFact::Runtime) => {
+            (TargetPlatform::MacOs | TargetPlatform::Windows, PlatformDirectoryFact::Runtime) => {
                 environment.temp_dir = Some(env::temp_dir());
             }
-            (TargetPlatform::MacOs, _) => environment.home_dir = variable("HOME"),
             (TargetPlatform::Windows, PlatformDirectoryFact::SharedData) => {
                 environment.windows_roaming_app_data = variable("APPDATA");
             }
@@ -64,27 +68,24 @@ impl PlatformEnvironment {
                 environment.windows_local_app_data = variable("LOCALAPPDATA");
             }
             (TargetPlatform::Linux, PlatformDirectoryFact::Config) => {
-                environment.home_dir = variable("HOME");
                 environment.xdg_config_home = variable("XDG_CONFIG_HOME");
             }
             (
                 TargetPlatform::Linux,
                 PlatformDirectoryFact::Data | PlatformDirectoryFact::SharedData,
             ) => {
-                environment.home_dir = variable("HOME");
                 environment.xdg_data_home = variable("XDG_DATA_HOME");
             }
             (TargetPlatform::Linux, PlatformDirectoryFact::State | PlatformDirectoryFact::Log) => {
-                environment.home_dir = variable("HOME");
                 environment.xdg_state_home = variable("XDG_STATE_HOME");
             }
             (TargetPlatform::Linux, PlatformDirectoryFact::Cache) => {
-                environment.home_dir = variable("HOME");
                 environment.xdg_cache_home = variable("XDG_CACHE_HOME");
             }
             (TargetPlatform::Linux, PlatformDirectoryFact::Runtime) => {
                 environment.xdg_runtime_dir = variable("XDG_RUNTIME_DIR");
             }
+            (TargetPlatform::MacOs, _) => {}
         }
         environment
     }

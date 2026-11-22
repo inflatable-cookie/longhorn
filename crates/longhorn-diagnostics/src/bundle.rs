@@ -3,7 +3,7 @@
 use std::time::SystemTime;
 
 use longhorn_redact::Redactor;
-use longhorn_support_log::{RingRecord, utc_timestamp};
+use longhorn_support_log::{RingRecord, single_line, utc_timestamp};
 
 /// The byte column a fact value starts at, counted after the two-space
 /// indent: the label, its colon and the padding together fill it. A label at
@@ -86,13 +86,6 @@ pub struct Bundle {
     /// How many `[redacted]` markers the final text holds, including any the
     /// caller's inputs already carried.
     pub redactions: usize,
-}
-
-/// Writes interior CR and LF as the two characters `\r` and `\n`, so a text
-/// never breaks its line. The same rule contract 025 gives log lines; a
-/// backslash is not escaped.
-fn single_line(text: &str) -> String {
-    text.replace('\r', "\\r").replace('\n', "\\n")
 }
 
 fn push_fact_row(out: &mut String, fact: &Fact) {

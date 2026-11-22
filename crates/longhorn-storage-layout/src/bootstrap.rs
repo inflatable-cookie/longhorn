@@ -10,7 +10,7 @@ use crate::StorageLayoutDigest;
 pub use types::{
     StorageBootstrapOrigin, StorageBootstrapPathError, StorageBootstrapPaths,
     StorageBootstrapRecovery, StorageBootstrapRecoveryKind, StorageBootstrapSelection,
-    StorageBootstrapState, StorageProfileLocator, StorageProfileSelection,
+    StorageBootstrapState, StorageLocatorError, StorageProfileLocator, StorageProfileSelection,
     StorageProfileSelectionError,
 };
 
@@ -154,21 +154,34 @@ pub fn inspect_storage_bootstrap(
 }
 
 /// Serializes a validated locator into the exact bytes written at the fixed path.
-pub fn encode_locator(locator: &StorageProfileLocator) -> Vec<u8> {
-    serde_json::to_vec(&LocatorDocument {
+///
+/// # Errors
+///
+/// Returns [`StorageLocatorError::NonUtf8Root`] for an explicit root that is
+/// not UTF-8, rather than writing a lossy copy of it.
+pub fn encode_locator(locator: &StorageProfileLocator) -> Result<Vec<u8>, StorageLocatorError> {
+    let explicit_root = locator
+        .selection()
+        .explicit_root()
+        .map(|path| {
+            path.to_str()
+                .map(str::to_owned)
+                .ok_or_else(|| StorageLocatorError::NonUtf8Root {
+                    path: path.to_path_buf(),
+                })
+        })
+        .transpose()?;
+    Ok(serde_json::to_vec(&LocatorDocument {
         schema_version: LOCATOR_SCHEMA_VERSION,
         canonical_application_id: locator.canonical_application_id().to_owned(),
         profile_id: locator.selection().profile().id().to_owned(),
-        explicit_root: locator
-            .selection()
-            .explicit_root()
-            .map(|path| path.to_string_lossy().into_owned()),
+        explicit_root,
         transition_id: locator.transition_id().map(str::to_owned),
         last_committed_layout_sha256: locator
             .last_committed_layout_digest()
             .map(|digest| digest.as_str().to_owned()),
     })
-    .expect("validated storage locator is serializable")
+    .expect("validated storage locator is serializable"))
 }
 
 /// Reports whether the persisted locator selects exactly this transition and layout.
@@ -177,16 +190,25 @@ pub fn locator_matches(
     canonical_application_id: &str,
     transition_id: &str,
     layout_digest: &StorageLayoutDigest,
-) -> Result<bool, String> {
+) -> Result<bool, StorageLocatorError> {
     let bytes = match fs::read(paths.locator()) {
         Ok(bytes) => bytes,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
-        Err(error) => return Err(error.to_string()),
+        Err(error) => {
+            return Err(StorageLocatorError::Unreadable {
+                detail: error.to_string(),
+            });
+        }
     };
-    let locator =
-        serde_json::from_slice::<LocatorDocument>(&bytes).map_err(|error| error.to_string())?;
+    let locator = serde_json::from_slice::<LocatorDocument>(&bytes).map_err(|error| {
+        StorageLocatorError::InvalidDocument {
+            detail: error.to_string(),
+        }
+    })?;
     if locator.schema_version != LOCATOR_SCHEMA_VERSION {
-        return Err("unsupported locator schema".into());
+        return Err(StorageLocatorError::UnsupportedSchema {
+            observed: locator.schema_version,
+        });
     }
     Ok(locator.canonical_application_id == canonical_application_id
         && locator.transition_id.as_deref() == Some(transition_id)

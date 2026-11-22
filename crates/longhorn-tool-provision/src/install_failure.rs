@@ -164,8 +164,26 @@ impl fmt::Display for InstallError {
 }
 
 impl std::error::Error for InstallRefusal {}
-impl std::error::Error for InstallFault {}
-impl std::error::Error for InstallError {}
+
+impl std::error::Error for InstallFault {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Rollback { cause, .. } => Some(cause.as_ref()),
+            _ => None,
+        }
+    }
+}
+
+impl std::error::Error for InstallError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Release(error) => Some(error),
+            Self::Provision(error) => Some(error),
+            Self::Refused(refusal) => Some(refusal),
+            Self::Fault(fault) => Some(fault),
+        }
+    }
+}
 
 impl From<ReleaseError> for InstallError {
     fn from(error: ReleaseError) -> Self {

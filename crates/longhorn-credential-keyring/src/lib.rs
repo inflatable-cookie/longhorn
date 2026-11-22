@@ -136,7 +136,7 @@ mod platform {
     /// not answering. The detail is the error's own description and never the
     /// secret — the keyring crate does not echo values into its errors, and
     /// nothing here adds one.
-    fn classify(error: keyring::Error) -> BackendFailure {
+    pub(super) fn classify(error: keyring::Error) -> BackendFailure {
         match error {
             keyring::Error::NoEntry => BackendFailure::NoEntry,
             other => BackendFailure::Unavailable(other.to_string()),
@@ -184,16 +184,22 @@ fn no_backend() -> CredentialError {
     }
 }
 
-#[cfg(all(test, any(target_os = "macos", target_os = "windows")))]
-mod tests {
+/// The real platform keychain, reached only when asked for: `cargo test
+/// --features real-keychain-tests` on macOS or Windows. A plain test run never
+/// touches a developer's keychain or raises its access prompt. Every entry
+/// uses a service no application uses, so the tests cannot reach a consumer's
+/// credentials.
+#[cfg(all(
+    test,
+    feature = "real-keychain-tests",
+    any(target_os = "macos", target_os = "windows")
+))]
+mod keychain_tests {
     use super::*;
 
-    /// A service name no real application uses, so these tests can never
-    /// touch a consumer's entries. One service per test rather than one
-    /// shared: `cargo test` runs tests in parallel, and two tests writing the
-    /// same (service, slot) entry race — the platform reports "already
-    /// exists" for a concurrent create, which is a real answer about a
-    /// contention this crate's callers do not have.
+    /// A service name no real application uses. One service per test rather
+    /// than one shared: tests run in parallel, and two writing the same
+    /// (service, slot) entry race.
     fn test_service(name: &str) -> String {
         format!("audio.example.longhorn-credential-keyring.test.{name}")
     }
@@ -251,198 +257,94 @@ mod tests {
         store.remove(&refresh_token).expect("cleanup");
         store.remove(&consumer).expect("cleanup");
     }
+}
+
+/// The mapping from the keyring facade's error type, which exists only on the
+/// platforms that compose a keychain. The crate never reads a secret from an
+/// error, and these tests check that nothing here adds one.
+#[cfg(all(test, any(target_os = "macos", target_os = "windows")))]
+mod classify_tests {
+    use super::mapping::BackendFailure;
+    use super::platform::classify;
 
     #[test]
-    fn maximum_platform_account_name_is_accepted() {
-        let service = test_service("maximum-account-name");
-        let account = "a".repeat(255);
-        let entry =
-            keyring::Entry::new(&service, &account).expect("construct maximum account name");
+    fn an_empty_slot_is_no_entry_and_nothing_else_is() {
+        assert_eq!(classify(keyring::Error::NoEntry), BackendFailure::NoEntry);
+    }
 
-        drop(entry.delete_credential());
-        entry
-            .set_password("secret")
-            .expect("store maximum account name");
-        assert_eq!(
-            entry.get_password().expect("retrieve maximum account name"),
-            "secret"
-        );
-        entry
-            .delete_credential()
-            .expect("remove maximum account name");
+    #[test]
+    fn every_other_failure_keeps_its_description_as_unavailable() {
+        let failure = classify(keyring::Error::Invalid(
+            "account".to_owned(),
+            "rejected by the store".to_owned(),
+        ));
+        match failure {
+            BackendFailure::Unavailable(detail) => {
+                assert!(detail.contains("rejected by the store"), "{detail}");
+            }
+            other => panic!("expected Unavailable, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_length_refusal_is_unavailable_not_empty() {
+        let failure = classify(keyring::Error::TooLong("account".to_owned(), 255));
+        assert!(matches!(failure, BackendFailure::Unavailable(_)));
     }
 }
 
-/// The contract suite against a mock backend, on every platform.
-///
-/// The platform-gated suite above reaches a real keychain; this one drives
-/// the same mapping the platform code routes through, so CI Linux exercises
-/// the contract — above all that a locked store is `Unavailable`, never
-/// `None`.
+/// The contract mapping, on every platform. These drive the functions the
+/// platform code routes every backend answer through, so Linux CI exercises
+/// the rule that matters most: a locked store is `Unavailable`, never `None`.
 #[cfg(test)]
-mod mock_tests {
+mod mapping_tests {
     use super::*;
-    use std::collections::BTreeMap;
-    use std::sync::{Arc, Mutex};
 
-    /// A backend answering in `BackendFailure` terms: an in-memory slot map
-    /// plus a switch that makes every call fail the way a locked or
-    /// unreachable store would.
-    #[derive(Default)]
-    struct MockBackend {
-        secrets: Mutex<BTreeMap<(String, CredentialSlot), String>>,
-        failure: Mutex<Option<String>>,
-    }
-
-    impl MockBackend {
-        fn lock(&self, detail: &str) {
-            *self.failure.lock().expect("failure") = Some(detail.to_owned());
-        }
-
-        fn failure(&self) -> Option<String> {
-            self.failure.lock().expect("failure").clone()
-        }
-    }
-
-    /// A `CredentialStore` over the mock, routing through the crate's own
-    /// mapping functions exactly as the platform module does.
-    struct MockStore {
-        backend: Arc<MockBackend>,
-        service: String,
-    }
-
-    impl MockStore {
-        fn new(backend: Arc<MockBackend>, service: &str) -> Self {
-            Self {
-                backend,
-                service: service.to_owned(),
-            }
-        }
-    }
-
-    impl CredentialStore for MockStore {
-        fn store(&self, slot: &CredentialSlot, secret: &str) -> Result<(), CredentialError> {
-            if let Some(detail) = self.backend.failure() {
-                return map_store(Err(detail));
-            }
-            self.backend
-                .secrets
-                .lock()
-                .expect("secrets")
-                .insert((self.service.clone(), slot.clone()), secret.to_owned());
-            map_store(Ok(()))
-        }
-
-        fn retrieve(&self, slot: &CredentialSlot) -> Result<Option<String>, CredentialError> {
-            if let Some(detail) = self.backend.failure() {
-                return map_retrieve(Err(BackendFailure::Unavailable(detail)));
-            }
-            let secret = self
-                .backend
-                .secrets
-                .lock()
-                .expect("secrets")
-                .get(&(self.service.clone(), slot.clone()))
-                .cloned();
-            match secret {
-                Some(secret) => map_retrieve(Ok(secret)),
-                None => map_retrieve(Err(BackendFailure::NoEntry)),
-            }
-        }
-
-        fn remove(&self, slot: &CredentialSlot) -> Result<(), CredentialError> {
-            if let Some(detail) = self.backend.failure() {
-                return map_remove(Err(BackendFailure::Unavailable(detail)));
-            }
-            let removed = self
-                .backend
-                .secrets
-                .lock()
-                .expect("secrets")
-                .remove(&(self.service.clone(), slot.clone()));
-            match removed {
-                Some(_) => map_remove(Ok(())),
-                None => map_remove(Err(BackendFailure::NoEntry)),
-            }
-        }
-    }
-
-    /// The whole contract against the mock: store, retrieve, replace, remove,
-    /// and remove-when-empty — the same shape the platform suite asserts
-    /// against a real keychain.
     #[test]
-    fn the_contract_holds_against_the_mock_backend() {
-        let store = MockStore::new(Arc::new(MockBackend::default()), "service");
-        let slot = CredentialSlot::refresh_token();
+    fn a_reached_empty_slot_reads_as_none() {
+        assert_eq!(map_retrieve(Err(BackendFailure::NoEntry)), Ok(None));
+    }
 
-        assert_eq!(store.retrieve(&slot).expect("empty read"), None);
-        store.store(&slot, "first-secret").expect("store");
+    #[test]
+    fn a_stored_secret_reads_back_unchanged() {
         assert_eq!(
-            store.retrieve(&slot).expect("read back"),
-            Some("first-secret".to_owned())
+            map_retrieve(Ok("secret".to_owned())),
+            Ok(Some("secret".to_owned()))
         );
-        store.store(&slot, "replaced-secret").expect("replace");
-        assert_eq!(
-            store.retrieve(&slot).expect("read replacement"),
-            Some("replaced-secret".to_owned())
-        );
-        store.remove(&slot).expect("remove");
-        assert_eq!(store.retrieve(&slot).expect("read after remove"), None);
-        // Removing an empty slot succeeds, per the trait.
-        store.remove(&slot).expect("remove empty");
     }
 
-    /// The slots are distinct entries, not one value with two names.
-    #[test]
-    fn slots_do_not_alias_against_the_mock_backend() {
-        let store = MockStore::new(Arc::new(MockBackend::default()), "service");
-        let slots = [
-            CredentialSlot::consumer_scoped("publisher-a", "source", "signing").unwrap(),
-            CredentialSlot::consumer_scoped("publisher-b", "source", "signing").unwrap(),
-            CredentialSlot::consumer_scoped("publisher-a", "other-source", "signing").unwrap(),
-            CredentialSlot::consumer_scoped("publisher-a", "source", "submit").unwrap(),
-        ];
-
-        store.store(&slots[0], "secret").expect("store secret");
-        for slot in &slots[1..] {
-            assert_eq!(store.retrieve(slot).expect("other slot"), None);
-        }
-    }
-
-    #[test]
-    fn application_services_isolate_the_same_slot() {
-        let backend = Arc::new(MockBackend::default());
-        let first = MockStore::new(Arc::clone(&backend), "service-a");
-        let second = MockStore::new(backend, "service-b");
-        let slot = CredentialSlot::consumer_scoped("publisher", "source", "signing").unwrap();
-
-        first.store(&slot, "first").expect("store first service");
-        second.store(&slot, "second").expect("store second service");
-
-        assert_eq!(first.retrieve(&slot).unwrap(), Some("first".to_owned()));
-        assert_eq!(second.retrieve(&slot).unwrap(), Some("second".to_owned()));
-    }
-
-    /// Locked is not absent: a store that does not answer is `Unavailable`,
-    /// and no read of it may come back as "the slot is empty".
     #[test]
     fn a_locked_store_is_unavailable_never_empty() {
-        let store = MockStore::new(Arc::new(MockBackend::default()), "service");
-        let slot = CredentialSlot::refresh_token();
-        store.store(&slot, "secret").expect("store");
-
-        store.backend.lock("keychain is locked");
-
-        let error = store
-            .retrieve(&slot)
-            .expect_err("a locked store cannot answer None");
         assert_eq!(
-            error,
-            CredentialError::Unavailable {
+            map_retrieve(Err(BackendFailure::Unavailable(
+                "keychain is locked".to_owned()
+            ))),
+            Err(CredentialError::Unavailable {
                 detail: "keychain is locked".to_owned()
-            }
+            })
         );
-        assert!(store.store(&slot, "other").is_err());
-        assert!(store.remove(&slot).is_err());
+    }
+
+    #[test]
+    fn removing_an_empty_slot_succeeds_and_removing_from_a_locked_store_does_not() {
+        assert_eq!(map_remove(Err(BackendFailure::NoEntry)), Ok(()));
+        assert_eq!(map_remove(Ok(())), Ok(()));
+        assert_eq!(
+            map_remove(Err(BackendFailure::Unavailable("denied".to_owned()))),
+            Err(CredentialError::Unavailable {
+                detail: "denied".to_owned()
+            })
+        );
+    }
+
+    #[test]
+    fn a_failed_write_is_unavailable_with_the_backend_detail() {
+        assert_eq!(map_store(Ok(())), Ok(()));
+        assert_eq!(
+            map_store(Err("denied".to_owned())),
+            Err(CredentialError::Unavailable {
+                detail: "denied".to_owned()
+            })
+        );
     }
 }

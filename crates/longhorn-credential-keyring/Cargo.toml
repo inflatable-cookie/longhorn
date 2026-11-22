@@ -26,6 +26,11 @@ longhorn-core.workspace = true
 # so a Linux build never compiles keyring or zbus. The alternative to the
 # facade (keyring-core + per-store crates) only exists to call
 # `set_default_store`, a process-global a library has no business touching.
+[features]
+# The real platform keychain tests. Off by default, so a plain `cargo test`
+# never touches a developer's keychain or raises its access prompt.
+real-keychain-tests = []
+
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 keyring = { version = "4", default-features = false, features = ["v1"] }
 

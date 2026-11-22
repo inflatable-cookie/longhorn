@@ -33,6 +33,7 @@ mod failure;
 mod fixture;
 mod install;
 mod install_failure;
+mod name;
 mod path;
 mod release;
 mod runner;
@@ -58,7 +59,8 @@ pub use release::{
     ReleaseQuery, ReleaseRefusal, ReleaseSource, version_from_tag,
 };
 pub use runner::{
-    CommandRunner, MAX_PROCESS_OUTPUT_BYTES, ProcessOutput, ProcessRunner, RunnerError,
+    CommandRunner, DEFAULT_PROCESS_TIMEOUT, MAX_PROCESS_OUTPUT_BYTES, ProcessOutput, ProcessRunner,
+    RunnerError,
 };
 /// Semantic version used by release queries, floors and install probes.
 pub use semver::Version;

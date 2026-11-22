@@ -7,7 +7,10 @@ use std::{
     sync::Mutex,
 };
 
-use crate::runner::{MAX_PROCESS_OUTPUT_BYTES, ProcessRunner};
+use crate::{
+    name::is_managed_file_name,
+    runner::{MAX_PROCESS_OUTPUT_BYTES, ProcessRunner},
+};
 
 /// The neutral opening marker printed by the fixed login-shell script.
 pub const LOGIN_PATH_BEGIN: &str = "__LONGHORN_LOGIN_PATH_BEGIN__";
@@ -117,7 +120,7 @@ pub fn parse_login_path_output(output: &str) -> Result<OsString, LoginPathParseE
 /// Relative PATH entries are ignored.
 #[must_use]
 pub fn find_executable_on_path(name: &str, path: &OsStr) -> Option<PathBuf> {
-    if !is_plain_name(name) {
+    if !is_managed_file_name(name) {
         return None;
     }
     env::split_paths(path)
@@ -183,13 +186,4 @@ fn login_shell_command() -> (&'static str, Vec<OsString>) {
         shell,
         vec![OsString::from("-lc"), OsString::from(LOGIN_PATH_SCRIPT)],
     )
-}
-
-fn is_plain_name(name: &str) -> bool {
-    !name.is_empty()
-        && name != "."
-        && name != ".."
-        && !name.starts_with('.')
-        && !name.contains('/')
-        && !name.contains('\\')
 }
