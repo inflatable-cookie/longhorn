@@ -34,11 +34,16 @@ use longhorn_core::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
-    string_union_variants, tagged_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map, tagged_variants,
+    variant_field_map,
 };
 
 mod fixture;
+
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-command/src/error.rs"]
+mod host_error;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/commands/generated/protocol.ts";
 const GENERATED_FIELDS: &str = "packages/longhorn/src/commands/generated/fields.ts";
@@ -85,6 +90,13 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let durability = CommandKeymapDurability::decl(config());
     let mutation_outcome = CommandKeymapMutationOutcome::decl(config());
     let override_kind = CommandKeymapOverride::decl(config());
+
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::CommandHostErrorCode>(
+            host_error::CommandHostError::authority("fixture", true),
+            "CommandHostError",
+            "CommandHostErrorCode",
+        )?;
 
     let declarations = [
         CommandBindingId::decl(config()),
@@ -166,6 +178,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         durability.clone(),
         CommandKeymapMutationReceipt::decl(config()),
         mutation_result.clone(),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -188,17 +202,19 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&tagged_variants(&preview_result, "status")?)?,
         serde_json::to_string(&tagged_variants(&mutation_result, "status")?)?,
         serde_json::to_string(&tagged_variants(&load_origin, "kind")?)?,
-        serde_json::to_string(&string_union_variants(&rejection_code)?)?,
-        serde_json::to_string(&string_union_variants(&recovery_code)?)?,
-        serde_json::to_string(&string_union_variants(&durability)?)?,
-        serde_json::to_string(&string_union_variants(&mutation_outcome)?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<CommandKeymapRejectionCode>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<CommandKeymapRecoveryCode>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<CommandKeymapDurability>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<
+            CommandKeymapMutationOutcome,
+        >()?)?,
         serde_json::to_string(&tagged_variants(&override_kind, "kind")?)?,
         declarations.join("\n\n")
     );
     let (fields, _skipped) = field_map("generate:commands", "COMMANDS_FIELDS", &declarations);
 
     let variant_fields =
-        variant_field_map("generate:commands", "COMMAND_VARIANT_FIELDS", &declarations);
+        variant_field_map("generate:commands", "COMMAND_VARIANT_FIELDS", &declarations)?;
 
     Ok(RenderedProtocol {
         contents,

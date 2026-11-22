@@ -2,8 +2,6 @@ use std::fmt;
 
 /// Which persistent store refused a load.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum CompatibilityStore {
     /// A configuration domain document, including every domain that
     /// persists through one (settings among them).

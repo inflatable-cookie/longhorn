@@ -10,6 +10,9 @@ use std::{collections::BTreeMap, error::Error, sync::Mutex};
 
 const MAX_SEGMENT_BYTES: usize = 64;
 const MAX_PERSISTED_NAME_BYTES: usize = 255;
+const CONSUMER_PREFIX: &str = "consumer";
+const _: () =
+    assert!(CONSUMER_PREFIX.len() + 3 + 3 * MAX_SEGMENT_BYTES <= MAX_PERSISTED_NAME_BYTES);
 
 /// One consumer-owned credential identity segment.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -129,7 +132,7 @@ impl CredentialSlot {
         validate_segment(scope, CredentialSlotSegment::Scope)?;
         validate_segment(purpose, CredentialSlotSegment::Purpose)?;
 
-        let name = format!("consumer:{namespace}:{scope}:{purpose}");
+        let name = format!("{CONSUMER_PREFIX}:{namespace}:{scope}:{purpose}");
         validate_persisted_name(&name)?;
         Ok(Self(name))
     }

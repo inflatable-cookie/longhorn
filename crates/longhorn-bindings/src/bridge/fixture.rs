@@ -1,18 +1,19 @@
 use std::error::Error;
 
 use longhorn_bridge::{
-    AuthenticationPosture, AuthorityEpoch, AuthorityRevision, BridgeCancellationOutcome,
-    BridgeCancellationReceipt, BridgeCancellationRequest, BridgeCommandDelivery,
-    BridgeCommandEnvelope, BridgeCommandOutcome, BridgeCommandReply, BridgeConnectionReason,
-    BridgeConnectionState, BridgeConnectionStatus, BridgeDeduplicationCapacity,
-    BridgeDeduplicationSupport, BridgeDiagnostic, BridgeEventEnvelope, BridgeFailure,
-    BridgeFailureMessage, BridgeFailurePhase, BridgeHelloRequest, BridgeHostDescriptor,
-    BridgeHostForm, BridgeJobTerminalEvent, BridgeJobTerminalOutcome, BridgeJobTracker,
-    BridgeNegotiationReceipt, BridgeProgressEvent, BridgeQueryEnvelope, BridgeQueryOutcome,
-    BridgeQueryReply, BridgeRequestContext, BridgeRetryClass, BridgeSnapshotEnvelope,
-    BridgeStreamCursor, BridgeStreamSequence, BridgeStreamTracker, DomainAuthorityDescriptor,
-    DomainAvailability, DomainCapabilityDescriptor, ExecutionAuthority, ReadAuthority,
-    WriteAuthority,
+    AuthenticationPosture, AuthorityEpoch, AuthorityRevision, BridgeBackoffPolicy,
+    BridgeCancellationOutcome, BridgeCancellationReceipt, BridgeCancellationRequest, BridgeClock,
+    BridgeCommandDelivery, BridgeCommandEnvelope, BridgeCommandOutcome, BridgeCommandReply,
+    BridgeConnectionMachine, BridgeConnectionReason, BridgeConnectionState, BridgeConnectionStatus,
+    BridgeDeduplicationCapacity, BridgeDeduplicationSupport, BridgeDelayMillis, BridgeDiagnostic,
+    BridgeEventEnvelope, BridgeFailure, BridgeFailureMessage, BridgeFailurePhase,
+    BridgeHelloRequest, BridgeHostDescriptor, BridgeHostForm, BridgeJobTerminalEvent,
+    BridgeJobTerminalOutcome, BridgeJobTracker, BridgeMonotonicMillis, BridgeNegotiationReceipt,
+    BridgeProgressEvent, BridgeQueryEnvelope, BridgeQueryOutcome, BridgeQueryReply,
+    BridgeQueryRetryController, BridgeQueryRetryDecision, BridgeRequestContext, BridgeRetryAttempt,
+    BridgeRetryClass, BridgeRetryLimit, BridgeSnapshotEnvelope, BridgeStreamCursor,
+    BridgeStreamSequence, BridgeStreamTracker, DomainAuthorityDescriptor, DomainAvailability,
+    DomainCapabilityDescriptor, ExecutionAuthority, ReadAuthority, WriteAuthority,
 };
 use longhorn_core::{
     AuthorityScopeId, BridgeCapabilityId, BridgeDiagnosticId, BridgeErrorCode, BridgeId,
@@ -140,7 +141,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
     let fixture = json!({
         "protocolVersion": 1,
         "hello": to_value(hello)?,
-        "negotiation": to_value(negotiation)?,
+        "negotiation": to_value(&negotiation)?,
         "queryRequests": [to_value(&query_request)?],
         "queryReplies": to_value(query_replies)?,
         "commandRequests": [to_value(&command_request)?, to_value(&uncertain_command)?],
@@ -151,6 +152,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         "cancellationRequest": to_value(cancellation_request)?,
         "cancellationReceipt": to_value(cancellation_receipt)?,
         "terminal": to_value(&terminal)?,
+        "runtimeTrace": runtime_trace(&negotiation)?,
         "semanticTrace": to_value(semantic_trace(&query_request, &command_request, &uncertain_command, &terminal)?)?,
         "incompatibility": {
             "futureProtocolVersion": 2,
@@ -220,6 +222,72 @@ fn negotiation() -> Result<BridgeNegotiationReceipt, Box<dyn Error>> {
             "fixture diagnostic",
         )?],
     )?)
+}
+
+struct Clock(u64);
+
+impl BridgeClock for Clock {
+    fn now(&self) -> BridgeMonotonicMillis {
+        BridgeMonotonicMillis::new(self.0)
+    }
+}
+
+struct Backoff;
+
+impl BridgeBackoffPolicy for Backoff {
+    fn delay(&self, _: BridgeRetryClass, attempt: BridgeRetryAttempt) -> BridgeDelayMillis {
+        BridgeDelayMillis::new(u64::from(attempt.get()) * 25)
+    }
+}
+
+fn runtime_trace(negotiation: &BridgeNegotiationReceipt) -> Result<Value, Box<dyn Error>> {
+    let start = Clock(100);
+    let due = Clock(125);
+    let backoff = Backoff;
+    let after_reconnect = BridgeRetryClass::AfterReconnect;
+    let mut connection = BridgeConnectionMachine::new(BridgeRetryLimit::new(1)?);
+    let connecting = connection.connect(&start)?;
+    let negotiating = connection.transport_ready(&start)?;
+    let ready = connection.accept_negotiation(negotiation, &[], &start)?;
+    let degraded = connection.degrade(BridgeConnectionReason::CapabilityChanged, &start)?;
+    let reconnect = connection.reconnect(after_reconnect, &start, &backoff)?;
+    let early = match connection.transport_ready(&start) {
+        Err(error) if error.code() == longhorn_bridge::BridgeLifecycleErrorCode::RetryNotDue => {
+            true
+        }
+        Err(error) => return Err(error.into()),
+        Ok(_) => false,
+    };
+    let retry = connection.transport_ready(&due)?;
+    let exhausted = connection.reconnect(after_reconnect, &due, &backoff)?;
+    let closed = connection.close(&due)?;
+
+    let mut forbidden = BridgeConnectionMachine::new(BridgeRetryLimit::new(1)?);
+    forbidden.connect(&start)?;
+    let forbidden = forbidden.reconnect(BridgeRetryClass::Never, &start, &backoff)?;
+
+    let mut queries = BridgeQueryRetryController::new(BridgeRetryLimit::new(2)?);
+    let decision = BridgeQueryRetryDecision::Retry;
+    let after_backoff = BridgeRetryClass::AfterBackoff;
+    let first = queries.schedule(decision, after_backoff, &start, &backoff)?;
+    let second = queries.schedule(decision, after_backoff, &start, &backoff)?;
+    let denied = queries.schedule(decision, after_backoff, &start, &backoff)?;
+    queries.reset();
+    let never = queries.schedule(decision, BridgeRetryClass::Never, &start, &backoff)?;
+    let refused = queries.schedule(
+        BridgeQueryRetryDecision::DoNotRetry,
+        after_backoff,
+        &start,
+        &backoff,
+    )?;
+    let reset = queries.schedule(decision, after_backoff, &start, &backoff)?;
+
+    Ok(json!({
+        "connection": [connecting, negotiating, ready, degraded, reconnect, retry, exhausted, closed],
+        "earlyTransportRejected": early,
+        "retryForbidden": forbidden,
+        "queryRetry": [first, second, denied, never, refused, reset]
+    }))
 }
 
 fn semantic_trace(

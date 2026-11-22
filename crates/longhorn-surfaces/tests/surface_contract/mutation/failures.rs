@@ -45,7 +45,7 @@ fn stale_overflow_and_invalid_current_preserve_exact_source() {
     );
 
     let overflow = SurfaceDocument::new(
-        SurfaceRevision::new(u64::MAX),
+        SurfaceRevision::new(longhorn_core::WireCounter::MAX),
         source.surfaces().iter().cloned(),
         [],
         source.windows().iter().cloned(),
@@ -53,7 +53,7 @@ fn stale_overflow_and_invalid_current_preserve_exact_source() {
     assert_eq!(
         reject(
             &overflow,
-            u64::MAX,
+            longhorn_core::WireCounter::MAX,
             SurfaceMutationCommand::RenameSurface {
                 surface_id: surface_id("surface:mix"),
                 label: None,

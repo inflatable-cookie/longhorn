@@ -48,11 +48,7 @@ function fieldsOf(
 /**
  * Renders one identity comparison, naming both sides when they differ.
  *
- * Mirrors `longhorn_poodle::config::identity_label`. Not generated: the
- * mismatch arm interpolates two fields into a sentence rather than a label,
- * and a template table for two arms would be more machinery than it saves.
- * Kept here so no surface renders `mismatch` — the serde wire form — at an
- * operator. See memo 022, D1.
+ * Checked against the Rust projection by the shared parity fixture.
  */
 export function identityLabel(
   status: RestoreIdentityStatusProjection,

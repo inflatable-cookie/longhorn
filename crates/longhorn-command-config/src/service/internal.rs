@@ -1,7 +1,7 @@
 //! Internal load, snapshot, and proposal helpers.
 
 use longhorn_command::{CommandEffectiveKeymap, CommandReservedChordPolicy};
-use longhorn_config::LoadOutcome;
+use longhorn_config::{LoadOutcome, UnavailableState};
 
 use crate::{
     CommandKeymapCommitEvidence, CommandKeymapDiagnostic, CommandKeymapLoadOrigin,
@@ -9,6 +9,7 @@ use crate::{
     CommandKeymapRejectionCode, CommandKeymapSnapshot, CommandKeymapState,
 };
 
+use super::keymap_load::KeymapLoad;
 use super::{
     CommandKeymapService, CommandKeymapServiceError, Proposal, apply_patch, rejection,
     snapshot_from_effective, validate_patch,
@@ -19,13 +20,15 @@ where
     P: CommandReservedChordPolicy,
     M: CommandKeymapMigration<P>,
 {
-    pub(crate) fn project_load(
+    pub(super) fn project_load(
         &self,
+        operation: &KeymapLoad<'_, P, M>,
         loaded: LoadOutcome<CommandKeymapState>,
     ) -> Result<CommandKeymapLoadOutcome, CommandKeymapServiceError> {
         match loaded {
             LoadOutcome::Ready(loaded) => Ok(CommandKeymapLoadOutcome::Loaded {
                 snapshot: self.snapshot(
+                    operation,
                     &loaded.value,
                     loaded.origin.into(),
                     &loaded
@@ -43,7 +46,7 @@ where
                 },
             }),
             LoadOutcome::Unavailable(unavailable) => Ok(CommandKeymapLoadOutcome::Unavailable {
-                detail: format!("{unavailable:?}"),
+                detail: unavailable_code(&unavailable).into(),
             }),
         }
     }
@@ -73,36 +76,29 @@ where
                 Err(CommandKeymapServiceError::Recovery(recovery.detail))
             }
             LoadOutcome::Unavailable(unavailable) => Err(CommandKeymapServiceError::Unavailable(
-                format!("{unavailable:?}"),
+                unavailable_code(&unavailable).into(),
             )),
         }
     }
 
-    pub(crate) fn snapshot(
+    pub(super) fn snapshot(
         &self,
+        operation: &KeymapLoad<'_, P, M>,
         state: &CommandKeymapState,
         origin: CommandKeymapLoadOrigin,
         diagnostics: &[CommandKeymapDiagnostic],
     ) -> Result<CommandKeymapSnapshot, CommandKeymapServiceError> {
-        let preset = self
-            .domain
-            .preset(&state.active_preset_id)
-            .ok_or_else(|| CommandKeymapServiceError::InvalidState("unknown preset".into()))?;
-        let effective = CommandEffectiveKeymap::compile(
-            self.domain.registry(),
-            preset,
-            &state.overrides,
-            self.domain.reserved_policy(),
-        )
-        .map_err(|error| CommandKeymapServiceError::InvalidState(error.to_string()))?;
-        Ok(snapshot_from_effective(
-            &self.domain,
-            state.clone(),
-            preset.version,
-            effective,
-            origin,
-            diagnostics.to_vec(),
-        ))
+        operation
+            .with_effective(state, |effective| {
+                snapshot_from_effective(
+                    &self.domain,
+                    state.clone(),
+                    effective,
+                    origin,
+                    diagnostics.to_vec(),
+                )
+            })
+            .map_err(|issue| CommandKeymapServiceError::InvalidState(issue.message))
     }
 
     pub(crate) fn propose(
@@ -127,8 +123,8 @@ where
             || candidate.overrides != current.overrides;
         candidate.revision = if changed {
             match current.revision.checked_next() {
-                Some(revision) => revision,
-                None => {
+                Ok(revision) => revision,
+                Err(_) => {
                     return Ok(Proposal::Rejected {
                         rejection: rejection(
                             CommandKeymapRejectionCode::RevisionOverflow,
@@ -181,8 +177,7 @@ where
         let snapshot = snapshot_from_effective(
             &self.domain,
             candidate.clone(),
-            preset.version,
-            effective,
+            &effective,
             origin,
             diagnostics.to_vec(),
         );
@@ -221,5 +216,13 @@ where
                 .domain
                 .preset(&state.active_preset_id)
                 .is_some_and(|preset| preset.version == active_preset_version)
+    }
+}
+
+fn unavailable_code(state: &UnavailableState) -> &'static str {
+    match state {
+        UnavailableState::Authority { .. } => "authority-unavailable",
+        UnavailableState::RestoreActive => "restore-active",
+        UnavailableState::RestoreRecoveryRequired => "restore-recovery-required",
     }
 }

@@ -1,8 +1,8 @@
 use longhorn_bridge::{
     AuthorityEpoch, BridgeAuthorityCursorDecision, BridgeAuthorityRequirement,
-    BridgeConnectionMachine, BridgeConnectionState, BridgeLifecycleErrorCode,
-    BridgeRequiredAuthority, BridgeRetryClass, BridgeRetryLimit, BridgeStreamCursor,
-    BridgeStreamSequence,
+    BridgeConnectionMachine, BridgeConnectionReason, BridgeConnectionState,
+    BridgeLifecycleErrorCode, BridgeRequiredAuthority, BridgeRetryClass, BridgeRetryLimit,
+    BridgeStreamCursor, BridgeStreamSequence,
 };
 
 use super::support::{Clock, LinearBackoff, domain, receipt, session};
@@ -98,6 +98,36 @@ fn reconnect_invalidates_session_and_authority_epoch() {
 }
 
 #[test]
+fn reconnect_deadline_overflow_preserves_ready_authority_and_retry_budget() {
+    let clock = Clock::new(100);
+    let mut machine = BridgeConnectionMachine::new(BridgeRetryLimit::new(1).unwrap());
+    machine.connect(&clock).unwrap();
+    machine.transport_ready(&clock).unwrap();
+    let ready = machine
+        .accept_negotiation(&receipt("session:one", 2, true), &[], &clock)
+        .unwrap();
+
+    clock.set(longhorn_core::WireCounter::MAX);
+    let error = machine
+        .reconnect(BridgeRetryClass::AfterReconnect, &clock, &LinearBackoff)
+        .unwrap_err();
+    assert_eq!(error.code(), BridgeLifecycleErrorCode::DeadlineOverflow);
+    assert_eq!(machine.status(), ready.current());
+    assert_eq!(machine.current_session_id(), ready.session_id());
+    assert_eq!(
+        machine.classify_cursor(&cursor("session:one", 2)),
+        BridgeAuthorityCursorDecision::Current
+    );
+
+    clock.set(100);
+    let retry = machine
+        .reconnect(BridgeRetryClass::AfterReconnect, &clock, &LinearBackoff)
+        .unwrap();
+    assert_eq!(retry.sequence().get(), ready.sequence().get() + 1);
+    assert_eq!(retry.reconnect().unwrap().attempt().get(), 1);
+}
+
+#[test]
 fn reconnect_exhaustion_becomes_offline_and_terminal_paths_are_explicit() {
     let clock = Clock::new(0);
     let mut machine = BridgeConnectionMachine::new(BridgeRetryLimit::new(1).unwrap());
@@ -136,14 +166,16 @@ fn never_retry_class_goes_offline_without_backoff() {
     let mut machine = BridgeConnectionMachine::new(BridgeRetryLimit::new(2).unwrap());
     machine.connect(&clock).unwrap();
     machine.transport_ready(&clock).unwrap();
+    let transition = machine
+        .reconnect(BridgeRetryClass::Never, &clock, &LinearBackoff)
+        .unwrap();
+    assert_eq!(transition.current().state(), BridgeConnectionState::Offline);
     assert_eq!(
-        machine
-            .reconnect(BridgeRetryClass::Never, &clock, &LinearBackoff)
-            .unwrap()
-            .current()
-            .state(),
-        BridgeConnectionState::Offline
+        transition.current().reason(),
+        Some(BridgeConnectionReason::RetryForbidden)
     );
+    assert_eq!(transition.reconnect(), None);
+    assert!(!transition.current().reconnect_permitted());
 }
 
 #[test]

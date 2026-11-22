@@ -1,4 +1,7 @@
-use std::fmt;
+use std::{
+    fmt,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 /// The platform facilities a host supplies that Longhorn will not assume.
 ///
@@ -47,24 +50,30 @@ pub trait HostServices {
 /// deliberately not the fallback when a host supplies nothing: a real
 /// application that reaches for this is telling its users that dates look
 /// like integers. It exists so a test does not have to invent one.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Default)]
 pub struct PlainHostServices {
-    counter: u64,
+    counter: AtomicU64,
 }
 
 impl PlainHostServices {
     /// Builds plain services with request ids counting from `first`.
+    ///
+    /// Request id allocation panics when the counter is exhausted.
     #[must_use]
     pub const fn new(first: u64) -> Self {
-        Self { counter: first }
+        Self {
+            counter: AtomicU64::new(first),
+        }
     }
 }
 
 impl HostServices for PlainHostServices {
     fn new_request_id(&self) -> String {
-        // Deliberately not random: a test that wants a stable id gets one, and
-        // a real host was always going to override this.
-        format!("plain:{}", self.counter)
+        let id = self
+            .counter
+            .try_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
+            .expect("plain host request id counter exhausted");
+        format!("plain:{id}")
     }
 
     fn format_timestamp(&self, unix_seconds: i64) -> String {
@@ -85,6 +94,27 @@ impl fmt::Display for PlainHostServices {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plain_services_issue_unique_request_ids_across_threads() {
+        let services = PlainHostServices::new(42);
+        let mut ids = std::thread::scope(|scope| {
+            let first = scope.spawn(|| {
+                (0..8)
+                    .map(|_| services.new_request_id())
+                    .collect::<Vec<_>>()
+            });
+            let second = (0..8)
+                .map(|_| services.new_request_id())
+                .collect::<Vec<_>>();
+            [first.join().unwrap(), second].concat()
+        });
+        ids.sort_unstable();
+        assert_eq!(
+            ids,
+            (42..58).map(|id| format!("plain:{id}")).collect::<Vec<_>>()
+        );
+    }
 
     #[test]
     fn plain_services_fold_case_without_a_locale() {

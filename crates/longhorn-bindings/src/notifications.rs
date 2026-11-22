@@ -194,7 +194,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         "generate:notifications",
         "NOTIFICATION_VARIANT_FIELDS",
         &declarations,
-    );
+    )?;
 
     Ok(RenderedProtocol {
         contents,

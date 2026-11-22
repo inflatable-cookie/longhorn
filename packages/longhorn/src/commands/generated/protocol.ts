@@ -874,3 +874,7 @@ snapshot: CommandKeymapSnapshot,
  * Proposed conflicts when available.
  */
 conflicts: Array<CommandKeymapConflict>, };
+
+export type CommandHostErrorCode = "authorityUnavailable" | "stateUnavailable" | "eventPublication";
+
+export type CommandHostError = { "code": CommandHostErrorCode, "message": string, "retryable": boolean, };

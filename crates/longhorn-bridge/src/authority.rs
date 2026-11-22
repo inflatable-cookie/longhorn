@@ -1,4 +1,4 @@
-use longhorn_core::{AuthorityScopeId, DomainId};
+use longhorn_core::{AuthorityScopeId, DomainId, WireCounter};
 use serde::{Deserialize, Deserializer, Serialize, de};
 
 use crate::{BridgeNegotiationError, BridgeNegotiationErrorCode};
@@ -8,25 +8,25 @@ use crate::{BridgeNegotiationError, BridgeNegotiationErrorCode};
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct AuthorityEpoch(u64);
+pub struct AuthorityEpoch(WireCounter);
 
 impl AuthorityEpoch {
     /// Validates and constructs a nonzero authority epoch.
     pub fn new(value: u64) -> Result<Self, BridgeNegotiationError> {
-        if value == 0 {
+        if value == 0 || value > WireCounter::MAX {
             Err(BridgeNegotiationError::new(
                 BridgeNegotiationErrorCode::InvalidAuthorityEpoch,
-                "authority epoch must be nonzero",
+                "authority epoch must be a positive JavaScript safe integer",
             ))
         } else {
-            Ok(Self(value))
+            Ok(Self(WireCounter::new(value)))
         }
     }
 
     /// Returns the serialized epoch.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 }
 
@@ -46,19 +46,23 @@ impl<'de> Deserialize<'de> for AuthorityEpoch {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct AuthorityRevision(u64);
+pub struct AuthorityRevision(WireCounter);
 
 impl AuthorityRevision {
     /// Constructs revision evidence from its serialized value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value exceeds [`WireCounter::MAX`].
     #[must_use]
     pub const fn new(value: u64) -> Self {
-        Self(value)
+        Self(WireCounter::new(value))
     }
 
     /// Returns the serialized revision.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 }
 

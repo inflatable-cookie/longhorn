@@ -31,11 +31,15 @@ use longhorn_core::{
 use ts_rs::TS;
 
 use crate::generation::{
-    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
-    string_union_variants, variant_field_map,
+    Artifact, GenerationMode, apply, config, exported_declaration, field_map, variant_field_map,
 };
 
 mod fixture;
+
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-bridge/src/error.rs"]
+mod host_error;
 
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/bridge/generated/protocol.ts";
 const GOLDEN_FIXTURE: &str = "fixtures/bridge/protocol-v1.json";
@@ -130,6 +134,13 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let progress_decision = BridgeProgressDecision::decl(config());
     let terminal_decision = BridgeJobTerminalDecision::decl(config());
 
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::BridgeHostErrorCode>(
+            host_error::BridgeHostError::authority("fixture", true),
+            "BridgeHostError",
+            "BridgeHostErrorCode",
+        )?;
+
     let declarations = [
         BridgeId::decl(config()),
         BridgeSessionId::decl(config()),
@@ -208,6 +219,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         BridgeServiceRequest::decl(config()),
         BridgeServiceGeneration::decl(config()),
         BridgeServiceTransitionReceipt::decl(config()),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -252,66 +265,38 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const BRIDGE_TERMINAL_DECISIONS = {} as const;\n\n\
          {}\n\
          {}\n",
-        serde_json::to_string(&string_union_variants(&BridgeHostForm::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeConnectionState::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeConnectionReason::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&AuthenticationPosture::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&DomainAvailability::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(&ReadAuthority::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(&WriteAuthority::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(&ExecutionAuthority::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeFailurePhase::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeRetryClass::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeCommandDelivery::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeCommandRetryDecision::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeQueryRetryDecision::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeRequiredAuthority::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(
-            &BridgeAuthorityCursorDecision::decl(config())
-        )?)?,
-        serde_json::to_string(&string_union_variants(&BridgeServiceOwnership::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeServiceState::decl(config()))?)?,
-        serde_json::to_string(&string_union_variants(
-            &BridgeServiceAction::decl(config())
-        )?)?,
-        serde_json::to_string(&string_union_variants(&BridgeServiceFailureCode::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeSnapshotDecision::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeStreamDecision::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeProgressDecision::decl(
-            config()
-        ))?)?,
-        serde_json::to_string(&string_union_variants(&BridgeJobTerminalDecision::decl(
-            config()
-        ))?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeHostForm>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeConnectionState>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeConnectionReason>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<AuthenticationPosture>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<DomainAvailability>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<ReadAuthority>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<WriteAuthority>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<ExecutionAuthority>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeFailurePhase>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeRetryClass>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeCommandDelivery>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeCommandRetryDecision>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeQueryRetryDecision>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeRequiredAuthority>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<
+            BridgeAuthorityCursorDecision,
+        >()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeServiceOwnership>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeServiceState>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeServiceAction>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeServiceFailureCode>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeSnapshotDecision>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeStreamDecision>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeProgressDecision>()?)?,
+        serde_json::to_string(&crate::serde_shape::enum_names::<BridgeJobTerminalDecision>()?)?,
         declarations.join("\n\n"),
         render_admitted_reasons()?
     );
     let (fields, _skipped) = field_map("generate:bridge", "BRIDGE_FIELDS", &declarations);
 
     let variant_fields =
-        variant_field_map("generate:bridge", "BRIDGE_VARIANT_FIELDS", &declarations);
+        variant_field_map("generate:bridge", "BRIDGE_VARIANT_FIELDS", &declarations)?;
 
     Ok(RenderedProtocol {
         contents,

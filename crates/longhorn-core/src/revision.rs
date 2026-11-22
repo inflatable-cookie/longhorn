@@ -2,9 +2,11 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Serialize};
 
+use crate::WireCounter;
+
 /// Defines one monotonic durable-document revision type.
 ///
-/// Every revision shares the same contract: a transparent `u64`, an
+/// Every revision shares the same contract: a transparent wire counter, an
 /// `INITIAL` value, and a `checked_next` that fails instead of wrapping.
 macro_rules! monotonic_revision {
     (
@@ -31,29 +33,33 @@ macro_rules! monotonic_revision {
         #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
         #[cfg_attr(feature = "bindings", ts(type = "number"))]
         #[serde(transparent)]
-        pub struct $name(u64);
+        pub struct $name(WireCounter);
 
         impl $name {
             #[doc = $initial]
-            pub const INITIAL: Self = Self(0);
+            pub const INITIAL: Self = Self(WireCounter::ZERO);
 
             /// Constructs a revision from its serialized value.
+            ///
+            /// # Panics
+            ///
+            /// Panics if the value exceeds [`WireCounter::MAX`].
             #[must_use]
             pub const fn new(value: u64) -> Self {
-                Self(value)
+                Self(WireCounter::new(value))
             }
 
             /// Returns the serialized revision value.
             #[must_use]
             pub const fn get(self) -> u64 {
-                self.0
+                self.0.get()
             }
 
             /// Returns the next revision or fails instead of wrapping.
             pub const fn checked_next(self) -> Result<Self, $overflow> {
                 match self.0.checked_add(1) {
-                    Some(value) => Ok(Self(value)),
-                    None => Err($overflow),
+                    Ok(value) => Ok(Self(value)),
+                    Err(_) => Err($overflow),
                 }
             }
         }
@@ -77,7 +83,7 @@ monotonic_revision!(
     LayoutRevisionOverflow,
     "Monotonic revision of one durable layout document.",
     "Initial revision for a new layout document.",
-    "layout revision cannot advance beyond u64::MAX"
+    "layout revision cannot advance beyond the wire counter limit"
 );
 
 monotonic_revision!(
@@ -85,7 +91,7 @@ monotonic_revision!(
     SurfaceRevisionOverflow,
     "Monotonic revision of one durable Surface document.",
     "Initial revision for a new Surface document.",
-    "Surface revision cannot advance beyond u64::MAX"
+    "Surface revision cannot advance beyond the wire counter limit"
 );
 
 monotonic_revision!(
@@ -93,7 +99,7 @@ monotonic_revision!(
     NativeContentRevisionOverflow,
     "Monotonic revision of desired or observed native-content state.",
     "Initial revision for one native-content state channel.",
-    "native-content revision cannot advance beyond u64::MAX"
+    "native-content revision cannot advance beyond the wire counter limit"
 );
 
 monotonic_revision!(
@@ -101,7 +107,7 @@ monotonic_revision!(
     HistoryRevisionOverflow,
     "Monotonic structural revision of one history authority.",
     "Initial revision for an empty history authority.",
-    "history revision cannot advance beyond u64::MAX"
+    "history revision cannot advance beyond the wire counter limit"
 );
 
 monotonic_revision!(
@@ -109,7 +115,7 @@ monotonic_revision!(
     OperationRevisionOverflow,
     "Monotonic revision of one asynchronous operation.",
     "Initial revision assigned when an operation is registered.",
-    "operation revision cannot advance beyond u64::MAX"
+    "operation revision cannot advance beyond the wire counter limit"
 );
 
 monotonic_revision!(
@@ -117,7 +123,7 @@ monotonic_revision!(
     OperationCatalogueRevisionOverflow,
     "Monotonic revision of one operation catalogue.",
     "Initial revision for an empty operation catalogue.",
-    "operation catalogue revision cannot advance beyond u64::MAX"
+    "operation catalogue revision cannot advance beyond the wire counter limit"
 );
 
 monotonic_revision!(
@@ -125,7 +131,7 @@ monotonic_revision!(
     NotificationLedgerRevisionOverflow,
     "Monotonic structural revision of one notification ledger.",
     "Initial revision for an empty notification ledger.",
-    "notification ledger revision cannot advance beyond u64::MAX"
+    "notification ledger revision cannot advance beyond the wire counter limit"
 );
 
 #[cfg(test)]
@@ -136,12 +142,12 @@ mod tests {
     fn revision_is_monotonic_and_never_wraps() {
         assert_eq!(LayoutRevision::INITIAL.checked_next().unwrap().get(), 1);
         assert_eq!(
-            LayoutRevision::new(u64::MAX).checked_next(),
+            LayoutRevision::new(WireCounter::MAX).checked_next(),
             Err(LayoutRevisionOverflow)
         );
         assert_eq!(SurfaceRevision::INITIAL.checked_next().unwrap().get(), 1);
         assert_eq!(
-            SurfaceRevision::new(u64::MAX).checked_next(),
+            SurfaceRevision::new(WireCounter::MAX).checked_next(),
             Err(SurfaceRevisionOverflow)
         );
         assert_eq!(
@@ -149,17 +155,17 @@ mod tests {
             1
         );
         assert_eq!(
-            NativeContentRevision::new(u64::MAX).checked_next(),
+            NativeContentRevision::new(WireCounter::MAX).checked_next(),
             Err(NativeContentRevisionOverflow)
         );
         assert_eq!(HistoryRevision::INITIAL.checked_next().unwrap().get(), 1);
         assert_eq!(
-            HistoryRevision::new(u64::MAX).checked_next(),
+            HistoryRevision::new(WireCounter::MAX).checked_next(),
             Err(HistoryRevisionOverflow)
         );
         assert_eq!(OperationRevision::INITIAL.checked_next().unwrap().get(), 1);
         assert_eq!(
-            OperationRevision::new(u64::MAX).checked_next(),
+            OperationRevision::new(WireCounter::MAX).checked_next(),
             Err(OperationRevisionOverflow)
         );
         assert_eq!(
@@ -170,7 +176,7 @@ mod tests {
             1
         );
         assert_eq!(
-            OperationCatalogueRevision::new(u64::MAX).checked_next(),
+            OperationCatalogueRevision::new(WireCounter::MAX).checked_next(),
             Err(OperationCatalogueRevisionOverflow)
         );
         assert_eq!(
@@ -181,7 +187,7 @@ mod tests {
             1
         );
         assert_eq!(
-            NotificationLedgerRevision::new(u64::MAX).checked_next(),
+            NotificationLedgerRevision::new(WireCounter::MAX).checked_next(),
             Err(NotificationLedgerRevisionOverflow)
         );
     }

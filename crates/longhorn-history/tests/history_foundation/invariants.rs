@@ -193,16 +193,28 @@ fn stale_duplicate_bound_and_overflow_rejections_are_failure_atomic() {
 
     let revision_max = LinearHistoryState::new(
         history_id("history:max-revision"),
-        HistoryRevision::new(u64::MAX),
+        HistoryRevision::new(longhorn_core::WireCounter::MAX),
         HistoryEntrySequence::new(2).unwrap(),
-        vec![entry("entry:1", "One", "test:value", 1, u64::MAX, Value(1))],
+        vec![entry(
+            "entry:1",
+            "One",
+            "test:value",
+            1,
+            longhorn_core::WireCounter::MAX,
+            Value(1),
+        )],
         Vec::new(),
     );
     let mut revision_max =
         LinearHistory::from_state(HistoryLimits::default(), revision_max).unwrap();
     assert_eq!(
         revision_max.record_applied(
-            record(u64::MAX, "entry:2", metadata("Two", "test:value"), Value(2),),
+            record(
+                longhorn_core::WireCounter::MAX,
+                "entry:2",
+                metadata("Two", "test:value"),
+                Value(2),
+            ),
             &SeparatePolicy,
         ),
         Err(HistoryRecordError::RevisionOverflow)

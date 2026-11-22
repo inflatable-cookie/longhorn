@@ -120,7 +120,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
 
     let (fields, _skipped) = field_map("generate:licence", "LICENCE_FIELDS", &declarations);
     let variant_fields =
-        variant_field_map("generate:licence", "LICENCE_VARIANT_FIELDS", &declarations);
+        variant_field_map("generate:licence", "LICENCE_VARIANT_FIELDS", &declarations)?;
 
     let cases: Vec<_> = longhorn_licence::key_conformance_cases()
         .into_iter()

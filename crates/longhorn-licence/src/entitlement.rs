@@ -91,7 +91,6 @@ impl Error for EntitlementIdError {}
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", untagged)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum Limit {
     /// No bound.
     #[default]

@@ -9,6 +9,8 @@
 
 use std::{env, error::Error};
 
+mod serde_shape;
+
 /// Bridge protocol bindings and golden fixtures.
 pub mod bridge;
 /// Command protocol bindings and golden fixtures.

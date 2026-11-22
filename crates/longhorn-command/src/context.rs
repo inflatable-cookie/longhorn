@@ -1,3 +1,4 @@
+use longhorn_core::{WireCounter, WireCounterOverflow};
 use std::{collections::BTreeSet, error::Error, fmt};
 
 use longhorn_core::{CommandCapabilityId, CommandContextId};
@@ -13,30 +14,33 @@ const HARD_MAXIMUM_CAPABILITY_FACTS: usize = 4_096;
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct CommandContextRevision(u64);
+pub struct CommandContextRevision(WireCounter);
 
 impl CommandContextRevision {
     /// Initial consumer context revision.
-    pub const INITIAL: Self = Self(0);
+    pub const INITIAL: Self = Self(WireCounter::ZERO);
 
     /// Constructs a revision from its serialized value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value exceeds [`WireCounter::MAX`].
     #[must_use]
     pub const fn new(value: u64) -> Self {
-        Self(value)
+        Self(WireCounter::new(value))
     }
 
     /// Returns the serialized revision.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 
     /// Returns the next revision without wrapping.
-    #[must_use]
-    pub const fn checked_next(self) -> Option<Self> {
+    pub const fn checked_next(self) -> Result<Self, WireCounterOverflow> {
         match self.0.checked_add(1) {
-            Some(value) => Some(Self(value)),
-            None => None,
+            Ok(value) => Ok(Self(value)),
+            Err(error) => Err(error),
         }
     }
 }

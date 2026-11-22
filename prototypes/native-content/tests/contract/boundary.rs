@@ -12,7 +12,11 @@ fn ids_and_counters_are_bounded_and_never_wrap() {
     assert!(NativeContentIslandId::new("").is_err());
     assert!(NativeContentIslandId::new("Uppercase").is_err());
     assert!(NativeContentFailureCode::new("x".repeat(129)).is_err());
-    assert!(NativeContentRevision::new(u64::MAX).checked_next().is_err());
+    assert!(
+        NativeContentRevision::new(longhorn_core::WireCounter::MAX)
+            .checked_next()
+            .is_err()
+    );
     assert!(AttachGeneration::new(u64::MAX).checked_next().is_err());
 }
 

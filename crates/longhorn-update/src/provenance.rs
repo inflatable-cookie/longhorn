@@ -17,7 +17,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", tag = "kind")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum InstallProvenance {
     /// Nothing else owns this installation; Longhorn may replace it.
     SelfManaged,
@@ -60,7 +59,6 @@ impl InstallProvenance {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[cfg_attr(feature = "bindings", ts(export))]
 pub enum InstallManager {
     /// Installed from the Mac App Store.
     MacAppStore,

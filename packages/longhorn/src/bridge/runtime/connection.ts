@@ -74,14 +74,16 @@ export class BridgeConnectionRuntime {
         "reconnect backoff has not elapsed",
       );
     }
-    const receipt = this.#commitAt(
+    this.#requireTransition("negotiating");
+    const receipt = this.#prepareAt(
       "negotiating",
       "transportReady",
       at,
       null,
+      this.#session,
     );
     this.#reconnectNotBefore = undefined;
-    return receipt;
+    return this.#apply(receipt);
   }
 
   acceptNegotiation(
@@ -95,10 +97,18 @@ export class BridgeConnectionRuntime {
       : parseBridgeHelloRequest(request);
     const receipt = parseBridgeNegotiationReceipt(value, checkedRequest);
     assertRequiredAuthorities(receipt, requirements);
-    this.#session = new BridgeSession(receipt);
+    const session = new BridgeSession(receipt);
+    const transition = this.#prepareAt(
+      "ready",
+      "negotiationAccepted",
+      checkedMonotonic(this.#clock.now()),
+      null,
+      session,
+    );
+    this.#session = session;
     this.#reconnectAttempts = 0;
     this.#reconnectNotBefore = undefined;
-    return this.#commit("ready", "negotiationAccepted", null);
+    return this.#apply(transition);
   }
 
   degrade(
@@ -127,28 +137,29 @@ export class BridgeConnectionRuntime {
       attempt <= this.#reconnectLimit;
     this.#requireTransition(admitted ? "reconnecting" : "offline");
     const at = checkedMonotonic(this.#clock.now());
-    let reconnect: BridgeReconnectSchedule | null = null;
-    if (admitted) {
-      reconnect = {
+    const reconnect: BridgeReconnectSchedule | null = admitted
+      ? {
         attempt,
         retryClass,
-        notBefore: checkedDeadline(
-          at,
-          this.#backoff.delay(retryClass, attempt),
-        ),
-      };
-      this.#reconnectAttempts = attempt;
-      this.#reconnectNotBefore = reconnect.notBefore;
-    } else {
-      this.#reconnectNotBefore = undefined;
-    }
-    this.#session = undefined;
-    return this.#commitAt(
+        notBefore: checkedDeadline(at, this.#backoff.delay(retryClass, attempt)),
+      }
+      : null;
+    let reason: BridgeConnectionReason = "transportLost";
+    if (admitted) reason = "retryScheduled";
+    else if (retryClass === "never") reason = "retryForbidden";
+    const receipt = this.#prepareAt(
       admitted ? "reconnecting" : "offline",
-      admitted ? "retryScheduled" : "transportLost",
+      reason,
       at,
       reconnect,
+      undefined,
     );
+    if (reconnect !== null) {
+      this.#reconnectAttempts = reconnect.attempt;
+    }
+    this.#reconnectNotBefore = reconnect?.notBefore;
+    this.#session = undefined;
+    return this.#apply(receipt);
   }
 
   incompatible(): BridgeConnectionTransitionReceipt {
@@ -194,9 +205,12 @@ export class BridgeConnectionRuntime {
     reason: BridgeConnectionReason,
   ): BridgeConnectionTransitionReceipt {
     this.#requireTransition(state);
+    const receipt = this.#prepareAt(
+      state, reason, checkedMonotonic(this.#clock.now()), null, undefined,
+    );
     this.#session = undefined;
     this.#reconnectNotBefore = undefined;
-    return this.#commit(state, reason, null);
+    return this.#apply(receipt);
   }
 
   #transition(
@@ -204,40 +218,32 @@ export class BridgeConnectionRuntime {
     reason: BridgeConnectionReason,
   ): BridgeConnectionTransitionReceipt {
     this.#requireTransition(state);
-    return this.#commit(state, reason, null);
+    return this.#apply(this.#prepareAt(
+      state, reason, checkedMonotonic(this.#clock.now()), null, this.#session,
+    ));
   }
 
-  #commit(
-    state: BridgeConnectionState,
-    reason: BridgeConnectionReason,
-    reconnect: BridgeReconnectSchedule | null,
-  ): BridgeConnectionTransitionReceipt {
-    return this.#commitAt(
-      state,
-      reason,
-      checkedMonotonic(this.#clock.now()),
-      reconnect,
-    );
-  }
-
-  #commitAt(
+  #prepareAt(
     state: BridgeConnectionState,
     reason: BridgeConnectionReason,
     at: number,
     reconnect: BridgeReconnectSchedule | null,
+    session: BridgeSession | undefined,
   ): BridgeConnectionTransitionReceipt {
-    const previous = this.#status;
-    const current = { state, reason } as BridgeConnectionStatus;
-    this.#sequence = checkedIncrement(this.#sequence);
-    this.#status = current;
     return {
-      sequence: this.#sequence,
+      sequence: checkedIncrement(this.#sequence),
       at,
-      previous,
-      current,
-      sessionId: this.#session?.receipt.sessionId ?? null,
+      previous: this.#status,
+      current: { state, reason },
+      sessionId: session?.receipt.sessionId ?? null,
       reconnect,
     };
+  }
+
+  #apply(receipt: BridgeConnectionTransitionReceipt): BridgeConnectionTransitionReceipt {
+    this.#sequence = receipt.sequence;
+    this.#status = receipt.current;
+    return receipt;
   }
 
   #requireTransition(next: BridgeConnectionState): void {

@@ -62,7 +62,10 @@ The shared state model distinguishes:
 
 Transitions name their cause and whether reconnect is permitted. A client
 cannot project `ready` before negotiation and required domain authority checks
-complete.
+complete. Reconnect with a `never` retry class goes offline with
+`retryForbidden` and invokes no backoff. An exhausted reconnect budget goes
+offline with `transportLost`. A refused transition leaves the current
+connection and authority intact.
 
 ## Authority
 
@@ -139,7 +142,8 @@ until a production consumer supplies cross-platform and security evidence.
 
 - Rust-owned bridge types generate checked TypeScript with a zero-diff check.
 - The same semantic fixture passes direct, Tauri, and serialized-loopback
-  adapters.
+  adapters. The Rust connection machine and query retry controller generate
+  transition traces that the TypeScript runtimes must match.
 - A minimal-shell-shaped request/response composition imports no event or service
   runtime.
 - A Jetstream-shaped listener-first snapshot cannot miss the initial state.

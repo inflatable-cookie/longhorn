@@ -25,7 +25,8 @@ execution payload.
 ## Type Authority
 
 - Rust `serde` types are authoritative for Longhorn payloads.
-- `ts-rs` generates TypeScript into the owning domain package.
+- `ts-rs` generates TypeScript into the owning domain package. The bridge and
+  command host error types are generated from their adapter Serde definitions.
 - Generated files are checked in for package consumers.
 - CI regenerates and fails on drift.
 - Consumer-owned product payloads remain consumer-owned and may use their own
@@ -45,8 +46,14 @@ execution payload.
   current snapshot.
 - Errors have stable code, message, retry class, failure phase, and optional
   structured details. Bare strings are adapter failures, not protocol errors.
+  The bridge and command Tauri adapters expose operational failures as
+  `{code, message, retryable}`, using their own generated code types.
 - Snapshots and authoritative events carry an authority epoch plus monotonic
   revision or sequence.
+- Core-backed revisions and bridge and command counters carried as JSON
+  numbers admit integers through `2^53 - 1`, with a positive minimum for
+  authority epochs. Rust readers reject out-of-range values. Advancing these
+  counters returns a typed error when the next value would exceed the bound.
 - Progress and terminal events echo their initiating request id.
 - Cancellation returns a receipt and does not imply immediate termination.
 

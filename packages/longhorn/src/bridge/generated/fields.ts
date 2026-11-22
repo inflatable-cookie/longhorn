@@ -29,4 +29,5 @@ export const BRIDGE_FIELDS: Record<string, readonly string[]> = {
   "BridgeCancellationReceipt": ["requestId", "targetRequestId", "jobId", "outcome"],
   "BridgeServiceRequest": ["action", "credentialRef"],
   "BridgeServiceTransitionReceipt": ["generation", "ownership", "action", "previous", "current", "outcome"],
+  "BridgeHostError": ["code", "message", "retryable"],
 };

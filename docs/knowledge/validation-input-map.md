@@ -462,9 +462,8 @@ domains: `bridge commands config history history-tree layout licence
 native-content notifications operation settings surfaces surface-transfer
 transfer update`. Owns `crates/longhorn-bindings/**` (generator),
 `crates/longhorn-core/**` (the shared declarations and constants every domain
-renderer reads — `crates/longhorn-bindings/Cargo.toml` enables core's
-`bindings` feature, and `store_compatibility.rs` exports `CompatibilityStore`
-under `#[cfg_attr(feature = "bindings", ts(export))]`), the full source of
+renderer reads through core's `bindings` feature), the bridge and command
+adapter `src/error.rs` wire definitions, and the full source of
 the fifteen domain crates, not only their type definitions — the generator
 executes domain behaviour too: `crates/longhorn-bindings/src/licence.rs` calls
 `longhorn_licence::key_conformance_cases()`
@@ -475,7 +474,8 @@ change — the per-domain golden fixtures
 `fixtures/<domain>/protocol-v1.json`, the layout conformance outputs
 `fixtures/layout/{surface-bound,window-bound}-conformance-v1.json`, and the
 generated output under `packages/longhorn/src/<domain>/generated/**` (TS plus
-`key-conformance.json`). Domain→crate: `layout` reads
+`key-conformance.json`). Check mode also rejects stale files in those generated
+directories and stale protocol and layout conformance fixtures. Domain→crate: `layout` reads
 `longhorn-surfaces` (Card 179 folded layout in); `commands` also reads
 `longhorn-command-config`; every domain also reads `longhorn-core`
 (`HistoryId`/`HistoryRevision`/`MAX_OPAQUE_ID_BYTES` in `history.rs`,
@@ -490,9 +490,7 @@ Bun or Svelte test imports the same fixture, and the artifact proofs that
 rerun per-domain binding checks. Admission: unmarked (compiles
 `longhorn-bindings`). In `qa`. Limits: the domain list is hardcoded in the
 task, so a new `longhorn-bindings` domain not added to the loop is silently
-uncovered. The committed per-type files under `crates/*/bindings/**` (ts-rs
-`#[ts(export)]` output) are not read or diffed by this selector or any other;
-see Coverage gaps. The two `surface-bound-registered-authority-v1.json` files
+uncovered. The two `surface-bound-registered-authority-v1.json` files
 are `#[cfg(test)]` generator inputs, so `test:rust` reads them, not this
 gate.
 
@@ -1040,7 +1038,6 @@ never selection inputs.
 | `release-baselines/rust-toolchains.env` | `release:floor`, `proof:artifacts`, `release:source-consumer` | MSRV gates, `msrv.ts` manifest generation, and the source-consumer `rust-version` (`scripts/verify-source-consumer.sh` sources the file) |
 | `.github/workflows/**` | `check:runner-tools`, `ci:rehearse` | install-step mapping and clean-runner rehearsal |
 | generated `.ts` under `packages/*/src/**/generated/**` | `check:bindings`, `check:ts` | drift vs compile |
-| `crates/*/bindings/**` | unresolved | ts-rs `#[ts(export)]` per-type output; no selector reads or diffs it (see Coverage gaps) |
 | `target/**`, `node_modules/**`, `.effigy/**` | none | ignored build/cache state |
 
 Anything not in this table and not matched by a selector above is unresolved:
@@ -1085,15 +1082,9 @@ proofs. Missing any of those is a silent break.
   that.
 - `check:svelte` hardcodes `packages/longhorn-poodle-svelte/tsconfig.json`; a
   second Svelte package would be uncovered.
-- `crates/*/bindings/**` is committed ts-rs `#[ts(export)]` output under
-  `longhorn-core`, `longhorn-licence` and `longhorn-update`. No selector reads
-  or diffs it: `check:bindings` compares only each domain's explicit
-  `packages/longhorn/src/**` and `fixtures/**` artifacts. The only owner is
-  the `bindings` feature compile; whether it should be diff-checked or deleted
-  is unresolved.
 - Generated and ignored paths are invisible to Effigy's graph, so `graph
-  affected` cannot prove `packages/*/src/**/generated/**`,
-  `crates/*/bindings/**`, or lockfiles are covered. The honest answer for
+  affected` cannot prove `packages/*/src/**/generated/**` or lockfiles are
+  covered. The honest answer for
   those inputs is the declared selector above, or an explicit unresolved
   classification where none exists.
 - `Cargo.lock` and `bun.lock` have no narrow selector. The conservative sets

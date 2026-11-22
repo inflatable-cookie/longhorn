@@ -365,14 +365,14 @@ fn empty_and_revision_exhausted_histories_fail_during_planning() {
 
     let state = longhorn_history::LinearHistoryState::new(
         history_id("history:revision-max"),
-        HistoryRevision::new(u64::MAX),
+        HistoryRevision::new(longhorn_core::WireCounter::MAX),
         longhorn_history::HistoryEntrySequence::new(2).unwrap(),
         vec![entry(
             "entry:1",
             "Set value",
             "document:set",
             1,
-            u64::MAX,
+            longhorn_core::WireCounter::MAX,
             DocumentMutation {
                 before: 0,
                 after: 1,
@@ -385,7 +385,7 @@ fn empty_and_revision_exhausted_histories_fail_during_planning() {
         history.plan_navigation(
             request(
                 "plan:revision-overflow",
-                u64::MAX,
+                longhorn_core::WireCounter::MAX,
                 HistoryNavigationTarget::Undo,
             ),
             &DocumentPolicy,

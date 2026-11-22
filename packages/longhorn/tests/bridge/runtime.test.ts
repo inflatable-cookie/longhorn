@@ -131,6 +131,48 @@ test("query retry scheduling is bounded and injected", () => {
   );
 });
 
+test("matches the Rust connection and query retry transition trace", () => {
+  const clock = new Clock();
+  const runtime = new BridgeConnectionRuntime(clock, backoff, 1);
+  const connection = [
+    runtime.connect(),
+    runtime.transportReady(),
+    runtime.acceptNegotiation(fixture.negotiation, []),
+    runtime.degrade("capabilityChanged"),
+    runtime.reconnect("afterReconnect"),
+  ];
+  let earlyTransportRejected = false;
+  try {
+    runtime.transportReady();
+  } catch (error) {
+    if (!(error instanceof BridgeRuntimeError) || error.code !== "retry_not_due") throw error;
+    earlyTransportRejected = true;
+  }
+  clock.value = 125;
+  connection.push(runtime.transportReady(), runtime.reconnect("afterReconnect"), runtime.close());
+
+  clock.value = 100;
+  const forbidden = new BridgeConnectionRuntime(clock, backoff, 1);
+  forbidden.connect();
+  const retryForbidden = forbidden.reconnect("never");
+
+  const queries = new BridgeQueryRetryRuntime(clock, backoff, 2);
+  const queryRetry = [
+    queries.schedule("retry", "afterBackoff") ?? null,
+    queries.schedule("retry", "afterBackoff") ?? null,
+    queries.schedule("retry", "afterBackoff") ?? null,
+  ];
+  queries.reset();
+  queryRetry.push(
+    queries.schedule("retry", "never") ?? null,
+    queries.schedule("doNotRetry", "afterBackoff") ?? null,
+    queries.schedule("retry", "afterBackoff") ?? null,
+  );
+
+  expect<unknown>({ connection, earlyTransportRejected, retryForbidden, queryRetry })
+    .toEqual(fixture.runtimeTrace);
+});
+
 function readyRuntime(
   clock: Clock,
   reconnectLimit = 2,

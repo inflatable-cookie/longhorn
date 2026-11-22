@@ -14,8 +14,8 @@ use super::{
     CommandExecutionRequest, CommandExecutionResult, CommandExecutor, CommandExecutorOutcome,
     CommandFailure, CommandFailureCode, CommandFailurePhase, failed_result, projection_source,
 };
-/// Pure fresh-admission engine over one immutable command registry.
 
+/// Pure fresh-admission engine over one immutable command registry.
 #[derive(Clone, Copy, Debug)]
 pub struct CommandAdmissionEngine<'registry> {
     registry: &'registry CommandRegistry,
