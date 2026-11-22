@@ -5,12 +5,12 @@
 //! program in it, and the token in [`secrecy`] memory. The token reaches a Git
 //! child only as one environment value that the askpass program prints, so it
 //! never enters a Git argument, a file, a log line, an error or a `Debug`
-//! output. The folder is removed when the bridge is dropped.
+//! output. The last bridge or invocation credential removes the folder.
 //!
 //! The application names the environment variable and nothing else: the helper
 //! program is this crate's, not the application's.
 
-use std::{fmt, fs};
+use std::{fmt, fs, io, sync::Arc};
 
 use secrecy::{ExposeSecret as _, SecretString};
 use tempfile::TempDir;
@@ -59,10 +59,9 @@ impl AskpassConfig {
 /// One Git invocation's credential: a private askpass program, the token
 /// behind it, and the environment values that point Git at both.
 ///
-/// Keep the bridge alive until the Git invocation finishes: the helper folder
-/// exists for exactly that long.
+/// The bridge and credentials derived from it share ownership of the helper folder.
 pub struct GitCredentialBridge {
-    private_dir: TempDir,
+    private_dir: Arc<TempDir>,
     token_env: String,
     token: SecretString,
 }
@@ -84,28 +83,19 @@ impl GitCredentialBridge {
         if token.expose_secret().trim().is_empty() {
             return Err(GithubAuthFailure::CredentialStoreUnavailable);
         }
-        let private_dir = tempfile::tempdir().map_err(|_| GithubAuthFailure::Failed)?;
-        #[cfg(unix)]
-        {
-            // The folder holds a program Git runs as this user and nothing
-            // else may read it, so it is owner-only even where the platform's
-            // own temporary folder mode is wider.
-            use std::os::unix::fs::PermissionsExt as _;
-            fs::set_permissions(private_dir.path(), fs::Permissions::from_mode(0o700))
-                .map_err(|_| GithubAuthFailure::Failed)?;
-        }
-        let askpass_path = private_dir.path().join("git-askpass");
-        fs::write(&askpass_path, askpass_program(&config.token_env))
-            .map_err(|_| GithubAuthFailure::Failed)?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt as _;
-            let permissions = fs::Permissions::from_mode(0o700);
-            fs::set_permissions(&askpass_path, permissions)
-                .map_err(|_| GithubAuthFailure::Failed)?;
-        }
+        let program = askpass_program(
+            "github.com",
+            &format!(
+                r#"case "$kind" in
+  Username) printf '%s\n' 'x-access-token' ;;
+  Password) printf '%s\n' "${{{}:-}}" ;;
+esac"#,
+                config.token_env
+            ),
+        );
+        let private_dir = write_program(&program).map_err(|_| GithubAuthFailure::Failed)?;
         Ok(Self {
-            private_dir,
+            private_dir: Arc::new(private_dir),
             token_env: config.token_env.clone(),
             token,
         })
@@ -114,12 +104,14 @@ impl GitCredentialBridge {
     /// The invocation credential for this bridge: the child environment
     /// values, and the token as the value every Git text is redacted with.
     ///
-    /// The environment also disables Git's configured credential helpers for
-    /// this child only, so a stale machine-wide helper cannot run before the
-    /// bridge.
+    /// The credential keeps the helper alive through the Git invocation.
     #[must_use]
     pub fn credential(&self) -> GitCredential {
-        GitCredential::new(self.env_vars(), self.token.expose_secret().to_owned())
+        GitCredential::github(
+            self.env_vars(),
+            self.token.clone(),
+            Arc::clone(&self.private_dir),
+        )
     }
 
     fn env_vars(&self) -> Vec<(String, String)> {
@@ -136,12 +128,6 @@ impl GitCredentialBridge {
                 self.token.expose_secret().to_owned(),
             ),
             ("GIT_TERMINAL_PROMPT".to_owned(), "0".to_owned()),
-            ("GIT_CONFIG_COUNT".to_owned(), "1".to_owned()),
-            (
-                "GIT_CONFIG_KEY_0".to_owned(),
-                "credential.helper".to_owned(),
-            ),
-            ("GIT_CONFIG_VALUE_0".to_owned(), String::new()),
         ]
     }
 }
@@ -156,33 +142,51 @@ impl fmt::Debug for GitCredentialBridge {
     }
 }
 
-/// The askpass program: the token for a password prompt, Git's own convention
-/// for a username prompt.
-///
-/// GitHub accepts any username with a personal-access or OAuth token, and
-/// `x-access-token` is the documented spelling for token authentication. The
-/// token is never part of this program's text.
-fn askpass_program(token_env: &str) -> String {
-    let program = r#"#!/bin/sh
-# Longhorn Git askpass (contract 029): reads TOKEN_ENV and prints nothing else.
-case "${1:-}" in
-  *[Uu]sername*) printf '%s\n' 'x-access-token' ;;
-  *) printf '%s\n' "${TOKEN_ENV:-}" ;;
-esac
-"#;
-    program.replace("TOKEN_ENV", token_env)
+pub(crate) const ASKPASS_DELEGATE: &str = "LONGHORN_GIT_ASKPASS_DELEGATE";
+
+pub(crate) fn guarded_delegate(host: &str) -> io::Result<TempDir> {
+    write_program(&askpass_program(
+        host,
+        r#"exec "$LONGHORN_GIT_ASKPASS_DELEGATE" "$1""#,
+    ))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn the_program_reads_the_named_variable_and_holds_no_token() {
-        let program = askpass_program("EXAMPLE_TOKEN");
-        assert!(program.contains("${EXAMPLE_TOKEN:-}"));
-        assert!(program.contains("x-access-token"));
-        // The placeholder is replaced, so nothing else names the variable.
-        assert!(!program.contains("TOKEN_ENV"));
+pub(crate) fn write_program(program: &str) -> io::Result<TempDir> {
+    let private_dir = tempfile::tempdir()?;
+    let path = private_dir.path().join("git-askpass");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        fs::set_permissions(private_dir.path(), fs::Permissions::from_mode(0o700))?;
+        fs::write(&path, program)?;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))?;
     }
+    #[cfg(not(unix))]
+    fs::write(&path, program)?;
+    Ok(private_dir)
+}
+
+// Git's credential prompts have no path when credential.useHttpPath is false.
+// Reject ambiguous prompts before extracting the host from an optional user.
+fn askpass_program(host: &str, answer: &str) -> String {
+    format!(
+        r#"#!/bin/sh
+case "${{1:-}}" in
+  "Username for '"https://*"': ") kind=Username ;;
+  "Password for '"https://*"': ") kind=Password ;;
+  *) exit 1 ;;
+esac
+authority=${{1#*https://}}
+authority=${{authority%"': "}}
+case "$authority" in
+  */*|*\?*|*\#*|*\\*|*"'"*|*[[:space:]]*) exit 1 ;;
+esac
+host=$(printf '%s' "${{authority##*@}}" | tr '[:upper:]' '[:lower:]')
+case "$host" in
+  '{host}') ;;
+  *) exit 1 ;;
+esac
+{answer}
+"#
+    )
 }

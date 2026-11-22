@@ -52,11 +52,12 @@ pub use askpass::{AskpassConfig, GitCredentialBridge};
 pub use attach::{AttachReading, remote_for_display, remote_identity, remotes_match};
 pub use auth::{
     ACCESS_REFRESH_SKEW, AccessTokenResponse, CredentialScope, CredentialStoreReading,
-    DEFAULT_POLL_INTERVAL, DeviceFlowEndpoints, GITHUB_ACCESS_TOKEN_URL, GITHUB_DEVICE_CODE_URL,
-    GITHUB_DEVICE_VERIFICATION_URL, GithubAuthFailure, GithubAuthProgress, GithubTokenClient,
-    MAX_DEVICE_WAIT, TOKEN_REQUEST_TIMEOUT, TokenClient, TokenGrant, classify_token_exchange,
-    force_refresh_token, fresh_access_token, read_credential_presence, read_grant, run_device_flow,
-    sign_out, write_grant,
+    DEFAULT_POLL_INTERVAL, DeviceCodeClient, DeviceCodeResponse, DeviceFlowEndpoints,
+    GITHUB_ACCESS_TOKEN_URL, GITHUB_DEVICE_CODE_URL, GITHUB_DEVICE_VERIFICATION_URL,
+    GithubAuthFailure, GithubAuthProgress, GithubTokenClient, MAX_DEVICE_WAIT,
+    TOKEN_REQUEST_TIMEOUT, TokenClient, TokenGrant, classify_token_exchange, force_refresh_token,
+    fresh_access_token, read_credential_presence, read_grant, run_device_flow, sign_out,
+    write_grant,
 };
 pub use clone::{
     CloneFailure, create_owned_staging, remove_owned_staging, rename_exclusive, staging_parent,
@@ -72,8 +73,6 @@ pub use identity::{GitCommitIdentity, GithubCommitIdentityResolver};
 pub use loopback::{FixtureRequest, FixtureRoute, FixtureServer};
 pub use model::{GitBranch, GitBranchKind, GitStatus, GitWorkspaceState};
 pub use policy::{GitCredential, GitPolicy};
-pub use preflight::{
-    RemoteAccessFailure, classify_remote_failure, credential_bridge_configured, is_https_github,
-};
+pub use preflight::{RemoteAccessFailure, classify_remote_failure, is_https_github};
 pub use sync::{SyncReading, SyncStop};
 pub use workspace::{SwitchReading, has_switch_blocking_dirt};

@@ -6,9 +6,10 @@
 //! fetches policy from an application module and never falls back to ambient
 //! Git configuration or an interactive prompt.
 
-use std::{fmt, process::Command};
+use std::{fmt, process::Command, sync::Arc};
 
 use secrecy::SecretString;
+use tempfile::TempDir;
 
 use crate::failure::GitFailure;
 
@@ -46,12 +47,15 @@ pub trait GitPolicy: Send + Sync {
 
 /// A caller-supplied credential for one Git invocation.
 ///
-/// The environment values are added to the child Git process only. `secret` is
+/// An application-supplied askpass program is bound to the invocation’s HTTPS
+/// destination. The environment values are added to the child Git process only. `secret` is
 /// the value the mechanism keeps out of every failure detail it returns; the
 /// caller decides which environment value carries it.
+#[derive(Clone)]
 pub struct GitCredential {
     env_vars: Vec<(String, String)>,
     secret: SecretString,
+    github_helper: Option<Arc<TempDir>>,
 }
 
 impl GitCredential {
@@ -62,7 +66,24 @@ impl GitCredential {
         Self {
             env_vars,
             secret: SecretString::from(secret.into()),
+            github_helper: None,
         }
+    }
+
+    pub(crate) fn github(
+        env_vars: Vec<(String, String)>,
+        secret: SecretString,
+        helper: Arc<TempDir>,
+    ) -> Self {
+        Self {
+            env_vars,
+            secret,
+            github_helper: Some(helper),
+        }
+    }
+
+    pub(crate) fn is_github(&self) -> bool {
+        self.github_helper.is_some()
     }
 
     /// The environment values added to a credential-scoped child process.

@@ -7,7 +7,22 @@
 //! credential helpers are never consulted — not as a first choice and not as a
 //! fallback.
 
-use crate::{execution::Git, failure::GitFailureCode, policy::GitCredential};
+use std::time::Duration;
+
+use crate::{
+    execution::{Git, https_host},
+    failure::{GitFailure, GitFailureCode},
+    policy::GitCredential,
+};
+
+pub(crate) const REMOTE_PROBE_TIMEOUT: Duration = Duration::from_secs(15);
+
+pub(crate) fn probe_failure(failure: &GitFailure) -> RemoteAccessFailure {
+    match failure {
+        GitFailure::TimedOut { .. } => RemoteAccessFailure::NetworkUnavailable,
+        _ => classify_remote_failure(failure.detail()),
+    }
+}
 
 /// What one remote access reading found.
 ///
@@ -28,22 +43,22 @@ pub enum RemoteAccessFailure {
     Unavailable,
 }
 
-/// GitHub over the HTTP and HTTPS client routes is the one that needs a stored
-/// credential; the donor treats both spellings alike. SSH remotes carry their
-/// own key material and are preflighted by reachability alone.
+/// True for an HTTPS URL on GitHub's standard credential endpoint.
 #[must_use]
 pub fn is_https_github(remote: &str) -> bool {
-    let lower = remote.trim().to_ascii_lowercase();
-    lower.starts_with("https://github.com/") || lower.starts_with("http://github.com/")
+    https_host(remote).as_deref() == Some("github.com")
 }
 
-/// True when a credential was supplied for the operation.
-///
-/// The mechanism reads the caller's decision, not the machine's Git
-/// configuration: a host-configured helper is never part of this reading.
-#[must_use]
-pub fn credential_bridge_configured(credential: Option<&GitCredential>) -> bool {
-    credential.is_some()
+// Only HTTP credential rejections authorize a refresh. SSH and local
+// filesystem failures can contain the same generic permission language.
+pub(crate) fn is_rejected_credential(stderr: &str) -> bool {
+    stderr.lines().any(|line| {
+        let line = line.to_ascii_lowercase();
+        line.starts_with("fatal: authentication failed for ")
+            || line.starts_with("remote: invalid username or password")
+            || (line.starts_with("fatal: unable to access ")
+                && line.ends_with("the requested url returned error: 401"))
+    })
 }
 
 /// Separates a missing credential, refused credentials, network and DNS
@@ -70,11 +85,9 @@ pub fn classify_remote_failure(stderr: &str) -> RemoteAccessFailure {
     {
         return RemoteAccessFailure::CredentialHelperMissing;
     }
-    if has("authentication failed")
-        || has("invalid username or password")
-        || has("permission denied")
+    if is_rejected_credential(stderr)
+        || has("permission denied (publickey")
         || has("host key verification failed")
-        || has("access denied")
     {
         return RemoteAccessFailure::AuthenticationRequired;
     }
@@ -95,8 +108,8 @@ impl Git<'_> {
     ///
     /// A GitHub remote requires the credential the operation will use.
     /// A credential supplied here is added to the probe's environment only.
-    /// Ambient credential helpers are never consulted, so what the machine has
-    /// configured cannot change this reading.
+    /// The Git probe has a fifteen-second budget and uses only the supplied
+    /// credential. Ambient credential helpers are disabled.
     ///
     /// # Errors
     ///
@@ -107,16 +120,17 @@ impl Git<'_> {
         remote: &str,
         credential: Option<&GitCredential>,
     ) -> Result<(), RemoteAccessFailure> {
-        if is_https_github(remote) && !credential_bridge_configured(credential) {
+        if is_https_github(remote) && credential.is_none() {
             return Err(RemoteAccessFailure::CredentialHelperMissing);
         }
         match self.run_git_unbound(
             &["ls-remote", "--heads", "--", remote],
+            remote,
             GitFailureCode::RemotePreflightFailed,
             credential,
         ) {
             Ok(_) => Ok(()),
-            Err(failure) => Err(classify_remote_failure(failure.detail())),
+            Err(failure) => Err(probe_failure(&failure)),
         }
     }
 }

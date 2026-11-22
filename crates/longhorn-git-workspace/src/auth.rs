@@ -57,8 +57,7 @@ pub const TOKEN_REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// Most bytes read from one token or profile response.
 const MAX_RESPONSE_BYTES: u64 = 64 * 1024;
 
-/// The stored grant format's version. A value with another version is read as
-/// a bare access token, so an unrecognised document is not trusted.
+/// The only supported stored grant format.
 const GRANT_VERSION: u8 = 1;
 
 /// How much one `slow_down` answer lengthens the poll interval when the server
@@ -71,6 +70,9 @@ const CANCEL_POLL_STEP: Duration = Duration::from_millis(100);
 /// Serializes refreshes process-wide: two callers that need one at the same
 /// time cause one exchange, and the second adopts the rotated grant.
 static REFRESH_LOCK: Mutex<()> = Mutex::new(());
+
+// Serialize sign-out and new sign-in with the refresh's final check and write.
+static GRANT_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
 /// What one GitHub sign-in step could not do.
 ///
@@ -101,8 +103,8 @@ pub enum GithubAuthFailure {
     /// GitHub answered, but not in a way this step could use.
     Failed,
     /// The refresh token is expired, revoked, or missing on an access token
-    /// known to have expired. The operator must sign in again; the stored grant
-    /// is left in place until they do.
+    /// known to have expired, or the stored grant is unreadable. The operator
+    /// must sign in again; the stored value is left in place until they do.
     SignInExpired,
 }
 
@@ -193,10 +195,10 @@ impl fmt::Debug for TokenGrant {
 /// [`github`](Self::github) is the public protocol pair. [`new`](Self::new)
 /// accepts `https` only; the loopback constructor, which accepts plain `http`
 /// on `127.0.0.1`, exists behind the `fixture-server` test-support feature.
-#[derive(Debug)]
 pub struct DeviceFlowEndpoints<'a> {
     device_code_url: &'a str,
     access_token_url: &'a str,
+    clients: Option<(&'a dyn DeviceCodeClient, &'a dyn TokenClient)>,
 }
 
 impl<'a> DeviceFlowEndpoints<'a> {
@@ -206,6 +208,7 @@ impl<'a> DeviceFlowEndpoints<'a> {
         Self {
             device_code_url: GITHUB_DEVICE_CODE_URL,
             access_token_url: GITHUB_ACCESS_TOKEN_URL,
+            clients: None,
         }
     }
 
@@ -225,7 +228,19 @@ impl<'a> DeviceFlowEndpoints<'a> {
         Ok(Self {
             device_code_url,
             access_token_url,
+            clients: None,
         })
+    }
+
+    /// Uses the application's transports for the device-code POST and polling.
+    #[must_use]
+    pub fn with_clients(
+        mut self,
+        device_code: &'a dyn DeviceCodeClient,
+        token: &'a dyn TokenClient,
+    ) -> Self {
+        self.clients = Some((device_code, token));
+        self
     }
 
     /// Endpoints for tests: `http` or `https` on a loopback host only.
@@ -244,8 +259,27 @@ impl<'a> DeviceFlowEndpoints<'a> {
         Ok(Self {
             device_code_url,
             access_token_url,
+            clients: None,
         })
     }
+}
+
+impl fmt::Debug for DeviceFlowEndpoints<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DeviceFlowEndpoints")
+            .finish_non_exhaustive()
+    }
+}
+
+/// The transport that requests a device code from the application's endpoint.
+pub trait DeviceCodeClient: Send + Sync {
+    /// Posts the app's client ID and returns the device-code response.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed failure when the request or its response is unusable.
+    fn request_code(&self, client_id: &str) -> Result<DeviceCodeResponse, GithubAuthFailure>;
 }
 
 /// One token-exchange transport: the exchange the mechanism drives and the
@@ -263,6 +297,18 @@ pub trait TokenClient: Send + Sync {
     /// its answer could not be read. The classification of GitHub's own error
     /// codes is [`classify_token_exchange`]'s job.
     fn exchange(&self, fields: &[(&str, &str)]) -> Result<AccessTokenResponse, GithubAuthFailure>;
+
+    /// Posts one device-flow poll, preserving pending and slow-down answers.
+    ///
+    /// # Errors
+    ///
+    /// Returns a typed transport failure when the request or response fails.
+    fn poll_device_code(
+        &self,
+        fields: &[(&str, &str)],
+    ) -> Result<AccessTokenResponse, GithubAuthFailure> {
+        self.exchange(fields)
+    }
 }
 
 /// GitHub's answer to a token request.
@@ -344,19 +390,31 @@ impl GithubTokenClient {
     }
 }
 
-impl TokenClient for GithubTokenClient {
-    fn exchange(&self, fields: &[(&str, &str)]) -> Result<AccessTokenResponse, GithubAuthFailure> {
-        let client = build_client()?;
-        let response = post_form(&client, &self.url, fields)?;
+impl GithubTokenClient {
+    fn request(
+        &self,
+        fields: &[(&str, &str)],
+    ) -> Result<(u16, AccessTokenResponse), GithubAuthFailure> {
+        let response = post_form(&build_client()?, &self.url, fields)?;
         let (status, body) = read_body(response)?;
-        // An outage is an outage whatever its body holds. GitHub's edge
-        // answers a rate limit with a page, not a token document, so the
-        // status is read before the body.
         if is_outage(status) {
             return Err(GithubAuthFailure::Offline);
         }
-        let parsed = parse_body(&body)?;
+        Ok((status, parse_body(&body)?))
+    }
+}
+
+impl TokenClient for GithubTokenClient {
+    fn exchange(&self, fields: &[(&str, &str)]) -> Result<AccessTokenResponse, GithubAuthFailure> {
+        let (status, parsed) = self.request(fields)?;
         classify_token_exchange(status, parsed)
+    }
+
+    fn poll_device_code(
+        &self,
+        fields: &[(&str, &str)],
+    ) -> Result<AccessTokenResponse, GithubAuthFailure> {
+        self.request(fields).map(|(_, response)| response)
     }
 }
 
@@ -435,20 +493,18 @@ where
     if cancel.load(Ordering::SeqCst) {
         return Err(GithubAuthFailure::Cancelled);
     }
-    let client = build_client()?;
-    let response = post_form(
-        &client,
-        endpoints.device_code_url,
-        &[("client_id", client_id)],
-    )?;
-    let (status, body) = read_body(response)?;
-    if is_outage(status) {
-        return Err(GithubAuthFailure::Offline);
-    }
-    if !(200..300).contains(&status) {
-        return Err(GithubAuthFailure::Failed);
-    }
-    let device: DeviceCodeResponse = parse_body(&body)?;
+    let default_token_client = GithubTokenClient {
+        url: endpoints.access_token_url.to_owned(),
+    };
+    let (device, token_client) = match endpoints.clients {
+        Some((device_client, token_client)) => {
+            (device_client.request_code(client_id)?, token_client)
+        }
+        None => (
+            request_device_code(endpoints.device_code_url, client_id)?,
+            &default_token_client as &dyn TokenClient,
+        ),
+    };
     if device.device_code.trim().is_empty() || device.user_code.trim().is_empty() {
         return Err(GithubAuthFailure::Failed);
     }
@@ -478,20 +534,11 @@ where
         if Instant::now() >= deadline {
             return Err(GithubAuthFailure::TimedOut);
         }
-        let response = post_form(
-            &client,
-            endpoints.access_token_url,
-            &[
-                ("client_id", client_id),
-                ("device_code", device.device_code.as_str()),
-                ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
-            ],
-        )?;
-        let (status, body) = read_body(response)?;
-        if is_outage(status) {
-            return Err(GithubAuthFailure::Offline);
-        }
-        let parsed: AccessTokenResponse = parse_body(&body)?;
+        let parsed = token_client.poll_device_code(&[
+            ("client_id", client_id),
+            ("device_code", device.device_code.as_str()),
+            ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
+        ])?;
         if parsed
             .access_token
             .as_deref()
@@ -507,23 +554,32 @@ where
     }
 }
 
+fn request_device_code(
+    url: &str,
+    client_id: &str,
+) -> Result<DeviceCodeResponse, GithubAuthFailure> {
+    let response = post_form(&build_client()?, url, &[("client_id", client_id)])?;
+    let (status, body) = read_body(response)?;
+    if is_outage(status) {
+        return Err(GithubAuthFailure::Offline);
+    }
+    if !(200..300).contains(&status) {
+        return Err(GithubAuthFailure::Failed);
+    }
+    parse_body(&body)
+}
+
 /// The stored grant, or `None` when the slot is empty.
-///
-/// A value that is not a recognised grant document is read as a bare access
-/// token with no expiry and no refresh token: that is the shape an earlier
-/// build of the application wrote, and refusing it would strand a signed-in
-/// operator. Any other unreadable document is therefore not trusted as a
-/// grant, and a forced refresh on it reports
-/// [`GithubAuthFailure::SignInExpired`].
 ///
 /// # Errors
 ///
-/// Returns [`GithubAuthFailure::CredentialStoreUnavailable`] when the store
-/// could not be read. A store failure is never read as "not signed in".
+/// Returns [`GithubAuthFailure::SignInExpired`] for an unreadable or unsupported
+/// stored value and [`GithubAuthFailure::CredentialStoreUnavailable`] for a
+/// backend failure.
 pub fn read_grant(scope: &CredentialScope<'_>) -> Result<Option<TokenGrant>, GithubAuthFailure> {
     match scope.store.retrieve(scope.slot) {
-        Ok(Some(raw)) if !raw.trim().is_empty() => Ok(Some(parse_grant(&raw))),
-        Ok(Some(_)) | Ok(None) => Ok(None),
+        Ok(Some(raw)) => parse_grant(&raw).map(Some),
+        Ok(None) => Ok(None),
         Err(_) => Err(GithubAuthFailure::CredentialStoreUnavailable),
     }
 }
@@ -555,6 +611,13 @@ pub fn write_grant(
     scope: &CredentialScope<'_>,
     grant: &TokenGrant,
 ) -> Result<(), GithubAuthFailure> {
+    let _guard = GRANT_WRITE_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    store_grant(scope, grant)
+}
+
+fn store_grant(scope: &CredentialScope<'_>, grant: &TokenGrant) -> Result<(), GithubAuthFailure> {
     let serialized = serialize_grant(grant)?;
     scope
         .store
@@ -572,6 +635,9 @@ pub fn write_grant(
 /// Returns [`GithubAuthFailure::CredentialStoreUnavailable`] when the store
 /// refused the removal.
 pub fn sign_out(scope: &CredentialScope<'_>) -> Result<(), GithubAuthFailure> {
+    let _guard = GRANT_WRITE_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     scope
         .store
         .remove(scope.slot)
@@ -649,6 +715,9 @@ pub fn fresh_access_token(
     // write only over the grant this refresh started from: a signed-out grant
     // is never resurrected, and a newer sign-in is adopted instead of being
     // overwritten by a stale refresh.
+    let _write_guard = GRANT_WRITE_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     match read_grant(scope)? {
         None => Ok(None),
         Some(current)
@@ -657,7 +726,7 @@ pub fn fresh_access_token(
             Ok(Some(current.access_token))
         }
         Some(_) => {
-            write_grant(scope, &refreshed)?;
+            store_grant(scope, &refreshed)?;
             Ok(Some(refreshed.access_token))
         }
     }
@@ -691,16 +760,29 @@ pub fn force_refresh_token(
     )
 }
 
-/// The device-code response.
+/// GitHub's device-code answer, including the code to keep out of diagnostics.
 #[derive(Deserialize)]
-struct DeviceCodeResponse {
-    device_code: String,
-    user_code: String,
-    expires_in: u64,
+pub struct DeviceCodeResponse {
+    /// The private code used when polling the token endpoint.
+    pub device_code: String,
+    /// The one-time code displayed to the operator.
+    pub user_code: String,
+    /// The operator's verification window, in seconds.
+    pub expires_in: u64,
+    /// The minimum poll interval suggested by the endpoint, in seconds.
     #[serde(default)]
-    interval: Option<u64>,
+    pub interval: Option<u64>,
+    /// The verification page suggested by the endpoint.
     #[serde(default)]
-    verification_uri: Option<String>,
+    pub verification_uri: Option<String>,
+}
+
+impl fmt::Debug for DeviceCodeResponse {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("DeviceCodeResponse")
+            .finish_non_exhaustive()
+    }
 }
 
 /// The stored document. Its fields are the grant's wire format.
@@ -738,29 +820,21 @@ fn expiry_after(now: SystemTime, seconds: u64) -> Option<SystemTime> {
     now.checked_add(Duration::from_secs(seconds))
 }
 
-fn parse_grant(raw: &str) -> TokenGrant {
-    let trimmed = raw.trim();
-    if trimmed.starts_with('{')
-        && let Ok(stored) = serde_json::from_str::<StoredGrant>(trimmed)
-        && stored.v == GRANT_VERSION
-        && !stored.access_token.trim().is_empty()
-    {
-        return TokenGrant {
-            access_token: SecretString::from(stored.access_token),
-            access_expires_at: stored.access_expires_at.and_then(system_time_from_unix),
-            refresh_token: stored
-                .refresh_token
-                .filter(|token| !token.trim().is_empty())
-                .map(SecretString::from),
-            refresh_expires_at: stored.refresh_expires_at.and_then(system_time_from_unix),
-        };
+fn parse_grant(raw: &str) -> Result<TokenGrant, GithubAuthFailure> {
+    let stored: StoredGrant =
+        serde_json::from_str(raw).map_err(|_| GithubAuthFailure::SignInExpired)?;
+    if stored.v != GRANT_VERSION || stored.access_token.trim().is_empty() {
+        return Err(GithubAuthFailure::SignInExpired);
     }
-    TokenGrant {
-        access_token: SecretString::from(trimmed),
-        access_expires_at: None,
-        refresh_token: None,
-        refresh_expires_at: None,
-    }
+    Ok(TokenGrant {
+        access_token: SecretString::from(stored.access_token),
+        access_expires_at: stored.access_expires_at.and_then(system_time_from_unix),
+        refresh_token: stored
+            .refresh_token
+            .filter(|token| !token.trim().is_empty())
+            .map(SecretString::from),
+        refresh_expires_at: stored.refresh_expires_at.and_then(system_time_from_unix),
+    })
 }
 
 fn serialize_grant(grant: &TokenGrant) -> Result<SecretString, GithubAuthFailure> {

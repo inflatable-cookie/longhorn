@@ -16,7 +16,6 @@ use std::{
 
 use longhorn_git_workspace::{Git, GitCredential, GitFailure, GitPolicy};
 use longhorn_redact::{RedactionRules, Redactor};
-use secrecy::ExposeSecret as _;
 use tempfile::TempDir;
 
 /// The redactor tests hand the mechanism: no application secrets, common
@@ -34,6 +33,7 @@ pub fn handle(policy: &Policy) -> Git<'_> {
 /// credential failure, and a record of every remote it was asked about.
 pub struct Policy {
     isolation: Vec<(String, String)>,
+    fetch_isolation: Vec<(String, String)>,
     credential: Option<(Vec<(String, String)>, String)>,
     supplied: Option<GitCredential>,
     credential_error: Option<GitFailure>,
@@ -56,6 +56,7 @@ impl Policy {
                 ),
                 ("GIT_CONFIG_NOSYSTEM".to_owned(), "1".to_owned()),
             ],
+            fetch_isolation: Vec::new(),
             credential: None,
             supplied: None,
             credential_error: None,
@@ -87,6 +88,12 @@ impl Policy {
     #[must_use]
     pub fn with_isolation(mut self, env: Vec<(String, String)>) -> Self {
         self.isolation.extend(env);
+        self
+    }
+
+    /// Adds fixture transport settings only to the actual fetch.
+    pub fn with_fetch_isolation(mut self, entries: Vec<(String, String)>) -> Self {
+        self.fetch_isolation = entries;
         self
     }
 
@@ -139,8 +146,11 @@ impl Policy {
 
 impl GitPolicy for Policy {
     fn isolate(&self, command: &mut Command) {
-        for (key, value) in &self.isolation {
-            command.env(key, value);
+        command.envs(self.isolation.iter().map(|(key, value)| (key, value)));
+        if !self.fetch_isolation.is_empty()
+            && command.get_args().nth(2).is_some_and(|arg| arg == "fetch")
+        {
+            configure(command, &self.fetch_isolation);
         }
     }
 
@@ -154,10 +164,7 @@ impl GitPolicy for Policy {
             return Err(failure.clone());
         }
         if let Some(credential) = &self.supplied {
-            return Ok(Some(GitCredential::new(
-                credential.env_vars().to_vec(),
-                credential.secret().expose_secret().to_owned(),
-            )));
+            return Ok(Some(credential.clone()));
         }
         Ok(self
             .credential
@@ -174,6 +181,15 @@ impl GitPolicy for Policy {
         self.refreshed
             .as_ref()
             .map(|(env, secret)| GitCredential::new(env.clone(), secret.clone()))
+    }
+}
+
+/// Applies one config block as part of the fixture’s isolation.
+pub fn configure(command: &mut Command, entries: &[(String, String)]) {
+    command.env("GIT_CONFIG_COUNT", entries.len().to_string());
+    for (index, (key, value)) in entries.iter().enumerate() {
+        command.env(format!("GIT_CONFIG_KEY_{index}"), key);
+        command.env(format!("GIT_CONFIG_VALUE_{index}"), value);
     }
 }
 

@@ -15,7 +15,7 @@ use std::{
     ffi::OsStr,
     fs, io,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Stdio,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, RecvTimeoutError},
@@ -29,8 +29,8 @@ use uuid::Uuid;
 
 use crate::{
     execution::{
-        Git, MAX_CAPTURED_STDERR_BYTES, isolate_process_group, kill_child_tree,
-        kill_process_group_of, read_capped, redact_git_detail, stderr_detail,
+        Git, MAX_CAPTURED_STDERR_BYTES, kill_child_tree, kill_process_group_of, read_capped,
+        redact_git_detail, stderr_detail,
     },
     policy::GitCredential,
 };
@@ -164,21 +164,22 @@ impl Git<'_> {
         let Some(target_str) = target.to_str() else {
             return Err(CloneFailure::PathNotUsable);
         };
-        let mut command = Command::new("git");
+        let (mut command, _askpass) = self
+            .clone_command(
+                &["clone", "--progress", "--", remote, target_str],
+                remote,
+                credential,
+            )
+            .map_err(|error| CloneFailure::NotStarted {
+                detail: redact_git_detail(self.redactor(), &error.to_string(), None),
+            })?;
+        if cancel.load(Ordering::SeqCst) {
+            return Err(CloneFailure::Cancelled);
+        }
         command
-            .args(["clone", "--progress", "--", remote, target_str])
-            .env("GIT_TERMINAL_PROMPT", "0")
-            .env("LC_ALL", "C")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::piped());
-        self.isolate(&mut command);
-        isolate_process_group(&mut command);
-        if let Some(credential) = credential {
-            for (key, value) in credential.env_vars() {
-                command.env(key, value);
-            }
-        }
         let mut child = command.spawn().map_err(|error| CloneFailure::NotStarted {
             detail: redact_git_detail(self.redactor(), &error.to_string(), None),
         })?;

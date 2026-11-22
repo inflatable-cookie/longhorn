@@ -10,7 +10,7 @@ use crate::{
     execution::Git,
     failure::{GitFailure, GitFailureCode},
     model::{GitBranch, GitBranchKind, GitWorkspaceState},
-    preflight::{RemoteAccessFailure, classify_remote_failure},
+    preflight::{REMOTE_PROBE_TIMEOUT, RemoteAccessFailure, probe_failure},
 };
 
 /// Tracked, staged or conflicted work blocks a branch switch. Untracked
@@ -104,7 +104,7 @@ impl Git<'_> {
         .filter(|url| !url.is_empty())
     }
 
-    /// A bounded, non-mutating write-capability probe.
+    /// A non-mutating write-capability probe with a fifteen-second Git budget.
     ///
     /// `--dry-run` contacts the remote and resolves the ref without creating,
     /// updating or deleting anything on either side. A failure is classified
@@ -115,13 +115,14 @@ impl Git<'_> {
     ///
     /// Returns the classified [`RemoteAccessFailure`].
     pub fn push_capability(&self, root: &Path) -> Result<(), RemoteAccessFailure> {
-        match self.run_git(
+        match self.run(
             root,
             &["push", "--dry-run", "origin", "HEAD"],
             GitFailureCode::PushCapability,
+            REMOTE_PROBE_TIMEOUT,
         ) {
             Ok(_) => Ok(()),
-            Err(error) => Err(classify_remote_failure(error.detail())),
+            Err(error) => Err(probe_failure(&error)),
         }
     }
 

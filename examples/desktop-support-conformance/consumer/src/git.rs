@@ -90,16 +90,12 @@ impl GitPolicy for LocalPolicy {
 /// The caller's policy for the signed-in half: the same isolation, and a
 /// credential built from the stored grant's token through the crate's askpass
 /// bridge.
-///
-/// The bridge is kept for the policy's lifetime, so its private folder exists
-/// exactly while an invocation can use it.
 struct BridgePolicy {
     config: PathBuf,
     askpass: AskpassConfig,
     token: SecretString,
     rules: Vec<(String, String)>,
     asked: Mutex<Vec<String>>,
-    kept: Mutex<Vec<GitCredentialBridge>>,
 }
 
 impl BridgePolicy {
@@ -110,7 +106,6 @@ impl BridgePolicy {
             token,
             rules,
             asked: Mutex::new(Vec::new()),
-            kept: Mutex::new(Vec::new()),
         }
     }
 
@@ -130,12 +125,7 @@ impl BridgePolicy {
                     detail: "the askpass bridge could not be written".to_owned(),
                 }
             })?;
-        let credential = with_rules(&bridge.credential(), &self.rules);
-        self.kept
-            .lock()
-            .expect("the kept bridges are not poisoned")
-            .push(bridge);
-        Ok(credential)
+        Ok(bridge.credential())
     }
 }
 
@@ -144,6 +134,15 @@ impl GitPolicy for BridgePolicy {
         command
             .env("GIT_CONFIG_GLOBAL", &self.config)
             .env("GIT_CONFIG_NOSYSTEM", "1");
+        // The proof substitutes an offline transport only for the fetch.
+        // Destination discovery still sees the scoped GitHub address.
+        if command.get_args().nth(2).is_some_and(|arg| arg == "fetch") {
+            command.env("GIT_CONFIG_COUNT", self.rules.len().to_string());
+            for (index, (key, value)) in self.rules.iter().enumerate() {
+                command.env(format!("GIT_CONFIG_KEY_{index}"), key);
+                command.env(format!("GIT_CONFIG_VALUE_{index}"), value);
+            }
+        }
     }
 
     fn credential(&self, remote: &str) -> Result<Option<GitCredential>, GitFailure> {
@@ -157,32 +156,6 @@ impl GitPolicy for BridgePolicy {
     fn refresh_credential(&self, _rejected: &GitCredential) -> Option<GitCredential> {
         None
     }
-}
-
-/// A bridge credential's environment with the caller's Git configuration rules
-/// added, so a local bare repository stands in for the GitHub remote.
-///
-/// The credential rides the mechanism's child environment, which is applied
-/// after the policy's isolation, so this is the only place the substitute can
-/// live.
-fn with_rules(credential: &GitCredential, rules: &[(String, String)]) -> GitCredential {
-    let mut env: Vec<(String, String)> = credential
-        .env_vars()
-        .iter()
-        .filter(|(key, _)| !key.starts_with("GIT_CONFIG_"))
-        .cloned()
-        .collect();
-    env.push(("GIT_CONFIG_COUNT".to_owned(), (rules.len() + 1).to_string()));
-    env.push((
-        "GIT_CONFIG_KEY_0".to_owned(),
-        "credential.helper".to_owned(),
-    ));
-    env.push(("GIT_CONFIG_VALUE_0".to_owned(), String::new()));
-    for (index, (key, value)) in rules.iter().enumerate() {
-        env.push((format!("GIT_CONFIG_KEY_{}", index + 1), key.clone()));
-        env.push((format!("GIT_CONFIG_VALUE_{}", index + 1), value.clone()));
-    }
-    GitCredential::new(env, credential.secret().expose_secret().to_owned())
 }
 
 /// The rule that points the GitHub remote at a local bare repository.
@@ -829,7 +802,7 @@ fn sign_in(fixture: &Fixture, target: &Path) -> String {
         fixture.temp.path(),
         "record-and-refuse.sh",
         &format!(
-            "printf '%s\\n' \"$@\" > \"{argv}\"\nprintf '%s\\n' \"GIT_ASKPASS=${{GIT_ASKPASS:-}}\" \"TOKEN=${{{TOKEN_ENV}:-}}\" > \"{environment}\"\necho 'fatal: Authentication failed for the remote' >&2\nexit 1",
+            "test -x \"$GIT_ASKPASS\" || exit 2\nprintf '%s\\n' \"$@\" > \"{argv}\"\nprintf '%s\\n' \"GIT_ASKPASS=${{GIT_ASKPASS:-}}\" \"TOKEN=${{{TOKEN_ENV}:-}}\" > \"{environment}\"\necho 'fatal: Authentication failed for the remote' >&2\nexit 1",
             argv = argv_record.display(),
             environment = env_record.display()
         ),
@@ -898,16 +871,11 @@ fn sign_in(fixture: &Fixture, target: &Path) -> String {
             .lines()
             .find_map(|line| line.strip_prefix("GIT_ASKPASS="))
             .expect("the child saw the askpass program");
-        let askpass = PathBuf::from(askpass);
-        assert!(
-            askpass.exists(),
-            "the askpass program exists for the invocation"
-        );
-        askpass
+        PathBuf::from(askpass)
     };
     assert!(
         !helper.exists(),
-        "the askpass folder is removed with its bridge"
+        "the askpass folder is removed when the invocation credential is dropped"
     );
 
     // A real fetch through the same bridge: the local bare repository stands in
