@@ -47,7 +47,11 @@ impl OperationState {
         match self {
             Self::Queued => matches!(
                 next,
-                Self::Running | Self::Failed | Self::Cancelled | Self::Interrupted
+                Self::Running
+                    | Self::Cancelling
+                    | Self::Failed
+                    | Self::Cancelled
+                    | Self::Interrupted
             ),
             Self::Running => matches!(
                 next,

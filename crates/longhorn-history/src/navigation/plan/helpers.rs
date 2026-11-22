@@ -14,6 +14,8 @@ impl<P> LinearHistory<P> {
         &self,
         plan: &HistoryNavigationPlan<P>,
     ) -> Result<HistoryRevision, HistoryNavigationRejection> {
+        // Bounded per-session guard against replaying or reusing a recently
+        // committed plan id (checked at both planning and commit time).
         if self
             .recent_committed_plan_ids
             .iter()

@@ -1,8 +1,11 @@
 //! Fork-tree topology, invariant, document, and Loophole-shaped evidence.
 
+use std::convert::Infallible;
+
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryKindId, HistoryRevision};
 use longhorn_history::{
-    HistoryEntryMetadata, HistoryEntrySequence, HistoryLabel, MAXIMUM_HISTORY_ENCODED_WEIGHT,
+    HistoryCoalesce, HistoryCoalesceContext, HistoryEntryMetadata, HistoryEntrySequence,
+    HistoryLabel, HistoryPolicy, MAXIMUM_HISTORY_ENCODED_WEIGHT,
 };
 use longhorn_history_tree::{
     ForkBranch, ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistory, ForkHistoryError,
@@ -13,6 +16,33 @@ use longhorn_history_tree::{
 enum DocumentMutation {
     Insert { offset: usize, text: String },
     Delete { offset: usize, text: String },
+}
+
+struct FixedWeightPolicy(u64);
+
+impl<P: Clone> HistoryPolicy<P> for FixedWeightPolicy {
+    type Error = Infallible;
+
+    fn inverse(&self, payload: &P) -> Result<P, Self::Error> {
+        Ok(payload.clone())
+    }
+
+    fn is_noop(&self, _payload: &P) -> bool {
+        false
+    }
+
+    fn encoded_weight(&self, _payload: &P) -> Result<u64, Self::Error> {
+        Ok(self.0)
+    }
+
+    fn coalesce(
+        &self,
+        _previous: &P,
+        _incoming: &P,
+        _context: HistoryCoalesceContext<'_>,
+    ) -> Result<HistoryCoalesce<P>, Self::Error> {
+        Ok(HistoryCoalesce::KeepSeparate)
+    }
 }
 
 fn branch_id(value: &str) -> ForkBranchId {
@@ -50,14 +80,16 @@ fn record(
     divergent_branch: Option<ForkBranchSeed>,
 ) {
     history
-        .record_applied(ForkRecord::new(
-            history.revision(),
-            entry_id(id),
-            metadata(id),
-            16,
-            mutation,
-            divergent_branch,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                history.revision(),
+                entry_id(id),
+                metadata(id),
+                mutation,
+                divergent_branch,
+            ),
+            &FixedWeightPolicy(16),
+        )
         .expect("fixture record");
 }
 
@@ -138,20 +170,22 @@ fn divergent_record_preserves_both_futures_and_exact_receipt() {
     .expect("valid position behind branch head");
     let previous_revision = graph.revision();
     let receipt = graph
-        .record_applied(ForkRecord::new(
-            graph.revision(),
-            entry_id("entry:d"),
-            metadata("entry:d"),
-            16,
-            DocumentMutation::Delete {
-                offset: 1,
-                text: "b".to_owned(),
-            },
-            Some(ForkBranchSeed::new(
-                branch_id("branch:alternate"),
-                branch_metadata("Alternate", false),
-            )),
-        ))
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id("entry:d"),
+                metadata("entry:d"),
+                DocumentMutation::Delete {
+                    offset: 1,
+                    text: "b".to_owned(),
+                },
+                Some(ForkBranchSeed::new(
+                    branch_id("branch:alternate"),
+                    branch_metadata("Alternate", false),
+                )),
+            ),
+            &FixedWeightPolicy(16),
+        )
         .expect("divergent record");
 
     assert_eq!(receipt.previous_revision(), previous_revision);
@@ -256,17 +290,19 @@ fn failed_records_leave_authority_exactly_unchanged() {
     );
     let before = graph.clone();
     let error = graph
-        .record_applied(ForkRecord::new(
-            HistoryRevision::INITIAL,
-            entry_id("entry:b"),
-            metadata("stale"),
-            16,
-            DocumentMutation::Insert {
-                offset: 1,
-                text: "b".to_owned(),
-            },
-            None,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                HistoryRevision::INITIAL,
+                entry_id("entry:b"),
+                metadata("stale"),
+                DocumentMutation::Insert {
+                    offset: 1,
+                    text: "b".to_owned(),
+                },
+                None,
+            ),
+            &FixedWeightPolicy(16),
+        )
         .expect_err("stale record");
     assert!(matches!(error, ForkHistoryError::StaleRevision { .. }));
     assert_eq!(graph, before);
@@ -276,17 +312,19 @@ fn failed_records_leave_authority_exactly_unchanged() {
         .expect("valid root position");
     let before = graph.clone();
     let error = graph
-        .record_applied(ForkRecord::new(
-            graph.revision(),
-            entry_id("entry:alternate"),
-            metadata("alternate"),
-            16,
-            DocumentMutation::Insert {
-                offset: 0,
-                text: "alternate".to_owned(),
-            },
-            None,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id("entry:alternate"),
+                metadata("alternate"),
+                DocumentMutation::Insert {
+                    offset: 0,
+                    text: "alternate".to_owned(),
+                },
+                None,
+            ),
+            &FixedWeightPolicy(16),
+        )
         .expect_err("missing divergent branch seed");
     assert_eq!(error, ForkHistoryError::DivergentBranchRequired);
     assert_eq!(graph, before);
@@ -554,19 +592,21 @@ fn loophole_shaped_fixture_keeps_deep_typed_futures_losslessly() {
     for index in 0..96 {
         let id = format!("entry:pulse-{index:03}");
         graph
-            .record_applied(ForkRecord::new(
-                graph.revision(),
-                entry_id(&id),
-                metadata(&format!("Pulse edit {index}")),
-                64,
-                LoopholePulseMutation {
-                    route_id: format!("route:bus-{}", index % 8),
-                    before: vec![index - 1; 8],
-                    after: vec![index; 8],
-                    fork_origin: None,
-                },
-                None,
-            ))
+            .record_applied(
+                ForkRecord::new(
+                    graph.revision(),
+                    entry_id(&id),
+                    metadata(&format!("Pulse edit {index}")),
+                    LoopholePulseMutation {
+                        route_id: format!("route:bus-{}", index % 8),
+                        before: vec![index - 1; 8],
+                        after: vec![index; 8],
+                        fork_origin: None,
+                    },
+                    None,
+                ),
+                &FixedWeightPolicy(64),
+            )
             .expect("main pulse record");
     }
 
@@ -585,22 +625,24 @@ fn loophole_shaped_fixture_keeps_deep_typed_futures_losslessly() {
     let mut graph = ForkHistory::from_state(import).expect("valid Loophole position");
     let alternate_id = entry_id("entry:pulse-alternate");
     graph
-        .record_applied(ForkRecord::new(
-            graph.revision(),
-            alternate_id.clone(),
-            metadata("Alternate pulse edit"),
-            64,
-            LoopholePulseMutation {
-                route_id: "route:bus-7".to_owned(),
-                before: vec![47; 8],
-                after: vec![-47; 8],
-                fork_origin: Some(fork_origin.clone()),
-            },
-            Some(ForkBranchSeed::new(
-                branch_id("branch:alternate"),
-                branch_metadata("Alternate", true),
-            )),
-        ))
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                alternate_id.clone(),
+                metadata("Alternate pulse edit"),
+                LoopholePulseMutation {
+                    route_id: "route:bus-7".to_owned(),
+                    before: vec![47; 8],
+                    after: vec![-47; 8],
+                    fork_origin: Some(fork_origin.clone()),
+                },
+                Some(ForkBranchSeed::new(
+                    branch_id("branch:alternate"),
+                    branch_metadata("Alternate", true),
+                )),
+            ),
+            &FixedWeightPolicy(64),
+        )
         .expect("alternate pulse record");
 
     assert_eq!(graph.retained_entry_count(), 97);

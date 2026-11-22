@@ -96,8 +96,11 @@ An apply failure with verified rollback leaves model and history exact. A
 rollback failure leaves history exact but cannot claim the model was restored.
 Treat it as terminal partial-model evidence and enter product recovery.
 
-Stale and duplicate plans reject before product apply. Checkout uses stable
-entry IDs, never list positions.
+Stale and duplicate plans reject before product apply. Duplicate-plan detection
+uses a bounded, per-session recent-plan ring (`HistoryNavigationLimits::maximum_recent_plans`),
+which guards against reusing a committed plan ID at the current revision within
+one live authority session and is not persisted across reloads. Checkout uses
+stable entry IDs, never list positions.
 
 ## Persistence And Recovery
 

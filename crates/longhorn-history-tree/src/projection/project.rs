@@ -1,5 +1,7 @@
 //! Fork-history projection methods.
 
+use std::collections::HashMap;
+
 use longhorn_core::HistoryEntryId;
 use longhorn_history::{HistoryEntryPosition, HistoryEntrySequence};
 
@@ -75,100 +77,162 @@ impl<P> ForkHistory<P> {
         request: ForkProjectionPageRequest,
     ) -> Result<ForkBranchPage, ForkProjectionError> {
         check_offset(request.offset, self.branches.len())?;
-        // Every branch's lineage once, so the pairwise nearest-ancestor search
-        // below walks cached vectors rather than the node map. Branch counts
-        // are capped by `MAXIMUM_FORK_BRANCHES`, so pairwise is affordable and
-        // an index would be state to keep correct for no measured gain.
-        let lineages = self
-            .branches
-            .values()
-            .map(|branch| {
-                let lineage = self
-                    .lineage(branch.head_entry_id())
-                    .map_err(|_| ForkProjectionError::InvalidTopology)?;
-                Ok((branch.branch_id().clone(), lineage))
-            })
-            .collect::<Result<Vec<_>, ForkProjectionError>>()?;
+
+        // Build two compact O(N + B) indices without materializing full branch
+        // lineages:
+        // 1. `heads_at`: up to the two smallest branch ids whose head sits on a
+        //    given node (so a branch can always find another branch at the same
+        //    node in O(1)).
+        // 2. `min_branch_in_subtree`: the smallest branch id (in `BTreeMap`
+        //    order) whose head lies in each node's subtree. Because we walk
+        //    `self.branches` in ascending id order and stop at the first
+        //    already-visited node, each node in the graph is visited at most
+        //    once.
+        let mut heads_at: HashMap<&HistoryEntryId, (&ForkBranchId, Option<&ForkBranchId>)> =
+            HashMap::with_capacity(self.branches.len());
+        let mut min_branch_in_subtree: HashMap<&HistoryEntryId, &ForkBranchId> = HashMap::new();
+        for (branch_id, branch) in &self.branches {
+            let Some(head) = branch.head_entry_id() else {
+                continue;
+            };
+            heads_at
+                .entry(head)
+                .and_modify(|(_, second)| {
+                    if second.is_none() {
+                        *second = Some(branch_id);
+                    }
+                })
+                .or_insert((branch_id, None));
+
+            let mut current = Some(head);
+            let mut steps = 0usize;
+            while let Some(node_id) = current {
+                if min_branch_in_subtree.contains_key(node_id) {
+                    break;
+                }
+                if steps > self.nodes.len() {
+                    return Err(ForkProjectionError::InvalidTopology);
+                }
+                let node = self
+                    .nodes
+                    .get(node_id)
+                    .ok_or(ForkProjectionError::InvalidTopology)?;
+                min_branch_in_subtree.insert(node_id, branch_id);
+                current = node.parent_entry_id();
+                steps += 1;
+            }
+        }
+
+        type EarliestBranchChild<'a> = (HistoryEntrySequence, &'a HistoryEntryId, &'a ForkBranchId);
+        // For any parent node with multiple branch-bearing children, cache the
+        // earliest-sequence branch-bearing child (and second-earliest, in case
+        // the earliest is our own child) so each page branch resolves a fork
+        // point in O(1) even on high-fanout anchors.
+        let mut earliest_child_cache: HashMap<
+            &HistoryEntryId,
+            (
+                Option<EarliestBranchChild<'_>>,
+                Option<EarliestBranchChild<'_>>,
+            ),
+        > = HashMap::new();
+
         let branches = self
             .branches
             .values()
             .skip(request.offset)
             .take(request.limit)
             .map(|branch| {
-                let lineage = self
-                    .lineage(branch.head_entry_id())
-                    .map_err(|_| ForkProjectionError::InvalidTopology)?;
-                // The nearest ancestor branch, relative to the parent run and
-                // never to the current branch: computing it against the
-                // current branch puts a fork-off-a-fork's divergence on the
-                // current path, reporting two structurally different forks at
-                // one node.
-                //
-                // Longest shared prefix alone is not enough, because it is
-                // symmetric -- a branch and the branch that forked off it
-                // share exactly the same prefix and each looks like the
-                // other's nearest. The tiebreak is which one occupied the fork
-                // point first: when you fork at an entry, the continuation
-                // that was already there was recorded earlier, so the parent
-                // is the candidate whose first divergent entry has the lower
-                // sequence. A candidate whose lineage is a prefix of ours has
-                // no divergent entry at all and is an ancestor outright.
-                let first_divergent_sequence = |entries: &[HistoryEntryId], shared: usize| {
-                    entries
-                        .get(shared)
-                        .and_then(|entry_id| self.nodes.get(entry_id))
-                        .map(|node| node.sequence())
-                };
-                let mut best: Option<(usize, Option<HistoryEntrySequence>, &ForkBranchId)> = None;
-                for (candidate_id, candidate_lineage) in &lineages {
-                    if candidate_id == branch.branch_id() {
-                        continue;
+                // Walk bottom-up from the branch head toward the root. The
+                // first eligible ancestor branch found is guaranteed to have
+                // the deepest shared prefix; at that node, a branch whose head
+                // is the node itself (no divergent entry) beats any sibling
+                // continuation, and among sibling continuations the lowest
+                // first-divergent sequence wins.
+                let mut divergence: Option<(&HistoryEntryId, &ForkBranchId)> = None;
+                let mut current = branch.head_entry_id();
+                let mut own_child: Option<(&HistoryEntryId, HistoryEntrySequence)> = None;
+                let mut steps = 0usize;
+
+                while let Some(node_id) = current {
+                    if steps > self.nodes.len() {
+                        return Err(ForkProjectionError::InvalidTopology);
                     }
-                    let shared = candidate_lineage
-                        .iter()
-                        .zip(&lineage)
-                        .take_while(|(left, right)| left == right)
-                        .count();
-                    if shared == 0 {
-                        continue;
+                    let node = self
+                        .nodes
+                        .get(node_id)
+                        .ok_or(ForkProjectionError::InvalidTopology)?;
+
+                    // Case 1: another branch's head is `node_id` itself
+                    // (strict prefix of or identical to our lineage).
+                    if let Some((first, second)) = heads_at.get(node_id) {
+                        let other = if *first != branch.branch_id() {
+                            Some(*first)
+                        } else {
+                            *second
+                        };
+                        if let Some(ancestor_id) = other {
+                            divergence = Some((node_id, ancestor_id));
+                            break;
+                        }
                     }
-                    let candidate_first = first_divergent_sequence(candidate_lineage, shared);
-                    let own_first = first_divergent_sequence(&lineage, shared);
-                    let earlier = match (candidate_first, own_first) {
-                        // Candidate is a strict prefix of ours: an ancestor.
-                        (None, _) => true,
-                        // We are a strict prefix of the candidate, so the
-                        // candidate forked off us, not the other way round.
-                        (Some(_), None) => false,
-                        (Some(candidate), Some(own)) => candidate < own,
-                    };
-                    if !earlier {
-                        continue;
+
+                    // Case 2: a sibling continuation with a strictly earlier
+                    // first-divergent sequence has a branch head in its subtree.
+                    if let Some((own_child_id, own_seq)) = own_child {
+                        let (first, second) =
+                            *earliest_child_cache.entry(node_id).or_insert_with(|| {
+                                let mut best_one: Option<(
+                                    HistoryEntrySequence,
+                                    &HistoryEntryId,
+                                    &ForkBranchId,
+                                )> = None;
+                                let mut best_two: Option<(
+                                    HistoryEntrySequence,
+                                    &HistoryEntryId,
+                                    &ForkBranchId,
+                                )> = None;
+                                for child_id in self.child_ids(Some(node_id)) {
+                                    let Some(&branch_in_sub) = min_branch_in_subtree.get(child_id)
+                                    else {
+                                        continue;
+                                    };
+                                    let Some(child_node) = self.nodes.get(child_id) else {
+                                        continue;
+                                    };
+                                    let candidate =
+                                        (child_node.sequence(), child_id, branch_in_sub);
+                                    if best_one.is_none_or(|b| candidate.0 < b.0) {
+                                        best_two = best_one;
+                                        best_one = Some(candidate);
+                                    } else if best_two.is_none_or(|b| candidate.0 < b.0) {
+                                        best_two = Some(candidate);
+                                    }
+                                }
+                                (best_one, best_two)
+                            });
+                        let sibling = first
+                            .filter(|(_, child_id, _)| *child_id != own_child_id)
+                            .or_else(|| {
+                                second.filter(|(_, child_id, _)| *child_id != own_child_id)
+                            });
+                        if let Some((cand_seq, _, ancestor_id)) = sibling
+                            && cand_seq < own_seq
+                        {
+                            divergence = Some((node_id, ancestor_id));
+                            break;
+                        }
                     }
-                    // Deepest first; among equals, whoever got there earliest.
-                    // Deterministic, so the answer does not depend on map
-                    // iteration order.
-                    let better = match best {
-                        None => true,
-                        Some((depth, _, _)) if shared != depth => shared > depth,
-                        Some((_, incumbent, _)) => match (candidate_first, incumbent) {
-                            (None, Some(_)) => true,
-                            (Some(candidate), Some(incumbent)) => candidate < incumbent,
-                            _ => false,
-                        },
-                    };
-                    if better {
-                        best = Some((shared, candidate_first, candidate_id));
-                    }
+
+                    own_child = Some((node_id, node.sequence()));
+                    current = node.parent_entry_id();
+                    steps += 1;
                 }
+
                 Ok(ForkBranchProjection {
                     branch_id: branch.branch_id().clone(),
                     head_entry_id: branch.head_entry_id().cloned(),
-                    divergence_entry_id: best
-                        .and_then(|(shared, _, _)| shared.checked_sub(1))
-                        .and_then(|index| lineage.get(index))
-                        .cloned(),
-                    divergence_branch_id: best.map(|(_, _, id)| id.clone()),
+                    divergence_entry_id: divergence.map(|(entry_id, _)| entry_id.clone()),
+                    divergence_branch_id: divergence.map(|(_, branch_id)| branch_id.clone()),
                     name: branch.metadata().name().map(str::to_owned),
                     annotation: branch.metadata().annotation().map(str::to_owned),
                     pinned: branch.metadata().pinned(),

@@ -1,9 +1,11 @@
 //! Linear-default and explicit bounded alternate projection evidence.
 
+use std::convert::Infallible;
+
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryKindId};
 use longhorn_history::{
-    HistoryAuthorityEpoch, HistoryEntryMetadata, HistoryEntryPosition, HistoryLabel,
-    HistoryRecordedAt,
+    HistoryAuthorityEpoch, HistoryCoalesce, HistoryCoalesceContext, HistoryEntryMetadata,
+    HistoryEntryPosition, HistoryLabel, HistoryPolicy, HistoryRecordedAt,
 };
 use longhorn_history_tree::{
     ForkBranchId, ForkBranchMetadata, ForkBranchSeed, ForkHistory, ForkHistoryState,
@@ -13,6 +15,33 @@ use longhorn_history_tree::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Mutation(i32);
+
+struct MutationPolicy;
+
+impl HistoryPolicy<Mutation> for MutationPolicy {
+    type Error = Infallible;
+
+    fn inverse(&self, payload: &Mutation) -> Result<Mutation, Self::Error> {
+        Ok(Mutation(-payload.0))
+    }
+
+    fn is_noop(&self, _payload: &Mutation) -> bool {
+        false
+    }
+
+    fn encoded_weight(&self, _payload: &Mutation) -> Result<u64, Self::Error> {
+        Ok(4)
+    }
+
+    fn coalesce(
+        &self,
+        _previous: &Mutation,
+        _incoming: &Mutation,
+        _context: HistoryCoalesceContext<'_>,
+    ) -> Result<HistoryCoalesce<Mutation>, Self::Error> {
+        Ok(HistoryCoalesce::KeepSeparate)
+    }
+}
 
 fn history_id() -> HistoryId {
     HistoryId::new("history:projection").unwrap()
@@ -50,14 +79,16 @@ fn record(
     divergent: Option<ForkBranchSeed>,
 ) {
     graph
-        .record_applied(ForkRecord::new(
-            graph.revision(),
-            entry_id(id),
-            metadata(id),
-            4,
-            Mutation(value),
-            divergent,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                graph.revision(),
+                entry_id(id),
+                metadata(id),
+                Mutation(value),
+                divergent,
+            ),
+            &MutationPolicy,
+        )
         .unwrap();
 }
 
@@ -560,4 +591,87 @@ fn a_continuation_run_reports_its_anchor_not_the_origin() {
             entry_id: entry_id("entry:b")
         }
     );
+}
+
+#[test]
+fn project_branch_page_stays_lazy_and_bounded_near_ceilings() {
+    use longhorn_core::HistoryRevision;
+    use longhorn_history::HistoryEntrySequence;
+    use longhorn_history_tree::{ForkBranch, ForkHistoryNode, ForkPreferredChild};
+
+    // Build a deep main spine (2,048 nodes) with 512 alternate branches
+    // forking off the midpoint. The old implementation materialized every
+    // branch's full lineage (~1M node clones per page); the lazy index
+    // resolves a bounded page in O(N + B).
+    let main_depth = 2_048_usize;
+    let fork_count = 512_usize;
+    let mut nodes = Vec::with_capacity(main_depth + fork_count);
+    let mut parent = None;
+    for index in 1..=main_depth {
+        let id = entry_id(&format!("entry:main-{index:04}"));
+        nodes.push(ForkHistoryNode::new(
+            id.clone(),
+            parent,
+            metadata("main"),
+            HistoryEntrySequence::new(index as u64).unwrap(),
+            HistoryRevision::new(index as u64),
+            4,
+            Mutation(index as i32),
+        ));
+        parent = Some(id);
+    }
+    let main_head = parent.unwrap();
+    let anchor = entry_id(&format!("entry:main-{:04}", main_depth / 2));
+    let mut branches = Vec::with_capacity(fork_count + 1);
+    branches.push(ForkBranch::new(
+        branch_id("branch:main"),
+        Some(main_head.clone()),
+        branch_metadata("Main"),
+    ));
+    for index in 1..=fork_count {
+        let seq = (main_depth + index) as u64;
+        let id = entry_id(&format!("entry:fork-{index:04}"));
+        nodes.push(ForkHistoryNode::new(
+            id.clone(),
+            Some(anchor.clone()),
+            metadata("fork"),
+            HistoryEntrySequence::new(seq).unwrap(),
+            HistoryRevision::new(seq),
+            4,
+            Mutation(seq as i32),
+        ));
+        branches.push(ForkBranch::new(
+            branch_id(&format!("branch:fork-{index:04}")),
+            Some(id),
+            branch_metadata(&format!("Fork {index}")),
+        ));
+    }
+    let state = ForkHistoryState::new(
+        history_id(),
+        HistoryRevision::new((main_depth + fork_count) as u64),
+        branch_id("branch:main"),
+        Some(main_head),
+        HistoryEntrySequence::new((main_depth + fork_count + 1) as u64).unwrap(),
+    )
+    .with_nodes(nodes)
+    .with_branches(branches)
+    .with_preferred_children(vec![ForkPreferredChild::new(
+        Some(anchor.clone()),
+        entry_id(&format!("entry:main-{:04}", main_depth / 2 + 1)),
+    )]);
+    let graph = ForkHistory::from_state(state).expect("valid deep/wide graph");
+
+    let page = graph
+        .project_branch_page(ForkProjectionPageRequest::new(0, 32).unwrap())
+        .expect("bounded branch page");
+    assert_eq!(page.total_branches(), fork_count + 1);
+    assert_eq!(page.branches().len(), 32);
+    assert!(page.truncated_after());
+    for projected in page.branches() {
+        assert_eq!(projected.divergence_entry_id(), Some(&anchor));
+        assert_eq!(
+            projected.divergence_branch_id(),
+            Some(&branch_id("branch:main"))
+        );
+    }
 }

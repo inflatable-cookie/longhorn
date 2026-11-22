@@ -137,14 +137,16 @@ fn record(
 ) {
     *model += delta;
     history
-        .record_applied(ForkRecord::new(
-            history.revision(),
-            entry_id(id),
-            metadata(id),
-            8,
-            Delta(delta),
-            divergent_branch,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                history.revision(),
+                entry_id(id),
+                metadata(id),
+                Delta(delta),
+                divergent_branch,
+            ),
+            &DeltaPolicy,
+        )
         .expect("fixture record");
 }
 
@@ -749,20 +751,22 @@ fn pulse_record(
     let before = tracks[track_index];
     tracks[track_index] = after;
     history
-        .record_applied(ForkRecord::new(
-            history.revision(),
-            entry_id(id),
-            metadata(id),
-            48,
-            LoopholePulseMutation {
-                route_id: format!("route:track-{track_index}"),
-                track_index,
-                before,
-                after,
-                cache_epoch: history.revision().get() + 1,
-            },
-            divergent_branch,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                history.revision(),
+                entry_id(id),
+                metadata(id),
+                LoopholePulseMutation {
+                    route_id: format!("route:track-{track_index}"),
+                    track_index,
+                    before,
+                    after,
+                    cache_epoch: history.revision().get() + 1,
+                },
+                divergent_branch,
+            ),
+            &PulsePolicy,
+        )
         .expect("Pulse fixture record");
 }
 
@@ -1274,4 +1278,90 @@ fn deleting_the_only_continuation_of_the_root_is_refused() {
         .expect_err("the only continuation of the root is the active line");
     assert!(matches!(error, ForkRetentionError::EntryOnCurrentPath(_)));
     assert_eq!(history.retained_entry_count(), 2, "nothing was removed");
+}
+
+#[test]
+fn prune_to_handles_large_unprotected_graph_near_ceilings_efficiently() {
+    use longhorn_history::HistoryEntrySequence;
+    use longhorn_history_tree::{ForkBranch, ForkHistoryNode, ForkPreferredChild};
+
+    // Build a graph with 1 protected main node and 8,192 unprotected nodes
+    // across 16 unprotected chains hanging off it. An O(n^2) planner or
+    // per-node `retain` pass would take seconds; the leaf heap finishes in
+    // milliseconds.
+    let main_entry = entry_id("entry:main-0");
+    let mut nodes = Vec::with_capacity(8_193);
+    nodes.push(ForkHistoryNode::new(
+        main_entry.clone(),
+        None,
+        metadata("main-0"),
+        HistoryEntrySequence::new(1).unwrap(),
+        HistoryRevision::new(1),
+        8,
+        Delta(1),
+    ));
+    let mut branches = vec![ForkBranch::new(
+        branch_id("branch:main"),
+        Some(main_entry.clone()),
+        branch_metadata(Some("Main"), true),
+    )];
+    let mut seq = 2_u64;
+    let mut first_fork_child = None;
+    for chain in 0..16_usize {
+        let mut parent = main_entry.clone();
+        for depth in 0..512_usize {
+            let id = entry_id(&format!("entry:c{chain:02}-d{depth:03}"));
+            if chain == 0 && depth == 0 {
+                first_fork_child = Some(id.clone());
+            }
+            nodes.push(ForkHistoryNode::new(
+                id.clone(),
+                Some(parent),
+                metadata("fork"),
+                HistoryEntrySequence::new(seq).unwrap(),
+                HistoryRevision::new(seq),
+                8,
+                Delta(1),
+            ));
+            seq += 1;
+            parent = id;
+        }
+        branches.push(ForkBranch::new(
+            branch_id(&format!("branch:fork-{chain:02}")),
+            Some(parent),
+            branch_metadata(Some(&format!("Fork {chain}")), false),
+        ));
+    }
+
+    let state = ForkHistoryState::new(
+        HistoryId::new("history:large-prune").unwrap(),
+        HistoryRevision::new(seq - 1),
+        branch_id("branch:main"),
+        Some(main_entry.clone()),
+        HistoryEntrySequence::new(seq).unwrap(),
+    )
+    .with_nodes(nodes)
+    .with_branches(branches)
+    .with_preferred_children(vec![ForkPreferredChild::new(
+        Some(main_entry),
+        first_fork_child.unwrap(),
+    )]);
+    let mut graph = ForkHistory::from_state(state).expect("valid large graph");
+    assert_eq!(graph.retained_entry_count(), 8_193);
+
+    let outcome = graph
+        .prune_to(
+            graph.revision(),
+            ForkRetentionLimits::new(64, 64 * 8).expect("valid limits"),
+        )
+        .expect("large prune succeeds");
+    let ForkPruningOutcome::Pruned(receipt) = outcome else {
+        panic!("expected pruning outcome");
+    };
+    assert_eq!(receipt.pruned_nodes().len(), 8_192 - 64);
+    assert_eq!(receipt.unprotected_entry_count(), 64);
+    assert_eq!(receipt.unprotected_encoded_weight(), 64 * 8);
+    assert_eq!(receipt.retained_entry_count(), 65);
+    assert_eq!(graph.retained_entry_count(), 65);
+    assert_eq!(graph.retained_encoded_weight(), 65 * 8);
 }

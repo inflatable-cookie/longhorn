@@ -82,6 +82,45 @@ fn retry_lineage_requires_a_retained_terminal_and_never_reopens_it() {
             .unwrap(),
         &source_before
     );
+
+    // Dismissing the source must not prevent a consumer from retrying it later
+    // (contract 015: retry eligibility is consumer policy).
+    catalogue
+        .dismiss_terminal(longhorn_operation::OperationDismissal::new(
+            catalogue.authority().clone(),
+            operation_id("operation:source"),
+            source_before.revision(),
+        ))
+        .unwrap();
+    assert!(
+        catalogue
+            .operation(&operation_id("operation:source"))
+            .is_none()
+    );
+    let post_dismiss_retry = catalogue
+        .register(retry_registration(
+            &catalogue,
+            "operation:retry-after-dismiss",
+            "operation:source",
+        ))
+        .unwrap();
+    assert_eq!(
+        post_dismiss_retry.operation().retry_of(),
+        Some(&operation_id("operation:source"))
+    );
+
+    // Self-retry is still rejected.
+    assert_eq!(
+        catalogue.register(retry_registration(
+            &catalogue,
+            "operation:self-retry",
+            "operation:self-retry",
+        )),
+        Err(OperationCatalogueError::InvalidRetrySource {
+            operation_id: operation_id("operation:self-retry"),
+            state: None,
+        })
+    );
 }
 
 #[test]

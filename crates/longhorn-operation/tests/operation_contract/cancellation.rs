@@ -1,6 +1,8 @@
 use longhorn_operation::{
-    OperationCancellationOutcome, OperationCancellationRequest, OperationCancellationSupport,
-    OperationCatalogueError, OperationLabel, OperationRegistration, OperationState,
+    OperationAuthorityProjection, OperationCancellationCommand, OperationCancellationOutcome,
+    OperationCancellationRequest, OperationCancellationSupport, OperationCatalogueError,
+    OperationLabel, OperationProtocolVersion, OperationRegistration, OperationState,
+    QueuedCancellationConfirmation,
 };
 
 use super::support::*;
@@ -93,7 +95,10 @@ fn repeated_queued_unsupported_terminal_and_stale_cancellation_are_exact() {
         ))
         .unwrap();
     let queued_receipt = queued
-        .request_cancellation(cancellation(&queued, "operation:queued"))
+        .request_cancellation(
+            cancellation(&queued, "operation:queued")
+                .with_queued_confirmation(QueuedCancellationConfirmation::ConfirmedUnstarted),
+        )
         .unwrap();
     assert_eq!(
         queued_receipt.outcome(),
@@ -127,4 +132,56 @@ fn repeated_queued_unsupported_terminal_and_stale_cancellation_are_exact() {
         .unwrap();
     assert_eq!(receipt.outcome(), OperationCancellationOutcome::Unsupported);
     assert_eq!(unsupported, before);
+}
+
+#[test]
+fn unconfirmed_queued_cancellation_enters_cancelling_and_requires_executor_dispatch() {
+    let mut queued = catalogue("authority:queued-dispatch", 1);
+    queued
+        .register(registration(
+            &queued,
+            "operation:queued",
+            "test",
+            "Queued work",
+            OperationState::Queued,
+        ))
+        .unwrap();
+    let op = queued.operation(&operation_id("operation:queued")).unwrap();
+    let command = OperationCancellationCommand {
+        request_id: longhorn_core::OperationRequestId::new("request:cancel-queued").unwrap(),
+        protocol_version: OperationProtocolVersion::CURRENT,
+        authority: OperationAuthorityProjection {
+            authority_id: queued.authority().authority_id().clone(),
+            authority_epoch: queued.authority().authority_epoch().get(),
+        },
+        operation_id: op.operation_id().clone(),
+        expected_operation_revision: op.revision(),
+    };
+    let result = queued.execute_protocol_cancellation(command).unwrap();
+    assert_eq!(
+        result.executor_dispatch_operation_id(),
+        Some(&operation_id("operation:queued"))
+    );
+    assert_eq!(
+        queued
+            .operation(&operation_id("operation:queued"))
+            .unwrap()
+            .state(),
+        OperationState::Cancelling
+    );
+    // Executor later confirms cancellation cleanly.
+    queued
+        .transition(transition(
+            &queued,
+            "operation:queued",
+            OperationState::Cancelled,
+        ))
+        .unwrap();
+    assert_eq!(
+        queued
+            .operation(&operation_id("operation:queued"))
+            .unwrap()
+            .state(),
+        OperationState::Cancelled
+    );
 }

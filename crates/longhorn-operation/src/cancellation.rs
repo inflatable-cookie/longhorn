@@ -11,16 +11,29 @@ pub enum OperationCancellationSupport {
     Unsupported,
 }
 
+/// Whether consumer admission confirms a queued operation never started executing.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum QueuedCancellationConfirmation {
+    /// Execution start is not confirmed absent; accepted queued work enters
+    /// [`OperationState::Cancelling`] and waits for executor confirmation.
+    #[default]
+    Unconfirmed,
+    /// Consumer admission confirms execution never started, permitting
+    /// immediate terminal [`OperationState::Cancelled`] when still queued.
+    ConfirmedUnstarted,
+}
+
 /// Revision-bound cancellation request.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationCancellationRequest {
     pub(crate) authority: OperationAuthorityCursor,
     pub(crate) operation_id: OperationId,
     pub(crate) expected_operation_revision: OperationRevision,
+    pub(crate) queued_confirmation: QueuedCancellationConfirmation,
 }
 
 impl OperationCancellationRequest {
-    /// Constructs a cancellation request.
+    /// Constructs a cancellation request without confirming unstarted queued admission.
     #[must_use]
     pub const fn new(
         authority: OperationAuthorityCursor,
@@ -31,7 +44,24 @@ impl OperationCancellationRequest {
             authority,
             operation_id,
             expected_operation_revision,
+            queued_confirmation: QueuedCancellationConfirmation::Unconfirmed,
         }
+    }
+
+    /// Sets whether consumer admission confirmed that queued work never started.
+    #[must_use]
+    pub const fn with_queued_confirmation(
+        mut self,
+        confirmation: QueuedCancellationConfirmation,
+    ) -> Self {
+        self.queued_confirmation = confirmation;
+        self
+    }
+
+    /// Returns the queued-execution confirmation supplied with this request.
+    #[must_use]
+    pub const fn queued_confirmation(&self) -> QueuedCancellationConfirmation {
+        self.queued_confirmation
     }
 }
 

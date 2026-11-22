@@ -224,7 +224,7 @@ impl OperationCancellationResult {
         }
     }
 
-    /// Returns an accepted running operation requiring executor dispatch.
+    /// Returns an accepted operation requiring executor dispatch.
     #[must_use]
     pub const fn executor_dispatch_operation_id(&self) -> Option<&OperationId> {
         match self {

@@ -10,5 +10,6 @@ mod tests;
 
 pub use model::OperationCatalogue;
 pub(crate) use support::{
-    next_operation_revision, prune_terminal, terminal_weight, validate_progress, validate_teardown,
+    apply_planned_evictions, next_operation_revision, plan_prune_terminal, terminal_weight,
+    validate_progress, validate_teardown,
 };

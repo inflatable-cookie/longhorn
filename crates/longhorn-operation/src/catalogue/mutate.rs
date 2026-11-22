@@ -7,11 +7,11 @@ use crate::{
     OperationRegistration, OperationRegistrationReceipt, OperationRemoval, OperationRemovalReason,
     OperationRetentionChange, OperationRetentionReceipt, OperationState, OperationTeardown,
     OperationTeardownOutcome, OperationTeardownReceipt, OperationTeardownResolutionOutcome,
-    OperationTransition, OperationTransitionReceipt,
+    OperationTransition, OperationTransitionReceipt, QueuedCancellationConfirmation,
 };
 
 use super::{
-    OperationCatalogue, next_operation_revision, prune_terminal, terminal_weight,
+    OperationCatalogue, apply_planned_evictions, next_operation_revision, plan_prune_terminal,
     validate_progress, validate_teardown,
 };
 
@@ -45,11 +45,18 @@ impl OperationCatalogue {
             });
         }
         if let Some(source_id) = request.retry_of.as_ref() {
-            let source_state = self.operation(source_id).map(OperationRecord::state);
-            if !source_state.is_some_and(OperationState::is_terminal) {
+            if source_id == &request.operation_id {
                 return Err(OperationCatalogueError::InvalidRetrySource {
                     operation_id: source_id.clone(),
-                    state: source_state,
+                    state: None,
+                });
+            }
+            if let Some(source_state) = self.operation(source_id).map(OperationRecord::state)
+                && !source_state.is_terminal()
+            {
+                return Err(OperationCatalogueError::InvalidRetrySource {
+                    operation_id: source_id.clone(),
+                    state: Some(source_state),
                 });
             }
         }
@@ -91,30 +98,39 @@ impl OperationCatalogue {
                 next: request.next_state,
             });
         }
+        let previous_state = operation.state();
+        let previous_operation_revision = operation.revision();
         let committed_operation_revision = next_operation_revision(operation)?;
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let mut operations = self.operations.clone();
-        operations[index].commit_transition(
+        let single_terminal = [(index, committed_catalogue_revision)];
+        let newly_terminal = if request.next_state.is_terminal() {
+            single_terminal.as_slice()
+        } else {
+            &[]
+        };
+        let (evict_indices, _) =
+            plan_prune_terminal(&self.operations, self.limits, newly_terminal, &[])?;
+        let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
+
+        self.operations[index].commit_transition(
             committed_operation_revision,
             committed_catalogue_revision,
             request.next_state,
         );
-        let evicted = prune_terminal(&mut operations, self.limits)?;
-        let terminal_eviction_count = self.next_terminal_eviction_count(evicted.len())?;
-        let receipt = OperationTransitionReceipt {
-            operation_id: request.operation_id,
-            previous_state: operation.state(),
-            committed_state: request.next_state,
-            previous_operation_revision: operation.revision(),
-            committed_operation_revision,
-            previous_catalogue_revision: self.revision,
-            committed_catalogue_revision,
-            evicted,
-        };
-        self.operations = operations;
+        let evicted = apply_planned_evictions(&mut self.operations, &evict_indices);
+        let previous_catalogue_revision = self.revision;
         self.terminal_eviction_count = terminal_eviction_count;
         self.revision = committed_catalogue_revision;
-        Ok(receipt)
+        Ok(OperationTransitionReceipt {
+            operation_id: request.operation_id,
+            previous_state,
+            committed_state: request.next_state,
+            previous_operation_revision,
+            committed_operation_revision,
+            previous_catalogue_revision,
+            committed_catalogue_revision,
+            evicted,
+        })
     }
 
     /// Applies one monotonic, revision-bound progress update.
@@ -192,36 +208,47 @@ impl OperationCatalogue {
             });
         }
 
-        let committed_state = if operation.state() == OperationState::Queued {
+        let previous_state = operation.state();
+        let previous_operation_revision = operation.revision();
+        let committed_state = if previous_state == OperationState::Queued
+            && request.queued_confirmation == QueuedCancellationConfirmation::ConfirmedUnstarted
+        {
             OperationState::Cancelled
         } else {
             OperationState::Cancelling
         };
         let committed_operation_revision = next_operation_revision(operation)?;
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let mut operations = self.operations.clone();
-        operations[index].commit_transition(
+        let single_terminal = [(index, committed_catalogue_revision)];
+        let newly_terminal = if committed_state.is_terminal() {
+            single_terminal.as_slice()
+        } else {
+            &[]
+        };
+        let (evict_indices, _) =
+            plan_prune_terminal(&self.operations, self.limits, newly_terminal, &[])?;
+        let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
+
+        self.operations[index].commit_transition(
             committed_operation_revision,
             committed_catalogue_revision,
             committed_state,
         );
-        let evicted = prune_terminal(&mut operations, self.limits)?;
-        let terminal_eviction_count = self.next_terminal_eviction_count(evicted.len())?;
-        let receipt = OperationCancellationReceipt {
-            operation_id: request.operation_id,
-            outcome,
-            previous_state: operation.state(),
-            committed_state,
-            previous_operation_revision: operation.revision(),
-            committed_operation_revision,
-            previous_catalogue_revision: self.revision,
-            committed_catalogue_revision,
-            evicted,
-        };
-        self.operations = operations;
+        let evicted = apply_planned_evictions(&mut self.operations, &evict_indices);
+        let previous_catalogue_revision = self.revision;
         self.terminal_eviction_count = terminal_eviction_count;
         self.revision = committed_catalogue_revision;
-        Ok(receipt)
+        Ok(OperationCancellationReceipt {
+            operation_id: request.operation_id,
+            outcome,
+            previous_state,
+            committed_state,
+            previous_operation_revision,
+            committed_operation_revision,
+            previous_catalogue_revision,
+            committed_catalogue_revision,
+            evicted,
+        })
     }
 
     /// Atomically changes limits and reports every resulting terminal eviction.
@@ -243,23 +270,24 @@ impl OperationCatalogue {
             });
         }
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let mut operations = self.operations.clone();
-        let evicted = prune_terminal(&mut operations, request.limits)?;
-        let terminal_eviction_count = self.next_terminal_eviction_count(evicted.len())?;
-        let retained_terminal_encoded_weight = terminal_weight(&operations)?;
-        let receipt = OperationRetentionReceipt {
-            previous_limits: self.limits,
-            committed_limits: request.limits,
-            previous_catalogue_revision: self.revision,
-            committed_catalogue_revision,
-            evicted,
-            retained_terminal_encoded_weight,
-        };
-        self.operations = operations;
+        let (evict_indices, retained_terminal_encoded_weight) =
+            plan_prune_terminal(&self.operations, request.limits, &[], &[])?;
+        let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
+
+        let evicted = apply_planned_evictions(&mut self.operations, &evict_indices);
+        let previous_limits = self.limits;
+        let previous_catalogue_revision = self.revision;
         self.terminal_eviction_count = terminal_eviction_count;
         self.limits = request.limits;
         self.revision = committed_catalogue_revision;
-        Ok(receipt)
+        Ok(OperationRetentionReceipt {
+            previous_limits,
+            committed_limits: request.limits,
+            previous_catalogue_revision,
+            committed_catalogue_revision,
+            evicted,
+            retained_terminal_encoded_weight,
+        })
     }
 
     /// Explicitly dismisses one retained terminal projection.
@@ -297,19 +325,43 @@ impl OperationCatalogue {
         self.validate_catalogue_revision(request.expected_catalogue_revision)?;
         validate_teardown(self, &request)?;
         let committed_catalogue_revision = self.next_catalogue_revision()?;
-        let mut operations = self.operations.clone();
-        let mut outcomes = Vec::with_capacity(request.resolutions.len());
-
+        let mut newly_terminal = Vec::new();
+        let mut transferred_indices = Vec::new();
+        let mut planned_resolutions = Vec::with_capacity(request.resolutions.len());
         for resolution in request.resolutions {
-            let index = operations
+            let index = self
+                .operations
                 .iter()
                 .position(|operation| operation.operation_id() == &resolution.operation_id)
                 .expect("teardown was fully validated");
-            let previous_revision = operations[index].revision();
+            match &resolution.outcome {
+                OperationTeardownResolutionOutcome::Complete(_) => {
+                    let committed_revision = next_operation_revision(&self.operations[index])?;
+                    newly_terminal.push((index, committed_catalogue_revision));
+                    planned_resolutions.push((index, Some(committed_revision), resolution));
+                }
+                OperationTeardownResolutionOutcome::Transfer(_) => {
+                    transferred_indices.push(index);
+                    planned_resolutions.push((index, None, resolution));
+                }
+            }
+        }
+        let (evict_indices, _) = plan_prune_terminal(
+            &self.operations,
+            self.limits,
+            &newly_terminal,
+            &transferred_indices,
+        )?;
+        let terminal_eviction_count = self.next_terminal_eviction_count(evict_indices.len())?;
+
+        let mut outcomes = Vec::with_capacity(planned_resolutions.len());
+        for (index, committed_revision, resolution) in planned_resolutions {
+            let previous_revision = self.operations[index].revision();
             match resolution.outcome {
                 OperationTeardownResolutionOutcome::Complete(state) => {
-                    let committed_revision = next_operation_revision(&operations[index])?;
-                    operations[index].commit_transition(
+                    let committed_revision =
+                        committed_revision.expect("completed teardown resolution has revision");
+                    self.operations[index].commit_transition(
                         committed_revision,
                         committed_catalogue_revision,
                         state,
@@ -322,7 +374,6 @@ impl OperationCatalogue {
                     });
                 }
                 OperationTeardownResolutionOutcome::Transfer(target_authority) => {
-                    operations.remove(index);
                     outcomes.push(OperationTeardownOutcome::Transferred {
                         operation_id: resolution.operation_id,
                         previous_operation_revision: previous_revision,
@@ -331,18 +382,39 @@ impl OperationCatalogue {
                 }
             }
         }
-        let evicted = prune_terminal(&mut operations, self.limits)?;
-        let terminal_eviction_count = self.next_terminal_eviction_count(evicted.len())?;
-        let receipt = OperationTeardownReceipt {
-            previous_catalogue_revision: self.revision,
-            committed_catalogue_revision,
-            outcomes,
-            evicted,
-        };
-        self.operations = operations;
+        let evicted: Vec<_> = evict_indices
+            .iter()
+            .map(|&index| {
+                OperationRemoval::from_record(
+                    &self.operations[index],
+                    OperationRemovalReason::Evicted,
+                )
+            })
+            .collect();
+        if !evict_indices.is_empty() || !transferred_indices.is_empty() {
+            let mut drop_mask = vec![false; self.operations.len()];
+            for &index in &evict_indices {
+                drop_mask[index] = true;
+            }
+            for &index in &transferred_indices {
+                drop_mask[index] = true;
+            }
+            let mut cursor = 0usize;
+            self.operations.retain(|_| {
+                let keep = !drop_mask[cursor];
+                cursor += 1;
+                keep
+            });
+        }
+        let previous_catalogue_revision = self.revision;
         self.terminal_eviction_count = terminal_eviction_count;
         self.revision = committed_catalogue_revision;
         self.closed = true;
-        Ok(receipt)
+        Ok(OperationTeardownReceipt {
+            previous_catalogue_revision,
+            committed_catalogue_revision,
+            outcomes,
+            evicted,
+        })
     }
 }

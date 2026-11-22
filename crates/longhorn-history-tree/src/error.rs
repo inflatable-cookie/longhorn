@@ -1,4 +1,4 @@
-use std::{error::Error, fmt};
+use std::{convert::Infallible, error::Error, fmt};
 
 use longhorn_core::{HistoryEntryId, HistoryRevision};
 
@@ -6,7 +6,7 @@ use crate::{ForkBranchId, ForkCheckpointId};
 
 /// Rejected fork-history transition.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ForkHistoryError {
+pub enum ForkHistoryError<E = Infallible> {
     /// Request revision was stale.
     StaleRevision {
         /// Requested revision.
@@ -41,13 +41,15 @@ pub enum ForkHistoryError {
         /// Requested resulting weight, or `u64::MAX` on overflow.
         requested: u64,
     },
+    /// Consumer payload policy failed while measuring or checking the record.
+    Policy(E),
     /// Revision could not advance.
     RevisionOverflow,
     /// Entry sequence could not advance.
     SequenceOverflow,
 }
 
-impl fmt::Display for ForkHistoryError {
+impl<E: fmt::Display> fmt::Display for ForkHistoryError<E> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::StaleRevision { expected, actual } => write!(
@@ -81,13 +83,21 @@ impl fmt::Display for ForkHistoryError {
                 formatter,
                 "fork history encoded weight {requested} exceeds hard limit {maximum}"
             ),
+            Self::Policy(error) => write!(formatter, "fork history policy failed: {error}"),
             Self::RevisionOverflow => formatter.write_str("fork history revision cannot advance"),
             Self::SequenceOverflow => formatter.write_str("fork history sequence cannot advance"),
         }
     }
 }
 
-impl Error for ForkHistoryError {}
+impl<E: Error + 'static> Error for ForkHistoryError<E> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Policy(error) => Some(error),
+            _ => None,
+        }
+    }
+}
 
 /// Invalid structural state rejected before it became authority.
 #[derive(Clone, Debug, Eq, PartialEq)]

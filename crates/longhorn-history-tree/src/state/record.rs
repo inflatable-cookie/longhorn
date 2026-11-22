@@ -6,12 +6,14 @@ use crate::{ForkBranchId, ForkBranchMetadata, ForkBranchSeed};
 use longhorn_history::HistoryEntryMetadata;
 
 /// One already-applied product mutation offered to the graph authority.
+///
+/// Encoded payload weight is derived from the consumer [`longhorn_history::HistoryPolicy`]
+/// during [`crate::ForkHistory::record_applied`] rather than trusted from the caller.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForkRecord<P> {
     pub(crate) expected_revision: HistoryRevision,
     pub(crate) entry_id: HistoryEntryId,
     pub(crate) metadata: HistoryEntryMetadata,
-    pub(crate) encoded_weight: u64,
     pub(crate) payload: P,
     pub(crate) divergent_branch: Option<ForkBranchSeed>,
 }
@@ -23,7 +25,6 @@ impl<P> ForkRecord<P> {
         expected_revision: HistoryRevision,
         entry_id: HistoryEntryId,
         metadata: HistoryEntryMetadata,
-        encoded_weight: u64,
         payload: P,
         divergent_branch: Option<ForkBranchSeed>,
     ) -> Self {
@@ -31,7 +32,6 @@ impl<P> ForkRecord<P> {
             expected_revision,
             entry_id,
             metadata,
-            encoded_weight,
             payload,
             divergent_branch,
         }

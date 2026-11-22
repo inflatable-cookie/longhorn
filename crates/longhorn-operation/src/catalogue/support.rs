@@ -146,39 +146,92 @@ pub(crate) fn terminal_weight(
         })
 }
 
-pub(crate) fn prune_terminal(
-    operations: &mut Vec<OperationRecord>,
+pub(crate) fn plan_prune_terminal(
+    operations: &[OperationRecord],
     limits: OperationCatalogueLimits,
-) -> Result<Vec<OperationRemoval>, OperationCatalogueError> {
-    let mut count = operations
-        .iter()
-        .filter(|operation| operation.state().is_terminal())
-        .count();
-    let mut weight = terminal_weight(operations)?;
-    let mut removed = Vec::new();
-    while count > limits.maximum_terminal_operations()
-        || weight > limits.maximum_terminal_encoded_weight()
-    {
-        let index = operations
-            .iter()
-            .enumerate()
-            .filter(|(_, operation)| operation.state().is_terminal())
-            .min_by_key(|(_, operation)| {
-                (
-                    operation.last_changed_catalogue_revision(),
-                    operation.sequence(),
-                )
-            })
-            .map(|(index, _)| index)
-            .expect("retention overflow implies a terminal candidate");
-        let removal =
-            OperationRemoval::from_record(&operations[index], OperationRemovalReason::Evicted);
-        weight -= removal.encoded_weight();
-        count -= 1;
-        operations.remove(index);
-        removed.push(removal);
+    newly_terminal: &[(usize, OperationCatalogueRevision)],
+    removed_indices: &[usize],
+) -> Result<(Vec<usize>, u64), OperationCatalogueError> {
+    let mut count = 0usize;
+    let mut weight = 0_u64;
+    for (index, operation) in operations.iter().enumerate() {
+        if removed_indices.contains(&index) {
+            continue;
+        }
+        let is_terminal = operation.state().is_terminal()
+            || newly_terminal.iter().any(|(target, _)| *target == index);
+        if is_terminal {
+            count += 1;
+            weight = weight
+                .checked_add(operation.encoded_metadata_weight())
+                .ok_or(OperationCatalogueError::TerminalEncodedWeightOverflow)?;
+        }
     }
-    Ok(removed)
+    if count <= limits.maximum_terminal_operations()
+        && weight <= limits.maximum_terminal_encoded_weight()
+    {
+        return Ok((Vec::new(), weight));
+    }
+
+    let mut candidates: Vec<(OperationCatalogueRevision, crate::OperationSequence, usize)> =
+        Vec::with_capacity(count);
+    for (index, operation) in operations.iter().enumerate() {
+        if removed_indices.contains(&index) {
+            continue;
+        }
+        let effective_revision = newly_terminal
+            .iter()
+            .find_map(|(target, revision)| (*target == index).then_some(*revision))
+            .or_else(|| {
+                operation
+                    .state()
+                    .is_terminal()
+                    .then_some(operation.last_changed_catalogue_revision())
+            });
+        if let Some(revision) = effective_revision {
+            candidates.push((revision, operation.sequence(), index));
+        }
+    }
+    candidates.sort_unstable_by_key(|(revision, sequence, _)| (*revision, *sequence));
+
+    let mut evict_indices = Vec::new();
+    for (_, _, index) in candidates {
+        if count <= limits.maximum_terminal_operations()
+            && weight <= limits.maximum_terminal_encoded_weight()
+        {
+            break;
+        }
+        weight -= operations[index].encoded_metadata_weight();
+        count -= 1;
+        evict_indices.push(index);
+    }
+    Ok((evict_indices, weight))
+}
+
+pub(crate) fn apply_planned_evictions(
+    operations: &mut Vec<OperationRecord>,
+    evict_indices: &[usize],
+) -> Vec<OperationRemoval> {
+    if evict_indices.is_empty() {
+        return Vec::new();
+    }
+    let removals: Vec<_> = evict_indices
+        .iter()
+        .map(|&index| {
+            OperationRemoval::from_record(&operations[index], OperationRemovalReason::Evicted)
+        })
+        .collect();
+    let mut evicted_mask = vec![false; operations.len()];
+    for &index in evict_indices {
+        evicted_mask[index] = true;
+    }
+    let mut cursor = 0usize;
+    operations.retain(|_| {
+        let keep = !evicted_mask[cursor];
+        cursor += 1;
+        keep
+    });
+    removals
 }
 
 pub(crate) fn validate_teardown(

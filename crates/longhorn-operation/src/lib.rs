@@ -17,7 +17,7 @@ mod teardown;
 
 pub use cancellation::{
     OperationCancellationOutcome, OperationCancellationReceipt, OperationCancellationRequest,
-    OperationCancellationSupport,
+    OperationCancellationSupport, QueuedCancellationConfirmation,
 };
 pub use catalogue::OperationCatalogue;
 pub use error::OperationCatalogueError;

@@ -249,6 +249,10 @@ impl HistoryNavigationLimits {
     }
 
     /// Returns the maximum recent committed plan ids retained for deduplication.
+    ///
+    /// This ring is a bounded, per-session guard: it prevents reusing a recently
+    /// committed plan id at planning or commit time within one live authority
+    /// session, and is not persisted across reloads.
     #[must_use]
     pub const fn maximum_recent_plans(self) -> usize {
         self.maximum_recent_plans

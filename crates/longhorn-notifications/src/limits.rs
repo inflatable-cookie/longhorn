@@ -16,6 +16,8 @@ pub const MAXIMUM_RETAINED_NOTIFICATIONS: usize = 65_536;
 pub const MAXIMUM_NOTIFICATION_ENCODED_WEIGHT: u64 = 1 << 40;
 /// Defensive ceiling for one notification page.
 pub const MAXIMUM_NOTIFICATION_PAGE_SIZE: usize = 1_024;
+/// Bounded per-session producer token memory for idempotent publication.
+pub const MAXIMUM_REMEMBERED_PRODUCER_TOKENS: usize = 4_096;
 
 bounded_text!(
     NotificationTitle,

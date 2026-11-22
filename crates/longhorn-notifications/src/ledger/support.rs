@@ -113,6 +113,25 @@ impl NotificationLedger {
             .checked_next()
             .map_err(|_| NotificationLedgerError::RevisionOverflow)
     }
+
+    pub(crate) fn remember_producer_token(
+        &mut self,
+        token: NotificationProducerToken,
+        notification_id: NotificationId,
+    ) {
+        if let Some(existing) = self.remembered_producer_token_ids.get_mut(&token) {
+            *existing = notification_id;
+            return;
+        }
+        if self.remembered_producer_tokens.len() >= crate::MAXIMUM_REMEMBERED_PRODUCER_TOKENS
+            && let Some(evicted) = self.remembered_producer_tokens.pop_front()
+        {
+            self.remembered_producer_token_ids.remove(&evicted);
+        }
+        self.remembered_producer_tokens.push_back(token.clone());
+        self.remembered_producer_token_ids
+            .insert(token, notification_id);
+    }
 }
 
 pub(crate) fn unseen_count(records: &[NotificationRecord]) -> usize {
@@ -137,31 +156,57 @@ pub(crate) fn prune_to_limits(
     limits: NotificationLedgerLimits,
     excluded_id: Option<&NotificationId>,
 ) -> Result<Vec<NotificationRemoval>, NotificationLedgerError> {
-    let mut removals = Vec::new();
-    loop {
-        let weight = encoded_weight(records)?;
-        if records.len() <= limits.maximum_notifications()
-            && weight <= limits.maximum_encoded_weight()
-        {
-            return Ok(removals);
-        }
-        let candidate = records.iter().position(|record| {
-            Some(record.notification_id()) != excluded_id
-                && record.draft().retention_class() == NotificationRetentionClass::Standard
-        });
-        let Some(index) = candidate else {
-            return Err(NotificationLedgerError::RetentionUnsatisfied {
-                maximum_count: limits.maximum_notifications(),
-                retained_count: records.len(),
-                maximum_encoded_weight: limits.maximum_encoded_weight(),
-                retained_encoded_weight: weight,
-            });
-        };
-        removals.push(NotificationRemoval::new(
-            records.remove(index),
-            NotificationRemovalReason::Pruned,
-        ));
+    let mut retained_count = records.len();
+    let mut retained_weight = encoded_weight(records)?;
+    if retained_count <= limits.maximum_notifications()
+        && retained_weight <= limits.maximum_encoded_weight()
+    {
+        return Ok(Vec::new());
     }
+
+    let mut prune_flags = vec![false; records.len()];
+    let mut prune_count = 0usize;
+    for (index, record) in records.iter().enumerate() {
+        if retained_count <= limits.maximum_notifications()
+            && retained_weight <= limits.maximum_encoded_weight()
+        {
+            break;
+        }
+        if Some(record.notification_id()) != excluded_id
+            && record.draft().retention_class() == NotificationRetentionClass::Standard
+        {
+            prune_flags[index] = true;
+            prune_count += 1;
+            retained_count -= 1;
+            retained_weight -= record.encoded_metadata_weight();
+        }
+    }
+
+    if retained_count > limits.maximum_notifications()
+        || retained_weight > limits.maximum_encoded_weight()
+    {
+        return Err(NotificationLedgerError::RetentionUnsatisfied {
+            maximum_count: limits.maximum_notifications(),
+            retained_count,
+            maximum_encoded_weight: limits.maximum_encoded_weight(),
+            retained_encoded_weight: retained_weight,
+        });
+    }
+
+    let mut removals = Vec::with_capacity(prune_count);
+    let mut kept = Vec::with_capacity(records.len() - prune_count);
+    for (record, prune) in records.drain(..).zip(prune_flags) {
+        if prune {
+            removals.push(NotificationRemoval::new(
+                record,
+                NotificationRemovalReason::Pruned,
+            ));
+        } else {
+            kept.push(record);
+        }
+    }
+    *records = kept;
+    Ok(removals)
 }
 
 pub(crate) fn increment_pruned_count(

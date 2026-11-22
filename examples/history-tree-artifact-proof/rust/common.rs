@@ -228,14 +228,16 @@ fn main() {
     let mut stale_graph = graph.clone();
     let stale_before = stale_graph.clone();
     let stale_rejected = stale_graph
-        .record_applied(ForkRecord::new(
-            HistoryRevision::INITIAL,
-            entry_id("entry:stale"),
-            metadata("Stale mutation"),
-            payload_bytes as u64,
-            vec![0; payload_bytes],
-            None,
-        ))
+        .record_applied(
+            ForkRecord::new(
+                HistoryRevision::INITIAL,
+                entry_id("entry:stale"),
+                metadata("Stale mutation"),
+                vec![0; payload_bytes],
+                None,
+            ),
+            &BytesPolicy,
+        )
         .is_err();
     assert!(stale_rejected);
     assert_eq!(stale_graph, stale_before);
