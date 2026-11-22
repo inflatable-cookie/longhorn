@@ -45,12 +45,13 @@ that leaves no host under-served.
 
 **Tauri's updater remains the specification, not the mechanism.** Its macOS
 install path defines the artifact shape — a gzip tar whose single top-level
-entry is the application — and Longhorn matches it exactly, so one signed
-release serves both hosts. Longhorn diverges only where the plugin's approach
+entry is the application — and Longhorn refuses any second top-level path,
+so one signed release serves both hosts. Longhorn diverges only where the plugin's approach
 is unsafe to copy: no shell interpolation, classified failures, and bounded
 extraction. See `longhorn-update-install`. The entry-name and link-target
 rule it applies is `longhorn-archive-path`'s, shared with
-`longhorn-tool-provision` (contract 027); this crate's behaviour is unchanged.
+`longhorn-tool-provision` (contract 027). Entry names and link targets
+must be relative and may not contain parent components.
 
 Authorization remains host-agnostic: `UpdateGate::authorize` answers whether
 an install may proceed, whoever performs it. Since the 2026-09-22 amendment
@@ -122,6 +123,9 @@ terms as the macOS path.
   `Undetermined` updates normally. A false "externally managed" blocks a
   legitimate update; a false "self-managed" corrupts a package database.
   Neither is acceptable, and only one of them is the status quo.
+- Flatpak, Snap, and AppImage observations require the executable to be inside
+  the package's tree. Inherited runtime variables alone do not identify the
+  executable's installer.
 - Windows package managers are **unproven**. winget, Chocolatey and MSIX
   identity are detectable in principle and are not detected today.
 
@@ -183,19 +187,23 @@ a surface can show observable byte progress, offer "Restart to update or
 Later", and hold the admission barrier through replacement. This replaces the
 earlier single-call stance.
 
-- A prepare step fetches, verifies, and retains an **identity-bound verified
-  staged artifact**: the version, channel, and artifact digest travel with the
-  bytes. Exactly one staged artifact is retained per controller.
-- Verification is unchanged. `apply` still accepts only a `VerifiedArtifact`,
-  and the staged handle never holds unverified bytes. There is no configuration
-  under which a staged artifact is unverified, and an artifact that fails
-  verification is discarded, not retained.
+- Availability is `notChecked` before the first successful check for the
+  selected channel and immediately after a channel switch.
+- Prepare verifies the downloaded bytes and retains the verified artifact with
+  its version, channel, and SHA-256 digest. Each prepare has its own transfer
+  identity. Starting another prepare, cancelling, or changing channel makes
+  the previous transfer ineligible to stage bytes or change current progress
+  on completion.
+- Apply names the staged version and digest observed by the client. A mismatch
+  refuses the command and preserves the staged artifact. The installer
+  receives only the already-verified bytes.
 - The staged artifact survives across calls: a deferred ("Later") install
   retains it, an explicit cancel discards it, and a failure reports a typed
   error. A refused install is still deferred, never cancelled.
 - Progress is observable **while the transfer runs**, out of band from the
   controller lock, so a surface renders byte progress rather than waiting for a
-  long call to return.
+  long call to return. Committed Tauri command hints distinguish checks,
+  channel selection, deferrals, and install progress.
 
 ## Exclusive Admission Lease
 

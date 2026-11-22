@@ -10,7 +10,7 @@ use longhorn_native_content::{
 
 use crate::{ChildViewAdapterEvent, ChildViewError, ChildViewRuntime, RuntimeAttachRequest};
 
-use super::{Attachment, ChildViewAdapter, compare_generation, current_attachment_mut};
+use super::{Attachment, ChildViewAdapter, compare_generation};
 
 impl<R: ChildViewRuntime> ChildViewAdapter<R> {
     pub(crate) fn validate_plan(&self, plan: &ApplyPlan) -> Result<(), ChildViewError> {
@@ -86,7 +86,15 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
                 mode: InputRoutingMode::NativeDirect,
             } => {
                 let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-                let attachment = current_attachment_mut(&mut state, generation)?;
+                let latest = state.latest_generation;
+                let retired = state.retired_generation;
+                let attachment = gate_attached(
+                    latest,
+                    retired,
+                    state.attachment.as_mut(),
+                    generation,
+                    |attachment| attachment.generation,
+                )?;
                 if attachment.handle.is_none() {
                     return Err(ChildViewError::AttachInProgress);
                 }
@@ -184,23 +192,21 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
         let handle = {
             let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
-            if !gate_detach(
+            let Some(attachment) = gate_detach(
                 state.retired_generation,
-                state.attachment.as_ref().map(|attachment| {
-                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
-                }),
+                state.attachment.as_mut(),
                 generation,
-            )? {
+                |attachment| {
+                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+                },
+            )?
+            else {
                 return Ok(());
-            }
-            let attachment = state
-                .attachment
-                .as_mut()
-                .expect("validated attachment is current");
+            };
             let handle = attachment
                 .handle
                 .clone()
-                .expect("validated attachment completed attach");
+                .ok_or(ChildViewError::AttachInProgress)?;
             attachment.detaching = true;
             handle
         };
@@ -231,22 +237,16 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
 
     pub(crate) fn handle(&self, generation: AttachGeneration) -> Result<R::Handle, ChildViewError> {
         let state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-        compare_generation(state.latest_generation, generation)?;
         gate_attached(
+            state.latest_generation,
             state.retired_generation,
-            state
-                .attachment
-                .as_ref()
-                .map(|attachment| attachment.generation),
+            state.attachment.as_ref(),
             generation,
-        )?;
-        state
-            .attachment
-            .as_ref()
-            .expect("validated attachment is current")
-            .handle
-            .clone()
-            .ok_or(ChildViewError::AttachInProgress)
+            |attachment| attachment.generation,
+        )?
+        .handle
+        .clone()
+        .ok_or(ChildViewError::AttachInProgress)
     }
 
     pub(crate) fn clear_reservation(

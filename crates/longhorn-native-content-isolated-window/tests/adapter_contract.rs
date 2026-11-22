@@ -312,6 +312,73 @@ fn resize_requests_are_correlated_non_mutating_decisions_and_echoes_are_suppress
 }
 
 #[test]
+fn capacity_refusal_does_not_consume_the_request_id() {
+    let adapter = adapter(FakeRuntime::default(), Arc::default());
+    let authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    for index in 0..128 {
+        adapter
+            .admit_runtime_event(runtime_event(
+                1,
+                request_event(
+                    &format!("content:pending-{index}"),
+                    IsolatedContentRequestKind::Show,
+                ),
+            ))
+            .unwrap();
+    }
+    let retry = || {
+        runtime_event(
+            1,
+            request_event("content:retry", IsolatedContentRequestKind::Close),
+        )
+    };
+    assert_eq!(
+        adapter.admit_runtime_event(retry()),
+        Err(IsolatedWindowError::RequestCapacity)
+    );
+    assert_eq!(adapter.take_requests(generation(1)).unwrap().len(), 128);
+
+    adapter.admit_runtime_event(retry()).unwrap();
+    let admitted = adapter.take_requests(generation(1)).unwrap();
+    assert_eq!(admitted.len(), 1);
+    assert_eq!(admitted[0].request_id, request_id("content:retry"));
+    assert_eq!(
+        adapter.admit_runtime_event(retry()),
+        Err(IsolatedWindowError::DuplicateCorrelation)
+    );
+}
+
+#[test]
+fn teardown_history_keeps_the_latest_reports_in_order() {
+    let runtime = FakeRuntime::default();
+    runtime.set_teardown(std::iter::repeat_n(
+        TeardownOutcome::Completed {
+            exit_status: Some(0),
+        },
+        130,
+    ));
+    let adapter = adapter(runtime, Arc::default());
+    for index in 1..=130 {
+        let attached = coordinator(index);
+        adapter.apply(&attached, &attached.plan().unwrap()).unwrap();
+        let detached = detached_coordinator(index);
+        adapter.apply(&detached, &detached.plan().unwrap()).unwrap();
+    }
+    assert_eq!(
+        adapter
+            .teardown_reports()
+            .unwrap()
+            .into_iter()
+            .map(|(generation, _)| generation.get())
+            .collect::<Vec<_>>(),
+        (3..=130).collect::<Vec<_>>(),
+    );
+}
+
+#[test]
 fn lifecycle_requests_focus_loss_and_observation_remain_explicit() {
     let runtime = FakeRuntime::default();
     let adapter = adapter(runtime.clone(), Arc::default());

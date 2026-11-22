@@ -1,6 +1,6 @@
 //! Bounded initial document sources for one child island.
 //!
-//! The carrier is deliberately narrow: a validated remote HTTP/HTTPS URL or a
+//! The carrier is deliberately narrow: a validated HTTPS or loopback HTTP URL or a
 //! validated relative path inside the host application's bundled assets.
 //! Arbitrary filesystem URLs, custom schemes, and unvalidated paths are never
 //! accepted. Bundled documents are served by the host application's own asset
@@ -9,6 +9,7 @@
 
 use std::fmt;
 
+use longhorn_url::{LoopbackHttp, classify_endpoint};
 use tauri::Url;
 
 use crate::ChildViewError;
@@ -79,8 +80,7 @@ impl fmt::Display for BundledLocalDocument {
 /// [`BundledLocalDocument`].
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ChildViewSource {
-    /// A remote document. Only HTTP and HTTPS with a host are admitted;
-    /// this is the historical child-view source behavior.
+    /// An HTTPS document or an HTTP document hosted on loopback.
     External(Url),
     /// A bundled local document served by the host application's own asset
     /// protocol. The document is part of the application bundle: no local
@@ -89,17 +89,21 @@ pub enum ChildViewSource {
 }
 
 impl ChildViewSource {
-    /// Validates and wraps one remote HTTP/HTTPS document URL.
+    /// Validates and wraps one HTTPS or loopback HTTP document URL.
     ///
     /// # Errors
     ///
-    /// Returns [`ChildViewError::InvalidContentSource`] when the URL is not
-    /// HTTP or HTTPS or names no host.
+    /// Returns [`ChildViewError::InvalidContentSource`] unless the URL names
+    /// an HTTPS endpoint or a loopback HTTP endpoint.
     pub fn external(url: Url) -> Result<Self, ChildViewError> {
-        if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
-            return Err(ChildViewError::InvalidContentSource);
-        }
+        Self::validate_external(&url)?;
         Ok(Self::External(url))
+    }
+
+    pub(crate) fn validate_external(url: &Url) -> Result<(), ChildViewError> {
+        classify_endpoint(url.as_str(), LoopbackHttp::Allowed)
+            .map(|_| ())
+            .map_err(|_| ChildViewError::InvalidContentSource)
     }
 
     /// Validates and wraps one bundled document path.
@@ -171,6 +175,10 @@ mod tests {
     fn external_sources_stay_remote_and_hosted() {
         assert!(ChildViewSource::external("https://example.com/page".parse().unwrap()).is_ok());
         assert!(ChildViewSource::external("http://127.0.0.1:43119/proof".parse().unwrap()).is_ok());
+        assert_eq!(
+            ChildViewSource::external("http://example.com/page".parse().unwrap()),
+            Err(ChildViewError::InvalidContentSource)
+        );
         assert_eq!(
             ChildViewSource::external("file:///etc/passwd".parse().unwrap()),
             Err(ChildViewError::InvalidContentSource)

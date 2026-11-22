@@ -57,17 +57,15 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
             compare_generation(state.latest_generation, generation)?;
             match state.attachment.as_ref() {
                 None => None,
-                Some(attachment) if attachment.generation != generation => {
-                    return Err(
-                        compare_attached_generation(attachment.generation, generation).into(),
-                    );
+                Some(attachment) => {
+                    compare_attached_generation(attachment.generation, generation)?;
+                    Some((
+                        attachment.handle.clone(),
+                        attachment.ready,
+                        attachment.detaching,
+                        attachment.input_routing,
+                    ))
                 }
-                Some(attachment) => Some((
-                    attachment.handle.clone(),
-                    attachment.ready,
-                    attachment.detaching,
-                    attachment.input_routing,
-                )),
             }
         };
 
@@ -166,11 +164,7 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
                         ChildViewError::NotAttached
                     }
                 })?;
-                if attachment.generation != generation {
-                    return Err(
-                        compare_attached_generation(attachment.generation, generation).into(),
-                    );
-                }
+                compare_attached_generation(attachment.generation, generation)?;
                 state.attachment = None;
                 state.retired_generation = Some(generation);
                 state.invalidated_generation = Some(generation);
@@ -220,19 +214,15 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
         }
         {
             let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-            compare_generation(state.latest_generation, event.generation)?;
-            gate_attached(
-                state.retired_generation,
-                state
-                    .attachment
-                    .as_ref()
-                    .map(|attachment| attachment.generation),
+            let latest = state.latest_generation;
+            let retired = state.retired_generation;
+            let attachment = gate_attached(
+                latest,
+                retired,
+                state.attachment.as_mut(),
                 event.generation,
+                |attachment| attachment.generation,
             )?;
-            let attachment = state
-                .attachment
-                .as_mut()
-                .expect("validated attachment is current");
             match event.kind {
                 ChildViewRuntimeEventKind::PageLoadStarted => attachment.ready = false,
                 ChildViewRuntimeEventKind::PageLoadFinished => attachment.ready = true,

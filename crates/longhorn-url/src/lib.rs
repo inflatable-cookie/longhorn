@@ -18,7 +18,7 @@ pub enum LoopbackHttp {
 /// A URL string that passed the shared scheme rules.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ClassifiedEndpoint<'a> {
-    /// `https://` with a non-empty body after the scheme.
+    /// `https://` with a non-empty host component.
     Https {
         /// Bytes after `https://`.
         rest: &'a str,
@@ -37,7 +37,7 @@ pub enum EndpointClassificationError {
     UnsupportedScheme,
     /// Plain HTTP addressed a non-loopback host.
     InsecureScheme,
-    /// `https://` had nothing after the scheme.
+    /// `https://` had an empty host component.
     MissingHost,
 }
 
@@ -51,7 +51,11 @@ pub fn classify_endpoint(
     loopback_http: LoopbackHttp,
 ) -> Result<ClassifiedEndpoint<'_>, EndpointClassificationError> {
     if let Some(rest) = value.strip_prefix("https://") {
-        if rest.is_empty() {
+        if authority_host(rest)
+            .split(':')
+            .next()
+            .is_none_or(str::is_empty)
+        {
             return Err(EndpointClassificationError::MissingHost);
         }
         return Ok(ClassifiedEndpoint::Https { rest });
@@ -84,10 +88,7 @@ pub fn classify_endpoint(
 /// found by splitting on the first colon.
 #[must_use]
 pub fn is_loopback_host(rest: &str) -> bool {
-    let authority = rest.split(['/', '\\', '?', '#']).next().unwrap_or_default();
-    let host_part = authority
-        .rsplit_once('@')
-        .map_or(authority, |(_, host)| host);
+    let host_part = authority_host(rest);
     let host = match host_part.strip_prefix('[') {
         Some(bracketed) => match bracketed.split_once(']') {
             Some((address, _port)) => address,
@@ -96,6 +97,13 @@ pub fn is_loopback_host(rest: &str) -> bool {
         None => host_part.split(':').next().unwrap_or_default(),
     };
     matches!(host, "127.0.0.1" | "localhost" | "::1")
+}
+
+fn authority_host(rest: &str) -> &str {
+    let authority = rest.split(['/', '\\', '?', '#']).next().unwrap_or_default();
+    authority
+        .rsplit_once('@')
+        .map_or(authority, |(_, host)| host)
 }
 
 #[cfg(test)]
@@ -120,14 +128,21 @@ mod tests {
 
     #[test]
     fn https_without_a_host_is_missing_host() {
-        assert_eq!(
-            classify_endpoint("https://", LoopbackHttp::Allowed),
-            Err(EndpointClassificationError::MissingHost)
-        );
-        assert_eq!(
-            classify_endpoint("https://", LoopbackHttp::Forbidden),
-            Err(EndpointClassificationError::MissingHost)
-        );
+        for value in [
+            "https://",
+            "https:///x",
+            r"https://\x",
+            "https://?q=x",
+            "https://user@:443/x",
+        ] {
+            for policy in [LoopbackHttp::Allowed, LoopbackHttp::Forbidden] {
+                assert_eq!(
+                    classify_endpoint(value, policy),
+                    Err(EndpointClassificationError::MissingHost),
+                    "{value}"
+                );
+            }
+        }
     }
 
     #[test]

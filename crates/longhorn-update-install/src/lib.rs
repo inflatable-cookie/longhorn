@@ -368,8 +368,8 @@ fn unpack_within(
         }
 
         // A link's *name* was checked by `bounded`; its target is data too.
-        // Links stay relative and in-tree, which is all a bundle needs —
-        // absolute or `..` targets exist only to point outside staging.
+        // The shared archive rule refuses absolute paths and parent
+        // components, including in relative link targets.
         if kind.is_symlink() || kind.is_hard_link() {
             let target = entry
                 .link_name()
@@ -382,9 +382,27 @@ fn unpack_within(
             bounded(&target)?;
         }
 
-        if root.is_none() {
-            root = safe.components().next().map(|first| staging.join(first));
+        let mut components = safe.components();
+        let first = components
+            .next()
+            .ok_or_else(|| InstallFailure::MalformedArtifact {
+                detail: "archive entry has no top-level component".to_owned(),
+            })?;
+        let entry_root = staging.join(first);
+        if root.as_ref().is_some_and(|root| *root != entry_root) {
+            return Err(InstallFailure::MalformedArtifact {
+                detail: format!(
+                    "archive has more than one top-level entry: {}",
+                    path.display()
+                ),
+            });
         }
+        if components.next().is_none() && !kind.is_dir() {
+            return Err(InstallFailure::MalformedArtifact {
+                detail: "archive root is not a directory".to_owned(),
+            });
+        }
+        root.get_or_insert(entry_root);
 
         // The declared sizes are the archive's own claim — the only bound
         // available before a byte is written. A header understating its

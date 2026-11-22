@@ -46,6 +46,8 @@ pub const UPDATE_PROTOCOL_VERSION: u32 = 1;
     tag = "state"
 )]
 pub enum UpdateAvailabilityProjection {
+    /// No check has completed for the selected channel.
+    NotChecked,
     /// An update is available now.
     Offer {
         /// The version offered.
@@ -107,10 +109,11 @@ pub struct UpdateStagedArtifactProjection {
 }
 
 impl UpdateAvailabilityProjection {
-    /// Projects one checked availability.
+    /// Projects the controller’s current availability.
     #[must_use]
     pub fn from_availability(availability: &UpdateAvailability) -> Self {
         match availability {
+            UpdateAvailability::NotChecked => Self::NotChecked,
             UpdateAvailability::Offer(offer) => Self::Offer {
                 version: offer.version.to_string(),
                 reason: offer.reason,
@@ -307,9 +310,7 @@ pub struct UpdatePrepareCommand {
 
 /// Apply the retained staged artifact.
 ///
-/// The second half. Names the version it believes is staged so a surface whose
-/// snapshot is behind refuses rather than replacing the application with a
-/// release it never showed.
+/// Names the version and digest observed in the staged artifact projection.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -321,6 +322,8 @@ pub struct UpdateApplyCommand {
     pub authority_epoch: u64,
     /// The version the caller believes is staged.
     pub version: String,
+    /// SHA-256 of the staged bytes observed by the caller, lowercase hex.
+    pub digest: String,
 }
 
 /// Discard the retained staged artifact.
@@ -422,9 +425,7 @@ pub struct UpdateProgressEvent {
 pub enum UpdateRejectionCode {
     /// The caller's authority lifetime is behind the live one.
     StaleAuthority,
-    /// No such version is on offer. Covers an install request for a version
-    /// that was never offered, one the last check superseded, and an
-    /// externally managed install, which never reaches an offer at all.
+    /// No current offer, transfer, or staged artifact matches the request.
     NoOffer,
     /// The source answered, and not with the artifact the manifest promised.
     Unavailable,

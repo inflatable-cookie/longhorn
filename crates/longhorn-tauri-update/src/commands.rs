@@ -99,7 +99,11 @@ pub fn longhorn_update_check<R: Runtime>(
     state: State<'_, TauriUpdateState>,
     command: UpdateCheckCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(&window, state.service.check(window.label(), command)?)
+    emitting(
+        &window,
+        state.service.check(window.label(), command)?,
+        UpdateChangedKind::Checked,
+    )
 }
 
 /// Follows a different channel from now on.
@@ -112,6 +116,7 @@ pub fn longhorn_update_select_channel<R: Runtime>(
     emitting(
         &window,
         state.service.select_channel(window.label(), command)?,
+        UpdateChangedKind::ChannelSelected,
     )
 }
 
@@ -122,7 +127,11 @@ pub fn longhorn_update_defer<R: Runtime>(
     state: State<'_, TauriUpdateState>,
     command: UpdateDeferCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(&window, state.service.defer(window.label(), command)?)
+    emitting(
+        &window,
+        state.service.defer(window.label(), command)?,
+        UpdateChangedKind::Deferred,
+    )
 }
 
 /// Fetches, verifies and retains an update for a later apply.
@@ -141,7 +150,7 @@ pub async fn longhorn_update_prepare<R: Runtime>(
         let outcome = service.prepare(&label, command, &mut |event| {
             emitting_progress(&window, event);
         })?;
-        emitting(&window, outcome)
+        emitting(&window, outcome, UpdateChangedKind::Progressed)
     })
     .await
     .map_err(|_| UpdateHostError::state_unavailable())?
@@ -157,7 +166,14 @@ pub fn longhorn_update_apply<R: Runtime>(
     state: State<'_, TauriUpdateState>,
     command: UpdateApplyCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(&window, state.service.apply(window.label(), command)?)
+    let outcome = state.service.apply(window.label(), command)?;
+    let kind = if matches!(&outcome, UpdateOutcomeProjection::Committed { snapshot } if snapshot.deferral.is_some())
+    {
+        UpdateChangedKind::Deferred
+    } else {
+        UpdateChangedKind::Progressed
+    };
+    emitting(&window, outcome, kind)
 }
 
 /// Discards the retained staged artifact.
@@ -167,7 +183,11 @@ pub fn longhorn_update_cancel<R: Runtime>(
     state: State<'_, TauriUpdateState>,
     command: UpdateCancelCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(&window, state.service.cancel(window.label(), command)?)
+    emitting(
+        &window,
+        state.service.cancel(window.label(), command)?,
+        UpdateChangedKind::Progressed,
+    )
 }
 
 /// Publishes a trusted update invalidation hint after an external commit.
@@ -209,8 +229,9 @@ pub fn update_changed_event(
 fn emitting<R: Runtime>(
     window: &WebviewWindow<R>,
     outcome: UpdateOutcomeProjection,
+    kind: UpdateChangedKind,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    if let Some(event) = update_changed_event(&outcome, UpdateChangedKind::Progressed)
+    if let Some(event) = update_changed_event(&outcome, kind)
         && let Err(error) = window.emit(UPDATE_CHANGED_EVENT, event)
     {
         longhorn_core::report_best_effort_failure("update.changed-emit", error);

@@ -269,10 +269,16 @@ export class UpdateController {
    * can offer the restart again.
    */
   async apply(version: string): Promise<UpdateCommandOutcome> {
-    return this.#command((client, epoch) =>
-      client.apply({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version }),
-      true,
-    );
+    return this.#command(async (client, epoch, snapshot) => {
+      const staged = snapshot.staged;
+      if (staged?.version !== version) return { status: "rejected", code: "noOffer", snapshot };
+      return client.apply({
+        protocolVersion: UPDATE_PROTOCOL_VERSION,
+        authorityEpoch: epoch,
+        version,
+        digest: staged.digest,
+      });
+    }, true);
   }
 
   /** Discards the retained staged artifact. */
@@ -283,13 +289,13 @@ export class UpdateController {
   }
 
   async #command(
-    run: (client: UpdateClient, epoch: number) => Promise<UpdateOutcomeProjection>,
+    run: (client: UpdateClient, epoch: number, snapshot: UpdateSnapshot) => Promise<UpdateOutcomeProjection>,
     committedMayDefer = false,
   ): Promise<UpdateCommandOutcome> {
     const commandSequence = ++this.#commandSequence;
     this.#lastRejection = undefined;
-    const epoch = this.#snapshot?.authorityEpoch;
-    if (epoch === undefined) {
+    const snapshot = this.#snapshot;
+    if (snapshot === undefined) {
       // No snapshot means no epoch to send, and inventing one would have the
       // authority refuse it as stale. Say what is actually wrong.
       const error = new Error("update state has not been read yet");
@@ -301,7 +307,7 @@ export class UpdateController {
     this.#liveProgress = undefined;
     this.#notify();
     try {
-      const outcome = await run(this.#client, epoch);
+      const outcome = await run(this.#client, snapshot.authorityEpoch, snapshot);
       const result: UpdateCommandOutcome = outcome.status === "rejected"
         ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
         : committedMayDefer && outcome.snapshot.deferral !== null

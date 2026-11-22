@@ -50,6 +50,7 @@ const checkOnly = process.argv.includes("--check-only");
 const crates = [
   "longhorn-core",
   "longhorn-native-content",
+  "longhorn-url",
   "longhorn-tauri-native-content-child-view",
 ] as const;
 

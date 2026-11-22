@@ -7,7 +7,7 @@ export const UPDATE_CHANNELS = ["production","beta","nightly"] as const;
 export const UPDATE_OFFER_REASONS = ["staged","belowMinimumVersion","userInitiated"] as const;
 export const UPDATE_INSTALL_MANAGERS = ["macAppStore","homebrewCask","flatpak","snap","appImage","nix","linuxDistribution"] as const;
 export const UPDATE_DEFERRAL_CAUSES = ["userPostponed","workInFlight","installationNotWritable","externallyManaged","installFailed"] as const;
-export const UPDATE_AVAILABILITY_STATES = ["offer","upToDate","aheadOfChannel","withheldByRollout","managedElsewhere"] as const;
+export const UPDATE_AVAILABILITY_STATES = ["notChecked","offer","upToDate","aheadOfChannel","withheldByRollout","managedElsewhere"] as const;
 export const UPDATE_PROGRESS_STATES = ["idle","downloading","verifying","readyToInstall","installing"] as const;
 export const UPDATE_INSTALL_AUTHORIZATION_STATUSES = ["held","deferred"] as const;
 export const UPDATE_REJECTION_CODES = ["staleAuthority","noOffer","unavailable","channelMismatch","unreachable","signatureRejected","notWritable","installFailed"] as const;
@@ -44,7 +44,7 @@ command: string | null, } | { "cause": "installFailed",
  */
 detail: string, };
 
-export type UpdateAvailabilityProjection = { "state": "offer", 
+export type UpdateAvailabilityProjection = { "state": "notChecked" } | { "state": "offer", 
 /**
  * The version offered.
  */
@@ -253,7 +253,11 @@ authorityEpoch: number,
 /**
  * The version the caller believes is staged.
  */
-version: string, };
+version: string, 
+/**
+ * SHA-256 of the staged bytes observed by the caller, lowercase hex.
+ */
+digest: string, };
 
 export type UpdateCancelCommand = { 
 /**

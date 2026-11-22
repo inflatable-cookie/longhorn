@@ -10,6 +10,7 @@ import {
   SerializedUpdatePort,
   type Channel,
   type DeferralCause,
+  type UpdateApplyCommand,
   type UpdateAvailabilityProjection,
   type UpdateChangedEvent,
   type UpdateOutcomeProjection,
@@ -44,6 +45,7 @@ function committed(value: UpdateSnapshot = snapshot()): UpdateOutcomeProjection 
 
 class Port implements UpdatePort {
   calls: string[] = [];
+  applied: UpdateApplyCommand[] = [];
   #progressListener?: (event: unknown) => void;
   constructor(
     private state: UpdateSnapshot = snapshot(),
@@ -54,7 +56,11 @@ class Port implements UpdatePort {
   async selectChannel(): Promise<unknown> { this.calls.push("selectChannel"); return this.outcome("selectChannel"); }
   async defer(): Promise<unknown> { this.calls.push("defer"); return this.outcome("defer"); }
   async prepare(): Promise<unknown> { this.calls.push("prepare"); return this.outcome("prepare"); }
-  async apply(): Promise<unknown> { this.calls.push("apply"); return this.outcome("apply"); }
+  async apply(command: UpdateApplyCommand): Promise<unknown> {
+    this.calls.push("apply");
+    this.applied.push(command);
+    return this.outcome("apply");
+  }
   async cancel(): Promise<unknown> { this.calls.push("cancel"); return this.outcome("cancel"); }
   async listen(): Promise<() => void> { this.calls.push("listen"); return () => {}; }
   async listenProgress(listener: (event: unknown) => void): Promise<() => void> {
@@ -282,7 +288,7 @@ describe("update controller", () => {
       progress: { state: "readyToInstall", version: "1.4.0" },
     });
     const controller = new UpdateController({
-      port: new Port(snapshot(), () => committed(gated)),
+      port: new Port(snapshot({ staged: STAGED }), () => committed(gated)),
     });
 
     await controller.start();
@@ -303,7 +309,7 @@ describe("update controller", () => {
 
   test("a rejection is distinct from a deferral and carries its code", async () => {
     const controller = new UpdateController({
-      port: new Port(snapshot(), () => ({
+      port: new Port(snapshot({ staged: STAGED }), () => ({
         status: "rejected",
         code: "notWritable",
         snapshot: snapshot(),
@@ -388,10 +394,13 @@ describe("update controller", () => {
   });
 
   test("the staged protocol sends prepare, apply and cancel as their own commands", async () => {
-    const port = new Port();
+    const port = new Port(snapshot(), (command) =>
+      committed(command === "prepare" ? snapshot({ staged: STAGED }) : snapshot()),
+    );
     const controller = new UpdateController({ port });
 
     await controller.start();
+    expect((await controller.apply("1.4.0")).status).toBe("rejected");
     await controller.prepare("1.4.0");
     await controller.apply("1.4.0");
     await controller.cancel();
@@ -404,6 +413,10 @@ describe("update controller", () => {
       "apply",
       "cancel",
     ]);
+    expect(port.applied).toEqual([{
+      protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: 3,
+      version: STAGED.version, digest: STAGED.digest,
+    }]);
   });
 
   test("stop releases the listener and returns to idle", async () => {

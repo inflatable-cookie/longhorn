@@ -1,7 +1,7 @@
 //! Adapter handle and attachment state.
 
 use std::{
-    collections::HashSet,
+    collections::VecDeque,
     sync::{Arc, Mutex},
 };
 
@@ -14,6 +14,8 @@ use crate::{
 };
 
 pub(crate) const MAX_PENDING_CONTENT_REQUESTS: usize = 128;
+pub(crate) const MAX_RECENT_CONTENT_REQUEST_IDS: usize = 256;
+pub(crate) const MAX_TEARDOWN_REPORTS: usize = 128;
 
 pub(crate) struct Attachment<H> {
     pub(crate) generation: AttachGeneration,
@@ -23,14 +25,14 @@ pub(crate) struct Attachment<H> {
     pub(crate) failed: bool,
     pub(crate) last_host_size: Option<PhysicalSize>,
     pub(crate) requests: Vec<IsolatedContentRequest>,
-    pub(crate) seen_request_ids: HashSet<NativeContentRequestId>,
+    pub(crate) recent_request_ids: VecDeque<NativeContentRequestId>,
 }
 
 pub(crate) struct AdapterState<H> {
     pub(crate) latest_generation: Option<AttachGeneration>,
     pub(crate) retired_generation: Option<AttachGeneration>,
     pub(crate) attachment: Option<Attachment<H>>,
-    pub(crate) teardown_reports: Vec<(AttachGeneration, TeardownOutcome)>,
+    pub(crate) teardown_reports: VecDeque<(AttachGeneration, TeardownOutcome)>,
 }
 
 impl<H> Default for AdapterState<H> {
@@ -39,7 +41,7 @@ impl<H> Default for AdapterState<H> {
             latest_generation: None,
             retired_generation: None,
             attachment: None,
-            teardown_reports: Vec::new(),
+            teardown_reports: VecDeque::new(),
         }
     }
 }

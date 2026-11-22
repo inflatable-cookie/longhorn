@@ -3335,6 +3335,7 @@ version = "0.5.0"
 dependencies = [
  "longhorn-core",
  "longhorn-native-content",
+ "longhorn-url",
  "serde",
  "serde_json",
  "tauri",

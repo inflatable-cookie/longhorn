@@ -12,7 +12,7 @@ export const UPDATE_FIELDS: Record<string, readonly string[]> = {
   "UpdateSelectChannelCommand": ["protocolVersion", "authorityEpoch", "channel"],
   "UpdateDeferCommand": ["protocolVersion", "authorityEpoch", "version", "cause"],
   "UpdatePrepareCommand": ["protocolVersion", "authorityEpoch", "version"],
-  "UpdateApplyCommand": ["protocolVersion", "authorityEpoch", "version"],
+  "UpdateApplyCommand": ["protocolVersion", "authorityEpoch", "version", "digest"],
   "UpdateCancelCommand": ["protocolVersion", "authorityEpoch"],
   "UpdateChangedEvent": ["protocolVersion", "authorityEpoch", "kind"],
 };

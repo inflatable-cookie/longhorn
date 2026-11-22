@@ -24,10 +24,8 @@ use crate::{Channel, UpdateStagedArtifactProjection, VerifiedArtifact};
 
 /// SHA-256 of a staged artifact's bytes, as lowercase hex.
 ///
-/// The digest is what binds the retained bytes to the release the manifest
-/// named. It is computed here rather than carried in the manifest: it proves
-/// the bytes are the ones that were verified, not that the manifest was the
-/// one the host meant to read — the signature already covers origin.
+/// The controller compares this digest with the caller's observed digest
+/// before applying. Signature verification establishes trust in the bytes.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ArtifactDigest(String);
 
@@ -62,7 +60,6 @@ fn hex_digit(nibble: u8) -> char {
 /// `apply` can refuse a request naming something else.
 #[derive(Clone, Debug)]
 pub struct StagedArtifact {
-    version: Version,
     channel: Channel,
     digest: ArtifactDigest,
     verified: VerifiedArtifact,
@@ -74,10 +71,9 @@ impl StagedArtifact {
     /// Takes a [`VerifiedArtifact`], so the staged type cannot be built from
     /// bytes that were never verified.
     #[must_use]
-    pub fn new(version: Version, channel: Channel, verified: VerifiedArtifact) -> Self {
+    pub fn new(channel: Channel, verified: VerifiedArtifact) -> Self {
         let digest = ArtifactDigest::of(verified.bytes());
         Self {
-            version,
             channel,
             digest,
             verified,
@@ -87,7 +83,7 @@ impl StagedArtifact {
     /// The version the bytes were verified for.
     #[must_use]
     pub const fn version(&self) -> &Version {
-        &self.version
+        self.verified.version()
     }
 
     /// The channel the bytes were fetched for.
@@ -112,7 +108,7 @@ impl StagedArtifact {
     #[must_use]
     pub fn projection(&self) -> UpdateStagedArtifactProjection {
         UpdateStagedArtifactProjection {
-            version: self.version.to_string(),
+            version: self.version().to_string(),
             channel: self.channel,
             digest: self.digest.as_str().to_owned(),
         }
@@ -161,11 +157,7 @@ mod tests {
     fn a_staged_artifact_carries_its_verified_identity() {
         let keys = KeyPair::generate_unencrypted_keypair().unwrap();
         let verified = verified(&keys, b"a bundle");
-        let staged = StagedArtifact::new(
-            Version::parse("1.4.0").unwrap(),
-            Channel::Production,
-            verified.clone(),
-        );
+        let staged = StagedArtifact::new(Channel::Production, verified.clone());
 
         assert_eq!(staged.version().to_string(), "1.4.0");
         assert_eq!(staged.channel(), Channel::Production);

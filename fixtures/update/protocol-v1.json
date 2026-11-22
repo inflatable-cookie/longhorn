@@ -17,6 +17,7 @@
   },
   "applyCommand": {
     "authorityEpoch": 7,
+    "digest": "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
     "protocolVersion": 1,
     "version": "1.3.0-nightly.5"
   },
@@ -75,6 +76,20 @@
     "channel": "production",
     "deferral": null,
     "installedVersion": "1.2.9",
+    "progress": {
+      "state": "idle"
+    },
+    "protocolVersion": 1,
+    "staged": null
+  },
+  "notCheckedSnapshot": {
+    "authorityEpoch": 7,
+    "availability": {
+      "state": "notChecked"
+    },
+    "channel": "nightly",
+    "deferral": null,
+    "installedVersion": "1.3.0-nightly.4",
     "progress": {
       "state": "idle"
     },

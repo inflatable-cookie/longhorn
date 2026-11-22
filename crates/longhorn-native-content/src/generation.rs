@@ -147,16 +147,12 @@ pub fn compare_generation_allow_next(
     }
 }
 
-/// Classifies a supplied generation that mismatches the attached one.
+/// Requires the supplied generation to match the attached generation.
 pub fn compare_attached_generation(
     current: AttachGeneration,
     supplied: AttachGeneration,
-) -> GenerationRejection {
-    if supplied < current {
-        GenerationRejection::Stale { current, supplied }
-    } else {
-        GenerationRejection::Future { current, supplied }
-    }
+) -> Result<(), GenerationRejection> {
+    compare_generation(Some(current), supplied)
 }
 
 /// Validates a plan's generation against current adapter authority.
@@ -215,49 +211,44 @@ pub fn check_attach_reservation(
     Ok(false)
 }
 
-/// Requires the supplied generation to name the current attachment.
-///
-/// Call after [`compare_generation`]; this gate owns the retired, absent,
-/// and mismatched-attachment clauses. Completeness is the caller's decision
-/// because observation paths admit an incomplete attachment.
-pub fn gate_attached(
+/// Returns the current attachment when it belongs to the supplied generation.
+pub fn gate_attached<T>(
+    latest: Option<AttachGeneration>,
     retired: Option<AttachGeneration>,
-    attached: Option<AttachGeneration>,
+    attached: Option<T>,
     supplied: AttachGeneration,
-) -> Result<(), GenerationRejection> {
+    generation: impl FnOnce(&T) -> AttachGeneration,
+) -> Result<T, GenerationRejection> {
+    compare_generation(latest, supplied)?;
     if retired == Some(supplied) {
         return Err(GenerationRejection::Retired(supplied));
     }
-    let Some(attached) = attached else {
-        return Err(GenerationRejection::Absent);
-    };
-    if attached != supplied {
-        return Err(compare_attached_generation(attached, supplied));
-    }
-    Ok(())
+    let attached = attached.ok_or(GenerationRejection::Absent)?;
+    compare_attached_generation(generation(&attached), supplied)?;
+    Ok(attached)
 }
 
-/// Requires the supplied generation to name a complete current attachment.
+/// Returns the complete attachment to detach, or `None` if already retired.
 ///
-/// Call after [`compare_generation`]. Returns `Ok(false)` when the
-/// generation is already retired, which makes detach idempotent, and
-/// `Ok(true)` when the caller holds a complete attachment to detach.
-pub fn gate_detach(
+/// Call after [`compare_generation`]. Unlike the regular attachment gate,
+/// detach admits a retained attachment that still needs native teardown.
+pub fn gate_detach<T>(
     retired: Option<AttachGeneration>,
-    attached: Option<AttachmentGate>,
+    attached: Option<T>,
     supplied: AttachGeneration,
-) -> Result<bool, GenerationRejection> {
-    let Some(gate) = attached else {
-        if retired == Some(supplied) {
-            return Ok(false);
-        }
-        return Err(GenerationRejection::Absent);
+    inspect: impl FnOnce(&T) -> AttachmentGate,
+) -> Result<Option<T>, GenerationRejection> {
+    let Some(attached) = attached else {
+        return if retired == Some(supplied) {
+            Ok(None)
+        } else {
+            Err(GenerationRejection::Absent)
+        };
     };
-    if gate.generation() != supplied {
-        return Err(compare_attached_generation(gate.generation(), supplied));
-    }
+    let gate = inspect(&attached);
+    compare_attached_generation(gate.generation(), supplied)?;
     if !gate.is_complete() {
         return Err(GenerationRejection::Attaching);
     }
-    Ok(true)
+    Ok(Some(attached))
 }

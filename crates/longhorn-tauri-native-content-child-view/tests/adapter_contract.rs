@@ -839,6 +839,22 @@ fn construction_policy_and_capability_example_are_closed_by_default() {
 }
 
 #[test]
+fn the_spec_rejects_a_cleartext_remote_source_constructed_directly() {
+    let source = ChildViewSource::External("http://example.test/child".parse().unwrap());
+    let spec = ChildViewSpec::new(
+        island_id(),
+        host_window_id(),
+        ChildViewLabel::new("host").unwrap(),
+        ChildViewLabel::new("proof-child").unwrap(),
+        source,
+        None,
+        Arc::new(|_| true),
+        ChildViewPolicyHooks::new(None, Arc::new(|_| {})).unwrap(),
+    );
+    assert!(matches!(spec, Err(ChildViewError::InvalidContentSource)));
+}
+
+#[test]
 fn bundled_local_source_attaches_through_the_same_lifecycle() {
     let timeline = Arc::new(Mutex::new(Vec::new()));
     let runtime = FakeRuntime::with_timeline(timeline.clone());

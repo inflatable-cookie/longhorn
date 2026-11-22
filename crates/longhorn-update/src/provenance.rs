@@ -128,6 +128,7 @@ pub struct InstallLocation {
     executable_path: Option<String>,
     bundle_path: Option<String>,
     bundle_link_target: Option<String>,
+    caskroom_entry: Option<String>,
     mac_app_store_receipt: bool,
     sandbox_id: Option<(InstallManager, String)>,
 }
@@ -172,13 +173,9 @@ impl InstallLocation {
     /// leaves the symlink in the Caskroom pointing back at it. Detecting only
     /// the first direction classified every cask install as self-managed,
     /// which Card 159's packaged run caught on a real machine.
-    ///
-    /// Both set the same field because the question is the same one — is a
-    /// Caskroom path associated with this bundle — and only the direction of
-    /// the evidence differs.
     #[must_use]
     pub fn with_caskroom_entry(mut self, entry: impl Into<String>) -> Self {
-        self.bundle_link_target = Some(entry.into());
+        self.caskroom_entry = Some(entry.into());
         self
     }
 
@@ -226,8 +223,10 @@ pub fn classify_install(location: &InstallLocation) -> InstallProvenance {
     // Strong: a Caskroom path associated with this bundle, in either
     // direction -- the bundle linking into the Caskroom, or a Caskroom entry
     // linking back at the bundle.
-    if let Some(target) = &location.bundle_link_target
-        && target.contains("/Caskroom/")
+    if [&location.bundle_link_target, &location.caskroom_entry]
+        .into_iter()
+        .flatten()
+        .any(|path| path.contains("/Caskroom/"))
     {
         return managed(InstallManager::HomebrewCask);
     }
@@ -308,6 +307,17 @@ mod tests {
         // No command: the App Store updates through its own interface, and
         // inventing one would be worse than saying nothing.
         assert_eq!(InstallManager::MacAppStore.upgrade_command("x"), None);
+    }
+
+    #[test]
+    fn caskroom_evidence_survives_recording_a_non_cask_bundle_link() {
+        let location = InstallLocation::unknown()
+            .with_caskroom_entry("/opt/homebrew/Caskroom/thing/1.0/Thing.app")
+            .with_bundle_link_target("/Applications/Other.app");
+        assert_eq!(
+            classify_install(&location).manager(),
+            Some(InstallManager::HomebrewCask)
+        );
     }
 
     #[test]

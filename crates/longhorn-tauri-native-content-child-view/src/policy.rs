@@ -128,7 +128,7 @@ impl fmt::Display for ChildViewLabel {
 
 /// Consumer-supplied construction and security inputs for one child island.
 ///
-/// The initial [`ChildViewSource`] is bounded: a remote HTTP/HTTPS document
+/// The initial [`ChildViewSource`] is bounded: an HTTPS or loopback HTTP document
 /// or a validated bundled local document inside the application assets.
 /// Bundled documents run under the host application's own asset protocol,
 /// CSP, capability scope, and injected-script policy; the host application
@@ -162,10 +162,8 @@ impl ChildViewSpec {
         navigation_policy: Arc<dyn Fn(&Url) -> bool + Send + Sync>,
         policy_hooks: ChildViewPolicyHooks,
     ) -> Result<Self, ChildViewError> {
-        if let ChildViewSource::External(url) = &source
-            && (!matches!(url.scheme(), "http" | "https") || url.host_str().is_none())
-        {
-            return Err(ChildViewError::InvalidContentSource);
+        if let ChildViewSource::External(url) = &source {
+            ChildViewSource::validate_external(url)?;
         }
         if host_window_label == child_label {
             return Err(ChildViewError::DuplicateTransportLabel);

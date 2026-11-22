@@ -71,20 +71,24 @@ fn compare_generation_allow_next_admits_latest_and_next_only() {
 }
 
 #[test]
-fn compare_attached_generation_classifies_the_mismatch() {
+fn compare_attached_generation_accepts_equal_and_classifies_mismatches() {
+    assert_eq!(
+        compare_attached_generation(generation(2), generation(2)),
+        Ok(())
+    );
     assert_eq!(
         compare_attached_generation(generation(2), generation(1)),
-        GenerationRejection::Stale {
+        Err(GenerationRejection::Stale {
             current: generation(2),
             supplied: generation(1),
-        }
+        })
     );
     assert_eq!(
         compare_attached_generation(generation(2), generation(3)),
-        GenerationRejection::Future {
+        Err(GenerationRejection::Future {
             current: generation(2),
             supplied: generation(3),
-        }
+        })
     );
 }
 
@@ -203,21 +207,28 @@ fn check_attach_reservation_gates_next_and_retired() {
 }
 
 #[test]
-fn gate_attached_rejects_retired_absent_and_mismatched() {
+fn gate_attached_returns_the_attachment_and_rejects_retired_absent_and_mismatched() {
+    let mut attachment = (generation(2), false);
+    let admitted = gate_attached(
+        Some(generation(2)),
+        None,
+        Some(&mut attachment),
+        generation(2),
+        |value| value.0,
+    )
+    .unwrap();
+    admitted.1 = true;
+    assert!(attachment.1);
+
+    let gate =
+        |retired, attached| gate_attached(None, retired, attached, generation(2), |value| *value);
     assert_eq!(
-        gate_attached(None, Some(generation(2)), generation(2)),
-        Ok(())
-    );
-    assert_eq!(
-        gate_attached(Some(generation(2)), None, generation(2)),
+        gate(Some(generation(2)), None),
         Err(GenerationRejection::Retired(generation(2)))
     );
+    assert_eq!(gate(None, None), Err(GenerationRejection::Absent));
     assert_eq!(
-        gate_attached(None, None, generation(2)),
-        Err(GenerationRejection::Absent)
-    );
-    assert_eq!(
-        gate_attached(None, Some(generation(3)), generation(2)),
+        gate(None, Some(generation(3))),
         Err(GenerationRejection::Stale {
             current: generation(3),
             supplied: generation(2),
@@ -227,36 +238,17 @@ fn gate_attached_rejects_retired_absent_and_mismatched() {
 
 #[test]
 fn gate_detach_is_idempotent_and_requires_a_complete_attachment() {
+    let gate = |retired, attached| gate_detach(retired, attached, generation(2), |value| *value);
+    let complete = AttachmentGate::new(generation(2), true);
+    assert_eq!(gate(Some(generation(2)), None), Ok(None));
+    assert_eq!(gate(None, None), Err(GenerationRejection::Absent));
+    assert_eq!(gate(None, Some(complete)), Ok(Some(complete)));
     assert_eq!(
-        gate_detach(Some(generation(2)), None, generation(2)),
-        Ok(false)
-    );
-    assert_eq!(
-        gate_detach(None, None, generation(2)),
-        Err(GenerationRejection::Absent)
-    );
-    assert_eq!(
-        gate_detach(
-            None,
-            Some(AttachmentGate::new(generation(2), true)),
-            generation(2),
-        ),
-        Ok(true)
-    );
-    assert_eq!(
-        gate_detach(
-            None,
-            Some(AttachmentGate::new(generation(2), false)),
-            generation(2),
-        ),
+        gate(None, Some(AttachmentGate::new(generation(2), false))),
         Err(GenerationRejection::Attaching)
     );
     assert_eq!(
-        gate_detach(
-            None,
-            Some(AttachmentGate::new(generation(3), true)),
-            generation(2),
-        ),
+        gate(None, Some(AttachmentGate::new(generation(3), true))),
         Err(GenerationRejection::Stale {
             current: generation(3),
             supplied: generation(2),

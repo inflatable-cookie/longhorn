@@ -24,7 +24,7 @@ pub fn availability_banner(availability: &UpdateAvailability, package: &str) -> 
     match availability {
         // Nothing to say. A banner reading "you are up to date" is noise on
         // every launch, and the check's result is available without one.
-        UpdateAvailability::UpToDate => None,
+        UpdateAvailability::NotChecked | UpdateAvailability::UpToDate => None,
 
         UpdateAvailability::Offer(offer) => Some(
             BannerSpec::new()

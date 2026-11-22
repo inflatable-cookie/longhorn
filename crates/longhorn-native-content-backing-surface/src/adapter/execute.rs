@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use longhorn_native_content::{
     ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
-    NativeContentMechanism, NativeContentOperation, check_attach_reservation, gate_attached,
-    gate_detach, validate_plan_generation,
+    NativeContentMechanism, NativeContentOperation, check_attach_reservation, gate_detach,
+    validate_plan_generation,
 };
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
 
 use super::{
     Attachment, BackingSurfaceAdapter, BackingSurfaceDetachOutcome, compare_generation,
-    current_attachment_mut, reject_invalidated, validate_snapshot,
+    current_attachment, current_attachment_mut, reject_invalidated, validate_snapshot,
 };
 
 impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
@@ -231,23 +231,21 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
                 .lock()
                 .map_err(|_| BackingSurfaceError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
-            if !gate_detach(
+            let Some(attachment) = gate_detach(
                 state.retired_generation,
-                state.attachment.as_ref().map(|attachment| {
-                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
-                }),
+                state.attachment.as_mut(),
                 generation,
-            )? {
+                |attachment| {
+                    AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+                },
+            )?
+            else {
                 return Ok(BackingSurfaceDetachOutcome::AlreadyDetached);
-            }
-            let attachment = state
-                .attachment
-                .as_mut()
-                .expect("validated attachment is current");
+            };
             let handle = attachment
                 .handle
                 .clone()
-                .expect("validated attachment completed attach");
+                .ok_or(BackingSurfaceError::AttachInProgress)?;
             attachment.detaching = true;
             handle
         };
@@ -291,22 +289,7 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             .state
             .lock()
             .map_err(|_| BackingSurfaceError::Poisoned)?;
-        compare_generation(state.latest_generation, generation)?;
-        reject_invalidated(state.invalidated_generation, generation)?;
-        gate_attached(
-            state.retired_generation,
-            state
-                .attachment
-                .as_ref()
-                .map(|attachment| attachment.generation),
-            generation,
-        )?;
-        Ok(state
-            .attachment
-            .as_ref()
-            .expect("validated attachment is current")
-            .handle
-            .clone())
+        Ok(current_attachment(&state, generation)?.handle.clone())
     }
 
     pub(crate) fn handle(

@@ -11,6 +11,7 @@ publish = false
 [dependencies]
 longhorn-core.workspace = true
 longhorn-native-content.workspace = true
+longhorn-url.workspace = true
 serde.workspace = true
 tauri = { workspace = true, features = ["unstable"] }
 

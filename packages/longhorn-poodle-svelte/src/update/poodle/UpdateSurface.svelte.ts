@@ -60,7 +60,11 @@ export function sampleUpdateController(getController: () => UpdateController) {
 
   return {
     get status() { void notify; return controller.status; },
-    get availability() { void notify; return controller.availability; },
+    get availability() {
+      void notify;
+      const availability = controller.availability;
+      return availability?.state === "notChecked" ? undefined : availability;
+    },
     get progress() { void notify; return controller.progress; },
     get channel() { void notify; return controller.channel; },
     get installedVersion() { void notify; return controller.installedVersion; },
