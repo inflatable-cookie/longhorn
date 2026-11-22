@@ -2,6 +2,8 @@
 
 #[path = "settings_config/authority.rs"]
 mod authority;
+#[path = "settings_config/binding.rs"]
+mod binding;
 #[path = "settings_config/cross_channel.rs"]
 mod cross_channel;
 #[path = "settings_config/failure.rs"]
@@ -10,5 +12,3 @@ mod failure;
 mod policy;
 #[path = "settings_config/support/mod.rs"]
 mod support;
-#[path = "settings_config/transaction.rs"]
-mod transaction;

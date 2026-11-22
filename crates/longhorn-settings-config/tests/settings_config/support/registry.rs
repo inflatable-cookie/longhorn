@@ -14,6 +14,19 @@ use longhorn_settings::{
 };
 
 pub(crate) fn sealed_registry(timing: SettingsMutationTiming) -> SettingsRegistry {
+    registry_with_page(
+        timing,
+        Some(SettingsPageFeatures {
+            reset: true,
+            ..SettingsPageFeatures::default()
+        }),
+    )
+}
+
+pub(crate) fn registry_with_page(
+    timing: SettingsMutationTiming,
+    features: Option<SettingsPageFeatures>,
+) -> SettingsRegistry {
     let module = SettingsModuleId::new("preferences:module").unwrap();
     let section = SettingsSectionId::new("preferences:section").unwrap();
     let renderer = SettingsRendererId::new("preferences:renderer").unwrap();
@@ -60,25 +73,45 @@ pub(crate) fn sealed_registry(timing: SettingsMutationTiming) -> SettingsRegistr
             reset_supported: true,
         })
         .unwrap();
-    builder
-        .register_page(SettingsPageDefinition {
-            id: page,
-            module_id: module,
-            section_id: section,
-            renderer_id: renderer,
-            label: "Preferences".into(),
-            keywords: vec!["preferences".into()],
-            order: 0,
-            anchors: vec![],
-            required_capabilities: vec![],
-            readable_scope_ids: vec![scope],
-            writable_apply_unit_ids: vec![unit],
-            features: SettingsPageFeatures {
-                reset: true,
-                ..SettingsPageFeatures::default()
-            },
-        })
-        .unwrap();
+    if let Some(features) = features {
+        builder
+            .register_page(SettingsPageDefinition {
+                id: page,
+                module_id: module.clone(),
+                section_id: section.clone(),
+                renderer_id: renderer.clone(),
+                label: "Preferences".into(),
+                keywords: vec!["preferences".into()],
+                order: 0,
+                anchors: vec![],
+                required_capabilities: vec![],
+                readable_scope_ids: vec![scope.clone()],
+                writable_apply_unit_ids: vec![unit],
+                features,
+            })
+            .unwrap();
+    }
+    for (id, label, readable_scope_ids) in [
+        ("preferences:display-only", "Display", vec![]),
+        ("preferences:reader", "Read only", vec![scope]),
+    ] {
+        builder
+            .register_page(SettingsPageDefinition {
+                id: SettingsPageId::new(id).unwrap(),
+                module_id: module.clone(),
+                section_id: section.clone(),
+                renderer_id: renderer.clone(),
+                label: label.into(),
+                keywords: vec![],
+                order: 1,
+                anchors: vec![],
+                required_capabilities: vec![],
+                readable_scope_ids,
+                writable_apply_unit_ids: vec![],
+                features: SettingsPageFeatures::default(),
+            })
+            .unwrap();
+    }
     builder.seal([]).unwrap()
 }
 
@@ -87,6 +120,7 @@ pub(crate) fn load_command() -> SettingsLoadCommand {
         protocol_version: longhorn_settings::SettingsProtocolVersion::CURRENT,
         request_id: SettingsRequestId::new("request:load").unwrap(),
         registry_generation: SettingsRegistryGeneration::new(7),
+        page_id: page_id(),
         scope_id: scope_id(),
         known_authority: None,
     }

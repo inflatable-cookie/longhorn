@@ -1,19 +1,30 @@
 use std::time::Duration;
 
 use longhorn_config::{CheckedMutationError, ConfigDomain, ConfigStore, MutationOptions};
+use longhorn_core::SettingsEntryId;
 use longhorn_settings::{
     SettingsApplyCommand, SettingsConflict, SettingsDurabilityEvidence, SettingsLoadCommand,
     SettingsLoadOutcome, SettingsMutationOutcome, SettingsMutationReceipt, SettingsMutationResult,
-    SettingsRejectionCode, SettingsResetCommand,
+    SettingsOpaqueValue, SettingsRejectionCode, SettingsResetCommand,
 };
 
 use crate::{
     ConfigSettingsApplyUnit, SettingsCommittedMutation, SettingsConfigAdapter, SettingsConfigError,
     SettingsConfigLoadError,
-    execution::{AcceptedMutation, AcceptedReset, CheckAbort, guard_targets, rejected},
-    projection::scope_snapshot,
-    validation::rejection,
+    execution::{CheckAbort, guard_targets, rejected},
+    projection::{scope_snapshot, source_diagnostics},
+    validation::{MutationEnvelope, rejection},
 };
+
+enum MutationIntent<'command> {
+    Apply(&'command SettingsOpaqueValue),
+    Reset(&'command [SettingsEntryId]),
+}
+
+enum CheckedIntent<'command, I> {
+    Apply(I),
+    Reset(&'command [SettingsEntryId]),
+}
 
 impl<D, A> ConfigSettingsApplyUnit<D, A>
 where
@@ -27,11 +38,18 @@ where
         command: &SettingsLoadCommand,
         lock_timeout: Duration,
     ) -> Result<SettingsLoadOutcome, SettingsConfigError> {
-        if command.registry_generation != self.generation
+        let code = if command.registry_generation != self.generation
             || command.scope_id != self.definition.scope_id
         {
+            Some(SettingsRejectionCode::RegistryChanged)
+        } else if !self.readable_pages.contains(&command.page_id) {
+            Some(SettingsRejectionCode::Unauthorized)
+        } else {
+            None
+        };
+        if let Some(code) = code {
             return Ok(SettingsLoadOutcome::Rejected {
-                rejection: rejection(SettingsRejectionCode::RegistryChanged),
+                rejection: rejection(code),
             });
         }
 
@@ -53,100 +71,18 @@ where
         command: &SettingsApplyCommand,
         options: MutationOptions,
     ) -> Result<SettingsMutationResult, SettingsConfigError> {
-        if let Some(result) = self.reject_apply_envelope(command) {
-            return Ok(result);
-        }
-        let durability = self.durability_material()?;
-        let mut authority = self.authority.lock()?;
-        let mutation = store.mutate_checked(&self.domain, options, |context| {
-            let previous = self
-                .ready_snapshot(context.value(), context.diagnostics(), &mut authority)
-                .map_err(CheckAbort::Operational)?;
-            if command.authority != previous.authority {
-                return Err(CheckAbort::Result(Box::new(
-                    SettingsMutationResult::Conflict {
-                        conflict: SettingsConflict {
-                            expected: command.authority.clone(),
-                            actual: previous.authority.clone(),
-                        },
-                        snapshot: previous,
-                    },
-                )));
-            }
-
-            let intent = self
-                .adapter
-                .decode_intent(&command.intent)
-                .map_err(|rejection| rejected(rejection, previous.clone()))?;
-            let targets = self.adapter.targeted_entries(&intent);
-            guard_targets(previous.values.as_slice(), &targets)
-                .map_err(|rejection| rejected(rejection, previous.clone()))?;
-            let projection = self
-                .adapter
-                .project(context.value())
-                .map_err(SettingsConfigError::Projection)
-                .map_err(CheckAbort::Operational)?;
-            self.adapter
-                .validate_intent(context.value(), &intent, &projection)
-                .map_err(|rejection| rejected(rejection, previous.clone()))?;
-            self.adapter
-                .patch(context.value_mut(), &intent)
-                .map_err(|rejection| rejected(rejection, previous.clone()))?;
-            let committed = self
-                .project_committed(context.value())
-                .map_err(CheckAbort::Operational)?;
-            Ok(AcceptedMutation {
-                previous,
-                committed,
-                intent,
-            })
-        });
-
-        let outcome = match mutation {
-            Ok(outcome) => outcome,
-            Err(CheckedMutationError::Check(CheckAbort::Result(result))) => return Ok(*result),
-            Err(CheckedMutationError::Check(CheckAbort::Operational(error))) => return Err(error),
-            Err(CheckedMutationError::Mutation(error)) => {
-                return self.map_mutation_error(error, &mut authority);
-            }
-        };
-        let (accepted, _value, publication) = outcome.into_parts();
-        let mutation_outcome = if publication.is_some() {
-            SettingsMutationOutcome::Changed
-        } else {
-            SettingsMutationOutcome::Unchanged
-        };
-        let activation = self.adapter.activation_after_commit(
-            SettingsCommittedMutation::Apply(&accepted.intent),
-            self.definition.timing,
-            mutation_outcome,
-            &accepted.committed,
-        );
-        let committed_token = accepted.committed.token.clone();
-        let committed_projection = accepted.committed.with_activation(activation.clone());
-        let committed_authority = authority.observe(committed_token)?;
-        let snapshot = scope_snapshot(
-            &self.definition.scope_id,
-            committed_authority.clone(),
-            committed_projection,
-        );
-        Ok(SettingsMutationResult::Applied {
-            snapshot,
-            receipt: SettingsMutationReceipt {
-                request_id: command.request_id.clone(),
-                page_id: command.page_id.clone(),
-                apply_unit_id: command.apply_unit_id.clone(),
-                scope_id: command.scope_id.clone(),
-                previous_authority: accepted.previous.authority,
-                committed_authority,
-                outcome: mutation_outcome,
-                durability: publication
-                    .as_ref()
-                    .map(|receipt| durability.for_kind(receipt.durability))
-                    .unwrap_or(SettingsDurabilityEvidence::NotApplicable),
-                activation_requirements: activation,
+        self.mutate(
+            store,
+            options,
+            MutationEnvelope {
+                request_id: &command.request_id,
+                page_id: &command.page_id,
+                apply_unit_id: &command.apply_unit_id,
+                scope_id: &command.scope_id,
+                authority: &command.authority,
             },
-        })
+            MutationIntent::Apply(&command.intent),
+        )
     }
 
     /// Resets only named overrides through the bound one-domain authority.
@@ -156,38 +92,97 @@ where
         command: &SettingsResetCommand,
         options: MutationOptions,
     ) -> Result<SettingsMutationResult, SettingsConfigError> {
-        if let Some(result) = self.reject_reset_envelope(command) {
+        self.mutate(
+            store,
+            options,
+            MutationEnvelope {
+                request_id: &command.request_id,
+                page_id: &command.page_id,
+                apply_unit_id: &command.apply_unit_id,
+                scope_id: &command.scope_id,
+                authority: &command.authority,
+            },
+            MutationIntent::Reset(&command.entry_ids),
+        )
+    }
+
+    fn mutate(
+        &self,
+        store: &ConfigStore,
+        options: MutationOptions,
+        envelope: MutationEnvelope<'_>,
+        intent: MutationIntent<'_>,
+    ) -> Result<SettingsMutationResult, SettingsConfigError> {
+        if let Some(result) =
+            self.reject_envelope(&envelope, matches!(intent, MutationIntent::Reset(_)))
+        {
             return Ok(result);
         }
         let durability = self.durability_material()?;
         let mut authority = self.authority.lock()?;
         let mutation = store.mutate_checked(&self.domain, options, |context| {
-            let previous = self
-                .ready_snapshot(context.value(), context.diagnostics(), &mut authority)
-                .map_err(CheckAbort::Operational)?;
-            if command.authority != previous.authority {
+            let projection = self
+                .adapter
+                .project(context.value())
+                .map_err(SettingsConfigError::Projection)?;
+            let encoded = self.encode_for_authority(context.value())?;
+            let diagnostics = source_diagnostics(context.diagnostics());
+            let mut observed = projection.clone();
+            observed.add_source_diagnostics(&diagnostics);
+            let token = self.projection_token(&encoded, &observed)?;
+            let previous_authority = authority.observe(token)?;
+            let previous = scope_snapshot(envelope.scope_id, previous_authority.clone(), observed);
+            if envelope.authority != &previous_authority {
                 return Err(CheckAbort::Result(Box::new(
                     SettingsMutationResult::Conflict {
                         conflict: SettingsConflict {
-                            expected: command.authority.clone(),
-                            actual: previous.authority.clone(),
+                            expected: envelope.authority.clone(),
+                            actual: previous_authority,
                         },
                         snapshot: previous,
                     },
                 )));
             }
-            guard_targets(previous.values.as_slice(), &command.entry_ids)
-                .map_err(|rejection| rejected(rejection, previous.clone()))?;
-            self.adapter
-                .reset(context.value_mut(), &command.entry_ids)
-                .map_err(|rejection| rejected(rejection, previous.clone()))?;
-            let committed = self
-                .project_committed(context.value())
-                .map_err(CheckAbort::Operational)?;
-            Ok(AcceptedReset {
-                previous,
+
+            let refuse = |rejection| rejected(rejection, &previous);
+            let checked_intent = match intent {
+                MutationIntent::Apply(intent) => {
+                    let intent = self.adapter.decode_intent(intent).map_err(refuse)?;
+                    let targets = self.adapter.targeted_entries(&intent);
+                    guard_targets(projection.values(), &targets).map_err(refuse)?;
+                    self.adapter
+                        .validate_intent(context.value(), &intent, &projection)
+                        .map_err(refuse)?;
+                    self.adapter
+                        .patch(context.value_mut(), &intent)
+                        .map_err(refuse)?;
+                    CheckedIntent::Apply(intent)
+                }
+                MutationIntent::Reset(ids) => {
+                    guard_targets(projection.values(), ids).map_err(refuse)?;
+                    self.adapter
+                        .reset(context.value_mut(), ids)
+                        .map_err(refuse)?;
+                    CheckedIntent::Reset(ids)
+                }
+            };
+            let mut committed = self
+                .adapter
+                .project(context.value())
+                .map_err(SettingsConfigError::Projection)?;
+            let patched = self.encode_for_authority(context.value())?;
+            // An unchanged config leaves its source, including missing-file diagnostics, intact.
+            if patched == encoded {
+                committed.add_source_diagnostics(&diagnostics);
+            }
+            let token = self.projection_token(&patched, &committed)?;
+            let committed_authority = authority.prepare(token)?;
+            Ok((
+                checked_intent,
+                previous_authority,
+                committed_authority,
                 committed,
-            })
+            ))
         });
 
         let outcome = match mutation {
@@ -198,40 +193,44 @@ where
                 return self.map_mutation_error(error, &mut authority);
             }
         };
-        let (accepted, _value, publication) = outcome.into_parts();
+        let ((intent, previous_authority, committed_authority, projection), _value, publication) =
+            outcome.into_parts();
+        authority.accept(&committed_authority);
         let mutation_outcome = if publication.is_some() {
             SettingsMutationOutcome::Changed
         } else {
             SettingsMutationOutcome::Unchanged
         };
+        let committed_intent = match &intent {
+            CheckedIntent::Apply(intent) => SettingsCommittedMutation::Apply(intent),
+            CheckedIntent::Reset(ids) => SettingsCommittedMutation::Reset(ids),
+        };
         let activation = self.adapter.activation_after_commit(
-            SettingsCommittedMutation::Reset(&command.entry_ids),
+            committed_intent,
             self.definition.timing,
             mutation_outcome,
-            &accepted.committed,
+            &projection,
         );
-        let committed_token = accepted.committed.token.clone();
-        let committed_projection = accepted.committed.with_activation(activation.clone());
-        let committed_authority = authority.observe(committed_token)?;
         let snapshot = scope_snapshot(
-            &self.definition.scope_id,
+            envelope.scope_id,
             committed_authority.clone(),
-            committed_projection,
+            projection.with_activation(activation.clone()),
         );
         Ok(SettingsMutationResult::Applied {
             snapshot,
             receipt: SettingsMutationReceipt {
-                request_id: command.request_id.clone(),
-                page_id: command.page_id.clone(),
-                apply_unit_id: command.apply_unit_id.clone(),
-                scope_id: command.scope_id.clone(),
-                previous_authority: accepted.previous.authority,
+                request_id: envelope.request_id.clone(),
+                page_id: envelope.page_id.clone(),
+                apply_unit_id: envelope.apply_unit_id.clone(),
+                scope_id: envelope.scope_id.clone(),
+                previous_authority,
                 committed_authority,
                 outcome: mutation_outcome,
                 durability: publication
                     .as_ref()
-                    .map(|receipt| durability.for_kind(receipt.durability))
-                    .unwrap_or(SettingsDurabilityEvidence::NotApplicable),
+                    .map_or(SettingsDurabilityEvidence::NotApplicable, |receipt| {
+                        durability.for_kind(receipt.durability)
+                    }),
                 activation_requirements: activation,
             },
         })

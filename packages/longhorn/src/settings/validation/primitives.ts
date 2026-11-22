@@ -66,7 +66,7 @@ export function arraysOfIdentities(...values: unknown[]): void {
   values.forEach((value) => array(value).forEach(identity));
 }
 
-export function identity(value: unknown): void {
+export function identity(value: unknown): asserts value is string {
   if (typeof value !== "string" || !OPAQUE_ID.test(value)) {
     incompatible("invalid_identity", value);
   }

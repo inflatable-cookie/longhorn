@@ -8,11 +8,8 @@ import {
   SETTINGS_RECOVERY_CODES,
   type SettingsScopeSnapshot,
 } from "../generated/protocol.ts";
-import {
-  activation,
-  policy,
-  recovery,
-} from "./projection.ts";
+import { incompatible } from "./error.ts";
+import { activation, hasPolicyOverride, recovery } from "./projection.ts";
 import {
   array,
   authority,
@@ -34,20 +31,32 @@ export function assertValidSettingsScopeSnapshot(
   protocolVersion(snapshot.protocolVersion);
   identity(snapshot.scopeId);
   authority(snapshot.authority);
+  const entries = new Set<string>();
   array(snapshot.values).forEach((value) => {
     const projection = record(value, SETTINGS_FIELDS.SettingsValueProjection);
     identity(projection.entryId);
+    if (entries.has(projection.entryId)) {
+      incompatible("invalid_shape", projection.entryId);
+    }
+    entries.add(projection.entryId);
     optionalOpaque(projection.configured, maximumOpaqueValueBytes);
     opaque(projection.effective, maximumOpaqueValueBytes);
     opaque(projection.compiledDefault, maximumOpaqueValueBytes);
     known(projection.effectiveSource, SETTINGS_EFFECTIVE_SOURCES);
     known(projection.editability, SETTINGS_EDITABILITIES);
-    if (projection.policy !== null) {
-      policy(
+    const hasOverride = projection.policy !== null &&
+      hasPolicyOverride(
         projection.policy,
         maximumOpaqueValueBytes,
         SETTINGS_POLICY_EFFECTS,
       );
+    const managed = projection.effectiveSource === "managedPolicy";
+    if (
+      hasOverride !== managed ||
+      (managed && projection.editability === "editable") ||
+      (projection.effectiveSource === "userConfiguration" && projection.configured === null)
+    ) {
+      incompatible("invalid_shape", projection);
     }
     array(projection.sourceDiagnostics).forEach((value) => {
       const diagnostic = record(value, SETTINGS_FIELDS.SettingsSourceDiagnostic);

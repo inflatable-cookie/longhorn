@@ -211,3 +211,33 @@ fn checked_config_seam_exposes_exact_fresh_source_under_the_patch_call() {
         .unwrap();
     assert!(!outcome.changed());
 }
+
+#[test]
+fn unchanged_reset_on_missing_file_preserves_the_current_authority() {
+    let (fixture, store, unit, _) = authority(SettingsMutationTiming::Immediate);
+    let initial = loaded_snapshot(
+        unit.load(&store, &load_command(), Duration::from_secs(2))
+            .unwrap(),
+    );
+    let mut reload = load_command();
+    reload.known_authority = Some(initial.authority.clone());
+
+    let (committed, receipt) = applied(
+        unit.reset(
+            &store,
+            &super::support::reset_command(
+                initial.authority.clone(),
+                vec![super::support::entry_id("preferences:theme")],
+            ),
+            options(),
+        )
+        .unwrap(),
+    );
+    assert_eq!(receipt.outcome, SettingsMutationOutcome::Unchanged);
+    assert_eq!(committed.authority, initial.authority);
+    assert_eq!(committed.values, initial.values);
+    let loaded = loaded_snapshot(unit.load(&store, &reload, Duration::from_secs(2)).unwrap());
+    assert_eq!(loaded.authority, initial.authority);
+    assert_eq!(loaded.values, initial.values);
+    assert!(!fixture.config_path().exists());
+}

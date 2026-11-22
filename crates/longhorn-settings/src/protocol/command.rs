@@ -19,13 +19,16 @@ use super::{
 pub struct SettingsLoadCommand {
     /// Exact protocol version.
     pub protocol_version: SettingsProtocolVersion,
-    /// Idempotency and correlation identity.
+    /// Correlation identity. Reusing it does not deduplicate commands.
     pub request_id: SettingsRequestId,
     /// Registry generation expected by the client.
     pub registry_generation: SettingsRegistryGeneration,
+    /// Admitted page requesting access to the scope.
+    pub page_id: SettingsPageId,
     /// Scope to project.
     pub scope_id: SettingsScopeId,
-    /// Previously checked authority for conditional reload, if available.
+    /// Previously checked authority, if available. An advisory hint only.
+    /// A successful load still returns a complete snapshot.
     pub known_authority: Option<SettingsAuthorityExpectation>,
 }
 
@@ -36,7 +39,7 @@ pub struct SettingsLoadCommand {
 pub struct SettingsApplyCommand {
     /// Exact protocol version.
     pub protocol_version: SettingsProtocolVersion,
-    /// Idempotency and correlation identity.
+    /// Correlation identity. Reusing it does not deduplicate commands.
     pub request_id: SettingsRequestId,
     /// Page that issued the mutation.
     pub page_id: SettingsPageId,
@@ -57,7 +60,7 @@ pub struct SettingsApplyCommand {
 pub struct SettingsResetCommand {
     /// Exact protocol version.
     pub protocol_version: SettingsProtocolVersion,
-    /// Idempotency and correlation identity.
+    /// Correlation identity. Reusing it does not deduplicate commands.
     pub request_id: SettingsRequestId,
     /// Page that issued the reset.
     pub page_id: SettingsPageId,

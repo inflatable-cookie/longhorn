@@ -1,12 +1,12 @@
 use std::{collections::BTreeSet, fmt};
 
-use longhorn_core::{SettingsModuleId, SettingsPageId};
+use longhorn_core::SettingsPageId;
 
 use crate::{
     SettingsPageDefinition, SettingsRegistryError, SettingsRegistryErrorCode, error::registry_error,
 };
 
-use super::super::builder::SettingsRegistryBuilder;
+use super::{super::builder::SettingsRegistryBuilder, require_module, validate_text};
 
 pub(super) fn validate_page(
     builder: &SettingsRegistryBuilder,
@@ -136,6 +136,15 @@ fn validate_authority(
                 format!("page {} cannot write apply unit {unit_id}", page.id),
             ));
         }
+        if !page.readable_scope_ids.contains(&unit.scope_id) {
+            return Err(registry_error(
+                SettingsRegistryErrorCode::MissingReference,
+                format!(
+                    "page {} cannot read scope {} of writable apply unit {unit_id}",
+                    page.id, unit.scope_id
+                ),
+            ));
+        }
     }
     validate_reset_support(builder, page)
 }
@@ -158,38 +167,6 @@ fn validate_reset_support(
                 "page {} exposes reset without a reset-capable apply unit",
                 page.id
             ),
-        ));
-    }
-    Ok(())
-}
-
-fn require_module<I: fmt::Display>(
-    builder: &SettingsRegistryBuilder,
-    module_id: &SettingsModuleId,
-    category: &str,
-    id: &I,
-) -> Result<(), SettingsRegistryError> {
-    if builder.modules.contains_key(module_id) {
-        Ok(())
-    } else {
-        Err(registry_error(
-            SettingsRegistryErrorCode::MissingReference,
-            format!("{category} {id} references unknown module {module_id}"),
-        ))
-    }
-}
-
-fn validate_text(value: &str, maximum: usize, category: &str) -> Result<(), SettingsRegistryError> {
-    if value.trim().is_empty() {
-        return Err(registry_error(
-            SettingsRegistryErrorCode::EmptyText,
-            format!("{category} cannot be empty"),
-        ));
-    }
-    if value.len() > maximum {
-        return Err(registry_error(
-            SettingsRegistryErrorCode::TextTooLong,
-            format!("{category} is {} bytes; maximum is {maximum}", value.len()),
         ));
     }
     Ok(())

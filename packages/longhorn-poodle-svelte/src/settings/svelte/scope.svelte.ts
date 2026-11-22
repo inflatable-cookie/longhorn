@@ -2,6 +2,7 @@ import type { ConnectionFailure } from "@inflatable-cookie/longhorn/core";
 
 import type { SettingsClient } from "@inflatable-cookie/longhorn/settings";
 import type {
+  SettingsPageId,
   SettingsRegistrySnapshot,
   SettingsRequestId,
   SettingsScopeId,
@@ -13,6 +14,7 @@ import type { SettingsScopeStatus } from "./types.ts";
 export interface SettingsScopeStateOptions {
   readonly client: SettingsClient;
   readonly registry: SettingsRegistrySnapshot;
+  readonly pageId: SettingsPageId;
   readonly scopeId: SettingsScopeId;
   readonly nextRequestId: () => SettingsRequestId;
   readonly onFailure?: (failure: ConnectionFailure) => void;
@@ -93,6 +95,7 @@ export class SettingsScopeState {
     this.#status = { kind: "loading" };
     const subscription = this.#options.client.connectScope({
       registry: this.#options.registry,
+      pageId: this.#options.pageId,
       scopeId: this.#options.scopeId,
       nextRequestId: this.#options.nextRequestId,
       onSnapshot: (snapshot) => {

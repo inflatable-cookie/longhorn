@@ -115,6 +115,7 @@ fn load_protocol_rejects_future_versions_and_unknown_fields() {
         protocol_version: SettingsProtocolVersion::CURRENT,
         request_id: SettingsRequestId::new("request:load").unwrap(),
         registry_generation: SettingsRegistryGeneration::new(3),
+        page_id: SettingsPageId::new("app:page").unwrap(),
         scope_id: SettingsScopeId::new("app:scope").unwrap(),
         known_authority: Some(authority(3, 8, "token:known")),
     };
@@ -200,4 +201,52 @@ fn authority(generation: u64, revision: u64, token: &str) -> SettingsAuthorityEx
 
 fn opaque(value: serde_json::Value) -> SettingsOpaqueValue {
     SettingsOpaqueValue::new(1, value, SettingsLimits::default()).unwrap()
+}
+
+#[test]
+fn wire_snapshots_reject_contradictory_provenance_and_duplicate_entries() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../fixtures/settings/protocol-v1.json"
+    ))
+    .unwrap();
+    let snapshot = &fixture["snapshots"][0];
+    assert!(serde_json::from_value::<SettingsScopeSnapshot>(snapshot.clone()).is_ok());
+
+    for (index, field, value, code) in [
+        (
+            0,
+            "configured",
+            serde_json::Value::Null,
+            "missing-configured-value",
+        ),
+        (
+            1,
+            "policy",
+            serde_json::Value::Null,
+            "missing-policy-override",
+        ),
+        (
+            1,
+            "editability",
+            json!("editable"),
+            "editable-policy-override",
+        ),
+        (
+            1,
+            "effectiveSource",
+            json!("compiledDefault"),
+            "policy-source-mismatch",
+        ),
+        (
+            1,
+            "entryId",
+            snapshot["values"][0]["entryId"].clone(),
+            "duplicate entry",
+        ),
+    ] {
+        let mut invalid = snapshot.clone();
+        invalid["values"][index][field] = value;
+        let error = serde_json::from_value::<SettingsScopeSnapshot>(invalid).unwrap_err();
+        assert!(error.to_string().contains(code), "{error}");
+    }
 }

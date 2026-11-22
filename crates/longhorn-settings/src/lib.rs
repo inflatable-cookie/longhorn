@@ -13,7 +13,8 @@ mod value;
 
 pub use declaration::{
     SettingsAnchorDefinition, SettingsApplyUnitDefinition, SettingsCapabilityDefinition,
-    SettingsModuleDefinition, SettingsMutationTiming, SettingsPageDefinition, SettingsPageFeatures,
+    SettingsModuleDefinition, SettingsMutationTiming, SettingsNavigationPresentation,
+    SettingsPageDefinition, SettingsPageFeatures, SettingsPagePresentation,
     SettingsRendererDefinition, SettingsScopeDefinition, SettingsSectionDefinition,
 };
 pub use error::{SettingsRegistryError, SettingsRegistryErrorCode};

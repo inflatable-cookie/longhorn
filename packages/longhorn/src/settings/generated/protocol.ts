@@ -487,7 +487,7 @@ export type SettingsLoadCommand = {
  */
 protocolVersion: SettingsProtocolVersion, 
 /**
- * Idempotency and correlation identity.
+ * Correlation identity. Reusing it does not deduplicate commands.
  */
 requestId: SettingsRequestId, 
 /**
@@ -495,11 +495,16 @@ requestId: SettingsRequestId,
  */
 registryGeneration: SettingsRegistryGeneration, 
 /**
+ * Admitted page requesting access to the scope.
+ */
+pageId: SettingsPageId, 
+/**
  * Scope to project.
  */
 scopeId: SettingsScopeId, 
 /**
- * Previously checked authority for conditional reload, if available.
+ * Previously checked authority, if available. An advisory hint only.
+ * A successful load still returns a complete snapshot.
  */
 knownAuthority: SettingsAuthorityExpectation | null, };
 
@@ -509,7 +514,7 @@ export type SettingsApplyCommand = {
  */
 protocolVersion: SettingsProtocolVersion, 
 /**
- * Idempotency and correlation identity.
+ * Correlation identity. Reusing it does not deduplicate commands.
  */
 requestId: SettingsRequestId, 
 /**
@@ -539,7 +544,7 @@ export type SettingsResetCommand = {
  */
 protocolVersion: SettingsProtocolVersion, 
 /**
- * Idempotency and correlation identity.
+ * Correlation identity. Reusing it does not deduplicate commands.
  */
 requestId: SettingsRequestId, 
 /**

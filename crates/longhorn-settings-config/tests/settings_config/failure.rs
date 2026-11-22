@@ -134,3 +134,111 @@ fn recovery_token_changes_with_exact_source_bytes() {
     );
     assert!(second.authority.scope_revision > first.authority.scope_revision);
 }
+
+#[test]
+fn invalid_config_value_returns_typed_rejection_without_activation_or_publication() {
+    let (fixture, store, unit, activation_calls) = authority();
+    let initial = loaded_snapshot(
+        unit.load(&store, &load_command(), Duration::from_secs(2))
+            .unwrap(),
+    );
+    let command = apply_command(
+        initial.authority.clone(),
+        opaque(json!({"entryId": "preferences:theme", "value": "domain-refused"})),
+    );
+
+    assert_rejected(
+        unit.apply(&store, &command, options()).unwrap(),
+        SettingsRejectionCode::InvalidIntent,
+    );
+    let after = loaded_snapshot(
+        unit.load(&store, &load_command(), Duration::from_secs(2))
+            .unwrap(),
+    );
+    assert_eq!(after, initial);
+    assert!(!fixture.config_path().exists());
+    assert_eq!(activation_calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn unavailable_workspace_authority_returns_typed_recovery() {
+    let fixture = Fixture::new();
+    let mut store = fixture.store();
+    let domain = PreferencesDomain::with_storage(
+        "preferences.settings",
+        "preferences/settings.json",
+        longhorn_config::StorageClass::WorkspaceLocal,
+    );
+    store.register(&domain).unwrap();
+    let registry = sealed_registry(SettingsMutationTiming::Staged);
+    let (adapter, calls) = PreferencesAdapter::new(PolicyMode::Editable);
+    let unit = ConfigSettingsApplyUnit::new(&registry, &unit_id(), domain, adapter).unwrap();
+    let initial = loaded_snapshot(
+        unit.load(&store, &load_command(), Duration::from_secs(2))
+            .unwrap(),
+    );
+    let command = apply_command(initial.authority.clone(), opaque(json!(null)));
+
+    let SettingsMutationResult::Rejected {
+        rejection,
+        snapshot: Some(snapshot),
+    } = unit.apply(&store, &command, options()).unwrap()
+    else {
+        panic!("expected recovery snapshot");
+    };
+    assert_eq!(rejection.code, SettingsRejectionCode::RecoveryRequired);
+    assert_eq!(
+        snapshot.recovery.unwrap().code,
+        SettingsRecoveryCode::AuthorityUnavailable
+    );
+    assert_eq!(snapshot.authority, initial.authority);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn migrated_config_returns_typed_recovery_and_preserves_source() {
+    let fixture = Fixture::new();
+    let path = fixture.config_path();
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let source = serde_json::to_vec(&json!({
+        "domain": "preferences.settings",
+        "schemaVersion": 1,
+        "value": super::support::Preferences::default(),
+    }))
+    .unwrap();
+    fs::write(&path, &source).unwrap();
+    let mut store = fixture.store();
+    let domain = PreferencesDomain::with_version(
+        "preferences.settings",
+        "preferences/settings.json",
+        longhorn_config::StorageClass::UserConfig,
+        2,
+    );
+    store.register(&domain).unwrap();
+    let registry = sealed_registry(SettingsMutationTiming::Staged);
+    let (adapter, calls) = PreferencesAdapter::new(PolicyMode::Editable);
+    let unit = ConfigSettingsApplyUnit::new(&registry, &unit_id(), domain, adapter).unwrap();
+    let initial = loaded_snapshot(
+        unit.load(&store, &load_command(), Duration::from_secs(2))
+            .unwrap(),
+    );
+    let command = apply_command(initial.authority, opaque(json!(null)));
+
+    assert_rejected(
+        unit.apply(&store, &command, options()).unwrap(),
+        SettingsRejectionCode::RecoveryRequired,
+    );
+    assert_eq!(fs::read(path).unwrap(), source);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
+
+fn assert_rejected(result: SettingsMutationResult, code: SettingsRejectionCode) {
+    let SettingsMutationResult::Rejected {
+        rejection,
+        snapshot: None,
+    } = result
+    else {
+        panic!("expected a typed rejection, found {result:?}");
+    };
+    assert_eq!(rejection.code, code);
+}

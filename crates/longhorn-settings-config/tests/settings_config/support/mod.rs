@@ -7,7 +7,8 @@ pub(crate) use adapter::{PolicyMode, PreferencesAdapter, opaque};
 pub(crate) use domain::{Preferences, PreferencesDomain};
 pub(crate) use fixture::Fixture;
 pub(crate) use registry::{
-    apply_command, entry_id, load_command, options, reset_command, sealed_registry, unit_id,
+    apply_command, entry_id, load_command, options, registry_with_page, reset_command,
+    sealed_registry, unit_id,
 };
 
 use longhorn_settings::{SettingsLoadOutcome, SettingsMutationResult, SettingsScopeSnapshot};

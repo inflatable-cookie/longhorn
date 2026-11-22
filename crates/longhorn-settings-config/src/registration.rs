@@ -2,9 +2,10 @@ use longhorn_core::{
     SettingsCapabilityId, SettingsModuleId, SettingsPageId, SettingsRendererId, SettingsSectionId,
 };
 use longhorn_settings::{
-    SettingsCapabilityDefinition, SettingsModuleDefinition, SettingsPageDefinition,
-    SettingsPageFeatures, SettingsRegistryBuilder, SettingsRegistryError,
-    SettingsRendererDefinition, SettingsSectionDefinition,
+    SettingsCapabilityDefinition, SettingsModuleDefinition, SettingsNavigationPresentation,
+    SettingsPageDefinition, SettingsPageFeatures, SettingsPagePresentation,
+    SettingsRegistryBuilder, SettingsRegistryError, SettingsRendererDefinition,
+    SettingsSectionDefinition,
 };
 
 /// Shared settings module id for optional config operations.
@@ -45,6 +46,21 @@ pub const RESTORE_ADAPTER_EXECUTION_CAPABILITY_ID: &str =
 /// Restore recovery capability.
 pub const RESTORE_RECOVERY_CAPABILITY_ID: &str = "longhorn:config.restore-recovery";
 
+/// Consumer-provided navigation for the optional settings registration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConfigOperationsSettingsPresentation {
+    /// Module navigation.
+    pub module: SettingsNavigationPresentation,
+    /// Section navigation.
+    pub section: SettingsNavigationPresentation,
+    /// Storage diagnostics page navigation.
+    pub storage: SettingsPagePresentation,
+    /// Backup page navigation.
+    pub backup: SettingsPagePresentation,
+    /// Restore and recovery page navigation.
+    pub restore: SettingsPagePresentation,
+}
+
 /// Registers optional storage and backup pages into an unsealed registry.
 ///
 /// The storage page is admitted only when the host composes storage
@@ -53,19 +69,20 @@ pub const RESTORE_RECOVERY_CAPABILITY_ID: &str = "longhorn:config.restore-recove
 /// pages intentionally declare no ordinary settings scopes or apply units.
 pub fn register_config_operations_settings(
     builder: &mut SettingsRegistryBuilder,
+    presentation: ConfigOperationsSettingsPresentation,
 ) -> Result<(), SettingsRegistryError> {
     let module_id = module_id();
     let section_id = section_id();
     builder.register_module(SettingsModuleDefinition {
         id: module_id.clone(),
-        label: "Storage".into(),
-        order: 700,
+        label: presentation.module.label,
+        order: presentation.module.order,
     })?;
     builder.register_section(SettingsSectionDefinition {
         id: section_id.clone(),
         module_id: module_id.clone(),
-        label: "Storage & Backups".into(),
-        order: 0,
+        label: presentation.section.label,
+        order: presentation.section.order,
     })?;
     for capability in [
         STORAGE_DIAGNOSTICS_CAPABILITY_ID,
@@ -101,14 +118,9 @@ pub fn register_config_operations_settings(
         module_id: module_id.clone(),
         section_id: section_id.clone(),
         renderer_id: renderer_id(STORAGE_SETTINGS_RENDERER_ID),
-        label: "Storage".into(),
-        keywords: vec![
-            "cache".into(),
-            "configuration".into(),
-            "files".into(),
-            "profile".into(),
-        ],
-        order: 0,
+        label: presentation.storage.label,
+        keywords: presentation.storage.keywords,
+        order: presentation.storage.order,
         anchors: vec![],
         required_capabilities: vec![capability_id(STORAGE_DIAGNOSTICS_CAPABILITY_ID)],
         readable_scope_ids: vec![],
@@ -123,15 +135,9 @@ pub fn register_config_operations_settings(
         module_id: module_id.clone(),
         section_id: section_id.clone(),
         renderer_id: renderer_id(BACKUP_SETTINGS_RENDERER_ID),
-        label: "Backups".into(),
-        keywords: vec![
-            "archive".into(),
-            "backup".into(),
-            "encryption".into(),
-            "export".into(),
-            "retention".into(),
-        ],
-        order: 10,
+        label: presentation.backup.label,
+        keywords: presentation.backup.keywords,
+        order: presentation.backup.order,
         anchors: vec![],
         required_capabilities: vec![capability_id(BACKUP_INVENTORY_CAPABILITY_ID)],
         readable_scope_ids: vec![],
@@ -147,15 +153,9 @@ pub fn register_config_operations_settings(
         module_id,
         section_id,
         renderer_id: renderer_id(RESTORE_SETTINGS_RENDERER_ID),
-        label: "Restore & Recovery".into(),
-        keywords: vec![
-            "archive".into(),
-            "conflict".into(),
-            "recovery".into(),
-            "restore".into(),
-            "rollback".into(),
-        ],
-        order: 20,
+        label: presentation.restore.label,
+        keywords: presentation.restore.keywords,
+        order: presentation.restore.order,
         anchors: vec![],
         required_capabilities: vec![capability_id(RESTORE_INSPECTION_CAPABILITY_ID)],
         readable_scope_ids: vec![],

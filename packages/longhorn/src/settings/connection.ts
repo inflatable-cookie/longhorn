@@ -8,6 +8,7 @@ import {
 import type {
   SettingsLoadCommand,
   SettingsLoadOutcome,
+  SettingsPageId,
   SettingsRegistryChangedEvent,
   SettingsRegistrySnapshot,
   SettingsRequestId,
@@ -35,6 +36,7 @@ export interface SettingsSubscription<Snapshot> {
 
 export interface SettingsScopeConnectionOptions {
   readonly registry: SettingsRegistrySnapshot;
+  readonly pageId: SettingsPageId;
   readonly scopeId: SettingsScopeId;
   readonly nextRequestId: () => SettingsRequestId;
   readonly onSnapshot?: (snapshot: SettingsScopeSnapshot) => void;
@@ -79,6 +81,7 @@ export function connectSettingsScope(
         protocolVersion: 1,
         requestId: options.nextRequestId(),
         registryGeneration: options.registry.generation,
+        pageId: options.pageId,
         scopeId: options.scopeId,
         knownAuthority: current?.authority ?? null,
       });

@@ -38,11 +38,24 @@ pub(crate) struct PreferencesDomain {
 
 impl PreferencesDomain {
     pub(crate) fn new(id: &str, path: &str) -> Self {
+        Self::with_storage(id, path, StorageClass::UserConfig)
+    }
+
+    pub(crate) fn with_storage(id: &str, path: &str, storage_class: StorageClass) -> Self {
+        Self::with_version(id, path, storage_class, 1)
+    }
+
+    pub(crate) fn with_version(
+        id: &str,
+        path: &str,
+        storage_class: StorageClass,
+        version: u32,
+    ) -> Self {
         Self {
             descriptor: DomainDescriptor::new(
                 DomainId::new(id).unwrap(),
-                SchemaVersion::new(1).unwrap(),
-                StorageClass::UserConfig,
+                SchemaVersion::new(version).unwrap(),
+                storage_class,
                 Some(DomainFilePath::new(path).unwrap()),
             )
             .unwrap(),
@@ -72,6 +85,9 @@ impl ConfigDomain for PreferencesDomain {
     }
 
     fn validate(&self, value: &Self::Value) -> Result<(), DomainIssue> {
+        if value.theme.as_deref() == Some("domain-refused") {
+            return Err(DomainIssue::new("preferences-theme", "invalid theme"));
+        }
         if value.volume.is_some_and(|volume| volume > 100) {
             return Err(DomainIssue::new(
                 "preferences-volume",
@@ -92,7 +108,7 @@ impl ConfigDomain for PreferencesDomain {
         schema_version: SchemaVersion,
         value: &Value,
     ) -> Result<(), DomainIssue> {
-        if schema_version != self.descriptor.schema_version() {
+        if schema_version.get() > self.descriptor.schema_version().get() {
             return Err(DomainIssue::new(
                 "preferences-schema",
                 "unsupported schema version",
@@ -104,9 +120,13 @@ impl ConfigDomain for PreferencesDomain {
 
     fn migrate_one(
         &self,
-        _from: SchemaVersion,
-        _value: Value,
+        from: SchemaVersion,
+        value: Value,
     ) -> Result<Option<MigrationStep>, DomainIssue> {
-        Ok(None)
+        let to = self.descriptor.schema_version();
+        Ok((from.get() == 1 && to.get() == 2).then_some(MigrationStep {
+            schema_version: to,
+            value,
+        }))
     }
 }

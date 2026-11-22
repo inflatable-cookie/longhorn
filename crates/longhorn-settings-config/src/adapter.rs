@@ -2,9 +2,8 @@ use std::{collections::BTreeSet, error::Error, fmt};
 
 use longhorn_core::SettingsEntryId;
 use longhorn_settings::{
-    SettingsActivationRequirement, SettingsEditability, SettingsEffectiveSource,
-    SettingsMutationOutcome, SettingsMutationTiming, SettingsOpaqueValue, SettingsPolicyEffect,
-    SettingsRejection, SettingsSourceDiagnostic, SettingsValueProjection,
+    SettingsActivationRequirement, SettingsMutationOutcome, SettingsMutationTiming,
+    SettingsOpaqueValue, SettingsRejection, SettingsSourceDiagnostic, SettingsValueProjection,
 };
 
 /// Validated consumer projection for one config-backed scope.
@@ -149,48 +148,12 @@ fn validate_values(
                 format!("entry {} was projected more than once", value.entry_id),
             ));
         }
-        validate_value(value)?;
-    }
-    Ok(())
-}
-
-fn validate_value(value: &SettingsValueProjection) -> Result<(), SettingsConfigProjectionError> {
-    if matches!(
-        value.policy.as_ref().map(|policy| policy.effect),
-        Some(SettingsPolicyEffect::Override)
-    ) {
-        if value.effective_source != SettingsEffectiveSource::ManagedPolicy {
+        if let Some(code) = value.provenance_error() {
             return Err(SettingsConfigProjectionError::new(
-                "policy-source-mismatch",
-                format!("policy override for {} is not effective", value.entry_id),
+                code,
+                format!("contradictory provenance for entry {}", value.entry_id),
             ));
         }
-        if value.editability == SettingsEditability::Editable {
-            return Err(SettingsConfigProjectionError::new(
-                "editable-policy-override",
-                format!("policy override for {} cannot be editable", value.entry_id),
-            ));
-        }
-    } else if value.effective_source == SettingsEffectiveSource::ManagedPolicy {
-        return Err(SettingsConfigProjectionError::new(
-            "missing-policy-override",
-            format!(
-                "entry {} reports managed policy without an override",
-                value.entry_id
-            ),
-        ));
-    }
-
-    if value.effective_source == SettingsEffectiveSource::UserConfiguration
-        && value.configured.is_none()
-    {
-        return Err(SettingsConfigProjectionError::new(
-            "missing-configured-value",
-            format!(
-                "entry {} reports user configuration without an override",
-                value.entry_id
-            ),
-        ));
     }
     Ok(())
 }

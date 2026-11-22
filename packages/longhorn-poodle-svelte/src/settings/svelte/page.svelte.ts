@@ -122,7 +122,7 @@ export class SettingsPageSession {
   ): Promise<void> {
     const unit = this.#applyUnit(applyUnitId);
     this.#assertNotPending(applyUnitId);
-    if (!unit.resetSupported) {
+    if (!this.#page.features.reset || !unit.resetSupported) {
       throw new SettingsResetUnsupportedError(applyUnitId);
     }
     const registry = this.#host.registry();

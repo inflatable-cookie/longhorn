@@ -140,6 +140,23 @@ describe("generated settings protocol fixture", () => {
     );
   });
 
+  test("rejects contradictory projection provenance and duplicate entries", () => {
+    const snapshot = fixture.snapshots[0]!;
+    const configured = snapshot.values[0]!;
+    const managed = snapshot.values[1]!;
+    for (const values of [
+      [{ ...configured, configured: null }],
+      [{ ...managed, policy: null }],
+      [{ ...managed, editability: "editable" }],
+      [{ ...managed, effectiveSource: "compiledDefault" }],
+      [configured, { ...managed, entryId: configured.entryId }],
+    ]) {
+      incompatible(() =>
+        assertValidSettingsScopeSnapshot({ ...snapshot, values }),
+      );
+    }
+  });
+
   test("rejects invalid tokens and oversized opaque values", () => {
     const invalidToken = structuredClone(fixture.snapshots[0]!);
     invalidToken.authority.authorityToken = "UPPERCASE";

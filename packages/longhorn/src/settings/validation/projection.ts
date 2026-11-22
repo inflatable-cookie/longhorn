@@ -7,15 +7,16 @@ import {
   record,
 } from "./primitives.ts";
 
-export function policy(
+export function hasPolicyOverride(
   value: unknown,
   maximum: number,
   effects: readonly string[],
-): void {
+): boolean {
   const valueRecord = record(value, SETTINGS_FIELDS.SettingsPolicyProjection);
   identity(valueRecord.sourceId);
   known(valueRecord.effect, effects);
   optionalOpaque(valueRecord.constraints, maximum);
+  return valueRecord.effect === "override";
 }
 
 export function recovery(

@@ -93,6 +93,26 @@ pub struct SettingsApplyUnitDefinition {
     pub reset_supported: bool,
 }
 
+/// Consumer-owned copy and ordering for an optional module or section.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SettingsNavigationPresentation {
+    /// Localized label.
+    pub label: String,
+    /// Explicit navigation order.
+    pub order: i32,
+}
+
+/// Consumer-owned copy and ordering for an optional page.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SettingsPagePresentation {
+    /// Localized label.
+    pub label: String,
+    /// Localized search terms.
+    pub keywords: Vec<String>,
+    /// Explicit navigation order.
+    pub order: i32,
+}
+
 /// Stable deep-link target within one settings page.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]

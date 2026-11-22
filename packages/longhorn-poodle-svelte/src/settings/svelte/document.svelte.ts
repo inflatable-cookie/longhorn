@@ -2,6 +2,7 @@ import type { SettingsClient } from "@inflatable-cookie/longhorn/settings";
 import type {
   SettingsApplyUnitDefinition,
   SettingsPageDefinition,
+  SettingsPageId,
   SettingsRegistrySnapshot,
   SettingsRequestId,
   SettingsScopeId,
@@ -43,7 +44,10 @@ export class SettingsSessionDocument {
   #routeGeneration = 0;
   #focusRevision = $state(0);
   #renderers = new Map<string, SettingsPageRenderer>();
-  #scopes = new Map<SettingsScopeId, SettingsScopeState>();
+  #scopes = new Map<
+    SettingsPageId,
+    Map<SettingsScopeId, SettingsScopeState>
+  >();
   #pages = new Map<string, SettingsPageSession>();
 
   constructor(options: SettingsDocumentOptions) {
@@ -82,16 +86,16 @@ export class SettingsSessionDocument {
   }
 
   currentScopes(): SettingsScopeState[] {
-    return (
-      this.currentPage?.readableScopeIds.flatMap((scopeId) => {
-        const scope = this.#scopes.get(scopeId);
-        return scope === undefined ? [] : [scope];
-      }) ?? []
-    );
+    return [...(this.#currentScopes()?.values() ?? [])];
   }
 
   scopeSnapshot(scopeId: SettingsScopeId): SettingsScopeSnapshot | undefined {
-    return this.#scopes.get(scopeId)?.snapshot;
+    return this.#currentScopes()?.get(scopeId)?.snapshot;
+  }
+
+  #currentScopes(): Map<SettingsScopeId, SettingsScopeState> | undefined {
+    const pageId = this.#route?.pageId;
+    return pageId === undefined ? undefined : this.#scopes.get(pageId);
   }
 
   async installRegistry(
@@ -134,7 +138,7 @@ export class SettingsSessionDocument {
     const generation = ++this.#routeGeneration;
     await Promise.all(
       page.readableScopeIds.map((scopeId) =>
-        this.#scopeState(registry, scopeId).start(),
+        this.#scopeState(registry, page.id, scopeId).start(),
       ),
     );
     if (generation !== this.#routeGeneration) return;
@@ -150,7 +154,9 @@ export class SettingsSessionDocument {
       page.stop();
     }
     this.#pages.clear();
-    const scopes = [...this.#scopes.values()];
+    const scopes = [...this.#scopes.values()].flatMap((pageScopes) => [
+      ...pageScopes.values(),
+    ]);
     this.#scopes.clear();
     await Promise.all(scopes.map((scope) => scope.stop()));
   }
@@ -172,18 +178,25 @@ export class SettingsSessionDocument {
 
   #scopeState(
     registry: SettingsRegistrySnapshot,
+    pageId: SettingsPageId,
     scopeId: SettingsScopeId,
   ): SettingsScopeState {
-    const existing = this.#scopes.get(scopeId);
+    let pageScopes = this.#scopes.get(pageId);
+    if (pageScopes === undefined) {
+      pageScopes = new Map();
+      this.#scopes.set(pageId, pageScopes);
+    }
+    const existing = pageScopes.get(scopeId);
     if (existing !== undefined) return existing;
     const state = new SettingsScopeState({
       client: this.#options.client,
       registry,
+      pageId,
       scopeId,
       nextRequestId: this.#options.nextRequestId,
       onFailure: (failure) => this.#options.onScopeFailure(failure.error),
     });
-    this.#scopes.set(scopeId, state);
+    pageScopes.set(scopeId, state);
     return state;
   }
 
@@ -193,7 +206,7 @@ export class SettingsSessionDocument {
     const host: SettingsPageSessionHost = {
       client: this.#options.client,
       registry: () => this.requiredRegistry(),
-      scope: (unit) => this.#requiredScope(unit),
+      scope: (unit) => this.#requiredScope(page.id, unit),
       nextRequestId: this.#options.nextRequestId,
       onError: this.#options.onMutationError,
     };
@@ -202,8 +215,11 @@ export class SettingsSessionDocument {
     return session;
   }
 
-  #requiredScope(unit: SettingsApplyUnitDefinition): SettingsScopeState {
-    const scope = this.#scopes.get(unit.scopeId);
+  #requiredScope(
+    pageId: SettingsPageId,
+    unit: SettingsApplyUnitDefinition,
+  ): SettingsScopeState {
+    const scope = this.#scopes.get(pageId)?.get(unit.scopeId);
     if (scope === undefined) {
       throw new SettingsScopeNotLoadedError(unit.scopeId);
     }
