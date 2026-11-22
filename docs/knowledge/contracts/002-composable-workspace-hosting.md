@@ -376,14 +376,17 @@ migration. The generic configuration envelope owns schema version. The raw
 layout value owns the registry digest and complete document. A current-schema
 digest mismatch enters recovery. The consumer must bump the domain schema and
 provide the ordered migration hook before Longhorn can reinterpret stored ids
-or policy. To upgrade pre-unification persisted files (either the former
-digest-less `{"document": ...}` Surface value or a layout value carrying a
-previous `registryDigest`), consumers bump their `DomainDescriptor` schema
-version, attach `LegacySurfaceFormatMigration::new(old_version)` (or a custom
-`SurfaceMigration` when schema changes require product-owned translation), and
-rewrite migrated files through `ConfigStore::rewrite_migrated_domain`, which
-writes a pre-migration safety backup of the original bytes before publishing
-the new schema and registry digest; files whose inner document fails
+or policy. To upgrade pre-unification persisted files, consumers bump their
+`DomainDescriptor` schema version, attach
+`LegacySurfaceFormatMigration::digestless(old_version)` (for the former
+digest-less `{"document": ...}` Surface value),
+`LegacySurfaceFormatMigration::with_expected_digest(old_version, prior_digest)`
+(for a former layout value, verifying its stored `registryDigest` matches the
+exact expected prior digest), or a custom `SurfaceMigration` when schema
+changes require product-owned translation, and rewrite migrated files through
+`ConfigStore::rewrite_migrated_domain`, which writes a pre-migration safety
+backup of the original bytes before publishing the new schema and registry
+digest; files with an unexpected digest or whose inner document fails
 whole-document validation against the new registry enter recovery with their
 original bytes preserved on disk.
 

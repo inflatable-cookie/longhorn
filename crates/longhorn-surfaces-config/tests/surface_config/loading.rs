@@ -4,15 +4,15 @@ use longhorn_config::{
     BackupApplication, BackupArchiveFileName, BackupArchiveLimits, BackupCaptureOptions,
     BackupCatalog, BackupKind, BackupLimits, BackupMetadata, BackupOperationalRoot, BackupProducer,
     ConfigDomain, DomainIssue, LoadOutcome, LoadedOrigin, MigrationRewriteOptions, MigrationStep,
-    RecoveryKind, RestoreSafetyBackupOptions, inspect_backup_archive,
+    RecoveryKind, RestoreSafetyBackupOptions, Sha256Digest, inspect_backup_archive,
 };
 use longhorn_core::{LayoutSchemaId, SchemaVersion};
 use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, RegionDefinition,
 };
 use longhorn_surfaces_config::{
-    LegacySurfaceFormatMigration, NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy,
-    SurfaceMigration, SurfaceMigrationTarget,
+    LayoutRegistryDigest, LegacySurfaceFormatMigration, NoSurfaceMigration,
+    RegisteredSurfaceDomain, SurfaceBackupPolicy, SurfaceMigration, SurfaceMigrationTarget,
 };
 use serde_json::{Value, json};
 
@@ -158,7 +158,7 @@ fn legacy_digestless_surface_file_migrates_in_memory_and_rewrites_with_safety_ba
         descriptor(2),
         document(),
         registry(),
-        LegacySurfaceFormatMigration::new(SchemaVersion::new(1).unwrap()),
+        LegacySurfaceFormatMigration::digestless(SchemaVersion::new(1).unwrap()),
         SurfaceBackupPolicy::Include,
     )
     .unwrap();
@@ -212,35 +212,87 @@ fn legacy_digestless_surface_file_migrates_in_memory_and_rewrites_with_safety_ba
     };
     assert_eq!(reloaded.origin, LoadedOrigin::File);
     assert_eq!(reloaded.value, document());
+
+    // A digest-bearing file offered to the digest-less migration fails closed into recovery.
+    let digest_bearing = envelope(
+        "surfaces.workspace",
+        1,
+        json!({
+            "registryDigest": legacy_seven_field_registry_digest(&registry()).as_str(),
+            "document": document(),
+        }),
+    );
+    fixture.write(&upgraded, &digest_bearing);
+    let LoadOutcome::Recovery(recovery) = store.load(&upgraded).unwrap() else {
+        panic!("digest-bearing file must be rejected by digestless migration");
+    };
+    assert_eq!(recovery.kind, RecoveryKind::InvalidValue);
+    assert_eq!(recovery.source.unwrap().bytes, digest_bearing);
 }
 
 #[test]
-fn legacy_layout_file_with_previous_digest_migrates_and_rewrites_with_safety_backup() {
+fn legacy_layout_file_with_expected_previous_digest_migrates_and_rejects_mismatched_digests() {
     let fixture = Fixture::new();
-    // Exact raw shape written by the pre-unification PersistedLayoutDocument (digest over old 7-field LayoutLimits).
-    let previous_digest = "0".repeat(64);
+    let current_registry = registry();
+    // Exact digest over the pre-unification 7-field LayoutLimits + schemas + panel definitions.
+    let expected_previous_digest = legacy_seven_field_registry_digest(&current_registry);
     let legacy_bytes = envelope(
         "surfaces.workspace",
         1,
         json!({
-            "registryDigest": previous_digest,
+            "registryDigest": expected_previous_digest.as_str(),
             "document": document(),
         }),
     );
     let upgraded = RegisteredSurfaceDomain::new(
         descriptor(2),
         document(),
-        registry(),
-        LegacySurfaceFormatMigration::new(SchemaVersion::new(1).unwrap()),
+        current_registry,
+        LegacySurfaceFormatMigration::with_expected_digest(
+            SchemaVersion::new(1).unwrap(),
+            expected_previous_digest.clone(),
+        ),
         SurfaceBackupPolicy::Include,
     )
     .unwrap();
-    fixture.write(&upgraded, &legacy_bytes);
+    assert_ne!(upgraded.registry_digest(), &expected_previous_digest);
+
     let mut store = fixture.store();
     store.register(&upgraded).unwrap();
 
+    // An all-zero or otherwise unexpected source digest must fail closed into recovery.
+    let bogus_digest_bytes = envelope(
+        "surfaces.workspace",
+        1,
+        json!({
+            "registryDigest": "0".repeat(64),
+            "document": document(),
+        }),
+    );
+    fixture.write(&upgraded, &bogus_digest_bytes);
+    let LoadOutcome::Recovery(recovery) = store.load(&upgraded).unwrap() else {
+        panic!("unexpected source digest must enter recovery instead of being replaced");
+    };
+    assert_eq!(recovery.kind, RecoveryKind::InvalidValue);
+    assert_eq!(recovery.source.unwrap().bytes, bogus_digest_bytes);
+    assert_eq!(
+        fs::read(fixture.path(&upgraded)).unwrap(),
+        bogus_digest_bytes
+    );
+
+    // A digest-less file offered to the digest-bearing migration must also enter recovery.
+    let digestless_bytes = envelope("surfaces.workspace", 1, json!({ "document": document() }));
+    fixture.write(&upgraded, &digestless_bytes);
+    let LoadOutcome::Recovery(recovery) = store.load(&upgraded).unwrap() else {
+        panic!("digest-less file must be rejected by digest-bearing migration");
+    };
+    assert_eq!(recovery.kind, RecoveryKind::InvalidValue);
+    assert_eq!(recovery.source.unwrap().bytes, digestless_bytes);
+
+    // A file carrying the exact expected previous digest migrates in memory and rewrites safely.
+    fixture.write(&upgraded, &legacy_bytes);
     let LoadOutcome::Ready(loaded) = store.load(&upgraded).unwrap() else {
-        panic!("legacy layout file with prior digest should migrate in memory");
+        panic!("legacy layout file with expected prior digest should migrate in memory");
     };
     assert_eq!(
         loaded.origin,
@@ -305,7 +357,7 @@ fn legacy_file_requiring_product_choice_enters_recovery_with_original_bytes_pres
         descriptor(2),
         renamed_default,
         renamed_registry,
-        LegacySurfaceFormatMigration::new(SchemaVersion::new(1).unwrap()),
+        LegacySurfaceFormatMigration::digestless(SchemaVersion::new(1).unwrap()),
         SurfaceBackupPolicy::Include,
     )
     .unwrap();
@@ -319,6 +371,25 @@ fn legacy_file_requiring_product_choice_enters_recovery_with_original_bytes_pres
     assert_eq!(recovery.kind, RecoveryKind::MigrationFailed);
     assert_eq!(recovery.source.unwrap().bytes, legacy_bytes);
     assert_eq!(fs::read(fixture.path(&upgraded)).unwrap(), legacy_bytes);
+}
+
+fn legacy_seven_field_registry_digest(registry: &LayoutDefinitionRegistry) -> LayoutRegistryDigest {
+    let limits = registry.limits();
+    let material = json!({
+        "limits": {
+            "maximum_schemas": limits.maximum_schemas(),
+            "maximum_regions_per_schema": limits.maximum_regions_per_schema(),
+            "maximum_sizing_slots_per_schema": limits.maximum_sizing_slots_per_schema(),
+            "maximum_panel_definitions": limits.maximum_panel_definitions(),
+            "maximum_surfaces": limits.maximum_surfaces(),
+            "maximum_panel_instances": limits.maximum_panel_instances(),
+            "maximum_panel_instances_per_region": limits.maximum_panel_instances_per_region(),
+        },
+        "schemas": registry.schemas().collect::<Vec<_>>(),
+        "panelDefinitions": registry.panel_definitions().collect::<Vec<_>>(),
+    });
+    let bytes = serde_json::to_vec(&material).unwrap();
+    LayoutRegistryDigest::from_sha256(Sha256Digest::from_bytes(&bytes))
 }
 
 fn safety_options(fixture: &Fixture, archive_id: &str) -> RestoreSafetyBackupOptions {
