@@ -37,6 +37,7 @@ export function assertValidSettingsLoadCommand(
   protocolVersion(command.protocolVersion);
   identity(command.requestId);
   unsigned(command.registryGeneration, "invalid_revision");
+  identity(command.pageId);
   identity(command.scopeId);
   if (command.knownAuthority !== null) {
     authority(command.knownAuthority);

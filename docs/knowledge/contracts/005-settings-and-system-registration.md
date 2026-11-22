@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-29
+Updated: 2026-11-22
 Evidence: `002-shared-desktop-systems-follow-up.md` (Git history);
 `012-settings-registry-and-transaction-boundary.md` (Git history)
 
@@ -27,7 +27,6 @@ Each page declares:
 - required composed capabilities
 - renderer key: a Longhorn built-in or a consumer-owned resolver key
 - readable scopes and writable apply units
-- immediate or staged mutation timing
 - reset, import, backup, restore, and confirmation support
 
 Duplicate module, section, page, anchor, or apply-unit ids fail registration.
@@ -39,7 +38,12 @@ creates a new generation. Runtime availability changes page state, not
 registry identity.
 
 Capabilities admit registered pages and describe runtime availability. They
-do not replace Tauri capability security or host-side authorization.
+do not replace Tauri capability security or host-side caller authorization.
+Each load names an admitted page and a scope that page declares readable.
+Seal rejects a page that writes an apply unit without reading its scope.
+The host checks registry generation and unit/scope identity before page
+authorization. Reset additionally requires the page's reset feature and a
+reset-capable unit.
 
 ## Authority Projection
 
@@ -55,9 +59,12 @@ Rust authority returns checked snapshots. A projection distinguishes:
 - outstanding activation requirements
 
 The renderer never infers effective values or policy precedence. An explicit
-managed policy overrides or constrains user configuration. The stored user
-value may remain for later use, but a policy-controlled field cannot be
-mutated through settings.
+managed policy overrides or constrains user configuration. An override blocks
+mutation through settings and leaves the stored user value available for
+later use. Constraints are enforced when validating intent. Rust and
+TypeScript reject wire snapshots with duplicate entry IDs or contradictory
+provenance. A managed-policy source requires a policy override and a
+non-editable entry. A user-configuration source requires a configured value.
 
 Reset removes the user override in its named scope. It does not mutate
 compiled defaults, administrator policy, secrets, or another scope.
@@ -79,17 +86,20 @@ configuration domain. It:
 
 Consumer code owns projection, patch, validation, and reset semantics. Opaque
 product values may cross the transport under that codec but do not become
-Longhorn domain types.
+Longhorn domain types. Load, apply, and reset request IDs correlate commands
+and receipts. Reusing an ID does not deduplicate a command. A load may carry
+the last observed authority as an advisory hint and still returns a complete
+snapshot on success.
 
 A page with multiple config domains has multiple apply units. Page-level
 Apply is allowed only when all dirty state belongs to one unit or an explicit
-consumer transaction authority promises failure atomicity. Sequential
-multi-domain writes are reported separately and never presented as one atomic
-transaction.
+`ConsumerSettingsTransactionAuthority` promises failure atomicity. Its
+`ConsumerSettingsTransactionOutcome` carries the consumer authority receipt.
+Sequential multi-domain writes have separate receipts.
 
 ## Mutation Timing And Activation
 
-Mutation timing has two modes:
+Each apply unit declares one mutation timing mode:
 
 - `immediate`: each accepted intent is sent to authority; pending UI is not a
   persistence receipt
@@ -150,6 +160,10 @@ Longhorn may register modules only for implemented capabilities:
 - keybindings after g01.010
 - backend connection after g01.009
 
+Registration provides stable identities and capability requirements. The
+consumer supplies module, section, and page labels and order, plus page
+keywords.
+
 Storage and recovery pages preserve contract 004. File selection, secret
 identity, destructive confirmation, and host restart remain injected
 authority. A shared page cannot bypass confirmation digests, safety backups,
@@ -159,6 +173,11 @@ journals, or recovery-required states.
 
 Registration, load, validation, conflict, policy, capability, mutation,
 durability, activation, backup, restore, and recovery failures remain typed.
+Config write refusals return settings rejections. Read-only authorities
+return `readOnly`. Scopes requiring a separate project authority return
+`unauthorized`. Invalid patched values return `invalidIntent`. Unavailable,
+corrupt, or migration-blocked scopes return `recoveryRequired`. Operational
+failures such as a failed publication remain host errors.
 The shell never converts a failed host action into a saved or applied status.
 
 Receipts name the registry generation, page, apply unit, authority token,

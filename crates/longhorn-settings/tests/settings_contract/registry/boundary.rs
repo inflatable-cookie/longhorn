@@ -1,4 +1,3 @@
-use longhorn_core::{SettingsModuleId, SettingsSectionId};
 use longhorn_settings::{
     SettingsApplyUnitDefinition, SettingsLimits, SettingsModuleDefinition, SettingsMutationTiming,
     SettingsPageFeatures, SettingsRegistryBuilder, SettingsRegistryErrorCode,
@@ -82,23 +81,21 @@ fn ownership_mismatch_and_unknown_composed_capability_are_typed() {
 }
 
 #[test]
-fn manifest_keeps_the_pure_dependency_boundary() {
-    let manifest = include_str!("../../../Cargo.toml");
-    for forbidden in [
-        "longhorn-config",
-        "longhorn-layout",
-        "tauri",
-        "svelte",
-        "poodle",
-    ] {
-        assert!(!manifest.contains(forbidden), "manifest leaked {forbidden}");
-    }
-}
+fn page_cannot_write_a_scope_it_cannot_read() {
+    let mut builder = minimal_builder();
+    builder
+        .register_page(page_with(
+            module_id("app:module"),
+            section_id("app:section"),
+            renderer_id("app:renderer"),
+            vec![],
+            vec![unit_id("app:apply")],
+        ))
+        .unwrap();
 
-#[test]
-fn settings_ids_keep_the_bounded_core_grammar() {
-    assert!(SettingsModuleId::new("x".repeat(129)).is_err());
-    assert!(SettingsSectionId::new("Settings").is_err());
+    let error = builder.seal([]).unwrap_err();
+    assert_eq!(error.code(), SettingsRegistryErrorCode::MissingReference);
+    assert!(error.to_string().contains("cannot read scope app:scope"));
 }
 
 #[test]

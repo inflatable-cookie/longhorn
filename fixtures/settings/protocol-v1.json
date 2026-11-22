@@ -283,6 +283,7 @@
       "protocolVersion": 1,
       "requestId": "request:load",
       "registryGeneration": 7,
+      "pageId": "app:audio",
       "scopeId": "app:preferences",
       "knownAuthority": null
     },
@@ -290,6 +291,7 @@
       "protocolVersion": 1,
       "requestId": "request:reload",
       "registryGeneration": 7,
+      "pageId": "app:audio",
       "scopeId": "app:preferences",
       "knownAuthority": {
         "registryGeneration": 7,

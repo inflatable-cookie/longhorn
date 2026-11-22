@@ -3,15 +3,15 @@ use longhorn_config::{
     RecoveryKind, UnavailableState,
 };
 use longhorn_settings::{
-    SettingsAuthorityExpectation, SettingsProtocolVersion, SettingsRecoveryCode,
-    SettingsRecoveryState, SettingsRejectionCode, SettingsScopeSnapshot, SettingsSourceDiagnostic,
+    SettingsAuthorityExpectation, SettingsMutationResult, SettingsProtocolVersion,
+    SettingsRecoveryCode, SettingsRecoveryState, SettingsRejectionCode, SettingsScopeSnapshot,
+    SettingsSourceDiagnostic,
 };
 
 use crate::{
     ConfigSettingsApplyUnit, SettingsConfigAdapter, SettingsConfigError, SettingsConfigLoadError,
     SettingsConfigProjection,
     authority::{AuthorityGuard, ready_token, recovery_token},
-    execution::CommittedProjection,
     validation::rejection,
 };
 
@@ -28,18 +28,8 @@ where
     ) -> Result<SettingsScopeSnapshot, SettingsConfigError> {
         let mut projection = self.adapter.project(value)?;
         projection.add_source_diagnostics(&source_diagnostics(diagnostics));
-        let encoded = self
-            .domain
-            .encode(value)
-            .map_err(SettingsConfigLoadError::Encode)
-            .map_err(SettingsConfigError::Load)?;
-        let token = ready_token(
-            authority.generation(),
-            authority.scope_id(),
-            self.domain.descriptor().id(),
-            &encoded,
-            &projection,
-        )?;
+        let encoded = self.encode_for_authority(value)?;
+        let token = self.projection_token(&encoded, &projection)?;
         let expectation = authority.observe(token)?;
         Ok(scope_snapshot(
             &self.definition.scope_id,
@@ -48,24 +38,28 @@ where
         ))
     }
 
-    pub(super) fn project_committed(
+    pub(super) fn encode_for_authority(
         &self,
         value: &D::Value,
-    ) -> Result<CommittedProjection, SettingsConfigError> {
-        let projection = self.adapter.project(value)?;
-        let encoded = self
-            .domain
+    ) -> Result<serde_json::Value, SettingsConfigError> {
+        self.domain
             .encode(value)
             .map_err(SettingsConfigLoadError::Encode)
-            .map_err(SettingsConfigError::Load)?;
-        let token = ready_token(
+            .map_err(SettingsConfigError::Load)
+    }
+
+    pub(super) fn projection_token(
+        &self,
+        encoded: &serde_json::Value,
+        projection: &SettingsConfigProjection,
+    ) -> Result<longhorn_core::SettingsAuthorityToken, SettingsConfigError> {
+        ready_token(
             self.generation,
             &self.definition.scope_id,
             self.domain.descriptor().id(),
-            &encoded,
-            &projection,
-        )?;
-        Ok(CommittedProjection { projection, token })
+            encoded,
+            projection,
+        )
     }
 
     pub(super) fn snapshot_from_load(
@@ -121,36 +115,49 @@ where
         &self,
         error: MutationError,
         authority: &mut AuthorityGuard<'_>,
-    ) -> Result<longhorn_settings::SettingsMutationResult, SettingsConfigError> {
-        match error {
-            MutationError::Refused(MutationRefusal::Recovery(recovery)) => {
-                let snapshot = self.recovery_snapshot(
-                    recovery_code(recovery.kind),
-                    recovery
-                        .source
-                        .as_ref()
-                        .map(|source| source.bytes.as_slice()),
-                    authority,
-                )?;
-                Ok(longhorn_settings::SettingsMutationResult::Rejected {
-                    rejection: rejection(SettingsRejectionCode::RecoveryRequired),
-                    snapshot: Some(snapshot),
-                })
-            }
-            MutationError::Refused(MutationRefusal::Unavailable { location }) => {
-                let _ = location;
-                let snapshot = self.recovery_snapshot(
-                    SettingsRecoveryCode::AuthorityUnavailable,
-                    None,
-                    authority,
-                )?;
-                Ok(longhorn_settings::SettingsMutationResult::Rejected {
-                    rejection: rejection(SettingsRejectionCode::RecoveryRequired),
-                    snapshot: Some(snapshot),
-                })
-            }
-            error => Err(SettingsConfigError::Mutation(error)),
-        }
+    ) -> Result<SettingsMutationResult, SettingsConfigError> {
+        let (code, snapshot) = match error {
+            MutationError::Refused(refusal) => match refusal {
+                MutationRefusal::Recovery(recovery) => (
+                    SettingsRejectionCode::RecoveryRequired,
+                    Some(
+                        self.recovery_snapshot(
+                            recovery_code(recovery.kind),
+                            recovery
+                                .source
+                                .as_ref()
+                                .map(|source| source.bytes.as_slice()),
+                            authority,
+                        )?,
+                    ),
+                ),
+                MutationRefusal::Unavailable { .. } => (
+                    SettingsRejectionCode::RecoveryRequired,
+                    Some(self.recovery_snapshot(
+                        SettingsRecoveryCode::AuthorityUnavailable,
+                        None,
+                        authority,
+                    )?),
+                ),
+                MutationRefusal::MigrationBackupRequired { .. } => {
+                    (SettingsRejectionCode::RecoveryRequired, None)
+                }
+                MutationRefusal::ReadOnly { .. } | MutationRefusal::HumanWrittenToml { .. } => {
+                    (SettingsRejectionCode::ReadOnly, None)
+                }
+                MutationRefusal::ProjectSharedRequiresExternalAuthority { .. } => {
+                    (SettingsRejectionCode::Unauthorized, None)
+                }
+            },
+            MutationError::Patch(_)
+            | MutationError::Validation(_)
+            | MutationError::EncodedValueInvalid(_) => (SettingsRejectionCode::InvalidIntent, None),
+            error => return Err(SettingsConfigError::Mutation(error)),
+        };
+        Ok(SettingsMutationResult::Rejected {
+            rejection: rejection(code),
+            snapshot,
+        })
     }
 }
 
@@ -169,7 +176,7 @@ pub(super) fn scope_snapshot(
     }
 }
 
-fn source_diagnostics(diagnostics: &[LoadDiagnostic]) -> Vec<SettingsSourceDiagnostic> {
+pub(super) fn source_diagnostics(diagnostics: &[LoadDiagnostic]) -> Vec<SettingsSourceDiagnostic> {
     diagnostics
         .iter()
         .map(|diagnostic| SettingsSourceDiagnostic {

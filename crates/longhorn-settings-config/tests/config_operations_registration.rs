@@ -1,11 +1,14 @@
 //! Optional config-operation settings registration conformance.
 
 use longhorn_core::SettingsCapabilityId;
-use longhorn_settings::{SettingsLimits, SettingsRegistryBuilder, SettingsRegistryGeneration};
+use longhorn_settings::{
+    SettingsLimits, SettingsNavigationPresentation, SettingsPagePresentation,
+    SettingsRegistryBuilder, SettingsRegistryGeneration,
+};
 use longhorn_settings_config::{
-    BACKUP_INVENTORY_CAPABILITY_ID, BACKUP_SETTINGS_PAGE_ID, RESTORE_INSPECTION_CAPABILITY_ID,
-    RESTORE_SETTINGS_PAGE_ID, STORAGE_DIAGNOSTICS_CAPABILITY_ID, STORAGE_SETTINGS_PAGE_ID,
-    register_config_operations_settings,
+    BACKUP_INVENTORY_CAPABILITY_ID, BACKUP_SETTINGS_PAGE_ID, ConfigOperationsSettingsPresentation,
+    RESTORE_INSPECTION_CAPABILITY_ID, RESTORE_SETTINGS_PAGE_ID, STORAGE_DIAGNOSTICS_CAPABILITY_ID,
+    STORAGE_SETTINGS_PAGE_ID, register_config_operations_settings,
 };
 
 #[test]
@@ -26,6 +29,15 @@ fn pages_are_admitted_only_by_their_base_capabilities() {
             BACKUP_SETTINGS_PAGE_ID,
             RESTORE_SETTINGS_PAGE_ID
         ]
+    );
+    assert_eq!(registry.modules().next().unwrap().label, "Stockage");
+    assert_eq!(registry.sections().next().unwrap().label, "Données");
+    assert_eq!(
+        registry
+            .pages()
+            .map(|page| page.label.as_str())
+            .collect::<Vec<_>>(),
+        ["Stockage", "Sauvegardes", "Restauration"]
     );
     assert!(
         registry
@@ -75,8 +87,32 @@ fn registry<const N: usize>(capabilities: [&str; N]) -> longhorn_settings::Setti
         SettingsRegistryGeneration::new(1),
         SettingsLimits::default(),
     );
-    register_config_operations_settings(&mut builder).unwrap();
+    register_config_operations_settings(
+        &mut builder,
+        ConfigOperationsSettingsPresentation {
+            module: SettingsNavigationPresentation {
+                label: "Stockage".into(),
+                order: 700,
+            },
+            section: SettingsNavigationPresentation {
+                label: "Données".into(),
+                order: 0,
+            },
+            storage: presentation("Stockage", 0),
+            backup: presentation("Sauvegardes", 10),
+            restore: presentation("Restauration", 20),
+        },
+    )
+    .unwrap();
     builder
         .seal(capabilities.map(|value| SettingsCapabilityId::new(value).unwrap()))
         .unwrap()
+}
+
+fn presentation(label: &str, order: i32) -> SettingsPagePresentation {
+    SettingsPagePresentation {
+        label: label.into(),
+        keywords: Vec::new(),
+        order,
+    }
 }

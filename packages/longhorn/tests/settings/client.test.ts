@@ -55,6 +55,7 @@ describe("settings client", () => {
     const seen: number[] = [];
     const connection = client.connectScope({
       registry: registry(),
+      pageId: "app:audio",
       scopeId: "app:preferences",
       nextRequestId: () => `request:scope-${++request}`,
       onSnapshot: (value) => seen.push(value.authority.scopeRevision),

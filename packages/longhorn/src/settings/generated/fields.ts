@@ -25,7 +25,7 @@ export const SETTINGS_FIELDS: Record<string, readonly string[]> = {
   "SettingsRegistrySnapshot": ["protocolVersion", "generation", "digest", "limits", "composedCapabilities", "modules", "sections", "pages", "renderers", "scopes", "applyUnits", "capabilities"],
   "SettingsRegistryChangedEvent": ["protocolVersion", "registryGeneration"],
   "SettingsScopeChangedEvent": ["protocolVersion", "registryGeneration", "scopeId", "scopeRevision"],
-  "SettingsLoadCommand": ["protocolVersion", "requestId", "registryGeneration", "scopeId", "knownAuthority"],
+  "SettingsLoadCommand": ["protocolVersion", "requestId", "registryGeneration", "pageId", "scopeId", "knownAuthority"],
   "SettingsApplyCommand": ["protocolVersion", "requestId", "pageId", "applyUnitId", "scopeId", "authority", "intent"],
   "SettingsResetCommand": ["protocolVersion", "requestId", "pageId", "applyUnitId", "scopeId", "authority", "entryIds"],
   "SettingsMutationReceipt": ["requestId", "pageId", "applyUnitId", "scopeId", "previousAuthority", "committedAuthority", "outcome", "durability", "activationRequirements"],

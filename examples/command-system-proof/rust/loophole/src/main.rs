@@ -11,8 +11,8 @@ use longhorn_command::{
     CommandRegistryGeneration, CommandSourceFailure, CommandTextInputPolicy, CommandVisibility,
 };
 use longhorn_command_settings::{
-    COMMAND_CATALOGUE_CAPABILITY_ID, KEYBINDING_SETTINGS_PAGE_ID, WRITABLE_KEYMAP_CAPABILITY_ID,
-    register_command_settings,
+    COMMAND_CATALOGUE_CAPABILITY_ID, CommandSettingsPresentation, KEYBINDING_SETTINGS_PAGE_ID,
+    WRITABLE_KEYMAP_CAPABILITY_ID, register_command_settings,
 };
 use longhorn_core::{
     CommandAvailabilityReasonId, CommandCapabilityId, CommandCategoryId, CommandContextId,
@@ -261,7 +261,27 @@ fn main() {
         SettingsRegistryGeneration::INITIAL,
         SettingsLimits::default(),
     );
-    register_command_settings(&mut settings).expect("command settings registration");
+    register_command_settings(
+        &mut settings,
+        CommandSettingsPresentation {
+            module: longhorn_settings::SettingsNavigationPresentation {
+                label: "Commands".into(),
+                order: 600,
+            },
+            section: longhorn_settings::SettingsNavigationPresentation {
+                label: "Commands".into(),
+                order: 0,
+            },
+            keybindings: longhorn_settings::SettingsPagePresentation {
+                label: "Keybindings".into(),
+                keywords: ["commands", "hotkeys", "keyboard", "shortcuts"]
+                    .map(str::to_owned)
+                    .into(),
+                order: 0,
+            },
+        },
+    )
+    .expect("command settings registration");
     let settings = settings
         .seal([
             id::<SettingsCapabilityId>(COMMAND_CATALOGUE_CAPABILITY_ID),

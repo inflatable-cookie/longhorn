@@ -1,9 +1,14 @@
-use std::{collections::BTreeSet, error::Error, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fmt,
+};
 
 use longhorn_config::{ConfigDomain, StorageClass};
 use longhorn_core::{DomainId, SettingsApplyUnitId, SettingsPageId};
 use longhorn_settings::{
-    SettingsApplyUnitDefinition, SettingsLimits, SettingsRegistry, SettingsRegistryGeneration,
+    SettingsApplyUnitDefinition, SettingsLimits, SettingsPageFeatures, SettingsRegistry,
+    SettingsRegistryGeneration,
 };
 
 use crate::{SettingsConfigAdapter, authority::AuthorityTracker};
@@ -17,7 +22,8 @@ where
     pub(crate) generation: SettingsRegistryGeneration,
     pub(crate) limits: SettingsLimits,
     pub(crate) definition: SettingsApplyUnitDefinition,
-    pub(crate) authorized_pages: BTreeSet<SettingsPageId>,
+    pub(crate) readable_pages: BTreeSet<SettingsPageId>,
+    pub(crate) authorized_pages: BTreeMap<SettingsPageId, SettingsPageFeatures>,
     pub(crate) domain: D,
     pub(crate) adapter: A,
     pub(crate) authority: AuthorityTracker,
@@ -51,11 +57,16 @@ where
             });
         }
 
+        let readable_pages = registry
+            .pages()
+            .filter(|page| page.readable_scope_ids.contains(&definition.scope_id))
+            .map(|page| page.id.clone())
+            .collect();
         let authorized_pages = registry
             .pages()
             .filter(|page| page.writable_apply_unit_ids.contains(apply_unit_id))
-            .map(|page| page.id.clone())
-            .collect::<BTreeSet<_>>();
+            .map(|page| (page.id.clone(), page.features))
+            .collect::<BTreeMap<_, _>>();
         if authorized_pages.is_empty() {
             return Err(ConfigSettingsBindingError::NoAuthorizedPage {
                 apply_unit_id: apply_unit_id.clone(),
@@ -67,6 +78,7 @@ where
             generation: registry.generation(),
             limits: registry.limits(),
             definition,
+            readable_pages,
             authorized_pages,
             domain,
             adapter,

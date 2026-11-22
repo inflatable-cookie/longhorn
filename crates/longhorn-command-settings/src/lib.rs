@@ -4,9 +4,10 @@ use longhorn_core::{
     SettingsCapabilityId, SettingsModuleId, SettingsPageId, SettingsRendererId, SettingsSectionId,
 };
 use longhorn_settings::{
-    SettingsCapabilityDefinition, SettingsModuleDefinition, SettingsPageDefinition,
-    SettingsPageFeatures, SettingsRegistryBuilder, SettingsRegistryError,
-    SettingsRendererDefinition, SettingsSectionDefinition,
+    SettingsCapabilityDefinition, SettingsModuleDefinition, SettingsNavigationPresentation,
+    SettingsPageDefinition, SettingsPageFeatures, SettingsPagePresentation,
+    SettingsRegistryBuilder, SettingsRegistryError, SettingsRendererDefinition,
+    SettingsSectionDefinition,
 };
 
 /// Optional command settings module.
@@ -22,6 +23,17 @@ pub const COMMAND_CATALOGUE_CAPABILITY_ID: &str = "longhorn:commands.catalogue";
 /// Writable authoritative keymap composition capability.
 pub const WRITABLE_KEYMAP_CAPABILITY_ID: &str = "longhorn:commands.writable-keymap";
 
+/// Consumer-provided navigation for the optional settings registration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CommandSettingsPresentation {
+    /// Module navigation.
+    pub module: SettingsNavigationPresentation,
+    /// Section navigation.
+    pub section: SettingsNavigationPresentation,
+    /// Keybindings page navigation.
+    pub keybindings: SettingsPagePresentation,
+}
+
 /// Registers the optional keybinding page into an unsealed settings registry.
 ///
 /// Registry seal admits the page only when both command catalogue and
@@ -30,19 +42,20 @@ pub const WRITABLE_KEYMAP_CAPABILITY_ID: &str = "longhorn:commands.writable-keym
 /// authority.
 pub fn register_command_settings(
     builder: &mut SettingsRegistryBuilder,
+    presentation: CommandSettingsPresentation,
 ) -> Result<(), SettingsRegistryError> {
     let module_id = module_id();
     let section_id = section_id();
     builder.register_module(SettingsModuleDefinition {
         id: module_id.clone(),
-        label: "Commands".into(),
-        order: 600,
+        label: presentation.module.label,
+        order: presentation.module.order,
     })?;
     builder.register_section(SettingsSectionDefinition {
         id: section_id.clone(),
         module_id: module_id.clone(),
-        label: "Commands".into(),
-        order: 0,
+        label: presentation.section.label,
+        order: presentation.section.order,
     })?;
     for capability in [
         COMMAND_CATALOGUE_CAPABILITY_ID,
@@ -62,14 +75,9 @@ pub fn register_command_settings(
         module_id,
         section_id,
         renderer_id: renderer_id(),
-        label: "Keybindings".into(),
-        keywords: vec![
-            "commands".into(),
-            "hotkeys".into(),
-            "keyboard".into(),
-            "shortcuts".into(),
-        ],
-        order: 0,
+        label: presentation.keybindings.label,
+        keywords: presentation.keybindings.keywords,
+        order: presentation.keybindings.order,
         anchors: vec![],
         required_capabilities: vec![
             capability_id(COMMAND_CATALOGUE_CAPABILITY_ID),

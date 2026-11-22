@@ -13,6 +13,7 @@ describe("settings boundary strictness", () => {
     protocolVersion: 1,
     requestId: "request:one",
     registryGeneration: 1,
+    pageId: "page:one",
     scopeId: "scope:one",
     knownAuthority: null,
   };
@@ -30,7 +31,7 @@ describe("settings boundary strictness", () => {
   });
 
   test("rejects a missing field", () => {
-    const { scopeId: _dropped, ...missing } = valid;
+    const { pageId: _dropped, ...missing } = valid;
     expect(() => assertValidSettingsLoadCommand(missing)).toThrow(
       /missing_field|incompatible/,
     );

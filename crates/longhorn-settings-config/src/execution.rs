@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, ops::Deref};
+use std::collections::BTreeSet;
 
 use longhorn_config::{ConfigDomain, Durability};
 use longhorn_core::SettingsEntryId;
@@ -9,55 +9,27 @@ use longhorn_settings::{
 use serde_json::json;
 
 use crate::{
-    ConfigSettingsApplyUnit, SettingsConfigAdapter, SettingsConfigError, SettingsConfigProjection,
-    validation::rejection,
+    ConfigSettingsApplyUnit, SettingsConfigAdapter, SettingsConfigError, validation::rejection,
 };
-
-pub(super) struct AcceptedMutation<I> {
-    pub(super) previous: SettingsScopeSnapshot,
-    pub(super) committed: CommittedProjection,
-    pub(super) intent: I,
-}
-
-pub(super) struct AcceptedReset {
-    pub(super) previous: SettingsScopeSnapshot,
-    pub(super) committed: CommittedProjection,
-}
-
-pub(super) struct CommittedProjection {
-    pub(super) projection: SettingsConfigProjection,
-    pub(super) token: longhorn_core::SettingsAuthorityToken,
-}
-
-impl CommittedProjection {
-    pub(super) fn with_activation(
-        self,
-        activation: Vec<longhorn_settings::SettingsActivationRequirement>,
-    ) -> SettingsConfigProjection {
-        self.projection.with_activation(activation)
-    }
-}
-
-impl Deref for CommittedProjection {
-    type Target = SettingsConfigProjection;
-
-    fn deref(&self) -> &Self::Target {
-        &self.projection
-    }
-}
 
 pub(super) enum CheckAbort {
     Result(Box<SettingsMutationResult>),
     Operational(SettingsConfigError),
 }
 
+impl From<SettingsConfigError> for CheckAbort {
+    fn from(error: SettingsConfigError) -> Self {
+        Self::Operational(error)
+    }
+}
+
 pub(super) fn rejected(
     rejection: SettingsRejection,
-    snapshot: SettingsScopeSnapshot,
+    snapshot: &SettingsScopeSnapshot,
 ) -> CheckAbort {
     CheckAbort::Result(Box::new(SettingsMutationResult::Rejected {
         rejection,
-        snapshot: Some(snapshot),
+        snapshot: Some(snapshot.clone()),
     }))
 }
 

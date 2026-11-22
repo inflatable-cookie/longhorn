@@ -1,8 +1,10 @@
+use std::collections::BTreeSet;
+
 use longhorn_core::{
     SettingsActivationTargetId, SettingsAuthorityToken, SettingsEntryId, SettingsPolicySourceId,
     SettingsScopeId,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 
 use crate::{SettingsOpaqueValue, SettingsRegistryGeneration};
 
@@ -94,6 +96,33 @@ pub struct SettingsValueProjection {
     pub source_diagnostics: Vec<SettingsSourceDiagnostic>,
 }
 
+impl SettingsValueProjection {
+    /// Returns a stable diagnostic code when the declared effective source contradicts the projection.
+    #[must_use]
+    pub fn provenance_error(&self) -> Option<&'static str> {
+        let has_override = self
+            .policy
+            .as_ref()
+            .is_some_and(|policy| policy.effect == SettingsPolicyEffect::Override);
+        match self.effective_source {
+            SettingsEffectiveSource::ManagedPolicy if !has_override => {
+                Some("missing-policy-override")
+            }
+            SettingsEffectiveSource::ManagedPolicy
+                if self.editability == SettingsEditability::Editable =>
+            {
+                Some("editable-policy-override")
+            }
+            SettingsEffectiveSource::ManagedPolicy => None,
+            _ if has_override => Some("policy-source-mismatch"),
+            SettingsEffectiveSource::UserConfiguration if self.configured.is_none() => {
+                Some("missing-configured-value")
+            }
+            _ => None,
+        }
+    }
+}
+
 /// Stable category for a scope that cannot provide normal authority.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -169,9 +198,32 @@ pub struct SettingsScopeSnapshot {
     /// Authority identity for stale-write rejection.
     pub authority: SettingsAuthorityExpectation,
     /// Checked field projections.
+    #[serde(deserialize_with = "deserialize_values")]
     pub values: Vec<SettingsValueProjection>,
     /// Recovery state, if normal projection is unavailable or degraded.
     pub recovery: Option<SettingsRecoveryState>,
     /// Runtime activation work still associated with this scope.
     pub activation_requirements: Vec<SettingsActivationRequirement>,
+}
+
+fn deserialize_values<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Vec<SettingsValueProjection>, D::Error> {
+    let values = Vec::<SettingsValueProjection>::deserialize(deserializer)?;
+    let mut ids = BTreeSet::new();
+    for value in &values {
+        if !ids.insert(&value.entry_id) {
+            return Err(de::Error::custom(format_args!(
+                "duplicate entry {}",
+                value.entry_id
+            )));
+        }
+        if let Some(code) = value.provenance_error() {
+            return Err(de::Error::custom(format_args!(
+                "{code} for entry {}",
+                value.entry_id
+            )));
+        }
+    }
+    Ok(values)
 }

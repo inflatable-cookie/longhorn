@@ -47,6 +47,38 @@ describe("SettingsSession", () => {
     await Promise.all([first.stop(), second.stop()]);
   });
 
+  it("loads a shared scope under each requesting page", async () => {
+    const transport = new FakeSettingsTransport();
+    transport.registryValue = twoPageRegistry();
+    const session = new SettingsSession({
+      client: transport.client(),
+      nextRequestId: requestIds("shared-scope"),
+    });
+
+    await session.start(() => renderer());
+    await session.navigate({ pageId: "app:advanced" });
+
+    const loads = transport.arguments.filter(
+      ({ command }) =>
+        typeof command === "object" && command !== null && "scopeId" in command,
+    );
+    expect(loads).toEqual([
+      {
+        command: expect.objectContaining({
+          pageId: "app:audio",
+          scopeId: "app:preferences",
+        }),
+      },
+      {
+        command: expect.objectContaining({
+          pageId: "app:advanced",
+          scopeId: "app:preferences",
+        }),
+      },
+    ]);
+    await session.stop();
+  });
+
   it("guards dirty navigation and close until apply, discard, or stay", async () => {
     const transport = new FakeSettingsTransport();
     transport.registryValue = twoPageRegistry();
