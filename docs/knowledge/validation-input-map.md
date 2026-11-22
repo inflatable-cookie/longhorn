@@ -719,7 +719,10 @@ artifact aggregate.
 **`held-surface`** — role: docs proof. Runs `scripts/verify-held-surface.ts`.
 Owns `docs/reference/held-surface.md`,
 `docs/reference/api-surface.md`, `docs/guides/package-selection.md`.
-Companions: `check:api-reference`. Limits: parses a fixed register table.
+Companions: `check:api-reference`. Limits: parses the two fixed register
+tables, and text-searches each retained item's named crate or package source
+(the `examples/` owner is a path check); it does not judge whether a contract
+still argues for keeping the item.
 
 **`host-protocol`** — role: cross-language proof. Runs
 `scripts/verify-host-protocol.ts`. Owns a recursive scan, not just `src`:
