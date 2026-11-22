@@ -8,12 +8,14 @@ use longhorn_config::{
 };
 use longhorn_core::{LayoutSchemaId, SchemaVersion};
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, RegionDefinition,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
+    RegionDefinition,
 };
 use longhorn_surfaces_config::{
     LayoutRegistryDigest, LegacySurfaceFormatMigration, NoSurfaceMigration,
     RegisteredSurfaceDomain, SurfaceBackupPolicy, SurfaceMigration, SurfaceMigrationTarget,
 };
+use serde::Serialize;
 use serde_json::{Value, json};
 
 use crate::support::{Fixture, descriptor, document, domain, envelope, limits, registry};
@@ -218,7 +220,7 @@ fn legacy_digestless_surface_file_migrates_in_memory_and_rewrites_with_safety_ba
         "surfaces.workspace",
         1,
         json!({
-            "registryDigest": legacy_seven_field_registry_digest(&registry()).as_str(),
+            "registryDigest": AUTHENTIC_AA38E725_LAYOUT_DIGEST,
             "document": document(),
         }),
     );
@@ -230,17 +232,27 @@ fn legacy_digestless_surface_file_migrates_in_memory_and_rewrites_with_safety_ba
     assert_eq!(recovery.source.unwrap().bytes, digest_bearing);
 }
 
+// Authentic SHA-256 produced by the pre-unification (`aa38e725`)
+// `compute_layout_registry_digest` over `support::registry()`'s 7-field
+// `LayoutLimits` + `schemas` + `panelDefinitions` in struct declaration order.
+const AUTHENTIC_AA38E725_LAYOUT_DIGEST: &str =
+    "23ca9d33b2b0f0aad7e4f41b9b1727eb5872608bb1c5398334404f7ef5ea7adb";
+
 #[test]
 fn legacy_layout_file_with_expected_previous_digest_migrates_and_rejects_mismatched_digests() {
     let fixture = Fixture::new();
     let current_registry = registry();
-    // Exact digest over the pre-unification 7-field LayoutLimits + schemas + panel definitions.
-    let expected_previous_digest = legacy_seven_field_registry_digest(&current_registry);
+    assert_eq!(
+        legacy_aa38e725_registry_digest(&current_registry).as_str(),
+        AUTHENTIC_AA38E725_LAYOUT_DIGEST
+    );
+    let expected_previous_digest =
+        LayoutRegistryDigest::new(AUTHENTIC_AA38E725_LAYOUT_DIGEST).unwrap();
     let legacy_bytes = envelope(
         "surfaces.workspace",
         1,
         json!({
-            "registryDigest": expected_previous_digest.as_str(),
+            "registryDigest": AUTHENTIC_AA38E725_LAYOUT_DIGEST,
             "document": document(),
         }),
     );
@@ -373,21 +385,40 @@ fn legacy_file_requiring_product_choice_enters_recovery_with_original_bytes_pres
     assert_eq!(fs::read(fixture.path(&upgraded)).unwrap(), legacy_bytes);
 }
 
-fn legacy_seven_field_registry_digest(registry: &LayoutDefinitionRegistry) -> LayoutRegistryDigest {
+#[derive(Serialize)]
+struct LegacyAa38e725LayoutLimits {
+    maximum_schemas: usize,
+    maximum_regions_per_schema: usize,
+    maximum_sizing_slots_per_schema: usize,
+    maximum_panel_definitions: usize,
+    maximum_surfaces: usize,
+    maximum_panel_instances: usize,
+    maximum_panel_instances_per_region: usize,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LegacyAa38e725RegistryDigestMaterial<'registry> {
+    limits: LegacyAa38e725LayoutLimits,
+    schemas: Vec<&'registry LayoutSchemaDefinition>,
+    panel_definitions: Vec<&'registry PanelDefinition>,
+}
+
+fn legacy_aa38e725_registry_digest(registry: &LayoutDefinitionRegistry) -> LayoutRegistryDigest {
     let limits = registry.limits();
-    let material = json!({
-        "limits": {
-            "maximum_schemas": limits.maximum_schemas(),
-            "maximum_regions_per_schema": limits.maximum_regions_per_schema(),
-            "maximum_sizing_slots_per_schema": limits.maximum_sizing_slots_per_schema(),
-            "maximum_panel_definitions": limits.maximum_panel_definitions(),
-            "maximum_surfaces": limits.maximum_surfaces(),
-            "maximum_panel_instances": limits.maximum_panel_instances(),
-            "maximum_panel_instances_per_region": limits.maximum_panel_instances_per_region(),
+    let material = LegacyAa38e725RegistryDigestMaterial {
+        limits: LegacyAa38e725LayoutLimits {
+            maximum_schemas: limits.maximum_schemas(),
+            maximum_regions_per_schema: limits.maximum_regions_per_schema(),
+            maximum_sizing_slots_per_schema: limits.maximum_sizing_slots_per_schema(),
+            maximum_panel_definitions: limits.maximum_panel_definitions(),
+            maximum_surfaces: limits.maximum_surfaces(),
+            maximum_panel_instances: limits.maximum_panel_instances(),
+            maximum_panel_instances_per_region: limits.maximum_panel_instances_per_region(),
         },
-        "schemas": registry.schemas().collect::<Vec<_>>(),
-        "panelDefinitions": registry.panel_definitions().collect::<Vec<_>>(),
-    });
+        schemas: registry.schemas().collect(),
+        panel_definitions: registry.panel_definitions().collect(),
+    };
     let bytes = serde_json::to_vec(&material).unwrap();
     LayoutRegistryDigest::from_sha256(Sha256Digest::from_bytes(&bytes))
 }
