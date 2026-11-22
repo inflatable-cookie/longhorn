@@ -16,11 +16,6 @@ use tauri::{Runtime, State, Webview};
 /// on both the Rust command and the TypeScript constant.
 pub const BEGIN_SELECTION_COMMAND: &str = "longhorn_agent_control_begin_selection";
 
-/// Scan token for the Rust-side host picker. The release-absence scan
-/// requires this exact string in the feature-on plugin rlib and forbids it
-/// when the feature is off.
-pub const HOST_SELECTION_ENTRY: &str = "begin_host_selection";
-
 /// Wire value of [`SelectionOrigin::Agent`]. Matches the TypeScript export.
 pub const SELECTION_ORIGIN_AGENT: &str = "agent";
 
@@ -235,6 +230,5 @@ mod origin_tests {
         );
         assert_eq!(SELECTION_ORIGIN_AGENT, "agent");
         assert_eq!(SELECTION_ORIGIN_HUMAN, "human");
-        assert_eq!(HOST_SELECTION_ENTRY, "begin_host_selection");
     }
 }

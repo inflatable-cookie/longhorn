@@ -136,14 +136,17 @@ impl<'de> Deserialize<'de> for InstanceToken {
     }
 }
 
-/// Length-sensitive-prefix-free byte equality: mismatched lengths still fold
-/// over the shared prefix, and the length difference alone decides.
+/// Compares two byte slices without a data-dependent early exit.
+///
+/// Mismatched lengths still fold over the shared prefix so there is no
+/// early-return branch on length; the length XOR alone decides when lengths
+/// differ. Uses `black_box` to discourage short-circuiting optimizations.
 fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
     let mut difference = left.len() ^ right.len();
-    for (left, right) in left.iter().zip(right.iter()) {
-        difference |= usize::from(left ^ right);
+    for (&a, &b) in left.iter().zip(right.iter()) {
+        difference |= usize::from(a ^ b);
     }
-    difference == 0
+    core::hint::black_box(difference) == 0
 }
 
 /// RFC 4648 base64url alphabet without padding.

@@ -42,6 +42,7 @@ struct StubHandler {
     evaluated: Arc<Mutex<Vec<String>>>,
     events: Arc<Mutex<Vec<Value>>>,
     next_seq: Arc<AtomicU64>,
+    epoch: Arc<Mutex<String>>,
 }
 
 impl Default for StubHandler {
@@ -60,6 +61,7 @@ impl Default for StubHandler {
                 "text": "hello from stub"
             })])),
             next_seq: Arc::new(AtomicU64::new(2)),
+            epoch: Arc::new(Mutex::new("epoch-1".to_owned())),
         }
     }
 }
@@ -71,6 +73,7 @@ impl StubHandler {
             evaluated: Arc::new(Mutex::new(Vec::new())),
             events: Arc::new(Mutex::new(Vec::new())),
             next_seq: Arc::new(AtomicU64::new(1)),
+            epoch: Arc::new(Mutex::new("epoch-1".to_owned())),
         }
     }
 
@@ -83,13 +86,34 @@ impl StubHandler {
             "text": text
         }));
     }
+
+    fn reload_document(&self, new_epoch: &str, url: &str) {
+        let mut events = self.events.lock().unwrap();
+        events.clear();
+        self.next_seq.store(2, Ordering::SeqCst);
+        *self.epoch.lock().unwrap() = new_epoch.to_owned();
+        // Matches shim.ts: fresh document install records full-document
+        // navigation as seq 1.
+        events.push(json!({
+            "seq": 1,
+            "kind": "navigation",
+            "url": url,
+        }));
+    }
 }
 
-fn parse_read_events_since(js: &str) -> Option<u64> {
+fn parse_read_events_args(js: &str) -> Option<(u64, Option<String>)> {
     let start = js.find("readEvents(")?;
     let rest = &js[start + "readEvents(".len()..];
     let end = rest.find(')')?;
-    rest[..end].trim().parse().ok()
+    let args = rest[..end].trim();
+    if let Some((seq_part, epoch_part)) = args.split_once(',') {
+        let seq = seq_part.trim().parse().ok()?;
+        let epoch: Option<String> = serde_json::from_str(epoch_part.trim()).ok()?;
+        Some((seq, epoch))
+    } else {
+        Some((args.parse().ok()?, None))
+    }
 }
 
 impl StubHandler {
@@ -180,17 +204,23 @@ impl ControlHandler for StubHandler {
     ) -> Result<EvaluateResult, ToolError> {
         self.invocations.fetch_add(1, Ordering::SeqCst);
         self.evaluated.lock().unwrap().push(request.js.clone());
-        if let Some(since) = parse_read_events_since(&request.js) {
+        if let Some((since, since_epoch)) = parse_read_events_args(&request.js) {
+            let current_epoch = self.epoch.lock().unwrap().clone();
+            let effective_since = match since_epoch.as_deref() {
+                Some(ep) if ep != current_epoch => 0,
+                _ => since,
+            };
             let events = self.events.lock().unwrap();
             let filtered: Vec<Value> = events
                 .iter()
-                .filter(|event| event["seq"].as_u64().unwrap_or(0) > since)
+                .filter(|event| event["seq"].as_u64().unwrap_or(0) > effective_since)
                 .cloned()
                 .collect();
             let next_seq = self.next_seq.load(Ordering::SeqCst);
             return Ok(EvaluateResult {
                 value: Value::String(
                     json!({
+                        "epoch": current_epoch,
                         "events": filtered,
                         "nextSeq": next_seq,
                         "dropped": 0
@@ -371,12 +401,16 @@ impl McpRequest {
     }
 
     fn listen_console(self) -> Request<Body> {
+        self.listen_uris(&["longhorn://agent-control/console"])
+    }
+
+    fn listen_uris(self, uris: &[&str]) -> Request<Body> {
         self.post(
             "subscriptions/listen",
             None,
             json!({
                 "notifications": {
-                    "resourceSubscriptions": ["longhorn://agent-control/console"]
+                    "resourceSubscriptions": uris
                 },
                 "_meta": meta()
             }),
@@ -471,6 +505,7 @@ async fn event_resources_are_listed_and_readable() {
     let body: Value = serde_json::from_str(text).unwrap();
     assert_eq!(body["events"][0]["text"], "hello from stub");
     assert_eq!(body["dropped"], 0);
+    assert_eq!(body["epoch"], "epoch-1");
 }
 
 /// One `console.log` after subscribe must produce `resources/updated`.
@@ -552,6 +587,197 @@ async fn listen_delivers_the_first_event_after_subscribe() {
     assert!(
         buf.contains("longhorn://agent-control/console"),
         "updated did not name the console URI: {buf}"
+    );
+}
+
+/// Across a page reload, the in-page event ring restarts at seq 1 with a new
+/// document epoch. Listen must reset its cursor and still deliver the new
+/// document's seq 1 event even though the pre-reload cursor was higher.
+#[tokio::test]
+async fn listen_delivers_events_across_page_reload() {
+    let token = InstanceToken::generate().unwrap();
+    let stub = StubHandler::empty_ring();
+    let app = control_router(stub.clone(), token.clone(), SelectionRegistry::new("test"));
+
+    let response = app
+        .clone()
+        .oneshot(McpRequest::authed(&token).listen_uris(&[
+            "longhorn://agent-control/console",
+            "longhorn://agent-control/navigation",
+        ]))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body = response.into_body();
+    let mut buf = String::new();
+
+    async fn pull_until_count(
+        body: &mut axum::body::Body,
+        buf: &mut String,
+        needle: &str,
+        expected: usize,
+        bound: Duration,
+    ) -> bool {
+        let deadline = tokio::time::Instant::now() + bound;
+        while tokio::time::Instant::now() < deadline {
+            if buf.matches(needle).count() >= expected {
+                return true;
+            }
+            match tokio::time::timeout(Duration::from_millis(100), body.frame()).await {
+                Ok(Some(Ok(frame))) => {
+                    if let Ok(data) = frame.into_data() {
+                        buf.push_str(&String::from_utf8_lossy(&data));
+                    }
+                }
+                Ok(Some(Err(_))) | Ok(None) => return buf.matches(needle).count() >= expected,
+                Err(_) => {}
+            }
+        }
+        buf.matches(needle).count() >= expected
+    }
+
+    assert!(
+        pull_until_count(
+            &mut body,
+            &mut buf,
+            "notifications/subscriptions/acknowledged",
+            1,
+            Duration::from_secs(2),
+        )
+        .await,
+        "listen never acknowledged: {buf}"
+    );
+
+    // Advance the pre-reload cursor past seq 1 (push 3 events -> seq = 3).
+    stub.push_console("pre-1");
+    stub.push_console("pre-2");
+    stub.push_console("pre-3");
+    assert!(
+        pull_until_count(
+            &mut body,
+            &mut buf,
+            "notifications/resources/updated",
+            3,
+            Duration::from_secs(2),
+        )
+        .await,
+        "pre-reload events were not delivered: {buf}"
+    );
+
+    // Simulate a page reload: ring resets to seq 1 (navigation) with a new
+    // document epoch, followed by an early console event at seq 2.
+    stub.reload_document("epoch-2", "http://localhost/reloaded");
+    stub.push_console("post-reload-seq-2");
+
+    assert!(
+        pull_until_count(
+            &mut body,
+            &mut buf,
+            "notifications/resources/updated",
+            5,
+            Duration::from_secs(2),
+        )
+        .await,
+        "post-reload navigation + console events were lost across reload: {buf}"
+    );
+    assert!(
+        buf.contains("longhorn://agent-control/navigation"),
+        "full-document navigation URI was not delivered across reload: {buf}"
+    );
+}
+
+/// In a mixed subscription (selection + console), rapid selection updates
+/// faster than the 50 ms page poll must not starve or reset the page poll.
+#[tokio::test]
+async fn listen_mixed_selection_and_page_events_does_not_starve_page_polls() {
+    let token = InstanceToken::generate().unwrap();
+    let stub = StubHandler::empty_ring();
+    let registry = SelectionRegistry::new("test");
+    let app = control_router(stub.clone(), token.clone(), registry.clone());
+
+    let response = app
+        .clone()
+        .oneshot(McpRequest::authed(&token).listen_uris(&[
+            "longhorn://agent-control/console",
+            "longhorn://agent-control/selection",
+        ]))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let mut body = response.into_body();
+    let mut buf = String::new();
+
+    // Drive selection updates continuously every 10 ms (5x faster than the 50 ms
+    // page poll) until both actual `notifications/resources/updated` messages
+    // arrive; never stop churning before the assertion completes.
+    let reg = registry.clone();
+    let spammer = tokio::spawn(async move {
+        loop {
+            let wait = reg
+                .begin(longhorn_agent_control::BeginSelectionRequest {
+                    kind: longhorn_agent_control::SelectionKind::Open,
+                    directory: false,
+                    multiple: false,
+                    filters: Vec::new(),
+                    title: None,
+                    default_path: None,
+                    window: None,
+                    webview: None,
+                })
+                .unwrap();
+            let id = wait.id().clone();
+            let _ = reg.reject(&id);
+            let _ = wait.await;
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    });
+
+    stub.push_console("during-selection-burst");
+
+    let mut saw_selection_update = false;
+    let mut saw_console_update = false;
+    let mut pending_line = String::new();
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+    while tokio::time::Instant::now() < deadline && !(saw_selection_update && saw_console_update) {
+        match tokio::time::timeout(Duration::from_millis(50), body.frame()).await {
+            Ok(Some(Ok(frame))) => {
+                if let Ok(data) = frame.into_data() {
+                    let chunk = String::from_utf8_lossy(&data);
+                    buf.push_str(&chunk);
+                    pending_line.push_str(&chunk);
+                    while let Some(pos) = pending_line.find('\n') {
+                        let line = pending_line[..pos].trim_end_matches('\r');
+                        if let Some(payload) = line.strip_prefix("data: ")
+                            && let Ok(msg) = serde_json::from_str::<Value>(payload)
+                            && msg["method"] == "notifications/resources/updated"
+                        {
+                            match msg["params"]["uri"].as_str() {
+                                Some("longhorn://agent-control/selection") => {
+                                    saw_selection_update = true;
+                                }
+                                Some("longhorn://agent-control/console") => {
+                                    saw_console_update = true;
+                                }
+                                _ => {}
+                            }
+                        }
+                        pending_line.drain(..=pos);
+                    }
+                }
+            }
+            Ok(Some(Err(_))) | Ok(None) => break,
+            Err(_) => {}
+        }
+    }
+    spammer.abort();
+
+    assert!(
+        saw_selection_update,
+        "selection notifications/resources/updated missing in mixed listen: {buf}"
+    );
+    assert!(
+        saw_console_update,
+        "console notifications/resources/updated was starved by selection churn: {buf}"
     );
 }
 

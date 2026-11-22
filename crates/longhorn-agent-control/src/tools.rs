@@ -13,6 +13,7 @@
 use std::{collections::BTreeSet, error::Error, fmt, str::FromStr};
 
 use longhorn_core::{ClientSize, CommandId, OpaqueIdError, WindowId};
+use rmcp::schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _};
 
 /// Wire names of every MCP tool the control server exposes.
@@ -41,11 +42,14 @@ pub const CONTROL_TOOL_NAMES: &[&str] = &[
 /// Decoded payload cap for one `set_file_input` call (contract 022).
 pub const MAX_FILE_INPUT_BYTES: usize = 8 * 1024 * 1024;
 
+/// Upper bound on `wait_for` timeout in milliseconds (5 minutes).
+pub const MAX_WAIT_TIMEOUT_MS: u32 = 300_000;
+
 /// Opaque element reference stamped by the edge that produced a snapshot.
 ///
 /// Resolution is the stamping edge's job against the live DOM; the core
 /// treats the value as an opaque, bounded string and never stores it.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
 pub struct ElementRef(String);
 
 impl ElementRef {
@@ -144,7 +148,7 @@ pub type WindowTarget = Option<WindowId>;
 /// This is the host's own webview label (Tauri's, on that host). Absent
 /// [`WebviewTarget`] means the window's UI webview — today's meaning,
 /// unchanged. A present value addresses one hosted webview of that window.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
 pub struct WebviewLabel(String);
 
 impl WebviewLabel {
@@ -208,7 +212,7 @@ pub type WebviewTarget = Option<WebviewLabel>;
 
 /// Opaque pending-selection id assigned when an agent-originated picker
 /// call is published.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
 pub struct SelectionId(String);
 
 impl SelectionId {
@@ -267,11 +271,12 @@ impl<'de> Deserialize<'de> for SelectionId {
 }
 
 /// `snapshot` request.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SnapshotRequest {
     /// Window to snapshot; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview to snapshot; `None` targets the window's UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -295,11 +300,12 @@ pub struct SnapshotResult {
 }
 
 /// `click` request: synthetic in-page click on a resolved ref.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ClickRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview containing the element; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -309,11 +315,12 @@ pub struct ClickRequest {
 }
 
 /// `type` request: synthetic in-page text entry into a resolved ref.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct TypeRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview containing the element; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -325,7 +332,9 @@ pub struct TypeRequest {
 }
 
 /// Keyboard modifier held during a `press`.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
+)]
 #[serde(rename_all = "camelCase")]
 pub enum KeyModifier {
     /// Alt / Option.
@@ -339,11 +348,12 @@ pub enum KeyModifier {
 }
 
 /// `press` request: synthetic in-page key press.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PressRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview containing the element; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -359,11 +369,12 @@ pub struct PressRequest {
 }
 
 /// `scroll` request: synthetic in-page scroll.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ScrollRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview to scroll; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -382,11 +393,12 @@ pub struct ScrollRequest {
 /// There is deliberately no OS-level mode: drag dispatches untrusted DOM
 /// events in-page, and native hover, OS drag-and-drop, and `isTrusted`
 /// checks are out of scope (contract 022). No field can ever select one.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct DragRequest {
     /// Window containing the elements; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview containing the elements; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -401,7 +413,7 @@ pub struct DragRequest {
 ///
 /// The agent is the byte source. There is no path field; Longhorn never
 /// reads the filesystem for this tool (contract 022).
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct FileInputFile {
     /// File name presented to the page (`File.name`).
@@ -415,11 +427,12 @@ pub struct FileInputFile {
 
 /// `set_file_input` request: assign constructed `File`s onto an HTML file
 /// input and dispatch `input` and `change`.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SetFileInputRequest {
     /// Window containing the element; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview containing the element; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -434,35 +447,105 @@ pub struct SetFileInputRequest {
 impl SetFileInputRequest {
     /// Checks names, base64, non-empty list, and the decoded 8 MiB cap.
     ///
-    /// Structural serde still admits an empty list. The MCP argument parser
-    /// and every host `ControlHandler` call this before dispatch.
-    pub fn validate(&self) -> Result<(), String> {
+    /// Structural serde still admits an empty list. Prefer
+    /// [`SetFileInputRequest::into_validated`] when forwarding to a host
+    /// handler so validation is enforced by the type system.
+    pub fn validate(&self) -> Result<(), ToolError> {
         if self.files.is_empty() {
-            return Err("set_file_input requires at least one file".to_owned());
+            return Err(ToolError::InvalidArgument {
+                message: "set_file_input requires at least one file".to_owned(),
+            });
         }
         let mut total = 0usize;
         for file in &self.files {
             if file.name.is_empty() {
-                return Err("set_file_input file name must be non-empty".to_owned());
+                return Err(ToolError::InvalidArgument {
+                    message: "set_file_input file name must be non-empty".to_owned(),
+                });
             }
-            let size = decode_file_input_base64(&file.content_base64).ok_or_else(|| {
-                format!("set_file_input file {:?} is not valid base64", file.name)
-            })?;
-            total = total.saturating_add(size);
-            if total > MAX_FILE_INPUT_BYTES {
-                return Err("set_file_input decoded total exceeds 8 MiB".to_owned());
+            let remaining = MAX_FILE_INPUT_BYTES.saturating_sub(total);
+            match decoded_file_input_len(&file.content_base64, remaining) {
+                Ok(size) => {
+                    total = total.saturating_add(size);
+                }
+                Err(Base64CheckError::Invalid) => {
+                    return Err(ToolError::InvalidArgument {
+                        message: format!("set_file_input file {:?} is not valid base64", file.name),
+                    });
+                }
+                Err(Base64CheckError::ExceedsCap) => {
+                    return Err(ToolError::InvalidArgument {
+                        message: "set_file_input decoded total exceeds 8 MiB".to_owned(),
+                    });
+                }
             }
         }
         Ok(())
     }
+
+    /// Validates this request and wraps it in an opaque
+    /// [`ValidatedSetFileInputRequest`] that can only be constructed after
+    /// passing [`SetFileInputRequest::validate`].
+    pub fn into_validated(self) -> Result<ValidatedSetFileInputRequest, ToolError> {
+        self.validate()?;
+        Ok(ValidatedSetFileInputRequest(self))
+    }
 }
 
-fn decode_file_input_base64(content_base64: &str) -> Option<usize> {
-    use base64::{Engine as _, engine::general_purpose::STANDARD};
-    STANDARD
-        .decode(content_base64.as_bytes())
-        .ok()
-        .map(|bytes| bytes.len())
+/// A [`SetFileInputRequest`] proven to have passed
+/// [`SetFileInputRequest::validate`].
+///
+/// The inner field is private so no caller can bypass the 8 MiB decoded cap,
+/// base64 check, or non-empty file/name checks when calling
+/// [`crate::ControlHandler::set_file_input_prevalidated`].
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidatedSetFileInputRequest(SetFileInputRequest);
+
+impl ValidatedSetFileInputRequest {
+    /// Borrows the validated request.
+    #[must_use]
+    pub const fn as_request(&self) -> &SetFileInputRequest {
+        &self.0
+    }
+
+    /// Unwraps the validated request.
+    #[must_use]
+    pub fn into_inner(self) -> SetFileInputRequest {
+        self.0
+    }
+}
+
+enum Base64CheckError {
+    Invalid,
+    ExceedsCap,
+}
+
+/// Validates standard base64 and counts decoded bytes without allocating a
+/// full decoded buffer, stopping as soon as the cap is exceeded.
+fn decoded_file_input_len(
+    content_base64: &str,
+    max_bytes: usize,
+) -> Result<usize, Base64CheckError> {
+    use std::io::Read as _;
+
+    let mut decoder = base64::read::DecoderReader::new(
+        content_base64.as_bytes(),
+        &base64::engine::general_purpose::STANDARD,
+    );
+    let mut buf = [0u8; 4096];
+    let mut total = 0usize;
+    loop {
+        let read = decoder
+            .read(&mut buf)
+            .map_err(|_| Base64CheckError::Invalid)?;
+        if read == 0 {
+            return Ok(total);
+        }
+        total = total.saturating_add(read);
+        if total > max_bytes {
+            return Err(Base64CheckError::ExceedsCap);
+        }
+    }
 }
 
 /// Receipt for the action family (`click`, `type`, `press`, `scroll`,
@@ -475,11 +558,12 @@ pub struct ActionReceipt {}
 
 /// `evaluate` request: run JavaScript in the page. Escape hatch, not the
 /// primary path — full code execution inside the app.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct EvaluateRequest {
     /// Window to evaluate in; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview to evaluate in; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -502,7 +586,7 @@ pub struct EvaluateResult {
 /// animation-frame variant and there never will be: elapsed time proves
 /// nothing about page progress under WKWebView timer coalescing, and
 /// rAF-driven visuals must not be awaited (contract 022).
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(
     tag = "predicate",
     rename_all = "camelCase",
@@ -532,19 +616,37 @@ pub enum WaitPredicate {
 }
 
 /// `wait_for` request: poll a predicate until it holds or the bound ends.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct WaitForRequest {
     /// Window to wait in; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
     /// Child webview to wait in; `None` targets the UI webview.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webview: WebviewTarget,
     /// DOM-relative predicate to await.
     pub predicate: WaitPredicate,
-    /// Hard bound in milliseconds; expiry is [`ToolError::WaitTimeout`].
+    /// Hard bound in milliseconds (at most [`MAX_WAIT_TIMEOUT_MS`]); expiry is
+    /// [`ToolError::WaitTimeout`].
+    #[schemars(range(max = 300_000))]
     pub timeout_ms: u32,
+}
+
+impl WaitForRequest {
+    /// Enforces the upper bound on `timeout_ms`.
+    pub fn validate(&self) -> Result<(), ToolError> {
+        if self.timeout_ms > MAX_WAIT_TIMEOUT_MS {
+            return Err(ToolError::InvalidArgument {
+                message: format!(
+                    "wait_for timeoutMs {} exceeds maximum {MAX_WAIT_TIMEOUT_MS}",
+                    self.timeout_ms
+                ),
+            });
+        }
+        Ok(())
+    }
 }
 
 /// `wait_for` result: the predicate held within the bound.
@@ -554,11 +656,12 @@ pub struct WaitForResult {}
 
 /// `screenshot` request: fresh window image via webview snapshot capture.
 /// Works occluded, unfocused, and minimized (Card 227).
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct ScreenshotRequest {
     /// Window to capture; `None` targets the frontmost window.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
     pub window: WindowTarget,
 }
 
@@ -576,10 +679,11 @@ pub struct ScreenshotResult {
 /// `command` request: invoke a registered contract-006 command by id. This
 /// is the route to behavior behind native menus and dialogs; agents do not
 /// click native chrome.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CommandRequest {
     /// Command to invoke.
+    #[schemars(with = "String")]
     pub command: CommandId,
     /// Command argument payload, when the command takes one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -633,7 +737,7 @@ pub struct ResizeWindowRequest {
 }
 
 /// `answer_selection` request.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct AnswerSelectionRequest {
     /// Pending request to settle.
@@ -648,7 +752,7 @@ pub struct AnswerSelectionRequest {
 pub struct AnswerSelectionResult {}
 
 /// `reject_selection` request.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RejectSelectionRequest {
     /// Pending request to decline.
@@ -731,6 +835,17 @@ pub enum ToolError {
         /// What was wrong with the answer.
         message: String,
     },
+    /// The selection was cancelled or shut down before settlement.
+    CancelledSelection {
+        /// Id that was cancelled before settlement.
+        id: SelectionId,
+    },
+    /// A tool request failed input validation (e.g. out-of-range timeout or
+    /// malformed file-input payload).
+    InvalidArgument {
+        /// What was invalid about the argument.
+        message: String,
+    },
 }
 
 impl fmt::Display for ToolError {
@@ -774,6 +889,15 @@ impl fmt::Display for ToolError {
             }
             Self::MalformedSelection { message } => {
                 write!(formatter, "malformed selection answer: {message}")
+            }
+            Self::CancelledSelection { id } => {
+                write!(
+                    formatter,
+                    "selection {id:?} was cancelled before settlement"
+                )
+            }
+            Self::InvalidArgument { message } => {
+                write!(formatter, "invalid argument: {message}")
             }
         }
     }
@@ -947,7 +1071,13 @@ mod tests {
             files: Vec::new(),
             ..request.clone()
         };
-        assert!(empty.validate().unwrap_err().contains("at least one file"));
+        assert!(
+            empty
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("at least one file")
+        );
 
         let unnamed = SetFileInputRequest {
             files: vec![FileInputFile {
@@ -957,7 +1087,13 @@ mod tests {
             }],
             ..request.clone()
         };
-        assert!(unnamed.validate().unwrap_err().contains("non-empty"));
+        assert!(
+            unnamed
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("non-empty")
+        );
 
         let bad_base64 = SetFileInputRequest {
             files: vec![FileInputFile {
@@ -967,7 +1103,13 @@ mod tests {
             }],
             ..request
         };
-        assert!(bad_base64.validate().unwrap_err().contains("base64"));
+        assert!(
+            bad_base64
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("base64")
+        );
     }
 
     #[test]
@@ -992,7 +1134,31 @@ mod tests {
             }],
             ..allowed
         };
-        assert!(over.validate().unwrap_err().contains("8 MiB"));
+        assert!(over.validate().unwrap_err().to_string().contains("8 MiB"));
+    }
+
+    #[test]
+    fn wait_for_rejects_timeout_above_cap() {
+        let ok = WaitForRequest {
+            window: None,
+            webview: None,
+            predicate: WaitPredicate::RefResolve { element: ref_a() },
+            timeout_ms: MAX_WAIT_TIMEOUT_MS,
+        };
+        ok.validate().unwrap();
+        let over = WaitForRequest {
+            timeout_ms: MAX_WAIT_TIMEOUT_MS + 1,
+            ..ok
+        };
+        assert!(matches!(
+            over.validate().unwrap_err(),
+            ToolError::InvalidArgument { .. }
+        ));
+        let schema = serde_json::to_value(rmcp::schemars::schema_for!(WaitForRequest)).unwrap();
+        assert_eq!(
+            schema["properties"]["timeoutMs"]["maximum"],
+            serde_json::json!(MAX_WAIT_TIMEOUT_MS)
+        );
     }
 
     #[test]
