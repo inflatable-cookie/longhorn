@@ -17,7 +17,7 @@ const repoRoot = resolve(import.meta.dir, "..");
 /** Relative paths allowed to name a location outside the repository. */
 const ALLOWED_ESCAPES = new Set([
   "scripts/verify-agent-tool-dispatch-source-consumer.ts",
-  "scripts/verify-greenfield-card125.ts",
+  "scripts/verify-greenfield-compositions.ts",
 ]);
 
 const SKIPPED = new Set([

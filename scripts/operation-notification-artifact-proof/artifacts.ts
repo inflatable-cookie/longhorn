@@ -4,7 +4,8 @@ import { basename, join, resolve } from "node:path";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 
-import { assertExactSet, digest, parseTrace, readSourceTree, run } from "./shared.ts";
+import { assertExactSet, digest, parseTrace, runArtifactCommand as run } from "../proof-support.ts";
+import { readSourceTree } from "./shared.ts";
 import type { ArtifactIdentity, Shape } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import {

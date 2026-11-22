@@ -31,7 +31,7 @@
 // seconds. Either way it is a standalone selector, not a member of `qa`. Keep
 // the stage for inspection with KEEP_DESKTOP_SUPPORT_CONFORMANCE=1.
 
-import { spawnSync } from "node:child_process";
+import { runSync as run } from "./proof-support.ts";
 import { cp, lstat, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -260,23 +260,4 @@ async function privateWorkspaceManifest(): Promise<string> {
     : filtered.replace("[workspace.dependencies]\n", `[workspace.dependencies]\n${additions}\n`);
   const members = [...crates.map((name) => `  "crates/${name}",`), '  "consumer",'].join("\n");
   return `[workspace]\nmembers = [\n${members}\n]\nresolver = "2"\n\n${dependencies}`;
-}
-
-function run(command: readonly string[], cwd: string): string {
-  // `scripts/rust-command.sh` feeds every command here: the checkout-level
-  // `package --list` inventories and the consumer build's `oxide exec` lease,
-  // whose tool calls plain Cargo.
-  const result = spawnSync(command[0]!, command.slice(1), {
-    cwd,
-    encoding: "utf8",
-    env: { ...process.env },
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(
-      `${command.join(" ")} failed in ${cwd} (exit ${result.status})\n${result.stdout}\n${result.stderr}`,
-    );
-  }
-  return result.stdout;
 }

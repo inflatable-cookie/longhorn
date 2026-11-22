@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 
-import { digest, run } from "./shared.ts";
+import { digest, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import {

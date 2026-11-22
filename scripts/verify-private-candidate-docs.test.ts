@@ -4,7 +4,8 @@ import {
   assertCandidateFactsInProse,
   factsFromReceipt,
   type CandidateFacts,
-} from "./verify-private-candidate-docs-card127.ts";
+  verifyPrivateCandidateDocs,
+} from "./verify-private-candidate-docs.ts";
 
 const facts: CandidateFacts = {
   version: "0.1.0",
@@ -48,5 +49,13 @@ describe("private-candidate CHANGELOG facts", () => {
         graphs: Array.from({ length: 7 }),
       }),
     ).toEqual(facts);
+  });
+
+  test("live docs and release gates match the frozen receipt", async () => {
+    await expect(verifyPrivateCandidateDocs()).resolves.toMatchObject({
+      outcome: "pass",
+      candidateVersion: facts.version,
+      publication: false,
+    });
   });
 });

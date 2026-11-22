@@ -10,12 +10,7 @@ import {
 } from "node:fs/promises";
 import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
 
-import {
-  assertExactSet,
-  digest,
-  parseTrace,
-  run,
-} from "./shared.ts";
+import { assertExactSet, digest, parseTrace, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import {

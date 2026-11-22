@@ -1,0 +1,2 @@
+- Consolidate runner-tool checks and reuse the same proof helpers across artifact verifiers.
+- Run the guide proof with `effigy proof:guide-corpus`. The compile-only example is now `longhorn-window-bound-hosting-proof`.

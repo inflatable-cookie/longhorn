@@ -12,13 +12,8 @@ import {
   writeFile,
 } from "node:fs/promises";
 
-import {
-  assertExactSet,
-  fileDependency,
-  parseTrace,
-  run,
-  testCount,
-} from "./shared.ts";
+import { testCount } from "../test-count.ts";
+import { assertExactSet, fileDependency, parseTrace, runWithDiagnostics as run } from "../proof-support.ts";
 import { POODLE_RELEASE } from "./artifacts.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import type {

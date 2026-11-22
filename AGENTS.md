@@ -136,7 +136,7 @@ live on external build scratch and are removed after use.
 | Every `lint:*`/`test:*`/`docs:*` Rust selector, `check:prototypes`, `check:bindings`, `release:floor`, `ci:rehearse` | `rust-command.sh <cargo command>` |
 | `effigy fmt:rust` | `rust-command.sh fmt --check -p …` (workspace), `rust-command.sh fmt --check` (prototypes), `rust-command.sh metadata --no-deps`, plus `rustfmt --edition 2024 --check` on staged example sources |
 | `[release.gates] advisories` / `effigy release:gates` | `rust-command.sh deny check advisories` |
-| `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`, `scripts/generate-api-reference-card126.ts` | `rustCommand(["metadata", …])` |
+| `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`, `scripts/generate-api-reference.ts` | `rustCommand(["metadata", …])` |
 | Checkout-level `package --list` inventories, bindings `run` checks, `tree` reads and `-p` tests in the proofs and the two absence scans | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |
 | Staged and disposable consumer builds: the `scripts/proof-artifacts.ts` members, `scripts/verify-desktop-support-conformance.ts`, `scripts/verify-agent-tool-dispatch-source-consumer.ts`, `scripts/verify-source-consumer.sh` | `rustExec(privateCargoCommand(...))`, one boundary per staged workspace, at the MSRV pin where the staged crates need it |
 | `check:agent-control-release-absence`, `check:agent-tool-dispatch-release-absence` | `rustExec(privateCargoCommand(...), { profile: "release" })`; the scan reads the rlib paths Cargo reports in `--message-format=json` output (`libraryArchives`), not a directory layout |
@@ -152,7 +152,7 @@ Genuine Cargo exceptions:
 | --- | --- |
 | `.github/workflows/*`, including its `cargo metadata` step | CI, and workflow edits need approval |
 | Effigy's own `cargo update --workspace` lockfile sync from `config/release.toml` | Not a Longhorn entry point; Effigy runs it |
-| `scripts/check-runner-tools.ts`, `scripts/check-release-runner-tools.ts` | Read `cargo deny`/`cargo install` as text to check workflow installs; not entry points |
+| `scripts/check-runner-tools.ts` | Read `cargo deny`/`cargo install` as text to check workflow installs; not entry points |
 | `scripts/workspace-dependencies.ts` | Reads `Cargo.toml` text; runs no Cargo |
 | A consumer's own project commands in `docs/guides/` | Product Cargo behavior in the consumer's checkout, not this repository's route |
 | `.git/queue-hooks` warm-merge manifest | Nucleus-owned, outside the repository |

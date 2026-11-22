@@ -22,14 +22,10 @@ in them. One binding chain serves every host:
 WindowId -> SurfaceId -> RegionId -> PanelInstanceId
 ```
 
-A host that wants no Surface concept uses a single unlabelled Surface, which
-is what the no-Surface conformance shape had been doing under a different
-name. There is no surfaces-free layout crate: `longhorn-layout` and
-`longhorn-layout-config` were absorbed into `longhorn-surfaces` and
-`longhorn-surfaces-config`, and the `nucleus-no-surface-proof` example links
-`longhorn-surfaces` for exactly one unlabelled Surface. Its name now asserts
-something false in the letter and something true in spirit — the product
-composes no Surface *feature* — and is kept as history.
+A host without a product-facing Surface feature uses one unlabelled layout
+Surface. The [window-bound hosting proof](../../../examples/window-bound-hosting-proof/README.md)
+links `longhorn-surfaces` for that composition. That crate and
+`longhorn-surfaces-config` own the layout APIs.
 
 Core region and panel APIs do not import window or host types.
 

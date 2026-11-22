@@ -10,11 +10,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 
-import {
-  assertExactSet,
-  fileDependency,
-  run,
-} from "./shared.ts";
+import { assertExactSet, fileDependency, runWithDiagnostics as run } from "../proof-support.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import type {
   PackageManifest,

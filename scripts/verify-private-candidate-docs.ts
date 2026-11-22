@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseReleaseGates } from "./check-release-gates-alignment.ts";
-import { assert, repoRoot } from "./private-candidate-card127/support";
+import { assert, repoRoot } from "./private-candidate-docs/support";
 
 export type CandidateFacts = {
   version: string;
@@ -50,7 +50,7 @@ const SMALL_COUNT_WORDS: Readonly<Record<number, string>> = {
   12: "twelve",
 };
 
-const GATE_SCRIPT = "bun scripts/verify-private-candidate-docs-card127.ts";
+const GATE_SCRIPT = "bun scripts/verify-private-candidate-docs.ts";
 
 export function factsFromReceipt(receipt: {
   version?: unknown;
@@ -124,7 +124,7 @@ export async function verifyPrivateCandidateDocs(root = repoRoot): Promise<{
   publication: boolean;
 }> {
   const receipt = JSON.parse(
-    await readFile(join(root, "fixtures/release/card127/private-0-1-candidate-v1.json"), "utf8"),
+    await readFile(join(root, "fixtures/release/private-0-1-candidate-v1.json"), "utf8"),
   ) as CandidateReceipt;
   const facts = factsFromReceipt(receipt);
   const reference = await readFile(join(root, "docs/reference/private-0-1-candidate.md"), "utf8");

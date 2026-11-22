@@ -1,6 +1,6 @@
 {
   "schema": "longhorn.agent-control-freshness-matrix.v2",
-  "app": "/Users/tom/Dev/worktrees/longhorn-238/target/release/bundle/macos/Longhorn Agent Control Proof.app",
+  "app": "/Users/example/Dev/worktrees/longhorn-238/target/release/bundle/macos/Longhorn Agent Control Proof.app",
   "pid": 38134,
   "rows": [
     {

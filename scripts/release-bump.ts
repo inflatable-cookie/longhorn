@@ -88,7 +88,7 @@ export function promoteChangelog(text: string, version: string, date: string): s
 }
 
 async function defaultRegenerateApiReference(repoRoot: string): Promise<void> {
-  const command = ["bun", join(repoRoot, "scripts/generate-api-reference-card126.ts"), "--write"];
+  const command = ["bun", join(repoRoot, "scripts/generate-api-reference.ts"), "--write"];
   const process = Bun.spawn(command, { cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(process.stdout).text(),

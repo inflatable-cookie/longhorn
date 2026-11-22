@@ -1,3 +1,4 @@
+import { run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 // Pack-level typecheck of `longhorn-poodle-svelte` against registry Poodle.
 //
@@ -209,7 +210,7 @@ async function typecheckStage(pass: {
           await readFile(join(repoRoot, directory, "package.json"), "utf8"),
         ) as { version: string }).version,
       );
-      run(
+      await run(
         ["bun", "pm", "pack", "--ignore-scripts", "--destination", stage],
         join(repoRoot, directory),
       );
@@ -374,7 +375,7 @@ async function typecheckStage(pass: {
     // types for them. The tarball's own `*.svelte` ambient module would collide
     // with the installed copy's, so the unpacked one is excluded.
     await mkdir(join(stage, "pack"));
-    run(
+    await run(
       ["tar", "-xzf", packPath(stage, ADAPTER, packs, versions), "-C", "pack"],
       stage,
     );
@@ -435,16 +436,6 @@ async function typecheckStage(pass: {
     } else {
       await rm(stage, { recursive: true, force: true });
     }
-  }
-}
-
-function run(command: readonly string[], cwd: string): void {
-  const result = spawnSync(command[0]!, command.slice(1), {
-    cwd,
-    stdio: ["ignore", "ignore", "inherit"],
-  });
-  if (result.status !== 0) {
-    throw new Error(`${command.join(" ")} failed in ${cwd}`);
   }
 }
 
