@@ -196,8 +196,7 @@ impl GpuiWindowBackend for GpuiAppBackend<'_> {
 
     fn displays(&mut self) -> Result<Vec<GpuiDisplayFacts>, GpuiWindowError> {
         let primary = self.app.primary_display().map(|display| display.id());
-        self
-            .app
+        self.app
             .displays()
             .iter()
             .map(|display| display_facts(display, primary))

@@ -40,7 +40,8 @@ effigy test --plan
 effigy qa
 ```
 
-`doctor` is cheap orientation: it runs `fmt:rust`, `check:runner-tools`, and
+`doctor` is cheap orientation: it runs `health` (`fmt:rust`,
+`check:runner-tools`, `check:release-gates`, `check:agent-control-skill`) and
 built-in scans without compiling the workspace. `effigy qa` is the full
 Rust/TypeScript gate. `effigy test` uses the built-in test plan, which runs
 nextest and therefore does not cover the doc tests counted by `qa`. Use
@@ -125,7 +126,7 @@ live on external build scratch and are removed after use.
 | Route | Form |
 | --- | --- |
 | Every `lint:*`/`test:*`/`docs:*` Rust selector, `check:prototypes`, `check:bindings`, `release:floor`, `ci:rehearse` | `rust-command.sh <cargo command>` |
-| `effigy fmt:rust` | `rust-command.sh fmt --check -p …` and `rust-command.sh metadata --no-deps` |
+| `effigy fmt:rust` | `rust-command.sh fmt --check -p …` (workspace), `rust-command.sh fmt --check` (prototypes), `rust-command.sh metadata --no-deps`, plus `rustfmt --edition 2024 --check` on staged example sources |
 | `[release.gates] advisories` / `effigy release:gates` | `rust-command.sh deny check advisories` |
 | `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`, `scripts/generate-api-reference-card126.ts` | `rustCommand(["metadata", …])` |
 | Checkout-level `package --list` inventories, bindings `run` checks, `tree` reads and `-p` tests in the proofs and the two absence scans | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |

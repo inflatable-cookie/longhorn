@@ -11,7 +11,7 @@ use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use rmcp::{
     ErrorData, ServerHandler,
     handler::server::wrapper::Parameters,
-    model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerInfo},
+    model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig},
     schemars, serde, tool, tool_handler, tool_router,
     transport::streamable_http_server::{
         StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
@@ -98,8 +98,8 @@ impl AgentControl {
 
 #[tool_handler]
 impl ServerHandler for AgentControl {
-    fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn get_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(Implementation::new("longhorn-agent-control-proof", "0.0.0"))
             .with_instructions(
                 "Controls the Longhorn agent-control proof app: evaluate runs JS in the WKWebView, screenshot returns a fresh PNG snapshot of it.",

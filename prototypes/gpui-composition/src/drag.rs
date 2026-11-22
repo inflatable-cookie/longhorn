@@ -25,9 +25,15 @@
 use std::{cell::RefCell, rc::Rc};
 
 use gpui::{AnyWindowHandle, App, Global, Pixels, Point, Window};
-use longhorn_core::{DomainId, SurfaceId, RegionId, ScreenPoint, ScreenRect, WindowId};
+use longhorn_core::{DomainId, RegionId, ScreenPoint, ScreenRect, SurfaceId, WindowId};
 use longhorn_gpui_windowing::{GpuiWindowBackend, GpuiWindowKey, live_transfer_windows};
-use longhorn_transfer::{ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone, DropZoneId, LeaseGeneration, LeasePublication, MonotonicClock, TargetSelector, TerminalTransferResolution, TransferCapability, TransferClientId, TransferCoordinator, TransferDuration, TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision, TransferSessionRequest, TransferSourceAuthority, TransferSubjectId, TransferTargetBinding};
+use longhorn_transfer::{
+    ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone,
+    DropZoneId, LeaseGeneration, LeasePublication, MonotonicClock, TargetSelector,
+    TerminalTransferResolution, TransferCapability, TransferClientId, TransferCoordinator,
+    TransferDuration, TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision,
+    TransferSessionRequest, TransferSourceAuthority, TransferSubjectId, TransferTargetBinding,
+};
 
 /// One managed window, as this example knows it.
 #[derive(Clone)]

@@ -344,13 +344,13 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             .state
             .lock()
             .map_err(|_| BackingSurfaceError::Poisoned)?;
-        if let Some(current) = state.latest_desired_revision {
-            if plan.desired_revision() < current {
-                return Err(BackingSurfaceError::StalePlan {
-                    current,
-                    supplied: plan.desired_revision(),
-                });
-            }
+        if let Some(current) = state.latest_desired_revision
+            && plan.desired_revision() < current
+        {
+            return Err(BackingSurfaceError::StalePlan {
+                current,
+                supplied: plan.desired_revision(),
+            });
         }
         if let Some(attachment) = state.attachment.as_ref() {
             if plan.generation() != attachment.generation {

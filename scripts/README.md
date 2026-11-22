@@ -17,9 +17,13 @@ worth wiring, and if it is not wired it should be deleted.
 
 `proof:artifacts`, a member of `qa`, runs fourteen of them in order:
 
+`scripts/fmt-rust.ts` runs under `fmt:rust` to format-check root workspace
+members, all eight `prototypes/*/` workspaces (both via `scripts/rust-command.sh`),
+and the staged example template Rust sources (`rustfmt --edition 2024 --check`).
+
 `scripts/proof-artifacts.ts` keeps that order and fail-fast behavior, suppresses
-member stdout as before, and prints each member's elapsed seconds and result to
-stderr when the run ends. Each member resolves its own Cargo storage:
+passing member stdout (printing it on failure), and prints each member's elapsed
+seconds and result to stderr when the run ends. Each member resolves its own Cargo storage:
 checkout-level routes run through `scripts/rust-command.sh` and pool, and each
 staged workspace leases its own private final outputs on external build scratch
 through `scripts/private-cargo.sh`. It drops an inherited `CARGO_TARGET_DIR` so
