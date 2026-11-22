@@ -40,8 +40,6 @@ const productionNetworkMarkers = [
   "tokio-tungstenite",
   "websocket",
   "eventsource",
-  "fetch(",
-  "new websocket",
 ] as const;
 
 const credentialValueMarkers = [
@@ -51,6 +49,18 @@ const credentialValueMarkers = [
   "access_token",
   "refresh_token",
 ] as const;
+
+// Match whole names in the source. Removing whitespace joined prose such as
+// “event source” into a network marker. Match call syntax and the literal
+// fixture domain prefix without joining adjacent prose.
+const forbiddenPatterns = [
+  ...[...donorNames, ...productionNetworkMarkers, ...credentialValueMarkers].map((marker) => ({
+    marker,
+    pattern: new RegExp(`(?<![\\w$])${marker}(?![\\w$])`, "i"),
+  })),
+  { marker: "fetch(", pattern: /(?<![\w$])fetch\s*\(/i },
+  { marker: "fixture.", pattern: /(?<![\w$])fixture\.(?=[\w$])/i },
+];
 
 export async function packTypescriptArtifacts(
   repoRoot: string,
@@ -243,15 +253,9 @@ async function auditRustBoundary(workspace: string): Promise<void> {
   assertProductNeutral("Rust bridge artifacts", source);
 }
 
-function assertProductNeutral(label: string, source: string): void {
-  const normalized = source.toLowerCase().replaceAll(/\s+/g, "");
-  for (const marker of [
-    ...donorNames,
-    ...productionNetworkMarkers,
-    ...credentialValueMarkers,
-    "fixture.",
-  ]) {
-    if (normalized.includes(marker.replaceAll(/\s+/g, ""))) {
+export function assertProductNeutral(label: string, source: string): void {
+  for (const { marker, pattern } of forbiddenPatterns) {
+    if (pattern.test(source)) {
       throw new Error(`${label} contains forbidden marker: ${marker}`);
     }
   }

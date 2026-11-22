@@ -24,6 +24,7 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import { run } from "./proof-support.ts";
 import {
   libraryArchives,
   privateCargoCommand,
@@ -77,29 +78,11 @@ function featureArgs(features: FeatureSet): string[] {
   }
 }
 
-async function run(command: readonly string[], env: Record<string, string>) {
-  const subprocess = Bun.spawn(command, {
-    cwd: repoRoot,
-    env: { ...process.env, ...env },
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    subprocess.exited,
-    new Response(subprocess.stdout).text(),
-    new Response(subprocess.stderr).text(),
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(`${command.join(" ")} failed\n${stdout}\n${stderr}`);
-  }
-  return stdout;
-}
-
 // `cargo test -- FILTER --exact` exits 0 with `running 0 tests` when the
 // filter matches nothing (a cfg'd-out name, a rename). The scan must not
 // pass that as a positive control.
 async function runExactTest(command: readonly string[], testName: string) {
-  const output = await run(command, { CARGO_TERM_COLOR: "never" });
+  const output = await run(command, repoRoot, { env: { CARGO_TERM_COLOR: "never" } });
   if (!output.includes(testName)) {
     throw new Error(
       `expected cargo to run ${testName}, but the name is missing from output:\n${output}`,
@@ -128,7 +111,7 @@ async function build(features: FeatureSet): Promise<BuildResult> {
       "none",
       ...args,
     ]),
-    {},
+    repoRoot,
   );
   const built = await run(
     rustExec(
@@ -145,7 +128,7 @@ async function build(features: FeatureSet): Promise<BuildResult> {
       ]),
       { manifestPath: join(repoRoot, "Cargo.toml"), profile: "release" },
     ),
-    {},
+    repoRoot,
   );
 
   const coreRlibs = libraryArchives(built, CORE);
