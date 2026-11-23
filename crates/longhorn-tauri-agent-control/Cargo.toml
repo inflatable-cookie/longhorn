@@ -73,3 +73,7 @@ unsafe_code = "deny"
 
 [lints.clippy]
 all = "deny"
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+explicit_into_iter_loop = "deny"

@@ -176,6 +176,20 @@ async function scratchBase(): Promise<string> {
       );
     }
   }
+  if (!explicit) {
+    const info = await lstat(base);
+    const resolvedOwner = await realpath(owner);
+    const resolvedBase = await realpath(base);
+    if (
+      !info.isDirectory() ||
+      (process.getuid !== undefined && info.uid !== process.getuid()) ||
+      !resolvedBase.startsWith(`${resolvedOwner}${sep}`)
+    ) {
+      throw new Error(
+        `build scratch allocation base ${base} must be an owned real directory below ${resolvedOwner}`,
+      );
+    }
+  }
   return base;
 }
 

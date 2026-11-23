@@ -101,7 +101,8 @@ the account home or a drive root:
   Nothing is hard-coded to a volume name. Any gap (no Oxide, no available pool,
   no suggested root, or a missing directory) fails closed and names
   `OXIDE_TASK_SCRATCH_ROOT`. The repository creates only a `longhorn` child below
-  the default root.
+  the default root. The child must be an owned real directory whose resolved
+  path stays below that root.
 - The resolved root, configured or reported, is refused when it is a drive root,
   a boot-volume top-level directory, a volume mount root, the account home, or on
   the boot volume. The internal drive is judged by volume
