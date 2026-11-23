@@ -696,8 +696,8 @@ mutex reservation and an exclusive `fs4` lock on
 typed `ConcurrentInstall` fault. Lock files are stable coordination files and
 remain in place. Tool and binary names are plain non-hidden path components
 (ASCII letters, digits, `.`, `_`, `-` or `+`, with no leading dot), widening
-them to accept `+` as release segments do so the reserved hidden names below
-cannot be a tool binary.
+them to accept `+` as release segments do; the no-leading-dot rule ensures the
+reserved hidden names below cannot be a tool binary.
 
 After a staged probe succeeds, the pipeline copies an existing regular binary
 to `managed_root/bin/.<binary_name>.previous` through a same-volume temporary

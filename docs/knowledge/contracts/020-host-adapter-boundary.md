@@ -106,8 +106,7 @@ where none exists, Longhorn provides one.
   no embedded credentials, bounded length. A backslash ends the host, as WHATWG
   and `longhorn-url` read it, and it cannot hide credentials from the `@` rule.
   `NativeSystemBrowser` spawns a program directly with the URL as a single
-  program directly with the URL as a single argument and never involves a
-  shell. The usual one-line implementation of this capability, interpolating a
+  argument and never involves a shell. The usual one-line implementation of this capability, interpolating a
   URL into `sh -c`, is a remote code execution path; neither defence here
   depends on the other holding.
 - **OS notification delivery** — unimplemented on both hosts; recorded, not

@@ -64,7 +64,7 @@ from a previous product-specific store; Longhorn does not probe foreign names.
 - distinct namespace, scope, purpose, and application-service fixtures
 - memory-store and keyring mapping conformance over consumer-scoped slots
   (default tests cover `(service, slot.as_str())` entry identity, `classify`,
-  and error mapping; live OS keychain round-trip and service-isolation tests run
+  and error mapping; live OS keychain round-trip and slot non-aliasing tests run
   under `cargo test -p longhorn-credential-keyring --features real-keychain-tests`
   on macOS and Windows and are gated off in default CI)
 - locked-is-not-absent and idempotent-remove regression coverage
