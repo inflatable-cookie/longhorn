@@ -9,7 +9,7 @@ mod registration;
 
 pub use authority::BridgeAuthorityProvider;
 pub use commands::{
-    BridgeCommandService, TauriBridgeState, longhorn_bridge_authority, longhorn_bridge_cancel,
+    TauriBridgeState, bridge_plugin, longhorn_bridge_authority, longhorn_bridge_cancel,
     longhorn_bridge_command, longhorn_bridge_hello, longhorn_bridge_query, longhorn_bridge_resync,
 };
 pub use error::{BridgeHostError, BridgeHostErrorCode};

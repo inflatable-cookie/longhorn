@@ -5,10 +5,10 @@ use longhorn_notifications::{
     NotificationSnapshotResponse,
 };
 
-use crate::{NotificationHostAuthority, NotificationHostError, NotificationHostService};
+use crate::{NotificationHostAuthority, NotificationHostError};
 
 /// Shared injected notification assembly used by Tauri and conformance tests.
-pub struct NotificationHandlerAssembly<A> {
+pub struct NotificationHandlerAssembly<A: ?Sized> {
     authority: Mutex<A>,
 }
 
@@ -22,29 +22,38 @@ impl<A> NotificationHandlerAssembly<A> {
     }
 }
 
-impl<A> NotificationHostService for NotificationHandlerAssembly<A>
+impl<A: ?Sized> NotificationHandlerAssembly<A> {
+    /// Runs trusted host work against the injected authority.
+    pub fn with_authority<Output>(
+        &self,
+        action: impl FnOnce(&mut A) -> Output,
+    ) -> Result<Output, NotificationHostError> {
+        self.authority
+            .lock()
+            .map(|mut authority| action(&mut authority))
+            .map_err(|_| NotificationHostError::authority_state_unavailable())
+    }
+}
+
+impl<A> NotificationHandlerAssembly<A>
 where
-    A: NotificationHostAuthority,
+    A: NotificationHostAuthority + ?Sized,
 {
-    fn snapshot(
+    /// Returns a caller-authorized snapshot page.
+    pub fn snapshot(
         &self,
         caller: &str,
         query: NotificationSnapshotQuery,
     ) -> Result<NotificationSnapshotResponse, NotificationHostError> {
-        self.authority
-            .lock()
-            .map_err(|_| NotificationHostError::authority_state_unavailable())?
-            .snapshot(caller, query)
+        self.with_authority(|authority| authority.snapshot(caller, query))?
     }
 
-    fn mutate(
+    /// Applies a caller-authorized mutation.
+    pub fn mutate(
         &self,
         caller: &str,
         command: NotificationMutationCommand,
     ) -> Result<NotificationMutationResult, NotificationHostError> {
-        self.authority
-            .lock()
-            .map_err(|_| NotificationHostError::authority_state_unavailable())?
-            .mutate(caller, command)
+        self.with_authority(|authority| authority.mutate(caller, command))?
     }
 }

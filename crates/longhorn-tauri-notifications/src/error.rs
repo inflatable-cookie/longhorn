@@ -47,7 +47,7 @@ impl NotificationHostError {
         Self {
             code: NotificationHostErrorCode::AuthorityStateUnavailable,
             message: "notification authority state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

@@ -6,7 +6,7 @@ or global singleton.
 
 Consumers install `TauriSettingsState` and the four exported commands, then
 choose the read-only or mutable capability example. The injected
-`SettingsAuthority` remains responsible for caller authorization and product
+`SettingsHostAuthority` remains responsible for caller authorization and product
 semantics.
 
 The commands are `longhorn_settings_registry`, `longhorn_settings_load`,

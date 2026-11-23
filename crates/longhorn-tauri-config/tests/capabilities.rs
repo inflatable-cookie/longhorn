@@ -46,8 +46,9 @@ fn parse_permission_identifier(toml_text: &str) -> Option<String> {
 
 #[test]
 fn permission_examples_dispatch_through_registered_tauri_commands() {
-    let service: Arc<dyn longhorn_tauri_config::ConfigOperationsCommandService> =
-        Arc::new(async_offload::StubService);
+    let service = Arc::new(longhorn_tauri_config::ConfigOperationsHandlerAssembly::new(
+        async_offload::StubAuthority,
+    ));
     let app = tauri::test::mock_builder()
         .manage(longhorn_tauri_config::TauriConfigOperationsState::new(
             service,
@@ -230,13 +231,15 @@ mod async_offload {
         StorageTransitionInspectCommand, StorageTransitionInspectOutcome,
     };
     use longhorn_core::ConfigRequestId;
-    use longhorn_tauri_config::{ConfigOperationsCommandService, ConfigOperationsHostError};
+    use longhorn_tauri_config::{
+        ConfigOperationsHandlerAssembly, ConfigOperationsHostAuthority, ConfigOperationsHostError,
+    };
 
-    pub(super) struct StubService;
+    pub(super) struct StubAuthority;
 
-    impl ConfigOperationsCommandService for StubService {
+    impl ConfigOperationsHostAuthority for StubAuthority {
         fn snapshot(
-            &self,
+            &mut self,
             _caller: &str,
             _command: ConfigSnapshotCommand,
         ) -> Result<ConfigOperationsSnapshot, ConfigOperationsHostError> {
@@ -244,7 +247,7 @@ mod async_offload {
         }
 
         fn inspect_storage_transition(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageTransitionInspectCommand,
         ) -> Result<StorageTransitionInspectOutcome, ConfigOperationsHostError> {
@@ -252,7 +255,7 @@ mod async_offload {
         }
 
         fn execute_storage_transition(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageTransitionExecuteCommand,
         ) -> Result<StorageTransitionExecuteOutcome, ConfigOperationsHostError> {
@@ -260,7 +263,7 @@ mod async_offload {
         }
 
         fn recover_storage(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageRecoveryCommand,
         ) -> Result<StorageRecoveryOutcome, ConfigOperationsHostError> {
@@ -268,7 +271,7 @@ mod async_offload {
         }
 
         fn cleanup_storage(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageCleanupCommand,
         ) -> Result<StorageCleanupOutcome, ConfigOperationsHostError> {
@@ -276,7 +279,7 @@ mod async_offload {
         }
 
         fn create_backup(
-            &self,
+            &mut self,
             _caller: &str,
             _command: BackupCreateCommand,
         ) -> Result<BackupCreateOutcome, ConfigOperationsHostError> {
@@ -284,7 +287,7 @@ mod async_offload {
         }
 
         fn export_backup(
-            &self,
+            &mut self,
             _caller: &str,
             _command: BackupExportCommand,
         ) -> Result<BackupExportOutcome, ConfigOperationsHostError> {
@@ -292,7 +295,7 @@ mod async_offload {
         }
 
         fn apply_backup_retention(
-            &self,
+            &mut self,
             _caller: &str,
             _command: BackupRetentionApplyCommand,
         ) -> Result<BackupRetentionApplyOutcome, ConfigOperationsHostError> {
@@ -300,7 +303,7 @@ mod async_offload {
         }
 
         fn inspect_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreInspectCommand,
         ) -> Result<RestoreInspectOutcome, ConfigOperationsHostError> {
@@ -308,7 +311,7 @@ mod async_offload {
         }
 
         fn plan_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestorePlanCommand,
         ) -> Result<RestorePlanOutcome, ConfigOperationsHostError> {
@@ -316,7 +319,7 @@ mod async_offload {
         }
 
         fn execute_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreExecuteCommand,
         ) -> Result<RestoreExecuteOutcome, ConfigOperationsHostError> {
@@ -324,7 +327,7 @@ mod async_offload {
         }
 
         fn execute_adapter_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreAdapterExecuteCommand,
         ) -> Result<RestoreAdapterExecuteOutcome, ConfigOperationsHostError> {
@@ -332,7 +335,7 @@ mod async_offload {
         }
 
         fn recover_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreRecoveryCommand,
         ) -> Result<RestoreRecoveryOutcomeProjection, ConfigOperationsHostError> {
@@ -340,14 +343,14 @@ mod async_offload {
         }
     }
 
-    struct ParkedService {
-        barrier: Barrier,
-        entered: AtomicBool,
+    struct ParkedAuthority {
+        barrier: Arc<Barrier>,
+        entered: Arc<AtomicBool>,
     }
 
-    impl ConfigOperationsCommandService for ParkedService {
+    impl ConfigOperationsHostAuthority for ParkedAuthority {
         fn snapshot(
-            &self,
+            &mut self,
             _caller: &str,
             _command: ConfigSnapshotCommand,
         ) -> Result<ConfigOperationsSnapshot, ConfigOperationsHostError> {
@@ -355,13 +358,13 @@ mod async_offload {
             // Parks the executing thread until the test releases it.
             self.barrier.wait();
             Err(ConfigOperationsHostError::authority(
-                "parked test service",
+                "parked test authority",
                 true,
             ))
         }
 
         fn inspect_storage_transition(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageTransitionInspectCommand,
         ) -> Result<StorageTransitionInspectOutcome, ConfigOperationsHostError> {
@@ -369,7 +372,7 @@ mod async_offload {
         }
 
         fn execute_storage_transition(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageTransitionExecuteCommand,
         ) -> Result<StorageTransitionExecuteOutcome, ConfigOperationsHostError> {
@@ -377,7 +380,7 @@ mod async_offload {
         }
 
         fn recover_storage(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageRecoveryCommand,
         ) -> Result<StorageRecoveryOutcome, ConfigOperationsHostError> {
@@ -385,7 +388,7 @@ mod async_offload {
         }
 
         fn cleanup_storage(
-            &self,
+            &mut self,
             _caller: &str,
             _command: StorageCleanupCommand,
         ) -> Result<StorageCleanupOutcome, ConfigOperationsHostError> {
@@ -393,7 +396,7 @@ mod async_offload {
         }
 
         fn create_backup(
-            &self,
+            &mut self,
             _caller: &str,
             _command: BackupCreateCommand,
         ) -> Result<BackupCreateOutcome, ConfigOperationsHostError> {
@@ -401,7 +404,7 @@ mod async_offload {
         }
 
         fn export_backup(
-            &self,
+            &mut self,
             _caller: &str,
             _command: BackupExportCommand,
         ) -> Result<BackupExportOutcome, ConfigOperationsHostError> {
@@ -409,7 +412,7 @@ mod async_offload {
         }
 
         fn apply_backup_retention(
-            &self,
+            &mut self,
             _caller: &str,
             _command: BackupRetentionApplyCommand,
         ) -> Result<BackupRetentionApplyOutcome, ConfigOperationsHostError> {
@@ -417,7 +420,7 @@ mod async_offload {
         }
 
         fn inspect_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreInspectCommand,
         ) -> Result<RestoreInspectOutcome, ConfigOperationsHostError> {
@@ -425,7 +428,7 @@ mod async_offload {
         }
 
         fn plan_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestorePlanCommand,
         ) -> Result<RestorePlanOutcome, ConfigOperationsHostError> {
@@ -433,7 +436,7 @@ mod async_offload {
         }
 
         fn execute_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreExecuteCommand,
         ) -> Result<RestoreExecuteOutcome, ConfigOperationsHostError> {
@@ -441,7 +444,7 @@ mod async_offload {
         }
 
         fn execute_adapter_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreAdapterExecuteCommand,
         ) -> Result<RestoreAdapterExecuteOutcome, ConfigOperationsHostError> {
@@ -449,7 +452,7 @@ mod async_offload {
         }
 
         fn recover_restore(
-            &self,
+            &mut self,
             _caller: &str,
             _command: RestoreRecoveryCommand,
         ) -> Result<RestoreRecoveryOutcomeProjection, ConfigOperationsHostError> {
@@ -459,10 +462,12 @@ mod async_offload {
 
     #[test]
     fn contended_service_work_runs_on_blocking_threads_not_the_async_executor() {
-        let service = Arc::new(ParkedService {
-            barrier: Barrier::new(2),
-            entered: AtomicBool::new(false),
-        });
+        let barrier = Arc::new(Barrier::new(2));
+        let entered = Arc::new(AtomicBool::new(false));
+        let service = Arc::new(ConfigOperationsHandlerAssembly::new(ParkedAuthority {
+            barrier: Arc::clone(&barrier),
+            entered: Arc::clone(&entered),
+        }));
         let inner = Arc::clone(&service);
         // Drive the service through the same offload primitive the commands
         // use; the async executor must stay free while the service is parked.
@@ -475,13 +480,13 @@ mod async_offload {
                 },
             )
         });
-        while !service.entered.load(Ordering::SeqCst) {
+        while !entered.load(Ordering::SeqCst) {
             std::thread::yield_now();
         }
         // The async runtime stays responsive while the blocking call parks.
         let free = tauri::async_runtime::block_on(async { 7 });
         assert_eq!(free, 7);
-        service.barrier.wait();
+        barrier.wait();
         let outcome = tauri::async_runtime::block_on(task).unwrap();
         assert!(outcome.is_err());
     }

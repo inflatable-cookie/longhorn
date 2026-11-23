@@ -5,10 +5,10 @@ use longhorn_history::{
     HistorySnapshot,
 };
 
-use crate::{HistoryHostAuthority, HistoryHostError, HistoryHostService};
+use crate::{HistoryHostAuthority, HistoryHostError};
 
 /// Shared history assembly used by Tauri and direct/serialized tests.
-pub struct HistoryHandlerAssembly<A> {
+pub struct HistoryHandlerAssembly<A: ?Sized> {
     authority: Mutex<A>,
 }
 
@@ -20,7 +20,9 @@ impl<A> HistoryHandlerAssembly<A> {
             authority: Mutex::new(authority),
         }
     }
+}
 
+impl<A: ?Sized> HistoryHandlerAssembly<A> {
     /// Runs trusted host work against the injected authority.
     pub fn with_authority<Output>(
         &self,
@@ -33,15 +35,17 @@ impl<A> HistoryHandlerAssembly<A> {
     }
 }
 
-impl<A> HistoryHostService for HistoryHandlerAssembly<A>
+impl<A> HistoryHandlerAssembly<A>
 where
-    A: HistoryHostAuthority,
+    A: HistoryHostAuthority + ?Sized,
 {
-    fn snapshot(&self, caller: &str) -> Result<HistorySnapshot, HistoryHostError> {
+    /// Returns one caller-authorized metadata snapshot.
+    pub fn snapshot(&self, caller: &str) -> Result<HistorySnapshot, HistoryHostError> {
         self.with_authority(|authority| authority.snapshot(caller))?
     }
 
-    fn page(
+    /// Returns one caller-authorized bounded metadata page.
+    pub fn page(
         &self,
         caller: &str,
         command: HistoryPageCommand,
@@ -49,7 +53,8 @@ where
         self.with_authority(|authority| authority.page(caller, command))?
     }
 
-    fn navigate(
+    /// Applies and commits one caller-authorized checked navigation.
+    pub fn navigate(
         &self,
         caller: &str,
         command: HistoryNavigationCommand,

@@ -9,9 +9,9 @@ mod protocol;
 mod provision;
 mod wire;
 
-pub use admission::admit_surface_session;
+pub use admission::{admit_surface_session, prepare_surface_session_source};
 pub use binding::{SurfaceHostBinding, SurfaceHostBindings};
-pub use commit::commit_surface_transfer;
+pub use commit::{commit_resolved_surface_transfer, commit_surface_transfer};
 pub use error::{
     ProvisionCleanupOutcome, SurfaceProvisionFailureEvidence, SurfaceTransferError,
     SurfaceTransferErrorCode,

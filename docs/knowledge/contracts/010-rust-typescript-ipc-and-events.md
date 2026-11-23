@@ -46,8 +46,11 @@ execution payload.
   current snapshot.
 - Errors have stable code, message, retry class, failure phase, and optional
   structured details. Bare strings are adapter failures, not protocol errors.
-  The bridge and command Tauri adapters expose operational failures as
-  `{code, message, retryable}`, using their own generated code types.
+  Every `longhorn-tauri-*` adapter exposes operational failures as typed
+  `{code, message, retryable}` wire errors using its own camelCase code enum.
+  A poisoned mutex or failed blocking-task join is permanently unavailable
+  (`retryable: false`); adapters never recover a poisoned lock with
+  `into_inner` or silently skip teardown on poison.
 - Snapshots and authoritative events carry an authority epoch plus monotonic
   revision or sequence.
 - Core-backed revisions and bridge and command counters carried as JSON
@@ -78,9 +81,11 @@ is registered is not replayed; see Q-007.
 
 ## Session Lifecycle
 
-- A session ends when its window does. Hosts wire
-  `TauriBridgeState::teardown_window` from the window-destroyed hook; a
-  destroyed window's session must stop validating, not linger.
+- A session ends when its window does. `longhorn_tauri_bridge::bridge_plugin`
+  installs `TauriBridgeState` and wires `teardown_window` onto Tauri's
+  window-destroyed hook by default; hosts that install `TauriBridgeState::new`
+  manually must wire `teardown_window` from `.on_window_event`. A destroyed
+  window's session must stop validating, not linger.
 - Session ids are per-session secrets. The authority provider must mint an
   unguessable id (128-bit random or better): session use requires only the id
   and the window label, and labels are predictable. Fixture-style ids
@@ -104,6 +109,20 @@ broadcast.
 
 - One handler assembly function is used by the real Tauri app and mock-runtime
   tests.
+- Every `longhorn-tauri-*` command adapter follows one policy:
+  - **One authority trait per adapter** (`<Domain>HostAuthority`, or
+    `BridgeAuthorityProvider` / `PanelTransferAdapter` / `SurfaceTransferAdapter`
+    where domain semantics name a provider or split adapter). No second
+    `*Service` trait mirroring the authority trait.
+  - **Off-main-thread execution:** every `#[tauri::command]` that invokes
+    consumer authority, configuration I/O, or blocking work is `async` and
+    runs its blocking work on `tauri::async_runtime::spawn_blocking`. Adapter
+    mutexes are never held across consumer I/O or window provisioning.
+  - **Non-retryable poison:** poisoned adapter state (and `spawn_blocking`
+    `JoinError`) maps to a typed `*StateUnavailable` error with
+    `retryable: false`.
+  - **Window-scoped hints:** command-triggered invalidation hints emit on the
+    invoking `WebviewWindow` (`window.emit`), never app-wide.
 - Domain packages own typed command, query, and subscription clients.
 - Command catalogue and keymap adapters may expose typed metadata, preview,
   and mutation queries. They expose no generic product command executor.

@@ -48,7 +48,7 @@ impl SettingsHostError {
         Self {
             code: SettingsHostErrorCode::StateUnavailable,
             message: "settings handler state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

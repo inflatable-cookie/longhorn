@@ -3,7 +3,7 @@ mod existing;
 mod provisioned;
 mod validation;
 
-use longhorn_config::ConfigStore;
+use longhorn_config::{ConfigStore, MutationOptions};
 use longhorn_surfaces_config::{RegisteredSurfaceDomain, SurfaceMigration};
 use longhorn_transfer::{MonotonicClock, TerminalTransferResolution, TransferCoordinator};
 
@@ -38,22 +38,43 @@ where
             request.live_windows(),
         )
         .map_err(SurfaceTransferError::from_transfer)?;
+    commit_resolved_surface_transfer(
+        store,
+        domain,
+        bindings,
+        policy,
+        provisioner,
+        request.mutation_options(),
+        resolution,
+    )
+}
+
+/// Publishes one authoritative whole-Surface move for an already-resolved
+/// terminal attempt without holding a coordinator lock.
+pub fn commit_resolved_surface_transfer<M, P>(
+    store: &ConfigStore,
+    domain: &RegisteredSurfaceDomain<M>,
+    bindings: &SurfaceHostBindings,
+    policy: &SurfaceTransferPolicy,
+    provisioner: &mut P,
+    options: MutationOptions,
+    resolution: TerminalTransferResolution,
+) -> Result<SurfaceTransferCommitReceipt, SurfaceTransferError>
+where
+    M: SurfaceMigration,
+    P: SurfaceWindowProvisioner,
+{
     match resolution {
-        TerminalTransferResolution::Target(attempt) => commit_existing(
-            store,
-            domain,
-            bindings,
-            policy,
-            request.mutation_options(),
-            attempt,
-        ),
+        TerminalTransferResolution::Target(attempt) => {
+            commit_existing(store, domain, bindings, policy, options, attempt)
+        }
         TerminalTransferResolution::EmptyDisplay(attempt) => commit_provisioned(
             store,
             domain,
             bindings,
             policy,
             provisioner,
-            request.mutation_options(),
+            options,
             attempt,
         ),
     }

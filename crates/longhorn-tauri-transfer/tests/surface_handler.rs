@@ -4,22 +4,25 @@
 
 use std::sync::{Arc, Mutex};
 
-use longhorn_core::{ScreenPoint, ScreenRect, ScreenSize, SurfaceId, TransferRequestId, WindowId};
+use longhorn_core::{
+    ScreenPoint, ScreenRect, ScreenSize, SurfaceId, TransferHostBindingId, TransferRequestId,
+    TransferSubjectId, WindowId,
+};
 use longhorn_surface_transfer::{
     SurfaceSessionResponse, SurfaceSessionStartRequest, SurfaceTransferAbort,
     SurfaceTransferCommand, SurfaceTransferResponse,
 };
 use longhorn_tauri_transfer::{
     AssembledSurfaceTransferCommands, AssembledTransferCommands, ManagedTransferSnapshot,
-    ManagedTransferWindow, PanelTransferAdapter, SurfaceTransferAdapter,
-    SurfaceTransferCommandService, TransferCallerAuthority, TransferCommandService,
-    TransferHandlerAssembly,
+    ManagedTransferWindow, PanelTransferAdapter, SurfaceTransferAdapter, TransferCallerAuthority,
+    TransferHandlerAssembly, TransferSessionRegistrar,
 };
 use longhorn_transfer::{
-    DragSessionId, LiveTransferWindow, MonotonicClock, PanelSessionStartRequest,
-    PanelTransferCommand, PanelTransferResponse, TargetSelector, TransferAbort,
-    TransferCommitSelector, TransferCoordinator, TransferDuration, TransferErrorCode,
-    TransferInstant, TransferLimits, TransferSessionResponse,
+    DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, MonotonicClock,
+    PanelSessionStartRequest, PanelTransferCommand, PanelTransferResponse, TerminalTransferAttempt,
+    TerminalTransferResolution, TransferAbort, TransferCommitSelector, TransferDuration,
+    TransferErrorCode, TransferInstant, TransferLimits, TransferRevision, TransferSessionRequest,
+    TransferSessionResponse, TransferSessionStarted, TransferSourceAuthority,
 };
 use longhorn_windowing::HostWindowHandle;
 
@@ -32,12 +35,18 @@ impl MonotonicClock for Clock {
     }
 }
 
+struct FixedAllocator;
+
+impl DragSessionIdAllocator for FixedAllocator {
+    fn allocate(&mut self) -> Result<[u8; 16], DragSessionIdAllocationError> {
+        Ok([7; 16])
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SurfaceCall {
     window_id: WindowId,
-    client_windows: usize,
     selector: Option<ScreenPoint>,
-    live_windows: usize,
 }
 
 struct RecordingSurface {
@@ -47,42 +56,49 @@ struct RecordingSurface {
 impl SurfaceTransferAdapter for RecordingSurface {
     fn start_surface(
         &mut self,
-        coordinator: &mut TransferCoordinator,
         caller: TransferCallerAuthority,
         request: SurfaceSessionStartRequest,
+        sessions: &mut TransferSessionRegistrar<'_>,
     ) -> SurfaceSessionResponse {
         self.calls.lock().unwrap().push(SurfaceCall {
             window_id: caller.window_id().clone(),
-            client_windows: coordinator.client_window_count(),
             selector: None,
-            live_windows: 0,
         });
-        SurfaceSessionResponse::Aborted {
-            abort: SurfaceTransferAbort::host_transfer(
-                request.request_id().clone(),
-                TransferErrorCode::NoTarget,
-                "recording adapter",
-            ),
+        let source = TransferSourceAuthority::Surface {
+            client_id: caller.client_id().clone(),
+            client_epoch: caller.client_epoch(),
+            source_window_id: caller.window_id().clone(),
+            subject_id: TransferSubjectId::from(request.surface_id()),
+            host_binding_id: TransferHostBindingId::new("binding:main").unwrap(),
+            document_id: longhorn_core::DomainId::new("layout.main").unwrap(),
+            revision: TransferRevision::new(1),
+        };
+        let mut allocator = FixedAllocator;
+        let receipt = sessions
+            .create_session(
+                &mut allocator,
+                TransferSessionRequest::new(source, caller.session_lifetime()),
+            )
+            .unwrap()
+            .unwrap();
+        SurfaceSessionResponse::Started {
+            session: TransferSessionStarted::from_domain(request.request_id().clone(), receipt),
         }
     }
 
     fn commit_surface(
         &mut self,
-        coordinator: &mut TransferCoordinator,
         caller: TransferCallerAuthority,
         request: SurfaceTransferCommand,
-        selector: TargetSelector,
-        live_windows: Vec<LiveTransferWindow>,
+        resolution: TerminalTransferResolution,
     ) -> SurfaceTransferResponse {
-        let selector = match selector {
-            TargetSelector::ScreenPoint(point) => Some(point),
-            TargetSelector::ExplicitZone(_) => None,
+        let selector = match resolution {
+            TerminalTransferResolution::EmptyDisplay(attempt) => Some(attempt.screen_point()),
+            TerminalTransferResolution::Target(_) => None,
         };
         self.calls.lock().unwrap().push(SurfaceCall {
             window_id: caller.window_id().clone(),
-            client_windows: coordinator.client_window_count(),
             selector,
-            live_windows: live_windows.len(),
         });
         SurfaceTransferResponse::Aborted {
             abort: SurfaceTransferAbort::host_transfer(
@@ -99,9 +115,9 @@ struct NoopPanel;
 impl PanelTransferAdapter for NoopPanel {
     fn start_panel(
         &mut self,
-        _coordinator: &mut TransferCoordinator,
         _caller: TransferCallerAuthority,
         request: PanelSessionStartRequest,
+        _sessions: &mut TransferSessionRegistrar<'_>,
     ) -> TransferSessionResponse {
         TransferSessionResponse::Aborted {
             abort: TransferAbort::host_transfer(
@@ -114,11 +130,9 @@ impl PanelTransferAdapter for NoopPanel {
 
     fn commit_panel(
         &mut self,
-        _coordinator: &mut TransferCoordinator,
         _caller: TransferCallerAuthority,
         request: PanelTransferCommand,
-        _selector: TargetSelector,
-        _live_windows: Vec<LiveTransferWindow>,
+        _attempt: TerminalTransferAttempt,
     ) -> PanelTransferResponse {
         PanelTransferResponse::Aborted {
             abort: TransferAbort::host_transfer(
@@ -146,7 +160,7 @@ fn optional_surface_commands_share_base_epoch_and_projection_authority() {
     let runtime = move |_caller: &HostWindowHandle| Ok(snapshot.clone());
     let handler = TransferHandlerAssembly::new(runtime, Clock, limits());
     let base = AssembledTransferCommands::new(handler, NoopPanel);
-    TransferCommandService::snapshot(&base, &caller).unwrap();
+    base.snapshot(&caller).unwrap();
 
     let calls = Arc::new(Mutex::new(Vec::new()));
     let surface = AssembledSurfaceTransferCommands::new(
@@ -155,25 +169,27 @@ fn optional_surface_commands_share_base_epoch_and_projection_authority() {
             calls: calls.clone(),
         },
     );
-    assert!(matches!(
-        surface
-            .start_surface(
-                &caller,
-                SurfaceSessionStartRequest::new(
-                    TransferRequestId::new("request:surface-start").unwrap(),
-                    SurfaceId::new("surface:main").unwrap(),
-                ),
-            )
-            .unwrap(),
-        SurfaceSessionResponse::Aborted { .. }
-    ));
+    let started = surface
+        .start_surface(
+            &caller,
+            SurfaceSessionStartRequest::new(
+                TransferRequestId::new("request:surface-start").unwrap(),
+                SurfaceId::new("surface:main").unwrap(),
+            ),
+        )
+        .unwrap();
+    let SurfaceSessionResponse::Started { .. } = started else {
+        panic!("expected started surface session");
+    };
+    let session_id = DragSessionId::from_entropy([7; 16]);
+
     assert!(matches!(
         surface
             .commit_surface(
                 &caller,
                 SurfaceTransferCommand::new(
                     TransferRequestId::new("request:surface-commit").unwrap(),
-                    DragSessionId::from_entropy([7; 16]),
+                    session_id,
                     TransferCommitSelector::ScreenPoint {
                         point: ScreenPoint::new(10, 15),
                     },
@@ -188,15 +204,11 @@ fn optional_surface_commands_share_base_epoch_and_projection_authority() {
         vec![
             SurfaceCall {
                 window_id: WindowId::new("window:main").unwrap(),
-                client_windows: 1,
                 selector: None,
-                live_windows: 0,
             },
             SurfaceCall {
                 window_id: WindowId::new("window:main").unwrap(),
-                client_windows: 1,
                 selector: Some(ScreenPoint::new(10, 15)),
-                live_windows: 1,
             },
         ]
     );

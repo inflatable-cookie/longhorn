@@ -17,10 +17,9 @@ mod handler;
 
 pub use authority::LicenceHostAuthority;
 pub use commands::{
-    LICENCE_CHANGED_EVENT, LicenceHostService, TauriLicenceState, licence_changed_event,
-    longhorn_licence_activate, longhorn_licence_deactivate, longhorn_licence_refresh,
-    longhorn_licence_release_seat, longhorn_licence_rename_seat, longhorn_licence_snapshot,
-    publish_licence_changed,
+    LICENCE_CHANGED_EVENT, TauriLicenceState, licence_changed_event, longhorn_licence_activate,
+    longhorn_licence_deactivate, longhorn_licence_refresh, longhorn_licence_release_seat,
+    longhorn_licence_rename_seat, longhorn_licence_snapshot, publish_licence_changed,
 };
 pub use error::{LicenceHostError, LicenceHostErrorCode};
 pub use handler::LicenceHandlerAssembly;

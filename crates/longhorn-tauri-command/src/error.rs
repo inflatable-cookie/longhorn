@@ -47,7 +47,7 @@ impl CommandHostError {
         Self {
             code: CommandHostErrorCode::StateUnavailable,
             message: "command handler state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

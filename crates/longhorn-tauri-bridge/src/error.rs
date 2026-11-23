@@ -83,7 +83,7 @@ impl BridgeHostError {
         Self::new(
             BridgeHostErrorCode::StateUnavailable,
             "bridge handler state is unavailable",
-            true,
+            false,
         )
     }
 

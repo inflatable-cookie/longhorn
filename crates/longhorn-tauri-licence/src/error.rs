@@ -52,7 +52,7 @@ impl LicenceHostError {
         Self {
             code: LicenceHostErrorCode::StateUnavailable,
             message: "licence handler state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

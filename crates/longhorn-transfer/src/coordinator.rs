@@ -88,6 +88,14 @@ impl TransferCoordinator {
         self.clients.len()
     }
 
+    /// Returns the current client identity and epoch bound to one window, if any.
+    #[must_use]
+    pub fn current_client(&self, window_id: &WindowId) -> Option<(&TransferClientId, ClientEpoch)> {
+        self.clients
+            .get(window_id)
+            .map(|binding| (&binding.client_id, binding.epoch))
+    }
+
     /// Returns current complete window leases.
     #[must_use]
     pub fn lease_count(&self) -> usize {

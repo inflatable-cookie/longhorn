@@ -9,10 +9,10 @@ use longhorn_licence::{
     LicenceRenameSeatCommand, LicenceSnapshot,
 };
 use longhorn_tauri_licence::{
-    LicenceHandlerAssembly, LicenceHostAuthority, LicenceHostError, LicenceHostService,
-    TauriLicenceState, licence_changed_event, longhorn_licence_activate,
-    longhorn_licence_deactivate, longhorn_licence_refresh, longhorn_licence_release_seat,
-    longhorn_licence_rename_seat, longhorn_licence_snapshot,
+    LicenceHandlerAssembly, LicenceHostAuthority, LicenceHostError, TauriLicenceState,
+    licence_changed_event, longhorn_licence_activate, longhorn_licence_deactivate,
+    longhorn_licence_refresh, longhorn_licence_release_seat, longhorn_licence_rename_seat,
+    longhorn_licence_snapshot,
 };
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -115,11 +115,12 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
     let (protocol_version, authority_epoch) = envelope();
 
     assert_eq!(
-        longhorn_licence_snapshot(window.clone(), app.state()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_licence_snapshot(window.clone(), app.state()))
+            .unwrap(),
         snapshot()
     );
     assert_eq!(
-        longhorn_licence_activate(
+        tauri::async_runtime::block_on(longhorn_licence_activate(
             window.clone(),
             app.state(),
             LicenceActivateCommand {
@@ -130,38 +131,38 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
                 },
                 label: Some("Studio".to_owned()),
             }
-        )
+        ))
         .unwrap(),
         committed()
     );
     assert_eq!(
-        longhorn_licence_deactivate(
+        tauri::async_runtime::block_on(longhorn_licence_deactivate(
             window.clone(),
             app.state(),
             LicenceDeactivateCommand {
                 protocol_version,
                 authority_epoch,
             }
-        )
+        ))
         .unwrap(),
         committed()
     );
     assert_eq!(
-        longhorn_licence_refresh(
+        tauri::async_runtime::block_on(longhorn_licence_refresh(
             window.clone(),
             app.state(),
             LicenceRefreshCommand {
                 protocol_version,
                 authority_epoch,
             }
-        )
+        ))
         .unwrap(),
         committed()
     );
     // A refused release still answers: the caller gets the reason and the
     // state as it remains, not an adapter error.
     assert_eq!(
-        longhorn_licence_release_seat(
+        tauri::async_runtime::block_on(longhorn_licence_release_seat(
             window.clone(),
             app.state(),
             LicenceReleaseSeatCommand {
@@ -169,12 +170,12 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
                 authority_epoch,
                 machine_id: "m-the-old-macbook-16".to_owned(),
             }
-        )
+        ))
         .unwrap(),
         rejected()
     );
     assert_eq!(
-        longhorn_licence_rename_seat(
+        tauri::async_runtime::block_on(longhorn_licence_rename_seat(
             window,
             app.state(),
             LicenceRenameSeatCommand {
@@ -183,7 +184,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
                 machine_id: "m-the-old-macbook-16".to_owned(),
                 label: None,
             }
-        )
+        ))
         .unwrap(),
         committed()
     );

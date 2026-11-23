@@ -17,8 +17,7 @@ use longhorn_history::{
     HistorySnapshot, HistoryTimedGroupRequest, LinearHistory,
 };
 use longhorn_tauri_history::{
-    HistoryHandlerAssembly, HistoryHostAuthority, HistoryHostError, HistoryHostService,
-    history_changed_event,
+    HistoryHandlerAssembly, HistoryHostAuthority, HistoryHostError, history_changed_event,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};

@@ -14,7 +14,7 @@ use super::{
 
 impl<A> BridgeHandlerAssembly<A>
 where
-    A: BridgeAuthorityProvider,
+    A: BridgeAuthorityProvider + ?Sized,
 {
     /// Publishes one checked current-session domain event.
     pub fn publish_domain_event<Payload: Serialize>(

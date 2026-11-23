@@ -8,7 +8,7 @@ use longhorn_history::{
 };
 use longhorn_tauri_history::{
     HistoryHandlerAssembly, HistoryHostAuthority, HistoryHostError, HistoryHostErrorCode,
-    HistoryHostService, history_changed_event,
+    history_changed_event,
 };
 use serde::Deserialize;
 
@@ -140,7 +140,7 @@ fn renderer_fixture_contains_no_product_payload() {
 }
 
 #[test]
-fn poisoned_handler_state_is_a_typed_retryable_failure() {
+fn poisoned_handler_state_is_a_typed_non_retryable_failure() {
     let service = Arc::new(HistoryHandlerAssembly::new(FixtureAuthority {
         fixture: fixture(),
         calls: Arc::new(Mutex::new(Vec::new())),
@@ -153,7 +153,7 @@ fn poisoned_handler_state_is_a_typed_retryable_failure() {
     );
     let error = service.snapshot("history").unwrap_err();
     assert_eq!(error.code, HistoryHostErrorCode::StateUnavailable);
-    assert!(error.retryable);
+    assert!(!error.retryable);
 }
 
 fn fixture() -> Fixture {

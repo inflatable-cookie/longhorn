@@ -281,3 +281,408 @@ fn snapshot_destroy_race_never_leaks_client_capacity() {
     let authority = handler.snapshot(&caller).unwrap();
     assert!(authority.client_epoch().get() > 32);
 }
+
+#[test]
+fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock() {
+    use std::{fs, sync::Arc, time::Duration};
+
+    use longhorn_config::{
+        ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
+        DurabilityRequirement, MutationOptions, StorageClass,
+    };
+    use longhorn_core::{
+        LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId, SchemaVersion,
+        SurfaceRevision,
+    };
+    use longhorn_storage_layout::StorageRoots;
+    use longhorn_surfaces::{
+        EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
+        PanelInstance, PanelInstancePolicy, ParticipatingWindow, PlacementSelector,
+        RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
+        SurfaceRecord,
+    };
+    use longhorn_surfaces_config::{
+        NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy,
+    };
+    use longhorn_tauri_transfer::{
+        AssembledTransferCommands, PanelTransferAdapter, TransferCallerAuthority,
+        TransferSessionRegistrar,
+    };
+    use longhorn_transfer::{
+        DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, PanelHostBinding,
+        PanelHostBindings, PanelSessionAdmission, PanelSessionStartRequest, PanelTransferCommand,
+        PanelTransferCompletion, PanelTransferOperation, PanelTransferResponse,
+        TerminalTransferAttempt, TransferAbort, TransferCommitSelector, TransferSessionRequest,
+        TransferSessionResponse, TransferSessionStarted, commit_resolved_panel_transfer,
+        prepare_panel_session_source,
+    };
+    use tempfile::TempDir;
+
+    struct OneShotAllocator(Option<[u8; 16]>);
+
+    impl DragSessionIdAllocator for OneShotAllocator {
+        fn allocate(&mut self) -> Result<[u8; 16], DragSessionIdAllocationError> {
+            self.0.take().ok_or(DragSessionIdAllocationError)
+        }
+    }
+
+    struct RealPanelAdapter<R, C> {
+        store: ConfigStore,
+        domain: RegisteredSurfaceDomain<NoSurfaceMigration>,
+        bindings: PanelHostBindings,
+        source_binding: TransferHostBindingId,
+        allocator: OneShotAllocator,
+        // Held only to prove the coordinator lock is not held during commit_panel.
+        handler: Arc<TransferHandlerAssembly<R, C>>,
+        probe_caller: HostWindowHandle,
+    }
+
+    impl<R, C> PanelTransferAdapter for RealPanelAdapter<R, C>
+    where
+        R: longhorn_tauri_transfer::ManagedTransferRuntime,
+        C: MonotonicClock,
+    {
+        fn start_panel(
+            &mut self,
+            caller: TransferCallerAuthority,
+            request: PanelSessionStartRequest,
+            sessions: &mut TransferSessionRegistrar<'_>,
+        ) -> TransferSessionResponse {
+            let admission = PanelSessionAdmission::new(
+                caller.window_id().clone(),
+                caller.client_id().clone(),
+                caller.client_epoch(),
+                request.panel_instance_id().clone(),
+                self.source_binding.clone(),
+                caller.session_lifetime(),
+            );
+            let source = match prepare_panel_session_source(
+                &self.store,
+                &self.domain,
+                &self.bindings,
+                &admission,
+            ) {
+                Ok(source) => source,
+                Err(error) => {
+                    return TransferSessionResponse::Aborted {
+                        abort: TransferAbort::from_panel(request.request_id().clone(), &error),
+                    };
+                }
+            };
+            match sessions.create_session(
+                &mut self.allocator,
+                TransferSessionRequest::new(source, caller.session_lifetime()),
+            ) {
+                Ok(Ok(receipt)) => TransferSessionResponse::Started {
+                    session: TransferSessionStarted::from_domain(
+                        request.request_id().clone(),
+                        receipt,
+                    ),
+                },
+                Ok(Err(error)) => TransferSessionResponse::Aborted {
+                    abort: TransferAbort::from_transfer(request.request_id().clone(), &error),
+                },
+                Err(error) => TransferSessionResponse::Aborted {
+                    abort: TransferAbort::host_transfer(
+                        request.request_id().clone(),
+                        longhorn_transfer::TransferErrorCode::UnknownClientEpoch,
+                        error.to_string(),
+                    ),
+                },
+            }
+        }
+
+        fn commit_panel(
+            &mut self,
+            _caller: TransferCallerAuthority,
+            request: PanelTransferCommand,
+            attempt: TerminalTransferAttempt,
+        ) -> PanelTransferResponse {
+            // Re-entering handler.snapshot() here would deadlock if commit_panel
+            // held the coordinator mutex across consumer config I/O.
+            let _ = self.handler.snapshot(&self.probe_caller).unwrap();
+
+            let options =
+                MutationOptions::new(Duration::from_secs(1), DurabilityRequirement::Atomic);
+            match commit_resolved_panel_transfer(
+                &self.store,
+                &self.domain,
+                &self.bindings,
+                options,
+                PanelTransferOperation::Move,
+                attempt,
+            ) {
+                Ok(receipt) => PanelTransferResponse::Committed {
+                    completion: Box::new(PanelTransferCompletion::from_domain(
+                        request.request_id().clone(),
+                        &receipt,
+                    )),
+                },
+                Err(error) => PanelTransferResponse::Aborted {
+                    abort: TransferAbort::from_panel(request.request_id().clone(), &error),
+                },
+            }
+        }
+    }
+
+    let temp = TempDir::new().unwrap();
+    let root = temp.path();
+    let data = root.join("data");
+    for path in [
+        root.join("config"),
+        data.clone(),
+        root.join("state"),
+        root.join("cache"),
+        root.join("runtime"),
+        root.join("log"),
+        root.join("backups"),
+    ] {
+        fs::create_dir_all(path).unwrap();
+    }
+    let roots = StorageRoots::new(
+        root.join("config"),
+        &data,
+        root.join("state"),
+        root.join("cache"),
+        root.join("runtime"),
+        root.join("log"),
+        root.join("backups"),
+    )
+    .unwrap();
+    let coordination = CoordinationAuthority::new(data).unwrap();
+    let mut store = ConfigStore::new(roots.clone(), coordination.clone());
+
+    let schema_id = LayoutSchemaId::new("schema:main").unwrap();
+    let region_id = RegionId::new("region:main").unwrap();
+    let def_id = PanelDefinitionId::new("panel-def:tool").unwrap();
+    let panel_id = PanelInstanceId::new("panel:tool-1").unwrap();
+    let source_surface = SurfaceId::new("surface:source").unwrap();
+    let target_surface = SurfaceId::new("surface:target").unwrap();
+    let source_window = WindowId::new("window:main").unwrap();
+    let target_window = WindowId::new("window:workspace").unwrap();
+    let domain_id = DomainId::new("layout.main").unwrap();
+    let source_binding = TransferHostBindingId::new("binding:source").unwrap();
+    let target_binding = TransferHostBindingId::new("binding:target").unwrap();
+
+    let registry = LayoutDefinitionRegistry::new(
+        SurfaceLimits::builder()
+            .maximum_schemas(4)
+            .maximum_regions_per_schema(4)
+            .maximum_sizing_slots_per_schema(4)
+            .maximum_panel_definitions(4)
+            .maximum_surfaces(4)
+            .maximum_windows(4)
+            .maximum_host_preferences_per_surface(4)
+            .maximum_label_bytes(64)
+            .maximum_panel_instances(16)
+            .maximum_panel_instances_per_region(8)
+            .build()
+            .unwrap(),
+        [LayoutSchemaDefinition::new(
+            schema_id.clone(),
+            [RegionDefinition::new(
+                region_id.clone(),
+                RegionFamilyId::new("family:content").unwrap(),
+                10,
+                EmptyRegionPolicy::KeepVisible,
+                false,
+            )],
+            [],
+        )],
+        [PanelDefinition::new(
+            def_id.clone(),
+            [PlacementSelector::Region(region_id.clone())],
+            [PlacementSelector::Region(region_id.clone())],
+            PanelInstancePolicy::Multiple,
+            true,
+            true,
+        )],
+    )
+    .unwrap();
+
+    let initial_document = SurfaceDocument::new(
+        SurfaceRevision::new(1),
+        [
+            SurfaceRecord::new(
+                source_surface.clone(),
+                schema_id.clone(),
+                None,
+                [RegionState::new(
+                    region_id.clone(),
+                    [panel_id.clone()],
+                    Some(panel_id.clone()),
+                    None,
+                )],
+                [],
+                [SurfaceHostPreference::new(source_window.clone(), 0)],
+            ),
+            SurfaceRecord::new(
+                target_surface.clone(),
+                schema_id,
+                None,
+                [RegionState::new(region_id.clone(), [], None, None)],
+                [],
+                [SurfaceHostPreference::new(target_window.clone(), 0)],
+            ),
+        ],
+        [PanelInstance::new(panel_id.clone(), def_id)],
+        [
+            ParticipatingWindow::new(source_window.clone(), Some(source_surface.clone())),
+            ParticipatingWindow::new(target_window.clone(), Some(target_surface.clone())),
+        ],
+    );
+
+    let domain = RegisteredSurfaceDomain::new(
+        DomainDescriptor::new(
+            domain_id.clone(),
+            SchemaVersion::new(1).unwrap(),
+            StorageClass::MachineState,
+            Some(DomainFilePath::new("workspace/layout.json").unwrap()),
+        )
+        .unwrap(),
+        initial_document,
+        registry,
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
+    )
+    .unwrap();
+    store.register(&domain).unwrap();
+
+    let bindings = PanelHostBindings::new([
+        PanelHostBinding::surface_container(
+            source_binding.clone(),
+            source_window.clone(),
+            domain_id.clone(),
+            source_surface.clone(),
+        ),
+        PanelHostBinding::surface_container(
+            target_binding.clone(),
+            target_window.clone(),
+            domain_id.clone(),
+            target_surface.clone(),
+        ),
+    ])
+    .unwrap();
+
+    let source_handle = handle("main");
+    let target_handle = handle("workspace");
+    let windows = [
+        ManagedTransferWindow::new(
+            source_window,
+            source_handle.clone(),
+            ScreenRect::new(ScreenPoint::new(0, 0), ScreenSize::new(500, 500)),
+            ScreenRect::new(ScreenPoint::new(10, 30), ScreenSize::new(480, 460)),
+        ),
+        ManagedTransferWindow::new(
+            target_window,
+            target_handle.clone(),
+            ScreenRect::new(ScreenPoint::new(600, 0), ScreenSize::new(500, 500)),
+            ScreenRect::new(ScreenPoint::new(610, 30), ScreenSize::new(480, 460)),
+        ),
+    ];
+    let runtime =
+        move |caller: &HostWindowHandle| ManagedTransferSnapshot::new(caller, windows.clone());
+    let handler = Arc::new(TransferHandlerAssembly::new(runtime, Clock, limits()));
+    let mut adapter_store = ConfigStore::new(roots, coordination);
+    adapter_store.register(&domain).unwrap();
+    let adapter = RealPanelAdapter {
+        store: adapter_store,
+        domain: domain.clone(),
+        bindings,
+        source_binding,
+        allocator: OneShotAllocator(Some([42; 16])),
+        handler: Arc::clone(&handler),
+        probe_caller: target_handle.clone(),
+    };
+    let commands = AssembledTransferCommands::from_shared(handler, adapter);
+
+    let _source_authority = commands.snapshot(&source_handle).unwrap();
+    let target_authority = commands.snapshot(&target_handle).unwrap();
+
+    let lease_response = commands
+        .publish_lease(
+            &target_handle,
+            TransferLeaseRequest::new(
+                TransferRequestId::new("request:lease-target").unwrap(),
+                target_authority.client_id().clone(),
+                target_authority.client_epoch(),
+                LeaseGeneration::new(1),
+                [ClientDropZone::new(
+                    DropZoneId::new("zone:target").unwrap(),
+                    ClientRect::new(
+                        ClientPoint::new(10.0, 10.0).unwrap(),
+                        ClientSize::new(200.0, 200.0).unwrap(),
+                    ),
+                    None,
+                    TransferTargetBinding::PanelRegion {
+                        host_binding_id: target_binding,
+                        document_id: domain_id,
+                        revision: TransferRevision::new(1),
+                        surface_id: target_surface.clone(),
+                        region_id: region_id.clone(),
+                    },
+                )],
+            ),
+        )
+        .unwrap();
+    assert!(matches!(
+        lease_response,
+        TransferLeaseResponse::Published { .. }
+    ));
+
+    let started = commands
+        .start_panel(
+            &source_handle,
+            PanelSessionStartRequest::new(
+                TransferRequestId::new("request:start-panel").unwrap(),
+                panel_id.clone(),
+            ),
+        )
+        .unwrap();
+    assert!(
+        matches!(started, TransferSessionResponse::Started { .. }),
+        "expected started panel session, got {started:?}"
+    );
+    let session_id = DragSessionId::from_entropy([42; 16]);
+
+    let committed = commands
+        .commit_panel(
+            &source_handle,
+            PanelTransferCommand::new(
+                TransferRequestId::new("request:commit-panel").unwrap(),
+                session_id,
+                TransferCommitSelector::ExplicitZone {
+                    drop_zone_id: DropZoneId::new("zone:target").unwrap(),
+                },
+            ),
+        )
+        .unwrap();
+    assert!(
+        matches!(committed, PanelTransferResponse::Committed { .. }),
+        "expected committed panel transfer, got {committed:?}"
+    );
+
+    let longhorn_config::LoadOutcome::Ready(loaded) = store.load(&domain).unwrap() else {
+        panic!("persisted surface document should load cleanly");
+    };
+    let persisted = loaded.value;
+    assert_eq!(persisted.revision(), SurfaceRevision::new(2));
+    assert!(
+        persisted
+            .surface(&source_surface)
+            .unwrap()
+            .region(&region_id)
+            .unwrap()
+            .panel_instance_ids()
+            .is_empty()
+    );
+    assert_eq!(
+        persisted
+            .surface(&target_surface)
+            .unwrap()
+            .region(&region_id)
+            .unwrap()
+            .panel_instance_ids(),
+        &[panel_id]
+    );
+}

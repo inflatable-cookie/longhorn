@@ -192,6 +192,22 @@ pub enum TauriWindowHostError {
     Lifecycle(TauriWindowLifecycleError),
 }
 
+impl std::fmt::Display for TauriWindowHostError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Busy => formatter.write_str("window host is busy"),
+            Self::Inactive => formatter.write_str("window host is inactive"),
+            Self::StateUnavailable { state } => {
+                write!(formatter, "window host state is unavailable: {state}")
+            }
+            Self::Apply(error) => write!(formatter, "window host apply failed: {error}"),
+            Self::Lifecycle(error) => write!(formatter, "window host lifecycle failed: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for TauriWindowHostError {}
+
 /// Apply receipt plus the guarded-reveal result.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TauriWindowHostApplyReceipt {

@@ -22,6 +22,19 @@ pub enum OperationHostErrorCode {
     EventPublication,
 }
 
+impl OperationHostErrorCode {
+    /// Returns the stable camelCase wire representation of this error code.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::AuthorityUnavailable => "authorityUnavailable",
+            Self::AuthorityStateUnavailable => "authorityStateUnavailable",
+            Self::ExecutorStateUnavailable => "executorStateUnavailable",
+            Self::EventPublication => "eventPublication",
+        }
+    }
+}
+
 /// Typed Tauri operation adapter failure.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -49,7 +62,7 @@ impl OperationHostError {
         Self {
             code: OperationHostErrorCode::AuthorityStateUnavailable,
             message: "operation authority state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 
@@ -57,7 +70,7 @@ impl OperationHostError {
         Self {
             code: OperationHostErrorCode::ExecutorStateUnavailable,
             message: "operation executor state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

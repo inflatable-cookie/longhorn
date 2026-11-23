@@ -59,6 +59,46 @@ pub enum TransferErrorCode {
     IneligibleCapability,
 }
 
+impl TransferErrorCode {
+    /// Returns the stable wire representation of this rejection code.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ClockRegressed => "clock_regressed",
+            Self::InvalidLifetime => "invalid_lifetime",
+            Self::SessionCapacity => "session_capacity",
+            Self::SessionIdAllocation => "session_id_allocation",
+            Self::SessionIdCollision => "session_id_collision",
+            Self::UnknownSession => "unknown_session",
+            Self::SessionExpired => "session_expired",
+            Self::SessionCancelled => "session_cancelled",
+            Self::SessionReplayed => "session_replayed",
+            Self::SourceWindowDestroyed => "source_window_destroyed",
+            Self::SourceClientChanged => "source_client_changed",
+            Self::ClientWindowCapacity => "client_window_capacity",
+            Self::UnknownClientEpoch => "unknown_client_epoch",
+            Self::StaleClientEpoch => "stale_client_epoch",
+            Self::StaleLeaseGeneration => "stale_lease_generation",
+            Self::LeaseCapacity => "lease_capacity",
+            Self::InvalidLease => "invalid_lease",
+            Self::LeaseExpired => "lease_expired",
+            Self::InvalidLiveWindows => "invalid_live_windows",
+            Self::TargetWindowMissing => "target_window_missing",
+            Self::StaleWindowGeometry => "stale_window_geometry",
+            Self::NoTarget => "no_target",
+            Self::AmbiguousWindow => "ambiguous_window",
+            Self::AmbiguousZone => "ambiguous_zone",
+            Self::IneligibleCapability => "ineligible_capability",
+        }
+    }
+}
+
+impl fmt::Display for TransferErrorCode {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
 /// Typed process-local transfer rejection.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TransferError {

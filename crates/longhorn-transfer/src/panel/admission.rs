@@ -13,21 +13,19 @@ use super::{
     PanelTransferErrorCode,
 };
 
-/// Resolves fresh layout authority and admits one bounded movable-panel session.
-pub fn admit_panel_session<M>(
+/// Validates fresh layout authority and builds the source record for a
+/// movable-panel session without holding a coordinator lock.
+pub fn prepare_panel_session_source<M>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
-    coordinator: &mut TransferCoordinator,
-    clock: &impl MonotonicClock,
-    allocator: &mut impl DragSessionIdAllocator,
     bindings: &PanelHostBindings,
-    request: PanelSessionAdmission,
-) -> Result<SessionCreationReceipt, PanelTransferError>
+    request: &PanelSessionAdmission,
+) -> Result<TransferSourceAuthority, PanelTransferError>
 where
     M: SurfaceMigration,
 {
     let binding = bindings.get(request.host_binding_id())?;
-    require_source_binding(domain, binding, &request)?;
+    require_source_binding(domain, binding, request)?;
     let document = load_layout(store, domain)?;
     let panel = document
         .panel_instance(request.panel_instance_id())
@@ -77,7 +75,7 @@ where
     }
 
     let subject_id = TransferSubjectId::from(request.panel_instance_id());
-    let source = TransferSourceAuthority::Panel {
+    Ok(TransferSourceAuthority::Panel {
         client_id: request.client_id().clone(),
         client_epoch: request.client_epoch(),
         source_window_id: request.source_window_id().clone(),
@@ -87,7 +85,23 @@ where
         revision: TransferRevision::new(document.revision().get()),
         surface_id,
         region_id,
-    };
+    })
+}
+
+/// Resolves fresh layout authority and admits one bounded movable-panel session.
+pub fn admit_panel_session<M>(
+    store: &ConfigStore,
+    domain: &RegisteredSurfaceDomain<M>,
+    coordinator: &mut TransferCoordinator,
+    clock: &impl MonotonicClock,
+    allocator: &mut impl DragSessionIdAllocator,
+    bindings: &PanelHostBindings,
+    request: PanelSessionAdmission,
+) -> Result<SessionCreationReceipt, PanelTransferError>
+where
+    M: SurfaceMigration,
+{
+    let source = prepare_panel_session_source(store, domain, bindings, &request)?;
     coordinator
         .create_session(
             clock,

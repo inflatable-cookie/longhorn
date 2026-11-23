@@ -7,66 +7,62 @@ use longhorn_operation::{
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
-use crate::OperationHostError;
+use crate::{OperationHandlerAssembly, OperationHostError};
 
 /// Non-durable committed-operation invalidation hint.
 pub const OPERATION_CHANGED_EVENT: &str = "longhorn://operation/changed";
 
-/// Object-safe operation surface retained in Tauri managed state.
-pub trait OperationHostService: Send + Sync {
-    /// Returns a caller-authorized snapshot.
-    fn snapshot(
-        &self,
-        caller: &str,
-        query: OperationSnapshotQuery,
-    ) -> Result<OperationSnapshotResponse, OperationHostError>;
-
-    /// Applies a caller-authorized management mutation.
-    fn mutate(
-        &self,
-        caller: &str,
-        command: OperationMutationCommand,
-    ) -> Result<OperationMutationResult, OperationHostError>;
-
-    /// Admits cancellation and dispatches through the injected executor.
-    fn cancel(
-        &self,
-        caller: &str,
-        command: OperationCancellationCommand,
-    ) -> Result<OperationCancellationResult, OperationHostError>;
-}
-
 /// Type-erased operation host installed once in Tauri managed state.
 pub struct TauriOperationState {
-    service: Arc<dyn OperationHostService>,
+    assembly: Arc<OperationHandlerAssembly>,
 }
 
 impl TauriOperationState {
     /// Wraps one explicitly injected operation assembly.
     #[must_use]
-    pub fn new(service: Arc<dyn OperationHostService>) -> Self {
-        Self { service }
+    pub fn new(assembly: Arc<OperationHandlerAssembly>) -> Self {
+        Self { assembly }
     }
+}
+
+async fn run_blocking<R: Runtime, T: Send + 'static>(
+    state: State<'_, TauriOperationState>,
+    window: &WebviewWindow<R>,
+    action: impl FnOnce(&OperationHandlerAssembly, &str) -> Result<T, OperationHostError>
+    + Send
+    + 'static,
+) -> Result<T, OperationHostError> {
+    let assembly = Arc::clone(&state.assembly);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || action(&assembly, &label))
+        .await
+        .map_err(|_| OperationHostError::authority_state_unavailable())?
 }
 
 /// Returns the caller-authorized operation snapshot.
 #[tauri::command]
-pub fn longhorn_operation_snapshot<R: Runtime>(
+pub async fn longhorn_operation_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriOperationState>,
     query: OperationSnapshotQuery,
 ) -> Result<OperationSnapshotResponse, OperationHostError> {
-    state.service.snapshot(window.label(), query)
+    run_blocking(state, &window, move |assembly, label| {
+        assembly.snapshot(label, query)
+    })
+    .await
 }
 
 /// Applies one caller-authorized management mutation.
 #[tauri::command]
-pub fn longhorn_operation_mutate<R: Runtime>(
+pub async fn longhorn_operation_mutate<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriOperationState>,
     command: OperationMutationCommand,
 ) -> Result<OperationMutationResult, OperationHostError> {
-    let result = state.service.mutate(window.label(), command)?;
+    let result = run_blocking(state, &window, move |assembly, label| {
+        assembly.mutate(label, command)
+    })
+    .await?;
     if let Some(event) = operation_mutation_changed_event(&result)
         && let Err(error) = window.emit(OPERATION_CHANGED_EVENT, event)
     {
@@ -77,12 +73,15 @@ pub fn longhorn_operation_mutate<R: Runtime>(
 
 /// Admits one caller-authorized cancellation request.
 #[tauri::command]
-pub fn longhorn_operation_cancel<R: Runtime>(
+pub async fn longhorn_operation_cancel<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriOperationState>,
     command: OperationCancellationCommand,
 ) -> Result<OperationCancellationResult, OperationHostError> {
-    let result = state.service.cancel(window.label(), command)?;
+    let result = run_blocking(state, &window, move |assembly, label| {
+        assembly.cancel(label, command)
+    })
+    .await?;
     if let Some(event) = operation_cancellation_changed_event(&result)
         && let Err(error) = window.emit(OPERATION_CHANGED_EVENT, event)
     {

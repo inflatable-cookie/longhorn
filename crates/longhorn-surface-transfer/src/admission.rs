@@ -12,16 +12,14 @@ use crate::{
     SurfaceHostBindings, SurfaceSessionAdmission, SurfaceTransferError, SurfaceTransferErrorCode,
 };
 
-/// Resolves fresh Surface authority and admits one bounded whole-Surface session.
-pub fn admit_surface_session<M>(
+/// Validates fresh Surface authority and builds the source record for a
+/// whole-Surface session without holding a coordinator lock.
+pub fn prepare_surface_session_source<M>(
     store: &ConfigStore,
     domain: &RegisteredSurfaceDomain<M>,
-    coordinator: &mut TransferCoordinator,
-    clock: &impl MonotonicClock,
-    allocator: &mut impl DragSessionIdAllocator,
     bindings: &SurfaceHostBindings,
-    request: SurfaceSessionAdmission,
-) -> Result<SessionCreationReceipt, SurfaceTransferError>
+    request: &SurfaceSessionAdmission,
+) -> Result<TransferSourceAuthority, SurfaceTransferError>
 where
     M: SurfaceMigration,
 {
@@ -64,7 +62,7 @@ where
     }
 
     let subject_id = TransferSubjectId::from(request.surface_id());
-    let source = TransferSourceAuthority::Surface {
+    Ok(TransferSourceAuthority::Surface {
         client_id: request.client_id().clone(),
         client_epoch: request.client_epoch(),
         source_window_id: request.source_window_id().clone(),
@@ -72,7 +70,23 @@ where
         host_binding_id: request.host_binding_id().clone(),
         document_id: domain.descriptor().id().clone(),
         revision: TransferRevision::new(document.revision().get()),
-    };
+    })
+}
+
+/// Resolves fresh Surface authority and admits one bounded whole-Surface session.
+pub fn admit_surface_session<M>(
+    store: &ConfigStore,
+    domain: &RegisteredSurfaceDomain<M>,
+    coordinator: &mut TransferCoordinator,
+    clock: &impl MonotonicClock,
+    allocator: &mut impl DragSessionIdAllocator,
+    bindings: &SurfaceHostBindings,
+    request: SurfaceSessionAdmission,
+) -> Result<SessionCreationReceipt, SurfaceTransferError>
+where
+    M: SurfaceMigration,
+{
+    let source = prepare_surface_session_source(store, domain, bindings, &request)?;
     coordinator
         .create_session(
             clock,

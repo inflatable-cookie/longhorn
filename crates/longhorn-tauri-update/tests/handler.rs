@@ -5,9 +5,9 @@ use std::sync::{Arc, Condvar, Mutex};
 
 use longhorn_tauri_update::{
     TauriUpdateState, UPDATE_CHANGED_EVENT, UpdateHandlerAssembly, UpdateHostAuthority,
-    UpdateHostError, UpdateHostService, longhorn_update_apply, longhorn_update_cancel,
-    longhorn_update_check, longhorn_update_defer, longhorn_update_prepare,
-    longhorn_update_select_channel, longhorn_update_snapshot, update_changed_event,
+    UpdateHostError, longhorn_update_apply, longhorn_update_cancel, longhorn_update_check,
+    longhorn_update_defer, longhorn_update_prepare, longhorn_update_select_channel,
+    longhorn_update_snapshot, update_changed_event,
 };
 use longhorn_update::{
     ArtifactFetch, Channel, DeferralCause, EndpointUrl, FetchError, FetchProgress,
@@ -259,15 +259,21 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
     });
 
     assert_eq!(
-        longhorn_update_snapshot(window.clone(), app.state()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_update_snapshot(window.clone(), app.state()))
+            .unwrap(),
         snapshot()
     );
     assert_eq!(
-        longhorn_update_check(window.clone(), app.state(), check_command()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_update_check(
+            window.clone(),
+            app.state(),
+            check_command()
+        ))
+        .unwrap(),
         committed()
     );
     assert_eq!(
-        longhorn_update_select_channel(
+        tauri::async_runtime::block_on(longhorn_update_select_channel(
             window.clone(),
             app.state(),
             UpdateSelectChannelCommand {
@@ -275,12 +281,12 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
                 authority_epoch: 4,
                 channel: Channel::Beta,
             }
-        )
+        ))
         .unwrap(),
         committed()
     );
     assert_eq!(
-        longhorn_update_defer(
+        tauri::async_runtime::block_on(longhorn_update_defer(
             window.clone(),
             app.state(),
             UpdateDeferCommand {
@@ -289,7 +295,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
                 version: "1.4.0".to_owned(),
                 cause: DeferralCause::UserPostponed,
             }
-        )
+        ))
         .unwrap(),
         committed()
     );
@@ -306,7 +312,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
     // A refused apply still answers. The caller gets the reason and the state
     // as it remains, not an adapter error.
     assert_eq!(
-        longhorn_update_apply(
+        tauri::async_runtime::block_on(longhorn_update_apply(
             window.clone(),
             app.state(),
             UpdateApplyCommand {
@@ -315,19 +321,19 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
                 version: "1.4.0".to_owned(),
                 digest: "ab".repeat(32),
             }
-        )
+        ))
         .unwrap(),
         rejected()
     );
     assert_eq!(
-        longhorn_update_cancel(
+        tauri::async_runtime::block_on(longhorn_update_cancel(
             window,
             app.state(),
             UpdateCancelCommand {
                 protocol_version: UpdateProtocolVersion::CURRENT,
                 authority_epoch: 4,
             }
-        )
+        ))
         .unwrap(),
         committed()
     );

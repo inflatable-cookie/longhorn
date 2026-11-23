@@ -2,13 +2,15 @@
 
 use std::sync::{Arc, Mutex};
 
+use longhorn_core::SettingsApplyUnitId;
 use longhorn_settings::{
     SettingsApplyCommand, SettingsLoadCommand, SettingsLoadOutcome, SettingsMutationResult,
     SettingsRegistrySnapshot, SettingsResetCommand,
 };
 use longhorn_tauri_settings::{
-    SettingsAuthority, SettingsCommandService, SettingsHandlerAssembly, SettingsHostError,
-    SettingsHostErrorCode, mutation_changed_event,
+    ConsumerSettingsTransactionAuthority, ConsumerSettingsTransactionOutcome,
+    SettingsHandlerAssembly, SettingsHostAuthority, SettingsHostError, SettingsHostErrorCode,
+    mutation_changed_event,
 };
 use serde::Deserialize;
 
@@ -29,7 +31,7 @@ struct FixtureAuthority {
     calls: Arc<Mutex<Vec<String>>>,
 }
 
-impl SettingsAuthority for FixtureAuthority {
+impl SettingsHostAuthority for FixtureAuthority {
     fn registry(&mut self, caller: &str) -> Result<SettingsRegistrySnapshot, SettingsHostError> {
         self.record("registry", caller);
         self.authorize(caller)?;
@@ -64,6 +66,15 @@ impl SettingsAuthority for FixtureAuthority {
         self.record("reset", caller);
         self.authorize(caller)?;
         Ok(self.fixture.mutation_results[1].clone())
+    }
+
+    fn authorize_transaction(
+        &mut self,
+        caller: &str,
+        _apply_unit_id: &SettingsApplyUnitId,
+    ) -> Result<(), SettingsHostError> {
+        self.record("authorize-tx", caller);
+        self.authorize(caller)
     }
 }
 
@@ -143,7 +154,7 @@ fn changed_receipts_project_hints_but_unchanged_and_failed_results_do_not() {
 }
 
 #[test]
-fn poisoned_handler_state_is_a_typed_retryable_failure() {
+fn poisoned_handler_state_is_a_typed_non_retryable_failure() {
     let fixture = fixture();
     let service = Arc::new(SettingsHandlerAssembly::new(FixtureAuthority {
         fixture,
@@ -157,7 +168,94 @@ fn poisoned_handler_state_is_a_typed_retryable_failure() {
     );
     let error = service.registry("settings").unwrap_err();
     assert_eq!(error.code, SettingsHostErrorCode::StateUnavailable);
-    assert!(error.retryable);
+    assert!(!error.retryable);
+}
+
+struct RecordingTransaction {
+    fixture: Fixture,
+    calls: Arc<Mutex<Vec<String>>>,
+}
+
+impl ConsumerSettingsTransactionAuthority for RecordingTransaction {
+    type Error = SettingsHostError;
+    type Receipt = String;
+
+    fn apply_transaction(
+        &self,
+        command: &SettingsApplyCommand,
+    ) -> Result<ConsumerSettingsTransactionOutcome<Self::Receipt>, Self::Error> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push(format!("tx-apply:{}", command.apply_unit_id.as_str()));
+        Ok(ConsumerSettingsTransactionOutcome {
+            result: self.fixture.mutation_results[0].clone(),
+            authority_receipt: "tx:apply:1".into(),
+        })
+    }
+
+    fn reset_transaction(
+        &self,
+        command: &SettingsResetCommand,
+    ) -> Result<ConsumerSettingsTransactionOutcome<Self::Receipt>, Self::Error> {
+        self.calls
+            .lock()
+            .unwrap()
+            .push(format!("tx-reset:{}", command.apply_unit_id.as_str()));
+        Ok(ConsumerSettingsTransactionOutcome {
+            result: self.fixture.mutation_results[1].clone(),
+            authority_receipt: "tx:reset:1".into(),
+        })
+    }
+}
+
+#[test]
+fn injected_transaction_authority_handles_declared_units_after_caller_authorization() {
+    let fixture = fixture();
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let tx_unit = fixture.apply_commands[0].apply_unit_id.clone();
+    let assembly = SettingsHandlerAssembly::with_transaction_authority(
+        FixtureAuthority {
+            fixture: fixture.clone(),
+            calls: Arc::clone(&calls),
+        },
+        [tx_unit.clone()],
+        RecordingTransaction {
+            fixture: fixture.clone(),
+            calls: Arc::clone(&calls),
+        },
+    );
+
+    // Unauthorized caller is rejected before the transaction authority runs.
+    let unauthorized = assembly
+        .apply("main", fixture.apply_commands[0].clone())
+        .unwrap_err();
+    assert_eq!(
+        unauthorized.code,
+        SettingsHostErrorCode::AuthorityUnavailable
+    );
+    assert!(!unauthorized.retryable);
+
+    // Authorized caller routes through the transaction seam.
+    let applied = assembly
+        .apply("settings", fixture.apply_commands[0].clone())
+        .unwrap();
+    assert_eq!(applied, fixture.mutation_results[0]);
+    let reset = assembly
+        .reset("settings", fixture.reset_commands[0].clone())
+        .unwrap();
+    assert_eq!(reset, fixture.mutation_results[1]);
+
+    assert_eq!(
+        *calls.lock().unwrap(),
+        [
+            "authorize-tx:main",
+            "authorize-tx:settings",
+            &format!("tx-apply:{}", tx_unit.as_str()),
+            "authorize-tx:settings",
+            &format!("tx-reset:{}", tx_unit.as_str()),
+        ]
+    );
 }
 
 fn fixture() -> Fixture {

@@ -11,18 +11,16 @@ use tauri::{Runtime, State, WebviewWindow};
 use super::caller_handle;
 use crate::{
     ManagedTransferRuntime, SurfaceTransferAdapter, TransferHandlerAssembly, TransferHandlerError,
+    TransferHostError,
 };
 
-/// Object-safe optional whole-Surface command surface.
-pub trait SurfaceTransferCommandService: Send + Sync {
-    /// Admits one current whole-Surface transfer.
+trait ErasedSurfaceTransferCommands: Send + Sync {
     fn start_surface(
         &self,
         caller: &HostWindowHandle,
         request: SurfaceSessionStartRequest,
     ) -> Result<SurfaceSessionResponse, TransferHandlerError>;
 
-    /// Commits one terminal whole-Surface transfer.
     fn commit_surface(
         &self,
         caller: &HostWindowHandle,
@@ -47,13 +45,14 @@ impl<R, C, S> AssembledSurfaceTransferCommands<R, C, S> {
     }
 }
 
-impl<R, C, S> SurfaceTransferCommandService for AssembledSurfaceTransferCommands<R, C, S>
+impl<R, C, S> AssembledSurfaceTransferCommands<R, C, S>
 where
-    R: ManagedTransferRuntime + 'static,
-    C: MonotonicClock + Send + Sync + 'static,
-    S: SurfaceTransferAdapter + Send + 'static,
+    R: ManagedTransferRuntime,
+    C: MonotonicClock,
+    S: SurfaceTransferAdapter,
 {
-    fn start_surface(
+    /// Admits one current whole-Surface transfer.
+    pub fn start_surface(
         &self,
         caller: &HostWindowHandle,
         request: SurfaceSessionStartRequest,
@@ -65,7 +64,8 @@ where
         self.handler.start_surface(caller, request, &mut *surface)
     }
 
-    fn commit_surface(
+    /// Commits one terminal whole-Surface transfer.
+    pub fn commit_surface(
         &self,
         caller: &HostWindowHandle,
         request: SurfaceTransferCommand,
@@ -78,41 +78,87 @@ where
     }
 }
 
+impl<R, C, S> ErasedSurfaceTransferCommands for AssembledSurfaceTransferCommands<R, C, S>
+where
+    R: ManagedTransferRuntime + 'static,
+    C: MonotonicClock + Send + Sync + 'static,
+    S: SurfaceTransferAdapter + Send + 'static,
+{
+    fn start_surface(
+        &self,
+        caller: &HostWindowHandle,
+        request: SurfaceSessionStartRequest,
+    ) -> Result<SurfaceSessionResponse, TransferHandlerError> {
+        Self::start_surface(self, caller, request)
+    }
+
+    fn commit_surface(
+        &self,
+        caller: &HostWindowHandle,
+        request: SurfaceTransferCommand,
+    ) -> Result<SurfaceTransferResponse, TransferHandlerError> {
+        Self::commit_surface(self, caller, request)
+    }
+}
+
 /// Type-erased optional Surface commands installed in Tauri managed state.
 pub struct TauriSurfaceTransferState {
-    service: Arc<dyn SurfaceTransferCommandService>,
+    commands: Arc<dyn ErasedSurfaceTransferCommands>,
 }
 
 impl TauriSurfaceTransferState {
     /// Wraps optional Surface commands over shared handler authority.
     #[must_use]
-    pub fn new(service: Arc<dyn SurfaceTransferCommandService>) -> Self {
-        Self { service }
+    pub fn new<R, C, S>(commands: Arc<AssembledSurfaceTransferCommands<R, C, S>>) -> Self
+    where
+        R: ManagedTransferRuntime + 'static,
+        C: MonotonicClock + Send + Sync + 'static,
+        S: SurfaceTransferAdapter + Send + 'static,
+    {
+        Self { commands }
     }
+}
+
+async fn run_blocking<R: Runtime, T: Send + 'static>(
+    state: State<'_, TauriSurfaceTransferState>,
+    window: &WebviewWindow<R>,
+    action: impl FnOnce(
+        &dyn ErasedSurfaceTransferCommands,
+        &HostWindowHandle,
+    ) -> Result<T, TransferHandlerError>
+    + Send
+    + 'static,
+) -> Result<T, TransferHostError> {
+    let caller = caller_handle(window)?;
+    let commands = Arc::clone(&state.commands);
+    tauri::async_runtime::spawn_blocking(move || action(commands.as_ref(), &caller))
+        .await
+        .map_err(|_| TransferHostError::state_unavailable())?
+        .map_err(TransferHostError::from)
 }
 
 /// Admits one current whole-Surface transfer session.
 #[tauri::command]
-pub fn longhorn_transfer_start_surface<R: Runtime>(
+pub async fn longhorn_transfer_start_surface<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriSurfaceTransferState>,
     request: SurfaceSessionStartRequest,
-) -> Result<SurfaceSessionResponse, String> {
-    state
-        .service
-        .start_surface(&caller_handle(&window)?, request)
-        .map_err(|error| error.to_string())
+) -> Result<SurfaceSessionResponse, TransferHostError> {
+    run_blocking(state, &window, move |commands, caller| {
+        commands.start_surface(caller, request)
+    })
+    .await
 }
 
 /// Commits one terminal whole-Surface transfer.
 #[tauri::command]
-pub fn longhorn_transfer_commit_surface<R: Runtime>(
+pub async fn longhorn_transfer_commit_surface<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriSurfaceTransferState>,
     request: SurfaceTransferCommand,
-) -> Result<SurfaceTransferResponse, String> {
-    state
-        .service
-        .commit_surface(&caller_handle(&window)?, request)
-        .map_err(|error| error.to_string())
+) -> Result<SurfaceTransferResponse, TransferHostError> {
+    run_blocking(state, &window, move |commands, caller| {
+        commands.commit_surface(caller, request)
+    })
+    .await
 }

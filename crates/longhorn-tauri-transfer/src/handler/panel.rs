@@ -1,11 +1,12 @@
 use longhorn_transfer::{
-    LiveTransferWindow, PanelSessionStartRequest, PanelTransferCommand, PanelTransferResponse,
-    TargetSelector, TransferAbort, TransferCommitSelector, TransferCoordinator, TransferErrorCode,
-    TransferSessionResponse,
+    PanelSessionStartRequest, PanelTransferCommand, PanelTransferResponse, TerminalTransferAttempt,
+    TransferAbort, TransferErrorCode, TransferSessionResponse,
 };
 use longhorn_windowing::HostWindowHandle;
 
-use super::{TransferCallerAuthority, TransferHandlerAssembly, current_caller};
+use super::{
+    TransferCallerAuthority, TransferHandlerAssembly, TransferSessionRegistrar, current_caller,
+};
 use crate::{ManagedTransferRuntime, TransferHandlerError};
 
 impl<R, C> TransferHandlerAssembly<R, C>
@@ -14,6 +15,9 @@ where
     C: longhorn_transfer::MonotonicClock,
 {
     /// Admits one panel transfer through the injected domain adapter.
+    ///
+    /// Releases the coordinator lock before calling the adapter so consumer
+    /// configuration I/O never blocks or deadlocks concurrent transfer calls.
     pub fn start_panel(
         &self,
         caller_handle: &HostWindowHandle,
@@ -22,8 +26,11 @@ where
     ) -> Result<TransferSessionResponse, TransferHandlerError> {
         let runtime = self.runtime.snapshot(caller_handle)?;
         let request_id = request.request_id().clone();
-        let mut state = self.lock_active()?;
-        let Some(caller) = current_caller(&state, &runtime) else {
+        let caller = {
+            let state = self.lock_active()?;
+            current_caller(&state, &runtime)
+        };
+        let Some(caller) = caller else {
             return Ok(TransferSessionResponse::Aborted {
                 abort: TransferAbort::host_transfer(
                     request_id,
@@ -32,74 +39,93 @@ where
                 ),
             });
         };
+        let mut create =
+            |allocator: &mut dyn longhorn_transfer::DragSessionIdAllocator,
+             session_request: longhorn_transfer::TransferSessionRequest| {
+                self.create_session_dyn(allocator, session_request)
+            };
+        let mut registrar = TransferSessionRegistrar::new(&mut create);
         Ok(adapter.start_panel(
-            &mut state.coordinator,
             TransferCallerAuthority::new(
                 runtime.caller().window_id().clone(),
                 caller,
                 self.session_lifetime,
             ),
             request,
+            &mut registrar,
         ))
     }
 
     /// Commits one panel transfer through fresh checked host projection.
+    ///
+    /// Resolves and consumes the terminal target attempt under the coordinator
+    /// lock, then releases the lock before calling the adapter so configuration
+    /// I/O never runs while holding the coordinator mutex.
     pub fn commit_panel(
         &self,
         caller_handle: &HostWindowHandle,
         request: PanelTransferCommand,
         adapter: &mut impl PanelTransferAdapter,
     ) -> Result<PanelTransferResponse, TransferHandlerError> {
-        let runtime = self.runtime.snapshot(caller_handle)?;
+        let (selector, runtime) = self.project_selector(caller_handle, request.selector())?;
         let request_id = request.request_id().clone();
-        let selector = match request.selector() {
-            TransferCommitSelector::ExplicitZone { drop_zone_id } => {
-                TargetSelector::ExplicitZone(drop_zone_id.clone())
-            }
-            TransferCommitSelector::ScreenPoint { point } => TargetSelector::ScreenPoint(*point),
-        };
         let live_windows = runtime.live_windows();
-        let mut state = self.lock_active()?;
-        let Some(caller) = current_caller(&state, &runtime) else {
-            return Ok(PanelTransferResponse::Aborted {
-                abort: TransferAbort::host_transfer(
-                    request_id,
-                    TransferErrorCode::UnknownClientEpoch,
-                    "caller has no current registered transfer client",
-                ),
-            });
+        let (caller, attempt) = {
+            let mut state = self.lock_active()?;
+            let Some(caller) = current_caller(&state, &runtime) else {
+                return Ok(PanelTransferResponse::Aborted {
+                    abort: TransferAbort::host_transfer(
+                        request_id,
+                        TransferErrorCode::UnknownClientEpoch,
+                        "caller has no current registered transfer client",
+                    ),
+                });
+            };
+            let attempt = state.coordinator.attempt_target_resolution(
+                &self.clock,
+                request.session_id(),
+                selector,
+                &live_windows,
+            );
+            (caller, attempt)
+        };
+        let attempt = match attempt {
+            Ok(attempt) => attempt,
+            Err(error) => {
+                return Ok(PanelTransferResponse::Aborted {
+                    abort: TransferAbort::from_transfer(request_id, &error),
+                });
+            }
         };
         Ok(adapter.commit_panel(
-            &mut state.coordinator,
             TransferCallerAuthority::new(
                 runtime.caller().window_id().clone(),
                 caller,
                 self.session_lifetime,
             ),
             request,
-            selector,
-            live_windows,
+            attempt,
         ))
     }
 }
 
 /// Narrow consumer adapter for authoritative panel admission and commit.
 pub trait PanelTransferAdapter {
-    /// Admits one panel using fresh caller authority and the shared coordinator.
+    /// Admits one panel using fresh caller authority and the narrow session
+    /// registrar. Runs without holding the coordinator lock.
     fn start_panel(
         &mut self,
-        coordinator: &mut TransferCoordinator,
         caller: TransferCallerAuthority,
         request: PanelSessionStartRequest,
+        sessions: &mut TransferSessionRegistrar<'_>,
     ) -> TransferSessionResponse;
 
-    /// Commits one terminal panel attempt using fresh host target evidence.
+    /// Commits one terminal panel attempt after the coordinator has resolved
+    /// and consumed the target. Runs without holding the coordinator lock.
     fn commit_panel(
         &mut self,
-        coordinator: &mut TransferCoordinator,
         caller: TransferCallerAuthority,
         request: PanelTransferCommand,
-        selector: TargetSelector,
-        live_windows: Vec<LiveTransferWindow>,
+        attempt: TerminalTransferAttempt,
     ) -> PanelTransferResponse;
 }
