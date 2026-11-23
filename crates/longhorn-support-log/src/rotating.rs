@@ -207,9 +207,16 @@ impl Sink {
     }
 
     /// Appends one whole line, rotating first when it would cross the bound.
-    /// Never panics and never returns a failure; drops are counted.
+    /// Never panics and never returns a failure; drops are counted. While
+    /// a repair is required the log writes nothing: the live file may hold
+    /// a partial line, so every line is dropped until the operator repairs
+    /// the file and restarts with a fresh log.
     fn write(&self, line: &str) {
         let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
+        if state.stats.repair_required {
+            state.stats.failed += 1;
+            return;
+        }
         let incoming = u64::try_from(line.len()).unwrap_or(u64::MAX);
         if incoming > self.config.max_bytes {
             state.stats.oversized += 1;
@@ -239,20 +246,8 @@ impl Sink {
             state.stats.failed += 1;
             return;
         };
-        match append_whole_line(file, line.as_bytes()) {
-            AppendOutcome::Written => {
-                state.stats.written += 1;
-            }
-            AppendOutcome::Dropped => {
-                state.file = None;
-                state.stats.failed += 1;
-            }
-            AppendOutcome::RepairRequired => {
-                state.file = None;
-                state.stats.failed += 1;
-                state.stats.repair_required = true;
-            }
-        }
+        let outcome = append_whole_line(file, line.as_bytes());
+        apply_append_outcome(&mut state, outcome);
     }
 
     /// Whether `incoming` bytes would push a non-empty live file past the
@@ -321,6 +316,27 @@ impl AppendTarget for File {
     }
 }
 
+/// Records one append outcome in `state`. A failure drops the handle so
+/// the next write reopens; a repair-required failure also latches
+/// `repair_required`, which [`Sink::write`] honors by dropping every later
+/// line until the operator repairs the file.
+fn apply_append_outcome(state: &mut State, outcome: AppendOutcome) {
+    match outcome {
+        AppendOutcome::Written => {
+            state.stats.written += 1;
+        }
+        AppendOutcome::Dropped => {
+            state.file = None;
+            state.stats.failed += 1;
+        }
+        AppendOutcome::RepairRequired => {
+            state.file = None;
+            state.stats.failed += 1;
+            state.stats.repair_required = true;
+        }
+    }
+}
+
 /// Appends `line` whole or not at all. A writer may commit a prefix before
 /// it fails (`write_all` returns the error, not the bytes), so on any
 /// failure the stream is truncated back to its pre-append length. When the
@@ -328,11 +344,7 @@ impl AppendTarget for File {
 /// must report repair.
 fn append_whole_line(target: &mut impl AppendTarget, line: &[u8]) -> AppendOutcome {
     let pre_len = target.committed_len().ok();
-    if target
-        .write_all(line)
-        .and_then(|()| target.flush())
-        .is_ok()
-    {
+    if target.write_all(line).and_then(|()| target.flush()).is_ok() {
         return AppendOutcome::Written;
     }
     let repaired = match pre_len {
@@ -443,5 +455,50 @@ mod tests {
             AppendOutcome::Written
         );
         assert_eq!(writer.committed, b"good line\n{\"event\":\"ok\"}\n");
+    }
+
+    #[test]
+    fn outcomes_count_and_latch_repair() {
+        let mut state = State::default();
+        apply_append_outcome(&mut state, AppendOutcome::Written);
+        apply_append_outcome(&mut state, AppendOutcome::Dropped);
+        assert_eq!(state.stats.written, 1);
+        assert_eq!(state.stats.failed, 1);
+        assert!(!state.stats.repair_required);
+
+        apply_append_outcome(&mut state, AppendOutcome::RepairRequired);
+        assert_eq!(state.stats.failed, 2);
+        assert!(state.stats.repair_required);
+    }
+
+    #[test]
+    fn a_latched_repair_drops_later_lines_without_touching_the_disk() {
+        use longhorn_redact::{RedactionRules, Redactor};
+
+        let root = tempfile::tempdir().unwrap();
+        let sink = Sink {
+            redactor: Redactor::new(Vec::new(), RedactionRules::common()),
+            config: RotatingLogConfig {
+                directory: root.path().to_path_buf(),
+                file_name: "support.log".to_owned(),
+                max_bytes: 1024,
+                retained: 2,
+                field_bytes: 1024,
+            },
+            state: Mutex::new(State {
+                stats: LogStats {
+                    repair_required: true,
+                    ..LogStats::default()
+                },
+                ..State::default()
+            }),
+        };
+        sink.write("{\"event\":\"after\"}\n");
+        let state = sink.state.lock().unwrap();
+        assert_eq!(state.stats.written, 0);
+        assert_eq!(state.stats.failed, 1);
+        assert!(state.stats.repair_required);
+        // No partial record is joined: nothing was opened or created.
+        assert!(!root.path().join("support.log").exists());
     }
 }

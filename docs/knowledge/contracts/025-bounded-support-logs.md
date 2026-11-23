@@ -146,7 +146,9 @@ or two processes, on one file are not supported.
   pre-append length and the next line cannot join onto a partial record.
   When the truncation fails too the log latches `repair_required` in
   `stats()`; the file may hold a partial line until the operator repairs
-  it.
+  it. While the latch is set the log writes nothing: every later line is
+  dropped and counted in `failed`, so no line can join onto the partial
+  record. Clearing the latch needs a fresh `RotatingLog` after the repair.
 - An empty `directory` writes nothing and counts each line in `failed`. Use
   `discarding()` for a log that writes nowhere; it opens no file and counts
   nothing.
