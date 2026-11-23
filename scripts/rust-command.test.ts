@@ -1045,6 +1045,22 @@ describe("External scratch helper (shell)", () => {
     await rm(result.stdout, { recursive: true, force: true });
   });
 
+  test("creates runner scratch without Bun on GitHub Actions", async () => {
+    const runnerTemp = await fixtureDirectory("longhorn-runner-temp");
+    const result = await invokeExternalScratch(["longhorn-source-consumer"], {
+      GITHUB_ACTIONS: "true",
+      PATH: "/usr/bin:/bin",
+      RUNNER_TEMP: runnerTemp,
+      TMPDIR: "/missing-tmpdir",
+      OXIDE_TASK_SCRATCH_ROOT: "/nonexistent/scratch",
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.startsWith(join(runnerTemp, "longhorn-source-consumer-"))).toBe(true);
+    expect((await stat(result.stdout)).isDirectory()).toBe(true);
+    await rm(result.stdout, { recursive: true, force: true });
+  });
+
   test("refuses a missing or malformed label", async () => {
     expect((await invokeExternalScratch([])).exitCode).toBe(2);
     const traversal = await invokeExternalScratch(["../escape"]);
