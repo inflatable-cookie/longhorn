@@ -54,9 +54,10 @@ if (retained.length === 0) throw new Error("held-surface register has no parseab
 
 const ignoredDirectories = new Set([".git", "node_modules", "target", "dist", ".svelte-kit"]);
 
-// The public surface lives in `src`; a stale test call site must not keep a row
-// alive after the item itself is gone. A package's manifest counts because
-// export subpaths are surface.
+// The public surface lives in `src`, so an integration test under `tests/`
+// cannot keep a row alive once the item is gone; unit-test modules inside
+// `src` still count as text. A package's manifest counts because export
+// subpaths are surface.
 async function treeText(roots: readonly string[]): Promise<string> {
   const chunks: string[] = [];
   async function walk(root: string, relative: string): Promise<void> {
