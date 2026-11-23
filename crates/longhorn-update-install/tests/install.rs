@@ -4,6 +4,8 @@
 //! as fixtures, so nothing here can drift from the signing format it claims
 //! to accept.
 
+#![cfg(unix)]
+
 use std::{
     fs,
     io::Cursor,
@@ -241,7 +243,7 @@ struct Fixture {
 impl Fixture {
     fn new() -> Self {
         let temp = TempDir::new().unwrap();
-        let target = temp.path().join("Example.app");
+        let target = temp.path().canonicalize().unwrap().join("Example.app");
         fs::create_dir_all(target.join("Contents")).unwrap();
         fs::write(target.join("Contents/marker"), b"old").unwrap();
         Self {
@@ -262,6 +264,10 @@ impl Fixture {
     fn parent(&self) -> &Path {
         self.target.parent().unwrap()
     }
+
+    fn workspace(&self) -> PathBuf {
+        self.parent().join(".--.longhorn-install-Example.app")
+    }
 }
 
 #[test]
@@ -274,10 +280,7 @@ fn the_native_installer_satisfies_the_shared_conformance_suite() {
         assert!(outcome.satisfied, "{}: {:?}", outcome.claim, outcome.detail);
     }
     // Four base claims plus one per hostile-archive fixture.
-    #[cfg(unix)]
     assert_eq!(outcomes.len(), 8);
-    #[cfg(not(unix))]
-    assert_eq!(outcomes.len(), 4);
 }
 
 #[test]
@@ -398,41 +401,44 @@ fn an_in_tree_symlink_is_part_of_a_valid_bundle() {
 }
 
 #[test]
-fn a_crash_mid_swap_is_recovered_and_the_update_completes() {
-    // The swap renamed the target aside and died before the staged bundle
-    // moved in: the application is missing and a backup sits beside the gap.
+fn a_displaced_legacy_bundle_is_left_for_manual_recovery() {
     let fixture = Fixture::new();
     let backup = fixture.target.with_extension("longhorn-previous");
     fs::rename(&fixture.target, &backup).unwrap();
-    assert!(!fixture.target.exists());
-
     let (bytes, signature) = fixture.fixtures.valid();
-    fixture
+
+    let error = fixture
         .installer()
         .apply(&verified(&fixture, bytes, &signature))
-        .expect("the displaced install is restored, then replaced");
+        .expect_err("legacy backup ownership must be confirmed manually");
 
-    assert_eq!(fixture.marker(), "new");
-    assert!(!backup.exists(), "the backup was consumed by the recovery");
+    assert!(error.to_string().contains(&*backup.to_string_lossy()));
+    assert_eq!(fs::read(backup.join("Contents/marker")).unwrap(), b"old");
+    assert!(!fixture.target.exists());
 }
 
 #[test]
-fn a_displaced_install_is_restored_even_when_the_new_artifact_fails() {
-    // Recovery is not conditional on the new attempt succeeding — a crashed
-    // update must never cost the install it was replacing.
+fn matching_workspace_names_do_not_authorize_recovery_of_an_unrelated_directory() {
     let fixture = Fixture::new();
-    let backup = fixture.target.with_extension("longhorn-previous");
-    fs::rename(&fixture.target, &backup).unwrap();
+    let marker = fixture.workspace().join("previous/marker");
+    fs::create_dir_all(marker.parent().unwrap()).unwrap();
+    fs::write(&marker, b"keep").unwrap();
+    fs::write(
+        fixture.workspace().join("longhorn-update-install-v1.lock"),
+        b"",
+    )
+    .unwrap();
+    fs::rename(&fixture.target, fixture.parent().join("original")).unwrap();
+    let (bytes, signature) = fixture.fixtures.valid();
 
-    let (bytes, signature) = fixture.fixtures.signed_but_unusable().unwrap();
-    drop(
-        fixture
-            .installer()
-            .apply(&verified(&fixture, bytes, &signature)),
-    );
+    let error = fixture
+        .installer()
+        .apply(&verified(&fixture, bytes, &signature))
+        .expect_err("an existing workspace needs the ownership marker");
 
-    assert_eq!(fixture.marker(), "old");
-    assert!(!backup.exists());
+    assert!(error.to_string().contains("unrecognized"));
+    assert_eq!(fs::read(&marker).unwrap(), b"keep");
+    assert!(!fixture.target.exists());
 }
 
 #[test]
@@ -465,16 +471,14 @@ fn an_archive_overstaying_the_extraction_quota_is_refused() {
 }
 
 #[test]
-#[cfg(unix)]
-fn a_stale_staging_directory_and_a_planted_link_are_swept_on_apply() {
+fn apply_leaves_unowned_siblings_in_place() {
     let fixture = Fixture::new();
-    let stale = fixture.parent().join(".longhorn-update-9.9.9-crashed");
-    fs::create_dir_all(stale.join("leftover")).unwrap();
-    // A symlink planted where the old predictable staging path was expected:
-    // swept, and never followed or written through.
-    let outside = fixture.parent().join("outside");
-    fs::create_dir_all(&outside).unwrap();
-    std::os::unix::fs::symlink(&outside, fixture.parent().join(".longhorn-update-1.3.0")).unwrap();
+    let unrelated = fixture.parent().join(".longhorn-update-9.9.9-other");
+    let legacy_backup = fixture.target.with_extension("longhorn-previous");
+    for sibling in [&unrelated, &legacy_backup] {
+        fs::create_dir(sibling).unwrap();
+        fs::write(sibling.join("marker"), b"keep").unwrap();
+    }
 
     let (bytes, signature) = fixture.fixtures.valid();
     fixture
@@ -482,16 +486,9 @@ fn a_stale_staging_directory_and_a_planted_link_are_swept_on_apply() {
         .apply(&verified(&fixture, bytes, &signature))
         .expect("a verified artifact installs");
 
-    assert!(!stale.exists(), "stale staging was not swept");
-    assert!(
-        !fixture.parent().join(".longhorn-update-1.3.0").exists(),
-        "the planted link was not swept"
-    );
-    assert_eq!(
-        fs::read_dir(&outside).unwrap().count(),
-        0,
-        "something wrote through the planted link"
-    );
+    for sibling in [&unrelated, &legacy_backup] {
+        assert_eq!(fs::read(sibling.join("marker")).unwrap(), b"keep");
+    }
     assert_eq!(fixture.marker(), "new");
 }
 
@@ -575,28 +572,79 @@ fn escalation_receives_the_verified_artifact_not_a_staged_path() {
     assert_eq!(fixture.marker(), "old");
 }
 
+#[cfg(unix)]
+#[test]
+fn an_unwritable_parent_serializes_escalation_without_a_workspace() {
+    use std::{os::unix::fs::PermissionsExt, sync::mpsc, time::Duration};
+
+    struct Paused(mpsc::Sender<()>, mpsc::Receiver<()>);
+
+    impl PrivilegedReplace for Paused {
+        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+            self.0.send(()).map_err(|error| error.to_string())?;
+            self.1
+                .recv_timeout(Duration::from_secs(5))
+                .map_err(|error| error.to_string())
+        }
+    }
+
+    struct AllowsReplacement;
+
+    impl PrivilegedReplace for AllowsReplacement {
+        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+            Ok(())
+        }
+    }
+
+    let fixture = Fixture::new();
+    let (bytes, signature) = fixture.fixtures.valid();
+    let artifact = verified(&fixture, bytes, &signature);
+    let parent = fixture.parent();
+    let permissions = fs::metadata(parent).unwrap().permissions();
+    fs::set_permissions(parent, fs::Permissions::from_mode(0o555)).unwrap();
+
+    let (entered, entered_port) = mpsc::channel();
+    let (resume, wait_for_resume) = mpsc::channel();
+    let (first, overlapping) = std::thread::scope(|scope| {
+        let target = &fixture.target;
+        let artifact = &artifact;
+        let first = scope.spawn(move || {
+            NativeInstaller::new(target)
+                .with_escalation(Paused(entered, wait_for_resume))
+                .apply(artifact)
+        });
+        let overlapping = entered_port.recv_timeout(Duration::from_secs(5)).map(|()| {
+            fixture
+                .installer()
+                .with_escalation(AllowsReplacement)
+                .apply(artifact)
+        });
+        let _ = resume.send(());
+        (first.join(), overlapping)
+    });
+    fs::set_permissions(parent, permissions).unwrap();
+
+    first.unwrap().expect("the first escalation completes");
+    let error = overlapping
+        .expect("the first apply entered the port")
+        .expect_err("the overlapping apply must stay out of the port");
+    assert!(error.to_string().contains("another update is active"));
+    assert!(!fixture.workspace().exists());
+}
+
 #[test]
 fn a_failed_install_leaves_no_staging_directory_behind() {
     let fixture = Fixture::new();
     let (bytes, signature) = fixture.fixtures.signed_but_unusable().unwrap();
 
-    drop(
-        fixture
-            .installer()
-            .apply(&verified(&fixture, bytes, &signature)),
-    );
+    fixture
+        .installer()
+        .apply(&verified(&fixture, bytes, &signature))
+        .expect_err("malformed artifact");
 
-    let leftovers: Vec<_> = fs::read_dir(fixture.parent())
-        .unwrap()
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with(".longhorn-update")
-        })
-        .collect();
-    assert!(leftovers.is_empty(), "staging directory was left behind");
+    for entry in fs::read_dir(fixture.workspace()).unwrap() {
+        assert!(entry.unwrap().file_type().unwrap().is_file());
+    }
 }
 
 #[test]
