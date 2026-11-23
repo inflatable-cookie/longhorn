@@ -15,8 +15,8 @@ const members = [
   },
   { name: "native-content-artifacts", script: "scripts/verify-native-content-artifacts.ts" },
   { name: "poodle-preview", script: "scripts/verify-poodle-preview.ts" },
-  { name: "greenfield-card125", script: "scripts/verify-greenfield-card125.ts" },
-  { name: "guides-card126", script: "scripts/verify-guides-card126.ts" },
+  { name: "greenfield-compositions", script: "scripts/verify-greenfield-compositions.ts" },
+  { name: "guide-corpus", script: "scripts/verify-guide-corpus.ts" },
   { name: "documented-commands", script: "scripts/verify-documented-commands.ts" },
   { name: "pack-typecheck", script: "scripts/verify-pack-typecheck.ts" },
 ] as const;

@@ -109,7 +109,7 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-release-runner-tools.test.ts scripts/verify-private-candidate-docs-card127.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -151,7 +151,7 @@ include = ["config/release.toml"]
 # --- Generated protocol bindings ----------------------------------------
 "check:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do bash scripts/rust-command.sh run -q -p longhorn-bindings -- \"$d\" check || exit 1; done'"
 "generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do bash scripts/rust-command.sh run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
-"check:api-reference" = "bun scripts/generate-api-reference-card126.ts"
+"check:api-reference" = "bun scripts/generate-api-reference.ts"
 "check:tauri-seam-strings" = "bun scripts/verify-tauri-seam-strings.ts"
 "check:consumer-isolation" = "bun scripts/verify-consumer-isolation.ts"
 "check:repo-containment" = "bun scripts/verify-repo-containment.ts"
@@ -236,7 +236,7 @@ include = ["config/release.toml"]
 # workspace version; also runs finder and install fixtures (Cards 235-236).
 "check:agent-control-skill" = "bun scripts/verify-agent-control-skill.ts"
 "agent-control:install-skill" = { rhai = "scripts/install-agent-control-skill.rhai" }
-"generate:api-reference" = "bun scripts/generate-api-reference-card126.ts --write"
+"generate:api-reference" = "bun scripts/generate-api-reference.ts --write"
 
 # --- Artifact proofs ----------------------------------------------------
 # Each script builds isolated artifacts and asserts one composition claim.
@@ -251,7 +251,7 @@ include = ["config/release.toml"]
 # published peer range resolves from npm.
 # `proof:artifacts`: heavy task table below ([tasks."proof:artifacts"]).
 "proof:pack-typecheck" = "bun scripts/verify-pack-typecheck.ts"
-"proof:guides-card126" = "bun scripts/verify-guides-card126.ts"
+"proof:guide-corpus" = "bun scripts/verify-guide-corpus.ts"
 "proof:poodle-preview" = "bun scripts/verify-poodle-preview.ts"
 "proof:documented-commands" = "bun scripts/verify-documented-commands.ts"
 "proof:bridge-topology-conformance" = "bun scripts/verify-bridge-topology-conformance.ts"
@@ -282,7 +282,7 @@ include = ["config/release.toml"]
 # `[release.gates]` minus `workspace`, declaration order. `check:release-gates`
 # fails if this list drifts. The runner still runs `effigy qa` separately.
 "release:gates" = [
-  "bun scripts/verify-private-candidate-docs-card127.ts",
+  "bun scripts/verify-private-candidate-docs.ts",
   "bash scripts/rust-command.sh deny check advisories",
   { task = "docs:rust" },
   { task = "check:prototypes" },
@@ -597,7 +597,7 @@ members = [
     id = "guide-proof",
     kind = "proof",
     surface = "published",
-    task = "proof:guides-card126",
+    task = "proof:guide-corpus",
     args = [],
     targets = ["workspace:root"],
     covers = [
@@ -607,7 +607,7 @@ members = [
       "path:docs/README.md",
       "path:README.md",
       "path:examples/greenfield-compositions/README.md",
-      "input:effigy-task-table-proof-guides-card126",
+      "input:effigy-task-table-proof-guide-corpus",
     ],
     limits = ["Checks the fixed guide corpus, local links, snippets, generated API inventory, and package counts"],
   },

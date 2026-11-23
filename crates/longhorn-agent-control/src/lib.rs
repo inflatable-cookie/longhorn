@@ -41,8 +41,9 @@ pub use tools::{
     ActionReceipt, AnswerSelectionRequest, AnswerSelectionResult, CONTROL_TOOL_NAMES, ClickRequest,
     CommandRequest, CommandResult, DragRequest, ElementRef, EvaluateRequest, EvaluateResult,
     FileInputFile, KeyModifier, ListWindowsRequest, ListWindowsResult, MAX_FILE_INPUT_BYTES,
-    PageState, PressRequest, RejectSelectionRequest, RejectSelectionResult, ResizeWindowRequest,
-    ScreenshotRequest, ScreenshotResult, ScrollRequest, SelectionId, SemanticNode,
-    SetFileInputRequest, SnapshotRequest, SnapshotResult, ToolError, TypeRequest, WaitForRequest,
-    WaitForResult, WaitPredicate, WebviewLabel, WebviewTarget, WindowInfo, WindowTarget,
+    MAX_WAIT_TIMEOUT_MS, PageState, PressRequest, RejectSelectionRequest, RejectSelectionResult,
+    ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest, SelectionId,
+    SemanticNode, SetFileInputRequest, SnapshotRequest, SnapshotResult, ToolError, TypeRequest,
+    ValidatedSetFileInputRequest, WaitForRequest, WaitForResult, WaitPredicate, WebviewLabel,
+    WebviewTarget, WindowInfo, WindowTarget,
 };

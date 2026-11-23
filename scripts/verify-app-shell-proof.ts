@@ -1,8 +1,9 @@
+import { digest, fileDependency, runWithDiagnostics as run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { testCount } from "./test-count.ts";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   cp,
   lstat,
@@ -239,10 +240,6 @@ function rewriteDependencies(
   );
 }
 
-function fileDependency(path: string): string {
-  return `file:${path}`;
-}
-
 async function assertArtifactInstall(
   stage: string,
   name: string,
@@ -319,31 +316,6 @@ function assertCapabilityPolicy(
   if (shape === "loophole" && (!base || !surfaces)) {
     throw new Error("Loophole capability omits full transfer authority");
   }
-}
-
-async function digest(path: string): Promise<string> {
-  return createHash("sha256")
-    .update(await readFile(path))
-    .digest("hex");
-}
-
-async function run(command: string[], cwd: string): Promise<string> {
-  const process = Bun.spawn(command, {
-    cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    process.exited,
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(
-      `${command.join(" ")} failed in ${cwd}\n${stdout}\n${stderr}`,
-    );
-  }
-  return `${stdout}\n${stderr}`;
 }
 
 

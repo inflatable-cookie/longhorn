@@ -22,6 +22,7 @@
 // `rustExec` lease with private final outputs on external build scratch.
 // Keep the stage with KEEP_NATIVE_CONTENT_LOCAL=1.
 
+import { runSync as run } from "./proof-support.ts";
 import { spawnSync } from "node:child_process";
 import { cp, lstat, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -308,23 +309,4 @@ async function privateWorkspaceManifest(): Promise<string> {
     '  "consumer",',
   ].join("\n");
   return `[workspace]\nmembers = [\n${members}\n]\nresolver = "2"\n\n${filtered}`;
-}
-
-function run(command: readonly string[], cwd: string): string {
-  // `scripts/rust-command.sh` feeds every command here: the checkout-level
-  // `package --list` inventories and the staged workspace's `oxide exec`
-  // lease, whose tool calls plain Cargo.
-  const result = spawnSync(command[0]!, command.slice(1), {
-    cwd,
-    encoding: "utf8",
-    env: { ...process.env },
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(
-      `${command.join(" ")} failed in ${cwd} (exit ${result.status})\n${result.stdout}\n${result.stderr}`,
-    );
-  }
-  return result.stdout;
 }

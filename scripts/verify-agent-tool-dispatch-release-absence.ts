@@ -6,6 +6,7 @@
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import { run } from "./proof-support.ts";
 import {
   libraryArchives,
   privateCargoCommand,
@@ -42,7 +43,7 @@ try {
       "--prefix",
       "none",
     ]),
-    {},
+    repoRoot,
   );
   if (tree.includes(DEV_CONTROL) || tree.includes("longhorn_agent_control")) {
     throw new Error(`${DISPATCH} imports contract 022's ${DEV_CONTROL} graph`);
@@ -66,7 +67,7 @@ try {
       ]),
       { manifestPath: join(repoRoot, "Cargo.toml"), profile: "release" },
     ),
-    {},
+    repoRoot,
   );
 
   const archives = libraryArchives(built, DISPATCH);
@@ -104,27 +105,6 @@ try {
       2,
     ),
   );
-
-  async function run(
-    command: string[],
-    environment: Record<string, string> = {},
-  ): Promise<string> {
-    const subprocess = Bun.spawn(command, {
-      cwd: repoRoot,
-      env: { ...process.env, ...environment },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const [stdout, stderr, exitCode] = await Promise.all([
-      new Response(subprocess.stdout).text(),
-      new Response(subprocess.stderr).text(),
-      subprocess.exited,
-    ]);
-    if (exitCode !== 0) {
-      throw new Error(`${command.join(" ")} failed\n${stdout}\n${stderr}`);
-    }
-    return stdout;
-  }
 } finally {
   await scratch.dispose();
 }

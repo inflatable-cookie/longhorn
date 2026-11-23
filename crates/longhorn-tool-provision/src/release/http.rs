@@ -28,6 +28,9 @@ const MAX_REDIRECTS: usize = 10;
 /// The copy's read size. The bound is checked against the bytes read, not
 /// against this size.
 const COPY_CHUNK: usize = 64 * 1024;
+/// The largest release listing read. A listing names one release and its
+/// assets, so real listings sit far below this.
+const MAX_LISTING_BYTES: u64 = 4 * 1024 * 1024;
 
 /// The GitHub release source. The token, when given, rides only on listing
 /// requests to the configured API origin.
@@ -131,7 +134,7 @@ impl ReleaseSource for HttpReleases {
             }));
         }
         let response = response.error_for_status().map_err(transport)?;
-        let body = response.bytes().map_err(transport)?;
+        let body = read_listing(response)?;
         let listing: ApiRelease = serde_json::from_slice(&body).map_err(|error| {
             ReleaseError::Refused(ReleaseRefusal::Malformed {
                 detail: error.to_string(),
@@ -230,6 +233,25 @@ impl ReleaseSource for HttpReleases {
                 &destination,
                 failure.into_error(asset, &destination),
             )),
+        }
+    }
+}
+
+/// Reads the listing body, refusing one past [`MAX_LISTING_BYTES`] before it
+/// is parsed.
+fn read_listing(mut response: Response) -> Result<Vec<u8>, ReleaseError> {
+    let mut body = Vec::new();
+    match copy_bounded(&mut response, &mut body, MAX_LISTING_BYTES) {
+        Ok(()) => Ok(body),
+        Err(CopyFailure::TooLarge(limit)) => {
+            Err(ReleaseError::Refused(ReleaseRefusal::Malformed {
+                detail: format!("the release listing is larger than {limit} bytes"),
+            }))
+        }
+        Err(CopyFailure::Source(error) | CopyFailure::Sink(error)) => {
+            Err(ReleaseError::Fault(ReleaseFault::Unreachable {
+                detail: format!("the release listing could not be read: {error}"),
+            }))
         }
     }
 }

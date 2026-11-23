@@ -8,7 +8,7 @@ import {
 } from "./bridge-topology-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./bridge-topology-artifact-proof/consumers.ts";
 import type { TopologyDeclarations } from "./bridge-topology-artifact-proof/types.ts";
-import { run } from "./bridge-topology-artifact-proof/shared.ts";
+import { runWithDiagnostics as run } from "./proof-support.ts";
 import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");

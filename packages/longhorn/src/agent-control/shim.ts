@@ -108,7 +108,11 @@ export type AgentControlApi = {
   waitFor: (predicate: WaitPredicate) => ShimResult<{ holds: boolean }>;
   markAgentOrigin: () => void;
   isAgentOriginated: () => boolean;
-  readEvents: (sinceSeq?: number) => {
+  readEvents: (
+    sinceSeq?: number,
+    sinceEpoch?: string | null,
+  ) => {
+    epoch: string;
     events: PageEvent[];
     nextSeq: number;
     dropped: number;
@@ -736,6 +740,10 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
   const existing = world[SHIM_GLOBAL] as AgentControlApi | undefined;
   if (existing) return existing.readEvents.bind(existing);
 
+  const epoch =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   const ring: PageEvent[] = [];
   let nextSeq = 1;
   let dropped = 0;
@@ -784,6 +792,9 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
   const notifyNavigation = () => {
     push({ seq: nextSeq, kind: "navigation", url: world.location.href });
   };
+  // Record the initial document load so full-document navigations and reloads
+  // are observable through `longhorn://agent-control/navigation` as seq 1.
+  notifyNavigation();
   world.addEventListener("hashchange", notifyNavigation);
   world.addEventListener("popstate", notifyNavigation);
   const history = world.history;
@@ -798,11 +809,16 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
     notifyNavigation();
   }) as History["replaceState"];
 
-  return (sinceSeq = 0) => ({
-    events: ring.filter((event) => event.seq > sinceSeq),
-    nextSeq,
-    dropped,
-  });
+  return (sinceSeq = 0, sinceEpoch?: string | null) => {
+    const effectiveSince =
+      sinceEpoch !== undefined && sinceEpoch !== null && sinceEpoch !== epoch ? 0 : sinceSeq;
+    return {
+      epoch,
+      events: ring.filter((event) => event.seq > effectiveSince),
+      nextSeq,
+      dropped,
+    };
+  };
 }
 
 function installOriginTracking(world: ShimWorld): Pick<

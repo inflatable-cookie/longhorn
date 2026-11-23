@@ -60,7 +60,7 @@ members = [
   "examples/agent-control-proof/src-tauri",
   "examples/command-system-proof/rust/jetstream",
   "examples/command-system-proof/rust/loophole",
-  "examples/nucleus-no-surface-proof",
+  "examples/window-bound-hosting-proof",
   "examples/packaged-update-proof",
   "examples/tauri-update-proof/src-tauri",
   "examples/tauri-windowing-proof/src-tauri",

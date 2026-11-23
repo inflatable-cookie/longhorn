@@ -11,7 +11,7 @@
 
 use std::{
     fs::{self, File, OpenOptions},
-    io::{self, Read, Seek, Write},
+    io::{self, Read, Seek, SeekFrom, Write},
     path::{Component, Path, PathBuf},
 };
 
@@ -534,7 +534,7 @@ fn extract_zip(
 /// Extracts from `source`, the private copy at `sealed` behind a
 /// [`SourceReader`], so its host faults stay faults.
 fn read_zip<R: Read + Seek>(
-    source: SourceReader<R>,
+    mut source: SourceReader<R>,
     sealed: &Path,
     asset: &str,
     member: &Path,
@@ -543,6 +543,12 @@ fn read_zip<R: Read + Seek>(
     limits: ExtractionLimits,
 ) -> Result<(), ProvisionError> {
     let on_read = archive_read_failure(asset, sealed, limits.max_bytes());
+    // Refused before the reader parses the whole central directory, which
+    // would otherwise allocate one record per entry the archive declares.
+    let declared = declared_entry_count(&mut source).map_err(|error| on_read(&error))?;
+    if declared.is_some_and(|count| count > limits.max_members() as u64) {
+        return Err(too_many(asset, limits));
+    }
     let unreadable = |error: zip::result::ZipError| match error {
         zip::result::ZipError::Io(error) => on_read(&error),
         error => ProvisionError::Refused(Refusal::UnreadableArchive {
@@ -620,6 +626,61 @@ fn read_zip<R: Read + Seek>(
     } else {
         Err(missing(asset, member))
     }
+}
+
+/// The entry count the end-of-central-directory record declares, read from
+/// the archive's tail. `Ok(None)` means no readable record was found: the
+/// archive reader then refuses the archive as unreadable. Only the early
+/// refusal depends on this value; the per-entry bound is always applied.
+fn declared_entry_count<R: Read + Seek>(source: &mut R) -> io::Result<Option<u64>> {
+    const EOCD_SIGNATURE: &[u8; 4] = b"PK\x05\x06";
+    const ZIP64_RECORD_SIGNATURE: &[u8; 4] = b"PK\x06\x06";
+    const ZIP64_LOCATOR_SIGNATURE: &[u8; 4] = b"PK\x06\x07";
+    const EOCD_LEN: usize = 22;
+    const ZIP64_LOCATOR_LEN: u64 = 20;
+    // The record's comment may be as long as a u16 allows.
+    const MAX_TAIL: u64 = EOCD_LEN as u64 + u16::MAX as u64;
+
+    let end = source.seek(SeekFrom::End(0))?;
+    let window = MAX_TAIL.min(end);
+    source.seek(SeekFrom::Start(end - window))?;
+    let mut tail = vec![0u8; window as usize];
+    source.read_exact(&mut tail)?;
+    let Some(at) = tail
+        .windows(EOCD_SIGNATURE.len())
+        .rposition(|bytes| bytes == EOCD_SIGNATURE)
+    else {
+        return Ok(None);
+    };
+    if tail.len() < at + EOCD_LEN {
+        return Ok(None);
+    }
+    let entries = u16::from_le_bytes([tail[at + 10], tail[at + 11]]);
+    if entries != u16::MAX {
+        return Ok(Some(u64::from(entries)));
+    }
+    // Zip64: the locator sits directly before the end record.
+    let eocd_position = end - window + at as u64;
+    if eocd_position < ZIP64_LOCATOR_LEN {
+        return Ok(None);
+    }
+    source.seek(SeekFrom::Start(eocd_position - ZIP64_LOCATOR_LEN))?;
+    let mut locator = [0u8; 20];
+    source.read_exact(&mut locator)?;
+    if &locator[..4] != ZIP64_LOCATOR_SIGNATURE {
+        return Ok(None);
+    }
+    let mut record_offset = [0u8; 8];
+    record_offset.copy_from_slice(&locator[8..16]);
+    source.seek(SeekFrom::Start(u64::from_le_bytes(record_offset)))?;
+    let mut record = [0u8; 40];
+    source.read_exact(&mut record)?;
+    if &record[..4] != ZIP64_RECORD_SIGNATURE {
+        return Ok(None);
+    }
+    let mut count = [0u8; 8];
+    count.copy_from_slice(&record[32..40]);
+    Ok(Some(u64::from_le_bytes(count)))
 }
 
 fn too_many(asset: &str, limits: ExtractionLimits) -> ProvisionError {
@@ -897,5 +958,54 @@ mod read_fault_tests {
             result,
             Err(ProvisionError::Refused(Refusal::UnreadableArchive { .. }))
         ));
+    }
+}
+
+/// The declared-count reader sees the record the zip format puts it in, and
+/// finds nothing in bytes that carry no end record.
+#[cfg(test)]
+mod entry_count_tests {
+    use std::io::Cursor;
+
+    use super::*;
+
+    /// An end-of-central-directory record that declares `total` entries.
+    fn end_record(total: u16) -> Vec<u8> {
+        let mut record = b"PK\x05\x06".to_vec();
+        record.extend_from_slice(&[0; 6]);
+        record.extend_from_slice(&total.to_le_bytes());
+        record.extend_from_slice(&total.to_le_bytes());
+        record.extend_from_slice(&[0; 8]);
+        record.extend_from_slice(&[0; 2]);
+        record
+    }
+
+    #[test]
+    fn a_plain_end_record_declares_its_entry_count() {
+        let mut archive = Cursor::new(end_record(3));
+        assert_eq!(declared_entry_count(&mut archive).unwrap(), Some(3));
+    }
+
+    #[test]
+    fn a_zip64_record_declares_the_count_the_marker_points_to() {
+        // A zip64 end record (40 bytes read here), its locator, then the
+        // ordinary end record with the 0xFFFF marker in its entry fields.
+        let mut archive = Vec::new();
+        archive.extend_from_slice(b"PK\x06\x06");
+        archive.extend_from_slice(&[0; 28]);
+        archive.extend_from_slice(&70_000u64.to_le_bytes());
+        archive.extend_from_slice(b"PK\x06\x07");
+        archive.extend_from_slice(&[0; 4]);
+        archive.extend_from_slice(&0u64.to_le_bytes());
+        archive.extend_from_slice(&[0; 4]);
+        archive.extend_from_slice(&end_record(u16::MAX));
+        let mut archive = Cursor::new(archive);
+        assert_eq!(declared_entry_count(&mut archive).unwrap(), Some(70_000));
+    }
+
+    #[test]
+    fn bytes_without_an_end_record_declare_nothing() {
+        let mut archive = Cursor::new(b"not a zip archive at all".to_vec());
+        assert_eq!(declared_entry_count(&mut archive).unwrap(), None);
     }
 }

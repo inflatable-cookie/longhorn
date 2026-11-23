@@ -18,6 +18,8 @@ use std::time::Duration;
 
 use reqwest::Url;
 
+use crate::name::is_plain_segment;
+
 pub use failure::{ReleaseError, ReleaseFault, ReleaseRefusal};
 pub use http::HttpReleases;
 
@@ -274,13 +276,7 @@ fn release_from_listing(
 /// A path segment this crate will put in a URL or a file name: ASCII
 /// letters, digits, `.`, `_`, `-` and `+`, and not `.` or `..`.
 pub(crate) fn check_segment(label: &str, value: &str) -> Result<(), ReleaseError> {
-    let plain = !value.is_empty()
-        && value != "."
-        && value != ".."
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'+'));
-    if plain {
+    if is_plain_segment(value) {
         Ok(())
     } else {
         Err(ReleaseError::Fault(ReleaseFault::Usage {

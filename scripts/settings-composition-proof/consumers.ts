@@ -1,3 +1,4 @@
+import { assertExactSet } from "../proof-support.ts";
 import { installProofStage } from "../proof-install.ts";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
@@ -11,7 +12,8 @@ import {
   writeFile,
 } from "node:fs/promises";
 
-import { fileDependency, run, testCount } from "./shared.ts";
+import { testCount } from "../test-count.ts";
+import { fileDependency, runWithDiagnostics as run } from "../proof-support.ts";
 import { POODLE_RELEASE } from "./artifacts.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import type {
@@ -306,17 +308,5 @@ async function assertSingleSvelteRuntime(stage: string): Promise<void> {
   );
   if (manifests.length !== 1) {
     throw new Error(`expected one Svelte runtime, found ${manifests.length}`);
-  }
-}
-
-function assertExactSet(
-  label: string,
-  actual: readonly string[],
-  expected: readonly string[],
-): void {
-  const left = [...actual].sort();
-  const right = [...expected].sort();
-  if (JSON.stringify(left) !== JSON.stringify(right)) {
-    throw new Error(`${label} mismatch: ${left.join(", ")}`);
   }
 }

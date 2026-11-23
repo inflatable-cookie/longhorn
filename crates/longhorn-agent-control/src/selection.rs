@@ -11,24 +11,36 @@ use std::{
     collections::HashMap,
     fmt, fs,
     future::Future,
-    path::{Path, PathBuf},
+    path::Path,
     pin::Pin,
     sync::{
         Arc, Mutex,
         atomic::{AtomicU64, Ordering},
     },
     task::{Context, Poll},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::{Deserialize, Serialize};
-use tokio::sync::oneshot;
+use tokio::{
+    sync::{oneshot, watch},
+    time::Instant,
+};
 
 use crate::{SelectionId, ToolError};
 
 /// Bound an unanswered request lives before it expires with a typed error.
 pub const DEFAULT_SELECTION_TTL: Duration = Duration::from_secs(60);
+
+/// How long a settled or expired tombstone is retained so a late MCP answer
+/// still observes `SettledSelection` or `ExpiredSelection` instead of
+/// `UnknownSelection`.
+const TOMBSTONE_RETENTION: Duration = Duration::from_secs(300);
+
+/// Hard cap on retained tombstones so rapid churn cannot grow memory without
+/// bound; oldest tombstones are evicted first once exceeded.
+const MAX_TOMBSTONES: usize = 256;
 
 /// Dialog filter copied from the caller's picker options.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -159,14 +171,19 @@ enum SlotState {
         tx: oneshot::Sender<SelectionOutcome>,
         deadline: Instant,
     },
-    Settled,
-    Expired,
+    Settled {
+        settled_at: Instant,
+    },
+    Expired {
+        settled_at: Instant,
+    },
 }
 
 struct Inner {
     instance: String,
     ttl: Duration,
     generation: AtomicU64,
+    generation_tx: watch::Sender<u64>,
     slots: Mutex<HashMap<SelectionId, SlotState>>,
 }
 
@@ -197,11 +214,13 @@ impl SelectionRegistry {
     /// Registry with an explicit TTL (tests).
     #[must_use]
     pub fn with_ttl(instance: impl Into<String>, ttl: Duration) -> Self {
+        let (generation_tx, _rx) = watch::channel(0_u64);
         Self {
             inner: Arc::new(Inner {
                 instance: instance.into(),
                 ttl,
                 generation: AtomicU64::new(0),
+                generation_tx,
                 slots: Mutex::new(HashMap::new()),
             }),
         }
@@ -219,6 +238,11 @@ impl SelectionRegistry {
         self.inner.generation.load(Ordering::SeqCst)
     }
 
+    /// Subscribes to generation changes (push channel for MCP `listen`).
+    pub(crate) fn subscribe(&self) -> watch::Receiver<u64> {
+        self.inner.generation_tx.subscribe()
+    }
+
     /// Still-pending requests, after sweeping expired ones.
     #[must_use]
     pub fn pending(&self) -> Vec<PendingSelection> {
@@ -228,7 +252,7 @@ impl SelectionRegistry {
             .values()
             .filter_map(|slot| match slot {
                 SlotState::Pending { spec, .. } => Some(spec.clone()),
-                SlotState::Settled | SlotState::Expired => None,
+                SlotState::Settled { .. } | SlotState::Expired { .. } => None,
             })
             .collect()
     }
@@ -270,7 +294,7 @@ impl SelectionRegistry {
         Ok(SelectionWait {
             id: id.clone(),
             registry: self.clone(),
-            timeout: Box::pin(tokio::time::sleep(self.inner.ttl)),
+            timeout: Box::pin(tokio::time::sleep_until(deadline)),
             rx,
             settled: false,
         })
@@ -279,85 +303,98 @@ impl SelectionRegistry {
     /// Agent answer: validate cardinality and path kind, then settle once.
     pub fn answer(&self, id: &SelectionId, paths: &[String]) -> Result<(), ToolError> {
         self.sweep();
+        let now = Instant::now();
         let mut slots = self.inner.slots.lock().expect("selection registry mutex");
         match slots.get(id) {
             None => {
                 return Err(ToolError::UnknownSelection { id: id.clone() });
             }
-            Some(SlotState::Settled) => {
+            Some(SlotState::Settled { .. }) => {
                 return Err(ToolError::SettledSelection { id: id.clone() });
             }
-            Some(SlotState::Expired) => {
+            Some(SlotState::Expired { .. }) => {
                 return Err(ToolError::ExpiredSelection { id: id.clone() });
             }
             Some(SlotState::Pending { spec, .. }) => {
                 validate_answer(spec, paths)?;
             }
         }
-        let Some(SlotState::Pending { tx, .. }) = slots.insert(id.clone(), SlotState::Settled)
+        let Some(SlotState::Pending { tx, .. }) =
+            slots.insert(id.clone(), SlotState::Settled { settled_at: now })
         else {
             return Err(ToolError::UnknownSelection { id: id.clone() });
         };
-        drop(slots);
+        // Publish the authoritative outcome while holding the lock so a racing
+        // waiter wakeup cannot observe a missing slot before `rx` is ready.
         let _ = tx.send(SelectionOutcome::Answered(paths.to_vec()));
+        prune_tombstones(&mut slots, now);
+        drop(slots);
         self.bump();
         Ok(())
     }
 
     /// Explicit reject: the JS call resolves as plugin-compatible `null`.
     pub fn reject(&self, id: &SelectionId) -> Result<(), ToolError> {
-        self.settle_terminal(id, SelectionOutcome::Rejected, SlotState::Settled)
+        self.settle_terminal(id, SelectionOutcome::Rejected, false)
     }
 
     /// Cancel a still-pending waiter (host drop, not an MCP reject).
     pub fn cancel(&self, id: &SelectionId) {
-        let _ = self.settle_terminal(id, SelectionOutcome::Cancelled, SlotState::Settled);
+        let _ = self.settle_terminal(id, SelectionOutcome::Cancelled, false);
     }
 
     /// Settle every pending request. Idempotent.
     pub fn shutdown(&self) {
+        let now = Instant::now();
         let mut slots = self.inner.slots.lock().expect("selection registry mutex");
         let ids: Vec<_> = slots.keys().cloned().collect();
         let mut bumped = false;
         for id in ids {
-            if let Some(SlotState::Pending { tx, .. }) = slots.insert(id, SlotState::Settled) {
+            if matches!(slots.get(&id), Some(SlotState::Pending { .. }))
+                && let Some(SlotState::Pending { tx, .. }) =
+                    slots.insert(id, SlotState::Settled { settled_at: now })
+            {
                 let _ = tx.send(SelectionOutcome::Shutdown);
                 bumped = true;
             }
         }
+        prune_tombstones(&mut slots, now);
         drop(slots);
         if bumped {
             self.bump();
         }
     }
 
-    fn expire(&self, id: &SelectionId) {
-        let _ = self.settle_terminal(id, SelectionOutcome::Expired, SlotState::Expired);
-    }
-
     fn settle_terminal(
         &self,
         id: &SelectionId,
         outcome: SelectionOutcome,
-        tombstone: SlotState,
+        expired: bool,
     ) -> Result<(), ToolError> {
         self.sweep();
+        let now = Instant::now();
         let mut slots = self.inner.slots.lock().expect("selection registry mutex");
         match slots.get(id) {
             None => return Err(ToolError::UnknownSelection { id: id.clone() }),
-            Some(SlotState::Settled) => {
+            Some(SlotState::Settled { .. }) => {
                 return Err(ToolError::SettledSelection { id: id.clone() });
             }
-            Some(SlotState::Expired) => {
+            Some(SlotState::Expired { .. }) => {
                 return Err(ToolError::ExpiredSelection { id: id.clone() });
             }
             Some(SlotState::Pending { .. }) => {}
         }
+        let tombstone = if expired {
+            SlotState::Expired { settled_at: now }
+        } else {
+            SlotState::Settled { settled_at: now }
+        };
         let Some(SlotState::Pending { tx, .. }) = slots.insert(id.clone(), tombstone) else {
             return Err(ToolError::UnknownSelection { id: id.clone() });
         };
-        drop(slots);
         let _ = tx.send(outcome);
+        prune_tombstones(&mut slots, now);
+        drop(slots);
         self.bump();
         Ok(())
     }
@@ -374,11 +411,14 @@ impl SelectionRegistry {
             .collect();
         let mut bumped = false;
         for id in expired {
-            if let Some(SlotState::Pending { tx, .. }) = slots.insert(id, SlotState::Expired) {
+            if let Some(SlotState::Pending { tx, .. }) =
+                slots.insert(id, SlotState::Expired { settled_at: now })
+            {
                 let _ = tx.send(SelectionOutcome::Expired);
                 bumped = true;
             }
         }
+        prune_tombstones(&mut slots, now);
         drop(slots);
         if bumped {
             self.bump();
@@ -386,7 +426,35 @@ impl SelectionRegistry {
     }
 
     fn bump(&self) {
-        self.inner.generation.fetch_add(1, Ordering::SeqCst);
+        let next = self.inner.generation.fetch_add(1, Ordering::SeqCst) + 1;
+        let _ = self.inner.generation_tx.send(next);
+    }
+}
+
+/// Removes tombstones older than [`TOMBSTONE_RETENTION`] and evicts the oldest
+/// tombstones when more than [`MAX_TOMBSTONES`] remain.
+fn prune_tombstones(slots: &mut HashMap<SelectionId, SlotState>, now: Instant) {
+    slots.retain(|_, slot| match slot {
+        SlotState::Pending { .. } => true,
+        SlotState::Settled { settled_at } | SlotState::Expired { settled_at } => {
+            now.saturating_duration_since(*settled_at) < TOMBSTONE_RETENTION
+        }
+    });
+    let mut tombstones: Vec<(SelectionId, Instant)> = slots
+        .iter()
+        .filter_map(|(id, slot)| match slot {
+            SlotState::Settled { settled_at } | SlotState::Expired { settled_at } => {
+                Some((id.clone(), *settled_at))
+            }
+            SlotState::Pending { .. } => None,
+        })
+        .collect();
+    if tombstones.len() > MAX_TOMBSTONES {
+        tombstones.sort_by_key(|(_, settled_at)| *settled_at);
+        let excess = tombstones.len() - MAX_TOMBSTONES;
+        for (id, _) in tombstones.into_iter().take(excess) {
+            slots.remove(&id);
+        }
     }
 }
 
@@ -420,14 +488,14 @@ impl Future for SelectionWait {
             return Poll::Ready(outcome.unwrap_or(SelectionOutcome::Cancelled));
         }
         if Pin::new(&mut this.timeout).poll(cx).is_ready() {
-            this.registry.expire(&this.id);
-            this.settled = true;
-            // expire() sent on the original oneshot; if this waiter still
-            // holds rx, take the value or fall back to Expired.
-            return Poll::Ready(match Pin::new(&mut this.rx).poll(cx) {
-                Poll::Ready(Ok(outcome)) => outcome,
-                Poll::Ready(Err(_)) | Poll::Pending => SelectionOutcome::Expired,
-            });
+            // Single expiry path on the shared Tokio clock: sweep() atomically
+            // settles past-deadline slots and sends the authoritative outcome
+            // on `tx` while holding the lock.
+            this.registry.sweep();
+            if let Poll::Ready(outcome) = Pin::new(&mut this.rx).poll(cx) {
+                this.settled = true;
+                return Poll::Ready(outcome.unwrap_or(SelectionOutcome::Cancelled));
+            }
         }
         Poll::Pending
     }
@@ -529,18 +597,18 @@ pub fn plugin_result(
         }
         SelectionOutcome::Rejected => Ok(serde_json::Value::Null),
         SelectionOutcome::Expired => Err(ToolError::ExpiredSelection { id: id.clone() }),
-        SelectionOutcome::Cancelled | SelectionOutcome::Shutdown => Err(ToolError::Unsupported {
-            message: "selection was cancelled before settlement".to_owned(),
-        }),
+        SelectionOutcome::Cancelled | SelectionOutcome::Shutdown => {
+            Err(ToolError::CancelledSelection { id: id.clone() })
+        }
     }
 }
 
-/// Absolute path helper for tests and the host.
+/// Converts a path to a lossy UTF-8 string for tests and the host.
+///
+/// Does not canonicalize or absolutize the path.
 #[must_use]
 pub fn path_string(path: impl AsRef<Path>) -> String {
-    PathBuf::from(path.as_ref().as_os_str())
-        .to_string_lossy()
-        .into_owned()
+    path.as_ref().to_string_lossy().into_owned()
 }
 
 #[cfg(test)]
@@ -703,5 +771,60 @@ mod tests {
         assert_eq!(body.pending.len(), 1);
         assert_eq!(body.pending[0].id, *wait.id());
         drop(wait);
+    }
+
+    #[tokio::test]
+    async fn cancelled_and_shutdown_outcomes_map_to_cancelled_selection() {
+        let id = SelectionId::new("sel_test").unwrap();
+        assert_eq!(
+            plugin_result(&id, false, &SelectionOutcome::Cancelled).unwrap_err(),
+            ToolError::CancelledSelection { id: id.clone() }
+        );
+        assert_eq!(
+            plugin_result(&id, false, &SelectionOutcome::Shutdown).unwrap_err(),
+            ToolError::CancelledSelection { id }
+        );
+    }
+
+    #[tokio::test]
+    async fn tombstones_are_bounded_by_max_tombstones() {
+        let registry = SelectionRegistry::new("app:1");
+        let mut ids = Vec::new();
+        for _ in 0..(MAX_TOMBSTONES + 16) {
+            let wait = registry.begin(open_file_request()).unwrap();
+            let id = wait.id().clone();
+            registry.reject(&id).unwrap();
+            let _ = wait.await;
+            ids.push(id);
+        }
+        let slot_count = registry
+            .inner
+            .slots
+            .lock()
+            .expect("selection registry mutex")
+            .len();
+        assert!(
+            slot_count <= MAX_TOMBSTONES,
+            "tombstones must stay bounded at {MAX_TOMBSTONES}, got {slot_count}"
+        );
+        // Most recent tombstone is still remembered.
+        let latest = ids.last().unwrap();
+        assert_eq!(
+            registry.reject(latest).unwrap_err(),
+            ToolError::SettledSelection { id: latest.clone() }
+        );
+    }
+
+    #[tokio::test]
+    async fn expiry_settles_registry_and_waiter_atomically_on_shared_clock() {
+        let registry = SelectionRegistry::with_ttl("app:1", Duration::from_millis(25));
+        let wait = registry.begin(open_file_request()).unwrap();
+        let id = wait.id().clone();
+        assert_eq!(wait.await, SelectionOutcome::Expired);
+        assert!(registry.pending().is_empty());
+        assert_eq!(
+            registry.answer(&id, &["/nope".to_owned()]).unwrap_err(),
+            ToolError::ExpiredSelection { id }
+        );
     }
 }

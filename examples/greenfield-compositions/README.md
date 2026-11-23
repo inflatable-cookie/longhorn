@@ -28,7 +28,7 @@ selected systems.
 Run:
 
 ```sh
-bun scripts/verify-greenfield-card125.ts
+bun scripts/verify-greenfield-compositions.ts
 ```
 
 Set `KEEP_GREENFIELD_COMPOSITION_PROOF=1` to retain the disposable artifact

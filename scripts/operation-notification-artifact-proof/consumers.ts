@@ -12,14 +12,9 @@ import {
 } from "node:fs/promises";
 
 import { POODLE_RELEASE } from "./artifacts.ts";
-import {
-  assertExactSet,
-  equalJson,
-  fileDependency,
-  parseTrace,
-  run,
-  testCount,
-} from "./shared.ts";
+import { testCount } from "../test-count.ts";
+import { assertExactSet, fileDependency, parseTrace, runArtifactCommand as run } from "../proof-support.ts";
+import { equalJson } from "./shared.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import type { PackageManifest, ProofContext, Shape } from "./types.ts";
 

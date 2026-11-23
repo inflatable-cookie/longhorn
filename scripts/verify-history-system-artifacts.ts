@@ -1,9 +1,10 @@
+import { digest, fileDependency, assertExactSet, parseTrace, runArtifactCommand as run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
 import { testCount } from "./test-count.ts";
 import { poodleRelease } from "./poodle-release.ts";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   cp,
   lstat,
@@ -573,61 +574,6 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 all = "deny"
 `;
-}
-
-async function digest(path: string): Promise<string> {
-  return createHash("sha256")
-    .update(await readFile(path))
-    .digest("hex");
-}
-
-async function run(command: readonly string[], cwd: string): Promise<string> {
-  const subprocess = Bun.spawn(command, {
-    cwd,
-    env: {
-      ...process.env,
-      COPYFILE_DISABLE: "1",
-    },
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    subprocess.exited,
-    new Response(subprocess.stdout).text(),
-    new Response(subprocess.stderr).text(),
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(
-      `${command.join(" ")} failed in ${cwd}\n${stdout}\n${stderr}`,
-    );
-  }
-  return `${stdout}\n${stderr}`;
-}
-
-function fileDependency(path: string): string {
-  return `file:${path}`;
-}
-
-function assertExactSet(
-  label: string,
-  actual: readonly string[],
-  expected: readonly string[],
-): void {
-  const left = [...actual].sort();
-  const right = [...expected].sort();
-  if (JSON.stringify(left) !== JSON.stringify(right)) {
-    throw new Error(
-      `${label} mismatch: ${left.join(", ")} != ${right.join(", ")}`,
-    );
-  }
-}
-
-function parseTrace(output: string): Record<string, unknown> {
-  const line = output
-    .split("\n")
-    .find((candidate) => candidate.trim().startsWith("{"));
-  if (line === undefined) throw new Error("proof emitted no JSON trace");
-  return JSON.parse(line) as Record<string, unknown>;
 }
 
 

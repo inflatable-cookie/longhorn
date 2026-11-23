@@ -80,7 +80,6 @@ fn create_enumerate_and_remove_round_trip() {
     assert!(scan.unreadable.is_empty());
     let record = &scan.instances[0];
     assert!(record.is_live());
-    assert!(!record.is_stale());
     assert_eq!(record.file().schema_version, DISCOVERY_SCHEMA_VERSION);
     assert_eq!(record.file().app_id, "dev.example.soundcheck");
     assert_eq!(record.file().pid, std::process::id());
@@ -105,7 +104,7 @@ fn stale_pid_is_detectable_by_the_enumerator() {
 
     // Injected liveness proves the marking logic deterministically.
     let scan = enumerate_discovery_with(&dir, |_| false).unwrap();
-    assert!(scan.instances[0].is_stale());
+    assert!(!scan.instances[0].is_live());
     let scan = enumerate_discovery_with(&dir, |pid| pid == std::process::id()).unwrap();
     assert!(scan.instances[0].is_live());
 
@@ -144,7 +143,7 @@ fn a_dead_pid_marks_the_file_stale_under_the_real_probe() {
 
     let scan = enumerate_discovery(&dir).unwrap();
     assert_eq!(scan.instances.len(), 1);
-    assert!(scan.instances[0].is_stale());
+    assert!(!scan.instances[0].is_live());
     assert_eq!(scan.instances[0].file().pid, dead_pid);
 }
 

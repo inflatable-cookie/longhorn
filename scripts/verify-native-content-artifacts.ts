@@ -1,7 +1,8 @@
+import { digest, fileDependency, assertExactSet, parseTrace, runArtifactCommand as run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import {
   cp,
   lstat,
@@ -893,46 +894,6 @@ async function readSourceTree(root: string, include = (_path: string) => true) {
   ).join("\n");
 }
 
-async function run(command: readonly string[], cwd: string) {
-  const subprocess = Bun.spawn(command, {
-    cwd,
-    env: { ...process.env, COPYFILE_DISABLE: "1" },
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  const [exitCode, stdout, stderr] = await Promise.all([
-    subprocess.exited,
-    new Response(subprocess.stdout).text(),
-    new Response(subprocess.stderr).text(),
-  ]);
-  if (exitCode !== 0) {
-    throw new Error(
-      `${command.join(" ")} failed in ${cwd}\n${stdout}\n${stderr}`,
-    );
-  }
-  return `${stdout}\n${stderr}`;
-}
-
-function parseTrace(output: string): Record<string, unknown> {
-  const line = output
-    .split("\n")
-    .find((candidate) => candidate.trim().startsWith("{"));
-  if (line === undefined) throw new Error("proof emitted no JSON trace");
-  return JSON.parse(line) as Record<string, unknown>;
-}
-
-function assertExactSet(
-  label: string,
-  actual: readonly string[],
-  expected: readonly string[],
-) {
-  const left = [...actual].sort();
-  const right = [...expected].sort();
-  if (JSON.stringify(left) !== JSON.stringify(right)) {
-    throw new Error(`${label} mismatch: ${left.join(", ")} != ${right.join(", ")}`);
-  }
-}
-
 function equalJson(left: unknown, right: unknown) {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
@@ -947,12 +908,4 @@ function canonical(value: unknown): unknown {
     );
   }
   return value;
-}
-
-function fileDependency(path: string) {
-  return `file:${path}`;
-}
-
-async function digest(path: string) {
-  return createHash("sha256").update(await readFile(path)).digest("hex");
 }

@@ -8,7 +8,7 @@ import {
   packTypescriptArtifacts,
 } from "./command-system-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./command-system-artifact-proof/consumers.ts";
-import { run } from "./command-system-artifact-proof/shared.ts";
+import { runWithDiagnostics as run } from "./proof-support.ts";
 import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");

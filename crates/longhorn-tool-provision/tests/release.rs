@@ -286,6 +286,25 @@ fn a_malformed_listing_is_refused_as_malformed() {
 }
 
 #[test]
+fn a_listing_past_its_size_bound_is_refused_before_it_is_parsed() {
+    // Valid JSON in the wrong size: the refusal must come from the bound, not
+    // from the parser, and the body is never read past the bound.
+    let padding = "x".repeat(5 * 1024 * 1024);
+    let body = format!("{{\"padding\":\"{padding}\"}}");
+    let raw = RawServer::answering(chunked_wire(body.as_bytes()), false);
+    let endpoints = ReleaseEndpoints::loopback_for_tests(&raw.base_url(), &raw.base_url())
+        .expect("loopback endpoints");
+    let result = source_with(endpoints, None, ReleaseOptions::new("example-app/test"))
+        .resolve_release(&query(None, None));
+    match expect_refused(result) {
+        ReleaseRefusal::Malformed { detail } => {
+            assert!(detail.contains("larger than"), "{detail}");
+        }
+        other => panic!("expected a malformed listing refusal, got {other:?}"),
+    }
+}
+
+#[test]
 fn a_tag_that_is_not_a_plain_name_is_refused_as_malformed() {
     let server = FixtureServer::spawn(vec![FixtureRoute::new(
         latest_path(),

@@ -29,5 +29,10 @@ longhorn-core.workspace = true
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 keyring = { version = "4", default-features = false, features = ["v1"] }
 
+[features]
+# The real platform keychain tests. Off by default, so a plain `cargo test`
+# never touches a developer's keychain or raises its access prompt.
+real-keychain-tests = []
+
 [lints]
 workspace = true
