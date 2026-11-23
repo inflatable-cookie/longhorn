@@ -3,9 +3,9 @@ import { describe, expect, test } from "bun:test";
 import {
   assertCandidateFactsInProse,
   factsFromReceipt,
-  type CandidateFacts,
   verifyPrivateCandidateDocs,
 } from "./verify-private-candidate-docs.ts";
+import type { CandidateFacts } from "./verify-private-candidate-docs.ts";
 
 const facts: CandidateFacts = {
   version: "0.1.0",
@@ -24,7 +24,9 @@ describe("private-candidate CHANGELOG facts", () => {
   and 36 Rust crates across five Poodle artifacts and seven
   consumer graphs.
 `;
-    expect(() => assertCandidateFactsInProse("CHANGELOG.md", changelog, facts, changelogFields)).not.toThrow();
+    expect(() =>
+      assertCandidateFactsInProse("CHANGELOG.md", changelog, facts, changelogFields),
+    ).not.toThrow();
   });
 
   test("a wrong Rust crate count fails", () => {
@@ -33,9 +35,9 @@ describe("private-candidate CHANGELOG facts", () => {
 - The private 0.1.0 candidate bound 17 TypeScript packages and 35 Rust crates
   and seven consumer graphs.
 `;
-    expect(() => assertCandidateFactsInProse("CHANGELOG.md", changelog, facts, changelogFields)).toThrow(
-      /36 Rust crates/,
-    );
+    expect(() =>
+      assertCandidateFactsInProse("CHANGELOG.md", changelog, facts, changelogFields),
+    ).toThrow(/36 Rust crates/);
   });
 
   test("facts are read from the receipt", () => {

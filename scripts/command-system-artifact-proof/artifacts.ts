@@ -1,14 +1,8 @@
 import { poodleRelease } from "../poodle-release.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
-import { basename, join, resolve } from "node:path";
-import {
-  cp,
-  mkdir,
-  readFile,
-  readdir,
-  writeFile,
-} from "node:fs/promises";
-import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
+import { basename, join } from "node:path";
+import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { MSRV } from "../msrv.ts";
 
 import { assertExactSet, digest, parseTrace, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
@@ -54,22 +48,14 @@ export async function packTypescriptArtifacts(
   repoRoot: string,
   artifactRoot: string,
 ): Promise<{
-  readonly identities: readonly ArtifactIdentity[];
+  readonly identities: ReadonlyArray<ArtifactIdentity>;
   readonly paths: ReadonlyMap<string, string>;
 }> {
   const paths = new Map<string, string>();
   const identities = [];
   for (const [name, directory] of typescriptPackages) {
     await run(
-      [
-        "bun",
-        "pm",
-        "pack",
-        "--destination",
-        artifactRoot,
-        "--ignore-scripts",
-        "--quiet",
-      ],
+      ["bun", "pm", "pack", "--destination", artifactRoot, "--ignore-scripts", "--quiet"],
       join(repoRoot, "packages", directory),
     );
     const path = join(
@@ -87,11 +73,7 @@ export async function packTypescriptArtifacts(
   return { identities, paths };
 }
 
-async function inspectNpmArtifact(
-  name: string,
-  path: string,
-  artifactRoot: string,
-): Promise<void> {
+async function inspectNpmArtifact(name: string, path: string, artifactRoot: string): Promise<void> {
   const listing = await run(["tar", "-tzf", path], artifactRoot);
   if (
     listing.includes("node_modules/") ||
@@ -117,7 +99,7 @@ async function inspectNpmArtifact(
   // peers; everything that needed a peer moved to longhorn-poodle-svelte. The
   // command surface is proven by the entries each package exposes rather than
   // by a package per domain.
-  const expectedDependencies: Record<string, readonly string[]> = {
+  const expectedDependencies: Record<string, ReadonlyArray<string>> = {
     "@inflatable-cookie/longhorn": [],
     "@inflatable-cookie/longhorn-poodle-svelte": [],
   };
@@ -143,17 +125,11 @@ async function inspectNpmArtifact(
         throw new Error(`projection package is missing the ${entry} entry`);
       }
     }
-    if (
-      manifest.peerDependenciesMeta?.["@inflatable-cookie/poodle-svelte"]
-        ?.optional !== true
-    ) {
+    if (manifest.peerDependenciesMeta?.["@inflatable-cookie/poodle-svelte"]?.optional !== true) {
       throw new Error("Poodle is not an optional projection peer");
     }
   }
-  const extractRoot = join(
-    artifactRoot,
-    `inspect-${name.replace("@", "").replace("/", "-")}`,
-  );
+  const extractRoot = join(artifactRoot, `inspect-${name.replace("@", "").replace("/", "-")}`);
   await mkdir(extractRoot);
   await run(["tar", "-xzf", path, "-C", extractRoot], artifactRoot);
   const source = await readSourceTree(join(extractRoot, "package", "src"));
@@ -165,15 +141,15 @@ export async function packAndCheckRustArtifacts(
   temporaryRoot: string,
   buildTarget: string,
 ): Promise<{
-  readonly identities: readonly ArtifactIdentity[];
+  readonly identities: ReadonlyArray<ArtifactIdentity>;
   readonly packaging: {
     readonly privateSourceInventories: true;
     readonly registryNormalizedCrates: false;
     readonly cargoPackageListPassed: true;
   };
   readonly graphs: {
-    readonly jetstream: readonly string[];
-    readonly loophole: readonly string[];
+    readonly jetstream: ReadonlyArray<string>;
+    readonly loophole: ReadonlyArray<string>;
   };
   readonly traces: {
     readonly jetstream: Record<string, unknown>;
@@ -197,10 +173,7 @@ export async function packAndCheckRustArtifacts(
       throw new Error(`${name} package inventory is incomplete`);
     }
     const archive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar.gz`);
-    await run(
-      ["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`],
-      repoRoot,
-    );
+    await run(["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xzf", archive, "-C", workspace], repoRoot);
     identities.push({
       name,
@@ -224,7 +197,7 @@ export async function packAndCheckRustArtifacts(
   // build directory the lease supplies. The real `target/` directory keeps the
   // lease adoption-free; see `prepareStagedWorkspace`.
   await prepareStagedWorkspace(workspace);
-  const staged = (args: readonly string[]) =>
+  const staged = (args: ReadonlyArray<string>) =>
     rustExec(privateCargoCommand(buildTarget, args), {
       manifestPath: join(workspace, "Cargo.toml"),
     });
@@ -311,9 +284,7 @@ async function auditRustBoundary(workspace: string): Promise<void> {
         "longhorn-command-config",
         "longhorn-command-settings",
         "longhorn-tauri-command",
-      ].map(async (name) =>
-        readSourceTree(join(workspace, "crates", name, "src"))
-      ),
+      ].map(async (name) => readSourceTree(join(workspace, "crates", name, "src"))),
     )
   ).join("\n");
   assertSharedSourceNeutral("Rust command artifacts", source);
@@ -343,12 +314,10 @@ async function readSourceTree(root: string): Promise<string> {
   const files = (await readdir(root, { recursive: true }))
     .filter((path) => /\.(rs|ts|svelte)$/.test(path))
     .sort();
-  return (
-    await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))
-  ).join("\n");
+  return (await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))).join("\n");
 }
 
-function longhornPackages(tree: string): readonly string[] {
+function longhornPackages(tree: string): ReadonlyArray<string> {
   return [
     ...new Set(
       tree

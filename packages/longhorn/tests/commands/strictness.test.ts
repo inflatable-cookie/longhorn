@@ -15,25 +15,23 @@ describe("commands boundary strictness", () => {
   };
 
   test("the field map matches the fixture's keys", () => {
-    expect([...COMMANDS_FIELDS.CommandCatalogueChangedEvent!].sort()).toEqual(
+    expect<Array<string>>([...COMMANDS_FIELDS.CommandCatalogueChangedEvent].sort()).toEqual(
       Object.keys(valid).sort(),
     );
   });
 
   test("rejects an unknown field", () => {
-    expect(() =>
-      assertValidCommandCatalogueChangedEvent({ ...valid, extra: 1 }),
-    ).toThrow(/unknown field/);
+    expect(() => assertValidCommandCatalogueChangedEvent({ ...valid, extra: 1 })).toThrow(
+      /unknown field/,
+    );
   });
 
   test("rejects a missing field", () => {
     const { registryGeneration: _dropped, ...missing } = valid;
-    expect(() =>
-      assertValidCommandCatalogueChangedEvent(missing),
-    ).toThrow(/missing field/);
+    expect(() => assertValidCommandCatalogueChangedEvent(missing)).toThrow(/missing field/);
   });
 
   test("omits tagged unions rather than guessing their keys", () => {
-    expect(COMMANDS_FIELDS.CommandKeymapLoadOutcome).toBeUndefined();
+    expect("CommandKeymapLoadOutcome" in COMMANDS_FIELDS).toBe(false);
   });
 });

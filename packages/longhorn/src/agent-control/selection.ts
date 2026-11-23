@@ -4,7 +4,8 @@
 //! opens. Human-originated calls pass the original options to the plugin
 //! unchanged. Origin is the in-page shim, not an active-server flag.
 
-import { SHIM_GLOBAL, type AgentControlApi } from "./shim.ts";
+import { SHIM_GLOBAL } from "./shim.ts";
+import type { AgentControlApi } from "./shim.ts";
 
 /** Renderer invoke name. Host-protocol pairs this with the Rust command. */
 export const BEGIN_SELECTION_COMMAND = "longhorn_agent_control_begin_selection";
@@ -23,13 +24,13 @@ export type SelectionOrigin = typeof SELECTION_ORIGIN_AGENT | typeof SELECTION_O
 
 export type DialogFilter = {
   name: string;
-  extensions: string[];
+  extensions: Array<string>;
 };
 
 export type OpenDialogOptions = {
   title?: string;
   defaultPath?: string;
-  filters?: DialogFilter[];
+  filters?: Array<DialogFilter>;
   multiple?: boolean;
   directory?: boolean;
 };
@@ -37,10 +38,10 @@ export type OpenDialogOptions = {
 export type SaveDialogOptions = {
   title?: string;
   defaultPath?: string;
-  filters?: DialogFilter[];
+  filters?: Array<DialogFilter>;
 };
 
-export type OpenDialogResult = string | string[] | null;
+export type OpenDialogResult = string | Array<string> | null;
 export type SaveDialogResult = string | null;
 
 export type FileSelectionPorts = {
@@ -67,16 +68,14 @@ function isAgentOriginated(world: FileSelectionWorld): boolean {
  * with no shim, or when the shim reports human, the token is `"human"`.
  */
 export function currentSelectionOrigin(world: object = globalThis): SelectionOrigin {
-  return isAgentOriginated(world as FileSelectionWorld)
-    ? SELECTION_ORIGIN_AGENT
-    : SELECTION_ORIGIN_HUMAN;
+  return isAgentOriginated(world) ? SELECTION_ORIGIN_AGENT : SELECTION_ORIGIN_HUMAN;
 }
 
 function beginOptions(
   kind: "open" | "save",
-  options: OpenDialogOptions | SaveDialogOptions | undefined,
+  options: OpenDialogOptions | undefined,
 ): Record<string, unknown> {
-  const open = kind === "open" ? (options as OpenDialogOptions | undefined) : undefined;
+  const open = kind === "open" ? options : undefined;
   return {
     kind,
     directory: open?.directory ?? false,
@@ -98,13 +97,17 @@ export function bindFileSelection(
   const originWorld = world as FileSelectionWorld;
   return {
     open: async (options?: OpenDialogOptions) => {
-      if (!isAgentOriginated(originWorld)) return ports.pluginOpen(options);
+      if (!isAgentOriginated(originWorld)) {
+        return ports.pluginOpen(options);
+      }
       return (await ports.invoke(BEGIN_SELECTION_COMMAND, {
         options: beginOptions("open", options),
       })) as OpenDialogResult;
     },
     save: async (options?: SaveDialogOptions) => {
-      if (!isAgentOriginated(originWorld)) return ports.pluginSave(options);
+      if (!isAgentOriginated(originWorld)) {
+        return ports.pluginSave(options);
+      }
       return (await ports.invoke(BEGIN_SELECTION_COMMAND, {
         options: beginOptions("save", options),
       })) as SaveDialogResult;

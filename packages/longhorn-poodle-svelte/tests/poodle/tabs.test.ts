@@ -1,9 +1,8 @@
+import assert from "node:assert/strict";
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import type {
-  LayoutMutationRequest,
-} from "@inflatable-cookie/longhorn/layout";
+import type { LayoutMutationRequest } from "@inflatable-cookie/longhorn/layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import LayoutTabsHarness from "./LayoutTabsHarness.svelte";
@@ -23,16 +22,12 @@ describe("LayoutTabs", () => {
     const document = shapeDocument(shape, {
       left: [instance("instance:a"), instance("instance:b")],
     });
-    const requests: LayoutMutationRequest[] = [];
+    const requests: Array<LayoutMutationRequest> = [];
     const pending = deferred<LayoutDispatchResult>();
-    const { binding, errors } = mountedBinding(
-      shape.definitions,
-      document,
-      (request) => {
-        requests.push(request);
-        return pending.promise;
-      },
-    );
+    const { binding, errors } = mountedBinding(shape.definitions, document, (request) => {
+      requests.push(request);
+      return pending.promise;
+    });
     const screen = render(LayoutTabsHarness, {
       props: {
         binding,
@@ -56,16 +51,14 @@ describe("LayoutTabs", () => {
       },
     ]);
     await waitFor(() =>
-      expect(
-        screen.getByRole("tab", { name: "B" }).getAttribute("aria-selected"),
-      ).toBe("true"),
+      expect(screen.getByRole("tab", { name: "B" }).getAttribute("aria-selected")).toBe("true"),
     );
 
-    pending.resolve(rejected(requests[0], document));
+    const request0 = requests[0];
+    assert(request0);
+    pending.resolve(rejected(request0, document));
     await waitFor(() =>
-      expect(
-        screen.getByRole("tab", { name: "A" }).getAttribute("aria-selected"),
-      ).toBe("true"),
+      expect(screen.getByRole("tab", { name: "A" }).getAttribute("aria-selected")).toBe("true"),
     );
     expect(errors).toEqual([]);
   });
@@ -75,16 +68,12 @@ describe("LayoutTabs", () => {
     const document = shapeDocument(shape, {
       left: [instance("instance:a"), instance("instance:b")],
     });
-    const requests: LayoutMutationRequest[] = [];
+    const requests: Array<LayoutMutationRequest> = [];
     const pending = deferred<LayoutDispatchResult>();
-    const { binding } = mountedBinding(
-      shape.definitions,
-      document,
-      (request) => {
-        requests.push(request);
-        return pending.promise;
-      },
-    );
+    const { binding } = mountedBinding(shape.definitions, document, (request) => {
+      requests.push(request);
+      return pending.promise;
+    });
     const screen = render(LayoutTabsHarness, {
       props: {
         binding,
@@ -96,15 +85,13 @@ describe("LayoutTabs", () => {
 
     await fireEvent.click(screen.getByRole("button", { name: "Close A" }));
 
-    expect(requests[0].command).toEqual({
+    expect(requests[0]?.command).toEqual({
       kind: "close_panel",
       panel_instance_id: "instance:a",
     });
     await waitFor(() => {
       expect(screen.queryByRole("tab", { name: "A" })).toBeNull();
-      expect(
-        screen.getByRole("tab", { name: "B" }).getAttribute("aria-selected"),
-      ).toBe("true");
+      expect(screen.getByRole("tab", { name: "B" }).getAttribute("aria-selected")).toBe("true");
     });
   });
 });

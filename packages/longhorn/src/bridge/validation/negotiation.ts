@@ -17,15 +17,17 @@ import {
   BRIDGE_PROTOCOL_VERSION,
   BRIDGE_READ_AUTHORITIES,
   BRIDGE_WRITE_AUTHORITIES,
-  type BridgeConnectionReason,
-  type BridgeConnectionState,
-  type BridgeConnectionStatus,
-  type BridgeDiagnostic,
-  type BridgeHelloRequest,
-  type BridgeHostDescriptor,
-  type BridgeNegotiationReceipt,
-  type DomainAuthorityDescriptor,
-  type DomainCapabilityDescriptor,
+} from "../generated/protocol.ts";
+import type {
+  BridgeConnectionReason,
+  BridgeConnectionState,
+  BridgeConnectionStatus,
+  BridgeDiagnostic,
+  BridgeHelloRequest,
+  BridgeHostDescriptor,
+  BridgeNegotiationReceipt,
+  DomainAuthorityDescriptor,
+  DomainCapabilityDescriptor,
 } from "../generated/protocol.ts";
 import {
   array,
@@ -48,7 +50,9 @@ export function assertBridgeProtocolVersion(value: unknown): asserts value is 1 
 export function parseBridgeHelloRequest(value: unknown): BridgeHelloRequest {
   const source = record(value, BRIDGE_FIELDS.BridgeHelloRequest);
   assertBridgeProtocolVersion(source.protocolVersion);
-  const requestedDomains = array(source.requestedDomains, BRIDGE_MAXIMUM_REQUESTED_DOMAINS).map(domainId);
+  const requestedDomains = array(source.requestedDomains, BRIDGE_MAXIMUM_REQUESTED_DOMAINS).map(
+    domainId,
+  );
   unique(requestedDomains, String);
   return {
     protocolVersion: BRIDGE_PROTOCOL_VERSION,
@@ -80,9 +84,7 @@ export function parseBridgeNegotiationReceipt(
   unique(authorities, (item) => item.domainId);
   unique(diagnostics, (item) => item.diagnosticId);
 
-  const capabilityDomains = new Set(
-    capabilities.map((item) => item.domainId),
-  );
+  const capabilityDomains = new Set(capabilities.map((item) => item.domainId));
   const writerScopes = new Set<string>();
   for (const authority of authorities) {
     if (!capabilityDomains.has(authority.domainId)) {
@@ -131,17 +133,9 @@ function parseHost(value: unknown): BridgeHostDescriptor {
 
 function parseConnectionStatus(value: unknown): BridgeConnectionStatus {
   const source = record(value, BRIDGE_FIELDS.BridgeConnectionStatus);
-  const state = oneOf(
-    source.state,
-    BRIDGE_CONNECTION_STATES,
-    "unknown_connection_state",
-  );
+  const state = oneOf(source.state, BRIDGE_CONNECTION_STATES, "unknown_connection_state");
   const reason = nullable(source.reason, (candidate) =>
-    oneOf(
-      candidate,
-      BRIDGE_CONNECTION_REASONS,
-      "invalid_connection_status",
-    )
+    oneOf(candidate, BRIDGE_CONNECTION_REASONS, "invalid_connection_status"),
   );
   if (!validConnectionReason(state, reason)) {
     incompatible("invalid_connection_status", value);
@@ -164,7 +158,9 @@ function validConnectionReason(
 
 function parseDomainCapability(value: unknown): DomainCapabilityDescriptor {
   const source = record(value, BRIDGE_FIELDS.DomainCapabilityDescriptor);
-  const capabilities = array(source.capabilities, BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN).map(opaqueId);
+  const capabilities = array(source.capabilities, BRIDGE_MAXIMUM_CAPABILITIES_PER_DOMAIN).map(
+    opaqueId,
+  );
   if (capabilities.length === 0) {
     incompatible("invalid_array", value);
   }
@@ -197,18 +193,13 @@ function parseDomainAuthority(value: unknown): DomainAuthorityDescriptor {
     BRIDGE_EXECUTION_AUTHORITIES,
     "unknown_execution_authority",
   );
-  const authoritativeRevision = nullable(
-    source.authoritativeRevision,
-    integer,
-  );
-  const ownsAnything = readAuthority !== "none" ||
-    writeAuthority !== "none" ||
-    executionAuthority !== "none";
-  const revisionIsAuthoritative = readAuthority === "authoritative" ||
-    writeAuthority === "authoritative";
+  const authoritativeRevision = nullable(source.authoritativeRevision, integer);
+  const ownsAnything =
+    readAuthority !== "none" || writeAuthority !== "none" || executionAuthority !== "none";
+  const revisionIsAuthoritative =
+    readAuthority === "authoritative" || writeAuthority === "authoritative";
   if (
-    (availability === "offline" &&
-      (ownsAnything || authoritativeRevision !== null)) ||
+    (availability === "offline" && (ownsAnything || authoritativeRevision !== null)) ||
     (authoritativeRevision !== null && !revisionIsAuthoritative)
   ) {
     incompatible("invalid_authority_descriptor", value);
@@ -230,8 +221,7 @@ function parseDiagnostic(value: unknown): BridgeDiagnostic {
   if (
     typeof source.message !== "string" ||
     source.message.length === 0 ||
-    new TextEncoder().encode(source.message).length >
-      BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES
+    new TextEncoder().encode(source.message).length > BRIDGE_MAXIMUM_DIAGNOSTIC_MESSAGE_BYTES
   ) {
     incompatible("invalid_message", source.message);
   }

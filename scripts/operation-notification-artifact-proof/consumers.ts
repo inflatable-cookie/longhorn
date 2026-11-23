@@ -1,19 +1,16 @@
 import { installProofStage } from "../proof-install.ts";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
-import {
-  cp,
-  lstat,
-  mkdir,
-  readFile,
-  readdir,
-  realpath,
-  writeFile,
-} from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
 
 import { POODLE_RELEASE } from "./artifacts.ts";
 import { testCount } from "../test-count.ts";
-import { assertExactSet, fileDependency, parseTrace, runArtifactCommand as run } from "../proof-support.ts";
+import {
+  assertExactSet,
+  fileDependency,
+  parseTrace,
+  runArtifactCommand as run,
+} from "../proof-support.ts";
 import { equalJson } from "./shared.ts";
 import { longhornVersion } from "../longhorn-version.ts";
 import type { PackageManifest, ProofContext, Shape } from "./types.ts";
@@ -22,7 +19,7 @@ import type { PackageManifest, ProofContext, Shape } from "./types.ts";
 // separately, so the two cannot be one literal any more.
 const LONGHORN_VERSION = longhornVersion();
 
-const shapes: readonly Shape[] = [
+const shapes: ReadonlyArray<Shape> = [
   "minimal-operation",
   "soundcheck",
   "loophole",
@@ -34,12 +31,23 @@ const policies = {
     longhorn: ["@inflatable-cookie/longhorn"],
     imports: ["@inflatable-cookie/longhorn/operation"],
     permissions: [],
-    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/notifications", "@inflatable-cookie/longhorn/settings", "@inflatable-cookie/longhorn-tauri"],
+    forbidden: [
+      "@inflatable-cookie/longhorn/bridge",
+      "@inflatable-cookie/longhorn/commands",
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn/history",
+      "@inflatable-cookie/longhorn/notifications",
+      "@inflatable-cookie/longhorn/settings",
+      "@inflatable-cookie/longhorn-tauri",
+    ],
     mountedTests: 0,
   },
   soundcheck: {
     longhorn: ["@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
-    imports: ["@inflatable-cookie/longhorn-tauri/operation", "@inflatable-cookie/longhorn/operation"],
+    imports: [
+      "@inflatable-cookie/longhorn-tauri/operation",
+      "@inflatable-cookie/longhorn/operation",
+    ],
     permissions: [
       "allow-longhorn-operation-read",
       "allow-longhorn-operation-manage",
@@ -47,12 +55,34 @@ const policies = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/notifications", "@inflatable-cookie/longhorn/settings"],
+    forbidden: [
+      "@inflatable-cookie/longhorn/bridge",
+      "@inflatable-cookie/longhorn/commands",
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn/history",
+      "@inflatable-cookie/longhorn/notifications",
+      "@inflatable-cookie/longhorn/settings",
+    ],
     mountedTests: 0,
   },
   loophole: {
-    longhorn: ["@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
-    imports: ["@inflatable-cookie/longhorn-poodle-svelte/notifications/poodle", "@inflatable-cookie/longhorn-poodle-svelte/notifications/svelte", "@inflatable-cookie/longhorn-poodle-svelte/operation/poodle", "@inflatable-cookie/longhorn-poodle-svelte/operation/svelte", "@inflatable-cookie/longhorn-tauri/notifications", "@inflatable-cookie/longhorn-tauri/operation", "@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/notifications", "@inflatable-cookie/longhorn/operation", "@inflatable-cookie/longhorn/operation/bridge"],
+    longhorn: [
+      "@inflatable-cookie/longhorn-poodle-svelte",
+      "@inflatable-cookie/longhorn-tauri",
+      "@inflatable-cookie/longhorn",
+    ],
+    imports: [
+      "@inflatable-cookie/longhorn-poodle-svelte/notifications/poodle",
+      "@inflatable-cookie/longhorn-poodle-svelte/notifications/svelte",
+      "@inflatable-cookie/longhorn-poodle-svelte/operation/poodle",
+      "@inflatable-cookie/longhorn-poodle-svelte/operation/svelte",
+      "@inflatable-cookie/longhorn-tauri/notifications",
+      "@inflatable-cookie/longhorn-tauri/operation",
+      "@inflatable-cookie/longhorn/bridge",
+      "@inflatable-cookie/longhorn/notifications",
+      "@inflatable-cookie/longhorn/operation",
+      "@inflatable-cookie/longhorn/operation/bridge",
+    ],
     permissions: [
       "allow-longhorn-operation-read",
       "allow-longhorn-operation-manage",
@@ -62,19 +92,34 @@ const policies = {
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: ["@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/settings"],
+    forbidden: [
+      "@inflatable-cookie/longhorn/commands",
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn/history",
+      "@inflatable-cookie/longhorn/settings",
+    ],
     mountedTests: 1,
   },
   "notification-only": {
     longhorn: ["@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
-    imports: ["@inflatable-cookie/longhorn-tauri/notifications", "@inflatable-cookie/longhorn/notifications"],
+    imports: [
+      "@inflatable-cookie/longhorn-tauri/notifications",
+      "@inflatable-cookie/longhorn/notifications",
+    ],
     permissions: [
       "read-notifications",
       "manage-notifications",
       "core:event:allow-listen",
       "core:event:allow-unlisten",
     ],
-    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/commands", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn/history", "@inflatable-cookie/longhorn/operation", "@inflatable-cookie/longhorn/settings"],
+    forbidden: [
+      "@inflatable-cookie/longhorn/bridge",
+      "@inflatable-cookie/longhorn/commands",
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn/history",
+      "@inflatable-cookie/longhorn/operation",
+      "@inflatable-cookie/longhorn/settings",
+    ],
     mountedTests: 0,
   },
 } as const;
@@ -121,15 +166,9 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
   await run(["bun", "x", "tsc", "-p", "consumer-tsconfig.json"], stage);
   let mountedTests = 0;
   if (shape === "loophole") {
-    await run(
-      ["bun", "x", "svelte-check", "--tsconfig", "./consumer-tsconfig.json"],
-      stage,
-    );
+    await run(["bun", "x", "svelte-check", "--tsconfig", "./consumer-tsconfig.json"], stage);
     mountedTests = testCount(
-      await run(
-        ["bun", "x", "vitest", "run", "--config", "./vitest.config.ts"],
-        stage,
-      ),
+      await run(["bun", "x", "vitest", "run", "--config", "./vitest.config.ts"], stage),
     );
   }
   if (mountedTests !== policy.mountedTests) {
@@ -141,9 +180,9 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
     throw new Error(`${shape} renderer trace diverged from native trace`);
   }
 
-  const installedLonghorn = (
-    await installedScope(stage, "@inflatable-cookie")
-  ).filter((name) => name === "longhorn" || name.startsWith("longhorn-"));
+  const installedLonghorn = (await installedScope(stage, "@inflatable-cookie")).filter(
+    (name) => name === "longhorn" || name.startsWith("longhorn-"),
+  );
   assertExactSet(
     `${shape} installed Longhorn packages`,
     installedLonghorn.map((name) => `@inflatable-cookie/${name}`),
@@ -151,11 +190,11 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
   );
   const artifactResolution = [];
   for (const name of policy.longhorn) {
-    artifactResolution.push(
-      await assertArtifactInstall(stage, name, LONGHORN_VERSION),
-    );
+    artifactResolution.push(await assertArtifactInstall(stage, name, LONGHORN_VERSION));
   }
-  for (const name of policy.forbidden) await assertPackageAbsent(stage, name);
+  for (const name of policy.forbidden) {
+    await assertPackageAbsent(stage, name);
+  }
 
   if (shape === "loophole") {
     for (const pkg of context.poodle.packages) {
@@ -170,7 +209,7 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
     assertExactSet(
       `${shape} installed Poodle packages`,
       (await installedScope(stage, "@inflatable-cookie")).filter((name) =>
-        name.startsWith("poodle-")
+        name.startsWith("poodle-"),
       ),
       [],
     );
@@ -218,20 +257,18 @@ function rewriteDependencies(
   );
 }
 
-async function installedScope(stage: string, scope: string): Promise<readonly string[]> {
+async function installedScope(stage: string, scope: string): Promise<ReadonlyArray<string>> {
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
     throw error;
   }
 }
 
-async function assertArtifactInstall(
-  stage: string,
-  name: string,
-  expected: string,
-) {
+async function assertArtifactInstall(stage: string, name: string, expected: string) {
   const installed = await installedPackage(stage, name);
   for (const root of ["/Dev/projects/longhorn/packages/", "/Dev/projects/poodle/packages/"]) {
     if (installed.realPath.includes(root)) {
@@ -242,9 +279,7 @@ async function assertArtifactInstall(
   // caller's: LONGHORN_VERSION for a Longhorn package, the pinned Poodle
   // release for a Poodle one.
   if (installed.manifest.version !== expected) {
-    throw new Error(
-      `${name} installed ${installed.manifest.version}, expected ${expected}`,
-    );
+    throw new Error(`${name} installed ${installed.manifest.version}, expected ${expected}`);
   }
   return { name, version: installed.manifest.version };
 }
@@ -255,7 +290,9 @@ async function installedPackage(stage: string, name: string) {
     readonly name: string;
     readonly version: string;
   };
-  if (manifest.name !== name) throw new Error(`installed package identity mismatch for ${name}`);
+  if (manifest.name !== name) {
+    throw new Error(`installed package identity mismatch for ${name}`);
+  }
   return { realPath: await realpath(path), manifest };
 }
 
@@ -263,7 +300,9 @@ async function assertPackageAbsent(stage: string, name: string): Promise<void> {
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return;
+    }
     throw error;
   }
   throw new Error(`${name} unexpectedly entered the install graph`);
@@ -278,26 +317,30 @@ async function assertSingleSvelteRuntime(stage: string): Promise<void> {
   }
 }
 
-async function readPermissions(path: string): Promise<readonly string[]> {
+async function readPermissions(path: string): Promise<ReadonlyArray<string>> {
   try {
     const capability = JSON.parse(await readFile(path, "utf8")) as {
-      readonly permissions: readonly string[];
+      readonly permissions: ReadonlyArray<string>;
     };
     return capability.permissions;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
     throw error;
   }
 }
 
-async function longhornImports(stage: string): Promise<readonly string[]> {
+async function longhornImports(stage: string): Promise<ReadonlyArray<string>> {
   const files = (await readdir(stage, { recursive: true })).filter(
     (path) => /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules/"),
   );
   const imports = new Set<string>();
   for (const path of files) {
     const source = await readFile(join(stage, path), "utf8");
-    for (const match of source.matchAll(/from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g)) {
+    for (const match of source.matchAll(
+      /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
+    )) {
       imports.add(match[1]!);
     }
   }

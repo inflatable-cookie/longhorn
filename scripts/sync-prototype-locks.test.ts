@@ -14,10 +14,19 @@ describe("prototype lock additions", () => {
       const prototypeDir = join(fixture, "prototype");
       await mkdir(prototypeDir, { recursive: true });
       const workspaceLock = await readFile(join(repoRoot, "Cargo.lock"), "utf8");
-      const prototypeLock = await readFile(join(repoRoot, "prototypes/gpui-composition/Cargo.lock"), "utf8");
-      const workspacePackage = parseLock(workspaceLock).packages.find((pkg) => pkg.name === "longhorn-storage-layout");
-      if (!workspacePackage) throw new Error("workspace lock has no longhorn-storage-layout package");
-      const fullCopy = parseLock(prototypeLock).packages.some((pkg) => pkg.name === workspacePackage.name)
+      const prototypeLock = await readFile(
+        join(repoRoot, "prototypes/gpui-composition/Cargo.lock"),
+        "utf8",
+      );
+      const workspacePackage = parseLock(workspaceLock).packages.find(
+        (pkg) => pkg.name === "longhorn-storage-layout",
+      );
+      if (!workspacePackage) {
+        throw new Error("workspace lock has no longhorn-storage-layout package");
+      }
+      const fullCopy = parseLock(prototypeLock).packages.some(
+        (pkg) => pkg.name === workspacePackage.name,
+      )
         ? prototypeLock
         : appendPackage(prototypeLock, workspacePackage.body);
       const copiedLock = join(prototypeDir, "Cargo.lock");
@@ -25,7 +34,9 @@ describe("prototype lock additions", () => {
 
       const missingPackageCopy = await readFile(copiedLock, "utf8");
       const result = addMissingLonghornPathPackages(missingPackageCopy, workspaceLock);
-      const added = parseLock(result.text).packages.find((pkg) => pkg.name === "longhorn-storage-layout");
+      const added = parseLock(result.text).packages.find(
+        (pkg) => pkg.name === "longhorn-storage-layout",
+      );
 
       expect(result.added).toEqual(["longhorn-storage-layout"]);
       expect(added?.body).toEqual(workspacePackage.body);
@@ -40,7 +51,10 @@ describe("prototype lock additions", () => {
       const prototypeDir = join(fixture, "prototype");
       await mkdir(prototypeDir, { recursive: true });
       const workspaceLock = await readFile(join(repoRoot, "Cargo.lock"), "utf8");
-      const prototypeLock = await readFile(join(repoRoot, "prototypes/gpui-composition/Cargo.lock"), "utf8");
+      const prototypeLock = await readFile(
+        join(repoRoot, "prototypes/gpui-composition/Cargo.lock"),
+        "utf8",
+      );
       const copiedLock = join(prototypeDir, "Cargo.lock");
       await writeFile(copiedLock, removePackage(prototypeLock, "serde"));
 

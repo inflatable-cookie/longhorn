@@ -71,10 +71,7 @@ export interface WindowDragAction {
   destroy(): void;
 }
 
-export function windowDrag(
-  node: HTMLElement,
-  initialOptions: WindowDragOptions,
-): WindowDragAction {
+export function windowDrag(node: HTMLElement, initialOptions: WindowDragOptions): WindowDragAction {
   let options = initialOptions;
   // Where the deferred macOS zoom was pressed. Null whenever none is pending.
   let pendingZoomAt: { x: number; y: number } | null = null;
@@ -111,7 +108,9 @@ export function windowDrag(
 
   function handleMouseDown(event: MouseEvent): void {
     pendingZoomAt = null;
-    if (!isChromeGesture(event)) return;
+    if (!isChromeGesture(event)) {
+      return;
+    }
 
     // `detail` counts clicks in the sequence, so the second press of a double
     // click is a zoom rather than the start of another drag.
@@ -119,7 +118,9 @@ export function windowDrag(
     const { zoom } = options;
 
     if (isSecondPress) {
-      if (!zoom) return;
+      if (!zoom) {
+        return;
+      }
       event.preventDefault();
       if (zoom.platform === "macOs") {
         pendingZoomAt = { x: event.clientX, y: event.clientY };

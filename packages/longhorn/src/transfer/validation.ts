@@ -13,14 +13,16 @@ import {
   TRANSFER_PROTOCOL_VERSION,
   TRANSFER_SESSION_RESPONSE_STATUSES,
   TRANSFER_TARGET_BINDING_KINDS,
-  type PanelTransferResponse,
-  type TransferAbort,
-  type TransferCancelResponse,
-  type TransferClientSnapshot,
-  type TransferCommitSelector,
-  type TransferLeaseResponse,
-  type TransferSessionResponse,
-  type TransferTargetBinding,
+} from "./generated/protocol.ts";
+import type {
+  PanelTransferResponse,
+  TransferAbort,
+  TransferCancelResponse,
+  TransferClientSnapshot,
+  TransferCommitSelector,
+  TransferLeaseResponse,
+  TransferSessionResponse,
+  TransferTargetBinding,
 } from "./generated/protocol.ts";
 import { TRANSFER_FIELDS } from "./generated/fields.ts";
 import { assertValidLayoutMutationRejectionCode } from "@inflatable-cookie/longhorn/layout";
@@ -54,10 +56,7 @@ export function assertTransferProtocolVersion(
   version: unknown,
 ): asserts version is typeof TRANSFER_PROTOCOL_VERSION {
   if (version !== TRANSFER_PROTOCOL_VERSION) {
-    throw new TransferProtocolValidationError(
-      "unsupported_protocol_version",
-      version,
-    );
+    throw new TransferProtocolValidationError("unsupported_protocol_version", version);
   }
 }
 
@@ -65,11 +64,7 @@ export function assertValidTransferTargetBinding(
   value: unknown,
 ): asserts value is TransferTargetBinding {
   const candidate = record(value);
-  assertKnown(
-    candidate.kind,
-    TRANSFER_TARGET_BINDING_KINDS,
-    "unknown_target_binding",
-  );
+  assertKnown(candidate.kind, TRANSFER_TARGET_BINDING_KINDS, "unknown_target_binding");
   record(candidate, variantKeys("TransferTargetBinding", candidate));
 }
 
@@ -78,14 +73,8 @@ export function assertValidTransferClientSnapshot(
 ): asserts value is TransferClientSnapshot {
   const snapshot = record(value, TRANSFER_FIELDS.TransferClientSnapshot);
   assertTransferProtocolVersion(snapshot.protocol_version);
-  if (
-    typeof snapshot.client_id !== "string" ||
-    !unsignedInteger(snapshot.client_epoch)
-  ) {
-    throw new TransferProtocolValidationError(
-      "invalid_client_snapshot",
-      value,
-    );
+  if (typeof snapshot.client_id !== "string" || !unsignedInteger(snapshot.client_epoch)) {
+    throw new TransferProtocolValidationError("invalid_client_snapshot", value);
   }
 }
 
@@ -93,38 +82,20 @@ export function assertValidTransferCommitSelector(
   value: unknown,
 ): asserts value is TransferCommitSelector {
   const candidate = record(value);
-  assertKnown(
-    candidate.kind,
-    TRANSFER_COMMIT_SELECTOR_KINDS,
-    "unknown_commit_selector",
-  );
+  assertKnown(candidate.kind, TRANSFER_COMMIT_SELECTOR_KINDS, "unknown_commit_selector");
   record(candidate, variantKeys("TransferCommitSelector", candidate));
 }
 
-export function assertValidTransferAbort(
-  value: unknown,
-): asserts value is TransferAbort {
+export function assertValidTransferAbort(value: unknown): asserts value is TransferAbort {
   const abort = record(value, TRANSFER_FIELDS.TransferAbort);
   assertTransferProtocolVersion(abort.protocol_version);
   const source = record(abort.source);
-  assertKnown(
-    source.domain,
-    TRANSFER_ABORT_DOMAINS,
-    "unknown_abort_domain",
-  );
+  assertKnown(source.domain, TRANSFER_ABORT_DOMAINS, "unknown_abort_domain");
   record(source, variantKeys("TransferAbortSource", source));
   if (source.domain === "transfer") {
-    assertKnown(
-      source.code,
-      TRANSFER_ERROR_CODES,
-      "unknown_transfer_error_code",
-    );
+    assertKnown(source.code, TRANSFER_ERROR_CODES, "unknown_transfer_error_code");
   } else {
-    assertKnown(
-      source.code,
-      PANEL_TRANSFER_ERROR_CODES,
-      "unknown_panel_error_code",
-    );
+    assertKnown(source.code, PANEL_TRANSFER_ERROR_CODES, "unknown_panel_error_code");
   }
   if (abort.layout_code !== null) {
     assertValidLayoutMutationRejectionCode(abort.layout_code);
@@ -172,9 +143,7 @@ export function assertValidTransferCancelResponse(
     "TransferCancelResponse",
   );
   if (response.status === "cancelled") {
-    assertTransferProtocolVersion(
-      record(response.cancellation).protocol_version,
-    );
+    assertTransferProtocolVersion(record(response.cancellation).protocol_version);
   } else {
     assertValidTransferAbort(response.abort);
   }
@@ -191,9 +160,7 @@ export function assertValidPanelTransferResponse(
   if (response.status === "committed") {
     const completion = record(response.completion, TRANSFER_FIELDS.PanelTransferCompletion);
     assertTransferProtocolVersion(completion.protocol_version);
-    assertValidTransferTargetBinding(
-      record(record(completion.target).binding),
-    );
+    assertValidTransferTargetBinding(record(record(completion.target).binding));
   } else {
     assertValidTransferAbort(response.abort);
   }
@@ -201,7 +168,7 @@ export function assertValidPanelTransferResponse(
 
 function responseWithStatus(
   value: unknown,
-  statuses: readonly string[],
+  statuses: ReadonlyArray<string>,
   type: string,
 ): Record<string, unknown> {
   const response = record(value);
@@ -218,10 +185,7 @@ function responseWithStatus(
  * A missing entry means the generator failed to read the union; every caller
  * runs `assertKnown` over the discriminant above this.
  */
-function variantKeys(
-  type: string,
-  value: Record<string, unknown>,
-): readonly string[] {
+function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
   const keys = TRANSFER_VARIANT_FIELDS[type]?.[discriminant as string];
   if (keys === undefined) {
@@ -235,7 +199,7 @@ function variantKeys(
 
 function assertKnown(
   value: unknown,
-  known: readonly string[],
+  known: ReadonlyArray<string>,
   code: TransferProtocolValidationCode,
 ): asserts value is string {
   if (typeof value !== "string" || !known.includes(value)) {
@@ -251,15 +215,14 @@ function assertKnown(
  * Passing no list keeps shape-only behaviour for the tagged unions, whose
  * allowed keys depend on their discriminant and so are not one flat set.
  */
-function record(
-  value: unknown,
-  allowed?: readonly string[],
-): Record<string, unknown> {
+function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new TransferProtocolValidationError("invalid_object", value);
   }
   const result = value as Record<string, unknown>;
-  if (allowed === undefined) return result;
+  if (allowed === undefined) {
+    return result;
+  }
 
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {
@@ -276,9 +239,5 @@ function record(
 }
 
 function unsignedInteger(value: unknown): value is number {
-  return (
-    typeof value === "number" &&
-    Number.isSafeInteger(value) &&
-    value >= 0
-  );
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }

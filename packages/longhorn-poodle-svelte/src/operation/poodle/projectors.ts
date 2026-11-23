@@ -1,17 +1,11 @@
-import {
-  OPERATION_STATE_LABELS,
-  type OperationEntryProjection,
-  type OperationOverallProgressProjection,
-  type OperationStateProjection,
+import { OPERATION_STATE_LABELS } from "@inflatable-cookie/longhorn/operation";
+import type {
+  OperationEntryProjection,
+  OperationOverallProgressProjection,
+  OperationStateProjection,
 } from "@inflatable-cookie/longhorn/operation";
 
-export type OperationStatusTone =
-  | "neutral"
-  | "info"
-  | "success"
-  | "warning"
-  | "danger"
-  | "pending";
+export type OperationStatusTone = "neutral" | "info" | "success" | "warning" | "danger" | "pending";
 
 export interface OperationProgressView {
   readonly indeterminate: boolean;
@@ -39,9 +33,7 @@ export function operationStateLabel(state: OperationStateProjection): string {
   return OPERATION_STATE_LABELS[state];
 }
 
-export function operationStatusTone(
-  state: OperationStateProjection,
-): OperationStatusTone {
+export function operationStatusTone(state: OperationStateProjection): OperationStatusTone {
   return stateTones[state];
 }
 
@@ -68,9 +60,7 @@ export function operationProgressView(
   }
 }
 
-export function canCancelOperation(
-  operation: OperationEntryProjection,
-): boolean {
+export function canCancelOperation(operation: OperationEntryProjection): boolean {
   return (
     operation.cancellationSupport === "supported" &&
     (operation.state === "queued" || operation.state === "running")

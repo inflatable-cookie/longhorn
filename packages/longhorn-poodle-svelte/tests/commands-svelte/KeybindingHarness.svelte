@@ -1,15 +1,13 @@
 <script lang="ts">
-  import {
-    KeybindingSettings,
-    type CommandSettingsRecord,
-  } from "../../src/commands/poodle.ts";
+  import { KeybindingSettings } from '../../src/commands/poodle.ts';
+import type { CommandSettingsRecord } from '../../src/commands/poodle.ts';
 
   let {
     records,
     onCapture,
     onApply,
   }: {
-    records: readonly CommandSettingsRecord[];
+    records: ReadonlyArray<CommandSettingsRecord>;
     onCapture: (bindingId: string) => void;
     onApply: () => void;
   } = $props();

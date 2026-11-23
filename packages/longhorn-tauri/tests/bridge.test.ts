@@ -5,9 +5,11 @@ import {
   bridgeCodec,
   parseBridgeQueryEnvelope,
   parseBridgeQueryReply,
-  type BridgeOperationDescriptor,
-  type BridgeQueryEnvelope,
-  type BridgeQueryReply,
+} from "@inflatable-cookie/longhorn/bridge";
+import type {
+  BridgeOperationDescriptor,
+  BridgeQueryEnvelope,
+  BridgeQueryReply,
 } from "@inflatable-cookie/longhorn/bridge";
 import {
   BRIDGE_HELLO_COMMAND,
@@ -20,10 +22,12 @@ import {
   fixture,
   queryPayloadCodec,
   successPayloadCodec,
-  type FailureDetail,
-  type QueryPayload,
-  type SuccessPayload,
   values,
+} from "../../longhorn/tests/bridge/support.ts";
+import type {
+  FailureDetail,
+  QueryPayload,
+  SuccessPayload,
 } from "../../longhorn/tests/bridge/support.ts";
 
 type QueryRequest = BridgeQueryEnvelope<QueryPayload>;
@@ -34,11 +38,9 @@ const query: BridgeOperationDescriptor<QueryRequest, QueryReply> = {
   domainId: "example.workspace",
   kind: "query",
   requiredCapability: "query",
-  request: bridgeCodec((value) =>
-    parseBridgeQueryEnvelope(value, queryPayloadCodec)
-  ),
+  request: bridgeCodec((value) => parseBridgeQueryEnvelope(value, queryPayloadCodec)),
   reply: bridgeCodec((value) =>
-    parseBridgeQueryReply(value, successPayloadCodec, failureDetailCodec)
+    parseBridgeQueryReply(value, successPayloadCodec, failureDetailCodec),
   ),
 };
 
@@ -60,16 +62,13 @@ test("composes checked bridge sessions over generic Tauri commands", async () =>
     },
   };
 
-  const connection = await connectTauriBridge(
-    fixture.hello as never,
-    transport,
-  );
+  const connection = await connectTauriBridge(fixture.hello as never, transport);
   const reply = await connection.domain.execute(
     query,
     values(fixture.queryRequests)[0] as QueryRequest,
   );
 
-  expect(reply).toEqual(values(fixture.queryReplies)[0] as QueryReply);
+  expect<unknown>(reply).toEqual(values(fixture.queryReplies)[0]);
   expect(calls.map(({ command }) => command)).toEqual([
     "longhorn_bridge_hello",
     "longhorn_bridge_query",

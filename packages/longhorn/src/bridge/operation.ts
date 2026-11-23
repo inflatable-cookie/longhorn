@@ -9,7 +9,7 @@ import type {
   DomainId,
 } from "./generated/protocol.ts";
 import type { BridgeCodec } from "./validation.ts";
-import { BridgeSession } from "./session.ts";
+import type { BridgeSession } from "./session.ts";
 
 export type BridgeOperationKind = "query" | "command" | "cancellation";
 
@@ -44,25 +44,15 @@ export class BridgeDomainClient {
   ): Promise<Reply> {
     const checkedRequest = operation.request.parse(request);
     this.#assertAuthority(operation, checkedRequest);
-    return operation.reply.parse(
-      await this.#adapter.invoke(operation, checkedRequest),
-    );
+    return operation.reply.parse(await this.#adapter.invoke(operation, checkedRequest));
   }
 
   #assertAuthority<Request, Reply>(
     operation: BridgeOperationDescriptor<Request, Reply>,
     request: Request,
   ): void {
-    if (
-      !this.#session.supports(
-        operation.domainId,
-        operation.requiredCapability,
-      )
-    ) {
-      throw new BridgeAuthorityError(
-        "capability_unavailable",
-        operation.domainId,
-      );
+    if (!this.#session.supports(operation.domainId, operation.requiredCapability)) {
+      throw new BridgeAuthorityError("capability_unavailable", operation.domainId);
     }
     const authority = this.#session.authority(operation.domainId);
     const context = (
@@ -74,22 +64,13 @@ export class BridgeDomainClient {
       }
     ).context;
     if (context?.domainId !== operation.domainId) {
-      throw new BridgeAuthorityError(
-        "request_domain_mismatch",
-        operation.domainId,
-      );
+      throw new BridgeAuthorityError("request_domain_mismatch", operation.domainId);
     }
     if (context.sessionId !== this.#session.receipt.sessionId) {
-      throw new BridgeAuthorityError(
-        "request_session_mismatch",
-        operation.domainId,
-      );
+      throw new BridgeAuthorityError("request_session_mismatch", operation.domainId);
     }
     if (authority === undefined || authority.availability === "offline") {
-      throw new BridgeAuthorityError(
-        "authority_unavailable",
-        operation.domainId,
-      );
+      throw new BridgeAuthorityError("authority_unavailable", operation.domainId);
     }
     if (operation.kind === "query" && authority.readAuthority === "none") {
       throw new BridgeAuthorityError("read_denied", operation.domainId);
@@ -103,10 +84,7 @@ export class BridgeDomainClient {
         throw new BridgeAuthorityError("stale_authority", operation.domainId);
       }
     }
-    if (
-      operation.kind === "cancellation" &&
-      authority.executionAuthority !== "executor"
-    ) {
+    if (operation.kind === "cancellation" && authority.executionAuthority !== "executor") {
       throw new BridgeAuthorityError("execution_denied", operation.domainId);
     }
   }
@@ -160,7 +138,5 @@ export function classifyBridgeQueryRetry<P>(
   retryClass: BridgeRetryClass,
   adapterAllowsRetry: boolean,
 ): BridgeQueryRetryDecision {
-  return adapterAllowsRetry && retryClass !== "never"
-    ? "retry"
-    : "doNotRetry";
+  return adapterAllowsRetry && retryClass !== "never" ? "retry" : "doNotRetry";
 }

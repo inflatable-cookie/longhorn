@@ -17,18 +17,20 @@ import {
   STORAGE_RECOVERY_STATUSES,
   STORAGE_TRANSITION_EXECUTE_STATUSES,
   STORAGE_TRANSITION_INSPECT_STATUSES,
-  type BackupCreateOutcome,
-  type BackupExportOutcome,
-  type BackupRetentionApplyOutcome,
-  type RestoreAdapterExecuteOutcome,
-  type RestoreExecuteOutcome,
-  type RestoreInspectOutcome,
-  type RestorePlanOutcome,
-  type RestoreRecoveryOutcomeProjection,
-  type StorageCleanupOutcome,
-  type StorageRecoveryOutcome,
-  type StorageTransitionExecuteOutcome,
-  type StorageTransitionInspectOutcome,
+} from "../generated/protocol.ts";
+import type {
+  BackupCreateOutcome,
+  BackupExportOutcome,
+  BackupRetentionApplyOutcome,
+  RestoreAdapterExecuteOutcome,
+  RestoreExecuteOutcome,
+  RestoreInspectOutcome,
+  RestorePlanOutcome,
+  RestoreRecoveryOutcomeProjection,
+  StorageCleanupOutcome,
+  StorageRecoveryOutcome,
+  StorageTransitionExecuteOutcome,
+  StorageTransitionInspectOutcome,
 } from "../generated/protocol.ts";
 import {
   assertValidConfigOperationsSnapshot,
@@ -39,15 +41,7 @@ import {
   assertRestorePlan,
   assertRestoreRecoveryReceipt,
 } from "./projection.ts";
-import {
-  array,
-  digest,
-  discriminant,
-  finiteNumber,
-  record,
-  string,
-  fail,
-} from "./primitives.ts";
+import { array, digest, discriminant, finiteNumber, record, string, fail } from "./primitives.ts";
 
 export function assertValidStorageTransitionInspectOutcome(
   value: unknown,
@@ -61,12 +55,9 @@ export function assertValidStorageTransitionInspectOutcome(
       "$.preview",
       CONFIG_FIELDS.StorageTransitionPreviewProjection,
     );
-    [
-      "sourceLayoutDigest",
-      "targetLayoutDigest",
-      "evidenceDigest",
-      "confirmationDigest",
-    ].forEach((key) => digest(preview[key], `$.preview.${key}`));
+    ["sourceLayoutDigest", "targetLayoutDigest", "evidenceDigest", "confirmationDigest"].forEach(
+      (key) => digest(preview[key], `$.preview.${key}`),
+    );
     array(preview.domains, "$.preview.domains");
     array(preview.unknownSourcePaths, "$.preview.unknownSourcePaths");
     array(preview.conflicts, "$.preview.conflicts");
@@ -78,7 +69,12 @@ export function assertValidStorageTransitionInspectOutcome(
 export function assertValidStorageTransitionExecuteOutcome(
   value: unknown,
 ): asserts value is StorageTransitionExecuteOutcome {
-  mutationOutcome(value, STORAGE_TRANSITION_EXECUTE_STATUSES, "committed", "StorageTransitionExecuteOutcome");
+  mutationOutcome(
+    value,
+    STORAGE_TRANSITION_EXECUTE_STATUSES,
+    "committed",
+    "StorageTransitionExecuteOutcome",
+  );
 }
 
 export function assertValidStorageRecoveryOutcome(
@@ -126,9 +122,7 @@ export function assertValidRestoreInspectOutcome(
   }
 }
 
-export function assertValidRestorePlanOutcome(
-  value: unknown,
-): asserts value is RestorePlanOutcome {
+export function assertValidRestorePlanOutcome(value: unknown): asserts value is RestorePlanOutcome {
   outcome(value, RESTORE_PLAN_STATUSES, "$", "RestorePlanOutcome");
   const result = record(value, "$");
   if (result.status === "ready") {
@@ -147,10 +141,7 @@ export function assertValidRestoreExecuteOutcome(
   if (result.status === "succeeded") {
     assertRestoreExecutionReceipt(result.receipt, "$.receipt");
     assertValidConfigOperationsSnapshot(result.snapshot);
-  } else if (
-    result.status === "rolledBack" ||
-    result.status === "recoveryRequired"
-  ) {
+  } else if (result.status === "rolledBack" || result.status === "recoveryRequired") {
     assertRestoreFailure(result.failure, "$.failure");
     assertValidConfigOperationsSnapshot(result.snapshot);
   } else {
@@ -189,7 +180,7 @@ export function assertValidRestoreRecoveryOutcome(
 
 function mutationOutcome(
   value: unknown,
-  variants: readonly string[],
+  variants: ReadonlyArray<string>,
   success: string,
   type: string,
 ): void {
@@ -213,7 +204,7 @@ function rejection(value: unknown, path: string): void {
 
 function outcome(
   value: unknown,
-  variants: readonly string[],
+  variants: ReadonlyArray<string>,
   path: string,
   type: string,
 ): void {
@@ -233,7 +224,7 @@ function variantKeys(
   type: string,
   value: Record<string, unknown>,
   path: string,
-): readonly string[] {
+): ReadonlyArray<string> {
   const discriminant = value[CONFIG_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "status"];
   const keys = CONFIG_VARIANT_FIELDS[type]?.[discriminant as string];
   if (keys === undefined) {

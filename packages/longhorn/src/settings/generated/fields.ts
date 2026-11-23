@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const SETTINGS_FIELDS: Record<string, readonly string[]> = {
+export const SETTINGS_FIELDS = {
   "SettingsLimits": ["maximumModules", "maximumSections", "maximumPages", "maximumRenderers", "maximumScopes", "maximumApplyUnits", "maximumCapabilities", "maximumAnchorsPerPage", "maximumKeywordsPerPage", "maximumLabelBytes", "maximumKeywordBytes", "maximumOpaqueValueBytes"],
   "SettingsOpaqueValue": ["codecVersion", "value"],
   "SettingsModuleDefinition": ["id", "label", "order"],
@@ -31,4 +31,4 @@ export const SETTINGS_FIELDS: Record<string, readonly string[]> = {
   "SettingsMutationReceipt": ["requestId", "pageId", "applyUnitId", "scopeId", "previousAuthority", "committedAuthority", "outcome", "durability", "activationRequirements"],
   "SettingsConflict": ["expected", "actual"],
   "SettingsRejection": ["code", "diagnostic"],
-};
+} as const;

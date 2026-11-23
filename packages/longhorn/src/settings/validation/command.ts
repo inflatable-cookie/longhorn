@@ -6,13 +6,15 @@ import {
   SETTINGS_MUTATION_OUTCOMES,
   SETTINGS_MUTATION_RESULT_STATUSES,
   SETTINGS_REJECTION_CODES,
-  type SettingsApplyCommand,
-  type SettingsLoadCommand,
-  type SettingsLoadOutcome,
-  type SettingsMutationResult,
-  type SettingsRegistryChangedEvent,
-  type SettingsResetCommand,
-  type SettingsScopeChangedEvent,
+} from "../generated/protocol.ts";
+import type {
+  SettingsApplyCommand,
+  SettingsLoadCommand,
+  SettingsLoadOutcome,
+  SettingsMutationResult,
+  SettingsRegistryChangedEvent,
+  SettingsResetCommand,
+  SettingsScopeChangedEvent,
 } from "../generated/protocol.ts";
 import { assertValidSettingsScopeSnapshot } from "./authority.ts";
 import { activation, rejection } from "./projection.ts";
@@ -67,16 +69,9 @@ export function assertValidSettingsLoadOutcome(
   known(outcome.status, SETTINGS_LOAD_OUTCOME_STATUSES);
   record(outcome, variantKeys("SettingsLoadOutcome", outcome));
   if (outcome.status === "loaded") {
-    assertValidSettingsScopeSnapshot(
-      outcome.snapshot,
-      maximumOpaqueValueBytes,
-    );
+    assertValidSettingsScopeSnapshot(outcome.snapshot, maximumOpaqueValueBytes);
   } else {
-    rejection(
-      outcome.rejection,
-      maximumOpaqueValueBytes,
-      SETTINGS_REJECTION_CODES,
-    );
+    rejection(outcome.rejection, maximumOpaqueValueBytes, SETTINGS_REJECTION_CODES);
   }
 }
 
@@ -88,30 +83,17 @@ export function assertValidSettingsMutationResult(
   known(result.status, SETTINGS_MUTATION_RESULT_STATUSES);
   record(result, variantKeys("SettingsMutationResult", result));
   if (result.status === "applied") {
-    assertValidSettingsScopeSnapshot(
-      result.snapshot,
-      maximumOpaqueValueBytes,
-    );
+    assertValidSettingsScopeSnapshot(result.snapshot, maximumOpaqueValueBytes);
     receipt(result.receipt, maximumOpaqueValueBytes);
   } else if (result.status === "conflict") {
     const conflict = record(result.conflict, SETTINGS_FIELDS.SettingsConflict);
     authority(conflict.expected);
     authority(conflict.actual);
-    assertValidSettingsScopeSnapshot(
-      result.snapshot,
-      maximumOpaqueValueBytes,
-    );
+    assertValidSettingsScopeSnapshot(result.snapshot, maximumOpaqueValueBytes);
   } else {
-    rejection(
-      result.rejection,
-      maximumOpaqueValueBytes,
-      SETTINGS_REJECTION_CODES,
-    );
+    rejection(result.rejection, maximumOpaqueValueBytes, SETTINGS_REJECTION_CODES);
     if (result.snapshot !== null) {
-      assertValidSettingsScopeSnapshot(
-        result.snapshot,
-        maximumOpaqueValueBytes,
-      );
+      assertValidSettingsScopeSnapshot(result.snapshot, maximumOpaqueValueBytes);
     }
   }
 }
@@ -134,10 +116,7 @@ export function assertValidSettingsScopeChangedEvent(
   unsigned(event.scopeRevision, "invalid_revision");
 }
 
-function mutationCommand(
-  value: unknown,
-  allowed?: readonly string[],
-): Record<string, unknown> {
+function mutationCommand(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
   const command = record(value, allowed);
   protocolVersion(command.protocolVersion);
   identity(command.requestId);

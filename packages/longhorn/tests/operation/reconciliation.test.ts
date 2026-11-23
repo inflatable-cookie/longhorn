@@ -9,10 +9,16 @@ import { cloned, fixture } from "./support.ts";
 
 describe("operation snapshot reconciliation", () => {
   test("registers the listener before loading the first snapshot", async () => {
-    const order: string[] = [];
+    const order: Array<string> = [];
     const client = new OperationClient({
-      listen: async () => { order.push("listen"); return () => {}; },
-      snapshot: async (query) => { order.push("snapshot"); return { ...fixture.snapshotResponse, requestId: query.requestId }; },
+      listen: async () => {
+        order.push("listen");
+        return () => {};
+      },
+      snapshot: async (query) => {
+        order.push("snapshot");
+        return { ...fixture.snapshotResponse, requestId: query.requestId };
+      },
       mutate: async () => fixture.mutationResults[0],
       cancel: async () => fixture.cancellationResult,
       nextRequestId: () => fixture.snapshotQuery.requestId,

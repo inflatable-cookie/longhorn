@@ -26,19 +26,15 @@ describe("windowDrag", () => {
     node.append(plain, button, link, input, roleButton, optedOut);
     document.body.append(node);
     const startDragging = vi.fn();
-    const errors: unknown[] = [];
+    const errors: Array<unknown> = [];
     const action = windowDrag(node, {
       startDragging,
       reportError: (error) => errors.push(error),
     });
 
-    plain.dispatchEvent(
-      new MouseEvent("mousedown", { bubbles: true, button: 0 }),
-    );
+    plain.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
     for (const target of [button, link, input, roleButton, optedOut]) {
-      target.dispatchEvent(
-        new MouseEvent("mousedown", { bubbles: true, button: 0 }),
-      );
+      target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
     }
     for (const init of [
       { button: 1 },
@@ -47,9 +43,7 @@ describe("windowDrag", () => {
       { button: 0, metaKey: true },
       { button: 0, shiftKey: true },
     ]) {
-      plain.dispatchEvent(
-        new MouseEvent("mousedown", { bubbles: true, ...init }),
-      );
+      plain.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, ...init }));
     }
 
     expect(startDragging).toHaveBeenCalledTimes(1);
@@ -248,7 +242,7 @@ describe("windowDrag", () => {
 
   it("routes a failing zoom to the reporter", async () => {
     const node = document.createElement("header");
-    const errors: unknown[] = [];
+    const errors: Array<unknown> = [];
     const failure = new Error("zoom refused");
     windowDrag(node, {
       startDragging: vi.fn(),
@@ -267,7 +261,7 @@ describe("windowDrag", () => {
   it("routes synchronous and asynchronous native failures to the reporter", async () => {
     const first = document.createElement("header");
     const second = document.createElement("header");
-    const errors: unknown[] = [];
+    const errors: Array<unknown> = [];
     const syncError = new Error("sync");
     const asyncError = new Error("async");
     windowDrag(first, {
@@ -281,12 +275,8 @@ describe("windowDrag", () => {
       reportError: (error) => errors.push(error),
     });
 
-    first.dispatchEvent(
-      new MouseEvent("mousedown", { bubbles: true, button: 0 }),
-    );
-    second.dispatchEvent(
-      new MouseEvent("mousedown", { bubbles: true, button: 0 }),
-    );
+    first.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    second.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
     await vi.waitFor(() => expect(errors).toEqual([syncError, asyncError]));
   });
 });

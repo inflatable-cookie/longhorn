@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const BRIDGE_FIELDS: Record<string, readonly string[]> = {
+export const BRIDGE_FIELDS = {
   "BridgeHostDescriptor": ["hostInstanceId", "form"],
   "BridgeConnectionStatus": ["state", "reason"],
   "DomainAuthorityDescriptor": ["domainId", "scopeId", "availability", "readAuthority", "writeAuthority", "executionAuthority", "authorityEpoch", "authoritativeRevision"],
@@ -30,4 +30,4 @@ export const BRIDGE_FIELDS: Record<string, readonly string[]> = {
   "BridgeServiceRequest": ["action", "credentialRef"],
   "BridgeServiceTransitionReceipt": ["generation", "ownership", "action", "previous", "current", "outcome"],
   "BridgeHostError": ["code", "message", "retryable"],
-};
+} as const;

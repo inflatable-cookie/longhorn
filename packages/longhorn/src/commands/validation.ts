@@ -13,24 +13,29 @@ import {
   COMMAND_KEYMAP_PROTOCOL_VERSION,
   COMMAND_KEYMAP_RECOVERY_CODES,
   COMMAND_KEYMAP_REJECTION_CODES,
-  type CommandCatalogueSnapshot,
-  type CommandAvailabilitySnapshot,
-  type CommandCatalogueChangedEvent,
-  type CommandKeymapChangedEvent,
-  type CommandKeymapCommit,
-  type CommandKeymapLoadOutcome,
-  type CommandKeymapMutationResult,
-  type CommandKeymapPreview,
-  type CommandKeymapPreviewResult,
-  type CommandKeymapReset,
-  type CommandKeymapSnapshot,
+} from "./generated/protocol.ts";
+import type {
+  CommandCatalogueSnapshot,
+  CommandAvailabilitySnapshot,
+  CommandCatalogueChangedEvent,
+  CommandKeymapChangedEvent,
+  CommandKeymapCommit,
+  CommandKeymapLoadOutcome,
+  CommandKeymapMutationResult,
+  CommandKeymapPreview,
+  CommandKeymapPreviewResult,
+  CommandKeymapReset,
+  CommandKeymapSnapshot,
 } from "./generated/protocol.ts";
 import { COMMANDS_FIELDS } from "./generated/fields.ts";
 
 export class CommandProtocolValidationError extends Error {
   readonly code = "command_protocol_incompatible";
 
-  constructor(readonly path: string, detail: string) {
+  constructor(
+    readonly path: string,
+    detail: string,
+  ) {
     super(`${path}: ${detail}`);
     this.name = "CommandProtocolValidationError";
   }
@@ -67,55 +72,34 @@ export function assertValidCommandAvailabilitySnapshot(
     const item = object(entry, `$.records[${index}]`);
     const commandId = text(item.commandId, `$.records[${index}].commandId`);
     if (index > 0 && commandId <= previous) {
-      fail(
-        `$.records[${index}].commandId`,
-        "expected unique command-id order",
-      );
+      fail(`$.records[${index}].commandId`, "expected unique command-id order");
     }
     previous = commandId;
-    const availability = object(
-      item.availability,
-      `$.records[${index}].availability`,
-    );
+    const availability = object(item.availability, `$.records[${index}].availability`);
     member(
       availability.state,
       ["available", "unavailable", "hidden", "unsupported"],
       `$.records[${index}].availability.state`,
     );
-    if (
-      (availability.state === "available") !==
-      (availability.reason === null)
-    ) {
+    if ((availability.state === "available") !== (availability.reason === null)) {
       fail(
         `$.records[${index}].availability.reason`,
         "available requires no reason; every other state requires one",
       );
     }
     if (availability.reason !== null) {
-      const reason = object(
-        availability.reason,
-        `$.records[${index}].availability.reason`,
-      );
+      const reason = object(availability.reason, `$.records[${index}].availability.reason`);
       if (reason.detail !== null) {
-        text(
-          reason.detail,
-          `$.records[${index}].availability.reason.detail`,
-        );
+        text(reason.detail, `$.records[${index}].availability.reason.detail`);
       }
-      const code = object(
-        reason.code,
-        `$.records[${index}].availability.reason.code`,
-      );
+      const code = object(reason.code, `$.records[${index}].availability.reason.code`);
       member(
         code.kind,
         ["contextNotAllowed", "missingCapability", "consumer"],
         `$.records[${index}].availability.reason.code.kind`,
       );
       if (code.kind === "consumer") {
-        text(
-          code.code,
-          `$.records[${index}].availability.reason.code.code`,
-        );
+        text(code.code, `$.records[${index}].availability.reason.code.code`);
       }
     }
   });
@@ -182,17 +166,12 @@ export function assertValidCommandKeymapCommit(
   finiteInteger(evidence.registryGeneration, "$.evidence.registryGeneration");
   finiteInteger(evidence.keymapRevision, "$.evidence.keymapRevision");
   text(evidence.activePresetId, "$.evidence.activePresetId");
-  positiveInteger(
-    evidence.activePresetVersion,
-    "$.evidence.activePresetVersion",
-  );
+  positiveInteger(evidence.activePresetVersion, "$.evidence.activePresetVersion");
   digest(evidence.patchDigest, "$.evidence.patchDigest");
   keymapPatch(record.patch, "$.patch");
 }
 
-export function assertValidCommandKeymapReset(
-  value: unknown,
-): asserts value is CommandKeymapReset {
+export function assertValidCommandKeymapReset(value: unknown): asserts value is CommandKeymapReset {
   const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapReset);
   text(record.requestId, "$.requestId");
   baseRequest(value, "$");
@@ -239,27 +218,15 @@ export function assertValidCommandKeymapMutationResult(
   assertValidCommandKeymapSnapshot(record.snapshot);
   if (record.status === "applied") {
     const receipt = object(record.receipt, "$.receipt");
-    member(
-      receipt.outcome,
-      COMMAND_KEYMAP_MUTATION_OUTCOMES,
-      "$.receipt.outcome",
-    );
-    member(
-      receipt.durability,
-      COMMAND_KEYMAP_DURABILITIES,
-      "$.receipt.durability",
-    );
+    member(receipt.outcome, COMMAND_KEYMAP_MUTATION_OUTCOMES, "$.receipt.outcome");
+    member(receipt.durability, COMMAND_KEYMAP_DURABILITIES, "$.receipt.durability");
   } else if (record.status === "rejected") {
     rejection(record.rejection, "$.rejection");
     array(record.conflicts, "$.conflicts");
   }
 }
 
-function baseRequest(
-  value: unknown,
-  path: string,
-  allowed?: readonly string[],
-): void {
+function baseRequest(value: unknown, path: string, allowed?: ReadonlyArray<string>): void {
   const record = object(value, path, allowed);
   finiteInteger(record.registryGeneration, `${path}.registryGeneration`);
   finiteInteger(record.keymapRevision, `${path}.keymapRevision`);
@@ -269,21 +236,17 @@ function baseRequest(
 
 function keymapPatch(value: unknown, path: string): void {
   const record = object(value, path, COMMANDS_FIELDS.CommandKeymapPatch);
-  if (
-    record.activePresetId !== null &&
-    typeof record.activePresetId !== "string"
-  ) {
+  if (record.activePresetId !== null && typeof record.activePresetId !== "string") {
     fail(`${path}.activePresetId`, "expected string or null");
   }
   if (typeof record.clearOverrides !== "boolean") {
     fail(`${path}.clearOverrides`, "expected boolean");
   }
-  array(record.removeBindingIds, `${path}.removeBindingIds`).forEach(
-    (id, index) => text(id, `${path}.removeBindingIds[${index}]`),
+  array(record.removeBindingIds, `${path}.removeBindingIds`).forEach((id, index) =>
+    text(id, `${path}.removeBindingIds[${index}]`),
   );
-  array(record.upsertOverrides, `${path}.upsertOverrides`).forEach(
-    (override, index) =>
-      keymapOverride(override, `${path}.upsertOverrides[${index}]`),
+  array(record.upsertOverrides, `${path}.upsertOverrides`).forEach((override, index) =>
+    keymapOverride(override, `${path}.upsertOverrides[${index}]`),
   );
 }
 
@@ -301,13 +264,11 @@ function keymapOverride(value: unknown, path: string): void {
   }
 }
 
-function bindingDefinition(
-  value: unknown,
-  path: string,
-  requireId = true,
-): void {
+function bindingDefinition(value: unknown, path: string, requireId = true): void {
   const record = object(value, path);
-  if (requireId) text(record.id, `${path}.id`);
+  if (requireId) {
+    text(record.id, `${path}.id`);
+  }
   text(record.commandId, `${path}.commandId`);
   text(record.contextId, `${path}.contextId`);
   const trigger = object(record.trigger, `${path}.trigger`);
@@ -333,7 +294,9 @@ function argumentSchema(value: unknown, path: string): void {
   const record = object(value, path);
   member(record.shape, ["none", "object"], `${path}.shape`);
   object(record, path, variantKeys("CommandArgumentSchema", record, path));
-  if (record.shape === "object") array(record.fields, `${path}.fields`);
+  if (record.shape === "object") {
+    array(record.fields, `${path}.fields`);
+  }
 }
 
 function rejection(value: unknown, path: string): void {
@@ -363,15 +326,13 @@ function text(value: unknown, path: string): string {
 
 function positiveInteger(value: unknown, path: string): void {
   finiteInteger(value, path);
-  if ((value as number) < 1) fail(path, "expected positive integer");
+  if ((value as number) < 1) {
+    fail(path, "expected positive integer");
+  }
 }
 
 function finiteInteger(value: unknown, path: string): void {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 0
-  ) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     fail(path, "expected non-negative safe integer");
   }
 }
@@ -387,30 +348,38 @@ function finiteInteger(value: unknown, path: string): void {
 function object(
   value: unknown,
   path: string,
-  allowed?: readonly string[],
+  allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     fail(path, "expected object");
   }
   const record = value as Record<string, unknown>;
-  if (allowed === undefined) return record;
+  if (allowed === undefined) {
+    return record;
+  }
 
   const permitted = new Set(allowed);
   for (const key of Object.keys(record)) {
-    if (!permitted.has(key)) fail(`${path}.${key}`, "unknown field");
+    if (!permitted.has(key)) {
+      fail(`${path}.${key}`, "unknown field");
+    }
   }
   for (const key of allowed) {
-    if (!(key in record)) fail(`${path}.${key}`, "missing field");
+    if (!(key in record)) {
+      fail(`${path}.${key}`, "missing field");
+    }
   }
   return record;
 }
 
-function array(value: unknown, path: string): unknown[] {
-  if (!Array.isArray(value)) fail(path, "expected array");
+function array(value: unknown, path: string): Array<unknown> {
+  if (!Array.isArray(value)) {
+    fail(path, "expected array");
+  }
   return value;
 }
 
-function member<const T extends readonly string[]>(
+function member<const T extends ReadonlyArray<string>>(
   value: unknown,
   choices: T,
   path: string,
@@ -436,9 +405,11 @@ function variantKeys(
   type: string,
   value: Record<string, unknown>,
   path: string,
-): readonly string[] {
+): ReadonlyArray<string> {
   const discriminant = value[COMMAND_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
   const keys = COMMAND_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (keys === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  if (keys === undefined) {
+    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  }
   return keys;
 }

@@ -1,11 +1,7 @@
 <script lang="ts">
   import { LicenceActivation as PoodleLicenceActivation } from "@inflatable-cookie/poodle-svelte";
-  import {
-    isProbablyATypo,
-    parseLicenceKey,
-    type LicenceController,
-    type LicenceCredentialProjection,
-  } from "@inflatable-cookie/longhorn/licence";
+  import { isProbablyATypo, parseLicenceKey } from '@inflatable-cookie/longhorn/licence';
+import type { LicenceController, LicenceCredentialProjection } from '@inflatable-cookie/longhorn/licence';
 
   import { sampleLicenceController } from "./LicenceSurface.svelte.ts";
 

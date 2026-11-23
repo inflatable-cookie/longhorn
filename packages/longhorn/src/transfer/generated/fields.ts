@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const TRANSFER_FIELDS: Record<string, readonly string[]> = {
+export const TRANSFER_FIELDS = {
   "ClientPoint": ["x", "y"],
   "ClientSize": ["width", "height"],
   "ClientRect": ["origin", "size"],
@@ -20,4 +20,4 @@ export const TRANSFER_FIELDS: Record<string, readonly string[]> = {
   "TransferCommittedTarget": ["path", "window_id", "drop_zone_id", "insertion_position", "binding"],
   "PanelTransferCompletion": ["protocol_version", "request_id", "session_id", "source_host_binding_id", "target_host_binding_id", "source_binding_kind", "target_binding_kind", "previous_revision", "committed_revision", "authoritative_document", "target"],
   "TransferAbort": ["protocol_version", "request_id", "source", "layout_code", "message", "retryable", "session_consumed"],
-};
+} as const;

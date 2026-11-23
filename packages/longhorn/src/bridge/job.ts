@@ -17,25 +17,15 @@ export class BridgeJobTracker {
     this.#jobId = jobId;
   }
 
-  classifyProgress<P>(
-    event: BridgeProgressEvent<P>,
-  ): BridgeProgressDecision {
-    if (
-      event.requestId !== this.#requestId ||
-      event.jobId !== this.#jobId
-    ) {
+  classifyProgress<P>(event: BridgeProgressEvent<P>): BridgeProgressDecision {
+    if (event.requestId !== this.#requestId || event.jobId !== this.#jobId) {
       return "ignoreWrongCorrelation";
     }
     return this.#terminal ? "ignoreAfterTerminal" : "accept";
   }
 
-  classifyTerminal<S, D>(
-    event: BridgeJobTerminalEvent<S, D>,
-  ): BridgeJobTerminalDecision {
-    if (
-      event.requestId !== this.#requestId ||
-      event.jobId !== this.#jobId
-    ) {
+  classifyTerminal<S, D>(event: BridgeJobTerminalEvent<S, D>): BridgeJobTerminalDecision {
+    if (event.requestId !== this.#requestId || event.jobId !== this.#jobId) {
       return "ignoreWrongCorrelation";
     }
     if (this.#terminal) {

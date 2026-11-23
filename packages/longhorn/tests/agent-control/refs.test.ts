@@ -9,7 +9,9 @@ describe("agent-control live-DOM refs", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const run = findByName(snapshot.root, "Run");
     expect(run).toBeDefined();
     const stamped = window.document.querySelector(`[${REF_ATTR}="${run!.elementRef}"]`);
@@ -23,14 +25,18 @@ describe("agent-control live-DOM refs", () => {
     const api = install(window);
     const first = api.snapshot();
     expect(first.ok).toBe(true);
-    if (!first.ok) return;
+    if (!first.ok) {
+      return;
+    }
     const temp = findByName(first.root, "Temp");
     const keep = findByName(first.root, "Keep");
     expect(temp).toBeDefined();
     window.document.getElementById("gone")?.remove();
     const click = api.click(temp!.elementRef);
     expect(click.ok).toBe(false);
-    if (click.ok) return;
+    if (click.ok) {
+      return;
+    }
     expect(click.error).toEqual({ error: "unresolvedRef", element: temp!.elementRef });
     const absent = api.waitFor({ predicate: "refAbsent", element: temp!.elementRef });
     expect(absent.ok && absent.holds).toBe(true);
@@ -42,7 +48,9 @@ describe("agent-control live-DOM refs", () => {
     const api = install(window);
     const first = api.snapshot();
     expect(first.ok).toBe(true);
-    if (!first.ok) return;
+    if (!first.ok) {
+      return;
+    }
     const alpha = findByName(first.root, "Alpha");
     expect(alpha).toBeDefined();
 
@@ -52,7 +60,9 @@ describe("agent-control live-DOM refs", () => {
 
     const second = api.snapshot();
     expect(second.ok).toBe(true);
-    if (!second.ok) return;
+    if (!second.ok) {
+      return;
+    }
     const alphaAgain = findByName(second.root, "Alpha");
     const beta = findByName(second.root, "Beta");
     expect(alphaAgain?.elementRef).toBe(alpha!.elementRef);
@@ -65,13 +75,16 @@ describe("agent-control live-DOM refs", () => {
   test("the same local seq in two webviews never cross-hits", () => {
     const ui = openPage(`<button>Ui</button>`);
     const island = openPage(`<button>Island</button>`);
-    (island as unknown as Record<string, unknown>)[REF_PREFIX_GLOBAL] = encodeURIComponent("preview");
+    (island as unknown as Record<string, unknown>)[REF_PREFIX_GLOBAL] =
+      encodeURIComponent("preview");
     const uiApi = install(ui);
     const islandApi = install(island);
     const uiSnap = uiApi.snapshot();
     const islandSnap = islandApi.snapshot();
     expect(uiSnap.ok && islandSnap.ok).toBe(true);
-    if (!uiSnap.ok || !islandSnap.ok) return;
+    if (!uiSnap.ok || !islandSnap.ok) {
+      return;
+    }
     const uiButton = findByName(uiSnap.root, "Ui");
     const islandButton = findByName(islandSnap.root, "Island");
     expect(uiButton?.elementRef).toMatch(/^e\d+$/);

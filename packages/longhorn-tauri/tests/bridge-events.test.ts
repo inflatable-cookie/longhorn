@@ -1,13 +1,7 @@
 import { expect, test } from "bun:test";
 
-import type {
-  ConnectionFailure,
-  EventTransport,
-  Unlisten,
-} from "@inflatable-cookie/longhorn/core";
-import {
-  connectBridgeStream,
-} from "@inflatable-cookie/longhorn/bridge/stream";
+import type { ConnectionFailure, EventTransport, Unlisten } from "@inflatable-cookie/longhorn/core";
+import { connectBridgeStream } from "@inflatable-cookie/longhorn/bridge/stream";
 import {
   BRIDGE_DOMAIN_EVENT,
   BRIDGE_PROGRESS_EVENT,
@@ -16,13 +10,10 @@ import {
   TauriBridgeStreamSource,
 } from "@inflatable-cookie/longhorn-tauri/bridge-events";
 
-import {
-  fixture,
-  jsonCodec,
-} from "../../longhorn/tests/bridge/support.ts";
+import { fixture, jsonCodec } from "../../longhorn/tests/bridge/support.ts";
 
 class RecordingEventTransport implements EventTransport {
-  readonly order: string[] = [];
+  readonly order: Array<string> = [];
   readonly listeners = new Map<string, (payload: unknown) => void>();
 
   invoke(command: string): Promise<unknown> {
@@ -30,10 +21,7 @@ class RecordingEventTransport implements EventTransport {
     return Promise.resolve(fixture.snapshot);
   }
 
-  listen(
-    event: string,
-    listener: (payload: unknown) => void,
-  ): Promise<Unlisten> {
+  listen(event: string, listener: (payload: unknown) => void): Promise<Unlisten> {
     this.order.push(event);
     this.listeners.set(event, listener);
     return Promise.resolve(() => {
@@ -48,11 +36,7 @@ class RecordingEventTransport implements EventTransport {
 
 test("subscription composition listens before requesting resync", async () => {
   const transport = new RecordingEventTransport();
-  const source = new TauriBridgeStreamSource(
-    "session:fixture",
-    "example.workspace",
-    transport,
-  );
+  const source = new TauriBridgeStreamSource("session:fixture", "example.workspace", transport);
   const connection = connectBridgeStream({
     sessionId: "session:fixture",
     domainId: "example.workspace",
@@ -63,17 +47,14 @@ test("subscription composition listens before requesting resync", async () => {
   });
 
   await connection.ready;
-  expect(transport.order).toEqual([
-    BRIDGE_DOMAIN_EVENT,
-    "longhorn_bridge_resync",
-  ]);
+  expect(transport.order).toEqual([BRIDGE_DOMAIN_EVENT, "longhorn_bridge_resync"]);
   await connection.dispose();
 });
 
 test("job listeners admit only matching correlation and one terminal", async () => {
   const transport = new RecordingEventTransport();
-  const progress: unknown[] = [];
-  const terminal: unknown[] = [];
+  const progress: Array<unknown> = [];
+  const terminal: Array<unknown> = [];
   const dispose = await listenTauriBridgeJob(
     "request:scan",
     "job:scan",
@@ -117,13 +98,15 @@ test("job listeners admit only matching correlation and one terminal", async () 
 });
 
 function tick(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }
 
 test("a malformed terminal event reaches onFailure and ends the job", async () => {
   const transport = new RecordingEventTransport();
-  const failures: ConnectionFailure[] = [];
-  const terminal: unknown[] = [];
+  const failures: Array<ConnectionFailure> = [];
+  const terminal: Array<unknown> = [];
   await listenTauriBridgeJob(
     "request:scan",
     "job:scan",
@@ -157,8 +140,8 @@ test("a malformed terminal event reaches onFailure and ends the job", async () =
 
 test("a malformed progress event reaches onFailure and ends the job", async () => {
   const transport = new RecordingEventTransport();
-  const failures: ConnectionFailure[] = [];
-  const progress: unknown[] = [];
+  const failures: Array<ConnectionFailure> = [];
+  const progress: Array<unknown> = [];
   await listenTauriBridgeJob(
     "request:scan",
     "job:scan",
@@ -188,7 +171,7 @@ test("a malformed progress event reaches onFailure and ends the job", async () =
 });
 
 test("dispose runs both unlistens when terminal disposal rejects", async () => {
-  const disposed: string[] = [];
+  const disposed: Array<string> = [];
   const transport: EventTransport = {
     invoke: () => Promise.resolve(undefined),
     listen: (event) =>
@@ -217,7 +200,7 @@ test("dispose runs both unlistens when terminal disposal rejects", async () => {
 });
 
 test("a malformed progress event during terminal registration releases the terminal listener", async () => {
-  const released: string[] = [];
+  const released: Array<string> = [];
   const handlers = new Map<string, (payload: unknown) => void>();
   let completeTerminal!: (unlisten: Unlisten) => void;
   const transport: EventTransport = {
@@ -234,7 +217,7 @@ test("a malformed progress event during terminal registration releases the termi
       });
     },
   };
-  const failures: ConnectionFailure[] = [];
+  const failures: Array<ConnectionFailure> = [];
   const registration = listenTauriBridgeJob(
     "request:scan",
     "job:scan",
@@ -263,8 +246,8 @@ test("a malformed progress event during terminal registration releases the termi
 
 test("a throwing consumer callback is not reported as a malformed event", async () => {
   const transport = new RecordingEventTransport();
-  const failures: ConnectionFailure[] = [];
-  const terminal: unknown[] = [];
+  const failures: Array<ConnectionFailure> = [];
+  const terminal: Array<unknown> = [];
   await listenTauriBridgeJob(
     "request:scan",
     "job:scan",

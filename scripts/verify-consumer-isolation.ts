@@ -18,7 +18,7 @@
 // the twenty-one frozen receipts they asserted against.
 
 import { readdir, readFile } from "node:fs/promises";
-import { basename, join, relative, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
 
@@ -40,13 +40,19 @@ const DEPENDENCIES = new Set(["poodle", "poodle-specs"]);
 const SELF = "longhorn";
 
 const SKIPPED = new Set([
-  "node_modules", ".git", "target", "dist", "build", ".svelte-kit", ".vite",
+  "node_modules",
+  ".git",
+  "target",
+  "dist",
+  "build",
+  ".svelte-kit",
+  ".vite",
 ]);
 const SCANNED = ["crates", "packages", "scripts", "examples", "prototypes", "fixtures"];
 const EXTENSIONS = new Set([".ts", ".tsx", ".svelte", ".rs", ".json", ".toml", ".sh"]);
 
 type Finding = { file: string; line: number; detail: string; text: string };
-const findings: Finding[] = [];
+const findings: Array<Finding> = [];
 
 for (const directory of SCANNED) {
   await scan(join(repoRoot, directory));
@@ -64,12 +70,18 @@ if (findings.length > 0) {
   process.exit(1);
 }
 
-console.log(JSON.stringify({
-  schema: "longhorn.consumer-isolation.v1",
-  outcome: "pass",
-  scanned: SCANNED,
-  dependencies: [...DEPENDENCIES],
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      schema: "longhorn.consumer-isolation.v1",
+      outcome: "pass",
+      scanned: SCANNED,
+      dependencies: [...DEPENDENCIES],
+    },
+    null,
+    2,
+  ),
+);
 
 async function scan(directory: string): Promise<void> {
   let entries;
@@ -79,23 +91,31 @@ async function scan(directory: string): Promise<void> {
     return;
   }
   for (const entry of entries) {
-    if (SKIPPED.has(entry.name)) continue;
+    if (SKIPPED.has(entry.name)) {
+      continue;
+    }
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
       await scan(path);
       continue;
     }
     const extension = entry.name.slice(entry.name.lastIndexOf("."));
-    if (!EXTENSIONS.has(extension)) continue;
+    if (!EXTENSIONS.has(extension)) {
+      continue;
+    }
     // this file quotes the patterns it forbids
-    if (path === import.meta.path) continue;
+    if (path === import.meta.path) {
+      continue;
+    }
 
     inspect(relative(repoRoot, path), await readFile(path, "utf8"));
   }
 }
 
 function inspect(file: string, source: string): void {
-  if (ALLOWED_EXTERNAL_FIXTURES.has(file)) return;
+  if (ALLOWED_EXTERNAL_FIXTURES.has(file)) {
+    return;
+  }
   record(file, source, /process\.env\.([A-Z0-9_]+)_REPO\b/g, (match) =>
     DEPENDENCIES.has(match[1]!.toLowerCase().replaceAll("_", "-"))
       ? null
@@ -109,8 +129,11 @@ function inspect(file: string, source: string): void {
       : "hardcodes a path into another checkout",
   );
 
-  record(file, source, /\b(?:resolve|join)\(\s*(?:repoRoot|longhornRoot)\s*,\s*["'`]\.\.\/([a-z0-9-]+)/g,
-    (match) => DEPENDENCIES.has(match[1]!) ? null : "resolves a sibling checkout",
+  record(
+    file,
+    source,
+    /\b(?:resolve|join)\(\s*(?:repoRoot|longhornRoot)\s*,\s*["'`]\.\.\/([a-z0-9-]+)/g,
+    (match) => (DEPENDENCIES.has(match[1]!) ? null : "resolves a sibling checkout"),
   );
 }
 
@@ -124,7 +147,9 @@ function record(
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
     const detail = classify(match);
-    if (detail === null) continue;
+    if (detail === null) {
+      continue;
+    }
     findings.push({
       file,
       line: source.slice(0, match.index).split("\n").length,

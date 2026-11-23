@@ -1,5 +1,5 @@
+import type { SurfaceTransferClient } from "@inflatable-cookie/longhorn/surface-transfer";
 import {
-  SurfaceTransferClient,
   type SurfaceSessionResponse,
   type SurfaceSessionStartRequest,
   type SurfaceTransferCommand,
@@ -7,10 +7,8 @@ import {
 } from "@inflatable-cookie/longhorn/surface-transfer";
 import type { DragSessionId } from "@inflatable-cookie/longhorn/transfer";
 
-import {
-  UnsupportedCapabilityError,
-  type ClientStatus,
-} from "./index.ts";
+import { UnsupportedCapabilityError } from "./index.ts";
+import type { ClientStatus } from "./index.ts";
 
 export type SurfaceTransferPreparationState =
   | { readonly status: "idle" }
@@ -78,69 +76,57 @@ export class SurfaceTransferState {
       this.#options.client === undefined
         ? {
             kind: "unsupported",
-            reason:
-              this.#options.unsupportedReason ??
-              "Surface transfer capability is unavailable",
+            reason: this.#options.unsupportedReason ?? "Surface transfer capability is unavailable",
           }
         : { kind: "ready" };
   }
 
-  async prepare(
-    request: SurfaceSessionStartRequest,
-  ): Promise<SurfaceSessionResponse> {
+  async prepare(request: SurfaceSessionStartRequest): Promise<SurfaceSessionResponse> {
     this.#assertRunning();
     const client = this.#requireClient();
     await this.#cancelActive();
     const generation = ++this.#generation;
     this.#preparation = { status: "preparing", request };
 
-    const task = client.start(request).then(async (response) => {
-      if (generation !== this.#generation || this.#stopped) {
-        if (response.status === "started") {
-          await this.#options.cancelSession(
-            response.session.payload.session_id,
-          );
+    const task = client
+      .start(request)
+      .then(async (response) => {
+        if (generation !== this.#generation || this.#stopped) {
+          if (response.status === "started") {
+            await this.#options.cancelSession(response.session.payload.session_id);
+          }
+          return response;
         }
+        this.#preparation = {
+          status: response.status === "started" ? "prepared" : "aborted",
+          response,
+        };
+        this.#activeSessionId =
+          response.status === "started" ? response.session.payload.session_id : undefined;
         return response;
-      }
-      this.#preparation = {
-        status:
-          response.status === "started" ? "prepared" : "aborted",
-        response,
-      };
-      this.#activeSessionId =
-        response.status === "started"
-          ? response.session.payload.session_id
-          : undefined;
-      return response;
-    }).catch((error) => {
-      if (generation === this.#generation && !this.#stopped) {
-        this.#preparation = { status: "failed", error };
-        this.#status = { kind: "failed", error };
-      }
-      throw error;
-    });
+      })
+      .catch((error: unknown) => {
+        if (generation === this.#generation && !this.#stopped) {
+          this.#preparation = { status: "failed", error };
+          this.#status = { kind: "failed", error };
+        }
+        throw error;
+      });
     this.#track(task);
     return task;
   }
 
-  async commit(
-    request: SurfaceTransferCommand,
-  ): Promise<SurfaceTransferResponse> {
+  async commit(request: SurfaceTransferCommand): Promise<SurfaceTransferResponse> {
     this.#assertRunning();
     const client = this.#requireClient();
     this.#completion = { status: "committing", request };
     try {
       const response = await client.commit(request);
       this.#completion = {
-        status:
-          response.status === "committed" ? "committed" : "aborted",
+        status: response.status === "committed" ? "committed" : "aborted",
         response,
       };
-      if (
-        response.status === "committed" ||
-        response.abort.session_consumed
-      ) {
+      if (response.status === "committed" || response.abort.session_consumed) {
         this.#activeSessionId = undefined;
       }
       return response;
@@ -173,7 +159,7 @@ export class SurfaceTransferState {
     this.#stopped = true;
     ++this.#generation;
     await this.#cancelActive();
-    await Promise.allSettled([...this.#tasks]);
+    await Promise.allSettled(this.#tasks);
     this.#status = { kind: "idle" };
     this.#preparation = { status: "idle" };
     this.#completion = { status: "idle" };
@@ -197,9 +183,11 @@ export class SurfaceTransferState {
 
   #track(task: Promise<unknown>): void {
     this.#tasks.add(task);
-    void task.finally(() => {
-      this.#tasks.delete(task);
-    }).catch(() => undefined);
+    void task
+      .finally(() => {
+        this.#tasks.delete(task);
+      })
+      .catch(() => undefined);
   }
 
   #requireClient(): SurfaceTransferClient {

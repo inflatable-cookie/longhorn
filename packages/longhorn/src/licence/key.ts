@@ -68,7 +68,9 @@ export function isProbablyATypo(problem: LicenceKeyProblem): boolean {
  */
 export function parseLicenceKey(input: string): LicenceKeyResult {
   const normalized = normalize(input);
-  if (!normalized.ok) return normalized;
+  if (!normalized.ok) {
+    return normalized;
+  }
 
   const value = normalized.value;
   if (value.length < MINIMUM_KEY_SYMBOLS) {
@@ -87,8 +89,10 @@ export function parseLicenceKey(input: string): LicenceKeyResult {
 
 /** Renders a normalized key as `XXXXX-XXXXX-…`. */
 export function group(key: string): string {
-  const groups: string[] = [];
-  for (let at = 0; at < key.length; at += GROUP) groups.push(key.slice(at, at + GROUP));
+  const groups: Array<string> = [];
+  for (let at = 0; at < key.length; at += GROUP) {
+    groups.push(key.slice(at, at + GROUP));
+  }
   return groups.join("-");
 }
 
@@ -106,10 +110,14 @@ function toAsciiUpper(character: string): string {
 
 function normalize(
   input: string,
-): { readonly ok: true; readonly value: string } | { readonly ok: false; readonly problem: LicenceKeyProblem } {
+):
+  | { readonly ok: true; readonly value: string }
+  | { readonly ok: false; readonly problem: LicenceKeyProblem } {
   const symbols: Array<{ readonly original: string; readonly mapped: string }> = [];
   for (const character of input) {
-    if (character === "-" || UNICODE_WHITESPACE.test(character)) continue;
+    if (character === "-" || UNICODE_WHITESPACE.test(character)) {
+      continue;
+    }
     const upper = toAsciiUpper(character);
     // The confusions Crockford excluded the symbols to avoid.
     const mapped = upper === "I" || upper === "L" ? "1" : upper === "O" ? "0" : upper;

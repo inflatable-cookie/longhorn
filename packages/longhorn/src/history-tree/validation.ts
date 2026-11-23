@@ -1,4 +1,7 @@
-import { HISTORY_TREE_VARIANT_FIELDS, HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS } from "./generated/variant-fields.ts";
+import {
+  HISTORY_TREE_VARIANT_FIELDS,
+  HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS,
+} from "./generated/variant-fields.ts";
 import {
   FORK_HISTORY_CHANGED_KINDS,
   FORK_HISTORY_ENTRY_POSITIONS,
@@ -10,25 +13,30 @@ import {
   FORK_HISTORY_PRUNE_STATUSES,
   FORK_HISTORY_PROTOCOL_VERSION,
   MAXIMUM_FORK_HISTORY_PAGE_SIZE,
-  type ForkBranchPageCommand,
-  type ForkBranchPageSnapshot,
-  type ForkContinuationPageCommand,
-  type ForkContinuationPageSnapshot,
-  type ForkDeleteContinuationCommand,
-  type ForkPruneCommand,
-  type ForkPruneResult,
-  type ForkRemovalReceiptProjection,
-  type ForkChangedEvent,
-  type ForkNavigationCommand,
-  type ForkNavigationResult,
-  type ForkPathPageCommand,
-  type ForkPathPageSnapshot,
-  type ForkSnapshot,
+} from "./generated/protocol.ts";
+import type {
+  ForkBranchPageCommand,
+  ForkBranchPageSnapshot,
+  ForkContinuationPageCommand,
+  ForkContinuationPageSnapshot,
+  ForkDeleteContinuationCommand,
+  ForkPruneCommand,
+  ForkPruneResult,
+  ForkRemovalReceiptProjection,
+  ForkChangedEvent,
+  ForkNavigationCommand,
+  ForkNavigationResult,
+  ForkPathPageCommand,
+  ForkPathPageSnapshot,
+  ForkSnapshot,
 } from "./generated/protocol.ts";
 import { HISTORY_TREE_FIELDS } from "./generated/fields.ts";
 
 export class ForkHistoryValidationError extends Error {
-  constructor(readonly path: string, message: string) {
+  constructor(
+    readonly path: string,
+    message: string,
+  ) {
     super(`${path}: ${message}`);
     this.name = "ForkHistoryValidationError";
   }
@@ -46,7 +54,16 @@ export function assertForkSnapshot(value: unknown): asserts value is ForkSnapsho
   integer(summary.revision, "$.summary.revision");
   id(summary.currentBranchId, "$.summary.currentBranchId");
   optionalId(summary.currentEntryId, "$.summary.currentEntryId");
-  for (const key of ["undoDepth", "redoDepth", "retainedEntryCount", "retainedEncodedWeight", "branchCount", "alternatePathCount"] as const) integer(summary[key], `$.summary.${key}`);
+  for (const key of [
+    "undoDepth",
+    "redoDepth",
+    "retainedEntryCount",
+    "retainedEncodedWeight",
+    "branchCount",
+    "alternatePathCount",
+  ] as const) {
+    integer(summary[key], `$.summary.${key}`);
+  }
   optionalString(summary.nextUndoLabel, "$.summary.nextUndoLabel");
   optionalString(summary.nextRedoLabel, "$.summary.nextRedoLabel");
 }
@@ -56,8 +73,12 @@ export function assertForkPathCommand(value: unknown): asserts value is ForkPath
   const target = object(object(value, "$").target, "$.target");
   oneOf(target.kind, "$.target.kind", FORK_HISTORY_PATH_TARGETS);
   exact(target, "$.target", variantFields("ForkPathTargetProjection", target, "$.target"));
-  if (target.kind === "branch") id(target.branchId, "$.target.branchId");
-  if (target.kind === "continuation") id(target.fromEntryId, "$.target.fromEntryId");
+  if (target.kind === "branch") {
+    id(target.branchId, "$.target.branchId");
+  }
+  if (target.kind === "continuation") {
+    id(target.fromEntryId, "$.target.fromEntryId");
+  }
 }
 
 export function assertForkBranchCommand(value: unknown): asserts value is ForkBranchPageCommand {
@@ -77,9 +98,13 @@ export function assertForkPathPage(value: unknown): asserts value is ForkPathPag
   const floor = object(root.floor, "$.floor");
   oneOf(floor.kind, "$.floor.kind", FORK_HISTORY_PATH_FLOORS);
   exact(floor, "$.floor", variantFields("ForkPathFloorProjection", floor, "$.floor"));
-  if (floor.kind === "anchor") id(floor.entryId, "$.floor.entryId");
+  if (floor.kind === "anchor") {
+    id(floor.entryId, "$.floor.entryId");
+  }
   integer(root.totalEntries, "$.totalEntries");
-  array(root.entries, "$.entries").forEach((entry, index) => entryRecord(entry, `$.entries[${index}]`));
+  array(root.entries, "$.entries").forEach((entry, index) =>
+    entryRecord(entry, `$.entries[${index}]`),
+  );
   boolean(root.truncatedBefore, "$.truncatedBefore");
   boolean(root.truncatedAfter, "$.truncatedAfter");
 }
@@ -106,66 +131,219 @@ export function assertForkBranchPage(value: unknown): asserts value is ForkBranc
   boolean(root.truncatedAfter, "$.truncatedAfter");
 }
 
-export function assertForkNavigationCommand(value: unknown): asserts value is ForkNavigationCommand {
+export function assertForkNavigationCommand(
+  value: unknown,
+): asserts value is ForkNavigationCommand {
   noPayload(value);
   const root = object(value, "$");
   exact(root, "$", HISTORY_TREE_FIELDS.ForkNavigationCommand);
-  protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); id(root.planId, "$.planId"); integer(root.expectedRevision, "$.expectedRevision");
-  const target = object(root.target, "$.target"); oneOf(target.kind, "$.target.kind", FORK_HISTORY_NAVIGATION_TARGETS);
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  id(root.historyId, "$.historyId");
+  id(root.planId, "$.planId");
+  integer(root.expectedRevision, "$.expectedRevision");
+  const target = object(root.target, "$.target");
+  oneOf(target.kind, "$.target.kind", FORK_HISTORY_NAVIGATION_TARGETS);
   exact(target, "$.target", variantFields("ForkNavigationTargetProjection", target, "$.target"));
-  if (target.kind === "checkout") { id(target.branchId, "$.target.branchId"); id(target.entryId, "$.target.entryId"); }
-  if (target.kind === "checkoutBranchRoot") id(target.branchId, "$.target.branchId");
-  if (target.kind === "checkoutContinuation") id(target.entryId, "$.target.entryId");
+  if (target.kind === "checkout") {
+    id(target.branchId, "$.target.branchId");
+    id(target.entryId, "$.target.entryId");
+  }
+  if (target.kind === "checkoutBranchRoot") {
+    id(target.branchId, "$.target.branchId");
+  }
+  if (target.kind === "checkoutContinuation") {
+    id(target.entryId, "$.target.entryId");
+  }
 }
 
 export function assertForkNavigationResult(value: unknown): asserts value is ForkNavigationResult {
   noPayload(value);
-  const root = object(value, "$"); oneOf(root.status, "$.status", FORK_HISTORY_NAVIGATION_STATUSES);
-  exact(root, "$", root.status === "committed" ? ["status", "snapshot", "receipt"] : ["status", "snapshot", "rejection"]);
+  const root = object(value, "$");
+  oneOf(root.status, "$.status", FORK_HISTORY_NAVIGATION_STATUSES);
+  exact(
+    root,
+    "$",
+    root.status === "committed"
+      ? ["status", "snapshot", "receipt"]
+      : ["status", "snapshot", "rejection"],
+  );
   assertForkSnapshot(root.snapshot);
   if (root.status === "committed") {
     const receipt = object(root.receipt, "$.receipt");
     exact(receipt, "$.receipt", HISTORY_TREE_FIELDS.ForkNavigationReceiptProjection);
-    id(receipt.historyId, "$.receipt.historyId"); id(receipt.planId, "$.receipt.planId"); integer(receipt.previousRevision, "$.receipt.previousRevision"); integer(receipt.committedRevision, "$.receipt.committedRevision"); optionalId(receipt.sourceEntryId, "$.receipt.sourceEntryId"); optionalId(receipt.targetEntryId, "$.receipt.targetEntryId"); id(receipt.targetBranchId, "$.receipt.targetBranchId"); array(receipt.movedEntryIds, "$.receipt.movedEntryIds").forEach((entry, index) => id(entry, `$.receipt.movedEntryIds[${index}]`));
+    id(receipt.historyId, "$.receipt.historyId");
+    id(receipt.planId, "$.receipt.planId");
+    integer(receipt.previousRevision, "$.receipt.previousRevision");
+    integer(receipt.committedRevision, "$.receipt.committedRevision");
+    optionalId(receipt.sourceEntryId, "$.receipt.sourceEntryId");
+    optionalId(receipt.targetEntryId, "$.receipt.targetEntryId");
+    id(receipt.targetBranchId, "$.receipt.targetBranchId");
+    array(receipt.movedEntryIds, "$.receipt.movedEntryIds").forEach((entry, index) =>
+      id(entry, `$.receipt.movedEntryIds[${index}]`),
+    );
   } else {
     const rejection = object(root.rejection, "$.rejection");
-    exact(rejection, "$.rejection", HISTORY_TREE_FIELDS.ForkNavigationRejectionProjection); oneOf(rejection.code, "$.rejection.code", FORK_HISTORY_NAVIGATION_REJECTION_CODES); string(rejection.detail, "$.rejection.detail"); boolean(rejection.refreshRequired, "$.rejection.refreshRequired");
+    exact(rejection, "$.rejection", HISTORY_TREE_FIELDS.ForkNavigationRejectionProjection);
+    oneOf(rejection.code, "$.rejection.code", FORK_HISTORY_NAVIGATION_REJECTION_CODES);
+    string(rejection.detail, "$.rejection.detail");
+    boolean(rejection.refreshRequired, "$.rejection.refreshRequired");
   }
 }
 
 export function assertForkChangedEvent(value: unknown): asserts value is ForkChangedEvent {
-  noPayload(value); const root = object(value, "$");
+  noPayload(value);
+  const root = object(value, "$");
   exact(root, "$", HISTORY_TREE_FIELDS.ForkChangedEvent);
-  protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId");
-  if (root.previousRevision !== null) integer(root.previousRevision, "$.previousRevision");
-  integer(root.committedRevision, "$.committedRevision"); oneOf(root.kind, "$.kind", FORK_HISTORY_CHANGED_KINDS);
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  id(root.historyId, "$.historyId");
+  if (root.previousRevision !== null) {
+    integer(root.previousRevision, "$.previousRevision");
+  }
+  integer(root.committedRevision, "$.committedRevision");
+  oneOf(root.kind, "$.kind", FORK_HISTORY_CHANGED_KINDS);
 }
 
-function commandBase(value: unknown, allowed: readonly string[]): void { noPayload(value); const root = object(value, "$"); exact(root, "$", allowed); protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); integer(root.expectedRevision, "$.expectedRevision"); integer(root.offset, "$.offset"); positive(root.limit, "$.limit"); if ((root.limit as number) > MAXIMUM_FORK_HISTORY_PAGE_SIZE) fail("$.limit", `maximum is ${MAXIMUM_FORK_HISTORY_PAGE_SIZE}`); }
-function snapshotBase(root: Record<string, unknown>): void { protocol(root.protocolVersion, "$.protocolVersion"); positive(root.authorityEpoch, "$.authorityEpoch"); id(root.historyId, "$.historyId"); integer(root.revision, "$.revision"); integer(root.offset, "$.offset"); }
-function entryRecord(value: unknown, path: string): void { const root = object(value, path); exact(root, path, HISTORY_TREE_FIELDS.ForkEntryRecord); id(root.entryId, `${path}.entryId`); string(root.label, `${path}.label`); optionalId(root.kindId, `${path}.kindId`); optionalId(root.groupId, `${path}.groupId`); optionalInteger(root.recordedAt, `${path}.recordedAt`); integer(root.continuationCount, `${path}.continuationCount`); positive(root.sequence, `${path}.sequence`); integer(root.committedRevision, `${path}.committedRevision`); integer(root.encodedWeight, `${path}.encodedWeight`); oneOf(root.position, `${path}.position`, FORK_HISTORY_ENTRY_POSITIONS); }
-function noPayload(value: unknown): void { const visit = (candidate: unknown, path: string): void => { if (Array.isArray(candidate)) return candidate.forEach((item, index) => visit(item, `${path}[${index}]`)); if (candidate !== null && typeof candidate === "object") for (const [key, child] of Object.entries(candidate)) { if (key.toLocaleLowerCase().includes("payload")) fail(`${path}.${key}`, "product payload field is forbidden"); visit(child, `${path}.${key}`); } }; visit(value, "$"); }
-function object(value: unknown, path: string): Record<string, unknown> { if (value === null || typeof value !== "object" || Array.isArray(value)) fail(path, "expected object"); return value as Record<string, unknown>; }
-function array(value: unknown, path: string): unknown[] { if (!Array.isArray(value)) fail(path, "expected array"); return value; }
-function exact(value: Record<string, unknown>, path: string, expected: readonly string[]): void { const actual = Object.keys(value).sort(); const wanted = [...expected].sort(); if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) fail(path, `unexpected keys: ${actual.join(",")}`); }
-function protocol(value: unknown, path: string): void { if (value !== FORK_HISTORY_PROTOCOL_VERSION) fail(path, `expected exact protocol ${FORK_HISTORY_PROTOCOL_VERSION}`); }
-function integer(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) fail(path, "expected non-negative safe integer"); }
-function positive(value: unknown, path: string): void { integer(value, path); if (value === 0) fail(path, "expected positive integer"); }
-function string(value: unknown, path: string): void { if (typeof value !== "string") fail(path, "expected string"); }
-function id(value: unknown, path: string): void { string(value, path); if ((value as string).length === 0) fail(path, "expected non-empty id"); }
-function optionalId(value: unknown, path: string): void { if (value !== null) id(value, path); }
-function optionalString(value: unknown, path: string): void { if (value !== null) string(value, path); }
-function optionalInteger(value: unknown, path: string): void { if (value !== null) integer(value, path); }
-function boolean(value: unknown, path: string): void { if (typeof value !== "boolean") fail(path, "expected boolean"); }
-function oneOf(value: unknown, path: string, values: readonly string[]): void { if (typeof value !== "string" || !values.includes(value)) fail(path, "unsupported value"); }
-function fail(path: string, message: string): never { throw new ForkHistoryValidationError(path, message); }
+function commandBase(value: unknown, allowed: ReadonlyArray<string>): void {
+  noPayload(value);
+  const root = object(value, "$");
+  exact(root, "$", allowed);
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  id(root.historyId, "$.historyId");
+  integer(root.expectedRevision, "$.expectedRevision");
+  integer(root.offset, "$.offset");
+  positive(root.limit, "$.limit");
+  if ((root.limit as number) > MAXIMUM_FORK_HISTORY_PAGE_SIZE) {
+    fail("$.limit", `maximum is ${MAXIMUM_FORK_HISTORY_PAGE_SIZE}`);
+  }
+}
+function snapshotBase(root: Record<string, unknown>): void {
+  protocol(root.protocolVersion, "$.protocolVersion");
+  positive(root.authorityEpoch, "$.authorityEpoch");
+  id(root.historyId, "$.historyId");
+  integer(root.revision, "$.revision");
+  integer(root.offset, "$.offset");
+}
+function entryRecord(value: unknown, path: string): void {
+  const root = object(value, path);
+  exact(root, path, HISTORY_TREE_FIELDS.ForkEntryRecord);
+  id(root.entryId, `${path}.entryId`);
+  string(root.label, `${path}.label`);
+  optionalId(root.kindId, `${path}.kindId`);
+  optionalId(root.groupId, `${path}.groupId`);
+  optionalInteger(root.recordedAt, `${path}.recordedAt`);
+  integer(root.continuationCount, `${path}.continuationCount`);
+  positive(root.sequence, `${path}.sequence`);
+  integer(root.committedRevision, `${path}.committedRevision`);
+  integer(root.encodedWeight, `${path}.encodedWeight`);
+  oneOf(root.position, `${path}.position`, FORK_HISTORY_ENTRY_POSITIONS);
+}
+function noPayload(value: unknown): void {
+  const visit = (candidate: unknown, path: string): void => {
+    if (Array.isArray(candidate)) {
+      return candidate.forEach((item, index) => visit(item, `${path}[${index}]`));
+    }
+    if (candidate !== null && typeof candidate === "object") {
+      for (const [key, child] of Object.entries(candidate)) {
+        if (key.toLocaleLowerCase().includes("payload"))
+          fail(`${path}.${key}`, "product payload field is forbidden");
+        visit(child, `${path}.${key}`);
+      }
+    }
+  };
+  visit(value, "$");
+}
+function object(value: unknown, path: string): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    fail(path, "expected object");
+  }
+  return value as Record<string, unknown>;
+}
+function array(value: unknown, path: string): Array<unknown> {
+  if (!Array.isArray(value)) {
+    fail(path, "expected array");
+  }
+  return value;
+}
+function exact(
+  value: Record<string, unknown>,
+  path: string,
+  expected: ReadonlyArray<string>,
+): void {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    fail(path, `unexpected keys: ${actual.join(",")}`);
+  }
+}
+function protocol(value: unknown, path: string): void {
+  if (value !== FORK_HISTORY_PROTOCOL_VERSION) {
+    fail(path, `expected exact protocol ${FORK_HISTORY_PROTOCOL_VERSION}`);
+  }
+}
+function integer(value: unknown, path: string): void {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    fail(path, "expected non-negative safe integer");
+  }
+}
+function positive(value: unknown, path: string): void {
+  integer(value, path);
+  if (value === 0) {
+    fail(path, "expected positive integer");
+  }
+}
+function string(value: unknown, path: string): void {
+  if (typeof value !== "string") {
+    fail(path, "expected string");
+  }
+}
+function id(value: unknown, path: string): void {
+  string(value, path);
+  if ((value as string).length === 0) {
+    fail(path, "expected non-empty id");
+  }
+}
+function optionalId(value: unknown, path: string): void {
+  if (value !== null) {
+    id(value, path);
+  }
+}
+function optionalString(value: unknown, path: string): void {
+  if (value !== null) {
+    string(value, path);
+  }
+}
+function optionalInteger(value: unknown, path: string): void {
+  if (value !== null) {
+    integer(value, path);
+  }
+}
+function boolean(value: unknown, path: string): void {
+  if (typeof value !== "boolean") {
+    fail(path, "expected boolean");
+  }
+}
+function oneOf(value: unknown, path: string, values: ReadonlyArray<string>): void {
+  if (typeof value !== "string" || !values.includes(value)) {
+    fail(path, "unsupported value");
+  }
+}
+function fail(path: string, message: string): never {
+  throw new ForkHistoryValidationError(path, message);
+}
 
-export function assertForkContinuationCommand(value: unknown): asserts value is ForkContinuationPageCommand {
+export function assertForkContinuationCommand(
+  value: unknown,
+): asserts value is ForkContinuationPageCommand {
   commandBase(value, HISTORY_TREE_FIELDS.ForkContinuationPageCommand);
   optionalId(object(value, "$").anchorEntryId, "$.anchorEntryId");
 }
 
-export function assertForkContinuationPage(value: unknown): asserts value is ForkContinuationPageSnapshot {
+export function assertForkContinuationPage(
+  value: unknown,
+): asserts value is ForkContinuationPageSnapshot {
   noPayload(value);
   const root = object(value, "$");
   exact(root, "$", HISTORY_TREE_FIELDS.ForkContinuationPageSnapshot);
@@ -194,7 +372,9 @@ export function assertForkContinuationPage(value: unknown): asserts value is For
  * silently tolerated `offset` and `limit` would accept a caller who thought
  * this was a paged read.
  */
-export function assertForkDeleteCommand(value: unknown): asserts value is ForkDeleteContinuationCommand {
+export function assertForkDeleteCommand(
+  value: unknown,
+): asserts value is ForkDeleteContinuationCommand {
   noPayload(value);
   const root = object(value, "$");
   exact(root, "$", HISTORY_TREE_FIELDS.ForkDeleteContinuationCommand);
@@ -205,7 +385,9 @@ export function assertForkDeleteCommand(value: unknown): asserts value is ForkDe
   id(root.entryId, "$.entryId");
 }
 
-export function assertForkRemovalReceipt(value: unknown): asserts value is ForkRemovalReceiptProjection {
+export function assertForkRemovalReceipt(
+  value: unknown,
+): asserts value is ForkRemovalReceiptProjection {
   noPayload(value);
   const root = object(value, "$");
   exact(root, "$", HISTORY_TREE_FIELDS.ForkRemovalReceiptProjection);
@@ -222,8 +404,12 @@ export function assertForkRemovalReceipt(value: unknown): asserts value is ForkR
     positive(entry.sequence, `${at}.sequence`);
     integer(entry.encodedWeight, `${at}.encodedWeight`);
   });
-  array(root.removedBranches, "$.removedBranches").forEach((branch, index) => id(branch, `$.removedBranches[${index}]`));
-  array(root.removedCheckpoints, "$.removedCheckpoints").forEach((checkpoint, index) => id(checkpoint, `$.removedCheckpoints[${index}]`));
+  array(root.removedBranches, "$.removedBranches").forEach((branch, index) =>
+    id(branch, `$.removedBranches[${index}]`),
+  );
+  array(root.removedCheckpoints, "$.removedCheckpoints").forEach((checkpoint, index) =>
+    id(checkpoint, `$.removedCheckpoints[${index}]`),
+  );
   integer(root.retainedEntryCount, "$.retainedEntryCount");
   integer(root.retainedEncodedWeight, "$.retainedEncodedWeight");
   integer(root.unprotectedEntryCount, "$.unprotectedEntryCount");
@@ -249,7 +435,9 @@ export function assertForkPruneResult(value: unknown): asserts value is ForkPrun
   const root = object(value, "$");
   oneOf(root.status, "$.status", FORK_HISTORY_PRUNE_STATUSES);
   exact(root, "$", variantFields("ForkPruneResult", root, "$"));
-  if (root.status === "pruned") assertForkRemovalReceipt(root.receipt);
+  if (root.status === "pruned") {
+    assertForkRemovalReceipt(root.receipt);
+  }
 }
 
 /**
@@ -261,9 +449,15 @@ export function assertForkPruneResult(value: unknown): asserts value is ForkPrun
  * loudly beats defaulting to a key list, which is how `checkoutBranchRoot`
  * shipped rejecting its own `branchId`.
  */
-function variantFields(type: string, object: Record<string, unknown>, path: string): readonly string[] {
+function variantFields(
+  type: string,
+  object: Record<string, unknown>,
+  path: string,
+): ReadonlyArray<string> {
   const discriminant = object[HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
   const fields = HISTORY_TREE_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (fields === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  if (fields === undefined) {
+    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  }
   return fields;
 }

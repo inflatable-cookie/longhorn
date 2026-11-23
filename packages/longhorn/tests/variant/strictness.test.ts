@@ -12,14 +12,27 @@ import { assertValidNotificationMutationCommand } from "../../src/notifications/
 // them, in both directions.
 
 const operationRegister = {
-  kind: "register", requestId: "req:1", protocolVersion: 1, authority: { authorityId: "authority:test", authorityEpoch: 7 },
-  expectedCatalogueRevision: 0, operationId: "op:1", kindId: "kind:1", scopeId: null, label: "Export",
-  initialState: "queued", cancellationSupport: "supported", retryOf: null,
+  kind: "register",
+  requestId: "req:1",
+  protocolVersion: 1,
+  authority: { authorityId: "authority:test", authorityEpoch: 7 },
+  expectedCatalogueRevision: 0,
+  operationId: "op:1",
+  kindId: "kind:1",
+  scopeId: null,
+  label: "Export",
+  initialState: "queued",
+  cancellationSupport: "supported",
+  retryOf: null,
 } as const;
 
 const notificationDismiss = {
-  kind: "dismiss", requestId: "req:1", protocolVersion: 1, authority: { authorityId: "authority:test", authorityEpoch: 7 },
-  expectedLedgerRevision: 0, notificationId: "note:1",
+  kind: "dismiss",
+  requestId: "req:1",
+  protocolVersion: 1,
+  authority: { authorityId: "authority:test", authorityEpoch: 7 },
+  expectedLedgerRevision: 0,
+  notificationId: "note:1",
 } as const;
 
 describe("tagged unions validate from the generated map", () => {
@@ -28,7 +41,9 @@ describe("tagged unions validate from the generated map", () => {
   });
 
   it("rejects the same variant with one key the enum does not declare", () => {
-    expect(() => assertValidOperationMutationCommand({ ...operationRegister, surplus: 1 })).toThrow();
+    expect(() =>
+      assertValidOperationMutationCommand({ ...operationRegister, surplus: 1 }),
+    ).toThrow();
   });
 
   it("rejects a variant missing a key the enum declares", () => {
@@ -38,17 +53,26 @@ describe("tagged unions validate from the generated map", () => {
 
   it("holds for a second domain", () => {
     expect(() => assertValidNotificationMutationCommand({ ...notificationDismiss })).not.toThrow();
-    expect(() => assertValidNotificationMutationCommand({ ...notificationDismiss, surplus: 1 })).toThrow();
+    expect(() =>
+      assertValidNotificationMutationCommand({ ...notificationDismiss, surplus: 1 }),
+    ).toThrow();
   });
 
   // The discriminant is not always `kind`. native-content uses all three, and
   // the generator emits which so no call site has to choose.
   it("covers every discriminant the four domains use", () => {
-    const maps = [NATIVE_CONTENT_VARIANT_FIELDS, NOTIFICATION_VARIANT_FIELDS, OPERATION_VARIANT_FIELDS, HISTORY_TREE_VARIANT_FIELDS];
+    const maps = [
+      NATIVE_CONTENT_VARIANT_FIELDS,
+      NOTIFICATION_VARIANT_FIELDS,
+      OPERATION_VARIANT_FIELDS,
+      HISTORY_TREE_VARIANT_FIELDS,
+    ];
     for (const map of maps) {
       expect(Object.keys(map).length).toBeGreaterThan(0);
       for (const variants of Object.values(map)) {
-        for (const keys of Object.values(variants)) expect(keys.length).toBeGreaterThan(0);
+        for (const keys of Object.values(variants)) {
+          expect(keys.length).toBeGreaterThan(0);
+        }
       }
     }
   });

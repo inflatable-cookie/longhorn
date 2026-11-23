@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    // The Rust generator owns whitespace and tests it byte for byte.
+    "packages/longhorn/src/**/generated/**"
+  ]
+}

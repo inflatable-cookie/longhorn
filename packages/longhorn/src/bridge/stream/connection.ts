@@ -1,7 +1,7 @@
-import {
-  CheckedSnapshotConnection,
-  type ConnectionFailure,
-  type ConnectionFailureReporter,
+import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import type {
+  ConnectionFailure,
+  ConnectionFailureReporter,
 } from "@inflatable-cookie/longhorn/core";
 
 import type {
@@ -12,10 +12,7 @@ import type {
   BridgeSessionId,
 } from "../generated/protocol.ts";
 import type { BridgeCodec } from "../validation/base.ts";
-import {
-  parseBridgeEventEnvelope,
-  parseBridgeSnapshotEnvelope,
-} from "../validation/streams.ts";
+import { parseBridgeEventEnvelope, parseBridgeSnapshotEnvelope } from "../validation/streams.ts";
 import { BridgeStreamTracker, newer } from "./tracker.ts";
 import type { BridgeStreamSource } from "./source.ts";
 
@@ -25,27 +22,16 @@ export interface BridgeStreamConnectionOptions<Snapshot, Event> {
   readonly source: BridgeStreamSource;
   readonly snapshot: BridgeCodec<Snapshot>;
   readonly event: BridgeCodec<Event>;
-  readonly apply: (
-    current: Snapshot,
-    event: Event,
-  ) => Snapshot;
-  readonly onSnapshot?: (
-    snapshot: BridgeSnapshotEnvelope<Snapshot>,
-  ) => void;
+  readonly apply: (current: Snapshot, event: Event) => Snapshot;
+  readonly onSnapshot?: (snapshot: BridgeSnapshotEnvelope<Snapshot>) => void;
   readonly onFailure?: ConnectionFailureReporter;
 }
 
 export class BridgeStreamConnection<Snapshot> {
   readonly ready: Promise<BridgeSnapshotEnvelope<Snapshot> | undefined>;
-  readonly #connection: CheckedSnapshotConnection<
-    BridgeSnapshotEnvelope<Snapshot>
-  >;
+  readonly #connection: CheckedSnapshotConnection<BridgeSnapshotEnvelope<Snapshot>>;
 
-  constructor(
-    connection: CheckedSnapshotConnection<
-      BridgeSnapshotEnvelope<Snapshot>
-    >,
-  ) {
+  constructor(connection: CheckedSnapshotConnection<BridgeSnapshotEnvelope<Snapshot>>) {
     this.#connection = connection;
     this.ready = connection.ready;
   }
@@ -54,7 +40,7 @@ export class BridgeStreamConnection<Snapshot> {
     return this.#connection.current();
   }
 
-  failures(): readonly ConnectionFailure[] {
+  failures(): ReadonlyArray<ConnectionFailure> {
     return this.#connection.failures();
   }
 
@@ -66,22 +52,14 @@ export class BridgeStreamConnection<Snapshot> {
 export function connectBridgeStream<Snapshot, Event>(
   options: BridgeStreamConnectionOptions<Snapshot, Event>,
 ): BridgeStreamConnection<Snapshot> {
-  const tracker = new BridgeStreamTracker(
-    options.sessionId,
-    options.domainId,
-  );
-  const connection = new CheckedSnapshotConnection<
-    BridgeSnapshotEnvelope<Snapshot>
-  >({
+  const tracker = new BridgeStreamTracker(options.sessionId, options.domainId);
+  const connection = new CheckedSnapshotConnection<BridgeSnapshotEnvelope<Snapshot>>({
     listen: (listener) => options.source.listen(listener),
     loadSnapshot: () => options.source.loadSnapshot(),
     validateSnapshot: (value) => {
       const snapshot = parseBridgeSnapshotEnvelope(value, options.snapshot);
       const decision = tracker.acceptSnapshot(snapshot.cursor);
-      if (
-        decision === "supersededSession" ||
-        decision === "wrongDomain"
-      ) {
+      if (decision === "supersededSession" || decision === "wrongDomain") {
         throw new BridgeStreamAuthorityError(decision);
       }
       return snapshot;
@@ -118,9 +96,9 @@ function eventAction<Snapshot, Event>(
   | { readonly kind: "ignore" }
   | { readonly kind: "refresh" }
   | {
-    readonly kind: "snapshot";
-    readonly value: BridgeSnapshotEnvelope<Snapshot>;
-  } {
+      readonly kind: "snapshot";
+      readonly value: BridgeSnapshotEnvelope<Snapshot>;
+    } {
   switch (decision) {
     case "apply":
       if (current === undefined) {

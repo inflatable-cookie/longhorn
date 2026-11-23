@@ -1,9 +1,35 @@
 import { ForkHistoryClient } from "./client.ts";
-import { FORK_HISTORY_PROTOCOL_VERSION, MAXIMUM_FORK_HISTORY_PAGE_SIZE, type ForkBranchId, type ForkBranchPageSnapshot, type ForkChangedEvent, type ForkContinuationPageSnapshot, type ForkEntryRecord, type ForkPruneResult, type ForkRemovalReceiptProjection, type ForkNavigationResult, type ForkNavigationTargetProjection, type ForkPathPageSnapshot, type ForkPathTargetProjection, type ForkSnapshot } from "./generated/protocol.ts";
+import {
+  FORK_HISTORY_PROTOCOL_VERSION,
+  MAXIMUM_FORK_HISTORY_PAGE_SIZE,
+} from "./generated/protocol.ts";
+import type {
+  ForkBranchId,
+  ForkBranchPageSnapshot,
+  ForkChangedEvent,
+  ForkContinuationPageSnapshot,
+  ForkEntryRecord,
+  ForkPruneResult,
+  ForkRemovalReceiptProjection,
+  ForkNavigationResult,
+  ForkNavigationTargetProjection,
+  ForkPathPageSnapshot,
+  ForkPathTargetProjection,
+  ForkSnapshot,
+} from "./generated/protocol.ts";
 import type { ForkHistoryPort, ForkHistoryUnlisten } from "./ports.ts";
 
-export type ForkHistoryControllerStatus = { readonly kind: "idle" } | { readonly kind: "loading" } | { readonly kind: "ready" } | { readonly kind: "failed"; readonly error: unknown };
-export interface ForkHistoryControllerOptions { readonly port: ForkHistoryPort; readonly pathPageSize?: number; readonly branchPageSize?: number; readonly continuationPageSize?: number; }
+export type ForkHistoryControllerStatus =
+  | { readonly kind: "idle" }
+  | { readonly kind: "loading" }
+  | { readonly kind: "ready" }
+  | { readonly kind: "failed"; readonly error: unknown };
+export interface ForkHistoryControllerOptions {
+  readonly port: ForkHistoryPort;
+  readonly pathPageSize?: number;
+  readonly branchPageSize?: number;
+  readonly continuationPageSize?: number;
+}
 
 export class ForkHistoryController {
   readonly #client: ForkHistoryClient;
@@ -12,46 +38,92 @@ export class ForkHistoryController {
   readonly #branchPageSize: number;
   readonly #continuationPageSize: number;
   #status: ForkHistoryControllerStatus = { kind: "idle" };
-  #snapshot?: ForkSnapshot;
-  #path?: ForkPathPageSnapshot;
-  #branches?: ForkBranchPageSnapshot;
+  #snapshot: ForkSnapshot | undefined;
+  #path: ForkPathPageSnapshot | undefined;
+  #branches: ForkBranchPageSnapshot | undefined;
   #pathTarget: ForkPathTargetProjection = { kind: "default" };
   #started = false;
   #lifecycle = 0;
   #load = 0;
   #navigation = 0;
   #pending = false;
-  #unlisten: ForkHistoryUnlisten[] = [];
+  #unlisten: Array<ForkHistoryUnlisten> = [];
 
-  constructor(options: ForkHistoryControllerOptions) { this.#client = new ForkHistoryClient(options.port); this.#pathPageSize = pageSize(options.pathPageSize ?? 50); this.#branchPageSize = pageSize(options.branchPageSize ?? 50); this.#continuationPageSize = pageSize(options.continuationPageSize ?? 50); }
-  get status() { return this.#status; }
-  get snapshot() { return this.#snapshot; }
-  get path() { return this.#path; }
-  get branches() { return this.#branches; }
-  get entries(): readonly ForkEntryRecord[] { return this.#path?.entries ?? []; }
-  get navigationPending() { return this.#pending; }
-  get canUndo() { return (this.#snapshot?.summary.undoDepth ?? 0) > 0; }
-  get canRedo() { return (this.#snapshot?.summary.redoDepth ?? 0) > 0; }
-  observe(observer: () => void): () => void { this.#observers.add(observer); return () => this.#observers.delete(observer); }
+  constructor(options: ForkHistoryControllerOptions) {
+    this.#client = new ForkHistoryClient(options.port);
+    this.#pathPageSize = pageSize(options.pathPageSize ?? 50);
+    this.#branchPageSize = pageSize(options.branchPageSize ?? 50);
+    this.#continuationPageSize = pageSize(options.continuationPageSize ?? 50);
+  }
+  get status() {
+    return this.#status;
+  }
+  get snapshot() {
+    return this.#snapshot;
+  }
+  get path() {
+    return this.#path;
+  }
+  get branches() {
+    return this.#branches;
+  }
+  get entries(): ReadonlyArray<ForkEntryRecord> {
+    return this.#path?.entries ?? [];
+  }
+  get navigationPending() {
+    return this.#pending;
+  }
+  get canUndo() {
+    return (this.#snapshot?.summary.undoDepth ?? 0) > 0;
+  }
+  get canRedo() {
+    return (this.#snapshot?.summary.redoDepth ?? 0) > 0;
+  }
+  observe(observer: () => void): () => void {
+    this.#observers.add(observer);
+    return () => this.#observers.delete(observer);
+  }
 
   async start(): Promise<void> {
-    if (this.#started) return;
-    this.#started = true; const lifecycle = ++this.#lifecycle; this.#setStatus({ kind: "loading" });
+    if (this.#started) {
+      return;
+    }
+    this.#started = true;
+    const lifecycle = ++this.#lifecycle;
+    this.#setStatus({ kind: "loading" });
     try {
       const unlisten = await this.#client.listen((event) => this.#changed(event));
-      if (!this.#started || lifecycle !== this.#lifecycle) { await unlisten(); return; }
-      this.#unlisten.push(unlisten); await this.refresh();
-    } catch (error) { if (this.#started && lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error }); }
+      if (!this.#started || lifecycle !== this.#lifecycle) {
+        await unlisten();
+        return;
+      }
+      this.#unlisten.push(unlisten);
+      await this.refresh();
+    } catch (error) {
+      if (this.#started && lifecycle === this.#lifecycle) {
+        this.#setStatus({ kind: "failed", error });
+      }
+    }
   }
 
   async stop(): Promise<void> {
-    this.#started = false; this.#lifecycle += 1; this.#load += 1; this.#navigation += 1;
+    this.#started = false;
+    this.#lifecycle += 1;
+    this.#load += 1;
+    this.#navigation += 1;
     await Promise.allSettled(this.#unlisten.splice(0).map((dispose) => dispose()));
-    this.#snapshot = undefined; this.#path = undefined; this.#branches = undefined; this.#pathTarget = { kind: "default" }; this.#pending = false; this.#setStatus({ kind: "idle" });
+    this.#snapshot = undefined;
+    this.#path = undefined;
+    this.#branches = undefined;
+    this.#pathTarget = { kind: "default" };
+    this.#pending = false;
+    this.#setStatus({ kind: "idle" });
   }
 
   async refresh(): Promise<void> {
-    if (!this.#started) return;
+    if (!this.#started) {
+      return;
+    }
     const load = ++this.#load;
     // The offset a consumer had paged to, so a refresh returns the page they
     // were looking at rather than sending them back to the first one.
@@ -60,25 +132,41 @@ export class ForkHistoryController {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         const snapshot = await this.#client.snapshot();
         const path = await this.#client.path(this.#pathCommand(snapshot, this.#pathTarget));
-        if (!same(snapshot, path)) continue;
+        if (!same(snapshot, path)) {
+          continue;
+        }
         // Only for a consumer that asked for branches. Loading a page nobody
         // wanted would make every refresh pay for a projection it will not use.
-        const branches = branchOffset === undefined
-          ? undefined
-          : await this.#client.branches(this.#branchCommand(snapshot, branchOffset));
-        if (branches !== undefined && !same(snapshot, branches)) continue;
-        if (this.#started && load === this.#load) { this.#install(snapshot, path, branches); this.#setStatus({ kind: "ready" }); }
+        const branches =
+          branchOffset === undefined
+            ? undefined
+            : await this.#client.branches(this.#branchCommand(snapshot, branchOffset));
+        if (branches !== undefined && !same(snapshot, branches)) {
+          continue;
+        }
+        if (this.#started && load === this.#load) {
+          this.#install(snapshot, path, branches);
+          this.#setStatus({ kind: "ready" });
+        }
         return;
       }
       throw new ForkHistoryProjectionGapError();
-    } catch (error) { if (this.#started && load === this.#load) this.#setStatus({ kind: "failed", error }); }
+    } catch (error) {
+      if (this.#started && load === this.#load) {
+        this.#setStatus({ kind: "failed", error });
+      }
+    }
   }
 
   async loadBranches(offset = 0): Promise<ForkBranchPageSnapshot> {
     const snapshot = this.#required();
     const value = await this.#client.branches(this.#branchCommand(snapshot, offset));
-    if (!same(snapshot, value)) throw new ForkHistoryProjectionGapError();
-    this.#branches = value; this.#notify(); return value;
+    if (!same(snapshot, value)) {
+      throw new ForkHistoryProjectionGapError();
+    }
+    this.#branches = value;
+    this.#notify();
+    return value;
   }
 
   /**
@@ -91,10 +179,23 @@ export class ForkHistoryController {
    * Not cached and not refreshed. A consumer asks when the operator opens an
    * entry, and the revision check below tells them if it went stale meanwhile.
    */
-  async loadContinuations(anchorEntryId: string | null, offset = 0): Promise<ForkContinuationPageSnapshot> {
+  async loadContinuations(
+    anchorEntryId: string | null,
+    offset = 0,
+  ): Promise<ForkContinuationPageSnapshot> {
     const snapshot = this.#required();
-    const value = await this.#client.continuations({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, anchorEntryId, offset, limit: this.#continuationPageSize });
-    if (!same(snapshot, value)) throw new ForkHistoryProjectionGapError();
+    const value = await this.#client.continuations({
+      protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
+      authorityEpoch: snapshot.authorityEpoch,
+      historyId: snapshot.summary.historyId,
+      expectedRevision: snapshot.summary.revision,
+      anchorEntryId,
+      offset,
+      limit: this.#continuationPageSize,
+    });
+    if (!same(snapshot, value)) {
+      throw new ForkHistoryProjectionGapError();
+    }
     return value;
   }
 
@@ -104,8 +205,13 @@ export class ForkHistoryController {
    */
   async loadContinuationRun(fromEntryId: string, offset = 0): Promise<ForkPathPageSnapshot> {
     const snapshot = this.#required();
-    const value = await this.#client.path({ ...this.#pathCommand(snapshot, { kind: "continuation", fromEntryId }), offset });
-    if (!same(snapshot, value)) throw new ForkHistoryProjectionGapError();
+    const value = await this.#client.path({
+      ...this.#pathCommand(snapshot, { kind: "continuation", fromEntryId }),
+      offset,
+    });
+    if (!same(snapshot, value)) {
+      throw new ForkHistoryProjectionGapError();
+    }
     return value;
   }
 
@@ -121,7 +227,13 @@ export class ForkHistoryController {
    */
   async deleteContinuation(entryId: string): Promise<ForkRemovalReceiptProjection> {
     const snapshot = this.#required();
-    const receipt = await this.#client.deleteContinuation({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, entryId });
+    const receipt = await this.#client.deleteContinuation({
+      protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
+      authorityEpoch: snapshot.authorityEpoch,
+      historyId: snapshot.summary.historyId,
+      expectedRevision: snapshot.summary.revision,
+      entryId,
+    });
     // Every page the consumer holds may name entries that no longer exist, so
     // this refresh is not optional and is not left to the changed event.
     await this.refresh();
@@ -142,18 +254,41 @@ export class ForkHistoryController {
    */
   async prune(maximumEntries: number, maximumEncodedWeight: number): Promise<ForkPruneResult> {
     const snapshot = this.#required();
-    const result = await this.#client.prune({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, maximumEntries, maximumEncodedWeight });
-    if (result.status === "pruned") await this.refresh();
+    const result = await this.#client.prune({
+      protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
+      authorityEpoch: snapshot.authorityEpoch,
+      historyId: snapshot.summary.historyId,
+      expectedRevision: snapshot.summary.revision,
+      maximumEntries,
+      maximumEncodedWeight,
+    });
+    if (result.status === "pruned") {
+      await this.refresh();
+    }
     return result;
   }
 
-  async selectDefaultPath(): Promise<void> { this.#pathTarget = { kind: "default" }; await this.refresh(); }
-  async selectBranchPath(branchId: ForkBranchId): Promise<void> { this.#pathTarget = { kind: "branch", branchId }; await this.refresh(); }
-  undo(): Promise<ForkNavigationResult> { return this.#navigate({ kind: "undo" }); }
-  redo(): Promise<ForkNavigationResult> { return this.#navigate({ kind: "redo" }); }
-  checkout(branchId: ForkBranchId, entryId: string): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkout", branchId, entryId }); }
+  async selectDefaultPath(): Promise<void> {
+    this.#pathTarget = { kind: "default" };
+    await this.refresh();
+  }
+  async selectBranchPath(branchId: ForkBranchId): Promise<void> {
+    this.#pathTarget = { kind: "branch", branchId };
+    await this.refresh();
+  }
+  undo(): Promise<ForkNavigationResult> {
+    return this.#navigate({ kind: "undo" });
+  }
+  redo(): Promise<ForkNavigationResult> {
+    return this.#navigate({ kind: "redo" });
+  }
+  checkout(branchId: ForkBranchId, entryId: string): Promise<ForkNavigationResult> {
+    return this.#navigate({ kind: "checkout", branchId, entryId });
+  }
   /** Move to a branch's root, the position before its first entry. */
-  checkoutBranchRoot(branchId: ForkBranchId): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkoutBranchRoot", branchId }); }
+  checkoutBranchRoot(branchId: ForkBranchId): Promise<ForkNavigationResult> {
+    return this.#navigate({ kind: "checkoutBranchRoot", branchId });
+  }
   /**
    * Check out the run beginning at one entry: it becomes the current line,
    * and the previous line becomes a fork at the same entry. No delta of it is
@@ -163,37 +298,145 @@ export class ForkHistoryController {
    * This commits. Browsing the forks does not — use `loadContinuationRun` to
    * show a fork's entries without choosing it.
    */
-  checkoutContinuation(entryId: string): Promise<ForkNavigationResult> { return this.#navigate({ kind: "checkoutContinuation", entryId }); }
-
-  async #navigate(target: ForkNavigationTargetProjection): Promise<ForkNavigationResult> {
-    const snapshot = this.#required(); const navigation = ++this.#navigation; this.#pending = true; this.#notify();
-    try {
-      const result = await this.#client.navigate({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, planId: this.#client.nextPlanId(), expectedRevision: snapshot.summary.revision, target });
-      if (!this.#started || navigation !== this.#navigation) throw new ForkHistoryLateResultError();
-      const path = await this.#client.path(this.#pathCommand(result.snapshot, this.#pathTarget));
-      if (!this.#started || navigation !== this.#navigation) throw new ForkHistoryLateResultError();
-      if (!same(result.snapshot, path)) throw new ForkHistoryProjectionGapError();
-      const branchOffset = this.#branches?.offset;
-      const branches = branchOffset === undefined
-        ? undefined
-        : await this.#client.branches(this.#branchCommand(result.snapshot, branchOffset));
-      if (!this.#started || navigation !== this.#navigation) throw new ForkHistoryLateResultError();
-      if (branches !== undefined && !same(result.snapshot, branches)) throw new ForkHistoryProjectionGapError();
-      this.#install(result.snapshot, path, branches); this.#setStatus({ kind: "ready" }); return result;
-    } finally { if (navigation === this.#navigation) { this.#pending = false; this.#notify(); } }
+  checkoutContinuation(entryId: string): Promise<ForkNavigationResult> {
+    return this.#navigate({ kind: "checkoutContinuation", entryId });
   }
 
-  #pathCommand(snapshot: ForkSnapshot, target: ForkPathTargetProjection) { return { protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, target, offset: 0, limit: this.#pathPageSize } as const; }
-  #required(): ForkSnapshot { if (!this.#started || this.#snapshot === undefined) throw new ForkHistoryUnavailableError(); return this.#snapshot; }
-  #branchCommand(snapshot: ForkSnapshot, offset: number) { return { protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, offset, limit: this.#branchPageSize } as const; }
-  #install(snapshot: ForkSnapshot, path: ForkPathPageSnapshot, branches?: ForkBranchPageSnapshot): void { const current = this.#snapshot; if (current !== undefined && snapshot.authorityEpoch === current.authorityEpoch && snapshot.summary.historyId === current.summary.historyId && snapshot.summary.revision < current.summary.revision) return; this.#snapshot = snapshot; this.#path = path; if (branches !== undefined) this.#branches = branches; else if (this.#branches !== undefined && !same(snapshot, this.#branches)) this.#branches = undefined; this.#notify(); }
-  #changed(event: ForkChangedEvent): void { const snapshot = this.#snapshot; if (!this.#started || snapshot === undefined || event.authorityEpoch !== snapshot.authorityEpoch || event.historyId !== snapshot.summary.historyId || event.committedRevision > snapshot.summary.revision) void this.refresh(); }
-  #setStatus(status: ForkHistoryControllerStatus): void { this.#status = status; this.#notify(); }
-  #notify(): void { for (const observer of this.#observers) observer(); }
+  async #navigate(target: ForkNavigationTargetProjection): Promise<ForkNavigationResult> {
+    const snapshot = this.#required();
+    const navigation = ++this.#navigation;
+    this.#pending = true;
+    this.#notify();
+    try {
+      const result = await this.#client.navigate({
+        protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
+        authorityEpoch: snapshot.authorityEpoch,
+        historyId: snapshot.summary.historyId,
+        planId: this.#client.nextPlanId(),
+        expectedRevision: snapshot.summary.revision,
+        target,
+      });
+      if (!this.#started || navigation !== this.#navigation) {
+        throw new ForkHistoryLateResultError();
+      }
+      const path = await this.#client.path(this.#pathCommand(result.snapshot, this.#pathTarget));
+      if (!this.#started || navigation !== this.#navigation) {
+        throw new ForkHistoryLateResultError();
+      }
+      if (!same(result.snapshot, path)) {
+        throw new ForkHistoryProjectionGapError();
+      }
+      const branchOffset = this.#branches?.offset;
+      const branches =
+        branchOffset === undefined
+          ? undefined
+          : await this.#client.branches(this.#branchCommand(result.snapshot, branchOffset));
+      if (!this.#started || navigation !== this.#navigation) {
+        throw new ForkHistoryLateResultError();
+      }
+      if (branches !== undefined && !same(result.snapshot, branches)) {
+        throw new ForkHistoryProjectionGapError();
+      }
+      this.#install(result.snapshot, path, branches);
+      this.#setStatus({ kind: "ready" });
+      return result;
+    } finally {
+      if (navigation === this.#navigation) {
+        this.#pending = false;
+        this.#notify();
+      }
+    }
+  }
+
+  #pathCommand(snapshot: ForkSnapshot, target: ForkPathTargetProjection) {
+    return {
+      protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
+      authorityEpoch: snapshot.authorityEpoch,
+      historyId: snapshot.summary.historyId,
+      expectedRevision: snapshot.summary.revision,
+      target,
+      offset: 0,
+      limit: this.#pathPageSize,
+    } as const;
+  }
+  #required(): ForkSnapshot {
+    if (!this.#started || this.#snapshot === undefined) {
+      throw new ForkHistoryUnavailableError();
+    }
+    return this.#snapshot;
+  }
+  #branchCommand(snapshot: ForkSnapshot, offset: number) {
+    return {
+      protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
+      authorityEpoch: snapshot.authorityEpoch,
+      historyId: snapshot.summary.historyId,
+      expectedRevision: snapshot.summary.revision,
+      offset,
+      limit: this.#branchPageSize,
+    } as const;
+  }
+  #install(
+    snapshot: ForkSnapshot,
+    path: ForkPathPageSnapshot,
+    branches?: ForkBranchPageSnapshot,
+  ): void {
+    const current = this.#snapshot;
+    if (
+      current !== undefined &&
+      snapshot.authorityEpoch === current.authorityEpoch &&
+      snapshot.summary.historyId === current.summary.historyId &&
+      snapshot.summary.revision < current.summary.revision
+    ) {
+      return;
+    }
+    this.#snapshot = snapshot;
+    this.#path = path;
+    if (branches !== undefined) {
+      this.#branches = branches;
+    } else if (this.#branches !== undefined && !same(snapshot, this.#branches)) {
+      this.#branches = undefined;
+    }
+    this.#notify();
+  }
+  #changed(event: ForkChangedEvent): void {
+    const snapshot = this.#snapshot;
+    if (
+      !this.#started ||
+      snapshot === undefined ||
+      event.authorityEpoch !== snapshot.authorityEpoch ||
+      event.historyId !== snapshot.summary.historyId ||
+      event.committedRevision > snapshot.summary.revision
+    ) {
+      void this.refresh();
+    }
+  }
+  #setStatus(status: ForkHistoryControllerStatus): void {
+    this.#status = status;
+    this.#notify();
+  }
+  #notify(): void {
+    for (const observer of this.#observers) {
+      observer();
+    }
+  }
 }
 
-function same(snapshot: ForkSnapshot, page: { authorityEpoch: number; historyId: string; revision: number }): boolean { return snapshot.authorityEpoch === page.authorityEpoch && snapshot.summary.historyId === page.historyId && snapshot.summary.revision === page.revision; }
-function pageSize(value: number): number { if (!Number.isSafeInteger(value) || value < 1 || value > MAXIMUM_FORK_HISTORY_PAGE_SIZE) throw new RangeError(`fork-history page size must be 1..${MAXIMUM_FORK_HISTORY_PAGE_SIZE}`); return value; }
+function same(
+  snapshot: ForkSnapshot,
+  page: { authorityEpoch: number; historyId: string; revision: number },
+): boolean {
+  return (
+    snapshot.authorityEpoch === page.authorityEpoch &&
+    snapshot.summary.historyId === page.historyId &&
+    snapshot.summary.revision === page.revision
+  );
+}
+function pageSize(value: number): number {
+  if (!Number.isSafeInteger(value) || value < 1 || value > MAXIMUM_FORK_HISTORY_PAGE_SIZE) {
+    throw new RangeError(`fork-history page size must be 1..${MAXIMUM_FORK_HISTORY_PAGE_SIZE}`);
+  }
+  return value;
+}
 export class ForkHistoryUnavailableError extends Error {}
 export class ForkHistoryProjectionGapError extends Error {}
 export class ForkHistoryLateResultError extends Error {}

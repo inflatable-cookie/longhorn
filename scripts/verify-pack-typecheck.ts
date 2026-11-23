@@ -41,16 +41,7 @@ import { installProofStage } from "./proof-install.ts";
 // for inspection with KEEP_PACK_TYPECHECK=1.
 
 import { spawnSync } from "node:child_process";
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  realpath,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 
@@ -76,21 +67,22 @@ const adapterManifest = JSON.parse(
 };
 
 for (const [name, pin] of Object.entries(
-  (JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")) as {
-    devDependencies?: Record<string, string>;
-  }).devDependencies ?? {},
+  (
+    JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")) as {
+      devDependencies?: Record<string, string>;
+    }
+  ).devDependencies ?? {},
 )) {
   rootPins.set(name, pin);
 }
 
 const declaredSvelteRange = adapterManifest.peerDependencies.svelte;
 if (!declaredSvelteRange) {
-  throw new Error(`${ADAPTER} declares no svelte peer; this proof has nothing to typecheck against`);
+  throw new Error(
+    `${ADAPTER} declares no svelte peer; this proof has nothing to typecheck against`,
+  );
 }
-const { floor: svelteFloor, ceiling: svelteCeiling } = rangeShape(
-  declaredSvelteRange,
-  "svelte",
-);
+const { floor: svelteFloor, ceiling: svelteCeiling } = rangeShape(declaredSvelteRange, "svelte");
 
 // The Poodle peers must be one identical range: a consumer resolving them from
 // one declaration must never get two different Poodle lines from the same
@@ -99,7 +91,9 @@ const { floor: svelteFloor, ceiling: svelteCeiling } = rangeShape(
 // the published declaration admits the range.
 const declaredPoodleRange = adapterManifest.peerDependencies[CORE];
 if (!declaredPoodleRange) {
-  throw new Error(`${ADAPTER} declares no ${CORE} peer; this proof has nothing to typecheck against`);
+  throw new Error(
+    `${ADAPTER} declares no ${CORE} peer; this proof has nothing to typecheck against`,
+  );
 }
 if (adapterManifest.peerDependencies[SVELTE] !== declaredPoodleRange) {
   throw new Error(
@@ -107,10 +101,7 @@ if (adapterManifest.peerDependencies[SVELTE] !== declaredPoodleRange) {
       `${SVELTE} ${adapterManifest.peerDependencies[SVELTE]}`,
   );
 }
-const { floor: poodleFloor, ceiling: poodleCeiling } = rangeShape(
-  declaredPoodleRange,
-  "Poodle",
-);
+const { floor: poodleFloor, ceiling: poodleCeiling } = rangeShape(declaredPoodleRange, "Poodle");
 for (const name of [CORE, SVELTE]) {
   const pin = rootPins.get(name);
   if (pin !== poodleFloor) {
@@ -138,11 +129,11 @@ const stages = [
   },
 ] as const;
 
-const typechecked: {
+const typechecked: Array<{
   label: string;
   svelte: { spec: string; resolved: string };
   poodle: { spec: string; resolved: string };
-}[] = [];
+}> = [];
 
 for (const stage of stages) {
   const resolved = await typecheckStage(stage);
@@ -206,9 +197,11 @@ async function typecheckStage(pass: {
     ] as const) {
       versions.set(
         name,
-        (JSON.parse(
-          await readFile(join(repoRoot, directory, "package.json"), "utf8"),
-        ) as { version: string }).version,
+        (
+          JSON.parse(await readFile(join(repoRoot, directory, "package.json"), "utf8")) as {
+            version: string;
+          }
+        ).version,
       );
       await run(
         ["bun", "pm", "pack", "--ignore-scripts", "--destination", stage],
@@ -217,10 +210,14 @@ async function typecheckStage(pass: {
     }
     packs.clear();
     for (const entry of await readdir(stage)) {
-      if (entry.endsWith(".tgz")) packs.add(entry);
+      if (entry.endsWith(".tgz")) {
+        packs.add(entry);
+      }
     }
     if (packs.size !== 2) {
-      throw new Error(`expected exactly two packed tarballs in ${stage}, got ${[...packs].join(", ")}`);
+      throw new Error(
+        `expected exactly two packed tarballs in ${stage}, got ${[...packs].join(", ")}`,
+      );
     }
 
     // Install the peer declarations exactly as this pass runs them: npm is
@@ -261,10 +258,7 @@ async function typecheckStage(pass: {
       const manifestInstalled = JSON.parse(
         await readFile(join(installed, "package.json"), "utf8"),
       ) as { name: string; version: string };
-      if (
-        manifestInstalled.name !== name ||
-        manifestInstalled.version !== versions.get(name)
-      ) {
+      if (manifestInstalled.name !== name || manifestInstalled.version !== versions.get(name)) {
         throw new Error(
           `${name} installed as ${manifestInstalled.name}@${manifestInstalled.version}, ` +
             `expected ${name}@${versions.get(name)}`,
@@ -286,9 +280,9 @@ async function typecheckStage(pass: {
     const resolvedPoodle = new Map<string, string>();
     for (const pkg of release.packages) {
       const installed = join(stage, "node_modules", ...pkg.name.split("/"));
-      const installedVersion = (JSON.parse(
-        await readFile(join(installed, "package.json"), "utf8"),
-      ) as { version: string }).version;
+      const installedVersion = (
+        JSON.parse(await readFile(join(installed, "package.json"), "utf8")) as { version: string }
+      ).version;
       resolvedPoodle.set(pkg.name, installedVersion);
       if (!admitsRange(installedVersion, poodleFloor, poodleCeiling)) {
         throw new Error(
@@ -375,10 +369,7 @@ async function typecheckStage(pass: {
     // types for them. The tarball's own `*.svelte` ambient module would collide
     // with the installed copy's, so the unpacked one is excluded.
     await mkdir(join(stage, "pack"));
-    await run(
-      ["tar", "-xzf", packPath(stage, ADAPTER, packs, versions), "-C", "pack"],
-      stage,
-    );
+    await run(["tar", "-xzf", packPath(stage, ADAPTER, packs, versions), "-C", "pack"], stage);
     await stat(join(stage, "pack", "package", "src", "bindings", "index.ts"));
 
     // One module per exports entry, so the typecheck covers the exports map and
@@ -411,12 +402,7 @@ async function typecheckStage(pass: {
             target: "ES2022",
             verbatimModuleSyntax: true,
           },
-          include: [
-            "imports.ts",
-            "pack/package/src/**/*.ts",
-            "pack/package/src/**/*.svelte",
-          ],
-          exclude: ["pack/package/src/svelte.d.ts"],
+          include: ["imports.ts", "pack/package/src/**/*.ts", "pack/package/src/**/*.svelte"],
         },
         null,
         2,
@@ -439,7 +425,7 @@ async function typecheckStage(pass: {
   }
 }
 
-function typecheck(stage: string, command: readonly string[]): void {
+function typecheck(stage: string, command: ReadonlyArray<string>): void {
   const result = spawnSync(command[0]!, command.slice(1), {
     cwd: stage,
     encoding: "utf8",
@@ -489,7 +475,7 @@ async function stagedLockEntry(
   name: string,
 ): Promise<{ version: string; integrity: string }> {
   const lock = await readFile(lockPath, "utf8");
-  const escaped = name.replace(/[/@-]/g, (character) => `\\${character}`);
+  const escaped = name.replaceAll(/[/@-]/g, (character) => `\\${character}`);
   const entry = new RegExp(
     `"${escaped}":\\s*\\["${escaped}@([^"]+)"[\\s\\S]*?"(sha512-[^"]+)"\\s*\\]`,
   ).exec(lock);
@@ -523,16 +509,24 @@ function rangeShape(range: string, peer: string): { floor: string; ceiling: stri
  * is not admitted: the range carries no prerelease tag, and npm does not
  * offer one for it either. */
 function admitsRange(version: string, floor: string, ceiling: string): boolean {
-  if (version.includes("-")) return false;
+  if (version.includes("-")) {
+    return false;
+  }
   const parsed = version.split(".").map(Number);
-  if (parsed.length !== 3 || parsed.some(Number.isNaN)) return false;
-  return !tupleLess(parsed, floor.split(".").map(Number))
-    && tupleLess(parsed, ceiling.split(".").map(Number));
+  if (parsed.length !== 3 || parsed.some(Number.isNaN)) {
+    return false;
+  }
+  return (
+    !tupleLess(parsed, floor.split(".").map(Number)) &&
+    tupleLess(parsed, ceiling.split(".").map(Number))
+  );
 }
 
-function tupleLess(a: readonly number[], b: readonly number[]): boolean {
+function tupleLess(a: ReadonlyArray<number>, b: ReadonlyArray<number>): boolean {
   for (let index = 0; index < 3; index += 1) {
-    if (a[index] !== b[index]) return a[index]! < b[index]!;
+    if (a[index] !== b[index]) {
+      return a[index]! < b[index]!;
+    }
   }
   return false;
 }

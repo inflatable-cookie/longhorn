@@ -17,30 +17,24 @@ export interface NativeContentPort {
   connect(request: NativeContentConnectRequest): Promise<unknown>;
   snapshot(request: NativeContentSnapshotRequest): Promise<unknown>;
   updateDesired(request: NativeContentDesiredUpdateRequest): Promise<unknown>;
-  decideContentSize(
-    request: NativeContentContentSizeDecisionRequest,
-  ): Promise<unknown>;
-  listen?(
-    listener: (event: unknown) => void,
-  ): NativeContentUnlisten | Promise<NativeContentUnlisten>;
+  decideContentSize(request: NativeContentContentSizeDecisionRequest): Promise<unknown>;
+  listen?:
+    | ((
+        listener: (event: unknown) => void,
+      ) => NativeContentUnlisten | Promise<NativeContentUnlisten>)
+    | undefined;
   nextRequestId(): NativeContentRequestId;
 }
 
 export interface CheckedNativeContentPort {
-  connect(
-    request: NativeContentConnectRequest,
-  ): Promise<NativeContentConnectResult>;
-  snapshot(
-    request: NativeContentSnapshotRequest,
-  ): Promise<NativeContentSnapshotResult>;
+  connect(request: NativeContentConnectRequest): Promise<NativeContentConnectResult>;
+  snapshot(request: NativeContentSnapshotRequest): Promise<NativeContentSnapshotResult>;
   updateDesired(
     request: NativeContentDesiredUpdateRequest,
   ): Promise<NativeContentDesiredUpdateResult>;
   decideContentSize(
     request: NativeContentContentSizeDecisionRequest,
   ): Promise<NativeContentContentSizeDecisionResult>;
-  listen?(
-    listener: (event: NativeContentChangedEvent) => void,
-  ): Promise<NativeContentUnlisten>;
+  listen?(listener: (event: NativeContentChangedEvent) => void): Promise<NativeContentUnlisten>;
   nextRequestId(): NativeContentRequestId;
 }

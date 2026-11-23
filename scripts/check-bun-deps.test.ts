@@ -6,7 +6,7 @@ describe("check:bun-deps", () => {
   test("runs the locked install once, then passes when markers appear", async () => {
     let installed = false;
     let installCalls = 0;
-    const messages: string[] = [];
+    const messages: Array<string> = [];
 
     const passed = await checkBunDependencies({
       root: "/fixture",
@@ -26,7 +26,7 @@ describe("check:bun-deps", () => {
   });
 
   test("fails when the frozen install fails", async () => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     let installCalls = 0;
 
     const passed = await checkBunDependencies({
@@ -46,7 +46,7 @@ describe("check:bun-deps", () => {
   });
 
   test("fails when markers are still missing after a successful install", async () => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     let markerChecks = 0;
 
     const passed = await checkBunDependencies({
@@ -61,7 +61,7 @@ describe("check:bun-deps", () => {
     });
 
     expect(passed).toBe(false);
-    expect(markerChecks).toBe(6);
+    expect(markerChecks).toBe(14);
     expect(errors[0]).toContain("dependency markers are still missing");
   });
 });

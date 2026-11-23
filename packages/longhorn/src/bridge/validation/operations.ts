@@ -5,28 +5,21 @@ import {
   BRIDGE_MAXIMUM_OPAQUE_ID_BYTES,
   BRIDGE_FAILURE_PHASES,
   BRIDGE_RETRY_CLASSES,
-  type BridgeCancellationRequest,
-  type BridgeCommandEnvelope,
-  type BridgeCommandReply,
-  type BridgeDeduplicationSupport,
-  type BridgeFailure,
-  type BridgeQueryEnvelope,
-  type BridgeQueryReply,
-  type BridgeRequestContext,
 } from "../generated/protocol.ts";
-import {
-  type BridgeCodec,
-  incompatible,
-  integer,
-  nullable,
-  oneOf,
-  opaqueId,
-  record,
-} from "./base.ts";
+import type {
+  BridgeCancellationRequest,
+  BridgeCommandEnvelope,
+  BridgeCommandReply,
+  BridgeDeduplicationSupport,
+  BridgeFailure,
+  BridgeQueryEnvelope,
+  BridgeQueryReply,
+  BridgeRequestContext,
+} from "../generated/protocol.ts";
+import { incompatible, integer, nullable, oneOf, opaqueId, record } from "./base.ts";
+import type { BridgeCodec } from "./base.ts";
 
-export function parseBridgeRequestContext(
-  value: unknown,
-): BridgeRequestContext {
+export function parseBridgeRequestContext(value: unknown): BridgeRequestContext {
   const source = record(value, BRIDGE_FIELDS.BridgeRequestContext);
   return {
     requestId: opaqueId(source.requestId),
@@ -60,9 +53,7 @@ export function parseBridgeCommandEnvelope<P>(
   };
 }
 
-export function parseBridgeCancellationRequest(
-  value: unknown,
-): BridgeCancellationRequest {
+export function parseBridgeCancellationRequest(value: unknown): BridgeCancellationRequest {
   const source = record(value, BRIDGE_FIELDS.BridgeCancellationRequest);
   return {
     context: parseBridgeRequestContext(source.context),
@@ -71,39 +62,25 @@ export function parseBridgeCancellationRequest(
   };
 }
 
-export function parseBridgeFailure<D>(
-  value: unknown,
-  details: BridgeCodec<D>,
-): BridgeFailure<D> {
+export function parseBridgeFailure<D>(value: unknown, details: BridgeCodec<D>): BridgeFailure<D> {
   const source = record(value, BRIDGE_FIELDS.BridgeFailure);
   if (
     typeof source.message !== "string" ||
     source.message.length === 0 ||
-    new TextEncoder().encode(source.message).length >
-      BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES
+    new TextEncoder().encode(source.message).length > BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES
   ) {
     incompatible("invalid_message", source.message);
   }
   return {
     code: opaqueId(source.code),
     message: source.message,
-    retryClass: oneOf(
-      source.retryClass,
-      BRIDGE_RETRY_CLASSES,
-      "unknown_retry_class",
-    ),
-    phase: oneOf(
-      source.phase,
-      BRIDGE_FAILURE_PHASES,
-      "unknown_failure_phase",
-    ),
+    retryClass: oneOf(source.retryClass, BRIDGE_RETRY_CLASSES, "unknown_retry_class"),
+    phase: oneOf(source.phase, BRIDGE_FAILURE_PHASES, "unknown_failure_phase"),
     details: nullable(source.details, details.parse),
   };
 }
 
-export function parseBridgeDeduplicationSupport(
-  value: unknown,
-): BridgeDeduplicationSupport {
+export function parseBridgeDeduplicationSupport(value: unknown): BridgeDeduplicationSupport {
   if (value === "unsupported") {
     return value;
   }
@@ -116,7 +93,7 @@ export function parseBridgeDeduplicationSupport(
   ) {
     incompatible("unknown_deduplication_support", value);
   }
-  const source = value as { finite: unknown };
+  const source = value;
   const capacity = integer(source.finite, 1);
   if (capacity > BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES) {
     incompatible("unknown_deduplication_support", value);
@@ -144,10 +121,7 @@ export function parseBridgeCommandReply<S, D>(
   const source = record(value, BRIDGE_FIELDS.BridgeCommandReply);
   return {
     requestId: opaqueId(source.requestId),
-    authoritativeRevision: nullable(
-      source.authoritativeRevision,
-      integer,
-    ),
+    authoritativeRevision: nullable(source.authoritativeRevision, integer),
     outcome: parseCommandOutcome(source.outcome, success, details),
   };
 }
@@ -187,7 +161,7 @@ function parseCommandOutcome<S, D>(
 
 function variant(
   value: unknown,
-  keys: readonly string[],
+  keys: ReadonlyArray<string>,
   code: "unknown_query_outcome" | "unknown_command_outcome",
 ): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {

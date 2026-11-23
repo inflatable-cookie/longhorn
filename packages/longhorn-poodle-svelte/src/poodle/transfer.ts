@@ -3,19 +3,21 @@ import { errorMessage } from "../failures.ts";
 import {
   CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
   decodeDockPanelSubject,
-  type CrossWindowDragReceipt,
-  type CrossWindowDragSourceBridge,
-  type CrossWindowDragTargetBridge,
-  type CrossWindowDragTargetEvent,
-  type DragDropCommitResult,
 } from "@inflatable-cookie/poodle-core";
-import {
-  TRANSFER_PROTOCOL_VERSION,
-  type PanelSessionStartRequest,
-  type PanelTransferCommand,
-  type PanelTransferResponse,
-  type TransferCommitSelector,
-  type TransferSessionResponse,
+import type {
+  CrossWindowDragReceipt,
+  CrossWindowDragSourceBridge,
+  CrossWindowDragTargetBridge,
+  CrossWindowDragTargetEvent,
+  DragDropCommitResult,
+} from "@inflatable-cookie/poodle-core";
+import { TRANSFER_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/transfer";
+import type {
+  PanelSessionStartRequest,
+  PanelTransferCommand,
+  PanelTransferResponse,
+  TransferCommitSelector,
+  TransferSessionResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 import type { TransferState } from "@inflatable-cookie/longhorn-poodle-svelte/transfer";
 
@@ -28,9 +30,7 @@ export type PanelDropSelector =
 
 export interface PanelTransferDragSourceOptions {
   readonly state: TransferState;
-  readonly makeStartRequest: (
-    panelInstanceId: string,
-  ) => PanelSessionStartRequest;
+  readonly makeStartRequest: (panelInstanceId: string) => PanelSessionStartRequest;
   readonly reportError: (error: unknown) => void;
   readonly onPreparation?: (response: TransferSessionResponse) => void;
 }
@@ -56,14 +56,20 @@ export function createPanelTransferDragSource(
       keyboardTargetPicker: false,
     },
     async prepare(request, signal) {
-      if (signal.aborted) return null;
+      if (signal.aborted) {
+        return null;
+      }
       const decoded = decodeDockPanelSubject(request.subject.id);
-      if (decoded === null) return null;
+      if (decoded === null) {
+        return null;
+      }
 
       const startRequest = options.makeStartRequest(decoded.panelId);
       const response = await options.state.preparePanel(startRequest);
       notify(options.onPreparation, response, options.reportError);
-      if (response.status !== "started") return null;
+      if (response.status !== "started") {
+        return null;
+      }
 
       return receiptFor(response.session.payload.session_id);
     },
@@ -71,7 +77,7 @@ export function createPanelTransferDragSource(
       return () => undefined;
     },
     cancel() {
-      void options.state.cancelPreparation().catch((error) => {
+      void options.state.cancelPreparation().catch((error: unknown) => {
         report(options.reportError, error);
       });
     },
@@ -128,9 +134,7 @@ function receiptFor(sessionId: string): CrossWindowDragReceipt {
   };
 }
 
-function resolveSelector(
-  options: PanelTransferDropTargetOptions,
-): TransferCommitSelector {
+function resolveSelector(options: PanelTransferDropTargetOptions): TransferCommitSelector {
   if (options.selector.kind === "explicit_zone") {
     return {
       kind: "explicit_zone",
@@ -138,11 +142,7 @@ function resolveSelector(
     };
   }
   const point = options.screenPoint?.();
-  if (
-    point === undefined ||
-    !Number.isSafeInteger(point.x) ||
-    !Number.isSafeInteger(point.y)
-  ) {
+  if (point === undefined || !Number.isSafeInteger(point.x) || !Number.isSafeInteger(point.y)) {
     throw new RangeError("drop screen point must use integer screen DIPs");
   }
   return {
@@ -152,7 +152,9 @@ function resolveSelector(
 }
 
 function commitResult(response: PanelTransferResponse): DragDropCommitResult {
-  if (response.status === "committed") return { status: "committed" };
+  if (response.status === "committed") {
+    return { status: "committed" };
+  }
   return { status: "rejected", reason: response.abort.source.code };
 }
 

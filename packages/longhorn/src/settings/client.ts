@@ -1,7 +1,4 @@
-import type {
-  ConnectionFailureReporter,
-  EventTransport,
-} from "@inflatable-cookie/longhorn/core";
+import type { ConnectionFailureReporter, EventTransport } from "@inflatable-cookie/longhorn/core";
 
 import type {
   SettingsApplyCommand,
@@ -24,9 +21,8 @@ import {
   connectSettingsRegistry,
   connectSettingsScope,
   SettingsAuthorityConsistencyError,
-  type SettingsScopeConnectionOptions,
-  type SettingsSubscription,
 } from "./connection.ts";
+import type { SettingsScopeConnectionOptions, SettingsSubscription } from "./connection.ts";
 import {
   SETTINGS_APPLY_COMMAND,
   SETTINGS_LOAD_COMMAND,
@@ -42,10 +38,7 @@ export class SettingsClient {
   }
 
   async registry(): Promise<SettingsRegistrySnapshot> {
-    const value = await this.#transport.invoke(
-      SETTINGS_REGISTRY_COMMAND,
-      {},
-    );
+    const value = await this.#transport.invoke(SETTINGS_REGISTRY_COMMAND, {});
     assertValidSettingsRegistrySnapshot(value);
     return value;
   }
@@ -59,10 +52,7 @@ export class SettingsClient {
     const value = await this.#transport.invoke(SETTINGS_LOAD_COMMAND, {
       command,
     });
-    assertValidSettingsLoadOutcome(
-      value,
-      registry.limits.maximumOpaqueValueBytes,
-    );
+    assertValidSettingsLoadOutcome(value, registry.limits.maximumOpaqueValueBytes);
     return value;
   }
 
@@ -70,21 +60,12 @@ export class SettingsClient {
     registry: SettingsRegistrySnapshot,
     command: SettingsApplyCommand,
   ): Promise<SettingsMutationResult> {
-    assertValidSettingsApplyCommand(
-      command,
-      registry.limits.maximumOpaqueValueBytes,
-    );
-    assertRegistryGeneration(
-      registry,
-      command.authority.registryGeneration,
-    );
+    assertValidSettingsApplyCommand(command, registry.limits.maximumOpaqueValueBytes);
+    assertRegistryGeneration(registry, command.authority.registryGeneration);
     const value = await this.#transport.invoke(SETTINGS_APPLY_COMMAND, {
       command,
     });
-    assertValidSettingsMutationResult(
-      value,
-      registry.limits.maximumOpaqueValueBytes,
-    );
+    assertValidSettingsMutationResult(value, registry.limits.maximumOpaqueValueBytes);
     return value;
   }
 
@@ -93,17 +74,11 @@ export class SettingsClient {
     command: SettingsResetCommand,
   ): Promise<SettingsMutationResult> {
     assertValidSettingsResetCommand(command);
-    assertRegistryGeneration(
-      registry,
-      command.authority.registryGeneration,
-    );
+    assertRegistryGeneration(registry, command.authority.registryGeneration);
     const value = await this.#transport.invoke(SETTINGS_RESET_COMMAND, {
       command,
     });
-    assertValidSettingsMutationResult(
-      value,
-      registry.limits.maximumOpaqueValueBytes,
-    );
+    assertValidSettingsMutationResult(value, registry.limits.maximumOpaqueValueBytes);
     return value;
   }
 
@@ -111,12 +86,7 @@ export class SettingsClient {
     listener?: (snapshot: SettingsRegistrySnapshot) => void,
     onFailure?: ConnectionFailureReporter,
   ): SettingsSubscription<SettingsRegistrySnapshot> {
-    return connectSettingsRegistry(
-      this.#transport,
-      () => this.registry(),
-      listener,
-      onFailure,
-    );
+    return connectSettingsRegistry(this.#transport, () => this.registry(), listener, onFailure);
   }
 
   connectScope(
@@ -130,10 +100,7 @@ export class SettingsClient {
   }
 }
 
-function assertRegistryGeneration(
-  registry: SettingsRegistrySnapshot,
-  generation: number,
-): void {
+function assertRegistryGeneration(registry: SettingsRegistrySnapshot, generation: number): void {
   if (generation !== registry.generation) {
     throw new SettingsAuthorityConsistencyError(
       "settings command registry generation does not match its registry",

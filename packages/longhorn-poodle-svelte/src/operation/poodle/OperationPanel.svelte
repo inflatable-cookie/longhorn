@@ -57,7 +57,7 @@
 
   async function confirmCancellation(): Promise<void> {
     const operation = cancellationTarget;
-    if (operation === undefined) return;
+    if (operation === undefined) {return;}
     // A failed request is recorded on the session and shown by the command
     // callout, so the dialog closes either way rather than staying over it.
     await session.cancel(operation.operationId).catch(() => undefined);

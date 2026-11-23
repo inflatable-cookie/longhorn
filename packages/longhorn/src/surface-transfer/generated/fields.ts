@@ -3,10 +3,10 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const SURFACE_TRANSFER_FIELDS: Record<string, readonly string[]> = {
+export const SURFACE_TRANSFER_FIELDS = {
   "SurfaceSessionStartRequest": ["protocol_version", "request_id", "surface_id"],
   "SurfaceTransferCommand": ["protocol_version", "request_id", "session_id", "selector"],
   "SurfaceProvisioningCompletion": ["window_id", "host_binding_id", "display_id"],
   "SurfaceTransferCompletion": ["protocol_version", "request_id", "session_id", "source_host_binding_id", "target_host_binding_id", "previous_revision", "committed_revision", "authoritative_document", "target"],
   "SurfaceTransferAbort": ["protocol_version", "request_id", "source", "surface_code", "message", "retryable", "session_consumed", "reconciliation_required"],
-};
+} as const;

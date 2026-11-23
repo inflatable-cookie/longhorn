@@ -18,9 +18,9 @@
 <UpdateStatus
   pending={controller.pending}
   status={controller.status}
-  availability={source.availability}
-  progress={controller.progress}
-  channel={controller.channel}
-  installedVersion={controller.installedVersion}
+  {...source.availability === undefined ? {} : { availability: source.availability }}
+  {...controller.progress === undefined ? {} : { progress: controller.progress }}
+  {...controller.channel === undefined ? {} : { channel: controller.channel }}
+  {...controller.installedVersion === undefined ? {} : { installedVersion: controller.installedVersion }}
   observe={(o) => controller.observe(o)}
 />

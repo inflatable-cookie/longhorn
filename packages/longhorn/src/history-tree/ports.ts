@@ -26,7 +26,9 @@ export interface ForkHistoryPort {
   deleteContinuation(command: ForkDeleteContinuationCommand): Promise<unknown>;
   prune(command: ForkPruneCommand): Promise<unknown>;
   navigate(command: ForkNavigationCommand): Promise<unknown>;
-  listen?(listener: (event: unknown) => void): ForkHistoryUnlisten | Promise<ForkHistoryUnlisten>;
+  listen?:
+    | ((listener: (event: unknown) => void) => ForkHistoryUnlisten | Promise<ForkHistoryUnlisten>)
+    | undefined;
   nextPlanId(): HistoryPlanId;
 }
 

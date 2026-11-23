@@ -21,7 +21,10 @@ const FORBIDDEN_KEYS = new Set([
 ]);
 
 export class NativeContentProtocolValidationError extends Error {
-  constructor(readonly path: string, message: string) {
+  constructor(
+    readonly path: string,
+    message: string,
+  ) {
     super(`incompatible native-content protocol at ${path}: ${message}`);
     this.name = "NativeContentProtocolValidationError";
   }
@@ -43,17 +46,14 @@ export function assertProductPayloadFree(value: unknown): void {
 export function exactObject(
   value: unknown,
   path: string,
-  keys: readonly string[],
+  keys: ReadonlyArray<string>,
 ): Record<string, unknown> {
   const object = record(value, path);
   exactKeys(object, path, keys);
   return object;
 }
 
-export function record(
-  value: unknown,
-  path: string,
-): Record<string, unknown> {
+export function record(value: unknown, path: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     fail(path, "expected object");
   }
@@ -63,20 +63,24 @@ export function record(
 export function exactKeys(
   value: Record<string, unknown>,
   path: string,
-  keys: readonly string[],
+  keys: ReadonlyArray<string>,
 ): void {
   const expected = new Set(keys);
   for (const key of Object.keys(value)) {
-    if (!expected.has(key)) fail(`${path}.${key}`, "unknown field");
+    if (!expected.has(key)) {
+      fail(`${path}.${key}`, "unknown field");
+    }
   }
   for (const key of keys) {
-    if (!(key in value)) fail(`${path}.${key}`, "missing field");
+    if (!(key in value)) {
+      fail(`${path}.${key}`, "missing field");
+    }
   }
 }
 
 export function member<const Value extends string>(
   value: unknown,
-  values: readonly Value[],
+  values: ReadonlyArray<Value>,
   path: string,
 ): asserts value is Value {
   if (typeof value !== "string" || !values.includes(value as Value)) {
@@ -85,13 +89,12 @@ export function member<const Value extends string>(
 }
 
 export function text(value: unknown, path: string): asserts value is string {
-  if (typeof value !== "string") fail(path, "expected string");
+  if (typeof value !== "string") {
+    fail(path, "expected string");
+  }
 }
 
-export function opaqueId(
-  value: unknown,
-  path: string,
-): asserts value is string {
+export function opaqueId(value: unknown, path: string): asserts value is string {
   text(value, path);
   if (
     value.length === 0 ||
@@ -102,45 +105,35 @@ export function opaqueId(
   }
 }
 
-export function boolean(
-  value: unknown,
-  path: string,
-): asserts value is boolean {
-  if (typeof value !== "boolean") fail(path, "expected boolean");
+export function boolean(value: unknown, path: string): asserts value is boolean {
+  if (typeof value !== "boolean") {
+    fail(path, "expected boolean");
+  }
 }
 
-export function finite(
-  value: unknown,
-  path: string,
-): asserts value is number {
+export function finite(value: unknown, path: string): asserts value is number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     fail(path, "expected finite number");
   }
 }
 
-export function natural(
-  value: unknown,
-  path: string,
-): asserts value is number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 0
-  ) {
+export function natural(value: unknown, path: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     fail(path, "expected non-negative safe integer");
   }
 }
 
-export function positive(
-  value: unknown,
-  path: string,
-): asserts value is number {
+export function positive(value: unknown, path: string): asserts value is number {
   natural(value, path);
-  if (value === 0) fail(path, "expected positive safe integer");
+  if (value === 0) {
+    fail(path, "expected positive safe integer");
+  }
 }
 
-export function array(value: unknown, path: string): readonly unknown[] {
-  if (!Array.isArray(value)) fail(path, "expected array");
+export function array(value: unknown, path: string): ReadonlyArray<unknown> {
+  if (!Array.isArray(value)) {
+    fail(path, "expected array");
+  }
   return value;
 }
 
@@ -149,7 +142,9 @@ export function nullable<T>(
   path: string,
   guard: (value: unknown, path: string) => asserts value is T,
 ): void {
-  if (value !== null) guard(value, path);
+  if (value !== null) {
+    guard(value, path);
+  }
 }
 
 export function fail(path: string, message: string): never {
@@ -157,14 +152,20 @@ export function fail(path: string, message: string): never {
 }
 
 function visit(value: unknown, path: string, seen: Set<object>): void {
-  if (typeof value !== "object" || value === null) return;
-  if (seen.has(value)) fail(path, "cyclic value");
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+  if (seen.has(value)) {
+    fail(path, "cyclic value");
+  }
   seen.add(value);
   if (Array.isArray(value)) {
     value.forEach((item, index) => visit(item, `${path}[${index}]`, seen));
   } else {
     for (const [key, item] of Object.entries(value)) {
-      if (FORBIDDEN_KEYS.has(key)) fail(`${path}.${key}`, "product payload field");
+      if (FORBIDDEN_KEYS.has(key)) {
+        fail(`${path}.${key}`, "product payload field");
+      }
       visit(item, `${path}.${key}`, seen);
     }
   }
@@ -186,9 +187,11 @@ export function variantKeys(
   type: string,
   object: Record<string, unknown>,
   path: string,
-): readonly string[] {
+): ReadonlyArray<string> {
   const discriminant = object[NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
   const keys = NATIVE_CONTENT_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (keys === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  if (keys === undefined) {
+    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  }
   return keys;
 }

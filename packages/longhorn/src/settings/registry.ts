@@ -10,18 +10,18 @@ import type {
 
 export interface SettingsNavigationModule {
   readonly module: SettingsModuleDefinition;
-  readonly sections: readonly SettingsNavigationSection[];
+  readonly sections: ReadonlyArray<SettingsNavigationSection>;
 }
 
 export interface SettingsNavigationSection {
   readonly section: SettingsSectionDefinition;
-  readonly pages: readonly SettingsPageDefinition[];
+  readonly pages: ReadonlyArray<SettingsPageDefinition>;
 }
 
 export interface SettingsRegistryProjection {
   readonly generation: number;
-  readonly modules: readonly SettingsNavigationModule[];
-  readonly pages: readonly SettingsPageDefinition[];
+  readonly modules: ReadonlyArray<SettingsNavigationModule>;
+  readonly pages: ReadonlyArray<SettingsPageDefinition>;
 }
 
 export interface SettingsDeepLink {
@@ -55,13 +55,13 @@ export class SettingsDeepLinkResolutionError extends Error {
 export function projectSettingsRegistry(
   registry: SettingsRegistrySnapshot,
 ): SettingsRegistryProjection {
-  const pagesBySection = new Map<string, SettingsPageDefinition[]>();
+  const pagesBySection = new Map<string, Array<SettingsPageDefinition>>();
   for (const page of registry.pages) {
     const pages = pagesBySection.get(page.sectionId) ?? [];
     pages.push(page);
     pagesBySection.set(page.sectionId, pages);
   }
-  const sectionsByModule = new Map<string, SettingsNavigationSection[]>();
+  const sectionsByModule = new Map<string, Array<SettingsNavigationSection>>();
   for (const section of registry.sections) {
     const pages = pagesBySection.get(section.id) ?? [];
     if (pages.length === 0) {
@@ -85,12 +85,12 @@ export function projectSettingsRegistry(
 export function searchSettingsRegistry(
   registry: SettingsRegistrySnapshot,
   query: string,
-): readonly SettingsSearchResult[] {
+): ReadonlyArray<SettingsSearchResult> {
   const needle = normalize(query);
   if (needle.length === 0) {
     return [];
   }
-  const results: SettingsSearchResult[] = [];
+  const results: Array<SettingsSearchResult> = [];
   for (const page of registry.pages) {
     const pageMatch = [page.label, ...page.keywords]
       .map(normalize)
@@ -99,10 +99,7 @@ export function searchSettingsRegistry(
       results.push({ kind: "page", page, anchor: undefined });
     }
     for (const anchor of page.anchors) {
-      if (
-        anchor.label !== null &&
-        normalize(anchor.label).includes(needle)
-      ) {
+      if (anchor.label !== null && normalize(anchor.label).includes(needle)) {
         results.push({ kind: "anchor", page, anchor });
       }
     }
@@ -116,17 +113,12 @@ export function resolveSettingsDeepLink(
 ): ResolvedSettingsDeepLink {
   const page = registry.pages.find((candidate) => candidate.id === link.pageId);
   if (page === undefined) {
-    throw new SettingsDeepLinkResolutionError(
-      `unknown settings page ${link.pageId}`,
-      link,
-    );
+    throw new SettingsDeepLinkResolutionError(`unknown settings page ${link.pageId}`, link);
   }
   if (link.anchorId === undefined) {
     return { page, anchor: undefined };
   }
-  const anchor = page.anchors.find(
-    (candidate) => candidate.id === link.anchorId,
-  );
+  const anchor = page.anchors.find((candidate) => candidate.id === link.anchorId);
   if (anchor === undefined) {
     throw new SettingsDeepLinkResolutionError(
       `unknown settings anchor ${link.anchorId} on ${link.pageId}`,

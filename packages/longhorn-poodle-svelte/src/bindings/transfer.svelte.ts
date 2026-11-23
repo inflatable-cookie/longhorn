@@ -1,5 +1,5 @@
+import type { TransferClient } from "@inflatable-cookie/longhorn/transfer";
 import {
-  TransferClient,
   type DragSessionId,
   type PanelSessionStartRequest,
   type PanelTransferCommand,
@@ -12,24 +12,21 @@ import {
   type TransferSessionResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 
-import {
-  ReactiveClientState,
-  UnsupportedCapabilityError,
-  type ClientStatus,
-} from "./index.ts";
-import {
-  systemTimerScheduler,
-} from "./scheduler.ts";
+import { ReactiveClientState, UnsupportedCapabilityError } from "./index.ts";
+import type { ClientStatus } from "./index.ts";
+import { systemTimerScheduler } from "./scheduler.ts";
 import {
   InvalidLeaseReleaseRequestError,
   LeaseReleaseRejectedError,
   LeaseReleaseUnavailableError,
   TransferStateNotStartedError,
-  type TransferCancellationState,
-  type TransferCompletionState,
-  type TransferLeaseState,
-  type TransferPreparationState,
-  type TransferStateOptions,
+} from "./transfer-model.ts";
+import type {
+  TransferCancellationState,
+  TransferCompletionState,
+  TransferLeaseState,
+  TransferPreparationState,
+  TransferStateOptions,
 } from "./transfer-model.ts";
 
 export * from "./transfer-model.ts";
@@ -60,14 +57,11 @@ export class TransferState {
         client === undefined
           ? {
               kind: "unsupported",
-              reason:
-                options.unsupportedReason ??
-                "transfer capability is unavailable",
+              reason: options.unsupportedReason ?? "transfer capability is unavailable",
             }
           : {
               kind: "supported",
-              connect: (listener, onFailure) =>
-                client.connect(listener, onFailure),
+              connect: (listener, onFailure) => client.connect(listener, onFailure),
             },
     });
   }
@@ -116,9 +110,7 @@ export class TransferState {
     }
   }
 
-  async preparePanel(
-    request: PanelSessionStartRequest,
-  ): Promise<TransferSessionResponse> {
+  async preparePanel(request: PanelSessionStartRequest): Promise<TransferSessionResponse> {
     this.#assertRunning();
     const client = this.#requireClient();
     await this.#supersedePreparation();
@@ -127,42 +119,38 @@ export class TransferState {
     this.#preparation = { status: "preparing", request };
     this.#schedulePreparationTimeout(generation, request.request_id);
 
-    const task = client.startPanel(request).then(async (response) => {
-      if (
-        generation !== this.#preparationGeneration ||
-        this.#stopped
-      ) {
-        if (response.status === "started") {
-          await this.#cancelSession(response.session.payload.session_id);
+    const task = client
+      .startPanel(request)
+      .then(async (response) => {
+        if (generation !== this.#preparationGeneration || this.#stopped) {
+          if (response.status === "started") {
+            await this.#cancelSession(response.session.payload.session_id);
+          }
+          return response;
         }
-        return response;
-      }
 
-      this.#clearPreparationTimer();
-      this.#preparation =
-        response.status === "started"
-          ? { status: "prepared", response }
-          : { status: "aborted", response };
-      this.#activeSessionId =
-        response.status === "started"
-          ? response.session.payload.session_id
-          : undefined;
-      return response;
-    }).catch((error) => {
-      if (generation === this.#preparationGeneration && !this.#stopped) {
         this.#clearPreparationTimer();
-        this.#preparation = { status: "failed", error };
-        this.#lifecycle.fail(error);
-      }
-      throw error;
-    });
+        this.#preparation =
+          response.status === "started"
+            ? { status: "prepared", response }
+            : { status: "aborted", response };
+        this.#activeSessionId =
+          response.status === "started" ? response.session.payload.session_id : undefined;
+        return response;
+      })
+      .catch((error: unknown) => {
+        if (generation === this.#preparationGeneration && !this.#stopped) {
+          this.#clearPreparationTimer();
+          this.#preparation = { status: "failed", error };
+          this.#lifecycle.fail(error);
+        }
+        throw error;
+      });
     this.#trackPreparation(task);
     return task;
   }
 
-  async publishLease(
-    request: TransferLeaseRequest,
-  ): Promise<TransferLeaseResponse> {
+  async publishLease(request: TransferLeaseRequest): Promise<TransferLeaseResponse> {
     this.#assertRunning();
     const client = this.#requireClient();
     this.#lease = { status: "publishing", request };
@@ -180,9 +168,7 @@ export class TransferState {
     }
   }
 
-  async commitPanel(
-    request: PanelTransferCommand,
-  ): Promise<PanelTransferResponse> {
+  async commitPanel(request: PanelTransferCommand): Promise<PanelTransferResponse> {
     this.#assertRunning();
     const client = this.#requireClient();
     this.#completion = { status: "committing", request };
@@ -192,10 +178,7 @@ export class TransferState {
         response.status === "committed"
           ? { status: "committed", response }
           : { status: "aborted", response };
-      if (
-        response.status === "committed" ||
-        response.abort.session_consumed
-      ) {
+      if (response.status === "committed" || response.abort.session_consumed) {
         this.#activeSessionId = undefined;
       }
       return response;
@@ -206,9 +189,7 @@ export class TransferState {
     }
   }
 
-  async cancel(
-    request: TransferCancelRequest,
-  ): Promise<TransferCancelResponse> {
+  async cancel(request: TransferCancelRequest): Promise<TransferCancelResponse> {
     this.#assertRunning();
     return this.#cancelRequest(request);
   }
@@ -244,7 +225,7 @@ export class TransferState {
     if (sessionId !== undefined) {
       await this.#cancelSession(sessionId);
     }
-    await Promise.allSettled([...this.#preparationTasks]);
+    await Promise.allSettled(this.#preparationTasks);
     await this.#releaseLease();
     await this.#lifecycle.stop();
 
@@ -270,10 +251,7 @@ export class TransferState {
     this.#preparation = { status: "idle" };
   }
 
-  #schedulePreparationTimeout(
-    generation: number,
-    requestId: string,
-  ): void {
+  #schedulePreparationTimeout(generation: number, requestId: string): void {
     const timeoutMs = this.#options.preparationTimeoutMs;
     if (timeoutMs === undefined) {
       return;
@@ -303,20 +281,18 @@ export class TransferState {
 
   #trackPreparation(task: Promise<unknown>): void {
     this.#preparationTasks.add(task);
-    void task.finally(() => {
-      this.#preparationTasks.delete(task);
-    }).catch(() => undefined);
+    void task
+      .finally(() => {
+        this.#preparationTasks.delete(task);
+      })
+      .catch(() => undefined);
   }
 
   #cancelSession(sessionId: DragSessionId): Promise<TransferCancelResponse> {
-    return this.#cancelRequest(
-      this.#options.makeCancellationRequest(sessionId),
-    );
+    return this.#cancelRequest(this.#options.makeCancellationRequest(sessionId));
   }
 
-  async #cancelRequest(
-    request: TransferCancelRequest,
-  ): Promise<TransferCancelResponse> {
+  async #cancelRequest(request: TransferCancelRequest): Promise<TransferCancelResponse> {
     const client = this.#requireClient();
     this.#cancellation = { status: "cancelling", request };
     try {
@@ -325,10 +301,7 @@ export class TransferState {
         response.status === "cancelled"
           ? { status: "cancelled", response }
           : { status: "aborted", response };
-      if (
-        response.status === "cancelled" ||
-        response.abort.session_consumed
-      ) {
+      if (response.status === "cancelled" || response.abort.session_consumed) {
         this.#activeSessionId = undefined;
       }
       return response;
@@ -355,10 +328,7 @@ export class TransferState {
       return;
     }
     const request = makeRequest(snapshot, receipt);
-    if (
-      request.zones.length !== 0 ||
-      request.generation <= receipt.generation
-    ) {
+    if (request.zones.length !== 0 || request.generation <= receipt.generation) {
       throw new InvalidLeaseReleaseRequestError();
     }
     const response = await this.#requireClient().publishLease(request);

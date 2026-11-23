@@ -3,9 +3,10 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 const packageRoot = new URL("../", import.meta.url);
-const metadata = JSON.parse(
-  readFileSync(new URL("package.json", packageRoot), "utf8"),
-) as Record<string, unknown>;
+const metadata = JSON.parse(readFileSync(new URL("package.json", packageRoot), "utf8")) as Record<
+  string,
+  unknown
+>;
 
 // Derived, not enumerated: a hand-kept list drifts the moment a domain is
 // added without editing this test, which is exactly the failure the export
@@ -17,10 +18,12 @@ const DOMAINS = readdirSync(new URL("../src", import.meta.url), {
   .map((entry) => entry.name)
   .sort();
 
-function sourceFiles(dir: string): string[] {
+function sourceFiles(dir: string): Array<string> {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry);
-    if (statSync(path).isDirectory()) return sourceFiles(path);
+    if (statSync(path).isDirectory()) {
+      return sourceFiles(path);
+    }
     return /\.(ts|svelte)$/.test(entry) ? [path] : [];
   });
 }
@@ -33,10 +36,7 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
   });
 
   test("exports one root per domain and every target resolves", () => {
-    const exports = metadata.exports as Record<
-      string,
-      string | Record<string, string>
-    >;
+    const exports = metadata.exports as Record<string, string | Record<string, string>>;
     for (const domain of DOMAINS) {
       expect(exports[`./${domain}`]).toBeDefined();
     }
@@ -54,22 +54,20 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
     const forbidden = [
       "@tauri-apps",
       'from "svelte"',
-      "/// <reference types=\"svelte\"",
+      '/// <reference types="svelte"',
       "@inflatable-cookie/poodle-",
       "@inflatable-cookie/longhorn-poodle-svelte",
       "@inflatable-cookie/longhorn-tauri",
     ];
-    const offenders = sourceFiles(new URL("src", packageRoot).pathname).filter(
-      (file) => {
-        const text = readFileSync(file, "utf8");
-        return forbidden.some((needle) => text.includes(needle));
-      },
-    );
+    const offenders = sourceFiles(new URL("src", packageRoot).pathname).filter((file) => {
+      const text = readFileSync(file, "utf8");
+      return forbidden.some((needle) => text.includes(needle));
+    });
     expect(offenders).toEqual([]);
   });
 
   test("domain roots expose their clients and hide their adapters", async () => {
-    const table: Record<string, { present: string[]; absent: string[] }> = {
+    const table: Record<string, { present: Array<string>; absent: Array<string> }> = {
       licence: {
         present: ["LicenceClient", "LicenceController"],
         absent: ["createTauriLicencePort"],
@@ -80,11 +78,7 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
       },
       notifications: {
         present: ["NotificationClient", "NotificationController"],
-        absent: [
-          "createTauriNotificationPort",
-          "NotificationSession",
-          "NotificationPanel",
-        ],
+        absent: ["createTauriNotificationPort", "NotificationSession", "NotificationPanel"],
       },
       operation: {
         present: ["OperationClient", "OperationController"],
@@ -101,12 +95,13 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
       },
     };
     for (const [domain, { present, absent }] of Object.entries(table)) {
-      const root = (await import(`../src/${domain}/index.ts`)) as Record<
-        string,
-        unknown
-      >;
-      for (const symbol of present) expect(root[symbol]).toBeFunction();
-      for (const symbol of absent) expect(symbol in root).toBe(false);
+      const root = (await import(`../src/${domain}/index.ts`)) as Record<string, unknown>;
+      for (const symbol of present) {
+        expect(root[symbol]).toBeFunction();
+      }
+      for (const symbol of absent) {
+        expect(symbol in root).toBe(false);
+      }
     }
   });
 });

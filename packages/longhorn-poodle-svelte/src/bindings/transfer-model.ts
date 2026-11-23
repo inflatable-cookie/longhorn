@@ -23,17 +23,11 @@ export type TransferPreparationState =
     }
   | {
       readonly status: "prepared";
-      readonly response: Extract<
-        TransferSessionResponse,
-        { status: "started" }
-      >;
+      readonly response: Extract<TransferSessionResponse, { status: "started" }>;
     }
   | {
       readonly status: "aborted";
-      readonly response: Extract<
-        TransferSessionResponse,
-        { status: "aborted" }
-      >;
+      readonly response: Extract<TransferSessionResponse, { status: "aborted" }>;
     }
   | { readonly status: "timed_out"; readonly requestId: string }
   | { readonly status: "failed"; readonly error: unknown };
@@ -43,17 +37,11 @@ export type TransferLeaseState =
   | { readonly status: "publishing"; readonly request: TransferLeaseRequest }
   | {
       readonly status: "published";
-      readonly response: Extract<
-        TransferLeaseResponse,
-        { status: "published" }
-      >;
+      readonly response: Extract<TransferLeaseResponse, { status: "published" }>;
     }
   | {
       readonly status: "aborted";
-      readonly response: Extract<
-        TransferLeaseResponse,
-        { status: "aborted" }
-      >;
+      readonly response: Extract<TransferLeaseResponse, { status: "aborted" }>;
     }
   | { readonly status: "failed"; readonly error: unknown };
 
@@ -62,17 +50,11 @@ export type TransferCompletionState =
   | { readonly status: "committing"; readonly request: PanelTransferCommand }
   | {
       readonly status: "committed";
-      readonly response: Extract<
-        PanelTransferResponse,
-        { status: "committed" }
-      >;
+      readonly response: Extract<PanelTransferResponse, { status: "committed" }>;
     }
   | {
       readonly status: "aborted";
-      readonly response: Extract<
-        PanelTransferResponse,
-        { status: "aborted" }
-      >;
+      readonly response: Extract<PanelTransferResponse, { status: "aborted" }>;
     }
   | { readonly status: "failed"; readonly error: unknown };
 
@@ -81,26 +63,18 @@ export type TransferCancellationState =
   | { readonly status: "cancelling"; readonly request: TransferCancelRequest }
   | {
       readonly status: "cancelled";
-      readonly response: Extract<
-        TransferCancelResponse,
-        { status: "cancelled" }
-      >;
+      readonly response: Extract<TransferCancelResponse, { status: "cancelled" }>;
     }
   | {
       readonly status: "aborted";
-      readonly response: Extract<
-        TransferCancelResponse,
-        { status: "aborted" }
-      >;
+      readonly response: Extract<TransferCancelResponse, { status: "aborted" }>;
     }
   | { readonly status: "failed"; readonly error: unknown };
 
 export interface TransferStateOptions {
   readonly client?: TransferClient;
   readonly unsupportedReason?: string;
-  readonly makeCancellationRequest: (
-    sessionId: DragSessionId,
-  ) => TransferCancelRequest;
+  readonly makeCancellationRequest: (sessionId: DragSessionId) => TransferCancelRequest;
   readonly makeLeaseReleaseRequest?: (
     snapshot: TransferClientSnapshot,
     lease: TransferLeaseReceipt,

@@ -11,10 +11,8 @@
   // So the harness renders the controls the tests reach for, straight off the
   // session. The queries are unchanged, which is the point: dropping the panel
   // did not cost a single assertion.
-  import {
-    useHistorySession,
-    type HistorySession,
-  } from "../../src/history/svelte.ts";
+  import { useHistorySession } from '../../src/history/svelte.ts';
+import type { HistorySession } from '../../src/history/svelte.ts';
 
   let { session }: { session: HistorySession } = $props();
   useHistorySession(() => session);

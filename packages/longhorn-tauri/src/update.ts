@@ -1,4 +1,5 @@
-import { isEventTransport, type EventTransport, type InvokeTransport } from "@inflatable-cookie/longhorn/core";
+import { isEventTransport } from "@inflatable-cookie/longhorn/core";
+import type { EventTransport, InvokeTransport } from "@inflatable-cookie/longhorn/core";
 import type {
   UpdateApplyCommand,
   UpdateCancelCommand,
@@ -36,18 +37,38 @@ export const UPDATE_PROGRESS_EVENT = "longhorn://update/progress";
  * what narrows them. Commands going *out* are typed, because those this side
  * constructs.
  */
-export function createTauriUpdatePort(options: { readonly transport: InvokeTransport }): UpdatePort {
+export function createTauriUpdatePort(options: {
+  readonly transport: InvokeTransport;
+}): UpdatePort {
   const events = isEventTransport(options.transport) ? options.transport : undefined;
   return {
     snapshot: () => options.transport.invoke(UPDATE_SNAPSHOT_COMMAND, {}),
-    check: (command: UpdateCheckCommand) => options.transport.invoke(UPDATE_CHECK_COMMAND, { command }),
-    selectChannel: (command: UpdateSelectChannelCommand) => options.transport.invoke(UPDATE_SELECT_CHANNEL_COMMAND, { command }),
-    defer: (command: UpdateDeferCommand) => options.transport.invoke(UPDATE_DEFER_COMMAND, { command }),
-    prepare: (command: UpdatePrepareCommand) => options.transport.invoke(UPDATE_PREPARE_COMMAND, { command }),
-    apply: (command: UpdateApplyCommand) => options.transport.invoke(UPDATE_APPLY_COMMAND, { command }),
-    cancel: (command: UpdateCancelCommand) => options.transport.invoke(UPDATE_CANCEL_COMMAND, { command }),
-    listen: events === undefined ? undefined : (listener) => listen(events, UPDATE_CHANGED_EVENT, listener),
-    listenProgress: events === undefined ? undefined : (listener) => listen(events, UPDATE_PROGRESS_EVENT, listener),
+    check: (command: UpdateCheckCommand) =>
+      options.transport.invoke(UPDATE_CHECK_COMMAND, { command }),
+    selectChannel: (command: UpdateSelectChannelCommand) =>
+      options.transport.invoke(UPDATE_SELECT_CHANNEL_COMMAND, { command }),
+    defer: (command: UpdateDeferCommand) =>
+      options.transport.invoke(UPDATE_DEFER_COMMAND, { command }),
+    prepare: (command: UpdatePrepareCommand) =>
+      options.transport.invoke(UPDATE_PREPARE_COMMAND, { command }),
+    apply: (command: UpdateApplyCommand) =>
+      options.transport.invoke(UPDATE_APPLY_COMMAND, { command }),
+    cancel: (command: UpdateCancelCommand) =>
+      options.transport.invoke(UPDATE_CANCEL_COMMAND, { command }),
+    listen:
+      events === undefined
+        ? undefined
+        : (listener) => listen(events, UPDATE_CHANGED_EVENT, listener),
+    listenProgress:
+      events === undefined
+        ? undefined
+        : (listener) => listen(events, UPDATE_PROGRESS_EVENT, listener),
   };
 }
-function listen(events: EventTransport, event: string, listener: (event: unknown) => void): Promise<UpdateUnlisten> { return events.listen(event, listener); }
+function listen(
+  events: EventTransport,
+  event: string,
+  listener: (event: unknown) => void,
+): Promise<UpdateUnlisten> {
+  return events.listen(event, listener);
+}

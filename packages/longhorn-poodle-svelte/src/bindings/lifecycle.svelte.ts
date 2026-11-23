@@ -42,9 +42,7 @@ export interface StartableClientState {
   stop(): Promise<void>;
 }
 
-export class ReactiveClientState<Snapshot>
-  implements StartableClientState
-{
+export class ReactiveClientState<Snapshot> implements StartableClientState {
   readonly #options: ReactiveClientStateOptions<Snapshot>;
   #status = $state.raw<ClientStatus>({ kind: "idle" });
   #snapshot = $state.raw<Snapshot | undefined>(undefined);
@@ -76,9 +74,7 @@ export class ReactiveClientState<Snapshot>
 
     const afterStop = this.#stopTask;
     this.#startTask =
-      afterStop === undefined
-        ? this.#begin(false)
-        : afterStop.then(() => this.#begin(false));
+      afterStop === undefined ? this.#begin(false) : afterStop.then(() => this.#begin(false));
     return this.#startTask;
   }
 
@@ -126,9 +122,7 @@ export class ReactiveClientState<Snapshot>
 
     const generation = ++this.#generation;
     this.#status =
-      reconnecting || this.#snapshot !== undefined
-        ? { kind: "reconnecting" }
-        : { kind: "loading" };
+      reconnecting || this.#snapshot !== undefined ? { kind: "reconnecting" } : { kind: "loading" };
 
     let connection: ReactiveConnection<Snapshot>;
     try {
@@ -238,9 +232,9 @@ export function useClientState(
   reportFailure?: (error: unknown) => void,
 ): void {
   onMount(() => {
-    void state.start().catch((error) => reportFailure?.(error));
+    void state.start().catch((error: unknown) => reportFailure?.(error));
     return () => {
-      void state.stop().catch((error) => reportFailure?.(error));
+      void state.stop().catch((error: unknown) => reportFailure?.(error));
     };
   });
 }

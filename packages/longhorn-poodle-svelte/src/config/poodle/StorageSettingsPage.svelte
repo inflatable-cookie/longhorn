@@ -20,13 +20,8 @@
   } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
-  import {
-    CONFIG_OPERATIONS_PROTOCOL_VERSION,
-    type ConfigOperationsSnapshot,
-    type StorageProfileId,
-    type StorageTransitionPreviewProjection,
-    type StorageTransitionReceiptProjection,
-  } from "@inflatable-cookie/longhorn/config";
+  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from '@inflatable-cookie/longhorn/config';
+import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPreviewProjection, StorageTransitionReceiptProjection } from '@inflatable-cookie/longhorn/config';
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   let {
@@ -50,18 +45,18 @@
   const canTransition = $derived(
     snapshot?.capabilities.includes("storageTransition") === true,
   );
-  const profileOptions = $derived<SelectOption[]>(
+  const profileOptions = $derived<Array<SelectOption>>(
     storage?.availableProfiles.map((value) => ({
       value,
       label: profileLabel(value),
     })) ?? [],
   );
-  const rootColumns: TableColumn[] = [
+  const rootColumns: Array<TableColumn> = [
     { id: "kind", label: "Purpose", isRowHeader: true },
     { id: "path", label: "Resolved path" },
     { id: "provenance", label: "Source" },
   ];
-  const rootRows = $derived<TableRow[]>(
+  const rootRows = $derived<Array<TableRow>>(
     storage?.layout.roots.map((root) => ({
       id: root.kind,
       cells: {
@@ -73,7 +68,7 @@
   );
 
   onMount(() => {
-    if (snapshot === null) void refresh();
+    if (snapshot === null) {void refresh();}
   });
 
   async function refresh(): Promise<void> {
@@ -89,7 +84,7 @@
 
   async function inspect(): Promise<void> {
     const targetProfile = selectedProfile;
-    if (targetProfile === null) return;
+    if (targetProfile === null) {return;}
     await run(async () => {
       receipt = null;
       const outcome = await client.inspectStorageTransition({
@@ -111,7 +106,7 @@
   }
 
   async function execute(): Promise<void> {
-    if (snapshot === null || preview === null) return;
+    if (snapshot === null || preview === null) {return;}
     await run(async () => {
       const outcome = await client.executeStorageTransition({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -146,7 +141,7 @@
   }
 
   async function cleanup(): Promise<void> {
-    if (receipt === null) return;
+    if (receipt === null) {return;}
     await run(async () => {
       const outcome = await client.cleanupStorage({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -170,8 +165,8 @@
     notice = null;
     try {
       await action();
-    } catch (cause) {
-      error = errorMessage(cause);
+    } catch (error_) {
+      error = errorMessage(error_);
     } finally {
       busy = false;
     }

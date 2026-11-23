@@ -30,9 +30,7 @@ describe("trafficLightPosition", () => {
     // Stated separately from the table so a change to the offset shows up as a
     // deliberate edit here rather than as five mysterious numbers moving.
     for (const header of [40, 48, 64]) {
-      expect(trafficLightPosition(header).y).toBe(
-        header / 2 + TRAFFIC_LIGHT_OPTICAL_OFFSET,
-      );
+      expect(trafficLightPosition(header).y).toBe(header / 2 + TRAFFIC_LIGHT_OPTICAL_OFFSET);
     }
   });
 

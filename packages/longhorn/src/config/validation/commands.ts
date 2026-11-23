@@ -14,9 +14,7 @@ import type {
   StorageTransitionExecuteCommand,
   StorageTransitionInspectCommand,
 } from "../generated/protocol.ts";
-import {
-  RESTORE_ARCHIVE_SELECTION_SOURCES,
-} from "../generated/protocol.ts";
+import { RESTORE_ARCHIVE_SELECTION_SOURCES } from "../generated/protocol.ts";
 import {
   array,
   baseCommand,
@@ -95,19 +93,13 @@ export function assertValidRestoreInspectCommand(
 ): asserts value is RestoreInspectCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.RestoreInspectCommand);
   const selection = record(command.selection, "$.selection");
-  discriminant(
-    selection.source,
-    RESTORE_ARCHIVE_SELECTION_SOURCES,
-    "$.selection.source",
-  );
+  discriminant(selection.source, RESTORE_ARCHIVE_SELECTION_SOURCES, "$.selection.source");
   if (selection.source === "inventory") {
     digest(selection.archiveSha256, "$.selection.archiveSha256");
   }
 }
 
-export function assertValidRestorePlanCommand(
-  value: unknown,
-): asserts value is RestorePlanCommand {
+export function assertValidRestorePlanCommand(value: unknown): asserts value is RestorePlanCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.RestorePlanCommand);
   finiteNumber(command.generation, "$.generation");
   digest(command.archiveSha256, "$.archiveSha256");
@@ -131,11 +123,7 @@ export function assertValidRestoreAdapterExecuteCommand(
   const command = generationConfirmationCommand(value, CONFIG_FIELDS.RestoreAdapterExecuteCommand);
   digest(command.archiveSha256, "$.archiveSha256");
   nonempty(command.domainId, "$.domainId");
-  discriminant(
-    command.requirement,
-    ["failureAtomic", "allowSeparate"],
-    "$.requirement",
-  );
+  discriminant(command.requirement, ["failureAtomic", "allowSeparate"], "$.requirement");
 }
 
 export function assertValidRestoreRecoveryCommand(
@@ -146,7 +134,7 @@ export function assertValidRestoreRecoveryCommand(
 
 function generationConfirmationCommand(
   value: unknown,
-  allowed?: readonly string[],
+  allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
   const command = baseCommand(value, "$", allowed);
   finiteNumber(command.generation, "$.generation");

@@ -1,15 +1,15 @@
 import fixture from "../../../../fixtures/native-content/protocol-v1.json";
 
-import {
-  NATIVE_CONTENT_PROTOCOL_VERSION,
-  type ContentSizeDecision,
-  type ContentSizeProposal,
-  type DesiredUpdate,
-  type NativeContentChangedEvent,
-  type NativeContentConnection,
-  type NativeContentContentSizeDecisionResult,
-  type NativeContentDesiredUpdateResult,
-  type NativeContentSnapshot,
+import { NATIVE_CONTENT_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/native-content";
+import type {
+  ContentSizeDecision,
+  ContentSizeProposal,
+  DesiredUpdate,
+  NativeContentChangedEvent,
+  NativeContentConnection,
+  NativeContentContentSizeDecisionResult,
+  NativeContentDesiredUpdateResult,
+  NativeContentSnapshot,
 } from "@inflatable-cookie/longhorn/native-content";
 
 import type {
@@ -18,11 +18,11 @@ import type {
   NativeContentSessionClient,
 } from "../../src/native-content/index.ts";
 
-export function clone<Value>(value: Value): Value {
+function clone<Value>(value: Value): Value {
   return JSON.parse(JSON.stringify(value)) as Value;
 }
 
-export function baseSnapshot(): NativeContentSnapshot {
+function baseSnapshot(): NativeContentSnapshot {
   return clone(fixture.connect.snapshot) as NativeContentSnapshot;
 }
 
@@ -35,11 +35,9 @@ export function deferred<Value>() {
 }
 
 export class ScriptedClient implements NativeContentSessionClient {
-  readonly connections: ScriptedConnection[] = [];
+  readonly connections: Array<ScriptedConnection> = [];
 
-  connect(
-    listener?: (snapshot: NativeContentSnapshot) => void,
-  ): NativeContentConnection {
+  connect(listener?: (snapshot: NativeContentSnapshot) => void): NativeContentConnection {
     const snapshot = baseSnapshot();
     snapshot.cursor.client_epoch = this.connections.length + 1;
     const connection = new ScriptedConnection(snapshot, listener);
@@ -50,7 +48,7 @@ export class ScriptedClient implements NativeContentSessionClient {
 
 export class ScriptedConnection implements NativeContentConnection {
   readonly ready: Promise<NativeContentSnapshot>;
-  readonly updates: DesiredUpdate[] = [];
+  readonly updates: Array<DesiredUpdate> = [];
   disposeCount = 0;
   #snapshot: NativeContentSnapshot;
   #listener: ((snapshot: NativeContentSnapshot) => void) | undefined;
@@ -90,9 +88,7 @@ export class ScriptedConnection implements NativeContentConnection {
     return () => gate.resolve();
   }
 
-  resolveNextUpdateWith(
-    result: Promise<NativeContentDesiredUpdateResult>,
-  ): void {
+  resolveNextUpdateWith(result: Promise<NativeContentDesiredUpdateResult>): void {
     this.#nextResult = result;
   }
 
@@ -106,17 +102,19 @@ export class ScriptedConnection implements NativeContentConnection {
       generation,
     };
     const snapshot = this.currentSnapshot();
-    if (!this.#disposed) this.#listener?.(snapshot);
+    if (!this.#disposed) {
+      this.#listener?.(snapshot);
+    }
     return snapshot;
   }
 
-  async updateDesired(
-    update: DesiredUpdate,
-  ): Promise<NativeContentDesiredUpdateResult> {
+  async updateDesired(update: DesiredUpdate): Promise<NativeContentDesiredUpdateResult> {
     this.updates.push(clone(update));
     const fixedResult = this.#nextResult;
     this.#nextResult = undefined;
-    if (fixedResult !== undefined) return fixedResult;
+    if (fixedResult !== undefined) {
+      return fixedResult;
+    }
 
     const gate = this.#nextGate;
     this.#nextGate = undefined;
@@ -132,7 +130,9 @@ export class ScriptedConnection implements NativeContentConnection {
   }
 
   async dispose(): Promise<void> {
-    if (this.#disposed) return;
+    if (this.#disposed) {
+      return;
+    }
     this.#disposed = true;
     this.#listener = undefined;
     this.disposeCount += 1;
@@ -164,7 +164,9 @@ export class ScriptedConnection implements NativeContentConnection {
       },
     };
     const snapshot = this.currentSnapshot();
-    if (!this.#disposed) this.#listener?.(snapshot);
+    if (!this.#disposed) {
+      this.#listener?.(snapshot);
+    }
     return {
       status: "committed",
       request_id: requestId,
@@ -177,7 +179,7 @@ export class ScriptedConnection implements NativeContentConnection {
 
 export class ResizeObserverTrace {
   readonly callbacks: Array<() => void> = [];
-  readonly observers: TracedResizeObserver[] = [];
+  readonly observers: Array<TracedResizeObserver> = [];
   readonly factory: NativeContentResizeObserverFactory = (callback) => {
     this.callbacks.push(callback);
     const observer = new TracedResizeObserver();
@@ -191,7 +193,7 @@ export class ResizeObserverTrace {
 }
 
 class TracedResizeObserver implements NativeContentResizeObserver {
-  readonly observed: Element[] = [];
+  readonly observed: Array<Element> = [];
   disconnectCount = 0;
 
   observe(target: Element): void {
@@ -203,25 +205,25 @@ class TracedResizeObserver implements NativeContentResizeObserver {
   }
 }
 
-export function viewportElement(
-  rect: { left: number; top: number; width: number; height: number },
-): HTMLElement {
+export function viewportElement(rect: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): HTMLElement {
   const element = document.createElement("div");
-  element.getBoundingClientRect = () =>
-    ({
-      ...rect,
-      x: rect.left,
-      y: rect.top,
-      right: rect.left + rect.width,
-      bottom: rect.top + rect.height,
-      toJSON: () => rect,
-    }) as DOMRect;
+  element.getBoundingClientRect = () => ({
+    ...rect,
+    x: rect.left,
+    y: rect.top,
+    right: rect.left + rect.width,
+    bottom: rect.top + rect.height,
+    toJSON: () => rect,
+  });
   return element;
 }
 
-export function committedResult(
-  snapshot: NativeContentSnapshot,
-): NativeContentDesiredUpdateResult {
+export function committedResult(snapshot: NativeContentSnapshot): NativeContentDesiredUpdateResult {
   const requestId = "request:stale-result";
   const receipt = {
     previous_revision: snapshot.cursor.desired_revision - 1,

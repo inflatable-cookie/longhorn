@@ -1,12 +1,11 @@
-import {
-  CheckedSnapshotConnection,
-  type ConnectionFailure,
-  type ConnectionFailureReporter,
-  type EventTransport,
+import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import type {
+  ConnectionFailure,
+  ConnectionFailureReporter,
+  EventTransport,
 } from "@inflatable-cookie/longhorn/core";
 
 import type {
-  SurfaceChangedEvent,
   SurfaceMutationRequest,
   SurfaceMutationResponse,
   SurfaceSnapshot,
@@ -25,7 +24,7 @@ export const SURFACE_CHANGED_EVENT = "longhorn://surfaces/changed";
 export interface SurfaceSubscription {
   readonly ready: Promise<void>;
   current(): SurfaceSnapshot | undefined;
-  failures(): readonly ConnectionFailure[];
+  failures(): ReadonlyArray<ConnectionFailure>;
   dispose(): Promise<void>;
 }
 
@@ -41,9 +40,7 @@ export class SurfaceClient {
     return parseSurfaceSnapshot(value);
   }
 
-  async mutate(
-    request: SurfaceMutationRequest,
-  ): Promise<SurfaceMutationResponse> {
+  async mutate(request: SurfaceMutationRequest): Promise<SurfaceMutationResponse> {
     assertValidSurfaceMutationCommand(request.command);
     const value = await this.#transport.invoke(SURFACE_MUTATE_COMMAND, {
       request,
@@ -56,12 +53,7 @@ export class SurfaceClient {
     listener: (snapshot: SurfaceSnapshot) => void,
     onFailure?: ConnectionFailureReporter,
   ): SurfaceSubscription {
-    return new SurfaceSnapshotSubscription(
-      this,
-      this.#transport,
-      listener,
-      onFailure,
-    );
+    return new SurfaceSnapshotSubscription(this, this.#transport, listener, onFailure);
   }
 }
 
@@ -76,8 +68,7 @@ class SurfaceSnapshotSubscription implements SurfaceSubscription {
     onFailure?: ConnectionFailureReporter,
   ) {
     this.#connection = new CheckedSnapshotConnection({
-      listen: (receive) =>
-        transport.listen(SURFACE_CHANGED_EVENT, receive),
+      listen: (receive) => transport.listen(SURFACE_CHANGED_EVENT, receive),
       loadSnapshot: () => client.snapshot(),
       validateSnapshot: parseSurfaceSnapshot,
       handleEvent: surfaceEventAction,
@@ -92,7 +83,7 @@ class SurfaceSnapshotSubscription implements SurfaceSubscription {
     return this.#connection.current();
   }
 
-  failures(): readonly ConnectionFailure[] {
+  failures(): ReadonlyArray<ConnectionFailure> {
     return this.#connection.failures();
   }
 
@@ -115,11 +106,10 @@ function surfaceEventAction(
     return { kind: "refresh" };
   }
 
-  const event = value as SurfaceChangedEvent;
+  const event = value;
   if (
     event.epoch < current.epoch ||
-    (event.epoch === current.epoch &&
-      event.revision <= current.revision)
+    (event.epoch === current.epoch && event.revision <= current.revision)
   ) {
     return { kind: "ignore" };
   }

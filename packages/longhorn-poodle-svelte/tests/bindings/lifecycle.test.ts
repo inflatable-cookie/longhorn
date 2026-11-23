@@ -1,11 +1,8 @@
 import { render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import {
-  ReactiveClientState,
-  type ReactiveConnection,
-  type StartableClientState,
-} from "../../src/bindings/index.ts";
+import { ReactiveClientState } from "../../src/bindings/index.ts";
+import type { ReactiveConnection, StartableClientState } from "../../src/bindings/index.ts";
 import LifecycleHarness from "./LifecycleHarness.svelte";
 import StatusHarness from "./StatusHarness.svelte";
 
@@ -68,8 +65,7 @@ describe("ReactiveClientState", () => {
     const failed = new ReactiveClientState<string>({
       capability: {
         kind: "supported",
-        connect: () =>
-          connection(() => undefined, Promise.reject(failure)),
+        connect: () => connection(() => undefined, Promise.reject(failure)),
       },
     });
     await expect(failed.start()).rejects.toBe(failure);

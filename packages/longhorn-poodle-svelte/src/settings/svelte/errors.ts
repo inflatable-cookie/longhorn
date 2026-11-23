@@ -4,9 +4,7 @@ export class MissingSettingsRendererError extends Error {
   readonly page: SettingsPageDefinition;
 
   constructor(page: SettingsPageDefinition) {
-    super(
-      `settings renderer ${page.rendererId} is missing for page ${page.id}`,
-    );
+    super(`settings renderer ${page.rendererId} is missing for page ${page.id}`);
     this.name = "MissingSettingsRendererError";
     this.page = page;
   }
@@ -81,4 +79,3 @@ export class SettingsScopeUnavailableError extends Error {
     this.name = "SettingsScopeUnavailableError";
   }
 }
-

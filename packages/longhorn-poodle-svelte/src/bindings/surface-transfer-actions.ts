@@ -9,8 +9,8 @@ import {
   TRANSFER_PROTOCOL_VERSION,
   parseTransferPayload,
   serializeTransferPayload,
-  type TransferCommitSelector,
 } from "@inflatable-cookie/longhorn/transfer";
+import type { TransferCommitSelector } from "@inflatable-cookie/longhorn/transfer";
 
 import type { SurfaceTransferState } from "./surface-transfer.svelte.ts";
 
@@ -58,19 +58,13 @@ export function surfaceTransferDrag(
     armedRequest = undefined;
     removePointerListeners();
     removePointerListeners = () => undefined;
-    void options.state.cancelPreparation().catch((error) => {
+    void options.state.cancelPreparation().catch((error: unknown) => {
       reportError(options.reportError, error);
     });
   }
 
   function handlePointerDown(event: PointerEvent): void {
-    if (
-      event.button !== 0 ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey
-    ) {
+    if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
       return;
     }
     cancel();
@@ -87,19 +81,19 @@ export function surfaceTransferDrag(
         ownerWindow.removeEventListener("pointercancel", released, true);
       };
     }
-    void options.state.prepare(request).then((response) => {
-      notify(options.onPreparation, response, options.reportError);
-      if (
-        generation === preparationGeneration &&
-        response.status !== "started"
-      ) {
-        armedRequest = undefined;
-      }
-    }).catch((error) => {
-      if (generation === preparationGeneration) {
-        reportError(options.reportError, error);
-      }
-    });
+    void options.state
+      .prepare(request)
+      .then((response) => {
+        notify(options.onPreparation, response, options.reportError);
+        if (generation === preparationGeneration && response.status !== "started") {
+          armedRequest = undefined;
+        }
+      })
+      .catch((error: unknown) => {
+        if (generation === preparationGeneration) {
+          reportError(options.reportError, error);
+        }
+      });
   }
 
   function handleDragStart(event: DragEvent): void {
@@ -114,10 +108,7 @@ export function surfaceTransferDrag(
     ) {
       event.preventDefault();
       cancel();
-      reportError(
-        options.reportError,
-        new StaleSurfaceTransferPreparationError(),
-      );
+      reportError(options.reportError, new StaleSurfaceTransferPreparationError());
       return;
     }
     removePointerListeners();
@@ -159,14 +150,20 @@ export function surfaceTransferDrop(
   let options = initialOptions;
 
   function handleDragOver(event: DragEvent): void {
-    if (readPayload(event.dataTransfer) === null) return;
+    if (readPayload(event.dataTransfer) === null) {
+      return;
+    }
     event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "move";
+    }
   }
 
   function handleDrop(event: DragEvent): void {
     const payload = readPayload(event.dataTransfer);
-    if (payload === null) return;
+    if (payload === null) {
+      return;
+    }
     event.preventDefault();
     let request: SurfaceTransferCommand;
     try {
@@ -181,11 +178,12 @@ export function surfaceTransferDrop(
       notifyTerminal(options.onTerminal, options.reportError);
       return;
     }
-    void options.state.commit(request)
+    void options.state
+      .commit(request)
       .then((response) => {
         notify(options.onResponse, response, options.reportError);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         reportError(options.reportError, error);
       })
       .finally(() => {
@@ -214,9 +212,13 @@ export class StaleSurfaceTransferPreparationError extends Error {
 }
 
 function readPayload(dataTransfer: DataTransfer | null | undefined) {
-  if (dataTransfer == null) return null;
+  if (dataTransfer == null) {
+    return null;
+  }
   const raw = dataTransfer.getData(LONGHORN_TRANSFER_MIME_TYPE);
-  if (raw.length === 0) return null;
+  if (raw.length === 0) {
+    return null;
+  }
   try {
     return parseTransferPayload(raw);
   } catch {
@@ -224,20 +226,14 @@ function readPayload(dataTransfer: DataTransfer | null | undefined) {
   }
 }
 
-function resolveSelector(
-  selector: SurfaceDropSelector,
-  event: DragEvent,
-): TransferCommitSelector {
+function resolveSelector(selector: SurfaceDropSelector, event: DragEvent): TransferCommitSelector {
   if (selector.kind === "explicit_zone") {
     return {
       kind: "explicit_zone",
       drop_zone_id: selector.dropZoneId,
     };
   }
-  if (
-    !Number.isSafeInteger(event.screenX) ||
-    !Number.isSafeInteger(event.screenY)
-  ) {
+  if (!Number.isSafeInteger(event.screenX) || !Number.isSafeInteger(event.screenY)) {
     throw new RangeError("drop screen point must use integer screen DIPs");
   }
   return {
@@ -246,10 +242,7 @@ function resolveSelector(
   };
 }
 
-function reportError(
-  reporter: (error: unknown) => void,
-  error: unknown,
-): void {
+function reportError(reporter: (error: unknown) => void, error: unknown): void {
   try {
     reporter(error);
   } catch {

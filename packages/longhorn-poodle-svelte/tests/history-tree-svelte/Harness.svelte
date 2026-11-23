@@ -4,10 +4,8 @@
   // ships a competing surface -- but the test was always about the session:
   // that it mounts, loads branches only when asked, and tears its listener
   // down. The one control it reaches for is reproduced here.
-  import {
-    useForkHistorySession,
-    type ForkHistorySession,
-  } from "../../src/history-tree/svelte.ts";
+  import { useForkHistorySession } from '../../src/history-tree/svelte.ts';
+import type { ForkHistorySession } from '../../src/history-tree/svelte.ts';
 
   let { session }: { session: ForkHistorySession } = $props();
   useForkHistorySession(() => session);

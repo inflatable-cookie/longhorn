@@ -1,9 +1,11 @@
 import {
   NOTIFICATION_SEVERITY_LABELS,
   notificationSeverityTone,
-  type NotificationRecordProjection,
-  type NotificationSeverityProjection,
-  type NotificationStatusTone,
+} from "@inflatable-cookie/longhorn/notifications";
+import type {
+  NotificationRecordProjection,
+  NotificationSeverityProjection,
+  NotificationStatusTone,
 } from "@inflatable-cookie/longhorn/notifications";
 
 /**

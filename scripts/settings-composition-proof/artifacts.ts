@@ -2,7 +2,7 @@ import { poodleRelease } from "../poodle-release.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
-import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
+import { MSRV } from "../msrv.ts";
 
 import { digest, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
@@ -39,22 +39,14 @@ export async function packTypescriptArtifacts(
   repoRoot: string,
   artifactRoot: string,
 ): Promise<{
-  readonly identities: readonly ArtifactIdentity[];
+  readonly identities: ReadonlyArray<ArtifactIdentity>;
   readonly paths: ReadonlyMap<string, string>;
 }> {
   const paths = new Map<string, string>();
   const identities = [];
   for (const [name, directory] of typescriptPackages) {
     await run(
-      [
-        "bun",
-        "pm",
-        "pack",
-        "--destination",
-        artifactRoot,
-        "--ignore-scripts",
-        "--quiet",
-      ],
+      ["bun", "pm", "pack", "--destination", artifactRoot, "--ignore-scripts", "--quiet"],
       join(repoRoot, "packages", directory),
     );
     const path = join(
@@ -71,7 +63,7 @@ export async function packAndCheckRustArtifacts(
   repoRoot: string,
   temporaryRoot: string,
   buildTarget: string,
-): Promise<readonly ArtifactIdentity[]> {
+): Promise<ReadonlyArray<ArtifactIdentity>> {
   const artifactRoot = join(temporaryRoot, "rust-archives");
   const workspace = join(temporaryRoot, "rust-workspace");
   await mkdir(artifactRoot);
@@ -82,21 +74,8 @@ export async function packAndCheckRustArtifacts(
     // it runs through the switch point. The `check` call below leases the staged
     // workspace instead.
     await run(rustCommand(["package", "-p", name, "--list", "--allow-dirty"]), repoRoot);
-    const archive = join(
-      artifactRoot,
-      `${name}-${LONGHORN_VERSION}.private.tar.gz`,
-    );
-    await run(
-      [
-        "tar",
-        "-czf",
-        archive,
-        "-C",
-        repoRoot,
-        `crates/${name}`,
-      ],
-      repoRoot,
-    );
+    const archive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar.gz`);
+    await run(["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xzf", archive, "-C", workspace], repoRoot);
     identities.push({
       name,
@@ -121,14 +100,8 @@ async function inspectNpmArtifact(
   ) {
     throw new Error(`${name} artifact contains proof or workspace material`);
   }
-  const packedManifest = await run(
-    ["tar", "-xOzf", path, "package/package.json"],
-    repoRoot,
-  );
-  if (
-    packedManifest.includes("workspace:") ||
-    packedManifest.includes("link:")
-  ) {
+  const packedManifest = await run(["tar", "-xOzf", path, "package/package.json"], repoRoot);
+  if (packedManifest.includes("workspace:") || packedManifest.includes("link:")) {
     throw new Error(`${name} artifact contains workspace dependency aliases`);
   }
   if (name === "@inflatable-cookie/longhorn") {
@@ -152,9 +125,7 @@ function assertFrameworkRootBoundary(manifest: {
   // that needed a peer moved to longhorn-poodle-svelte.
   const dependencies = Object.keys(manifest.dependencies ?? {});
   if (dependencies.length !== 0) {
-    throw new Error(
-      `framework root declares dependencies: ${dependencies.join(", ")}`,
-    );
+    throw new Error(`framework root declares dependencies: ${dependencies.join(", ")}`);
   }
   const peers = Object.keys(manifest.peerDependencies ?? {});
   if (peers.length !== 0) {
@@ -162,16 +133,10 @@ function assertFrameworkRootBoundary(manifest: {
   }
 }
 
-async function checkRustConsumer(
-  workspace: string,
-  buildTarget: string,
-): Promise<void> {
+async function checkRustConsumer(workspace: string, buildTarget: string): Promise<void> {
   const consumer = join(workspace, "consumer");
   await mkdir(join(consumer, "src"), { recursive: true });
-  await writeFile(
-    join(workspace, "Cargo.toml"),
-    privateWorkspaceManifest(),
-  );
+  await writeFile(join(workspace, "Cargo.toml"), privateWorkspaceManifest());
   await writeFile(
     join(consumer, "Cargo.toml"),
     `[package]

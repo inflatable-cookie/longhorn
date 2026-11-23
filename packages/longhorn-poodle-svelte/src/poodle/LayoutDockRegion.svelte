@@ -128,8 +128,8 @@ import type {
   {size}
   {sizeRole}
   {density}
-  crossWindowDragSource={crossWindowDragSource ?? undefined}
-  crossWindowDropTarget={crossWindowDropTarget ?? undefined}
+  {...crossWindowDragSource ? { crossWindowDragSource } : {}}
+  {...crossWindowDropTarget ? { crossWindowDropTarget } : {}}
   dragZoneId={regionId}
   items={[...projection.items]}
   value={projection.state.active_panel_instance_id}
@@ -143,6 +143,6 @@ import type {
   onReorder={(panelInstanceIds) =>
     binding.reorder(containerId, regionId, panelInstanceIds)}
   onPanelDrop={({ panel: dropped }) => movePanel(dropped.panelId)}
-  children={body ? renderBody : undefined}
-  panel={panel ? renderPanel : undefined}
+  {...body ? { children: renderBody } : {}}
+  {...panel ? { panel: renderPanel } : {}}
 />

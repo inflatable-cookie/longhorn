@@ -1,6 +1,14 @@
 import { NotificationSession } from "../../src/notifications/svelte.ts";
-import type { NotificationChangedEvent, NotificationMutationCommand, NotificationSnapshot, NotificationSnapshotQuery } from "../../../longhorn/src/notifications/generated/protocol.ts";
-import type { NotificationPort, NotificationUnlisten } from "../../../longhorn/src/notifications/ports.ts";
+import type {
+  NotificationChangedEvent,
+  NotificationMutationCommand,
+  NotificationSnapshot,
+  NotificationSnapshotQuery,
+} from "../../../longhorn/src/notifications/generated/protocol.ts";
+import type {
+  NotificationPort,
+  NotificationUnlisten,
+} from "../../../longhorn/src/notifications/ports.ts";
 import { cloned, fixture } from "../../../longhorn/tests/notifications/support.ts";
 
 export class MountedNotificationPort implements NotificationPort {
@@ -9,10 +17,23 @@ export class MountedNotificationPort implements NotificationPort {
   request = 0;
   unlistenCount = 0;
 
-  async snapshot(query: NotificationSnapshotQuery): Promise<unknown> { return { requestId: query.requestId, snapshot: cloned(this.snapshotValue) }; }
-  async mutate(_command: NotificationMutationCommand): Promise<unknown> { throw new Error("mutation not expected in presentation fixture"); }
-  listen(listener: (event: unknown) => void): NotificationUnlisten { this.listeners.add(listener); return () => { this.listeners.delete(listener); this.unlistenCount += 1; }; }
-  nextRequestId(): string { this.request += 1; return `request:svelte-${this.request}`; }
+  async snapshot(query: NotificationSnapshotQuery): Promise<unknown> {
+    return { requestId: query.requestId, snapshot: cloned(this.snapshotValue) };
+  }
+  async mutate(_command: NotificationMutationCommand): Promise<unknown> {
+    throw new Error("mutation not expected in presentation fixture");
+  }
+  listen(listener: (event: unknown) => void): NotificationUnlisten {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+      this.unlistenCount += 1;
+    };
+  }
+  nextRequestId(): string {
+    this.request += 1;
+    return `request:svelte-${this.request}`;
+  }
 
   publish(snapshot: NotificationSnapshot): void {
     const previousLedgerRevision = this.snapshotValue.ledgerRevision;
@@ -26,7 +47,9 @@ export class MountedNotificationPort implements NotificationPort {
       affectedNotificationIds: snapshot.page.records.map((record) => record.notificationId),
       kind: "added",
     };
-    for (const listener of this.listeners) listener(event);
+    for (const listener of this.listeners) {
+      listener(event);
+    }
   }
 }
 

@@ -8,10 +8,7 @@ import type {
   RegionState,
   SizingSlotDefinition,
 } from "@inflatable-cookie/longhorn/layout";
-import type {
-  SurfaceRecord,
-  SurfaceDocument,
-} from "@inflatable-cookie/longhorn/surfaces";
+import type { SurfaceRecord, SurfaceDocument } from "@inflatable-cookie/longhorn/surfaces";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 import type { IconProp, PanelTabItem } from "@inflatable-cookie/poodle-svelte";
 
@@ -24,8 +21,8 @@ export interface LayoutMutationState {
 }
 
 export interface PoodleLayoutDefinitions {
-  readonly schemas: readonly LayoutSchemaDefinition[];
-  readonly panels: readonly PanelDefinition[];
+  readonly schemas: ReadonlyArray<LayoutSchemaDefinition>;
+  readonly panels: ReadonlyArray<PanelDefinition>;
 }
 
 export interface PanelPresentation {
@@ -33,9 +30,7 @@ export interface PanelPresentation {
   readonly icon?: IconProp | null;
 }
 
-export type PanelPresentationResolver = (
-  instance: PanelInstance,
-) => PanelPresentation | null;
+export type PanelPresentationResolver = (instance: PanelInstance) => PanelPresentation | null;
 
 export interface PanelRenderContext {
   readonly instance: PanelInstance;
@@ -47,7 +42,7 @@ export interface RegionProjection {
   readonly container: SurfaceRecord;
   readonly definition: RegionDefinition;
   readonly state: RegionState;
-  readonly items: readonly PanelTabItem[];
+  readonly items: ReadonlyArray<PanelTabItem>;
   readonly panels: ReadonlyMap<PanelInstanceId, PanelRenderContext>;
   readonly active: PanelRenderContext | null;
 }
@@ -81,9 +76,7 @@ export class MissingLayoutMemberError extends Error {
 
 export class MissingPanelPresentationError extends Error {
   constructor(panelInstanceId: PanelInstanceId) {
-    super(
-      `consumer supplied no presentation for panel instance ${panelInstanceId}`,
-    );
+    super(`consumer supplied no presentation for panel instance ${panelInstanceId}`);
     this.name = "MissingPanelPresentationError";
   }
 }

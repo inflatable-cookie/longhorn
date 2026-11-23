@@ -12,10 +12,7 @@ import type {
   CommandPlatform,
 } from "./generated/protocol.ts";
 import { shortcutLabel } from "./projectors.ts";
-import type {
-  CommandExecutionOutcome,
-  CommandExecutionSource,
-} from "./ports.ts";
+import type { CommandExecutionOutcome, CommandExecutionSource } from "./ports.ts";
 
 export interface KeyboardEventLike {
   readonly code: string;
@@ -33,11 +30,11 @@ export interface KeyboardEventLike {
 export interface CommandKeyboardResolutionOptions {
   readonly platform: CommandPlatform;
   readonly input: CommandKeyboardInput;
-  readonly contextPath: readonly string[];
+  readonly contextPath: ReadonlyArray<string>;
   readonly mode: CommandKeyboardMode;
-  readonly bindings: readonly CommandEffectiveBinding[];
-  readonly commands: readonly CommandDiscoveryRecord[];
-  readonly reserved?: (platform: CommandPlatform, chord: CommandKeyChord) => boolean;
+  readonly bindings: ReadonlyArray<CommandEffectiveBinding>;
+  readonly commands: ReadonlyArray<CommandDiscoveryRecord>;
+  readonly reserved?: ((platform: CommandPlatform, chord: CommandKeyChord) => boolean) | undefined;
 }
 
 export interface CommandKeyboardDispatch {
@@ -47,8 +44,7 @@ export interface CommandKeyboardDispatch {
   ): Promise<CommandExecutionOutcome>;
 }
 
-export interface RouteKeyboardEventOptions
-  extends Omit<CommandKeyboardResolutionOptions, "input"> {
+export interface RouteKeyboardEventOptions extends Omit<CommandKeyboardResolutionOptions, "input"> {
   readonly dispatcher: CommandKeyboardDispatch;
   readonly editableTarget?: (target: unknown) => boolean;
   readonly onCapture?: (chord: CommandKeyChord, label: string) => void;
@@ -84,9 +80,15 @@ export function resolveCommandKeyboard(
   options: CommandKeyboardResolutionOptions,
 ): CommandKeyResolution {
   const { input } = options;
-  if (!validPhysicalCode(input.chord.code)) return { kind: "unbound" };
-  if (input.repeat) return gated("repeat");
-  if (input.composing) return gated("composition");
+  if (!validPhysicalCode(input.chord.code)) {
+    return { kind: "unbound" };
+  }
+  if (input.repeat) {
+    return gated("repeat");
+  }
+  if (input.composing) {
+    return gated("composition");
+  }
   if (options.reserved?.(options.platform, input.chord) === true) {
     return gated("reserved");
   }
@@ -98,9 +100,7 @@ export function resolveCommandKeyboard(
     };
   }
 
-  const positions = new Map(
-    options.contextPath.map((contextId, index) => [contextId, index]),
-  );
+  const positions = new Map(options.contextPath.map((contextId, index) => [contextId, index]));
   const matches = options.bindings
     .flatMap((binding) => {
       const specificity = positions.get(binding.contextId);
@@ -115,38 +115,33 @@ export function resolveCommandKeyboard(
     })
     .sort(
       (left, right) =>
-        right.specificity - left.specificity ||
-        left.binding.id.localeCompare(right.binding.id),
+        right.specificity - left.specificity || left.binding.id.localeCompare(right.binding.id),
     );
-  if (matches.length === 0) return { kind: "unbound" };
+  if (matches.length === 0) {
+    return { kind: "unbound" };
+  }
 
   const winningSpecificity = matches[0]!.specificity;
   const winningContext = matches[0]!.binding.contextId;
-  const winning = matches.filter(
-    ({ specificity }) => specificity === winningSpecificity,
-  );
-  const distinctInvocations = uniqueInvocations(
-    winning.map(({ binding }) => binding.invocation),
-  );
+  const winning = matches.filter(({ specificity }) => specificity === winningSpecificity);
+  const distinctInvocations = uniqueInvocations(winning.map(({ binding }) => binding.invocation));
   const conflict = distinctInvocations.length > 1;
   const representativeId = matches[0]!.binding.id;
-  const candidates: CommandBindingCandidate[] = matches.map(
-    ({ binding, specificity }) => ({
-      bindingId: binding.id,
-      source: binding.source,
-      matchedContextId: binding.contextId,
-      specificity,
-      invocation: binding.invocation,
-      disposition:
-        specificity < winningSpecificity
-          ? { kind: "shadowed", byContextId: winningContext }
-          : conflict
-            ? { kind: "conflict" }
-            : binding.id === representativeId
-              ? { kind: "winner" }
-              : { kind: "equivalent" },
-    }),
-  );
+  const candidates: Array<CommandBindingCandidate> = matches.map(({ binding, specificity }) => ({
+    bindingId: binding.id,
+    source: binding.source,
+    matchedContextId: binding.contextId,
+    specificity,
+    invocation: binding.invocation,
+    disposition:
+      specificity < winningSpecificity
+        ? { kind: "shadowed", byContextId: winningContext }
+        : conflict
+          ? { kind: "conflict" }
+          : binding.id === representativeId
+            ? { kind: "winner" }
+            : { kind: "equivalent" },
+  }));
 
   if (conflict) {
     const record: CommandKeymapConflict = {
@@ -160,9 +155,7 @@ export function resolveCommandKeyboard(
   }
 
   const binding = matches[0]!.binding;
-  const declaration = options.commands.find(
-    ({ id }) => id === binding.invocation.commandId,
-  );
+  const declaration = options.commands.find(({ id }) => id === binding.invocation.commandId);
   if (input.editableText && declaration?.textInputPolicy === "blocked") {
     return { kind: "gated", gate: "textInput", candidates };
   }
@@ -185,8 +178,7 @@ export function routeCommandKeyboardEvent(
     ...options,
     input: normalizeKeyboardEvent(event, options.editableTarget),
   });
-  const consumed =
-    resolution.kind === "captured" || resolution.kind === "resolved";
+  const consumed = resolution.kind === "captured" || resolution.kind === "resolved";
   if (consumed) {
     event.preventDefault();
     event.stopPropagation();
@@ -199,27 +191,29 @@ export function routeCommandKeyboardEvent(
     return {
       consumed,
       resolution,
-      execution: options.dispatcher.dispatchInvocation(
-        resolution.winner.invocation,
-        "keyboard",
-      ),
+      execution: options.dispatcher.dispatchInvocation(resolution.winner.invocation, "keyboard"),
     };
   }
   return { consumed, resolution };
 }
 
 export function isEditableCommandTarget(target: unknown): boolean {
-  if (typeof target !== "object" || target === null) return false;
+  if (typeof target !== "object" || target === null) {
+    return false;
+  }
   const record = target as {
     readonly isContentEditable?: boolean;
     readonly tagName?: unknown;
     readonly role?: unknown;
     getAttribute?(name: string): string | null;
   };
-  if (record.isContentEditable === true) return true;
-  const tag =
-    typeof record.tagName === "string" ? record.tagName.toLowerCase() : "";
-  if (tag === "input" || tag === "textarea" || tag === "select") return true;
+  if (record.isContentEditable === true) {
+    return true;
+  }
+  const tag = typeof record.tagName === "string" ? record.tagName.toLowerCase() : "";
+  if (tag === "input" || tag === "textarea" || tag === "select") {
+    return true;
+  }
   const role =
     typeof record.getAttribute === "function"
       ? record.getAttribute("role")
@@ -229,9 +223,7 @@ export function isEditableCommandTarget(target: unknown): boolean {
   return role === "textbox" || role === "searchbox";
 }
 
-function gated(
-  gate: "repeat" | "composition" | "reserved",
-): CommandKeyResolution {
+function gated(gate: "repeat" | "composition" | "reserved"): CommandKeyResolution {
   return { kind: "gated", gate, candidates: [] };
 }
 
@@ -251,8 +243,7 @@ function resolveBindingChord(
     modifiers: {
       control:
         binding.trigger.modifiers.control ||
-        (binding.trigger.modifiers.primary &&
-          (platform === "windows" || platform === "linux")),
+        (binding.trigger.modifiers.primary && (platform === "windows" || platform === "linux")),
       alt: binding.trigger.modifiers.alt,
       shift: binding.trigger.modifiers.shift,
       meta:
@@ -273,8 +264,8 @@ function sameChord(left: CommandKeyChord, right: CommandKeyChord): boolean {
 }
 
 function uniqueInvocations(
-  invocations: readonly CommandInvocation[],
-): CommandInvocation[] {
+  invocations: ReadonlyArray<CommandInvocation>,
+): Array<CommandInvocation> {
   const keyed = new Map<string, CommandInvocation>();
   for (const invocation of invocations) {
     keyed.set(invocationKey(invocation), invocation);
@@ -289,26 +280,25 @@ function invocationKey(invocation: CommandInvocation): string {
   return JSON.stringify([invocation.commandId, argumentsKey]);
 }
 
-function compareInvocation(
-  left: CommandInvocation,
-  right: CommandInvocation,
-): number {
+function compareInvocation(left: CommandInvocation, right: CommandInvocation): number {
   const id = compareText(left.commandId, right.commandId);
-  if (id !== 0) return id;
-  const leftArguments = Object.entries(left.arguments).sort(([a], [b]) =>
-    compareText(a, b),
-  );
-  const rightArguments = Object.entries(right.arguments).sort(([a], [b]) =>
-    compareText(a, b),
-  );
+  if (id !== 0) {
+    return id;
+  }
+  const leftArguments = Object.entries(left.arguments).sort(([a], [b]) => compareText(a, b));
+  const rightArguments = Object.entries(right.arguments).sort(([a], [b]) => compareText(a, b));
   const length = Math.min(leftArguments.length, rightArguments.length);
   for (let index = 0; index < length; index += 1) {
     const [leftId, leftValue] = leftArguments[index]!;
     const [rightId, rightValue] = rightArguments[index]!;
     const field = compareText(leftId, rightId);
-    if (field !== 0) return field;
+    if (field !== 0) {
+      return field;
+    }
     const value = compareArgumentValue(leftValue, rightValue);
-    if (value !== 0) return value;
+    if (value !== 0) {
+      return value;
+    }
   }
   return leftArguments.length - rightArguments.length;
 }
@@ -325,7 +315,9 @@ function compareArgumentValue(
     enum: 4,
   } as const;
   const rank = ranks[left.kind] - ranks[right.kind];
-  if (rank !== 0) return rank;
+  if (rank !== 0) {
+    return rank;
+  }
   if (
     (left.kind === "number" || left.kind === "integer") &&
     (right.kind === "number" || right.kind === "integer")
@@ -343,10 +335,10 @@ function compareText(left: string, right: string): number {
   const rightValues = [...right];
   const length = Math.min(leftValues.length, rightValues.length);
   for (let index = 0; index < length; index += 1) {
-    const difference =
-      leftValues[index]!.codePointAt(0)! -
-      rightValues[index]!.codePointAt(0)!;
-    if (difference !== 0) return difference;
+    const difference = leftValues[index]!.codePointAt(0)! - rightValues[index]!.codePointAt(0)!;
+    if (difference !== 0) {
+      return difference;
+    }
   }
   return leftValues.length - rightValues.length;
 }

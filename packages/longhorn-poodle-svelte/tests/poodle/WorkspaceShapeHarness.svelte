@@ -4,20 +4,17 @@
   RegionId,
 } from "@inflatable-cookie/longhorn/layout";
 
-  import {
-    LayoutDockRegion,
-    type PanelPresentationResolver,
-    type PoodleLayoutBinding,
-  } from "../../src/poodle/index.ts";
+  import { LayoutDockRegion } from '../../src/poodle/index.ts';
+import type { PanelPresentationResolver, PoodleLayoutBinding } from '../../src/poodle/index.ts';
 
   interface Props {
     binding: PoodleLayoutBinding;
-    regions: readonly RegionId[];
+    regions: ReadonlyArray<RegionId>;
     resolvePanel: PanelPresentationResolver;
   }
 
   let { binding, regions, resolvePanel }: Props = $props();
-  const edges: DockEdge[] = ["left", "right", "top", "bottom"];
+  const edges: Array<DockEdge> = ["left", "right", "top", "bottom"];
 </script>
 
 <div data-workspace-shape>
@@ -26,7 +23,7 @@
       {binding}
       containerId="surface:primary"
       {regionId}
-      edge={edges[index % edges.length]}
+      edge={edges[index % edges.length] ?? "left"}
       {resolvePanel}
       ariaLabel={`${regionId} region`}
     />

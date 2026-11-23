@@ -44,8 +44,16 @@ effigy qa
 `check:runner-tools`, `check:release-gates`, `check:agent-control-skill`) and
 built-in scans without compiling the workspace. `effigy qa` is the full
 Rust/TypeScript gate. `effigy test` uses the built-in test plan, which runs
-nextest and therefore does not cover the doc tests counted by `qa`. Use
-`test:rust` when doc tests are part of the check.
+nextest. `test:rust` runs Cargo's workspace unit, integration and doc tests
+in one route. The focused PTY and Git workspace selectors use nextest for isolation
+and timeouts. The workspace route also exercises PTY sessions in one process.
+
+`check:ts` typechecks the packages, repository scripts and agent-control
+proof drivers. `check:svelte` checks the adapter templates and treats warnings
+as errors. `lint:ts`, `fmt:ts`, and `check:knip` run in `qa`.
+`check:machete` requires local cargo-machete and runs in the
+`rust-dependencies` QA group.
+
 The MSRV floor is a release gate. Before a release, run
 `effigy ci:rehearse`; it checks clean-runner properties that local `qa` can
 miss and is a full rehearsal.
@@ -70,7 +78,7 @@ Locally it runs `oxide` or `oxide exec`; with `GITHUB_ACTIONS=true` it runs plai
 There is no per-selector `:cargo` task and no silent fallback: install Oxide, or
 set `EFFIGY_OXIDE_ESCAPE=cargo` for one local run (any other value is refused),
 or hand-run Cargo yourself for a one-off investigation. `fmt:rust` and the
-`advisories` gate are switched too: they run non-building Cargo subcommands
+`dependencies` release gate are switched too: they run non-building Cargo subcommands
 (`fmt`, `metadata`, `deny`) that Oxide passes straight through.
 
 `scripts/rust-command.ts` builds that argv for scripts and adds no rule of its
@@ -135,7 +143,8 @@ live on external build scratch and are removed after use.
 | --- | --- |
 | Every `lint:*`/`test:*`/`docs:*` Rust selector, `check:prototypes`, `check:bindings`, `release:floor`, `ci:rehearse` | `rust-command.sh <cargo command>` |
 | `effigy fmt:rust` | `rust-command.sh fmt --check -p …` (workspace), `rust-command.sh fmt --check` (prototypes), `rust-command.sh metadata --no-deps`, plus `rustfmt --edition 2024 --check` on staged example sources |
-| `[release.gates] advisories` / `effigy release:gates` | `rust-command.sh deny check advisories` |
+| `[release.gates] dependencies` / `effigy release:gates` | `rust-command.sh deny check` |
+| `check:machete` | `rustCommand` for workspace metadata and `machete` |
 | `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`, `scripts/generate-api-reference.ts` | `rustCommand(["metadata", …])` |
 | Checkout-level `package --list` inventories, bindings `run` checks, `tree` reads and `-p` tests in the proofs and the two absence scans | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |
 | Staged and disposable consumer builds: the `scripts/proof-artifacts.ts` members, `scripts/verify-desktop-support-conformance.ts`, `scripts/verify-agent-tool-dispatch-source-consumer.ts`, `scripts/verify-source-consumer.sh` | `rustExec(privateCargoCommand(...))`, one boundary per staged workspace, at the MSRV pin where the staged crates need it |
@@ -246,6 +255,9 @@ and groups are cheap, and the QA-group records need them (2026-10-09).
   `needs_planner` with its reason), each run's outcome and time, admission as
   reported (`null` means unknown), any extra gap token, or why no group was
   used. The planner sends these records to Effigy.
+- **Static gate changes** use the `typescript-static` or
+  `rust-dependencies` QA group and the proofs for any changed generated or
+  packed output. Keep scope and evidence in the PR.
 - **Docs or instruction changes** also run
   `effigy skill run northstar-docs/check-links`, and inspect the final diff.
 - **Full `effigy qa`** runs on `main` at release points

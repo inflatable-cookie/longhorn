@@ -11,29 +11,36 @@ describe("version literals", () => {
     const version = longhornVersion(repoRoot);
     const needle = `"${version}"`;
     const files = [
-      ...await collect(join(repoRoot, "scripts"), (name) => name.endsWith(".ts") && !name.endsWith(".test.ts")),
+      ...(await collect(
+        join(repoRoot, "scripts"),
+        (name) => name.endsWith(".ts") && !name.endsWith(".test.ts"),
+      )),
       join(repoRoot, "packages/longhorn-tauri/tests/boundary.test.ts"),
       join(repoRoot, "packages/longhorn-poodle-svelte/tests/boundary.test.ts"),
     ];
-    const offenders: string[] = [];
+    const offenders: Array<string> = [];
     for (const file of files) {
       const text = await readFile(file, "utf8");
-      if (text.includes(needle)) offenders.push(relative(repoRoot, file));
+      if (text.includes(needle)) {
+        offenders.push(relative(repoRoot, file));
+      }
     }
     expect(offenders).toEqual([]);
   });
 });
 
-async function collect(dir: string, include: (name: string) => boolean): Promise<string[]> {
+async function collect(dir: string, include: (name: string) => boolean): Promise<Array<string>> {
   const entries = await readdir(dir, { withFileTypes: true });
-  const files: string[] = [];
+  const files: Array<string> = [];
   for (const entry of entries) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
-      files.push(...await collect(path, include));
+      files.push(...(await collect(path, include)));
       continue;
     }
-    if (include(entry.name)) files.push(path);
+    if (include(entry.name)) {
+      files.push(path);
+    }
   }
   return files;
 }

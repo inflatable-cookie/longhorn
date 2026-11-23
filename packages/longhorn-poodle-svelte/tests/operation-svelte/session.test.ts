@@ -76,9 +76,7 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(port.listeners.size).toBe(2);
     });
 
-    await fireEvent.click(
-      within(first.container).getByRole("button", { name: "Scan plug-ins" }),
-    );
+    await fireEvent.click(within(first.container).getByRole("button", { name: "Scan plug-ins" }));
     expect(firstSession.selected?.operationId).toBe("operation:scan");
     expect(secondSession.selected).toBeUndefined();
 
@@ -107,7 +105,9 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(loophole.session.status.kind).toBe("ready");
     });
 
-    await fireEvent.click(renderPanel.getByRole("button", { name: "Cancel Render final sequence" }));
+    await fireEvent.click(
+      renderPanel.getByRole("button", { name: "Cancel Render final sequence" }),
+    );
     await fireEvent.click(renderPanel.getByRole("button", { name: "Request cancellation" }));
     await waitFor(() => {
       expect(renderPanel.getByText("host refused cancellation")).toBeTruthy();
@@ -131,13 +131,27 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(loophole.session.status.kind).toBe("ready");
     });
 
-    expect(scanPanel.getByRole("progressbar", { name: "Scan plug-ins progress" }).getAttribute("aria-valuenow")).toBe("2");
-    expect(renderPanel.getByRole("progressbar", { name: "Render final sequence progress" }).getAttribute("aria-valuenow")).toBe("0.65");
-    expect(renderPanel.getByRole("progressbar", { name: "Render trailer progress" }).hasAttribute("aria-valuenow")).toBe(false);
+    expect(
+      scanPanel
+        .getByRole("progressbar", { name: "Scan plug-ins progress" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("2");
+    expect(
+      renderPanel
+        .getByRole("progressbar", { name: "Render final sequence progress" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("0.65");
+    expect(
+      renderPanel
+        .getByRole("progressbar", { name: "Render trailer progress" })
+        .hasAttribute("aria-valuenow"),
+    ).toBe(false);
     expect(renderPanel.getByText("Queued")).toBeTruthy();
     expect(renderPanel.getByText("Succeeded")).toBeTruthy();
 
-    await fireEvent.click(renderPanel.getByRole("button", { name: "Cancel Render final sequence" }));
+    await fireEvent.click(
+      renderPanel.getByRole("button", { name: "Cancel Render final sequence" }),
+    );
     expect(renderPanel.getByRole("alertdialog", { name: "Cancel operation?" })).toBeTruthy();
     await fireEvent.click(renderPanel.getByRole("button", { name: "Request cancellation" }));
     await waitFor(() => {
@@ -145,7 +159,9 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(loophole.session.active[0]?.state).toBe("cancelling");
     });
 
-    await fireEvent.click(renderPanel.getByRole("button", { name: "Dismiss Render opening titles" }));
+    await fireEvent.click(
+      renderPanel.getByRole("button", { name: "Dismiss Render opening titles" }),
+    );
     await waitFor(() => {
       expect(loophole.port.mutations).toHaveLength(1);
       expect(loophole.session.recent).toHaveLength(0);

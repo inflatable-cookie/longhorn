@@ -18,14 +18,10 @@ export interface PackageManifest {
   overrides?: Record<string, string>;
 }
 
-export interface ShapeDeclaration {
-  readonly imports: readonly string[];
-  readonly tauriPermissions: readonly string[];
-  readonly serviceOwnership:
-    | "ownedLocal"
-    | "externalLocal"
-    | "externalRemote"
-    | null;
+interface ShapeDeclaration {
+  readonly imports: ReadonlyArray<string>;
+  readonly tauriPermissions: ReadonlyArray<string>;
+  readonly serviceOwnership: "ownedLocal" | "externalLocal" | "externalRemote" | null;
   readonly maximumQueryRetries: number;
 }
 

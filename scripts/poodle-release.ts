@@ -25,7 +25,7 @@ const repoRoot = resolve(import.meta.dir, "..");
 const CORE = "@inflatable-cookie/poodle-core";
 const SVELTE = "@inflatable-cookie/poodle-svelte";
 
-export interface PoodlePackage {
+interface PoodlePackage {
   readonly name: string;
   readonly version: string;
   readonly integrity: string;
@@ -34,7 +34,7 @@ export interface PoodlePackage {
 export interface PoodleRelease {
   /** The version every published Poodle package in the closure carries. */
   readonly version: string;
-  readonly packages: readonly PoodlePackage[];
+  readonly packages: ReadonlyArray<PoodlePackage>;
 }
 
 function rootManifest(): {
@@ -48,9 +48,7 @@ function rootManifest(): {
 function pinnedRange(): string {
   const manifest = rootManifest();
   const pin =
-    manifest.devDependencies?.[CORE] ??
-    manifest.dependencies?.[CORE] ??
-    manifest.overrides?.[CORE];
+    manifest.devDependencies?.[CORE] ?? manifest.dependencies?.[CORE] ?? manifest.overrides?.[CORE];
   if (!pin) {
     throw new Error(`${CORE} is not a dependency of the root manifest`);
   }
@@ -70,16 +68,38 @@ function pinnedRange(): string {
  * semver implementation nobody asked for.
  */
 function satisfiesCaret(version: string, range: string): boolean {
-  if (!range.startsWith("^")) return version === range;
+  if (!range.startsWith("^")) {
+    return version === range;
+  }
   const want = range.slice(1).split(".").map(Number);
   const have = version.split(".").map(Number);
-  if (want.length !== 3 || have.length !== 3 || [...want, ...have].some(Number.isNaN)) {
+  const [wantMajor, wantMinor, wantPatch] = want;
+  const [haveMajor, haveMinor, havePatch] = have;
+  if (
+    wantMajor === undefined ||
+    wantMinor === undefined ||
+    wantPatch === undefined ||
+    haveMajor === undefined ||
+    haveMinor === undefined ||
+    havePatch === undefined ||
+    want.length !== 3 ||
+    have.length !== 3 ||
+    [...want, ...have].some(Number.isNaN)
+  ) {
     return false;
   }
-  if (want[0] !== have[0]) return false;
-  if (want[0] === 0 && want[1] !== have[1]) return false;
-  if (have[1] < want[1]) return false;
-  if (have[1] === want[1] && have[2] < want[2]) return false;
+  if (wantMajor !== haveMajor) {
+    return false;
+  }
+  if (wantMajor === 0 && wantMinor !== haveMinor) {
+    return false;
+  }
+  if (haveMinor < wantMinor) {
+    return false;
+  }
+  if (haveMinor === wantMinor && havePatch < wantPatch) {
+    return false;
+  }
   return true;
 }
 
@@ -92,11 +112,11 @@ function satisfiesCaret(version: string, range: string): boolean {
  */
 function lockedPackage(name: string): PoodlePackage {
   const lock = readFileSync(resolve(repoRoot, "bun.lock"), "utf8");
-  const escaped = name.replace(/[/@-]/g, (character) => `\\${character}`);
+  const escaped = name.replaceAll(/[/@-]/g, (character) => `\\${character}`);
   const entry = new RegExp(
     `"${escaped}":\\s*\\["${escaped}@([^"]+)"[\\s\\S]*?"(sha512-[^"]+)"\\s*\\]`,
   ).exec(lock);
-  if (!entry) {
+  if (!entry?.[1] || !entry[2]) {
     throw new Error(
       `bun.lock records no registry entry for ${name}. ` +
         "Run `bun install` after repointing, or the package is still resolved from a path.",
@@ -117,16 +137,16 @@ function installedVersion(name: string): string {
 let cached: PoodleRelease | null = null;
 
 export function poodleRelease(): PoodleRelease {
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
 
   const range = pinnedRange();
   const packages = [CORE, SVELTE].map(lockedPackage);
 
   for (const pkg of packages) {
     if (!satisfiesCaret(pkg.version, range)) {
-      throw new Error(
-        `${pkg.name} is locked at ${pkg.version}, which does not satisfy ${range}`,
-      );
+      throw new Error(`${pkg.name} is locked at ${pkg.version}, which does not satisfy ${range}`);
     }
     const onDisk = installedVersion(pkg.name);
     if (onDisk !== pkg.version) {
@@ -139,7 +159,8 @@ export function poodleRelease(): PoodleRelease {
   // Lockstep is a claim this repository makes, so it is checked rather than
   // assumed: one version across every published package in the closure.
   const versions = [...new Set(packages.map((pkg) => pkg.version))];
-  if (versions.length !== 1) {
+  const [version] = versions;
+  if (version === undefined || versions.length !== 1) {
     throw new Error(
       `Poodle packages are not in lockstep: ${packages
         .map((pkg) => `${pkg.name}@${pkg.version}`)
@@ -147,21 +168,8 @@ export function poodleRelease(): PoodleRelease {
     );
   }
 
-  cached = { version: versions[0], packages };
+  cached = { version, packages };
   return cached;
-}
-
-/** The published Poodle version the proofs run against. */
-export function poodleVersion(): string {
-  return poodleRelease().version;
-}
-
-/** Package names in the pinned release, sorted. */
-export function poodlePackageNames(): readonly string[] {
-  return poodleRelease()
-    .packages.map((pkg) => pkg.name)
-    .slice()
-    .sort();
 }
 
 /**

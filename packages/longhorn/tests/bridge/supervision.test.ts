@@ -3,14 +3,14 @@ import { expect, test } from "bun:test";
 import {
   BridgeServiceRuntime,
   BridgeSupervisionError,
-  type BridgeServiceSupervisorPort,
 } from "@inflatable-cookie/longhorn/bridge/supervision";
+import type { BridgeServiceSupervisorPort } from "@inflatable-cookie/longhorn/bridge/supervision";
 
 class Port implements BridgeServiceSupervisorPort {
-  readonly requests: unknown[] = [];
-  readonly #outcomes: unknown[];
+  readonly requests: Array<unknown> = [];
+  readonly #outcomes: Array<unknown>;
 
-  constructor(outcomes: unknown[]) {
+  constructor(outcomes: Array<unknown>) {
     this.#outcomes = [...outcomes];
   }
 
@@ -22,29 +22,11 @@ class Port implements BridgeServiceSupervisorPort {
 
 test("owned local service spawn readiness restart and shutdown are receipted", async () => {
   const runtime = new BridgeServiceRuntime("ownedLocal");
-  const port = new Port([
-    "accepted",
-    "notReady",
-    "ready",
-    "accepted",
-    "stopped",
-  ]);
+  const port = new Port(["accepted", "notReady", "ready", "accepted", "stopped"]);
 
-  expect(
-    (
-      await runtime.execute(
-        port,
-        "spawn",
-        "credential:workspace",
-      )
-    ).current,
-  ).toBe("starting");
-  expect(
-    (await runtime.execute(port, "checkReadiness")).current,
-  ).toBe("awaitingReadiness");
-  expect(
-    (await runtime.execute(port, "checkReadiness")).current,
-  ).toBe("ready");
+  expect((await runtime.execute(port, "spawn", "credential:workspace")).current).toBe("starting");
+  expect((await runtime.execute(port, "checkReadiness")).current).toBe("awaitingReadiness");
+  expect((await runtime.execute(port, "checkReadiness")).current).toBe("ready");
   expect((await runtime.execute(port, "restart")).current).toBe("restarting");
   expect((await runtime.execute(port, "shutdown")).current).toBe("stopped");
   expect(port.requests[0]).toEqual({
@@ -65,22 +47,15 @@ test("remote attach can reconnect but cannot stop or replace its host", async ()
       throw new Error("expected ownership rejection");
     } catch (error) {
       expect(error).toBeInstanceOf(BridgeSupervisionError);
-      expect((error as BridgeSupervisionError).code).toBe(
-        "lifecycle_not_owned",
-      );
+      expect((error as BridgeSupervisionError).code).toBe("lifecycle_not_owned");
     }
   }
-  expect((await runtime.execute(port, "reconnect")).current).toBe(
-    "reconnecting",
-  );
+  expect((await runtime.execute(port, "reconnect")).current).toBe("reconnecting");
 });
 
 test("external local attach and coded failure are observable", async () => {
   const runtime = new BridgeServiceRuntime("externalLocal");
-  const port = new Port([
-    "accepted",
-    { failed: "readinessFailed" },
-  ]);
+  const port = new Port(["accepted", { failed: "readinessFailed" }]);
   expect((await runtime.execute(port, "attach")).current).toBe("attaching");
   const failed = await runtime.execute(port, "checkReadiness");
   expect(failed.current).toBe("failed");
@@ -90,9 +65,7 @@ test("external local attach and coded failure are observable", async () => {
 test("supervision accepts no credential material or arbitrary failure text", async () => {
   const runtime = new BridgeServiceRuntime("externalLocal");
   const port = new Port([{ failed: "attachFailed", detail: "token=secret" }]);
-  await expect(runtime.execute(port, "attach")).rejects.toBeInstanceOf(
-    BridgeSupervisionError,
-  );
+  await expect(runtime.execute(port, "attach")).rejects.toBeInstanceOf(BridgeSupervisionError);
   expect(JSON.stringify(port.requests)).not.toContain("secret");
 
   const throwing = new BridgeServiceRuntime("externalLocal");
@@ -115,9 +88,7 @@ test("supervision accepts no credential material or arbitrary failure text", asy
     observing.observe("attach", {
       failed: "attachFailed",
       detail: "token=secret",
-    })
+    }),
   ).toThrow(BridgeSupervisionError);
-  expect(() => new BridgeServiceRuntime("invalid" as any)).toThrow(
-    BridgeSupervisionError,
-  );
+  expect(() => new BridgeServiceRuntime("invalid" as any)).toThrow(BridgeSupervisionError);
 });

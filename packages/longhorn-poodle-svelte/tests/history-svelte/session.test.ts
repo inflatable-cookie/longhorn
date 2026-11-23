@@ -51,16 +51,12 @@ describe("history Svelte and public Poodle adapters", () => {
     const filter = mounted.getByRole("searchbox", { name: "Filter history" });
     await fireEvent.input(filter, { target: { value: "rename" } });
     await waitFor(() =>
-      expect(state.session.entries.map(({ entryId }) => entryId)).toEqual([
-        "entry:future",
-      ]),
+      expect(state.session.entries.map(({ entryId }) => entryId)).toEqual(["entry:future"]),
     );
     expect(mounted.getByRole("button", { name: "Rename track" })).toBeTruthy();
 
     await fireEvent.click(mounted.getByRole("button", { name: "Rename track" }));
-    await waitFor(() =>
-      expect(state.session.snapshot?.summary.revision).toBe(12),
-    );
+    await waitFor(() => expect(state.session.snapshot?.summary.revision).toBe(12));
 
     await mounted.unmount();
   });

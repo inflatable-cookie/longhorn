@@ -11,23 +11,17 @@ import type {
 import {
   projectSettingsRegistry,
   resolveSettingsDeepLink,
-  type SettingsRegistryProjection,
 } from "@inflatable-cookie/longhorn/settings";
+import type { SettingsRegistryProjection } from "@inflatable-cookie/longhorn/settings";
 import {
   MissingSettingsRendererError,
   SettingsRegistryUnavailableError,
   SettingsScopeNotLoadedError,
 } from "./errors.ts";
-import {
-  SettingsPageSession,
-  type SettingsPageSessionHost,
-} from "./page.svelte.ts";
+import { SettingsPageSession } from "./page.svelte.ts";
+import type { SettingsPageSessionHost } from "./page.svelte.ts";
 import { SettingsScopeState } from "./scope.svelte.ts";
-import type {
-  SettingsPageRenderer,
-  SettingsRendererResolver,
-  SettingsRoute,
-} from "./types.ts";
+import type { SettingsPageRenderer, SettingsRendererResolver, SettingsRoute } from "./types.ts";
 
 export interface SettingsDocumentOptions {
   readonly client: SettingsClient;
@@ -44,10 +38,7 @@ export class SettingsSessionDocument {
   #routeGeneration = 0;
   #focusRevision = $state(0);
   #renderers = new Map<string, SettingsPageRenderer>();
-  #scopes = new Map<
-    SettingsPageId,
-    Map<SettingsScopeId, SettingsScopeState>
-  >();
+  #scopes = new Map<SettingsPageId, Map<SettingsScopeId, SettingsScopeState>>();
   #pages = new Map<string, SettingsPageSession>();
 
   constructor(options: SettingsDocumentOptions) {
@@ -85,7 +76,7 @@ export class SettingsSessionDocument {
     return page === undefined ? undefined : this.#pageSession(page);
   }
 
-  currentScopes(): SettingsScopeState[] {
+  currentScopes(): Array<SettingsScopeState> {
     return [...(this.#currentScopes()?.values() ?? [])];
   }
 
@@ -119,8 +110,7 @@ export class SettingsSessionDocument {
       return "unsupported";
     }
     const route =
-      preferredRoute !== undefined &&
-      registry.pages.some(({ id }) => id === preferredRoute.pageId)
+      preferredRoute !== undefined && registry.pages.some(({ id }) => id === preferredRoute.pageId)
         ? preferredRoute
         : { pageId: projection.pages[0]!.id };
     await this.installRoute(route);
@@ -137,11 +127,11 @@ export class SettingsSessionDocument {
     // settle.
     const generation = ++this.#routeGeneration;
     await Promise.all(
-      page.readableScopeIds.map((scopeId) =>
-        this.#scopeState(registry, page.id, scopeId).start(),
-      ),
+      page.readableScopeIds.map((scopeId) => this.#scopeState(registry, page.id, scopeId).start()),
     );
-    if (generation !== this.#routeGeneration) return;
+    if (generation !== this.#routeGeneration) {
+      return;
+    }
     this.#route = route;
     this.#pageSession(page);
     this.#focusRevision += 1;
@@ -154,9 +144,7 @@ export class SettingsSessionDocument {
       page.stop();
     }
     this.#pages.clear();
-    const scopes = [...this.#scopes.values()].flatMap((pageScopes) => [
-      ...pageScopes.values(),
-    ]);
+    const scopes = [...this.#scopes.values()].flatMap((pageScopes) => [...pageScopes.values()]);
     this.#scopes.clear();
     await Promise.all(scopes.map((scope) => scope.stop()));
   }
@@ -187,7 +175,9 @@ export class SettingsSessionDocument {
       this.#scopes.set(pageId, pageScopes);
     }
     const existing = pageScopes.get(scopeId);
-    if (existing !== undefined) return existing;
+    if (existing !== undefined) {
+      return existing;
+    }
     const state = new SettingsScopeState({
       client: this.#options.client,
       registry,
@@ -202,7 +192,9 @@ export class SettingsSessionDocument {
 
   #pageSession(page: SettingsPageDefinition): SettingsPageSession {
     const existing = this.#pages.get(page.id);
-    if (existing !== undefined) return existing;
+    if (existing !== undefined) {
+      return existing;
+    }
     const host: SettingsPageSessionHost = {
       client: this.#options.client,
       registry: () => this.requiredRegistry(),
@@ -215,10 +207,7 @@ export class SettingsSessionDocument {
     return session;
   }
 
-  #requiredScope(
-    pageId: SettingsPageId,
-    unit: SettingsApplyUnitDefinition,
-  ): SettingsScopeState {
+  #requiredScope(pageId: SettingsPageId, unit: SettingsApplyUnitDefinition): SettingsScopeState {
     const scope = this.#scopes.get(pageId)?.get(unit.scopeId);
     if (scope === undefined) {
       throw new SettingsScopeNotLoadedError(unit.scopeId);

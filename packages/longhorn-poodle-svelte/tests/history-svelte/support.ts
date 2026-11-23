@@ -5,14 +5,15 @@ import type {
   HistoryPageCommand,
 } from "../../../longhorn/src/history/generated/protocol.ts";
 import type { HistoryPort, HistoryUnlisten } from "../../../longhorn/src/history/ports.ts";
-import { clone, type HistoryFixture } from "../../../longhorn/tests/history/support.ts";
+import { clone, navigationResult } from "../../../longhorn/tests/history/support.ts";
+import type { HistoryFixture } from "../../../longhorn/tests/history/support.ts";
 
-export class MountedHistoryPort implements HistoryPort {
+class MountedHistoryPort implements HistoryPort {
   readonly listeners = new Set<(event: unknown) => void>();
   readonly value = fixtureArtifact as HistoryFixture;
   snapshotValue = clone(this.value.snapshot);
   pageSnapshot = clone(this.value.page);
-  result = clone(this.value.navigationResults[0]);
+  result = clone(navigationResult(this.value, 0));
   unlistenCount = 0;
   #plan = 0;
 

@@ -1,16 +1,10 @@
 import { SETTINGS_FIELDS } from "../generated/fields.ts";
-import {
-  array,
-  identity,
-  known,
-  optionalOpaque,
-  record,
-} from "./primitives.ts";
+import { array, identity, known, optionalOpaque, record } from "./primitives.ts";
 
 export function hasPolicyOverride(
   value: unknown,
   maximum: number,
-  effects: readonly string[],
+  effects: ReadonlyArray<string>,
 ): boolean {
   const valueRecord = record(value, SETTINGS_FIELDS.SettingsPolicyProjection);
   identity(valueRecord.sourceId);
@@ -19,20 +13,13 @@ export function hasPolicyOverride(
   return valueRecord.effect === "override";
 }
 
-export function recovery(
-  value: unknown,
-  maximum: number,
-  codes: readonly string[],
-): void {
+export function recovery(value: unknown, maximum: number, codes: ReadonlyArray<string>): void {
   const valueRecord = record(value, SETTINGS_FIELDS.SettingsRecoveryState);
   known(valueRecord.code, codes);
   optionalOpaque(valueRecord.diagnostic, maximum);
 }
 
-export function activation(
-  value: unknown,
-  states: readonly string[],
-): void {
+export function activation(value: unknown, states: ReadonlyArray<string>): void {
   array(value).forEach((value) => {
     const requirement = record(value, SETTINGS_FIELDS.SettingsActivationRequirement);
     identity(requirement.targetId);
@@ -40,11 +27,7 @@ export function activation(
   });
 }
 
-export function rejection(
-  value: unknown,
-  maximum: number,
-  codes: readonly string[],
-): void {
+export function rejection(value: unknown, maximum: number, codes: ReadonlyArray<string>): void {
   const valueRecord = record(value, SETTINGS_FIELDS.SettingsRejection);
   known(valueRecord.code, codes);
   optionalOpaque(valueRecord.diagnostic, maximum);

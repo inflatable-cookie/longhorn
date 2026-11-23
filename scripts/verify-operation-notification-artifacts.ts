@@ -14,9 +14,7 @@ import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "operation-notification-proof");
-const temporaryRoot = await mkdtemp(
-  join(tmpdir(), "longhorn-operation-notification-proof-"),
-);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-operation-notification-proof-"));
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-operation-notification-rust");
@@ -26,19 +24,11 @@ try {
     // Checkout-level and non-building: the bindings check runs through the
     // switch point and pools. Only the staged-workspace builds keep private
     // outputs.
-    await run(
-      rustCommand(["run", "-p", "longhorn-bindings", "--", domain, "check"]),
-      repoRoot,
-    );
+    await run(rustCommand(["run", "-p", "longhorn-bindings", "--", domain, "check"]), repoRoot);
   }
   const poodle = POODLE_RELEASE;
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
-  const rust = await packAndRunRustArtifacts(
-    repoRoot,
-    proofRoot,
-    temporaryRoot,
-    buildScratch.root,
-  );
+  const rust = await packAndRunRustArtifacts(repoRoot, proofRoot, temporaryRoot, buildScratch.root);
   const consumers = await verifyConsumers({
     repoRoot,
     proofRoot,

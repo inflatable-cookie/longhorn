@@ -15,11 +15,8 @@
   import type { TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
-  import {
-    CONFIG_OPERATIONS_PROTOCOL_VERSION,
-    type BackupArchiveProjection,
-    type ConfigOperationsSnapshot,
-  } from "@inflatable-cookie/longhorn/config";
+  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from '@inflatable-cookie/longhorn/config';
+import type { BackupArchiveProjection, ConfigOperationsSnapshot } from '@inflatable-cookie/longhorn/config';
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   let {
@@ -39,12 +36,12 @@
   const canCreate = $derived(snapshot?.capabilities.includes("backupCreate") === true);
   const canExport = $derived(snapshot?.capabilities.includes("backupExport") === true);
   const canRetain = $derived(snapshot?.capabilities.includes("backupRetention") === true);
-  const inventoryColumns: TableColumn[] = [
+  const inventoryColumns: Array<TableColumn> = [
     { id: "state", label: "State", isRowHeader: true },
     { id: "path", label: "Path" },
     { id: "detail", label: "Evidence" },
   ];
-  const inventoryRows = $derived<TableRow[]>(
+  const inventoryRows = $derived<Array<TableRow>>(
     backup?.inventory.entries.map((entry, index) => ({
       id: `${index}:${entry.path ?? entry.diagnosticKind}`,
       cells: {
@@ -56,7 +53,7 @@
   );
 
   onMount(() => {
-    if (snapshot === null) void refresh();
+    if (snapshot === null) {void refresh();}
   });
 
   async function refresh(): Promise<void> {
@@ -105,7 +102,7 @@
   async function applyRetention(): Promise<void> {
     const current = snapshot;
     const retention = backup?.retention;
-    if (current === null || !retention) return;
+    if (current === null || !retention) {return;}
     await run(async () => {
       const outcome = await client.applyBackupRetention({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -128,8 +125,8 @@
     notice = null;
     try {
       await action();
-    } catch (cause) {
-      error = errorMessage(cause);
+    } catch (error_) {
+      error = errorMessage(error_);
     } finally {
       busy = false;
     }

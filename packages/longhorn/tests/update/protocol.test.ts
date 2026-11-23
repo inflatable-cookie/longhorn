@@ -42,7 +42,7 @@ describe("Rust-generated update protocol", () => {
 
   test("carries one rejection per protocol rejection code, channelMismatch included", () => {
     const value = fixture();
-    const codes: string[] = value.outcomes.flatMap((outcome) =>
+    const codes: Array<string> = value.outcomes.flatMap((outcome) =>
       outcome.status === "rejected" ? [outcome.code] : [],
     );
     expect([...codes].sort()).toEqual(
@@ -110,7 +110,9 @@ describe("Rust-generated update protocol", () => {
     expect(value.authorizationHeld.status).toBe("held");
     expect("cause" in value.authorizationHeld).toBe(false);
     expect(value.authorizationDeferred.status).toBe("deferred");
-    if (value.authorizationDeferred.status !== "deferred") throw new Error("unreachable");
+    if (value.authorizationDeferred.status !== "deferred") {
+      throw new Error("unreachable");
+    }
     expect(value.authorizationDeferred.cause.cause).toBe("workInFlight");
 
     const stale = clone(value.authorizationHeld) as unknown as Record<string, unknown>;

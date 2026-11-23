@@ -30,23 +30,19 @@ const SKIPPED = new Set([
   ".vite",
   ".artifacts",
 ]);
-const SCANNED = [
-  "crates",
-  "packages",
-  "scripts",
-  "examples",
-  "prototypes",
-  "fixtures",
-];
+const SCANNED = ["crates", "packages", "scripts", "examples", "prototypes", "fixtures"];
 const EXTENSIONS = new Set([".ts", ".tsx", ".svelte", ".rs", ".json", ".toml", ".sh"]);
 
 type Finding = { file: string; line: number; detail: string; text: string };
-const findings: Finding[] = [];
+const findings: Array<Finding> = [];
 
 for (const directory of SCANNED) {
   await scan(join(repoRoot, directory));
 }
-await inspectManifest(relative(repoRoot, join(repoRoot, "Cargo.toml")), join(repoRoot, "Cargo.toml"));
+await inspectManifest(
+  relative(repoRoot, join(repoRoot, "Cargo.toml")),
+  join(repoRoot, "Cargo.toml"),
+);
 await inspectManifest(
   relative(repoRoot, join(repoRoot, "package.json")),
   join(repoRoot, "package.json"),
@@ -86,25 +82,39 @@ async function scan(directory: string): Promise<void> {
     return;
   }
   for (const entry of entries) {
-    if (SKIPPED.has(entry.name)) continue;
+    if (SKIPPED.has(entry.name)) {
+      continue;
+    }
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
       await scan(path);
       continue;
     }
     const extension = entry.name.slice(entry.name.lastIndexOf("."));
-    if (!EXTENSIONS.has(extension)) continue;
-    if (path === import.meta.path) continue;
+    if (!EXTENSIONS.has(extension)) {
+      continue;
+    }
+    if (path === import.meta.path) {
+      continue;
+    }
     await inspectManifest(relative(repoRoot, path), path);
   }
 }
 
 async function inspectManifest(file: string, absolute: string): Promise<void> {
   const source = await readFile(absolute, "utf8");
-  if (ALLOWED_ESCAPES.has(file)) return;
+  if (ALLOWED_ESCAPES.has(file)) {
+    return;
+  }
 
   if (file.endsWith("Cargo.toml") || file.endsWith(".toml")) {
-    recordPaths(file, source, dirname(absolute), /\bpath\s*=\s*"([^"]+)"/g, "Cargo path escapes the repository");
+    recordPaths(
+      file,
+      source,
+      dirname(absolute),
+      /\bpath\s*=\s*"([^"]+)"/g,
+      "Cargo path escapes the repository",
+    );
   }
 
   if (file.endsWith("package.json")) {
@@ -142,23 +152,31 @@ function recordPackagePins(file: string, source: string, base: string): void {
     manifest.optionalDependencies,
     manifest.peerDependencies,
   ]) {
-    if (!block) continue;
+    if (!block) {
+      continue;
+    }
     for (const [name, spec] of Object.entries(block)) {
       pins.push([name, spec]);
     }
   }
   if (manifest.overrides) {
     for (const [name, spec] of Object.entries(manifest.overrides)) {
-      if (typeof spec === "string") pins.push([name, spec]);
+      if (typeof spec === "string") {
+        pins.push([name, spec]);
+      }
     }
   }
 
   for (const [name, spec] of pins) {
     const matched = spec.match(/^(file|link):(.+)$/);
-    if (!matched) continue;
+    if (!matched) {
+      continue;
+    }
     const target = matched[2]!;
     const absolute = resolve(base, target);
-    if (!escapes(absolute)) continue;
+    if (!escapes(absolute)) {
+      continue;
+    }
     const line = source.split("\n").findIndex((row) => row.includes(spec)) + 1;
     findings.push({
       file,
@@ -181,7 +199,9 @@ function recordPaths(
   while ((match = pattern.exec(source)) !== null) {
     const target = match[1]!;
     const absolute = resolve(base, target);
-    if (!escapes(absolute)) continue;
+    if (!escapes(absolute)) {
+      continue;
+    }
     findings.push({
       file,
       line: source.slice(0, match.index).split("\n").length,
@@ -201,7 +221,9 @@ function record(
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
     const detail = classify(match);
-    if (detail === null) continue;
+    if (detail === null) {
+      continue;
+    }
     findings.push({
       file,
       line: source.slice(0, match.index).split("\n").length,

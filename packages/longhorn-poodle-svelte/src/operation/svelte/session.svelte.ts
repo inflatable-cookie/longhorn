@@ -1,10 +1,10 @@
-import {
-  OperationController,
-  type OperationCommandFailure,
-  type OperationCommandRejection,
-  type OperationControllerOptions,
-  type OperationControllerStatus,
-  type OperationPendingCommand,
+import { OperationController } from "@inflatable-cookie/longhorn/operation";
+import type {
+  OperationCommandFailure,
+  OperationCommandRejection,
+  OperationControllerOptions,
+  OperationControllerStatus,
+  OperationPendingCommand,
 } from "@inflatable-cookie/longhorn/operation";
 import type {
   OperationCancellationResult,
@@ -19,11 +19,11 @@ export class OperationSession {
   readonly #unobserve: () => void;
   status = $state<OperationControllerStatus>({ kind: "idle" });
   snapshot = $state<OperationSnapshot | undefined>();
-  active = $state<OperationEntryProjection[]>([]);
-  recent = $state<OperationEntryProjection[]>([]);
+  active = $state<Array<OperationEntryProjection>>([]);
+  recent = $state<Array<OperationEntryProjection>>([]);
   selectedOperationId = $state<OperationId | undefined>();
   selected = $state<OperationEntryProjection | undefined>();
-  pendingCommands = $state<OperationPendingCommand[]>([]);
+  pendingCommands = $state<Array<OperationPendingCommand>>([]);
   commandRejection = $state<OperationCommandRejection | undefined>();
   commandFailure = $state<OperationCommandFailure | undefined>();
 

@@ -25,26 +25,22 @@ describe("history boundary strictness", () => {
   };
 
   test("the field map matches the fixture's keys", () => {
-    expect([...HISTORY_FIELDS.HistoryChangedEvent!].sort()).toEqual(
+    expect<Array<string>>([...HISTORY_FIELDS.HistoryChangedEvent].sort()).toEqual(
       Object.keys(valid).sort(),
     );
   });
 
   test("rejects an unknown field", () => {
-    expect(() =>
-      assertValidHistoryChangedEvent({ ...valid, extra: 1 }),
-    ).toThrow(/unknown field/);
+    expect(() => assertValidHistoryChangedEvent({ ...valid, extra: 1 })).toThrow(/unknown field/);
   });
 
   test("rejects a missing field", () => {
     const { historyId: _dropped, ...missing } = valid;
-    expect(() => assertValidHistoryChangedEvent(missing)).toThrow(
-      /missing field/,
-    );
+    expect(() => assertValidHistoryChangedEvent(missing)).toThrow(/missing field/);
   });
 
   test("omits tagged unions rather than guessing their keys", () => {
-    expect(HISTORY_FIELDS.HistoryNavigationResult).toBeUndefined();
+    expect("HistoryNavigationResult" in HISTORY_FIELDS).toBe(false);
   });
 });
 
@@ -59,15 +55,13 @@ describe("history-tree boundary strictness", () => {
   };
 
   test("the field map matches the fixture's keys", () => {
-    expect([...HISTORY_TREE_FIELDS.ForkChangedEvent!].sort()).toEqual(
+    expect<Array<string>>([...HISTORY_TREE_FIELDS.ForkChangedEvent].sort()).toEqual(
       Object.keys(valid).sort(),
     );
   });
 
   test("rejects an unknown field", () => {
-    expect(() => assertForkChangedEvent({ ...valid, extra: 1 })).toThrow(
-      /unexpected keys/,
-    );
+    expect(() => assertForkChangedEvent({ ...valid, extra: 1 })).toThrow(/unexpected keys/);
   });
 
   /**

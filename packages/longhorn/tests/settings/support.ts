@@ -6,9 +6,7 @@ import type {
 
 export const fixture = fixtureJson;
 
-export function registry(
-  generation = fixture.registry.generation,
-): SettingsRegistrySnapshot {
+export function registry(generation = fixture.registry.generation): SettingsRegistrySnapshot {
   const value = structuredClone(fixture.registry) as SettingsRegistrySnapshot;
   value.generation = generation;
   value.digest =
@@ -22,9 +20,7 @@ export function snapshot(
   revision = fixture.snapshots[0]!.authority.scopeRevision,
   generation = fixture.registry.generation,
 ): SettingsScopeSnapshot {
-  const value = structuredClone(
-    fixture.snapshots[0],
-  ) as SettingsScopeSnapshot;
+  const value = structuredClone(fixture.snapshots[0]) as SettingsScopeSnapshot;
   value.authority.scopeRevision = revision;
   value.authority.registryGeneration = generation;
   value.authority.authorityToken = `authority:${generation}-${revision}`;

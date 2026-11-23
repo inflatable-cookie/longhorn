@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const CONFIG_FIELDS: Record<string, readonly string[]> = {
+export const CONFIG_FIELDS = {
   "StorageRootProjection": ["kind", "path", "provenance"],
   "StorageLayoutProjection": ["profile", "platform", "canonicalApplicationId", "effectiveLeaf", "leafProvenance", "roots", "warnings", "layoutDigest"],
   "StorageOperationsProjection": ["layout", "bootstrap", "availableProfiles"],
@@ -51,4 +51,4 @@ export const CONFIG_FIELDS: Record<string, readonly string[]> = {
   "RestoreAdapterReceiptProjection": ["domainId", "adapter", "participation", "confirmationDigest", "outcome", "evidence"],
   "RestoreRecoveryCommand": ["protocolVersion", "requestId"],
   "RestoreRecoveryReceiptProjection": ["outcome", "domainIds"],
-};
+} as const;

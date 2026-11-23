@@ -1,15 +1,5 @@
 {
-  "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "noEmit": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2022",
-    "verbatimModuleSyntax": true
-  },
+  "extends": "../../tsconfig.base.json",
   "include": [
     "src/**/*.ts",
     "tests/**/*.ts"

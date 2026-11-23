@@ -19,25 +19,17 @@ export interface CommandSnapshotPort<Snapshot> {
   listen?(invalidate: () => void): CommandUnlisten | Promise<CommandUnlisten>;
 }
 
-export interface CommandCataloguePort
-  extends CommandSnapshotPort<CommandCatalogueSnapshot> {}
+export interface CommandCataloguePort extends CommandSnapshotPort<CommandCatalogueSnapshot> {}
 
-export interface CommandKeymapPort
-  extends CommandSnapshotPort<CommandKeymapLoadOutcome> {
+export interface CommandKeymapPort extends CommandSnapshotPort<CommandKeymapLoadOutcome> {
   preview?(request: CommandKeymapPreview): Promise<CommandKeymapPreviewResult>;
   commit?(request: CommandKeymapCommit): Promise<CommandKeymapMutationResult>;
   reset?(request: CommandKeymapReset): Promise<CommandKeymapMutationResult>;
 }
 
-export interface CommandAvailabilityPort
-  extends CommandSnapshotPort<CommandAvailabilitySnapshot> {}
+export interface CommandAvailabilityPort extends CommandSnapshotPort<CommandAvailabilitySnapshot> {}
 
-export type CommandExecutionSource =
-  | "palette"
-  | "keyboard"
-  | "menu"
-  | "help"
-  | "consumer";
+export type CommandExecutionSource = "palette" | "keyboard" | "menu" | "help" | "consumer";
 
 export interface CommandExecutionIntent {
   readonly requestId: CommandRequestId;

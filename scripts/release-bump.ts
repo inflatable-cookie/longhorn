@@ -27,7 +27,7 @@ export type ReleaseBumpOptions = {
 export type ReleaseBumpResult = {
   readonly previousVersion: string;
   readonly version: string;
-  readonly changed: readonly string[];
+  readonly changed: ReadonlyArray<string>;
   readonly idempotent: boolean;
 };
 
@@ -40,7 +40,9 @@ export function todayStamp(now = new Date()): string {
 
 export function replaceWorkspacePackageVersion(manifest: string, version: string): string {
   const match = /\[workspace\.package\][^[]*/m.exec(manifest);
-  if (!match) throw new Error("Cargo.toml has no [workspace.package] table");
+  if (!match) {
+    throw new Error("Cargo.toml has no [workspace.package] table");
+  }
   const updated = match[0].replace(/^version = "[^"]+"/m, `version = "${version}"`);
   if (updated === match[0] && !match[0].includes(`version = "${version}"`)) {
     throw new Error("workspace.package.version was not replaced");
@@ -49,7 +51,7 @@ export function replaceWorkspacePackageVersion(manifest: string, version: string
 }
 
 export function replaceLonghornPathPins(manifest: string, version: string): string {
-  return manifest.replace(
+  return manifest.replaceAll(
     /^(longhorn-[A-Za-z0-9-]+ = \{ path = "[^"]+", version = ")[^"]+(".*)$/gm,
     `$1${version}$2`,
   );
@@ -61,8 +63,8 @@ export function bumpPackageManifest(text: string, version: string): string {
     throw new Error('package.json version line must be of the form `  "version": "...",`');
   }
   const next = text.replace(versionLine, `  "version": "${version}",`);
-  return next.replace(
-    new RegExp(`("${LONGHORN_PEER.replace("/", "\\/")}": ")[^"]+(")`, "g"),
+  return next.replaceAll(
+    new RegExp(`("${LONGHORN_PEER.replace("/", String.raw`\/`)}": ")[^"]+(")`, "g"),
     `$1${version}$2`,
   );
 }
@@ -75,15 +77,20 @@ export function bumpSkillStamp(skill: string, version: string): string {
 }
 
 export function promoteChangelog(text: string, version: string, date: string): string {
-  if (text.includes(`## [${version}]`)) return text;
+  if (text.includes(`## [${version}]`)) {
+    return text;
+  }
   const match = /^(## \[Unreleased\]\n)([\s\S]*?)(?=^## \[)/m.exec(text);
-  if (!match) throw new Error("CHANGELOG.md is missing a parseable ## [Unreleased] section");
+  if (!match) {
+    throw new Error("CHANGELOG.md is missing a parseable ## [Unreleased] section");
+  }
   const body = match[2] ?? "";
   const notes = body.trim();
   const heading = `## [${version}] - ${date}`;
-  const promoted = notes.length > 0
-    ? `## [Unreleased]\n\n${heading}\n\n${notes}\n\n`
-    : `## [Unreleased]\n\n${heading}\n\n`;
+  const promoted =
+    notes.length > 0
+      ? `## [Unreleased]\n\n${heading}\n\n${notes}\n\n`
+      : `## [Unreleased]\n\n${heading}\n\n`;
   return `${text.slice(0, match.index)}${promoted}${text.slice(match.index + match[0].length)}`;
 }
 
@@ -102,7 +109,9 @@ async function defaultRegenerateApiReference(repoRoot: string): Promise<void> {
 
 async function writeIfChanged(path: string, next: string): Promise<boolean> {
   const previous = await readFile(path, "utf8");
-  if (previous === next) return false;
+  if (previous === next) {
+    return false;
+  }
   await writeFile(path, next);
   return true;
 }
@@ -113,26 +122,35 @@ type SnapshottedFile = {
   content: string | null;
 };
 
-async function lockRelatives(repoRoot: string): Promise<string[]> {
-  const prototypeLocks: string[] = [];
-  const entries = await readdir(join(repoRoot, "prototypes"), { withFileTypes: true }).catch(() => []);
+async function lockRelatives(repoRoot: string): Promise<Array<string>> {
+  const prototypeLocks: Array<string> = [];
+  const entries = await readdir(join(repoRoot, "prototypes"), { withFileTypes: true }).catch(
+    () => [],
+  );
   for (const entry of entries) {
-    if (entry.isDirectory()) prototypeLocks.push(`prototypes/${entry.name}/Cargo.lock`);
+    if (entry.isDirectory()) {
+      prototypeLocks.push(`prototypes/${entry.name}/Cargo.lock`);
+    }
   }
   prototypeLocks.sort();
   return ["Cargo.lock", ...prototypeLocks];
 }
 
-async function snapshotFiles(repoRoot: string, relatives: string[]): Promise<SnapshottedFile[]> {
+async function snapshotFiles(
+  repoRoot: string,
+  relatives: Array<string>,
+): Promise<Array<SnapshottedFile>> {
   const unique = [...new Set(relatives)];
-  return Promise.all(unique.map(async (relative) => {
-    const path = join(repoRoot, relative);
-    const content = await readFile(path, "utf8").catch(() => null);
-    return { relative, path, content };
-  }));
+  return Promise.all(
+    unique.map(async (relative) => {
+      const path = join(repoRoot, relative);
+      const content = await readFile(path, "utf8").catch(() => null);
+      return { relative, path, content };
+    }),
+  );
 }
 
-async function restoreFiles(snapshots: SnapshottedFile[]): Promise<void> {
+async function restoreFiles(snapshots: Array<SnapshottedFile>): Promise<void> {
   for (const file of snapshots) {
     if (file.content === null) {
       await unlink(file.path).catch(() => undefined);
@@ -169,18 +187,23 @@ export async function bumpRelease(options: ReleaseBumpOptions): Promise<ReleaseB
   for (const directory of packageDirs) {
     const relative = `packages/${directory}/package.json`;
     const text = await readFile(join(repoRoot, relative), "utf8").catch(() => null);
-    if (text === null) continue;
+    if (text === null) {
+      continue;
+    }
     try {
       planned.set(relative, bumpPackageManifest(text, version));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`${relative}: ${message}`);
+      throw new Error(`${relative}: ${message}`, { cause: error });
     }
   }
 
   planned.set(
     "skills/agent-control/SKILL.md",
-    bumpSkillStamp(await readFile(join(repoRoot, "skills/agent-control/SKILL.md"), "utf8"), version),
+    bumpSkillStamp(
+      await readFile(join(repoRoot, "skills/agent-control/SKILL.md"), "utf8"),
+      version,
+    ),
   );
   planned.set(
     "CHANGELOG.md",
@@ -204,10 +227,12 @@ export async function bumpRelease(options: ReleaseBumpOptions): Promise<ReleaseB
     const regenerate = options.regenerateApiReference ?? defaultRegenerateApiReference;
     await regenerate(repoRoot);
 
-    const changed: string[] = [];
+    const changed: Array<string> = [];
     for (const file of snapshots) {
       const next = await readFile(file.path, "utf8").catch(() => null);
-      if (next !== file.content) changed.push(file.relative);
+      if (next !== file.content) {
+        changed.push(file.relative);
+      }
     }
 
     return {
@@ -222,7 +247,9 @@ export async function bumpRelease(options: ReleaseBumpOptions): Promise<ReleaseB
     } catch (restoreError) {
       const first = error instanceof Error ? error.message : String(error);
       const second = restoreError instanceof Error ? restoreError.message : String(restoreError);
-      throw new Error(`release bump failed (${first}); restore failed (${second})`);
+      throw new Error(`release bump failed (${first}); restore failed (${second})`, {
+        cause: restoreError,
+      });
     }
     throw error;
   }
@@ -234,9 +261,15 @@ if (import.meta.main) {
     throw new Error("usage: bun scripts/release-bump.ts <X.Y.Z>");
   }
   const result = await bumpRelease({ version });
-  console.log(JSON.stringify({
-    schema: "longhorn.release-bump.v1",
-    outcome: "pass",
-    ...result,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        schema: "longhorn.release-bump.v1",
+        outcome: "pass",
+        ...result,
+      },
+      null,
+      2,
+    ),
+  );
 }

@@ -1,19 +1,16 @@
-import {
-  isEventTransport,
-  type ConnectionFailureReporter,
-  type InvokeTransport,
-} from "@inflatable-cookie/longhorn/core";
+import { isEventTransport } from "@inflatable-cookie/longhorn/core";
+import type { ConnectionFailureReporter, InvokeTransport } from "@inflatable-cookie/longhorn/core";
 
-import {
-  type PanelSessionStartRequest,
-  type PanelTransferCommand,
-  type PanelTransferResponse,
-  type TransferCancelRequest,
-  type TransferCancelResponse,
-  type TransferClientSnapshot,
-  type TransferLeaseRequest,
-  type TransferLeaseResponse,
-  type TransferSessionResponse,
+import type {
+  PanelSessionStartRequest,
+  PanelTransferCommand,
+  PanelTransferResponse,
+  TransferCancelRequest,
+  TransferCancelResponse,
+  TransferClientSnapshot,
+  TransferLeaseRequest,
+  TransferLeaseResponse,
+  TransferSessionResponse,
 } from "./generated/protocol.ts";
 import {
   assertValidPanelTransferResponse,
@@ -25,18 +22,13 @@ import {
   assertValidTransferTargetBinding,
   assertTransferProtocolVersion,
 } from "./validation.ts";
-import {
-  TransferClientConnection,
-  type TransferClientSnapshotListener,
-} from "./connection.ts";
+import { TransferClientConnection } from "./connection.ts";
+import type { TransferClientSnapshotListener } from "./connection.ts";
 
 export const TRANSFER_SNAPSHOT_COMMAND = "longhorn_transfer_snapshot";
-export const TRANSFER_START_PANEL_COMMAND =
-  "longhorn_transfer_start_panel";
-export const TRANSFER_PUBLISH_LEASE_COMMAND =
-  "longhorn_transfer_publish_lease";
-export const TRANSFER_COMMIT_PANEL_COMMAND =
-  "longhorn_transfer_commit_panel";
+export const TRANSFER_START_PANEL_COMMAND = "longhorn_transfer_start_panel";
+export const TRANSFER_PUBLISH_LEASE_COMMAND = "longhorn_transfer_publish_lease";
+export const TRANSFER_COMMIT_PANEL_COMMAND = "longhorn_transfer_commit_panel";
 export const TRANSFER_CANCEL_COMMAND = "longhorn_transfer_cancel";
 
 export class TransferClient {
@@ -57,9 +49,7 @@ export class TransferClient {
     onFailure?: ConnectionFailureReporter,
   ): TransferClientConnection {
     if (!isEventTransport(this.#transport)) {
-      throw new TypeError(
-        "transfer connection requires an event-capable transport",
-      );
+      throw new TypeError("transfer connection requires an event-capable transport");
     }
     return new TransferClientConnection(
       this.#transport,
@@ -69,52 +59,28 @@ export class TransferClient {
     );
   }
 
-  async startPanel(
-    request: PanelSessionStartRequest,
-  ): Promise<TransferSessionResponse> {
+  async startPanel(request: PanelSessionStartRequest): Promise<TransferSessionResponse> {
     assertTransferProtocolVersion(request.protocol_version);
-    return this.#invoke(
-      TRANSFER_START_PANEL_COMMAND,
-      request,
-      assertValidTransferSessionResponse,
-    );
+    return this.#invoke(TRANSFER_START_PANEL_COMMAND, request, assertValidTransferSessionResponse);
   }
 
-  async publishLease(
-    request: TransferLeaseRequest,
-  ): Promise<TransferLeaseResponse> {
+  async publishLease(request: TransferLeaseRequest): Promise<TransferLeaseResponse> {
     assertTransferProtocolVersion(request.protocol_version);
     for (const zone of request.zones) {
       assertValidTransferTargetBinding(zone.target);
     }
-    return this.#invoke(
-      TRANSFER_PUBLISH_LEASE_COMMAND,
-      request,
-      assertValidTransferLeaseResponse,
-    );
+    return this.#invoke(TRANSFER_PUBLISH_LEASE_COMMAND, request, assertValidTransferLeaseResponse);
   }
 
-  async commitPanel(
-    request: PanelTransferCommand,
-  ): Promise<PanelTransferResponse> {
+  async commitPanel(request: PanelTransferCommand): Promise<PanelTransferResponse> {
     assertTransferProtocolVersion(request.protocol_version);
     assertValidTransferCommitSelector(request.selector);
-    return this.#invoke(
-      TRANSFER_COMMIT_PANEL_COMMAND,
-      request,
-      assertValidPanelTransferResponse,
-    );
+    return this.#invoke(TRANSFER_COMMIT_PANEL_COMMAND, request, assertValidPanelTransferResponse);
   }
 
-  async cancel(
-    request: TransferCancelRequest,
-  ): Promise<TransferCancelResponse> {
+  async cancel(request: TransferCancelRequest): Promise<TransferCancelResponse> {
     assertTransferProtocolVersion(request.protocol_version);
-    return this.#invoke(
-      TRANSFER_CANCEL_COMMAND,
-      request,
-      assertValidTransferCancelResponse,
-    );
+    return this.#invoke(TRANSFER_CANCEL_COMMAND, request, assertValidTransferCancelResponse);
   }
 
   async #invoke<T>(

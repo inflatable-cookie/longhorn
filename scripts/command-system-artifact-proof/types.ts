@@ -1,17 +1,8 @@
+import type { PoodleRelease } from "../poodle-release.ts";
 export interface ArtifactIdentity {
   readonly name: string;
   readonly filename: string;
   readonly sha256: string;
-}
-
-export interface PoodleEvidenceFile {
-  readonly artifactSetId: string;
-  readonly artifacts: readonly ArtifactIdentity[];
-}
-
-export interface PoodleEvidence {
-  readonly artifacts: readonly ArtifactIdentity[];
-  readonly packDirectory: string;
 }
 
 export interface PackageManifest {

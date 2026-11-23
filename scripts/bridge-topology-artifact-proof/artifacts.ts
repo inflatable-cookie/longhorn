@@ -1,12 +1,7 @@
 import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join } from "node:path";
-import {
-  mkdir,
-  readFile,
-  readdir,
-  writeFile,
-} from "node:fs/promises";
-import { MSRV, MSRV_TOOLCHAIN } from "../msrv.ts";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { MSRV } from "../msrv.ts";
 
 import { assertExactSet, digest, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
@@ -19,13 +14,12 @@ import {
 } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
-const typescriptPackages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"]] as const;
-
-const rustCrates = [
-  "longhorn-core",
-  "longhorn-bridge",
-  "longhorn-tauri-bridge",
+const typescriptPackages = [
+  ["@inflatable-cookie/longhorn", "longhorn"],
+  ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"],
 ] as const;
+
+const rustCrates = ["longhorn-core", "longhorn-bridge", "longhorn-tauri-bridge"] as const;
 
 const donorNames = [
   "minimal-shell",
@@ -66,22 +60,14 @@ export async function packTypescriptArtifacts(
   repoRoot: string,
   artifactRoot: string,
 ): Promise<{
-  readonly identities: readonly ArtifactIdentity[];
+  readonly identities: ReadonlyArray<ArtifactIdentity>;
   readonly paths: ReadonlyMap<string, string>;
 }> {
   const paths = new Map<string, string>();
   const identities = [];
   for (const [name, directory] of typescriptPackages) {
     await run(
-      [
-        "bun",
-        "pm",
-        "pack",
-        "--destination",
-        artifactRoot,
-        "--ignore-scripts",
-        "--quiet",
-      ],
+      ["bun", "pm", "pack", "--destination", artifactRoot, "--ignore-scripts", "--quiet"],
       join(repoRoot, "packages", directory),
     );
     const path = join(
@@ -104,15 +90,15 @@ export async function packAndCheckRustArtifacts(
   temporaryRoot: string,
   buildTarget: string,
 ): Promise<{
-  readonly identities: readonly ArtifactIdentity[];
+  readonly identities: ReadonlyArray<ArtifactIdentity>;
   readonly packaging: {
     readonly privateSourceInventories: true;
     readonly registryNormalizedCrates: false;
     readonly cargoPackageListPassed: true;
   };
   readonly compileGraphs: {
-    readonly queryOnly: readonly string[];
-    readonly fullHost: readonly string[];
+    readonly queryOnly: ReadonlyArray<string>;
+    readonly fullHost: ReadonlyArray<string>;
     readonly supervisionOptional: true;
     readonly tauriOptional: true;
   };
@@ -134,10 +120,7 @@ export async function packAndCheckRustArtifacts(
       throw new Error(`${name} package inventory is incomplete`);
     }
     const archive = join(artifactRoot, `${name}-${LONGHORN_VERSION}.private.tar.gz`);
-    await run(
-      ["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`],
-      repoRoot,
-    );
+    await run(["tar", "-czf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xzf", archive, "-C", workspace], repoRoot);
     identities.push({
       name,
@@ -158,11 +141,7 @@ export async function packAndCheckRustArtifacts(
   };
 }
 
-async function inspectNpmArtifact(
-  name: string,
-  path: string,
-  artifactRoot: string,
-): Promise<void> {
+async function inspectNpmArtifact(name: string, path: string, artifactRoot: string): Promise<void> {
   const listing = await run(["tar", "-tzf", path], artifactRoot);
   if (
     listing.includes("node_modules/") ||
@@ -183,7 +162,7 @@ async function inspectNpmArtifact(
   if (packedManifest.name !== name || packedManifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
-  const expectedDependencies: Record<string, readonly string[]> = {
+  const expectedDependencies: Record<string, ReadonlyArray<string>> = {
     "@inflatable-cookie/longhorn": [],
     "@inflatable-cookie/longhorn-poodle-svelte": [],
     "@inflatable-cookie/longhorn-tauri": [],
@@ -223,10 +202,7 @@ async function inspectNpmArtifact(
     );
   }
 
-  const extractRoot = join(
-    artifactRoot,
-    `inspect-${name.replace("@", "").replace("/", "-")}`,
-  );
+  const extractRoot = join(artifactRoot, `inspect-${name.replace("@", "").replace("/", "-")}`);
   await mkdir(extractRoot);
   await run(["tar", "-xzf", path, "-C", extractRoot], artifactRoot);
   const source = await readSourceTree(join(extractRoot, "package", "src"));
@@ -244,9 +220,9 @@ async function auditRustBoundary(workspace: string): Promise<void> {
     await Promise.all(
       ["longhorn-bridge", "longhorn-tauri-bridge"].map(async (name) => {
         const crateRoot = join(workspace, "crates", name);
-        return `${await readFile(join(crateRoot, "Cargo.toml"), "utf8")}\n${
-          await readSourceTree(join(crateRoot, "src"))
-        }`;
+        return `${await readFile(join(crateRoot, "Cargo.toml"), "utf8")}\n${await readSourceTree(
+          join(crateRoot, "src"),
+        )}`;
       }),
     )
   ).join("\n");
@@ -265,17 +241,15 @@ async function readSourceTree(root: string): Promise<string> {
   const files = (await readdir(root, { recursive: true }))
     .filter((path) => /\.(rs|ts|svelte)$/.test(path))
     .sort();
-  return (
-    await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))
-  ).join("\n");
+  return (await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))).join("\n");
 }
 
 async function checkRustConsumers(
   workspace: string,
   buildTarget: string,
 ): Promise<{
-  readonly queryOnly: readonly string[];
-  readonly fullHost: readonly string[];
+  readonly queryOnly: ReadonlyArray<string>;
+  readonly fullHost: ReadonlyArray<string>;
   readonly supervisionOptional: true;
   readonly tauriOptional: true;
 }> {
@@ -314,7 +288,7 @@ async function checkRustConsumers(
   // the build directory the lease supplies. The real `target/` directory keeps
   // the lease adoption-free; see `prepareStagedWorkspace`.
   await prepareStagedWorkspace(workspace);
-  const staged = (args: readonly string[]) =>
+  const staged = (args: ReadonlyArray<string>) =>
     rustExec(privateCargoCommand(buildTarget, args), {
       manifestPath: join(workspace, "Cargo.toml"),
     });
@@ -372,10 +346,7 @@ async function checkRustConsumers(
   ) {
     throw new Error("query-only Rust graph acquired an optional bridge edge");
   }
-  if (
-    !fullTree.includes("longhorn-tauri-bridge") ||
-    !fullTree.includes("longhorn-bridge")
-  ) {
+  if (!fullTree.includes("longhorn-tauri-bridge") || !fullTree.includes("longhorn-bridge")) {
     throw new Error("full Rust graph is missing a selected bridge edge");
   }
   return {
@@ -386,7 +357,7 @@ async function checkRustConsumers(
   };
 }
 
-function directPackages(tree: string): readonly string[] {
+function directPackages(tree: string): ReadonlyArray<string> {
   return tree
     .split("\n")
     .map((line) => line.trim().split(/\s+/)[0])
@@ -428,13 +399,7 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "${LONGHORN_VERSION}", default-features = false }
 longhorn-tauri-bridge = { path = "crates/longhorn-tauri-bridge", version = "${LONGHORN_VERSION}" }
-${workspaceDependencies([
-  "proptest",
-  "serde",
-  "serde_json",
-  "tauri",
-  "ts-rs",
-])}
+${workspaceDependencies(["proptest", "serde", "serde_json", "tauri", "ts-rs"])}
 
 [workspace.lints.rust]
 missing_docs = "deny"

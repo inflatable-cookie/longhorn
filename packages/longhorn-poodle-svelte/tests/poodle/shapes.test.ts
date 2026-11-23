@@ -4,13 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import WorkspaceShapeHarness from "./WorkspaceShapeHarness.svelte";
-import {
-  instance,
-  loadShape,
-  mountedBinding,
-  resolvePanel,
-  shapeDocument,
-} from "./support.ts";
+import { instance, loadShape, mountedBinding, resolvePanel, shapeDocument } from "./support.ts";
 
 describe("mounted layout shapes", () => {
   it.each([

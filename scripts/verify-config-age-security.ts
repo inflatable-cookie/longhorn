@@ -40,13 +40,7 @@ import {
 const REPAIR_AGE_VERSION = "0.11.5";
 const REPAIR_AGE_CORE_PREFIX = "0.11.";
 const VULNERABLE_AGE_VERSION = "0.12.1";
-const VULNERABLE_CHAIN = [
-  "crypto-bigint",
-  "elliptic-curve",
-  "hpke",
-  "ml-kem",
-  "p256",
-] as const;
+const VULNERABLE_CHAIN = ["crypto-bigint", "elliptic-curve", "hpke", "ml-kem", "p256"] as const;
 const CONSUMED_CRATES = ["longhorn-config-age", "longhorn-config"] as const;
 // The pre-repair candidate whose resolution a real deployed consumer lock
 // would carry; the stale-lock probe starts there (task longhorn#086).
@@ -56,12 +50,18 @@ const repositoryRoot = resolveRepository(import.meta.dir);
 
 function resolveRepository(root: string): string {
   const probe = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: root, encoding: "utf8" });
-  if (probe.status !== 0) throw new Error(`no git repository above ${root}`);
+  if (probe.status !== 0) {
+    throw new Error(`no git repository above ${root}`);
+  }
   return probe.stdout.trim();
 }
 
-function attempt(command: readonly string[], cwd: string): { ok: boolean; output: string } {
-  const result = spawnSync(command[0], command.slice(1), {
+function attempt(command: ReadonlyArray<string>, cwd: string): { ok: boolean; output: string } {
+  const [program, ...args] = command;
+  if (!program) {
+    throw new Error("expected a command to run");
+  }
+  const result = spawnSync(program, args, {
     cwd,
     encoding: "utf8",
     env: process.env,
@@ -75,7 +75,9 @@ function attempt(command: readonly string[], cwd: string): { ok: boolean; output
 function releaseMsrv(): string {
   const env = readFileSafe(join(repositoryRoot, "release-baselines", "rust-toolchains.env"));
   const match = /LONGHORN_GENERAL_MSRV=(\d+)\.(\d+)\.(\d+)/.exec(env ?? "");
-  if (!match) throw new Error("release-baselines/rust-toolchains.env has no LONGHORN_GENERAL_MSRV");
+  if (!match) {
+    throw new Error("release-baselines/rust-toolchains.env has no LONGHORN_GENERAL_MSRV");
+  }
   return `${match[1]}.${match[2]}`;
 }
 
@@ -109,7 +111,9 @@ async function snapshotWorkingTree(): Promise<Snapshot> {
     repositoryRoot,
   );
   for (const relative of listed.split("\0")) {
-    if (relative === "") continue;
+    if (relative === "") {
+      continue;
+    }
     const from = join(repositoryRoot, relative);
     const to = join(temp, relative);
     await mkdir(dirname(to), { recursive: true });
@@ -120,10 +124,16 @@ async function snapshotWorkingTree(): Promise<Snapshot> {
   run(
     [
       "git",
-      "-c", "user.name=Longhorn",
-      "-c", "user.email=config-age-security@invalid",
-      "-c", "commit.gpgsign=false",
-      "commit", "-q", "-m", "Config age security verification snapshot",
+      "-c",
+      "user.name=Longhorn",
+      "-c",
+      "user.email=config-age-security@invalid",
+      "-c",
+      "commit.gpgsign=false",
+      "commit",
+      "-q",
+      "-m",
+      "Config age security verification snapshot",
     ],
     temp,
   );
@@ -177,11 +187,12 @@ type MetadataPackage = {
 };
 
 function assertUnlockedResolution(metadata: unknown, snapshot: Snapshot): void {
-  const packages = (metadata as { packages: MetadataPackage[] }).packages;
+  const packages = (metadata as { packages: Array<MetadataPackage> }).packages;
   const byName = new Map(packages.map((pkg) => [pkg.name, pkg]));
 
   const longhorn = packages.filter(
-    (pkg) => pkg.name.startsWith("longhorn-") && pkg.name !== "longhorn-config-age-security-consumer",
+    (pkg) =>
+      pkg.name.startsWith("longhorn-") && pkg.name !== "longhorn-config-age-security-consumer",
   );
   if (longhorn.length < CONSUMED_CRATES.length + 1) {
     throw new Error(
@@ -189,8 +200,13 @@ function assertUnlockedResolution(metadata: unknown, snapshot: Snapshot): void {
     );
   }
   for (const pkg of longhorn) {
-    if (pkg.source === null || !(pkg.source.startsWith("git+file://") && pkg.source.endsWith(`#${snapshot.commit}`))) {
-      throw new Error(`${pkg.name} did not resolve from git at the exact snapshot commit: ${pkg.source}`);
+    if (
+      pkg.source === null ||
+      !(pkg.source.startsWith("git+file://") && pkg.source.endsWith(`#${snapshot.commit}`))
+    ) {
+      throw new Error(
+        `${pkg.name} did not resolve from git at the exact snapshot commit: ${pkg.source}`,
+      );
     }
   }
 
@@ -200,7 +216,9 @@ function assertUnlockedResolution(metadata: unknown, snapshot: Snapshot): void {
   }
   const ageCore = byName.get("age-core");
   if (ageCore === undefined || !ageCore.version.startsWith(REPAIR_AGE_CORE_PREFIX)) {
-    throw new Error(`age-core did not resolve on the ${REPAIR_AGE_CORE_PREFIX}x line: ${ageCore?.version ?? "absent"}`);
+    throw new Error(
+      `age-core did not resolve on the ${REPAIR_AGE_CORE_PREFIX}x line: ${ageCore?.version ?? "absent"}`,
+    );
   }
   for (const banned of VULNERABLE_CHAIN) {
     if (byName.has(banned)) {
@@ -209,14 +227,10 @@ function assertUnlockedResolution(metadata: unknown, snapshot: Snapshot): void {
   }
 }
 
-async function stageConsumer(
-  label: string,
-  snapshot: Snapshot,
-  extraAgeRequirement?: string,
-): Promise<string> {
+async function stageConsumer(label: string, snapshot: Snapshot): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), `longhorn-config-age-security-${label}-`));
   await prepareStagedWorkspace(directory);
-  await writeFile(join(directory, "Cargo.toml"), consumerManifest(snapshot, extraAgeRequirement));
+  await writeFile(join(directory, "Cargo.toml"), consumerManifest(snapshot));
   const sourceDirectory = join(directory, "src");
   await mkdir(sourceDirectory);
   await writeFile(join(sourceDirectory, "main.rs"), CONSUMER_MAIN);
@@ -240,7 +254,12 @@ try {
   });
 
   // 1. Unlocked compatible resolution: the consumer's own fresh lockfile.
-  run(rustExec(["cargo", "generate-lockfile"], { manifestPath: join(consumerUnlocked, "Cargo.toml") }), consumerUnlocked);
+  run(
+    rustExec(["cargo", "generate-lockfile"], {
+      manifestPath: join(consumerUnlocked, "Cargo.toml"),
+    }),
+    consumerUnlocked,
+  );
   const metadata = JSON.parse(
     run(
       rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
@@ -254,30 +273,43 @@ try {
   // 2. The unlocked consumer compiles --locked against that resolution, with
   //    private final Cargo outputs on external build scratch.
   run(
-    rustExec(
-      privateCargoCommand(buildScratch.root, ["cargo", "check", "--locked", "--quiet"]),
-      { manifestPath: join(consumerUnlocked, "Cargo.toml") },
-    ),
+    rustExec(privateCargoCommand(buildScratch.root, ["cargo", "check", "--locked", "--quiet"]), {
+      manifestPath: join(consumerUnlocked, "Cargo.toml"),
+    }),
     consumerUnlocked,
   );
 
   // 3. Stale downstream lock: a consumer whose lock resolved the vulnerable
   //    line against the pre-repair candidate cannot keep it under --locked
   //    once it repoints at the repaired tree, and re-locking lands clean.
-  run(rustExec(["cargo", "generate-lockfile"], { manifestPath: join(consumerStale, "Cargo.toml") }), consumerStale);
+  run(
+    rustExec(["cargo", "generate-lockfile"], { manifestPath: join(consumerStale, "Cargo.toml") }),
+    consumerStale,
+  );
   const staleLock = await readFile(join(consumerStale, "Cargo.lock"), "utf8");
   if (!staleLock.includes(`name = "age"\nversion = "${VULNERABLE_AGE_VERSION}"`)) {
-    throw new Error(`the stale lock did not pin age ${VULNERABLE_AGE_VERSION}; fixture scenario is broken`);
+    throw new Error(
+      `the stale lock did not pin age ${VULNERABLE_AGE_VERSION}; fixture scenario is broken`,
+    );
   }
   await writeFile(join(consumerStale, "Cargo.toml"), consumerManifest(snapshot));
   const lockedRefusal = attempt(
-    rustExec(["cargo", "check", "--locked", "--quiet"], { manifestPath: join(consumerStale, "Cargo.toml") }),
+    rustExec(["cargo", "check", "--locked", "--quiet"], {
+      manifestPath: join(consumerStale, "Cargo.toml"),
+    }),
     consumerStale,
   );
   if (lockedRefusal.ok) {
-    throw new Error(`a stale lock pinning age ${VULNERABLE_AGE_VERSION} still built --locked against the repaired requirement`);
+    throw new Error(
+      `a stale lock pinning age ${VULNERABLE_AGE_VERSION} still built --locked against the repaired requirement`,
+    );
   }
-  run(rustExec(["cargo", "update", "-p", "longhorn-config-age"], { manifestPath: join(consumerStale, "Cargo.toml") }), consumerStale);
+  run(
+    rustExec(["cargo", "update", "-p", "longhorn-config-age"], {
+      manifestPath: join(consumerStale, "Cargo.toml"),
+    }),
+    consumerStale,
+  );
   const relockedMetadata = JSON.parse(
     run(
       rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
@@ -288,10 +320,9 @@ try {
   );
   assertUnlockedResolution(relockedMetadata, snapshot);
   run(
-    rustExec(
-      privateCargoCommand(buildScratch.root, ["cargo", "check", "--locked", "--quiet"]),
-      { manifestPath: join(consumerStale, "Cargo.toml") },
-    ),
+    rustExec(privateCargoCommand(buildScratch.root, ["cargo", "check", "--locked", "--quiet"]), {
+      manifestPath: join(consumerStale, "Cargo.toml"),
+    }),
     consumerStale,
   );
 
@@ -321,8 +352,14 @@ try {
   };
   console.log(JSON.stringify(receipt, null, 2));
 } finally {
-  if (consumerUnlocked !== undefined) await rm(consumerUnlocked, { recursive: true, force: true });
-  if (consumerStale !== undefined) await rm(consumerStale, { recursive: true, force: true });
-  if (snapshot.temp !== undefined) await rm(snapshot.temp, { recursive: true, force: true });
+  if (consumerUnlocked !== undefined) {
+    await rm(consumerUnlocked, { recursive: true, force: true });
+  }
+  if (consumerStale !== undefined) {
+    await rm(consumerStale, { recursive: true, force: true });
+  }
+  if (snapshot.temp !== undefined) {
+    await rm(snapshot.temp, { recursive: true, force: true });
+  }
   await buildScratch.dispose();
 }

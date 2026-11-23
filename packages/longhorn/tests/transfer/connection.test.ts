@@ -5,11 +5,11 @@ import {
   TRANSFER_CLIENT_CHANGED_EVENT,
   TransferClient,
   TransferClientConnectionDisposedError,
-  type TransferClientSnapshot,
 } from "@inflatable-cookie/longhorn/transfer";
+import type { TransferClientSnapshot } from "@inflatable-cookie/longhorn/transfer";
 
 test("installs the epoch listener before snapshot and keeps the newest authority", async () => {
-  const operations: string[] = [];
+  const operations: Array<string> = [];
   let listener: ((payload: unknown) => void) | undefined;
   const response = snapshot("client:response", 1);
   const event = snapshot("client:event", 2);
@@ -27,7 +27,7 @@ test("installs the epoch listener before snapshot and keeps the newest authority
       return response;
     },
   };
-  const observed: TransferClientSnapshot[] = [];
+  const observed: Array<TransferClientSnapshot> = [];
   const connection = new TransferClient(transport).connect((value) => {
     observed.push(value);
   });
@@ -45,9 +45,7 @@ test("installs the epoch listener before snapshot and keeps the newest authority
 });
 
 test("late listener registration tears down without invoking snapshot", async () => {
-  let resolveListen:
-    | ((unlisten: Unlisten) => void)
-    | undefined;
+  let resolveListen: ((unlisten: Unlisten) => void) | undefined;
   let invokeCount = 0;
   let unlistenCount = 0;
   const transport: EventTransport = {
@@ -67,9 +65,7 @@ test("late listener registration tears down without invoking snapshot", async ()
     unlistenCount += 1;
   });
 
-  await expect(connection.ready).rejects.toBeInstanceOf(
-    TransferClientConnectionDisposedError,
-  );
+  await expect(connection.ready).rejects.toBeInstanceOf(TransferClientConnectionDisposedError);
   await disposal;
   expect(invokeCount).toBe(0);
   expect(unlistenCount).toBe(1);
@@ -78,8 +74,8 @@ test("late listener registration tears down without invoking snapshot", async ()
 test("ignores stale client epochs and reports invalid events", async () => {
   let listener: ((payload: unknown) => void) | undefined;
   let unlistenCount = 0;
-  const failures: string[] = [];
-  const observed: TransferClientSnapshot[] = [];
+  const failures: Array<string> = [];
+  const observed: Array<TransferClientSnapshot> = [];
   const transport: EventTransport = {
     async listen(_name, next) {
       listener = next;
@@ -104,16 +100,11 @@ test("ignores stale client epochs and reports invalid events", async () => {
   listener?.({ protocol_version: 99 });
   await tick();
   expect(failures).toEqual(["event"]);
-  expect(connection.failures().map(({ phase }) => phase)).toEqual([
-    "event",
-  ]);
+  expect(connection.failures().map(({ phase }) => phase)).toEqual(["event"]);
   expect(unlistenCount).toBe(1);
 });
 
-function snapshot(
-  clientId: string,
-  epoch: number,
-): TransferClientSnapshot {
+function snapshot(clientId: string, epoch: number): TransferClientSnapshot {
   return {
     protocol_version: 1,
     client_id: clientId,
@@ -122,5 +113,7 @@ function snapshot(
 }
 
 async function tick(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }

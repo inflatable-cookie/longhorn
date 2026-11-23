@@ -167,6 +167,8 @@ authority, and derives that strictness from it.** Concretely:
 - **Every bound comes from a named constant, never a literal.** A `MAXIMUM_*`
   that bounds a wire-visible collection is enforced from a generated constant,
   and `check:bindings` fails when Rust changes and TypeScript does not.
+- **Generated field maps preserve their known keys in TypeScript.** Oxlint
+  rejects inline allowed-key arrays passed to validation helpers.
 - **A rule Rust declares is generated, not copied.** Including rules that are
   not types: the connection state/reason matrix lived in a `matches!` arm, was
   hand-copied into TypeScript, and agreed by maintenance rather than by

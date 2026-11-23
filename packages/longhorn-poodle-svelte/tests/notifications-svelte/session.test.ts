@@ -9,7 +9,9 @@ describe("notification Svelte and public Poodle adapters", () => {
   it("expires only transient toast presentation", async () => {
     vi.useFakeTimers();
     const state = createMountedSession();
-    const mounted = render(NotificationHarness, { props: { session: state.session, autoDismissMs: 100 } });
+    const mounted = render(NotificationHarness, {
+      props: { session: state.session, autoDismissMs: 100 },
+    });
     await vi.waitFor(() => expect(state.session.status.kind).toBe("ready"));
     state.port.publish(withNewRecord(state.port.snapshotValue));
     await vi.waitFor(() => expect(state.session.toasts).toHaveLength(1));
@@ -18,7 +20,9 @@ describe("notification Svelte and public Poodle adapters", () => {
     await vi.advanceTimersByTimeAsync(100);
     await vi.waitFor(() => expect(state.session.toasts).toHaveLength(0));
     expect(mounted.getByRole("button", { name: "New notification" })).toBeTruthy();
-    expect(state.session.records.map((record) => record.notificationId)).toContain("notification:new");
+    expect(state.session.records.map((record) => record.notificationId)).toContain(
+      "notification:new",
+    );
     await mounted.unmount();
     vi.useRealTimers();
   });

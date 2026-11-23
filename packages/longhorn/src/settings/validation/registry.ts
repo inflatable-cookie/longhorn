@@ -1,8 +1,6 @@
 import { SETTINGS_FIELDS } from "../generated/fields.ts";
-import {
-  SETTINGS_MUTATION_TIMINGS,
-  type SettingsRegistrySnapshot,
-} from "../generated/protocol.ts";
+import { SETTINGS_MUTATION_TIMINGS } from "../generated/protocol.ts";
+import type { SettingsRegistrySnapshot, SettingsLimits } from "../generated/protocol.ts";
 import { incompatible } from "./error.ts";
 import {
   arraysOfIdentities,
@@ -32,31 +30,11 @@ export function assertValidSettingsRegistrySnapshot(
     incompatible("invalid_registry", registry.digest);
   }
   const limits = settingsLimits(registry.limits);
-  const modules = boundedArray(
-    registry.modules,
-    limits.maximumModules,
-    "invalid_registry",
-  );
-  const sections = boundedArray(
-    registry.sections,
-    limits.maximumSections,
-    "invalid_registry",
-  );
-  const pages = boundedArray(
-    registry.pages,
-    limits.maximumPages,
-    "invalid_registry",
-  );
-  const renderers = boundedArray(
-    registry.renderers,
-    limits.maximumRenderers,
-    "invalid_registry",
-  );
-  const scopes = boundedArray(
-    registry.scopes,
-    limits.maximumScopes,
-    "invalid_registry",
-  );
+  const modules = boundedArray(registry.modules, limits.maximumModules, "invalid_registry");
+  const sections = boundedArray(registry.sections, limits.maximumSections, "invalid_registry");
+  const pages = boundedArray(registry.pages, limits.maximumPages, "invalid_registry");
+  const renderers = boundedArray(registry.renderers, limits.maximumRenderers, "invalid_registry");
+  const scopes = boundedArray(registry.scopes, limits.maximumScopes, "invalid_registry");
   const applyUnits = boundedArray(
     registry.applyUnits,
     limits.maximumApplyUnits,
@@ -100,39 +78,26 @@ export function assertValidSettingsRegistrySnapshot(
   pages.forEach((value) => validatePage(value, limits));
 }
 
-function validatePage(
-  value: unknown,
-  limits: Record<string, number>,
-): void {
+function validatePage(value: unknown, limits: SettingsLimits): void {
   const page = record(value, SETTINGS_FIELDS.SettingsPageDefinition);
   identity(page.id);
   identity(page.moduleId);
   identity(page.sectionId);
   identity(page.rendererId);
-  text(page.label, limits.maximumLabelBytes!);
+  text(page.label, limits.maximumLabelBytes);
   integer(page.order);
-  boundedArray(
-    page.keywords,
-    limits.maximumKeywordsPerPage!,
-    "invalid_registry",
-  ).forEach((keyword) => text(keyword, limits.maximumKeywordBytes!));
-  boundedArray(
-    page.anchors,
-    limits.maximumAnchorsPerPage!,
-    "invalid_registry",
-  ).forEach((value) => {
+  boundedArray(page.keywords, limits.maximumKeywordsPerPage, "invalid_registry").forEach(
+    (keyword) => text(keyword, limits.maximumKeywordBytes),
+  );
+  boundedArray(page.anchors, limits.maximumAnchorsPerPage, "invalid_registry").forEach((value) => {
     const anchor = record(value, SETTINGS_FIELDS.SettingsAnchorDefinition);
     identity(anchor.id);
     if (anchor.label !== null) {
-      text(anchor.label, limits.maximumLabelBytes!);
+      text(anchor.label, limits.maximumLabelBytes);
     }
     integer(anchor.order);
   });
-  arraysOfIdentities(
-    page.requiredCapabilities,
-    page.readableScopeIds,
-    page.writableApplyUnitIds,
-  );
+  arraysOfIdentities(page.requiredCapabilities, page.readableScopeIds, page.writableApplyUnitIds);
   const features = record(page.features, SETTINGS_FIELDS.SettingsPageFeatures);
   boolean(features.reset);
   boolean(features.import);
@@ -141,30 +106,13 @@ function validatePage(
   boolean(features.confirmation);
 }
 
-function settingsLimits(value: unknown): Record<string, number> {
+function settingsLimits(value: unknown): SettingsLimits {
   const limits = record(value, SETTINGS_FIELDS.SettingsLimits);
-  const names = [
-    "maximumModules",
-    "maximumSections",
-    "maximumPages",
-    "maximumRenderers",
-    "maximumScopes",
-    "maximumApplyUnits",
-    "maximumCapabilities",
-    "maximumAnchorsPerPage",
-    "maximumKeywordsPerPage",
-    "maximumLabelBytes",
-    "maximumKeywordBytes",
-    "maximumOpaqueValueBytes",
-  ] as const;
-  for (const name of names) {
+  for (const name of SETTINGS_FIELDS.SettingsLimits) {
     positive(limits[name], "invalid_registry");
   }
-  if (
-    (limits.maximumOpaqueValueBytes as number) >
-    HARD_MAXIMUM_OPAQUE_VALUE_BYTES
-  ) {
+  if ((limits.maximumOpaqueValueBytes as number) > HARD_MAXIMUM_OPAQUE_VALUE_BYTES) {
     incompatible("invalid_registry", limits.maximumOpaqueValueBytes);
   }
-  return limits as Record<(typeof names)[number], number>;
+  return limits as SettingsLimits;
 }

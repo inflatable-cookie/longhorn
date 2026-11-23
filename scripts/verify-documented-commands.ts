@@ -29,33 +29,46 @@ const repoRoot = resolve(import.meta.dir, "..");
 function definedTasks(): Set<string> {
   const manifest = readFileSync(join(repoRoot, "effigy.toml"), "utf8");
   const names = new Set<string>();
-  for (const [, name] of manifest.matchAll(/^"([a-z0-9:_.-]+)"\s*=/gm)) names.add(name!);
-  for (const [, name] of manifest.matchAll(/^([a-z0-9:_.-]+)\s*=\s*\[/gm)) names.add(name!);
-  for (const [, quoted, bare] of manifest.matchAll(/^\[tasks\.(?:"([a-z0-9:_.-]+)"|([a-z0-9_-]+))\]/gm)) {
+  for (const [, name] of manifest.matchAll(/^"([a-z0-9:_.-]+)"\s*=/gm)) {
+    names.add(name!);
+  }
+  for (const [, name] of manifest.matchAll(/^([a-z0-9:_.-]+)\s*=\s*\[/gm)) {
+    names.add(name!);
+  }
+  for (const [, quoted, bare] of manifest.matchAll(
+    /^\[tasks\.(?:"([a-z0-9:_.-]+)"|([a-z0-9_-]+))\]/gm,
+  )) {
     names.add((quoted ?? bare)!);
   }
   return names;
 }
 
-function markdownFiles(directory: string, found: string[] = []): string[] {
+function markdownFiles(directory: string, found: Array<string> = []): Array<string> {
   for (const entry of readdirSync(directory)) {
-    if (entry === "node_modules" || entry === "target" || entry === "gen") continue;
+    if (entry === "node_modules" || entry === "target" || entry === "gen") {
+      continue;
+    }
     const path = join(directory, entry);
-    if (statSync(path).isDirectory()) markdownFiles(path, found);
-    else if (entry.endsWith(".md")) found.push(path);
+    if (statSync(path).isDirectory()) {
+      markdownFiles(path, found);
+    } else if (entry.endsWith(".md")) {
+      found.push(path);
+    }
   }
   return found;
 }
 
 const tasks = definedTasks();
-const dead: string[] = [];
+const dead: Array<string> = [];
 let checked = 0;
 
 for (const file of markdownFiles(join(repoRoot, "examples"))) {
   const text = readFileSync(file, "utf8");
   for (const [, name] of text.matchAll(/\beffigy ([a-z0-9:_-]+)/g)) {
     checked += 1;
-    if (!tasks.has(name!)) dead.push(`${relative(repoRoot, file)}: effigy ${name}`);
+    if (!tasks.has(name!)) {
+      dead.push(`${relative(repoRoot, file)}: effigy ${name}`);
+    }
   }
 }
 

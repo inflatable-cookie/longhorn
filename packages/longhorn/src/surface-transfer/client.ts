@@ -15,10 +15,8 @@ import {
   assertValidSurfaceTransferResponse,
 } from "./validation.ts";
 
-export const TRANSFER_START_SURFACE_COMMAND =
-  "longhorn_transfer_start_surface";
-export const TRANSFER_COMMIT_SURFACE_COMMAND =
-  "longhorn_transfer_commit_surface";
+export const TRANSFER_START_SURFACE_COMMAND = "longhorn_transfer_start_surface";
+export const TRANSFER_COMMIT_SURFACE_COMMAND = "longhorn_transfer_commit_surface";
 
 export class SurfaceTransferClient {
   readonly #transport: InvokeTransport;
@@ -27,27 +25,17 @@ export class SurfaceTransferClient {
     this.#transport = transport;
   }
 
-  async start(
-    request: SurfaceSessionStartRequest,
-  ): Promise<SurfaceSessionResponse> {
+  async start(request: SurfaceSessionStartRequest): Promise<SurfaceSessionResponse> {
     assertTransferProtocolVersion(request.protocol_version);
-    const value = await this.#transport.invoke(
-      TRANSFER_START_SURFACE_COMMAND,
-      { request },
-    );
+    const value = await this.#transport.invoke(TRANSFER_START_SURFACE_COMMAND, { request });
     assertValidSurfaceSessionResponse(value);
     return value;
   }
 
-  async commit(
-    request: SurfaceTransferCommand,
-  ): Promise<SurfaceTransferResponse> {
+  async commit(request: SurfaceTransferCommand): Promise<SurfaceTransferResponse> {
     assertTransferProtocolVersion(request.protocol_version);
     assertValidTransferCommitSelector(request.selector);
-    const value = await this.#transport.invoke(
-      TRANSFER_COMMIT_SURFACE_COMMAND,
-      { request },
-    );
+    const value = await this.#transport.invoke(TRANSFER_COMMIT_SURFACE_COMMAND, { request });
     assertValidSurfaceTransferResponse(value);
     return value;
   }

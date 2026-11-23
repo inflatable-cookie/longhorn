@@ -20,9 +20,7 @@ type Manifest = {
 };
 
 function manifest(root: string): Manifest {
-  return JSON.parse(
-    readFileSync(resolve(root, "package.json"), "utf8"),
-  ) as Manifest;
+  return JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")) as Manifest;
 }
 
 const rootManifest = manifest(repositoryRoot);
@@ -34,16 +32,20 @@ function workspaceVersion(): string {
   // cannot evaluate that module.
   const cargo = readFileSync(resolve(repositoryRoot, "Cargo.toml"), "utf8");
   const match = /\[workspace\.package\][^[]*?^version = "([^"]+)"/m.exec(cargo);
-  if (!match?.[1]) throw new Error("workspace.package.version not found in Cargo.toml");
+  if (!match?.[1]) {
+    throw new Error("workspace.package.version not found in Cargo.toml");
+  }
   return match[1];
 }
 
-async function sourceFiles(dir: string): Promise<string[]> {
+async function sourceFiles(dir: string): Promise<Array<string>> {
   const entries = await readdir(dir);
   const nested = await Promise.all(
     entries.map(async (entry) => {
       const path = join(dir, entry);
-      if ((await stat(path)).isDirectory()) return sourceFiles(path);
+      if ((await stat(path)).isDirectory()) {
+        return sourceFiles(path);
+      }
       return /\.(ts|svelte)$/.test(entry) ? [path] : [];
     }),
   );
@@ -52,9 +54,7 @@ async function sourceFiles(dir: string): Promise<string[]> {
 
 describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
   it("peers on the published ranges and keeps Poodle optional", async () => {
-    const metadata = JSON.parse(
-      await readFile(resolve(packageRoot, "package.json"), "utf8"),
-    );
+    const metadata = JSON.parse(await readFile(resolve(packageRoot, "package.json"), "utf8"));
     expect(metadata.dependencies).toBeUndefined();
     expect(metadata.peerDependencies).toEqual({
       "@inflatable-cookie/longhorn": workspaceVersion(),
@@ -69,16 +69,10 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
   });
 
   it("resolves every export target", async () => {
-    const metadata = JSON.parse(
-      await readFile(resolve(packageRoot, "package.json"), "utf8"),
-    );
-    const exports = metadata.exports as Record<
-      string,
-      string | Record<string, string>
-    >;
+    const metadata = JSON.parse(await readFile(resolve(packageRoot, "package.json"), "utf8"));
+    const exports = metadata.exports as Record<string, string | Record<string, string>>;
     for (const target of Object.values(exports)) {
-      const paths =
-        typeof target === "string" ? [target] : Object.values(target);
+      const paths = typeof target === "string" ? [target] : Object.values(target);
       for (const path of paths) {
         await expect(stat(resolve(packageRoot, path))).resolves.toBeDefined();
       }
@@ -89,10 +83,12 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
   // surface. A relative path into the sibling package would defeat the split.
   it("reaches the framework only through its public specifiers", async () => {
     const files = await sourceFiles(resolve(packageRoot, "src"));
-    const offenders: string[] = [];
+    const offenders: Array<string> = [];
     for (const file of files) {
       const text = await readFile(file, "utf8");
-      if (/from "\.\.\/\.\.\/longhorn\//.test(text)) offenders.push(file);
+      if (/from "\.\.\/\.\.\/longhorn\//.test(text)) {
+        offenders.push(file);
+      }
     }
     expect(offenders).toEqual([]);
   });
@@ -101,7 +97,7 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
   // past its root into component source.
   it("consumes Poodle only at its package root", async () => {
     const files = await sourceFiles(resolve(packageRoot, "src"));
-    const offenders: string[] = [];
+    const offenders: Array<string> = [];
     for (const file of files) {
       const text = await readFile(file, "utf8");
       if (
@@ -120,10 +116,12 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
   // side of the boundary (g02.020 stage 3).
   it("ships no <style> blocks", async () => {
     const files = await sourceFiles(resolve(packageRoot, "src"));
-    const offenders: string[] = [];
+    const offenders: Array<string> = [];
     for (const file of files) {
       const text = await readFile(file, "utf8");
-      if (/<style[\s>]/.test(text)) offenders.push(file);
+      if (/<style[\s>]/.test(text)) {
+        offenders.push(file);
+      }
     }
     expect(offenders).toEqual([]);
   });
@@ -151,10 +149,9 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
         "workspace dependency",
         // A devDependency at the root: the packages take Poodle as an optional
         // peer, and the root installs it to build and test against.
-        (rootManifest.dependencies?.[POODLE] ??
-          rootManifest.devDependencies?.[POODLE]) as string | undefined,
+        rootManifest.dependencies?.[POODLE] ?? rootManifest.devDependencies?.[POODLE],
       ],
-      ["peer", packageManifest.peerDependencies?.[POODLE] as string | undefined],
+      ["peer", packageManifest.peerDependencies?.[POODLE]],
     ] as const;
 
     for (const [kind, spec] of declarations) {
@@ -176,9 +173,7 @@ describe("@inflatable-cookie/longhorn-poodle-svelte package boundary", () => {
       packageManifest.peerDependencies?.[POODLE] as string,
     )?.[1];
     expect(floor, "Poodle peer is not the `>=x.y.z <N` shape").toBeDefined();
-    const pin =
-      (rootManifest.dependencies?.[POODLE] ??
-        rootManifest.devDependencies?.[POODLE]) as string | undefined;
+    const pin = rootManifest.dependencies?.[POODLE] ?? rootManifest.devDependencies?.[POODLE];
     expect(pin).toBe(floor);
   });
 });

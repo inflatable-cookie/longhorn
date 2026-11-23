@@ -22,7 +22,7 @@ const defaultRepoRoot = resolve(import.meta.dir, "..");
 const EMPTY_UNRELEASED = "unreleased changelog section has no entries";
 
 type ReleaseStatusDetails = {
-  blockers?: string[];
+  blockers?: Array<string>;
   changelog?: { valid?: boolean };
   unreleased?: { empty?: boolean };
 };
@@ -54,11 +54,13 @@ function parseEnvelope(stdout: string): ReleaseStatusEnvelope | undefined {
 }
 
 function isEmptyUnreleasedGap(details: ReleaseStatusDetails | null | undefined): boolean {
-  return details?.changelog?.valid === true
-    && details.unreleased?.empty === true
-    && Array.isArray(details.blockers)
-    && details.blockers.length > 0
-    && details.blockers.every((blocker) => blocker === EMPTY_UNRELEASED);
+  return (
+    details?.changelog?.valid === true &&
+    details.unreleased?.empty === true &&
+    Array.isArray(details.blockers) &&
+    details.blockers.length > 0 &&
+    details.blockers.every((blocker) => blocker === EMPTY_UNRELEASED)
+  );
 }
 
 export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
@@ -90,7 +92,9 @@ async function readReleaseTable(repoRoot: string): Promise<string> {
   let releaseConfig: ReleaseConfig | undefined;
   for (const relativePath of ["config/release.toml", "effigy.toml"]) {
     const content = await readFile(join(repoRoot, relativePath), "utf8").catch(() => null);
-    if (content === null) continue;
+    if (content === null) {
+      continue;
+    }
     const parsed = Bun.TOML.parse(content) as { release?: ReleaseConfig };
     if (parsed.release) {
       releaseConfig = parsed.release;

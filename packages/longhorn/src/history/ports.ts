@@ -14,9 +14,9 @@ export interface HistoryPort {
   snapshot(): Promise<unknown>;
   page(command: HistoryPageCommand): Promise<unknown>;
   navigate(command: HistoryNavigationCommand): Promise<unknown>;
-  listen?(
-    listener: (event: unknown) => void,
-  ): HistoryUnlisten | Promise<HistoryUnlisten>;
+  listen?:
+    | ((listener: (event: unknown) => void) => HistoryUnlisten | Promise<HistoryUnlisten>)
+    | undefined;
   nextPlanId(): HistoryPlanId;
 }
 
@@ -24,8 +24,6 @@ export interface CheckedHistoryPort {
   snapshot(): Promise<HistorySnapshot>;
   page(command: HistoryPageCommand): Promise<HistoryPageSnapshot>;
   navigate(command: HistoryNavigationCommand): Promise<HistoryNavigationResult>;
-  listen?(
-    listener: (event: HistoryChangedEvent) => void,
-  ): Promise<HistoryUnlisten>;
+  listen?(listener: (event: HistoryChangedEvent) => void): Promise<HistoryUnlisten>;
   nextPlanId(): HistoryPlanId;
 }

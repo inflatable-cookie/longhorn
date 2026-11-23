@@ -27,8 +27,12 @@ export interface UpdatePort {
   prepare(command: UpdatePrepareCommand): Promise<unknown>;
   apply(command: UpdateApplyCommand): Promise<unknown>;
   cancel(command: UpdateCancelCommand): Promise<unknown>;
-  listen?(listener: (event: unknown) => void): UpdateUnlisten | Promise<UpdateUnlisten>;
-  listenProgress?(listener: (event: unknown) => void): UpdateUnlisten | Promise<UpdateUnlisten>;
+  listen?:
+    | ((listener: (event: unknown) => void) => UpdateUnlisten | Promise<UpdateUnlisten>)
+    | undefined;
+  listenProgress?:
+    | ((listener: (event: unknown) => void) => UpdateUnlisten | Promise<UpdateUnlisten>)
+    | undefined;
 }
 
 /** The same seam after validation. */

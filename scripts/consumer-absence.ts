@@ -26,23 +26,20 @@ const PACKAGES = new Set([
   `${SCOPE}longhorn-tauri`,
 ]);
 
-export function isSubpath(specifier: string): boolean {
+function isSubpath(specifier: string): boolean {
   return !PACKAGES.has(specifier);
 }
 
-export async function assertPackageAbsent(
-  stage: string,
-  name: string,
-): Promise<void> {
+export async function assertPackageAbsent(stage: string, name: string): Promise<void> {
   if (isSubpath(name)) {
-    throw new Error(
-      `${name} is a subpath, not a package: assert import-absence instead`,
-    );
+    throw new Error(`${name} is a subpath, not a package: assert import-absence instead`);
   }
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return;
+    }
     throw error;
   }
   throw new Error(`${name} unexpectedly entered the install graph`);
@@ -52,20 +49,23 @@ async function consumerSources(stage: string): Promise<string> {
   const roots = ["src", "."];
   for (const root of roots) {
     try {
-      const entries = (await readdir(join(stage, root), {
+      const entries = await readdir(join(stage, root), {
         recursive: true,
-      })) as string[];
+      });
       const files = entries.filter(
-        (path) =>
-          /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules"),
+        (path) => /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules"),
       );
-      if (files.length === 0) continue;
+      if (files.length === 0) {
+        continue;
+      }
       const sources = await Promise.all(
         files.map((path) => readFile(join(stage, root, path), "utf8")),
       );
       return sources.join("\n");
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
     }
   }
   throw new Error(`no consumer sources found under ${stage}`);
@@ -73,9 +73,11 @@ async function consumerSources(stage: string): Promise<string> {
 
 export async function assertImportsAbsent(
   stage: string,
-  specifiers: readonly string[],
+  specifiers: ReadonlyArray<string>,
 ): Promise<void> {
-  if (specifiers.length === 0) return;
+  if (specifiers.length === 0) {
+    return;
+  }
   const sources = await consumerSources(stage);
   for (const specifier of specifiers) {
     if (sources.includes(specifier)) {
@@ -85,29 +87,12 @@ export async function assertImportsAbsent(
 }
 
 /** Split a mixed forbidden list into the two claims it now makes. */
-export function splitForbidden(
-  forbidden: readonly string[],
-): { readonly packages: string[]; readonly imports: string[] } {
+export function splitForbidden(forbidden: ReadonlyArray<string>): {
+  readonly packages: Array<string>;
+  readonly imports: Array<string>;
+} {
   return {
     packages: forbidden.filter((name) => !isSubpath(name)),
     imports: forbidden.filter((name) => isSubpath(name)),
   };
-}
-
-/** Exactly these Longhorn packages resolve in the graph, and no others. */
-export async function assertLonghornGraphExact(
-  stage: string,
-  expected: readonly string[],
-): Promise<void> {
-  const scope = join(stage, "node_modules", "@inflatable-cookie");
-  const installed = (await readdir(scope))
-    .filter((entry) => entry === "longhorn" || entry.startsWith("longhorn-"))
-    .map((entry) => `${SCOPE}${entry}`)
-    .sort();
-  const want = [...expected].sort();
-  if (JSON.stringify(installed) !== JSON.stringify(want)) {
-    throw new Error(
-      `install graph carries ${installed.join(", ")}; expected ${want.join(", ")}`,
-    );
-  }
 }

@@ -18,8 +18,7 @@ export function projectOrdinaryRegionVisibility(
   return {
     region_id: definition.id,
     state:
-      state.panel_instance_ids.length > 0 ||
-      definition.empty_policy === "keep_visible"
+      state.panel_instance_ids.length > 0 || definition.empty_policy === "keep_visible"
         ? "visible"
         : "hidden",
   };

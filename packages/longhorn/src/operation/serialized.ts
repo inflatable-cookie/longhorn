@@ -25,7 +25,9 @@ export class SerializedOperationPort implements OperationPort {
   }
 
   async listen(listener: (event: unknown) => void): Promise<OperationUnlisten> {
-    if (this.#inner.listen === undefined) return () => {};
+    if (this.#inner.listen === undefined) {
+      return () => {};
+    }
     return this.#inner.listen((event) => listener(clone(event)));
   }
 

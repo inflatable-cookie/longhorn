@@ -7,10 +7,22 @@ const repoRoot = resolve(import.meta.dir, "..");
 // app's own Tauri host implements them. They have no Rust implementation in
 // this repo by contract.
 const seamCommands = new Map([
-  ["longhorn_native_content_connect", "consumer-implemented host; contract 017 native-content islands"],
-  ["longhorn_native_content_snapshot", "consumer-implemented host; contract 017 native-content islands"],
-  ["longhorn_native_content_update_desired", "consumer-implemented host; contract 017 native-content islands"],
-  ["longhorn_native_content_decide_size", "consumer-implemented host; contract 017 native-content islands"],
+  [
+    "longhorn_native_content_connect",
+    "consumer-implemented host; contract 017 native-content islands",
+  ],
+  [
+    "longhorn_native_content_snapshot",
+    "consumer-implemented host; contract 017 native-content islands",
+  ],
+  [
+    "longhorn_native_content_update_desired",
+    "consumer-implemented host; contract 017 native-content islands",
+  ],
+  [
+    "longhorn_native_content_decide_size",
+    "consumer-implemented host; contract 017 native-content islands",
+  ],
   ["longhorn_surfaces_snapshot", "consumer-implemented host; surfaces window-host projection"],
   ["longhorn_surfaces_mutate", "consumer-implemented host; surfaces window-host projection"],
 ]);
@@ -22,11 +34,23 @@ const seamEvents = new Map([
 
 // Rust-only surface with no renderer wiring, consumer-filled by contract 010.
 const seamCommandsRustOnly = new Map([
-  ["longhorn_command_catalogue", "contract 010; renderer catalogue read surface is consumer-filled"],
+  [
+    "longhorn_command_catalogue",
+    "contract 010; renderer catalogue read surface is consumer-filled",
+  ],
   ["longhorn_command_keymap", "contract 010; renderer keymap read surface is consumer-filled"],
-  ["longhorn_command_keymap_preview", "contract 010; renderer keymap read surface is consumer-filled"],
-  ["longhorn_command_keymap_commit", "contract 010; renderer keymap read surface is consumer-filled"],
-  ["longhorn_command_keymap_reset", "contract 010; renderer keymap read surface is consumer-filled"],
+  [
+    "longhorn_command_keymap_preview",
+    "contract 010; renderer keymap read surface is consumer-filled",
+  ],
+  [
+    "longhorn_command_keymap_commit",
+    "contract 010; renderer keymap read surface is consumer-filled",
+  ],
+  [
+    "longhorn_command_keymap_reset",
+    "contract 010; renderer keymap read surface is consumer-filled",
+  ],
 ]);
 const seamEventsRustOnly = new Map([
   ["longhorn://command/catalogue-changed", "contract 010; renderer listen is consumer-filled"],
@@ -38,14 +62,16 @@ const seamEventsRustOnly = new Map([
   ["longhorn://agent-control/selection", "contract 022; MCP resource, not a Tauri event"],
 ]);
 
-function walk(directory: string, suffix: string, files: string[] = []): string[] {
+function walk(directory: string, suffix: string, files: Array<string> = []): Array<string> {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     // Never descend into installed packages. This walks source for protocol
     // strings, and a dependency tree holds none that belong to this repository.
     // It also cannot be walked safely: `effigy deps link bun ../poodle` leaves
     // dangling symlinks in the linked package's own node_modules, and the
     // `statSync` this used to call follows symlinks and throws ENOENT on them.
-    if (entry.name === "node_modules") continue;
+    if (entry.name === "node_modules") {
+      continue;
+    }
     const path = join(directory, entry.name);
     // Dirent classification does not follow symlinks, so a broken link is a
     // file that does not end in the suffix rather than an exception.
@@ -60,7 +86,7 @@ function walk(directory: string, suffix: string, files: string[] = []): string[]
 
 function collect(
   root: string,
-  directories: string[],
+  directories: Array<string>,
   matcher: RegExp,
   prefix: string,
   suffix: string,
@@ -81,12 +107,30 @@ const tauriCrateNames = readdirSync(join(repoRoot, "crates")).filter((name) =>
 );
 const packageNames = readdirSync(join(repoRoot, "packages")).filter((name) => name !== "poodle");
 
-const rustCommands = collect(repoRoot, tauriCrateNames, /#\[tauri::command[^\]]*\]\s*(?:pub\s+)?(?:async\s+)?fn\s+(longhorn_[a-z0-9_]+)/gs, "crates", ".rs");
-const rustEvents = collect(repoRoot, tauriCrateNames, /"(longhorn:\/\/[a-z0-9/-]+)"/g, "crates", ".rs");
+const rustCommands = collect(
+  repoRoot,
+  tauriCrateNames,
+  /#\[tauri::command[^\]]*\]\s*(?:pub\s+)?(?:async\s+)?fn\s+(longhorn_[a-z0-9_]+)/gs,
+  "crates",
+  ".rs",
+);
+const rustEvents = collect(
+  repoRoot,
+  tauriCrateNames,
+  /"(longhorn:\/\/[a-z0-9/-]+)"/g,
+  "crates",
+  ".rs",
+);
 const tsCommands = collect(repoRoot, packageNames, /"(longhorn_[a-z0-9_]+)"/g, "packages", ".ts");
-const tsEvents = collect(repoRoot, packageNames, /"(longhorn:\/\/[a-z0-9/-]+)"/g, "packages", ".ts");
+const tsEvents = collect(
+  repoRoot,
+  packageNames,
+  /"(longhorn:\/\/[a-z0-9/-]+)"/g,
+  "packages",
+  ".ts",
+);
 
-const problems: string[] = [];
+const problems: Array<string> = [];
 
 for (const command of tsCommands) {
   if (!rustCommands.has(command) && !seamCommands.has(command)) {
@@ -123,7 +167,9 @@ for (const directory of readdirSync(join(repoRoot, "crates")).filter((name) =>
       const content = readFileSync(join(permissionsRoot, file), "utf8");
       const identifier = content.match(/identifier\s*=\s*"([^"]+)"/)?.[1];
       if (identifier === undefined) {
-        problems.push(`${join("crates", directory, "examples", "permissions", file)} has no identifier`);
+        problems.push(
+          `${join("crates", directory, "examples", "permissions", file)} has no identifier`,
+        );
         continue;
       }
       permissionIds.add(identifier);
@@ -141,7 +187,9 @@ for (const directory of readdirSync(join(repoRoot, "crates")).filter((name) =>
       const content = readFileSync(join(capabilitiesRoot, file), "utf8");
       for (const permission of content.matchAll(/"permissions"\s*:\s*\[([^\]]*)\]/g)) {
         for (const name of permission[1]!.matchAll(/"([^"]+)"/g)) {
-          if (name[1]!.startsWith("core:")) continue;
+          if (name[1]!.startsWith("core:")) {
+            continue;
+          }
           if (!permissionIds.has(name[1]!)) {
             problems.push(
               `${join("crates", directory, "examples", "capabilities", file)} references undeclared permission ${name[1]}`,
@@ -162,7 +210,9 @@ for (const command of allowedCommands) {
 }
 
 if (problems.length > 0) {
-  for (const problem of problems) console.error(problem);
+  for (const problem of problems) {
+    console.error(problem);
+  }
   throw new Error(`host protocol drift: ${problems.length} problem(s)`);
 }
 

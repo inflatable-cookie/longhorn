@@ -31,12 +31,8 @@ export interface SettingsPageSessionHost {
 export class SettingsPageSession {
   readonly #page: SettingsPageDefinition;
   readonly #host: SettingsPageSessionHost;
-  #drafts = $state.raw<ReadonlyMap<SettingsApplyUnitId, SettingsDraft>>(
-    new Map(),
-  );
-  #statuses = $state.raw<
-    ReadonlyMap<SettingsApplyUnitId, SettingsUnitStatus>
-  >(new Map());
+  #drafts = $state.raw<ReadonlyMap<SettingsApplyUnitId, SettingsDraft>>(new Map());
+  #statuses = $state.raw<ReadonlyMap<SettingsApplyUnitId, SettingsUnitStatus>>(new Map());
   #generation = 0;
 
   constructor(page: SettingsPageDefinition, host: SettingsPageSessionHost) {
@@ -49,12 +45,10 @@ export class SettingsPageSession {
   }
 
   get busy(): boolean {
-    return [...this.#statuses.values()].some(
-      ({ kind }) => kind === "pending",
-    );
+    return [...this.#statuses.values()].some(({ kind }) => kind === "pending");
   }
 
-  get drafts(): readonly SettingsDraft[] {
+  get drafts(): ReadonlyArray<SettingsDraft> {
     return [...this.#drafts.values()];
   }
 
@@ -66,10 +60,7 @@ export class SettingsPageSession {
     return this.#statuses.get(applyUnitId) ?? { kind: "idle" };
   }
 
-  async change(
-    applyUnitId: SettingsApplyUnitId,
-    intent: SettingsOpaqueValue,
-  ): Promise<void> {
+  async change(applyUnitId: SettingsApplyUnitId, intent: SettingsOpaqueValue): Promise<void> {
     const unit = this.#applyUnit(applyUnitId);
     if (unit.timing === "immediate") {
       await this.#executeApply(unit, intent, false);
@@ -118,7 +109,7 @@ export class SettingsPageSession {
 
   async reset(
     applyUnitId: SettingsApplyUnitId,
-    entryIds: readonly SettingsEntryId[],
+    entryIds: ReadonlyArray<SettingsEntryId>,
   ): Promise<void> {
     const unit = this.#applyUnit(applyUnitId);
     this.#assertNotPending(applyUnitId);
@@ -226,11 +217,7 @@ export class SettingsPageSession {
     });
   }
 
-  #acceptFailure(
-    applyUnitId: SettingsApplyUnitId,
-    error: unknown,
-    generation: number,
-  ): void {
+  #acceptFailure(applyUnitId: SettingsApplyUnitId, error: unknown, generation: number): void {
     if (generation !== this.#generation) {
       return;
     }
@@ -242,19 +229,14 @@ export class SettingsPageSession {
     if (!this.#page.writableApplyUnitIds.includes(applyUnitId)) {
       throw new SettingsApplyUnitUnavailableError(applyUnitId);
     }
-    const unit = this.#host
-      .registry()
-      .applyUnits.find(({ id }) => id === applyUnitId);
+    const unit = this.#host.registry().applyUnits.find(({ id }) => id === applyUnitId);
     if (unit === undefined) {
       throw new SettingsApplyUnitUnavailableError(applyUnitId);
     }
     return unit;
   }
 
-  #setStatus(
-    applyUnitId: SettingsApplyUnitId,
-    status: SettingsUnitStatus,
-  ): void {
+  #setStatus(applyUnitId: SettingsApplyUnitId, status: SettingsUnitStatus): void {
     this.#statuses = new Map(this.#statuses).set(applyUnitId, status);
   }
 

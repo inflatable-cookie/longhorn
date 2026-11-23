@@ -10,7 +10,7 @@ export interface NativeContentVisibilityInhibitor {
 
 /** Resolves explicit consumer policy. Earlier inhibitors have precedence. */
 export function resolveNativeContentVisibility(
-  inhibitors: readonly NativeContentVisibilityInhibitor[],
+  inhibitors: ReadonlyArray<NativeContentVisibilityInhibitor>,
 ): DesiredVisibility {
   const inhibitor = inhibitors.find(({ active }) => active);
   return inhibitor === undefined

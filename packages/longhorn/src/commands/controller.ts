@@ -1,6 +1,5 @@
 import { CommandClient } from "./client.ts";
 import type {
-  CommandArguments,
   CommandInvocation,
   CommandKeymapMutationResult,
   CommandKeymapPatch,
@@ -15,13 +14,8 @@ import type {
   CommandPorts,
   CommandUnlisten,
 } from "./ports.ts";
-import {
-  joinCommandState,
-  projectCommandSurfaces,
-  searchCommands,
-  type CommandJoinedState,
-  type CommandSurfaceProjection,
-} from "./projectors.ts";
+import { joinCommandState, projectCommandSurfaces, searchCommands } from "./projectors.ts";
+import type { CommandJoinedState, CommandSurfaceProjection } from "./projectors.ts";
 
 export type CommandControllerStatus =
   | { readonly kind: "idle" }
@@ -53,7 +47,7 @@ export interface CommandControllerOptions {
   readonly search?: (
     records: CommandJoinedState["catalogue"]["commands"],
     query: string,
-  ) => Promise<readonly CommandSearchHit[]>;
+  ) => Promise<ReadonlyArray<CommandSearchHit>>;
 }
 
 export class CommandController {
@@ -65,10 +59,10 @@ export class CommandController {
   #mutation: CommandMutationStatus = { kind: "idle" };
   #model: CommandJoinedState | undefined;
   #projection: CommandSurfaceProjection | undefined;
-  #searchHits: readonly CommandSearchHit[] = [];
+  #searchHits: ReadonlyArray<CommandSearchHit> = [];
   #query = "";
   #draft: CommandKeymapPatch | undefined;
-  #unlisten: CommandUnlisten[] = [];
+  #unlisten: Array<CommandUnlisten> = [];
   #lifecycleRevision = 0;
   #loadRevision = 0;
   #searchRevision = 0;
@@ -77,9 +71,7 @@ export class CommandController {
   constructor(options: CommandControllerOptions) {
     this.#client = new CommandClient(options.ports);
     this.#platform = options.platform;
-    this.#search =
-      options.search ??
-      (async (records, query) => searchCommands(records, query));
+    this.#search = options.search ?? (async (records, query) => searchCommands(records, query));
   }
 
   get status(): CommandControllerStatus {
@@ -102,7 +94,7 @@ export class CommandController {
     return this.#query;
   }
 
-  get searchHits(): readonly CommandSearchHit[] {
+  get searchHits(): ReadonlyArray<CommandSearchHit> {
     return this.#searchHits;
   }
 
@@ -120,7 +112,9 @@ export class CommandController {
   }
 
   async start(): Promise<void> {
-    if (this.#started) return;
+    if (this.#started) {
+      return;
+    }
     this.#started = true;
     const lifecycleRevision = ++this.#lifecycleRevision;
     this.#setStatus({ kind: "loading" });
@@ -128,20 +122,14 @@ export class CommandController {
       const unlisten = await this.#client.listen(() => {
         void this.refresh();
       });
-      if (
-        !this.#started ||
-        lifecycleRevision !== this.#lifecycleRevision
-      ) {
+      if (!this.#started || lifecycleRevision !== this.#lifecycleRevision) {
         await disposeAll(unlisten);
         return;
       }
       this.#unlisten.push(...unlisten);
       await this.refresh();
     } catch (error) {
-      if (
-        this.#started &&
-        lifecycleRevision === this.#lifecycleRevision
-      ) {
+      if (this.#started && lifecycleRevision === this.#lifecycleRevision) {
         this.#setStatus({ kind: "failed", error });
       }
     }
@@ -167,7 +155,9 @@ export class CommandController {
     const revision = ++this.#loadRevision;
     try {
       const loaded = await this.#client.load();
-      if (!this.#started || revision !== this.#loadRevision) return;
+      if (!this.#started || revision !== this.#loadRevision) {
+        return;
+      }
       if (loaded.keymap.status === "recovery") {
         this.#model = undefined;
         this.#projection = undefined;
@@ -187,11 +177,7 @@ export class CommandController {
         return;
       }
       this.#install(
-        joinCommandState(
-          loaded.catalogue,
-          loaded.keymap.snapshot,
-          loaded.availability,
-        ),
+        joinCommandState(loaded.catalogue, loaded.keymap.snapshot, loaded.availability),
       );
       this.#setStatus({ kind: "ready" });
       await this.search(this.#query);
@@ -202,7 +188,7 @@ export class CommandController {
     }
   }
 
-  async search(query: string): Promise<readonly CommandSearchHit[]> {
+  async search(query: string): Promise<ReadonlyArray<CommandSearchHit>> {
     this.#query = query;
     const model = this.#model;
     const revision = ++this.#searchRevision;
@@ -260,7 +246,9 @@ export class CommandController {
   async applyKeymapDraft(): Promise<boolean> {
     const model = this.#requiredModel();
     const patch = this.#draft;
-    if (patch === undefined) return true;
+    if (patch === undefined) {
+      return true;
+    }
     const base = model.keymap;
     const operationRevision = ++this.#loadRevision;
     this.#mutation = { kind: "previewing" };
@@ -322,7 +310,9 @@ export class CommandController {
         activePresetId: base.state.activePresetId,
         activePresetVersion: base.activePresetVersion,
       });
-      if (operationRevision !== this.#loadRevision) return false;
+      if (operationRevision !== this.#loadRevision) {
+        return false;
+      }
       return this.#finishMutation(result);
     } catch (error) {
       if (operationRevision === this.#loadRevision) {
@@ -344,9 +334,7 @@ export class CommandController {
     this.#mutation = {
       kind: "conflict",
       detail:
-        result.status === "rejected"
-          ? result.rejection.detail
-          : "Keybindings changed elsewhere",
+        result.status === "rejected" ? result.rejection.detail : "Keybindings changed elsewhere",
     };
     this.#notify();
     return false;
@@ -358,22 +346,17 @@ export class CommandController {
       void this.refresh();
       return;
     }
-    this.#install(
-      joinCommandState(model.catalogue, snapshot, model.availability),
-    );
+    this.#install(joinCommandState(model.catalogue, snapshot, model.availability));
   }
 
   #install(model: CommandJoinedState): void {
     const current = this.#model;
     if (
       current !== undefined &&
-      (model.catalogue.registryGeneration <
-        current.catalogue.registryGeneration ||
-        (model.catalogue.registryGeneration ===
-          current.catalogue.registryGeneration &&
+      (model.catalogue.registryGeneration < current.catalogue.registryGeneration ||
+        (model.catalogue.registryGeneration === current.catalogue.registryGeneration &&
           (model.keymap.state.revision < current.keymap.state.revision ||
-            model.availability.contextRevision <
-              current.availability.contextRevision)))
+            model.availability.contextRevision < current.availability.contextRevision)))
     ) {
       return;
     }
@@ -395,7 +378,9 @@ export class CommandController {
   }
 
   #notify(): void {
-    for (const observer of this.#observers) observer();
+    for (const observer of this.#observers) {
+      observer();
+    }
   }
 }
 
@@ -406,6 +391,6 @@ export class CommandControllerUnavailableError extends Error {
   }
 }
 
-async function disposeAll(unlisten: readonly CommandUnlisten[]): Promise<void> {
+async function disposeAll(unlisten: ReadonlyArray<CommandUnlisten>): Promise<void> {
   await Promise.allSettled(unlisten.map((dispose) => dispose()));
 }

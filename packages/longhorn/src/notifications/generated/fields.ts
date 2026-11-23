@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const NOTIFICATIONS_FIELDS: Record<string, readonly string[]> = {
+export const NOTIFICATIONS_FIELDS = {
   "NotificationAuthorityProjection": ["authorityId", "authorityEpoch"],
   "NotificationActionProjection": ["referenceId", "label"],
   "NotificationDraftProjection": ["sourceId", "severity", "title", "summary", "causeId", "actions", "replacementKey", "producerToken", "retentionClass", "presentationTimeUnixMs"],
@@ -16,4 +16,4 @@ export const NOTIFICATIONS_FIELDS: Record<string, readonly string[]> = {
   "NotificationRemovalProjection": ["record", "reason"],
   "NotificationRejection": ["code", "detail", "refreshRequired"],
   "NotificationChangedEvent": ["protocolVersion", "requestId", "authority", "previousLedgerRevision", "committedLedgerRevision", "affectedNotificationIds", "kind"],
-};
+} as const;

@@ -1,14 +1,10 @@
+import type { PoodleRelease } from "../poodle-release.ts";
 export type Shape = "minimal-operation" | "soundcheck" | "loophole" | "notification-only";
 
 export interface ArtifactIdentity {
   readonly name: string;
   readonly filename: string;
   readonly sha256: string;
-}
-
-export interface PoodleEvidence {
-  readonly artifacts: readonly ArtifactIdentity[];
-  readonly packDirectory: string;
 }
 
 export interface PackageManifest {

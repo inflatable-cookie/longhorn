@@ -9,9 +9,11 @@ import {
   SETTINGS_RESET_COMMAND,
   SETTINGS_SCOPE_CHANGED_EVENT,
   SettingsClient,
-  type SettingsMutationResult,
-  type SettingsRegistrySnapshot,
-  type SettingsScopeSnapshot,
+} from "../../../longhorn/src/settings/index.ts";
+import type {
+  SettingsMutationResult,
+  SettingsRegistrySnapshot,
+  SettingsScopeSnapshot,
 } from "../../../longhorn/src/settings/index.ts";
 import type { SettingsPageRenderer } from "../../src/settings/svelte.ts";
 
@@ -30,12 +32,8 @@ export function deferred(): Deferred {
   return { promise, resolve };
 }
 
-export function registry(
-  timing: "immediate" | "staged" = "staged",
-): SettingsRegistrySnapshot {
-  const value = structuredClone(
-    fixture.registry,
-  ) as SettingsRegistrySnapshot;
+export function registry(timing: "immediate" | "staged" = "staged"): SettingsRegistrySnapshot {
+  const value = structuredClone(fixture.registry) as SettingsRegistrySnapshot;
   value.applyUnits[0]!.timing = timing;
   return value;
 }
@@ -53,10 +51,8 @@ export function twoPageRegistry(): SettingsRegistrySnapshot {
   return value;
 }
 
-export function snapshot(): SettingsScopeSnapshot {
-  return structuredClone(
-    fixture.snapshots[0],
-  ) as SettingsScopeSnapshot;
+function snapshot(): SettingsScopeSnapshot {
+  return structuredClone(fixture.snapshots[0]) as SettingsScopeSnapshot;
 }
 
 export function renderer(): SettingsPageRenderer {
@@ -66,32 +62,24 @@ export function renderer(): SettingsPageRenderer {
 export class FakeSettingsTransport implements EventTransport {
   registryValue = registry();
   scopeValue = snapshot();
-  mutationValue = structuredClone(
-    fixture.mutationResults[0],
-  ) as SettingsMutationResult;
+  mutationValue = structuredClone(fixture.mutationResults[0]) as SettingsMutationResult;
   loadError: unknown;
   mutationError: unknown;
   loadGate: Promise<void> | undefined;
   mutationGate: Promise<void> | undefined;
   deferRegistryListener = false;
-  readonly trace: string[] = [];
-  readonly arguments: Record<string, unknown>[] = [];
+  readonly trace: Array<string> = [];
+  readonly arguments: Array<Record<string, unknown>> = [];
   unlistenCount = 0;
 
-  readonly #listeners = new Map<
-    string,
-    Set<(payload: unknown) => void>
-  >();
+  readonly #listeners = new Map<string, Set<(payload: unknown) => void>>();
   #releaseRegistryListener: (() => void) | undefined;
 
   client(): SettingsClient {
     return new SettingsClient(this);
   }
 
-  async invoke(
-    command: string,
-    arguments_: Record<string, unknown>,
-  ): Promise<unknown> {
+  async invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown> {
     this.trace.push(`invoke:${command}`);
     this.arguments.push(structuredClone(arguments_));
     switch (command) {
@@ -118,25 +106,21 @@ export class FakeSettingsTransport implements EventTransport {
     }
   }
 
-  async listen(
-    event: string,
-    listener: (payload: unknown) => void,
-  ): Promise<Unlisten> {
+  async listen(event: string, listener: (payload: unknown) => void): Promise<Unlisten> {
     this.trace.push(`listen:${event}`);
     const listeners = this.#listeners.get(event) ?? new Set();
     listeners.add(listener);
     this.#listeners.set(event, listeners);
-    if (
-      event === SETTINGS_REGISTRY_CHANGED_EVENT &&
-      this.deferRegistryListener
-    ) {
+    if (event === SETTINGS_REGISTRY_CHANGED_EVENT && this.deferRegistryListener) {
       await new Promise<void>((resolve) => {
         this.#releaseRegistryListener = resolve;
       });
     }
     let active = true;
     return () => {
-      if (!active) return;
+      if (!active) {
+        return;
+      }
       active = false;
       listeners.delete(listener);
       this.unlistenCount += 1;
@@ -158,10 +142,7 @@ export class FakeSettingsTransport implements EventTransport {
   }
 
   activeListenerCount(): number {
-    return [...this.#listeners.values()].reduce(
-      (total, listeners) => total + listeners.size,
-      0,
-    );
+    return [...this.#listeners.values()].reduce((total, listeners) => total + listeners.size, 0);
   }
 
   calls(command: string): number {

@@ -7,16 +7,15 @@ import type {
   PanelDefinition,
   PanelInstance,
 } from "@inflatable-cookie/longhorn/layout";
-import type {
-  SurfaceDocument,
-} from "@inflatable-cookie/longhorn/surfaces";
-import { LayoutState, type LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
+import type { SurfaceDocument } from "@inflatable-cookie/longhorn/surfaces";
+import { LayoutState } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
+import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
-import {
-  createPoodleLayoutBinding,
-  type PanelPresentationResolver,
-  type PoodleLayoutBinding,
-  type PoodleLayoutDefinitions,
+import { createPoodleLayoutBinding } from "../../src/poodle/index.ts";
+import type {
+  PanelPresentationResolver,
+  PoodleLayoutBinding,
+  PoodleLayoutDefinitions,
 } from "../../src/poodle/index.ts";
 
 export interface Deferred<T> {
@@ -36,15 +35,12 @@ export function loadShape(name: "window-bound" | "surface-bound"): Shape {
   // Node's URL, not the global: happy-dom shadows `URL` with a window
   // implementation that resolves a file-scheme base against the page location.
   const path = fileURLToPath(
-    new NodeURL(
-      `../../../../fixtures/layout/${name}-conformance-v1.json`,
-      import.meta.url,
-    ),
+    new NodeURL(`../../../../fixtures/layout/${name}-conformance-v1.json`, import.meta.url),
   );
   const fixture = JSON.parse(readFileSync(path, "utf8")) as {
     definitions: {
       schema: LayoutSchemaDefinition;
-      panels: PanelDefinition[];
+      panels: Array<PanelDefinition>;
     };
   };
   return {
@@ -58,7 +54,7 @@ export function loadShape(name: "window-bound" | "surface-bound"): Shape {
 
 export function shapeDocument(
   shape: Shape,
-  placements: Readonly<Record<string, readonly PanelInstance[]>>,
+  placements: Readonly<Record<string, ReadonlyArray<PanelInstance>>>,
   revision = 1,
 ): SurfaceDocument {
   const panelInstances = Object.values(placements).flat();
@@ -106,10 +102,10 @@ export function mountedBinding(
 ): {
   readonly binding: PoodleLayoutBinding;
   readonly state: LayoutState;
-  readonly errors: unknown[];
+  readonly errors: Array<unknown>;
 } {
   const state = new LayoutState({ dispatch });
-  const errors: unknown[] = [];
+  const errors: Array<unknown> = [];
   let requestNumber = 0;
   void state.start();
   state.accept(document);

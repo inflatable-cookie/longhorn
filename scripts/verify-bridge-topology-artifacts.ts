@@ -13,9 +13,7 @@ import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "bridge-topology-proof");
-const temporaryRoot = await mkdtemp(
-  join(tmpdir(), "longhorn-bridge-artifact-proof-"),
-);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-bridge-artifact-proof-"));
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-bridge-topology-rust");
@@ -23,19 +21,12 @@ const buildScratch = await taskScratch("longhorn-bridge-topology-rust");
 try {
   // Checkout-level and non-building: the bindings check runs through the switch
   // point and pools. Only the staged-workspace builds keep private outputs.
-  await run(
-    rustCommand(["run", "-p", "longhorn-bindings", "--", "bridge", "check"]),
-    repoRoot,
-  );
+  await run(rustCommand(["run", "-p", "longhorn-bindings", "--", "bridge", "check"]), repoRoot);
   const declarations = JSON.parse(
     await readFile(join(proofRoot, "declarations.json"), "utf8"),
   ) as TopologyDeclarations;
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
-  const rust = await packAndCheckRustArtifacts(
-    repoRoot,
-    temporaryRoot,
-    buildScratch.root,
-  );
+  const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot, buildScratch.root);
   const consumers = await verifyConsumers({
     repoRoot,
     proofRoot,

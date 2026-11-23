@@ -9,11 +9,8 @@
   import { tick } from "svelte";
 
   import { errorMessage, reportFailure } from "../../failures.ts";
-  import {
-    useSettingsSession,
-    type SettingsRendererResolver,
-    type SettingsSession,
-  } from "../svelte.ts";
+  import { useSettingsSession } from '../svelte.ts';
+import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
 
   /**
    * Binds a `SettingsSession` to Poodle's `SettingsShell`.
@@ -78,10 +75,10 @@
     routes.clear();
     const query = searchQuery.trim();
     const matches = query ? session.search(query) : undefined;
-    const anchorsByPage = new Map<string, { id: string; label: string }[]>();
+    const anchorsByPage = new Map<string, Array<{ id: string; label: string }>>();
     if (matches) {
       for (const { page, anchor } of matches) {
-        if (!anchor) continue;
+        if (!anchor) {continue;}
         const existing = anchorsByPage.get(page.id) ?? [];
         if (!existing.some(({ id }) => id === anchor.id)) {
           // An anchor may carry no label. It still matched -- on its id -- so
@@ -167,7 +164,7 @@
   function navigate(value: string, _anchorId: string | null = null): void {
     const route = routes.get(value) ?? { pageId: value };
     void session.navigate(route).then(async (navigated) => {
-      if (!navigated) return;
+      if (!navigated) {return;}
       await tick();
       focusTarget?.focus();
     });
@@ -178,7 +175,7 @@
   // close was attempted. `requestClose` raises the guard dialog below and
   // returns false; the shell has already refused to close.
   function handleRequestClose(): void {
-    if (!session.canLeaveCurrent) session.requestClose();
+    if (!session.canLeaveCurrent) {session.requestClose();}
   }
 
   // Shell actions (apply, guard resolution, reset) can fail after the session
@@ -201,7 +198,7 @@
     }
     // `handleRequestClose` has already raised the guard for a refused close,
     // and Poodle's shell does not reach here in that case.
-    if (!session.requestClose()) return;
+    if (!session.requestClose()) {return;}
     open = false;
     onOpenChange?.(false);
   }

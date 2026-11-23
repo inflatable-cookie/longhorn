@@ -8,9 +8,7 @@ export interface DirectHistoryHandlers {
   readonly nextPlanId: HistoryPort["nextPlanId"];
 }
 
-export function createDirectHistoryPort(
-  handlers: DirectHistoryHandlers,
-): HistoryPort {
+export function createDirectHistoryPort(handlers: DirectHistoryHandlers): HistoryPort {
   return {
     snapshot: handlers.snapshot,
     page: handlers.page,

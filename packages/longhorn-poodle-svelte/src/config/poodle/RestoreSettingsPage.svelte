@@ -17,27 +17,10 @@
   import type { RadioGroupOption, SelectOption } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
-  import {
-    CONFIG_OPERATIONS_PROTOCOL_VERSION,
-    RESTORE_AUTHENTICITY_LABELS,
-    RESTORE_INTEGRITY_LABELS,
-    type ConfigOperationRejection,
-    type ConfigOperationsSnapshot,
-    type RestoreAdapterReceiptProjection,
-    type RestoreDomainChoice,
-    type RestoreDomainInspectionProjection,
-    type RestoreExecutionFailureProjection,
-    type RestoreExecutionReceiptProjection,
-    type RestoreInspectionProjection,
-    type RestorePlanProjection,
-    type RestoreRecoveryReceiptProjection,
-  } from "@inflatable-cookie/longhorn/config";
-  import {
-    canUseArchive,
-    compatibilityLabel,
-    identityLabel,
-    type RestoreChoice,
-  } from "./restore-model.ts";
+  import { CONFIG_OPERATIONS_PROTOCOL_VERSION, RESTORE_AUTHENTICITY_LABELS, RESTORE_INTEGRITY_LABELS } from '@inflatable-cookie/longhorn/config';
+import type { ConfigOperationRejection, ConfigOperationsSnapshot, RestoreAdapterReceiptProjection, RestoreDomainChoice, RestoreDomainInspectionProjection, RestoreExecutionFailureProjection, RestoreExecutionReceiptProjection, RestoreInspectionProjection, RestorePlanProjection, RestoreRecoveryReceiptProjection } from '@inflatable-cookie/longhorn/config';
+  import { canUseArchive, compatibilityLabel, identityLabel } from './restore-model.ts';
+import type { RestoreChoice } from './restore-model.ts';
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   type Activity = "idle" | "loading" | "inspecting" | "planning" | "publishing" | "recovering";
@@ -81,20 +64,20 @@
         choices[domain.domainId] === "keepCurrent") &&
       inspection.domains.some((domain) => choices[domain.domainId] === "useArchive"),
   );
-  const archiveOptions = $derived<SelectOption[]>([
+  const archiveOptions = $derived<Array<SelectOption>>([
     { value: "hostPicker", label: "Choose archive…" },
     ...(snapshot?.backup?.inventory.archives.map((archive) => ({
       value: archive.archiveSha256,
       label: `${formatArchiveTimestamp(archive.createdAt)} — ${archive.archiveId}`,
     })) ?? []),
   ]);
-  const conflictOptions: RadioGroupOption[] = [
+  const conflictOptions: Array<RadioGroupOption> = [
     { value: "useArchive", label: "Use archive" },
     { value: "keepCurrent", label: "Keep current" },
   ];
 
   onMount(() => {
-    if (snapshot === null) void refresh();
+    if (snapshot === null) {void refresh();}
   });
 
   async function refresh(): Promise<void> {
@@ -142,7 +125,7 @@
   async function createPlan(): Promise<void> {
     const current = inspection;
     const generation = inspectionGeneration;
-    if (current === null || generation === null || !allChoicesMade) return;
+    if (current === null || generation === null || !allChoicesMade) {return;}
     await run("planning", async () => {
       const domainChoices = current.domains.map((domain): RestoreDomainChoice => {
         const choice = choices[domain.domainId];
@@ -170,7 +153,7 @@
   async function execute(): Promise<void> {
     const current = plan;
     const generation = planGeneration;
-    if (current === null || generation === null) return;
+    if (current === null || generation === null) {return;}
     await run("publishing", async () => {
       const outcome = await client.executeRestore({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -203,7 +186,7 @@
   ): Promise<void> {
     const current = inspection;
     const generation = inspectionGeneration;
-    if (current === null || generation === null) return;
+    if (current === null || generation === null) {return;}
     await run("publishing", async () => {
       const outcome = await client.executeAdapterRestore({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -265,8 +248,8 @@
     notice = null;
     try {
       await action();
-    } catch (cause) {
-      error = errorMessage(cause);
+    } catch (error_) {
+      error = errorMessage(error_);
     } finally {
       activity = "idle";
     }
@@ -280,7 +263,7 @@
 
   function reject(rejection: ConfigOperationRejection): void {
     error = rejection.detail;
-    if (rejection.snapshot) acceptSnapshot(rejection.snapshot);
+    if (rejection.snapshot) {acceptSnapshot(rejection.snapshot);}
     if (rejection.code === "restorePlanStale" || rejection.code === "authorityChanged") {
       plan = null;
       planGeneration = null;

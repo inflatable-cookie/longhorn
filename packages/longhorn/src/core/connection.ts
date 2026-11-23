@@ -5,37 +5,23 @@ export type SnapshotEventAction =
   | { readonly kind: "refresh" }
   | { readonly kind: "snapshot"; readonly value: unknown };
 
-export type ConnectionFailurePhase =
-  | "registration"
-  | "event"
-  | "snapshot"
-  | "unlisten";
+export type ConnectionFailurePhase = "registration" | "event" | "snapshot" | "unlisten";
 
 export interface ConnectionFailure {
   readonly phase: ConnectionFailurePhase;
   readonly error: unknown;
 }
 
-export type ConnectionFailureReporter = (
-  failure: ConnectionFailure,
-) => void;
+export type ConnectionFailureReporter = (failure: ConnectionFailure) => void;
 
 export interface CheckedSnapshotConnectionOptions<Snapshot> {
-  readonly listen: (
-    listener: (payload: unknown) => void,
-  ) => Promise<Unlisten>;
+  readonly listen: (listener: (payload: unknown) => void) => Promise<Unlisten>;
   readonly loadSnapshot: () => Promise<unknown>;
   readonly validateSnapshot: (value: unknown) => Snapshot;
-  readonly handleEvent: (
-    payload: unknown,
-    current: Snapshot | undefined,
-  ) => SnapshotEventAction;
-  readonly isNewer: (
-    candidate: Snapshot,
-    current: Snapshot | undefined,
-  ) => boolean;
-  readonly onSnapshot?: (snapshot: Snapshot) => void;
-  readonly onFailure?: ConnectionFailureReporter;
+  readonly handleEvent: (payload: unknown, current: Snapshot | undefined) => SnapshotEventAction;
+  readonly isNewer: (candidate: Snapshot, current: Snapshot | undefined) => boolean;
+  readonly onSnapshot?: ((snapshot: Snapshot) => void) | undefined;
+  readonly onFailure?: ConnectionFailureReporter | undefined;
   readonly disposedBeforeReadyError?: () => Error;
 }
 
@@ -43,7 +29,7 @@ export class CheckedSnapshotConnection<Snapshot> {
   readonly ready: Promise<Snapshot | undefined>;
 
   readonly #options: CheckedSnapshotConnectionOptions<Snapshot>;
-  readonly #failures: ConnectionFailure[] = [];
+  readonly #failures: Array<ConnectionFailure> = [];
   #current: Snapshot | undefined;
   #unlisten: Unlisten | undefined;
   #cleanup: Promise<void> | undefined;
@@ -61,7 +47,7 @@ export class CheckedSnapshotConnection<Snapshot> {
     return this.#current;
   }
 
-  failures(): readonly ConnectionFailure[] {
+  failures(): ReadonlyArray<ConnectionFailure> {
     return [...this.#failures];
   }
 
@@ -170,7 +156,7 @@ export class CheckedSnapshotConnection<Snapshot> {
         case "refresh":
           this.#refreshPending = true;
           if (this.#registered) {
-            void this.#synchronize().catch((error) => {
+            void this.#synchronize().catch((error: unknown) => {
               this.#recordFailure("snapshot", error);
               void this.#closeAfterFailure();
             });
@@ -187,11 +173,7 @@ export class CheckedSnapshotConnection<Snapshot> {
   }
 
   #synchronize(): Promise<void> {
-    if (
-      !this.#registered ||
-      this.#disposed ||
-      this.#failures.length > 0
-    ) {
+    if (!this.#registered || this.#disposed || this.#failures.length > 0) {
       return Promise.resolve();
     }
     this.#pump ??= Promise.resolve().then(() => this.#runPump());
@@ -200,11 +182,7 @@ export class CheckedSnapshotConnection<Snapshot> {
 
   async #runPump(): Promise<void> {
     try {
-      while (
-        this.#refreshPending &&
-        !this.#disposed &&
-        this.#failures.length === 0
-      ) {
+      while (this.#refreshPending && !this.#disposed && this.#failures.length === 0) {
         this.#refreshPending = false;
         const value = await this.#options.loadSnapshot();
         if (this.#disposed || this.#failures.length > 0) {
@@ -225,15 +203,8 @@ export class CheckedSnapshotConnection<Snapshot> {
     this.#options.onSnapshot?.(candidate);
   }
 
-  #recordFailure(
-    phase: ConnectionFailurePhase,
-    error: unknown,
-  ): void {
-    if (
-      this.#failures.some(
-        (failure) => failure.phase === phase && failure.error === error,
-      )
-    ) {
+  #recordFailure(phase: ConnectionFailurePhase, error: unknown): void {
+    if (this.#failures.some((failure) => failure.phase === phase && failure.error === error)) {
       return;
     }
     const failure = { phase, error };

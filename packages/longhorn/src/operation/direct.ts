@@ -8,8 +8,6 @@ export interface DirectOperationHandlers {
   readonly nextRequestId: OperationPort["nextRequestId"];
 }
 
-export function createDirectOperationPort(
-  handlers: DirectOperationHandlers,
-): OperationPort {
+export function createDirectOperationPort(handlers: DirectOperationHandlers): OperationPort {
   return { ...handlers };
 }

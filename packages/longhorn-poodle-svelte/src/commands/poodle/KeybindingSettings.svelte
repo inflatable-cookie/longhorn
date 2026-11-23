@@ -7,8 +7,8 @@
   import type { CommandSettingsRecord } from "@inflatable-cookie/longhorn/commands";
 
   interface Props {
-    records: readonly CommandSettingsRecord[];
-    conflicts?: readonly CommandKeymapConflict[];
+    records: ReadonlyArray<CommandSettingsRecord>;
+    conflicts?: ReadonlyArray<CommandKeymapConflict>;
     query?: string;
     captureBindingId?: string;
     capturedLabel?: string | null;

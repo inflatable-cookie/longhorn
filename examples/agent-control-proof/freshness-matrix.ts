@@ -74,8 +74,8 @@ type MatrixRow = {
   fresh: boolean;
 };
 
-async function run(command: readonly string[]): Promise<string> {
-  const subprocess = Bun.spawn(command, { stdout: "pipe", stderr: "pipe" });
+async function run(command: ReadonlyArray<string>): Promise<string> {
+  const subprocess = Bun.spawn([...command], { stdout: "pipe", stderr: "pipe" });
   const [exitCode, stdout, stderr] = await Promise.all([
     subprocess.exited,
     new Response(subprocess.stdout).text(),
@@ -88,20 +88,24 @@ async function run(command: readonly string[]): Promise<string> {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
 }
 
 async function waitForDiscovery(): Promise<{ discovery: Discovery; path: string }> {
   const deadline = Date.now() + 30_000;
   for (;;) {
-    const entries = await readdir(discoveryDir).catch(() => [] as string[]);
+    const entries = await readdir(discoveryDir).catch(() => [] as Array<string>);
     const match = entries.find((entry) => entry.startsWith(`${appId}-`));
     if (match) {
       const path = join(discoveryDir, match);
       const discovery = JSON.parse(await readFile(path, "utf8")) as Discovery;
       return { discovery, path };
     }
-    if (Date.now() > deadline) throw new Error("discovery file never appeared");
+    if (Date.now() > deadline) {
+      throw new Error("discovery file never appeared");
+    }
     await sleep(200);
   }
 }
@@ -120,7 +124,9 @@ async function mcp(
     "mcp-method": method,
     authorization: `Bearer ${discovery.token}`,
   };
-  if (name) headers["mcp-name"] = name;
+  if (name) {
+    headers["mcp-name"] = name;
+  }
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
     headers,
@@ -134,7 +140,9 @@ async function mcp(
     .split("\n")
     .find((line) => line.startsWith("data: "))
     ?.slice("data: ".length);
-  if (!data) throw new Error(`MCP ${method} returned no SSE data: ${body}`);
+  if (!data) {
+    throw new Error(`MCP ${method} returned no SSE data: ${body}`);
+  }
   return JSON.parse(data);
 }
 
@@ -169,13 +177,17 @@ async function evaluateCounter(discovery: Discovery): Promise<number> {
   const { isError, result } = await callTool(discovery, "evaluate", {
     js: "document.getElementById('counter').textContent",
   });
-  if (isError) throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  if (isError) {
+    throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  }
   return Number.parseInt(String(result.value), 10);
 }
 
 async function evaluateJson<T>(discovery: Discovery, js: string): Promise<T> {
   const { isError, result } = await callTool(discovery, "evaluate", { js });
-  if (isError) throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  if (isError) {
+    throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  }
   return JSON.parse(String(result.value)) as T;
 }
 
@@ -202,18 +214,19 @@ function hslToRgb(hue: number, saturation: number, lightness: number): [number, 
   const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
   const x = c * (1 - Math.abs((h % 2) - 1));
   const [r, g, b] =
-    h < 1 ? [c, x, 0]
-    : h < 2 ? [x, c, 0]
-    : h < 3 ? [0, c, x]
-    : h < 4 ? [0, x, c]
-    : h < 5 ? [x, 0, c]
-    : [c, 0, x];
+    h < 1
+      ? [c, x, 0]
+      : h < 2
+        ? [x, c, 0]
+        : h < 3
+          ? [0, c, x]
+          : h < 4
+            ? [0, x, c]
+            : h < 5
+              ? [x, 0, c]
+              : [c, 0, x];
   const m = lightness - c / 2;
-  return [r, g, b].map((channel) => Math.round((channel + m) * 255)) as [
-    number,
-    number,
-    number,
-  ];
+  return [r, g, b].map((channel) => Math.round((channel + m) * 255)) as [number, number, number];
 }
 
 function expectedPixel(counter: number): [number, number, number] {
@@ -239,7 +252,11 @@ async function pngSize(pngPath: string): Promise<{ width: number; height: number
 }
 
 // Reads one pixel out of a PNG via sips → BMP (macOS built-ins only).
-async function pixelAt(pngPath: string, fractionX: number, fractionY: number): Promise<[number, number, number]> {
+async function pixelAt(
+  pngPath: string,
+  fractionX: number,
+  fractionY: number,
+): Promise<[number, number, number]> {
   const bmpPath = pngPath.replace(/\.png$/, ".bmp");
   await run(["sips", "-s", "format", "bmp", pngPath, "--out", bmpPath]);
   const bmp = await readFile(bmpPath);
@@ -305,7 +322,9 @@ async function closeCoveringTerminal(): Promise<void> {
 
 async function command(discovery: Discovery, id: string): Promise<void> {
   const { isError, result } = await callTool(discovery, "command", { command: id });
-  if (isError) throw new Error(`command ${id} failed: ${JSON.stringify(result)}`);
+  if (isError) {
+    throw new Error(`command ${id} failed: ${JSON.stringify(result)}`);
+  }
 }
 
 async function main(): Promise<void> {
@@ -318,7 +337,7 @@ async function main(): Promise<void> {
   await run(["open", "-a", appPath]);
   const { discovery } = await waitForDiscovery();
 
-  const rows: MatrixRow[] = [];
+  const rows: Array<MatrixRow> = [];
   async function probe(state: string, apply: () => Promise<void>): Promise<void> {
     await apply();
     await sleep(1600);
@@ -329,7 +348,9 @@ async function main(): Promise<void> {
     const pixel = await pixelAt(pngPath, 0.25, 0.25);
     let matched: number | null = null;
     for (let counter = before; counter <= after; counter += 1) {
-      if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
+      if (colorNear(pixel, expectedPixel(counter), 12)) {
+        matched = counter;
+      }
     }
     // The island cannot be bracketed by `evaluate` (not a semantic target);
     // both tickers start at page load and tick at 1 Hz, so its counter sits
@@ -340,7 +361,9 @@ async function main(): Promise<void> {
     const childPixel = await pixelAt(pngPath, 0.569, 0.9375);
     let childMatched: number | null = null;
     for (let counter = before - 2; counter <= after + 2; counter += 1) {
-      if (colorNear(childPixel, expectedChildPixel(counter), 12)) childMatched = counter;
+      if (colorNear(childPixel, expectedChildPixel(counter), 12)) {
+        childMatched = counter;
+      }
     }
     rows.push({
       state,
@@ -375,21 +398,39 @@ async function main(): Promise<void> {
     async function judge(
       fractionX: number,
       fractionY: number,
-    ): Promise<{ pixel: [number, number, number]; surface: string; matchedCounter: number | null }> {
+    ): Promise<{
+      pixel: [number, number, number];
+      surface: string;
+      matchedCounter: number | null;
+    }> {
       const pixel = await pixelAt(pngPath, fractionX, fractionY);
       let matched: number | null = null;
       for (let counter = before; counter <= after; counter += 1) {
-        if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
+        if (colorNear(pixel, expectedPixel(counter), 12)) {
+          matched = counter;
+        }
       }
-      if (matched !== null) return { pixel, surface: "parent", matchedCounter: matched };
+      if (matched !== null) {
+        return { pixel, surface: "parent", matchedCounter: matched };
+      }
       for (let counter = before - 2; counter <= after + 2; counter += 1) {
-        if (colorNear(pixel, expectedChildPixel(counter), 12)) matched = counter;
+        if (colorNear(pixel, expectedChildPixel(counter), 12)) {
+          matched = counter;
+        }
       }
-      if (matched !== null) return { pixel, surface: "island", matchedCounter: matched };
+      if (matched !== null) {
+        return { pixel, surface: "island", matchedCounter: matched };
+      }
       for (let counter = before - 2; counter <= after + 2; counter += 1) {
-        if (colorNear(pixel, expectedChildTopPixel(counter), 12)) matched = counter;
+        if (colorNear(pixel, expectedChildTopPixel(counter), 12)) {
+          matched = counter;
+        }
       }
-      return { pixel, surface: matched === null ? "neither" : "island-top", matchedCounter: matched };
+      return {
+        pixel,
+        surface: matched === null ? "neither" : "island-top",
+        matchedCounter: matched,
+      };
     }
     const leftOfEdge = await judge(359.5 / 720, 240.5 / 480);
     const rightOfEdge = await judge(360.5 / 720, 240.5 / 480);
@@ -437,7 +478,7 @@ async function main(): Promise<void> {
   await run(["osascript", "-e", `tell application id "${appId}" to quit`]);
   let discoveryRemoved = false;
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const entries = await readdir(discoveryDir).catch(() => [] as string[]);
+    const entries = await readdir(discoveryDir).catch(() => [] as Array<string>);
     if (!entries.some((entry) => entry.startsWith(`${appId}-`))) {
       discoveryRemoved = true;
       break;

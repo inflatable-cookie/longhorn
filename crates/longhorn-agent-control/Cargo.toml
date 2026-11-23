@@ -24,7 +24,6 @@ client = ["dep:reqwest", "tokio/io-std", "tokio/process"]
 axum.workspace = true
 base64.workspace = true
 getrandom.workspace = true
-longhorn-config.workspace = true
 longhorn-storage-layout.workspace = true
 longhorn-core.workspace = true
 reqwest = { workspace = true, optional = true }

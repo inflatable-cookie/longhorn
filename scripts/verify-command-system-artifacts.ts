@@ -13,9 +13,7 @@ import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "command-system-proof");
-const temporaryRoot = await mkdtemp(
-  join(tmpdir(), "longhorn-command-system-proof-"),
-);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-command-system-proof-"));
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-command-system-rust");
@@ -23,17 +21,10 @@ const buildScratch = await taskScratch("longhorn-command-system-rust");
 try {
   // Checkout-level and non-building: the bindings check runs through the switch
   // point and pools. Only the staged-workspace builds below keep private outputs.
-  await run(
-    rustCommand(["run", "-p", "longhorn-bindings", "--", "commands", "check"]),
-    repoRoot,
-  );
+  await run(rustCommand(["run", "-p", "longhorn-bindings", "--", "commands", "check"]), repoRoot);
   const poodle = POODLE_RELEASE;
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
-  const rust = await packAndCheckRustArtifacts(
-    repoRoot,
-    temporaryRoot,
-    buildScratch.root,
-  );
+  const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot, buildScratch.root);
   const consumers = await verifyConsumers({
     repoRoot,
     proofRoot,

@@ -22,10 +22,7 @@ import {
   assertTransferProtocolVersion,
 } from "@inflatable-cookie/longhorn/transfer";
 
-const fixturePath = new URL(
-  "../../../../fixtures/transfer/protocol-v1.json",
-  import.meta.url,
-);
+const fixturePath = new URL("../../../../fixtures/transfer/protocol-v1.json", import.meta.url);
 const fixture = record(JSON.parse(readFileSync(fixturePath, "utf8")));
 
 describe("Rust transfer protocol fixture", () => {
@@ -60,22 +57,14 @@ describe("Rust transfer protocol fixture", () => {
       assertValidTransferCommitSelector(selector);
       return selector.kind;
     });
-    expect(new Set(targetKinds)).toEqual(
-      new Set(TRANSFER_TARGET_BINDING_KINDS),
-    );
-    expect(new Set(selectorKinds)).toEqual(
-      new Set(TRANSFER_COMMIT_SELECTOR_KINDS),
-    );
+    expect(new Set(targetKinds)).toEqual(new Set(TRANSFER_TARGET_BINDING_KINDS));
+    expect(new Set(selectorKinds)).toEqual(new Set(TRANSFER_COMMIT_SELECTOR_KINDS));
 
     expect(responseStatuses("session_responses")).toEqual(
       new Set(TRANSFER_SESSION_RESPONSE_STATUSES),
     );
-    expect(responseStatuses("lease_responses")).toEqual(
-      new Set(TRANSFER_LEASE_RESPONSE_STATUSES),
-    );
-    expect(responseStatuses("commit_responses")).toEqual(
-      new Set(PANEL_TRANSFER_RESPONSE_STATUSES),
-    );
+    expect(responseStatuses("lease_responses")).toEqual(new Set(TRANSFER_LEASE_RESPONSE_STATUSES));
+    expect(responseStatuses("commit_responses")).toEqual(new Set(PANEL_TRANSFER_RESPONSE_STATUSES));
     expect(responseStatuses("cancel_responses")).toEqual(
       new Set(TRANSFER_CANCEL_RESPONSE_STATUSES),
     );
@@ -88,15 +77,9 @@ describe("Rust transfer protocol fixture", () => {
       codes.add(source.code);
       errorCodes.set(String(source.domain), codes);
     }
-    expect(new Set(errorCodes.keys())).toEqual(
-      new Set(TRANSFER_ABORT_DOMAINS),
-    );
-    expect(errorCodes.get("transfer")).toEqual(
-      new Set(TRANSFER_ERROR_CODES),
-    );
-    expect(errorCodes.get("panel")).toEqual(
-      new Set(PANEL_TRANSFER_ERROR_CODES),
-    );
+    expect(new Set(errorCodes.keys())).toEqual(new Set(TRANSFER_ABORT_DOMAINS));
+    expect(errorCodes.get("transfer")).toEqual(new Set(TRANSFER_ERROR_CODES));
+    expect(errorCodes.get("panel")).toEqual(new Set(PANEL_TRANSFER_ERROR_CODES));
 
     for (const response of array(fixture.session_responses)) {
       assertValidTransferSessionResponse(response);
@@ -118,22 +101,10 @@ describe("transfer protocol incompatibility", () => {
 
   test("rejects future versions and unknown variants", () => {
     for (const check of [
-      () =>
-        assertTransferProtocolVersion(
-          incompatibility.future_protocol_version,
-        ),
-      () =>
-        assertValidTransferTargetBinding(
-          incompatibility.unknown_target_binding,
-        ),
-      () =>
-        assertValidTransferCommitSelector(
-          incompatibility.unknown_commit_selector,
-        ),
-      () =>
-        assertValidTransferSessionResponse(
-          incompatibility.unknown_response_status,
-        ),
+      () => assertTransferProtocolVersion(incompatibility.future_protocol_version),
+      () => assertValidTransferTargetBinding(incompatibility.unknown_target_binding),
+      () => assertValidTransferCommitSelector(incompatibility.unknown_commit_selector),
+      () => assertValidTransferSessionResponse(incompatibility.unknown_response_status),
       () =>
         assertValidTransferAbort({
           protocol_version: 1,
@@ -177,9 +148,7 @@ describe("transfer protocol incompatibility", () => {
 });
 
 function responseStatuses(category: string): Set<unknown> {
-  return new Set(
-    array(fixture[category]).map((response) => record(response).status),
-  );
+  return new Set(array(fixture[category]).map((response) => record(response).status));
 }
 
 function roundTrip(value: unknown): unknown {
@@ -193,7 +162,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function array(value: unknown): unknown[] {
+function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     throw new TypeError("expected JSON array");
   }

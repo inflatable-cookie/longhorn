@@ -1,11 +1,8 @@
 <script lang="ts">
   import { Surface } from "@inflatable-cookie/poodle-svelte";
 
-  import {
-    nativeContentViewport,
-    useNativeContentSession,
-    type NativeContentSession,
-  } from "../../src/native-content/index.ts";
+  import { nativeContentViewport, useNativeContentSession } from '../../src/native-content/index.ts';
+import type { NativeContentSession } from '../../src/native-content/index.ts';
 
   let {
     session,

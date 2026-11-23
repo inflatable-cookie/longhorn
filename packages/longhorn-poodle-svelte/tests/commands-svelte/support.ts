@@ -1,12 +1,10 @@
-import {
-  CommandSession,
-} from "../../src/commands/poodle.ts";
-import {
-  CommandController,
-  type CommandExecutionIntent,
-  type CommandPorts,
-  type CommandUnlisten,
-  type KeyboardEventLike,
+import { CommandSession } from "../../src/commands/poodle.ts";
+import { CommandController } from "../../../longhorn/src/commands/index.ts";
+import type {
+  CommandExecutionIntent,
+  CommandPorts,
+  CommandUnlisten,
+  KeyboardEventLike,
 } from "../../../longhorn/src/commands/index.ts";
 import { availability, fixture } from "../../../longhorn/tests/commands/support.ts";
 
@@ -27,25 +25,21 @@ class Port<Snapshot> {
   }
 }
 
-export class FakeKeyboardTarget {
+class FakeKeyboardTarget {
   readonly listeners = new Set<(event: KeyboardEventLike) => void>();
 
-  addEventListener(
-    _type: "keydown",
-    listener: (event: KeyboardEventLike) => void,
-  ): void {
+  addEventListener(_type: "keydown", listener: (event: KeyboardEventLike) => void): void {
     this.listeners.add(listener);
   }
 
-  removeEventListener(
-    _type: "keydown",
-    listener: (event: KeyboardEventLike) => void,
-  ): void {
+  removeEventListener(_type: "keydown", listener: (event: KeyboardEventLike) => void): void {
     this.listeners.delete(listener);
   }
 
   dispatch(event: KeyboardEventLike): void {
-    for (const listener of this.listeners) listener(event);
+    for (const listener of this.listeners) {
+      listener(event);
+    }
   }
 }
 
@@ -54,7 +48,7 @@ export function createSession() {
   const catalogue = new Port(fixture.catalogue);
   const keymap = new Port(fixture.loadOutcomes[0]!);
   const available = new Port(availability());
-  const executions: CommandExecutionIntent[] = [];
+  const executions: Array<CommandExecutionIntent> = [];
   let request = 0;
   const ports: CommandPorts = {
     catalogue,

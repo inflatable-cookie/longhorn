@@ -25,7 +25,9 @@ describe("agent-control picker origin", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const go = findByName(snapshot.root, "Go");
     expect(api.click(go!.elementRef).ok).toBe(true);
     expect(api.isAgentOriginated()).toBe(true);
@@ -36,7 +38,9 @@ describe("agent-control picker origin", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     expect(api.click(findByName(snapshot.root, "Go")!.elementRef).ok).toBe(true);
     expect(api.isAgentOriginated()).toBe(true);
     dispatchTrusted(window, "click");
@@ -50,7 +54,9 @@ describe("agent-control picker origin", () => {
     expect(api.isAgentOriginated()).toBe(false);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     expect(api.click(findByName(snapshot.root, "Go")!.elementRef).ok).toBe(true);
     expect(api.isAgentOriginated()).toBe(true);
   });
@@ -62,7 +68,9 @@ describe("agent-control picker origin", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const target = findByName(snapshot.root, "Manifest");
     expect(
       api.setFileInput(target!.elementRef, [
@@ -95,7 +103,9 @@ describe("currentSelectionOrigin", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     expect(api.click(findByName(snapshot.root, "Go")!.elementRef).ok).toBe(true);
     expect(currentSelectionOrigin(window)).toBe(SELECTION_ORIGIN_AGENT);
   });
@@ -105,7 +115,9 @@ describe("currentSelectionOrigin", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     expect(api.click(findByName(snapshot.root, "Go")!.elementRef).ok).toBe(true);
     expect(currentSelectionOrigin(window)).toBe(SELECTION_ORIGIN_AGENT);
     dispatchTrusted(window, "click");

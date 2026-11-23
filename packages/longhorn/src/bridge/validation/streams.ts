@@ -4,17 +4,10 @@ import type {
   BridgeSnapshotEnvelope,
   BridgeStreamCursor,
 } from "../generated/protocol.ts";
-import {
-  type BridgeCodec,
-  domainId,
-  integer,
-  opaqueId,
-  record,
-} from "./base.ts";
+import { domainId, integer, opaqueId, record } from "./base.ts";
+import type { BridgeCodec } from "./base.ts";
 
-export function parseBridgeStreamCursor(
-  value: unknown,
-): BridgeStreamCursor {
+export function parseBridgeStreamCursor(value: unknown): BridgeStreamCursor {
   const source = record(value, BRIDGE_FIELDS.BridgeStreamCursor);
   return {
     sessionId: opaqueId(source.sessionId),

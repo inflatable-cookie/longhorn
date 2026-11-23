@@ -6,11 +6,8 @@ import type {
   SurfaceId,
 } from "@inflatable-cookie/longhorn/surfaces";
 
-  import {
-    LayoutTabs,
-    type PanelPresentationResolver,
-    type PoodleLayoutBinding,
-  } from "../../src/poodle/index.ts";
+  import { LayoutTabs } from '../../src/poodle/index.ts';
+import type { PanelPresentationResolver, PoodleLayoutBinding } from '../../src/poodle/index.ts';
 
   interface Props {
     binding: PoodleLayoutBinding;

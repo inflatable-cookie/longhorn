@@ -73,8 +73,10 @@ import type {
 
 <Tabs
   items={projection.items.map((item) => ({
-    ...item,
-    icon: item.icon ?? undefined,
+    value: item.value,
+    label: item.label,
+    ...(item.closable === undefined ? {} : { closable: item.closable }),
+    ...(item.icon == null ? {} : { icon: item.icon }),
   }))}
   value={projection.state.active_panel_instance_id ?? ""}
   {variant}
@@ -87,5 +89,5 @@ import type {
   onClose={(panelInstanceId) => binding.close(panelInstanceId)}
   onReorder={(panelInstanceIds) =>
     binding.reorder(containerId, regionId, panelInstanceIds)}
-  children={body ? renderBody : undefined}
+  {...body ? { children: renderBody } : {}}
 />

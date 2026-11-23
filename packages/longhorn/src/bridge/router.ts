@@ -1,16 +1,8 @@
-import type {
-  BridgeHelloRequest,
-  BridgeNegotiationReceipt,
-} from "./generated/protocol.ts";
-import {
-  parseBridgeHelloRequest,
-  parseBridgeNegotiationReceipt,
-} from "./validation.ts";
+import type { BridgeHelloRequest, BridgeNegotiationReceipt } from "./generated/protocol.ts";
+import { parseBridgeHelloRequest, parseBridgeNegotiationReceipt } from "./validation.ts";
 import type { BridgeOperationDescriptor } from "./operation.ts";
 
-type BridgeOperationHandler<Request, Reply> = (
-  request: Request,
-) => Reply | Promise<Reply>;
+type BridgeOperationHandler<Request, Reply> = (request: Request) => Reply | Promise<Reply>;
 
 interface RegisteredOperation {
   readonly descriptor: BridgeOperationDescriptor<unknown, unknown>;
@@ -39,7 +31,7 @@ export class BridgeHostRouter {
       throw new Error(`duplicate bridge operation route: ${descriptor.route}`);
     }
     const registration: RegisteredOperation = {
-      descriptor: descriptor as BridgeOperationDescriptor<unknown, unknown>,
+      descriptor: descriptor,
       handler: handler as BridgeOperationHandler<unknown, unknown>,
     };
     this.#operations.set(descriptor.route, registration);
@@ -52,10 +44,7 @@ export class BridgeHostRouter {
 
   async negotiate(value: unknown): Promise<BridgeNegotiationReceipt> {
     const request = parseBridgeHelloRequest(value);
-    return parseBridgeNegotiationReceipt(
-      await this.#negotiate(request),
-      request,
-    );
+    return parseBridgeNegotiationReceipt(await this.#negotiate(request), request);
   }
 
   async invoke(route: string, value: unknown): Promise<unknown> {
@@ -64,8 +53,6 @@ export class BridgeHostRouter {
       throw new Error(`unknown bridge operation route: ${route}`);
     }
     const request = registration.descriptor.request.parse(value);
-    return registration.descriptor.reply.parse(
-      await registration.handler(request),
-    );
+    return registration.descriptor.reply.parse(await registration.handler(request));
   }
 }

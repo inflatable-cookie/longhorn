@@ -6,9 +6,11 @@ import {
   TRANSFER_COMMIT_SURFACE_COMMAND,
   TRANSFER_START_SURFACE_COMMAND,
   SurfaceTransferClient,
-  type SurfaceTransferCommand,
-  type SurfaceSessionResponse,
-  type SurfaceSessionStartRequest,
+} from "@inflatable-cookie/longhorn/surface-transfer";
+import type {
+  SurfaceTransferCommand,
+  SurfaceSessionResponse,
+  SurfaceSessionStartRequest,
 } from "@inflatable-cookie/longhorn/surface-transfer";
 
 import fixture from "../../../../fixtures/surface-transfer/protocol-v1.json";
@@ -29,7 +31,7 @@ function deferred<T>() {
 describe("SurfaceTransferState", () => {
   it("cancels a preparation that completes after teardown", async () => {
     const preparation = deferred<SurfaceSessionResponse>();
-    const cancelled: string[] = [];
+    const cancelled: Array<string> = [];
     const transport: InvokeTransport = {
       async invoke(command) {
         if (command === TRANSFER_START_SURFACE_COMMAND) {
@@ -46,25 +48,19 @@ describe("SurfaceTransferState", () => {
     });
     await state.start();
 
-    const prepare = state.prepare(
-      fixture.session_requests[0] as SurfaceSessionStartRequest,
-    );
+    const prepare = state.prepare(fixture.session_requests[0] as SurfaceSessionStartRequest);
     const stop = state.stop();
-    preparation.resolve(
-      fixture.session_responses[0] as SurfaceSessionResponse,
-    );
+    preparation.resolve(fixture.session_responses[0] as SurfaceSessionResponse);
     await Promise.all([prepare, stop]);
 
-    expect(cancelled).toEqual([
-      "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
-    ]);
+    expect(cancelled).toEqual(["cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"]);
     expect(state.status.kind).toBe("idle");
     expect(state.preparation.status).toBe("idle");
   });
 
   it("arms a Surface synchronously and commits a checked screen point", async () => {
-    const commands: SurfaceTransferCommand[] = [];
-    const errors: unknown[] = [];
+    const commands: Array<SurfaceTransferCommand> = [];
+    const errors: Array<unknown> = [];
     const transport: InvokeTransport = {
       async invoke(command, arguments_) {
         if (command === TRANSFER_START_SURFACE_COMMAND) {
@@ -89,8 +85,7 @@ describe("SurfaceTransferState", () => {
     document.body.append(source, target);
     const dragAction = surfaceTransferDrag(source, {
       state,
-      makeStartRequest: () =>
-        fixture.session_requests[0] as SurfaceSessionStartRequest,
+      makeStartRequest: () => fixture.session_requests[0] as SurfaceSessionStartRequest,
       reportError: (error) => errors.push(error),
     });
     let terminal = 0;
@@ -109,13 +104,9 @@ describe("SurfaceTransferState", () => {
     await waitFor(() => expect(state.preparation.status).toBe("prepared"));
     source.dispatchEvent(dragEvent("dragstart", dataTransfer));
     target.dispatchEvent(dragEvent("dragover", dataTransfer));
-    target.dispatchEvent(
-      dragEvent("drop", dataTransfer, { screenX: 800, screenY: 420 }),
-    );
+    target.dispatchEvent(dragEvent("drop", dataTransfer, { screenX: 800, screenY: 420 }));
 
-    await waitFor(() =>
-      expect(commands.length + errors.length).toBeGreaterThan(0),
-    );
+    await waitFor(() => expect(commands.length + errors.length).toBeGreaterThan(0));
     expect(errors).toEqual([]);
     expect(commands).toHaveLength(1);
     expect(commands[0]).toEqual({

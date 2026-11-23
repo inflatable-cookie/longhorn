@@ -21,9 +21,7 @@ describe("native transfer payload", () => {
       protocol_version: 1,
       session_id: "abababababababababababababababab",
     });
-    expect(serialized).not.toMatch(
-      /panel|surface|layout|window|document|binding/,
-    );
+    expect(serialized).not.toMatch(/panel|surface|layout|window|document|binding/);
   });
 
   test("rejects extra authority, future versions, and invented ids", () => {

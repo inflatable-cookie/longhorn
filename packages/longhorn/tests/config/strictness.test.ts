@@ -16,25 +16,23 @@ describe("config boundary strictness", () => {
 
   test("rejects an unknown field", () => {
     const snapshot: Record<string, unknown> = {};
-    for (const key of CONFIG_FIELDS.ConfigOperationsSnapshot!) {
+    for (const key of CONFIG_FIELDS.ConfigOperationsSnapshot) {
       snapshot[key] = null;
     }
-    expect(() =>
-      assertValidConfigOperationsSnapshot({ ...snapshot, extra: 1 }),
-    ).toThrow(/unknown field/);
+    expect(() => assertValidConfigOperationsSnapshot({ ...snapshot, extra: 1 })).toThrow(
+      /unknown field/,
+    );
   });
 
   test("rejects a missing field", () => {
     const snapshot: Record<string, unknown> = {};
-    for (const key of CONFIG_FIELDS.ConfigOperationsSnapshot!.slice(1)) {
+    for (const key of CONFIG_FIELDS.ConfigOperationsSnapshot.slice(1)) {
       snapshot[key] = null;
     }
-    expect(() => assertValidConfigOperationsSnapshot(snapshot)).toThrow(
-      /missing field/,
-    );
+    expect(() => assertValidConfigOperationsSnapshot(snapshot)).toThrow(/missing field/);
   });
 
   test("omits tagged unions rather than guessing their keys", () => {
-    expect(CONFIG_FIELDS.RestoreDomainCompatibilityProjection).toBeUndefined();
+    expect("RestoreDomainCompatibilityProjection" in CONFIG_FIELDS).toBe(false);
   });
 });

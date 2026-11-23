@@ -38,12 +38,12 @@ type SemanticNode = {
   elementRef: string;
   role: string;
   name?: string;
-  children?: SemanticNode[];
+  children?: Array<SemanticNode>;
 };
 
-async function run(command: readonly string[], cwd?: string): Promise<string> {
-  const subprocess = Bun.spawn(command, {
-    cwd,
+async function run(command: ReadonlyArray<string>, cwd?: string): Promise<string> {
+  const subprocess = Bun.spawn([...command], {
+    ...(cwd === undefined ? {} : { cwd }),
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -59,7 +59,9 @@ async function run(command: readonly string[], cwd?: string): Promise<string> {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
 }
 
 function meta() {
@@ -83,7 +85,9 @@ async function mcp(
     "mcp-method": method,
     authorization: `Bearer ${discovery.token}`,
   };
-  if (name) headers["mcp-name"] = name;
+  if (name) {
+    headers["mcp-name"] = name;
+  }
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
     headers,
@@ -97,7 +101,9 @@ async function mcp(
     .split("\n")
     .find((line) => line.startsWith("data: "))
     ?.slice("data: ".length);
-  if (!data) throw new Error(`MCP ${method} returned no SSE data: ${body}`);
+  if (!data) {
+    throw new Error(`MCP ${method} returned no SSE data: ${body}`);
+  }
   return JSON.parse(data);
 }
 
@@ -130,10 +136,14 @@ function requireOk(
 }
 
 function findByName(node: SemanticNode, name: string): SemanticNode | undefined {
-  if (node.name === name) return node;
+  if (node.name === name) {
+    return node;
+  }
   for (const child of node.children ?? []) {
     const match = findByName(child, name);
-    if (match) return match;
+    if (match) {
+      return match;
+    }
   }
   return undefined;
 }
@@ -141,7 +151,7 @@ function findByName(node: SemanticNode, name: string): SemanticNode | undefined 
 async function snapshotRoot(
   discovery: Discovery,
   webview?: string,
-): Promise<{ root: SemanticNode; webview?: string }> {
+): Promise<{ root: SemanticNode; webview: string | undefined }> {
   const args: Record<string, unknown> = webview ? { webview } : {};
   const result = requireOk("snapshot", await callTool(discovery, "snapshot", args));
   return {
@@ -162,14 +172,20 @@ function pidAlive(pid: number): boolean {
 async function waitForDiscovery(): Promise<{ discovery: Discovery; path: string }> {
   const deadline = Date.now() + 30_000;
   for (;;) {
-    const entries = await readdir(discoveryDir).catch(() => [] as string[]);
+    const entries = await readdir(discoveryDir).catch(() => [] as Array<string>);
     for (const entry of entries) {
-      if (!entry.startsWith(`${appId}-`)) continue;
+      if (!entry.startsWith(`${appId}-`)) {
+        continue;
+      }
       const path = join(discoveryDir, entry);
       const discovery = JSON.parse(await readFile(path, "utf8")) as Discovery;
-      if (pidAlive(discovery.pid)) return { discovery, path };
+      if (pidAlive(discovery.pid)) {
+        return { discovery, path };
+      }
     }
-    if (Date.now() > deadline) throw new Error("discovery file never appeared");
+    if (Date.now() > deadline) {
+      throw new Error("discovery file never appeared");
+    }
     await sleep(200);
   }
 }
@@ -217,11 +233,13 @@ async function listenOnce(
   const decoder = new TextDecoder();
   let buf = "";
   let sawUpdate = false;
-  const deadline = Date.now() + 4_000;
+  const deadline = Date.now() + 4000;
   const read = (async () => {
     while (Date.now() < deadline) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        break;
+      }
       buf += decoder.decode(value, { stream: true });
       if (buf.includes("notifications/resources/updated") && buf.includes(uri)) {
         sawUpdate = true;
@@ -231,7 +249,7 @@ async function listenOnce(
   })();
   await sleep(150);
   await trigger();
-  await Promise.race([read, sleep(3_500)]);
+  await Promise.race([read, sleep(3500)]);
   abort.abort();
   return sawUpdate;
 }
@@ -246,12 +264,16 @@ async function main(): Promise<void> {
 
   await run(["pkill", "-f", "Longhorn Agent Control Proof"]).catch(() => {});
   await sleep(500);
-  const leftovers = await readdir(discoveryDir).catch(() => [] as string[]);
+  const leftovers = await readdir(discoveryDir).catch(() => [] as Array<string>);
   for (const entry of leftovers) {
-    if (!entry.startsWith(`${appId}-`)) continue;
+    if (!entry.startsWith(`${appId}-`)) {
+      continue;
+    }
     const leftover = join(discoveryDir, entry);
     const record = JSON.parse(await readFile(leftover, "utf8")) as Discovery;
-    if (!pidAlive(record.pid)) await rm(leftover).catch(() => {});
+    if (!pidAlive(record.pid)) {
+      await rm(leftover).catch(() => {});
+    }
   }
   // Launch without requiring the app to stay frontmost; immediately hand
   // focus to Finder so the rest of the run is unfocused (contract 022).
@@ -287,16 +309,18 @@ async function main(): Promise<void> {
     }),
   );
   requireOk("click", await callTool(discovery, "click", { element: add.elementRef }));
-  const alphaDeadline = Date.now() + 2_000;
+  const alphaDeadline = Date.now() + 2000;
   let afterAlpha = (await snapshotRoot(discovery)).root;
   while (!findByName(afterAlpha, "Alpha") && Date.now() < alphaDeadline) {
     await sleep(50);
     afterAlpha = (await snapshotRoot(discovery)).root;
   }
   if (!findByName(afterAlpha, "Alpha")) {
-    const names: string[] = [];
+    const names: Array<string> = [];
     const walk = (node: SemanticNode) => {
-      if (node.name) names.push(node.name);
+      if (node.name) {
+        names.push(node.name);
+      }
       (node.children ?? []).forEach(walk);
     };
     walk(afterAlpha);
@@ -310,20 +334,24 @@ async function main(): Promise<void> {
   const withBoth = (await snapshotRoot(discovery)).root;
   const alpha = findByName(withBoth, "Alpha");
   const beta = findByName(withBoth, "Beta");
-  if (!alpha || !beta) throw new Error("list missing Alpha/Beta after type+click");
+  if (!alpha || !beta) {
+    throw new Error("list missing Alpha/Beta after type+click");
+  }
   requireOk(
     "drag",
     await callTool(discovery, "drag", { source: alpha.elementRef, target: beta.elementRef }),
   );
 
   const about = findByName(withBoth, "About");
-  if (!about) throw new Error("About link missing");
+  if (!about) {
+    throw new Error("About link missing");
+  }
   requireOk("click", await callTool(discovery, "click", { element: about.elementRef }));
   requireOk(
     "wait_for",
     await callTool(discovery, "wait_for", {
       predicate: { predicate: "pageUrlContains", needle: "#about" },
-      timeoutMs: 2_000,
+      timeoutMs: 2000,
     }),
   );
   await sampleFocus("after-navigation");
@@ -335,9 +363,13 @@ async function main(): Promise<void> {
     { name: "screenshot", arguments: {}, _meta: meta() },
     "screenshot",
   )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  if (shot.result.isError) throw new Error(`screenshot failed: ${JSON.stringify(shot.result)}`);
+  if (shot.result.isError) {
+    throw new Error(`screenshot failed: ${JSON.stringify(shot.result)}`);
+  }
   const image = shot.result.content[0];
-  if (!image || image.type !== "image") throw new Error("screenshot returned no image");
+  if (!image || image.type !== "image") {
+    throw new Error("screenshot returned no image");
+  }
   await writeFile(shotPath, Buffer.from(String(image.data), "base64"));
 
   requireOk("command", await callTool(discovery, "command", { command: "proof:ping" }));
@@ -410,7 +442,7 @@ async function main(): Promise<void> {
     await callTool(discovery, "wait_for", {
       webview: "preview",
       predicate: { predicate: "pageTitleContains", needle: "Ready" },
-      timeoutMs: 2_000,
+      timeoutMs: 2000,
     }),
   );
   const islandEval = requireOk(
@@ -486,7 +518,9 @@ async function main(): Promise<void> {
   await run(["osascript", "-e", `tell application id "${appId}" to quit`]);
   let discoveryRemoved = false;
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const gone = await access(discoveryPath).then(() => false).catch(() => true);
+    const gone = await access(discoveryPath)
+      .then(() => false)
+      .catch(() => true);
     if (gone) {
       discoveryRemoved = true;
       break;

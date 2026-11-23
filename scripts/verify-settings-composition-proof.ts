@@ -12,9 +12,7 @@ import { taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/settings-composition-proof");
-const temporaryRoot = await mkdtemp(
-  join(tmpdir(), "longhorn-settings-proof-"),
-);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-settings-proof-"));
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-settings-composition-rust");
@@ -22,11 +20,7 @@ const buildScratch = await taskScratch("longhorn-settings-composition-rust");
 try {
   const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
   const artifacts = new Map(typescript.paths);
-  const rust = await packAndCheckRustArtifacts(
-    repoRoot,
-    temporaryRoot,
-    buildScratch.root,
-  );
+  const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot, buildScratch.root);
   const consumers = await verifyConsumers({
     repoRoot,
     proofRoot,

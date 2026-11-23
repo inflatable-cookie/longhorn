@@ -72,14 +72,16 @@ To bump the pinned toolchain:
 ## Gates
 
 `[release.gates]` in `config/release.toml` runs cheapest-first, in
-declaration order: private-candidate, advisories, rustdoc, prototypes,
+declaration order: private-candidate, dependencies, rustdoc, prototypes,
 workspace (`effigy qa`), floor (MSRV Clippy and tests), source (git-dependency
 consumer). `effigy release:gates` is the same list minus `workspace`;
 `check:release-gates` fails if the two drift. `check:runner-tools` derives
 extra tools from those commands (`cargo deny` needs cargo-deny) and fails if
 `.github/workflows/release.yml` does not install them in an unconditional
 step of the same job, before `effigy release:gates`; a comment is not an
-install. It also checks that `ci.yml`'s `rust` and `rust-floor` jobs install
+install. The dependency gate checks advisories, bans, licenses and sources
+using `deny.toml`. Duplicate versions are surfaced as warnings.
+`check:runner-tools` also checks that `ci.yml`'s `rust` and `rust-floor` jobs install
 the same SHA-pinned Bun action and version as `clients` before their first
 Effigy step, because the Rust test suites run a Bun script. The
 `private-candidate` gate reads version, Rust crate count, and

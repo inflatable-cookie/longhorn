@@ -1,18 +1,16 @@
-import {
-  CheckedSnapshotConnection,
-  type ConnectionFailure,
-  type ConnectionFailureReporter,
-  type EventTransport,
+import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import type {
+  ConnectionFailure,
+  ConnectionFailureReporter,
+  EventTransport,
 } from "@inflatable-cookie/longhorn/core";
 
 import type {
   SettingsLoadCommand,
   SettingsLoadOutcome,
   SettingsPageId,
-  SettingsRegistryChangedEvent,
   SettingsRegistrySnapshot,
   SettingsRequestId,
-  SettingsScopeChangedEvent,
   SettingsScopeId,
   SettingsScopeSnapshot,
 } from "./generated/protocol.ts";
@@ -22,15 +20,12 @@ import {
   assertValidSettingsScopeChangedEvent,
   assertValidSettingsScopeSnapshot,
 } from "./validation.ts";
-import {
-  SETTINGS_REGISTRY_CHANGED_EVENT,
-  SETTINGS_SCOPE_CHANGED_EVENT,
-} from "./names.ts";
+import { SETTINGS_REGISTRY_CHANGED_EVENT, SETTINGS_SCOPE_CHANGED_EVENT } from "./names.ts";
 
 export interface SettingsSubscription<Snapshot> {
   readonly ready: Promise<Snapshot>;
   current(): Snapshot | undefined;
-  failures(): readonly ConnectionFailure[];
+  failures(): ReadonlyArray<ConnectionFailure>;
   dispose(): Promise<void>;
 }
 
@@ -51,16 +46,14 @@ export function connectSettingsRegistry(
 ): SettingsSubscription<SettingsRegistrySnapshot> {
   return requiredSubscription(
     new CheckedSnapshotConnection({
-      listen: (receive) =>
-        transport.listen(SETTINGS_REGISTRY_CHANGED_EVENT, receive),
+      listen: (receive) => transport.listen(SETTINGS_REGISTRY_CHANGED_EVENT, receive),
       loadSnapshot: load,
       validateSnapshot: parseRegistry,
       handleEvent: registryEventAction,
       isNewer: isNewerRegistry,
       onSnapshot: listener,
       onFailure,
-      disposedBeforeReadyError: () =>
-        new SettingsConnectionDisposedError("registry"),
+      disposedBeforeReadyError: () => new SettingsConnectionDisposedError("registry"),
     }),
     "registry",
   );
@@ -74,8 +67,7 @@ export function connectSettingsScope(
   let current: SettingsScopeSnapshot | undefined;
   const maximum = options.registry.limits.maximumOpaqueValueBytes;
   const connection = new CheckedSnapshotConnection<SettingsScopeSnapshot>({
-    listen: (receive) =>
-      transport.listen(SETTINGS_SCOPE_CHANGED_EVENT, receive),
+    listen: (receive) => transport.listen(SETTINGS_SCOPE_CHANGED_EVENT, receive),
     loadSnapshot: async () => {
       const outcome = await load({
         protocolVersion: 1,
@@ -95,8 +87,7 @@ export function connectSettingsScope(
       validateScopeIdentity(value, options);
       return value;
     },
-    handleEvent: (value, snapshot) =>
-      scopeEventAction(value, snapshot, options),
+    handleEvent: (value, snapshot) => scopeEventAction(value, snapshot, options),
     isNewer: isNewerScope,
     // Recorded here, once the connection has accepted the snapshot, so the
     // predicate itself stays a pure comparison.
@@ -105,8 +96,7 @@ export function connectSettingsScope(
       options.onSnapshot?.(snapshot);
     },
     onFailure: options.onFailure,
-    disposedBeforeReadyError: () =>
-      new SettingsConnectionDisposedError(options.scopeId),
+    disposedBeforeReadyError: () => new SettingsConnectionDisposedError(options.scopeId),
   });
   return requiredSubscription(connection, options.scopeId);
 }
@@ -162,9 +152,8 @@ function registryEventAction(
   current: SettingsRegistrySnapshot | undefined,
 ): { kind: "ignore" } | { kind: "refresh" } {
   assertValidSettingsRegistryChangedEvent(value);
-  const event = value as SettingsRegistryChangedEvent;
-  return current !== undefined &&
-    event.registryGeneration <= current.generation
+  const event = value;
+  return current !== undefined && event.registryGeneration <= current.generation
     ? { kind: "ignore" }
     : { kind: "refresh" };
 }
@@ -175,7 +164,7 @@ function scopeEventAction(
   options: SettingsScopeConnectionOptions,
 ): { kind: "ignore" } | { kind: "refresh" } {
   assertValidSettingsScopeChangedEvent(value);
-  const event = value as SettingsScopeChangedEvent;
+  const event = value;
   if (event.scopeId !== options.scopeId) {
     return { kind: "ignore" };
   }
@@ -195,10 +184,7 @@ function isNewerRegistry(
   if (current === undefined || candidate.generation > current.generation) {
     return true;
   }
-  if (
-    candidate.generation === current.generation &&
-    candidate.digest !== current.digest
-  ) {
+  if (candidate.generation === current.generation && candidate.digest !== current.digest) {
     throw new SettingsAuthorityConsistencyError(
       "one settings registry generation produced multiple digests",
     );
@@ -238,9 +224,7 @@ function validateScopeIdentity(
       `loaded scope ${snapshot.scopeId}; expected ${options.scopeId}`,
     );
   }
-  if (
-    snapshot.authority.registryGeneration !== options.registry.generation
-  ) {
+  if (snapshot.authority.registryGeneration !== options.registry.generation) {
     throw new SettingsAuthorityConsistencyError(
       "scope snapshot registry generation does not match the connection",
     );

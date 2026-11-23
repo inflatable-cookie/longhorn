@@ -11,45 +11,33 @@ import {
   TransferClient,
 } from "@inflatable-cookie/longhorn/transfer";
 
-const fixturePath = new URL(
-  "../../../../fixtures/transfer/protocol-v1.json",
-  import.meta.url,
-);
+const fixturePath = new URL("../../../../fixtures/transfer/protocol-v1.json", import.meta.url);
 const fixture = record(JSON.parse(readFileSync(fixturePath, "utf8")));
 
 test("routes each typed operation through the injected transport", async () => {
   const responses = new Map<string, unknown>([
     [TRANSFER_SNAPSHOT_COMMAND, fixture.client_snapshot],
-    [
-      TRANSFER_START_PANEL_COMMAND,
-      array(fixture.session_responses)[0],
-    ],
-    [
-      TRANSFER_PUBLISH_LEASE_COMMAND,
-      array(fixture.lease_responses)[0],
-    ],
-    [
-      TRANSFER_COMMIT_PANEL_COMMAND,
-      array(fixture.commit_responses)[0],
-    ],
+    [TRANSFER_START_PANEL_COMMAND, array(fixture.session_responses)[0]],
+    [TRANSFER_PUBLISH_LEASE_COMMAND, array(fixture.lease_responses)[0]],
+    [TRANSFER_COMMIT_PANEL_COMMAND, array(fixture.commit_responses)[0]],
     [TRANSFER_CANCEL_COMMAND, array(fixture.cancel_responses)[0]],
   ]);
   const transport = new MockTransport(responses);
   const client = new TransferClient(transport);
 
-  expect(await client.snapshot()).toEqual(fixture.client_snapshot as never);
-  expect(
-    await client.startPanel(array(fixture.session_requests)[0] as never),
-  ).toEqual(array(fixture.session_responses)[0] as never);
-  expect(
-    await client.publishLease(array(fixture.lease_requests)[0] as never),
-  ).toEqual(array(fixture.lease_responses)[0] as never);
-  expect(
-    await client.commitPanel(array(fixture.commit_requests)[0] as never),
-  ).toEqual(array(fixture.commit_responses)[0] as never);
-  expect(
-    await client.cancel(array(fixture.cancel_requests)[0] as never),
-  ).toEqual(array(fixture.cancel_responses)[0] as never);
+  expect<unknown>(await client.snapshot()).toEqual(fixture.client_snapshot);
+  expect<unknown>(await client.startPanel(array(fixture.session_requests)[0] as never)).toEqual(
+    array(fixture.session_responses)[0],
+  );
+  expect<unknown>(await client.publishLease(array(fixture.lease_requests)[0] as never)).toEqual(
+    array(fixture.lease_responses)[0],
+  );
+  expect<unknown>(await client.commitPanel(array(fixture.commit_requests)[0] as never)).toEqual(
+    array(fixture.commit_responses)[0],
+  );
+  expect<unknown>(await client.cancel(array(fixture.cancel_requests)[0] as never)).toEqual(
+    array(fixture.cancel_responses)[0],
+  );
 
   expect(transport.calls.map((call) => call.command)).toEqual([
     TRANSFER_SNAPSHOT_COMMAND,
@@ -75,10 +63,7 @@ class MockTransport implements InvokeTransport {
     this.#responses = responses;
   }
 
-  async invoke(
-    command: string,
-    arguments_: Record<string, unknown>,
-  ): Promise<unknown> {
+  async invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown> {
     this.calls.push({ command, arguments_ });
     if (!this.#responses.has(command)) {
       throw new Error(`unexpected command ${command}`);
@@ -94,7 +79,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function array(value: unknown): unknown[] {
+function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     throw new TypeError("expected JSON array");
   }

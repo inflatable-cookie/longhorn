@@ -10,13 +10,19 @@ export type NotificationUnlisten = () => void | Promise<void>;
 export interface NotificationPort {
   snapshot(query: NotificationSnapshotQuery): Promise<unknown>;
   mutate(command: NotificationMutationCommand): Promise<unknown>;
-  listen?(listener: (event: unknown) => void): NotificationUnlisten | Promise<NotificationUnlisten>;
+  listen?:
+    | ((listener: (event: unknown) => void) => NotificationUnlisten | Promise<NotificationUnlisten>)
+    | undefined;
   nextRequestId(): NotificationRequestId;
 }
 
 export interface CheckedNotificationPort {
-  snapshot(query: NotificationSnapshotQuery): Promise<import("./generated/protocol.ts").NotificationSnapshotResponse>;
-  mutate(command: NotificationMutationCommand): Promise<import("./generated/protocol.ts").NotificationMutationResult>;
+  snapshot(
+    query: NotificationSnapshotQuery,
+  ): Promise<import("./generated/protocol.ts").NotificationSnapshotResponse>;
+  mutate(
+    command: NotificationMutationCommand,
+  ): Promise<import("./generated/protocol.ts").NotificationMutationResult>;
   listen?(listener: (event: NotificationChangedEvent) => void): Promise<NotificationUnlisten>;
   nextRequestId(): NotificationRequestId;
 }

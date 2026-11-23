@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const HISTORY_TREE_FIELDS: Record<string, readonly string[]> = {
+export const HISTORY_TREE_FIELDS = {
   "ForkSummaryProjection": ["historyId", "revision", "currentBranchId", "currentEntryId", "undoDepth", "redoDepth", "nextUndoLabel", "nextRedoLabel", "retainedEntryCount", "retainedEncodedWeight", "branchCount", "alternatePathCount"],
   "ForkSnapshot": ["protocolVersion", "authorityEpoch", "summary"],
   "ForkEntryRecord": ["entryId", "label", "kindId", "recordedAt", "groupId", "sequence", "committedRevision", "encodedWeight", "position", "continuationCount"],
@@ -23,4 +23,4 @@ export const HISTORY_TREE_FIELDS: Record<string, readonly string[]> = {
   "ForkNavigationReceiptProjection": ["historyId", "planId", "previousRevision", "committedRevision", "sourceEntryId", "targetEntryId", "targetBranchId", "movedEntryIds"],
   "ForkNavigationRejectionProjection": ["code", "detail", "refreshRequired"],
   "ForkChangedEvent": ["protocolVersion", "authorityEpoch", "historyId", "previousRevision", "committedRevision", "kind"],
-};
+} as const;

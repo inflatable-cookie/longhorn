@@ -1,9 +1,7 @@
 import { fireEvent, render } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  LayoutMutationRequest,
-} from "@inflatable-cookie/longhorn/layout";
+import type { LayoutMutationRequest } from "@inflatable-cookie/longhorn/layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import LayoutDockHarness from "./LayoutDockHarness.svelte";
@@ -16,13 +14,7 @@ import {
   shapeDocument,
 } from "./support.ts";
 
-function box(
-  element: HTMLElement,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): void {
+function box(element: HTMLElement, x: number, y: number, width: number, height: number): void {
   const rect = {
     x,
     y,
@@ -43,19 +35,17 @@ function box(
 }
 
 function layoutTabs(container: HTMLElement): void {
-  [...container.querySelectorAll<HTMLElement>("section")].forEach(
-    (region, regionIndex) => {
-      const originX = regionIndex * 400;
-      box(region, originX, 0, 400, 100);
-      [...region.querySelectorAll<HTMLElement>(".poodle-tabs__item")].forEach(
-        (item, index) => {
-          box(item, originX + index * 100, 0, 100, 30);
-          const tab = item.querySelector<HTMLElement>(".poodle-tabs__tab");
-          if (tab) box(tab, originX + index * 100, 0, 100, 30);
-        },
-      );
-    },
-  );
+  [...container.querySelectorAll<HTMLElement>("section")].forEach((region, regionIndex) => {
+    const originX = regionIndex * 400;
+    box(region, originX, 0, 400, 100);
+    [...region.querySelectorAll<HTMLElement>(".poodle-tabs__item")].forEach((item, index) => {
+      box(item, originX + index * 100, 0, 100, 30);
+      const tab = item.querySelector<HTMLElement>(".poodle-tabs__tab");
+      if (tab) {
+        box(tab, originX + index * 100, 0, 100, 30);
+      }
+    });
+  });
 }
 
 describe("LayoutDockRegion", () => {
@@ -79,13 +69,9 @@ describe("LayoutDockRegion", () => {
     const document = shapeDocument(shape, {
       primary: [instance("instance:a")],
     });
-    const { binding } = mountedBinding(
-      shape.definitions,
-      document,
-      async () => {
-        throw new Error("tabless dock must not dispatch");
-      },
-    );
+    const { binding } = mountedBinding(shape.definitions, document, async () => {
+      throw new Error("tabless dock must not dispatch");
+    });
     const screen = render(LayoutDockHarness, {
       props: { binding, resolvePanel, showTabs: false },
     });
@@ -114,20 +100,16 @@ describe("LayoutDockRegion", () => {
   });
 
   it("dispatches a complete same-region reorder", async () => {
-    const requests: LayoutMutationRequest[] = [];
+    const requests: Array<LayoutMutationRequest> = [];
     const pending = deferred<LayoutDispatchResult>();
     const shape = loadShape("surface-bound");
     const document = shapeDocument(shape, {
       primary: [instance("instance:a"), instance("instance:b")],
     });
-    const { binding } = mountedBinding(
-      shape.definitions,
-      document,
-      (request) => {
-        requests.push(request);
-        return pending.promise;
-      },
-    );
+    const { binding } = mountedBinding(shape.definitions, document, (request) => {
+      requests.push(request);
+      return pending.promise;
+    });
     const screen = render(LayoutDockHarness, {
       props: { binding, resolvePanel },
     });
@@ -148,21 +130,17 @@ describe("LayoutDockRegion", () => {
   });
 
   it("uses Poodle's public panel-drop callback for an eligible move", async () => {
-    const requests: LayoutMutationRequest[] = [];
+    const requests: Array<LayoutMutationRequest> = [];
     const pending = deferred<LayoutDispatchResult>();
     const shape = loadShape("surface-bound");
     const document = shapeDocument(shape, {
       primary: [instance("instance:a")],
       secondary: [instance("instance:b")],
     });
-    const { binding } = mountedBinding(
-      shape.definitions,
-      document,
-      (request) => {
-        requests.push(request);
-        return pending.promise;
-      },
-    );
+    const { binding } = mountedBinding(shape.definitions, document, (request) => {
+      requests.push(request);
+      return pending.promise;
+    });
     const screen = render(LayoutDockHarness, {
       props: { binding, resolvePanel },
     });

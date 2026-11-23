@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  MAX_NODES,
-  TRUNCATED_REF,
-  TRUNCATED_ROLE,
-} from "../../src/agent-control/index.ts";
+import { MAX_NODES, TRUNCATED_REF, TRUNCATED_ROLE } from "../../src/agent-control/index.ts";
 import { collectRoles, findByName, findByRole, install, openPage } from "./support.ts";
 
 describe("agent-control semantic tree", () => {
@@ -21,7 +17,9 @@ describe("agent-control semantic tree", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     expect(snapshot.page.title).toBe("Proof");
     expect(snapshot.page.url).toContain("/test");
 
@@ -43,12 +41,17 @@ describe("agent-control semantic tree", () => {
   });
 
   test("marks truncation explicitly rather than silently capping", () => {
-    const items = Array.from({ length: MAX_NODES + 8 }, (_, index) => `<button>B${index}</button>`).join("");
+    const items = Array.from(
+      { length: MAX_NODES + 8 },
+      (_, index) => `<button>B${index}</button>`,
+    ).join("");
     const window = openPage(`<div>${items}</div>`);
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const roles = collectRoles(snapshot.root);
     expect(roles).toContain(TRUNCATED_ROLE);
     const truncated = findByRole(snapshot.root, TRUNCATED_ROLE);
@@ -66,10 +69,14 @@ describe("agent-control semantic tree", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
-    const names: string[] = [];
+    if (!snapshot.ok) {
+      return;
+    }
+    const names: Array<string> = [];
     const walk = (node: typeof snapshot.root) => {
-      if (node.name) names.push(node.name);
+      if (node.name) {
+        names.push(node.name);
+      }
       node.children.forEach(walk);
     };
     walk(snapshot.root);

@@ -1,22 +1,12 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import {
-  SettingsSession,
-} from "../../src/settings/poodle.ts";
+import { SettingsSession } from "../../src/settings/poodle.ts";
 import { SETTINGS_RESET_COMMAND } from "../../../longhorn/src/settings/index.ts";
 import SettingsShellHarness from "./SettingsShellHarness.svelte";
-import {
-  FakeSettingsTransport,
-  fixture,
-  registry,
-  requestIds,
-} from "./support.ts";
+import { FakeSettingsTransport, fixture, registry, requestIds } from "./support.ts";
 
-function createSession(
-  transport: FakeSettingsTransport,
-  onClose?: () => void,
-): SettingsSession {
+function createSession(transport: FakeSettingsTransport, onClose?: () => void): SettingsSession {
   return new SettingsSession({
     client: transport.client(),
     nextRequestId: requestIds("shell"),
@@ -97,9 +87,7 @@ describe("SettingsShell", () => {
     await mounted.findByTestId("change");
     await fireEvent.click(mounted.getByTestId("change"));
     await waitFor(() => {
-      expect(mounted.getByTestId("consumer-page").dataset.dirty).toBe(
-        "true",
-      );
+      expect(mounted.getByTestId("consumer-page").dataset.dirty).toBe("true");
     });
 
     await fireEvent.click(mounted.getByRole("button", { name: CLOSE }));
@@ -113,9 +101,7 @@ describe("SettingsShell", () => {
     expect(session.dirty).toBe(true);
 
     await fireEvent.click(mounted.getByRole("button", { name: CLOSE }));
-    await fireEvent.click(
-      mounted.getByRole("button", { name: "Discard" }),
-    );
+    await fireEvent.click(mounted.getByRole("button", { name: "Discard" }));
     await waitFor(() => expect(closes).toBe(1));
     expect(session.dirty).toBe(false);
     await mounted.unmount();
@@ -169,16 +155,10 @@ describe("SettingsShell", () => {
       props: { session },
     });
     await fireEvent.click(await mounted.findByTestId("change"));
-    await fireEvent.click(
-      mounted.getByRole("button", { name: "Apply" }),
-    );
+    await fireEvent.click(mounted.getByRole("button", { name: "Apply" }));
 
-    expect(
-      await mounted.findByText("Settings changed elsewhere"),
-    ).toBeTruthy();
-    expect(mounted.getByTestId("consumer-page").dataset.dirty).toBe(
-      "true",
-    );
+    expect(await mounted.findByText("Settings changed elsewhere")).toBeTruthy();
+    expect(mounted.getByTestId("consumer-page").dataset.dirty).toBe("true");
     await mounted.unmount();
     await session.stop();
   });
@@ -208,12 +188,8 @@ describe("SettingsShell", () => {
       props: { session },
     });
     await fireEvent.click(await mounted.findByTestId("reset"));
-    expect(
-      await mounted.findByRole("alertdialog", { name: "Reset settings" }),
-    ).toBeTruthy();
-    await fireEvent.click(
-      mounted.getByRole("button", { name: "Reset" }),
-    );
+    expect(await mounted.findByRole("alertdialog", { name: "Reset settings" })).toBeTruthy();
+    await fireEvent.click(mounted.getByRole("button", { name: "Reset" }));
     await waitFor(() => {
       expect(transport.calls(SETTINGS_RESET_COMMAND)).toBe(1);
     });

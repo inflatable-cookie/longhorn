@@ -12,7 +12,7 @@
     title?: string;
     description?: string | null;
     invocationHint?: string | null;
-    categoryLabel?: (categoryPath: readonly string[]) => string | null;
+    categoryLabel?: (categoryPath: ReadonlyArray<string>) => string | null;
     onOpenChange?: (open: boolean) => void;
   }
 

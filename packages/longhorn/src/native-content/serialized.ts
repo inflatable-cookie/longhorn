@@ -21,22 +21,18 @@ export class SerializedNativeContentPort implements NativeContentPort {
     return clone(await this.#inner.snapshot(clone(request)));
   }
 
-  async updateDesired(
-    request: NativeContentDesiredUpdateRequest,
-  ): Promise<unknown> {
+  async updateDesired(request: NativeContentDesiredUpdateRequest): Promise<unknown> {
     return clone(await this.#inner.updateDesired(clone(request)));
   }
 
-  async decideContentSize(
-    request: NativeContentContentSizeDecisionRequest,
-  ): Promise<unknown> {
+  async decideContentSize(request: NativeContentContentSizeDecisionRequest): Promise<unknown> {
     return clone(await this.#inner.decideContentSize(clone(request)));
   }
 
-  async listen(
-    listener: (event: unknown) => void,
-  ): Promise<NativeContentUnlisten> {
-    if (this.#inner.listen === undefined) return () => {};
+  async listen(listener: (event: unknown) => void): Promise<NativeContentUnlisten> {
+    if (this.#inner.listen === undefined) {
+      return () => {};
+    }
     return this.#inner.listen((event) => listener(clone(event)));
   }
 

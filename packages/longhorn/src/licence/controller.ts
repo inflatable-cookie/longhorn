@@ -1,14 +1,14 @@
 import { LicenceClient } from "./client.ts";
-import {
-  LICENCE_PROTOCOL_VERSION,
-  type HeldLicenceProjection,
-  type LicenceCredentialProjection,
-  type LicenceOutcomeProjection,
-  type LicenceRejectionCode,
-  type LicenceSeatProjection,
-  type LicenceSnapshot,
-  type LicenceTrustBasisProjection,
-  type LicenceUsabilityProjection,
+import { LICENCE_PROTOCOL_VERSION } from "./generated/protocol.ts";
+import type {
+  HeldLicenceProjection,
+  LicenceCredentialProjection,
+  LicenceOutcomeProjection,
+  LicenceRejectionCode,
+  LicenceSeatProjection,
+  LicenceSnapshot,
+  LicenceTrustBasisProjection,
+  LicenceUsabilityProjection,
 } from "./generated/protocol.ts";
 import type { LicencePort, LicenceUnlisten } from "./ports.ts";
 
@@ -59,28 +59,44 @@ export class LicenceController {
   readonly #observers = new Set<() => void>();
   #status: LicenceControllerStatus = { kind: "idle" };
   #snapshot?: LicenceSnapshot;
-  #lastRejection?: LicenceRejectionCode;
+  #lastRejection: LicenceRejectionCode | undefined;
   #started = false;
   #lifecycle = 0;
   #commandSequence = 0;
   #pending = false;
-  #unlisten: LicenceUnlisten[] = [];
+  #unlisten: Array<LicenceUnlisten> = [];
 
   constructor(options: LicenceControllerOptions) {
     this.#client = new LicenceClient(options.port);
   }
 
-  get status(): LicenceControllerStatus { return this.#status; }
-  get snapshot(): LicenceSnapshot | undefined { return this.#snapshot; }
-  get licence(): HeldLicenceProjection | undefined { return this.#snapshot?.licence ?? undefined; }
-  get usability(): LicenceUsabilityProjection | undefined { return this.licence?.usability; }
-  get trustBasis(): LicenceTrustBasisProjection | undefined { return this.licence?.trustBasis; }
-  get pending(): boolean { return this.#pending; }
+  get status(): LicenceControllerStatus {
+    return this.#status;
+  }
+  get snapshot(): LicenceSnapshot | undefined {
+    return this.#snapshot;
+  }
+  get licence(): HeldLicenceProjection | undefined {
+    return this.#snapshot?.licence ?? undefined;
+  }
+  get usability(): LicenceUsabilityProjection | undefined {
+    return this.licence?.usability;
+  }
+  get trustBasis(): LicenceTrustBasisProjection | undefined {
+    return this.licence?.trustBasis;
+  }
+  get pending(): boolean {
+    return this.#pending;
+  }
   /** The latest refusal, cleared as soon as the next command starts. */
-  get lastRejection(): LicenceRejectionCode | undefined { return this.#lastRejection; }
+  get lastRejection(): LicenceRejectionCode | undefined {
+    return this.#lastRejection;
+  }
 
   /** Whether a licence is held at all. Absence is not a usability state. */
-  get activated(): boolean { return this.licence !== undefined; }
+  get activated(): boolean {
+    return this.licence !== undefined;
+  }
 
   /** Whether the software may be used. Grace counts, which is its point. */
   get usable(): boolean {
@@ -96,11 +112,15 @@ export class LicenceController {
    * are not the same message, and conflating them on a perpetual licence reads
    * as the application breaking.
    */
-  get useUntil(): number | undefined { return this.licence?.useUntil ?? undefined; }
-  get updateUntil(): number | undefined { return this.licence?.updateUntil ?? undefined; }
+  get useUntil(): number | undefined {
+    return this.licence?.useUntil ?? undefined;
+  }
+  get updateUntil(): number | undefined {
+    return this.licence?.updateUntil ?? undefined;
+  }
 
   /** Entitlement ids held, opaque by design. Longhorn enumerates no features. */
-  get entitlements(): readonly string[] {
+  get entitlements(): ReadonlyArray<string> {
     return this.licence?.entitlements.map((entitlement) => entitlement.id) ?? [];
   }
 
@@ -111,7 +131,9 @@ export class LicenceController {
 
   /** The bound on an entitlement, or `undefined` for unlimited or unheld. */
   limit(id: string): number | undefined {
-    return this.licence?.entitlements.find((entitlement) => entitlement.id === id)?.atMost ?? undefined;
+    return (
+      this.licence?.entitlements.find((entitlement) => entitlement.id === id)?.atMost ?? undefined
+    );
   }
 
   /**
@@ -127,7 +149,9 @@ export class LicenceController {
    * to buy something they already own.
    */
   get attention(): LicenceAttention {
-    if (!this.activated) return "actionable";
+    if (!this.activated) {
+      return "actionable";
+    }
     switch (this.usability?.state) {
       case "active":
       case "inGrace":
@@ -151,7 +175,9 @@ export class LicenceController {
   }
 
   async start(): Promise<void> {
-    if (this.#started) return;
+    if (this.#started) {
+      return;
+    }
     this.#started = true;
     const lifecycle = ++this.#lifecycle;
     this.#setStatus({ kind: "loading" });
@@ -164,7 +190,9 @@ export class LicenceController {
       this.#unlisten.push(unlisten);
       await this.refresh();
     } catch (error) {
-      if (this.#started && lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error });
+      if (this.#started && lifecycle === this.#lifecycle) {
+        this.#setStatus({ kind: "failed", error });
+      }
     }
   }
 
@@ -173,7 +201,9 @@ export class LicenceController {
     this.#lifecycle += 1;
     const unlisten = this.#unlisten;
     this.#unlisten = [];
-    for (const stop of unlisten) await stop();
+    for (const stop of unlisten) {
+      await stop();
+    }
     this.#setStatus({ kind: "idle" });
   }
 
@@ -181,11 +211,15 @@ export class LicenceController {
     const lifecycle = this.#lifecycle;
     try {
       const snapshot = await this.#client.snapshot();
-      if (lifecycle !== this.#lifecycle) return;
+      if (lifecycle !== this.#lifecycle) {
+        return;
+      }
       this.#snapshot = snapshot;
       this.#setStatus({ kind: "ready" });
     } catch (error) {
-      if (lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error });
+      if (lifecycle === this.#lifecycle) {
+        this.#setStatus({ kind: "failed", error });
+      }
     }
   }
 
@@ -195,10 +229,12 @@ export class LicenceController {
    * Empty when the authority does not account for seats, which is a different
    * state from a licence with one seat.
    */
-  get seats(): readonly LicenceSeatProjection[] { return this.licence?.seats ?? []; }
+  get seats(): ReadonlyArray<LicenceSeatProjection> {
+    return this.licence?.seats ?? [];
+  }
 
   /** The seats that are not this machine — the ones a release would free. */
-  get otherSeats(): readonly LicenceSeatProjection[] {
+  get otherSeats(): ReadonlyArray<LicenceSeatProjection> {
     return this.seats.filter((seat) => !seat.thisMachine);
   }
 
@@ -271,10 +307,7 @@ export class LicenceController {
   }
 
   async #command(
-    run: (
-      client: LicenceClient,
-      epoch: number,
-    ) => Promise<LicenceOutcomeProjection>,
+    run: (client: LicenceClient, epoch: number) => Promise<LicenceOutcomeProjection>,
   ): Promise<LicenceCommandOutcome> {
     const commandSequence = ++this.#commandSequence;
     this.#lastRejection = undefined;
@@ -291,9 +324,10 @@ export class LicenceController {
     this.#notify();
     try {
       const outcome = await run(this.#client, epoch);
-      const result: LicenceCommandOutcome = outcome.status === "rejected"
-        ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
-        : { status: "committed", snapshot: outcome.snapshot };
+      const result: LicenceCommandOutcome =
+        outcome.status === "rejected"
+          ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
+          : { status: "committed", snapshot: outcome.snapshot };
       if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
         this.#snapshot = outcome.snapshot;
         this.#lastRejection = result.status === "rejected" ? result.code : undefined;
@@ -319,6 +353,8 @@ export class LicenceController {
   }
 
   #notify(): void {
-    for (const observer of this.#observers) observer();
+    for (const observer of this.#observers) {
+      observer();
+    }
   }
 }

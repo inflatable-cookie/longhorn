@@ -2,7 +2,7 @@
 // Launch is the guide's worked example. Driving steps come only from
 // skills/agent-control/SKILL.md (finder, raw-POST fallback, tool order).
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -23,10 +23,10 @@ type SemanticNode = {
   elementRef: string;
   role: string;
   name?: string;
-  children?: SemanticNode[];
+  children?: Array<SemanticNode>;
 };
 
-const findings: string[] = [];
+const findings: Array<string> = [];
 
 function note(finding: string): void {
   findings.push(finding);
@@ -36,12 +36,19 @@ function redact(text: string, token: string): string {
   return text.split(token).join("<redacted-token>");
 }
 
-async function run(command: readonly string[], cwd?: string): Promise<{
+async function run(
+  command: ReadonlyArray<string>,
+  cwd?: string,
+): Promise<{
   code: number;
   stdout: string;
   stderr: string;
 }> {
-  const subprocess = Bun.spawn(command, { cwd, stdout: "pipe", stderr: "pipe" });
+  const subprocess = Bun.spawn([...command], {
+    ...(cwd === undefined ? {} : { cwd }),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
   const [code, stdout, stderr] = await Promise.all([
     subprocess.exited,
     new Response(subprocess.stdout).text(),
@@ -51,7 +58,9 @@ async function run(command: readonly string[], cwd?: string): Promise<{
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
 }
 
 function meta() {
@@ -75,7 +84,9 @@ async function mcp(
     "mcp-method": method,
     authorization: `Bearer ${discovery.token}`,
   };
-  if (name) headers["mcp-name"] = name;
+  if (name) {
+    headers["mcp-name"] = name;
+  }
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
     headers,
@@ -114,10 +125,14 @@ async function callTool(
 }
 
 function findByName(node: SemanticNode, name: string): SemanticNode | undefined {
-  if (node.name === name) return node;
+  if (node.name === name) {
+    return node;
+  }
   for (const child of node.children ?? []) {
     const match = findByName(child, name);
-    if (match) return match;
+    if (match) {
+      return match;
+    }
   }
   return undefined;
 }
@@ -140,7 +155,12 @@ async function main(): Promise<void> {
   const toolCalls: Array<Record<string, unknown>> = [];
   const focusSamples: Array<{ at: string; frontmostPid: number; appHoldsFocus: boolean }> = [];
 
-  const record = (label: string, command: readonly string[], result: { code: number; stdout: string; stderr: string }, token?: string) => {
+  const record = (
+    label: string,
+    command: ReadonlyArray<string>,
+    result: { code: number; stdout: string; stderr: string },
+    token?: string,
+  ) => {
     commands.push({
       label,
       command,
@@ -160,24 +180,47 @@ async function main(): Promise<void> {
   let finder = { code: 1, stdout: "", stderr: "" };
   for (let attempt = 0; attempt < 40; attempt += 1) {
     finder = await run(["bun", finderPath, "--app-id", "dev.example.longhorn-agent-control-proof"]);
-    if (finder.code === 0) break;
+    if (finder.code === 0) {
+      break;
+    }
     await sleep(250);
   }
-  record("skill: finder", ["bun", "skills/agent-control/scripts/find-instance.ts", "--app-id", "dev.example.longhorn-agent-control-proof"], finder);
+  record(
+    "skill: finder",
+    [
+      "bun",
+      "skills/agent-control/scripts/find-instance.ts",
+      "--app-id",
+      "dev.example.longhorn-agent-control-proof",
+    ],
+    finder,
+  );
   if (finder.code !== 0) {
     throw new Error(`finder never found a live instance: ${finder.stderr}`);
   }
-  if (finder.stderr.toLowerCase().includes("bearer") || /Authorization: Bearer \S+/.test(finder.stderr)) {
+  if (
+    finder.stderr.toLowerCase().includes("bearer") ||
+    /Authorization: Bearer \S+/.test(finder.stderr)
+  ) {
     note("finder diagnostics contained a token — skill/script contract broken");
   }
 
   const urlMatch = finder.stdout.match(/url: (http:\/\/127\.0\.0\.1:\d+\/mcp)/);
-  const paste = finder.stdout.match(/claude mcp add --transport http \S+ http:\/\/127\.0\.0\.1:(\d+)\/mcp --header "Authorization: Bearer (\S+)"/);
-  if (!urlMatch || !paste) {
+  const paste = finder.stdout.match(
+    /claude mcp add --transport http \S+ http:\/\/127\.0\.0\.1:(\d+)\/mcp --header "Authorization: Bearer (\S+)"/,
+  );
+  if (!urlMatch || !paste?.[1] || !paste[2]) {
     note("finder stdout was not parseable as the skill's url + claude mcp add line");
-    throw new Error(`finder stdout not parseable:\n${finder.stdout}`);
+    throw new Error("finder stdout did not contain the expected connection details");
   }
-  const discoveryDir = join(homedir(), "Library", "Application Support", "longhorn", "state", "agent-control");
+  const discoveryDir = join(
+    homedir(),
+    "Library",
+    "Application Support",
+    "longhorn",
+    "state",
+    "agent-control",
+  );
   const pidMatch = finder.stdout.match(/longhorn-dev\.example\.longhorn-agent-control-proof-(\d+)/);
   const discovery: Discovery = {
     appId: "dev.example.longhorn-agent-control-proof",
@@ -189,7 +232,11 @@ async function main(): Promise<void> {
     // Recover pid from the live discovery file named in the finder diagnostics.
     const files = finder.stderr;
     void files;
-    const listing = await run(["bun", "-e", `const {readdir,readFile}=require('fs/promises'); const dir=${JSON.stringify(discoveryDir)}; const names=await readdir(dir); for (const n of names) { if (!n.startsWith('dev.example.longhorn-agent-control-proof-')) continue; const j=JSON.parse(await readFile(dir+'/'+n,'utf8')); if (j.port===${discovery.port}) { console.log(j.pid); break; } }`]);
+    const listing = await run([
+      "bun",
+      "-e",
+      `const {readdir,readFile}=require('fs/promises'); const dir=${JSON.stringify(discoveryDir)}; const names=await readdir(dir); for (const n of names) { if (!n.startsWith('dev.example.longhorn-agent-control-proof-')) continue; const j=JSON.parse(await readFile(dir+'/'+n,'utf8')); if (j.port===${discovery.port}) { console.log(j.pid); break; } }`,
+    ]);
     discovery.pid = Number.parseInt(listing.stdout.trim(), 10);
   }
 
@@ -207,8 +254,15 @@ async function main(): Promise<void> {
   await sample("after-unfocus");
 
   const snapshot = await callTool(discovery, "snapshot", {});
-  toolCalls.push({ tool: "snapshot", args: {}, isError: snapshot.isError, result: snapshot.result });
-  if (snapshot.isError) throw new Error(`snapshot failed: ${JSON.stringify(snapshot.result)}`);
+  toolCalls.push({
+    tool: "snapshot",
+    args: {},
+    isError: snapshot.isError,
+    result: snapshot.result,
+  });
+  if (snapshot.isError) {
+    throw new Error(`snapshot failed: ${JSON.stringify(snapshot.result)}`);
+  }
   const root = snapshot.result.root as SemanticNode;
   const item = findByName(root, "Item");
   const add = findByName(root, "Add");
@@ -218,16 +272,37 @@ async function main(): Promise<void> {
   }
 
   const clickItem = await callTool(discovery, "click", { element: item.elementRef });
-  toolCalls.push({ tool: "click", args: { element: "<item-ref>" }, isError: clickItem.isError, result: clickItem.result });
-  if (clickItem.isError) throw new Error(`click Item failed: ${JSON.stringify(clickItem.result)}`);
+  toolCalls.push({
+    tool: "click",
+    args: { element: "<item-ref>" },
+    isError: clickItem.isError,
+    result: clickItem.result,
+  });
+  if (clickItem.isError) {
+    throw new Error(`click Item failed: ${JSON.stringify(clickItem.result)}`);
+  }
 
   const typed = await callTool(discovery, "type", { element: item.elementRef, text: "Dogfood" });
-  toolCalls.push({ tool: "type", args: { element: "<item-ref>", text: "Dogfood" }, isError: typed.isError, result: typed.result });
-  if (typed.isError) throw new Error(`type failed: ${JSON.stringify(typed.result)}`);
+  toolCalls.push({
+    tool: "type",
+    args: { element: "<item-ref>", text: "Dogfood" },
+    isError: typed.isError,
+    result: typed.result,
+  });
+  if (typed.isError) {
+    throw new Error(`type failed: ${JSON.stringify(typed.result)}`);
+  }
 
   const clickAdd = await callTool(discovery, "click", { element: add.elementRef });
-  toolCalls.push({ tool: "click", args: { element: "<add-ref>" }, isError: clickAdd.isError, result: clickAdd.result });
-  if (clickAdd.isError) throw new Error(`click Add failed: ${JSON.stringify(clickAdd.result)}`);
+  toolCalls.push({
+    tool: "click",
+    args: { element: "<add-ref>" },
+    isError: clickAdd.isError,
+    result: clickAdd.result,
+  });
+  if (clickAdd.isError) {
+    throw new Error(`click Add failed: ${JSON.stringify(clickAdd.result)}`);
+  }
 
   const about = findByName(root, "About");
   if (!about) {
@@ -235,8 +310,15 @@ async function main(): Promise<void> {
     throw new Error("About link missing");
   }
   const clickAbout = await callTool(discovery, "click", { element: about.elementRef });
-  toolCalls.push({ tool: "click", args: { element: "<about-ref>" }, isError: clickAbout.isError, result: clickAbout.result });
-  if (clickAbout.isError) throw new Error(`click About failed: ${JSON.stringify(clickAbout.result)}`);
+  toolCalls.push({
+    tool: "click",
+    args: { element: "<about-ref>" },
+    isError: clickAbout.isError,
+    result: clickAbout.result,
+  });
+  if (clickAbout.isError) {
+    throw new Error(`click About failed: ${JSON.stringify(clickAbout.result)}`);
+  }
 
   const waited = await callTool(discovery, "wait_for", {
     predicate: { predicate: "pageUrlContains", needle: "about" },
@@ -248,10 +330,17 @@ async function main(): Promise<void> {
     isError: waited.isError,
     result: waited.result,
   });
-  if (waited.isError) throw new Error(`wait_for failed: ${JSON.stringify(waited.result)}`);
+  if (waited.isError) {
+    throw new Error(`wait_for failed: ${JSON.stringify(waited.result)}`);
+  }
   await sample("after-wait_for");
 
-  const shot = await mcp(discovery, "tools/call", { name: "screenshot", arguments: {}, _meta: meta() }, "screenshot");
+  const shot = await mcp(
+    discovery,
+    "tools/call",
+    { name: "screenshot", arguments: {}, _meta: meta() },
+    "screenshot",
+  );
   const shotPayload = shot.json as {
     result?: { isError?: boolean; content: Array<Record<string, unknown>> };
   };
@@ -265,11 +354,23 @@ async function main(): Promise<void> {
   }
   const shotPath = join(outDir, "unfocused-about.png");
   await writeFile(shotPath, Buffer.from(String(image.data), "base64"));
-  toolCalls.push({ tool: "screenshot", args: {}, isError: false, result: { type: "image", path: "unfocused-about.png" } });
+  toolCalls.push({
+    tool: "screenshot",
+    args: {},
+    isError: false,
+    result: { type: "image", path: "unfocused-about.png" },
+  });
 
   const ping = await callTool(discovery, "command", { command: "proof:ping" });
-  toolCalls.push({ tool: "command", args: { command: "proof:ping" }, isError: ping.isError, result: ping.result });
-  if (ping.isError) throw new Error(`command proof:ping failed: ${JSON.stringify(ping.result)}`);
+  toolCalls.push({
+    tool: "command",
+    args: { command: "proof:ping" },
+    isError: ping.isError,
+    result: ping.result,
+  });
+  if (ping.isError) {
+    throw new Error(`command proof:ping failed: ${JSON.stringify(ping.result)}`);
+  }
 
   const consoleUri = "longhorn://agent-control/console";
   const abort = new AbortController();
@@ -302,12 +403,16 @@ async function main(): Promise<void> {
   let sawAck = false;
   let sawUpdate = false;
   const read = (async () => {
-    const deadline = Date.now() + 8_000;
+    const deadline = Date.now() + 8000;
     while (Date.now() < deadline && !sawUpdate) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        break;
+      }
       buf += decoder.decode(value, { stream: true });
-      if (buf.includes("notifications/subscriptions/acknowledged")) sawAck = true;
+      if (buf.includes("notifications/subscriptions/acknowledged")) {
+        sawAck = true;
+      }
       if (buf.includes("notifications/resources/updated") && buf.includes(consoleUri)) {
         sawUpdate = true;
         break;
@@ -322,7 +427,7 @@ async function main(): Promise<void> {
     isError: logged.isError,
     result: logged.result,
   });
-  await Promise.race([read, sleep(7_000)]);
+  await Promise.race([read, sleep(7000)]);
   abort.abort();
   const readResource = await mcp(
     discovery,
@@ -348,8 +453,16 @@ async function main(): Promise<void> {
   }
   await sample("after-listen");
 
-  const quit = await run(["osascript", "-e", 'tell application id "dev.example.longhorn-agent-control-proof" to quit']);
-  record("quit proof app", ["osascript", "-e", 'tell application id "dev.example.longhorn-agent-control-proof" to quit'], quit);
+  const quit = await run([
+    "osascript",
+    "-e",
+    'tell application id "dev.example.longhorn-agent-control-proof" to quit',
+  ]);
+  record(
+    "quit proof app",
+    ["osascript", "-e", 'tell application id "dev.example.longhorn-agent-control-proof" to quit'],
+    quit,
+  );
 
   const receipt = {
     schema: "longhorn.agent-control-skill-dogfood.v1",

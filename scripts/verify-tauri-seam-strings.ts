@@ -31,21 +31,21 @@ const cratesWithoutPorts = new Map([
   ["settings", "contract 005/010; settings wiring is consumer-filled"],
   ["transfer", "contract 011; transfer wiring is consumer-filled"],
   ["windowing", "window host wiring is consumer-filled"],
-  [
-    "native-content-child-view",
-    "child-view adapter exposes no `#[tauri::command]` seam strings",
-  ],
+  ["native-content-child-view", "child-view adapter exposes no `#[tauri::command]` seam strings"],
   [
     "agent-control",
     "contract 022; binder and command name live in the peerless package; consumer call sites inject invoke",
   ],
 ]);
 
-function walk(directory: string, suffix: string, files: string[] = []): string[] {
+function walk(directory: string, suffix: string, files: Array<string> = []): Array<string> {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) walk(path, suffix, files);
-    else if (path.endsWith(suffix)) files.push(path);
+    if (entry.isDirectory()) {
+      walk(path, suffix, files);
+    } else if (path.endsWith(suffix)) {
+      files.push(path);
+    }
   }
   return files;
 }
@@ -95,8 +95,8 @@ const portFiles = readdirSync(join(repoRoot, "packages/longhorn-tauri/src"), {
 
 // Assign each port file to the longest crate domain it prefixes
 // (`bridge-events` belongs to bridge). `undefined` means no crate claims it.
-const portByDomain = new Map<string, string[]>();
-const unpairedPorts: string[] = [];
+const portByDomain = new Map<string, Array<string>>();
+const unpairedPorts: Array<string> = [];
 for (const file of portFiles) {
   const domain = crateDomains.find((name) => file === name || file.startsWith(`${name}-`));
   if (domain === undefined) {
@@ -106,7 +106,7 @@ for (const file of portFiles) {
   }
 }
 
-const problems: string[] = [];
+const problems: Array<string> = [];
 
 for (const file of unpairedPorts) {
   if (!consumerImplementedPorts.has(file)) {
@@ -131,7 +131,9 @@ for (const domain of crateDomains) {
   }
   const ts = new Set<string>();
   for (const file of files) {
-    for (const value of tsSeamStrings(join(repoRoot, "packages/longhorn-tauri/src", `${file}.ts`))) {
+    for (const value of tsSeamStrings(
+      join(repoRoot, "packages/longhorn-tauri/src", `${file}.ts`),
+    )) {
       ts.add(value);
     }
   }
@@ -142,13 +144,17 @@ for (const domain of crateDomains) {
   }
   for (const value of ts) {
     if (!rust.has(value)) {
-      problems.push(`${domain}: TS exports "${value}" but crates/longhorn-tauri-${domain} never declares it`);
+      problems.push(
+        `${domain}: TS exports "${value}" but crates/longhorn-tauri-${domain} never declares it`,
+      );
     }
   }
 }
 
 if (problems.length > 0) {
-  for (const problem of problems) console.error(problem);
+  for (const problem of problems) {
+    console.error(problem);
+  }
   throw new Error(`tauri seam-string drift: ${problems.length} problem(s)`);
 }
 

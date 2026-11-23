@@ -7,14 +7,16 @@ import {
   LICENCE_REJECTION_CODES,
   LICENCE_TRUST_BASIS_KINDS,
   LICENCE_USABILITY_STATES,
-  type LicenceActivateCommand,
-  type LicenceChangedEvent,
-  type LicenceDeactivateCommand,
-  type LicenceOutcomeProjection,
-  type LicenceRefreshCommand,
-  type LicenceReleaseSeatCommand,
-  type LicenceRenameSeatCommand,
-  type LicenceSnapshot,
+} from "./generated/protocol.ts";
+import type {
+  LicenceActivateCommand,
+  LicenceChangedEvent,
+  LicenceDeactivateCommand,
+  LicenceOutcomeProjection,
+  LicenceRefreshCommand,
+  LicenceReleaseSeatCommand,
+  LicenceRenameSeatCommand,
+  LicenceSnapshot,
 } from "./generated/protocol.ts";
 import {
   LICENCE_VARIANT_FIELDS,
@@ -39,7 +41,9 @@ export function assertLicenceSnapshot(value: unknown): asserts value is LicenceS
   positive(root.authorityEpoch, "$.authorityEpoch");
   // Absent means unlicensed, which is the absence of a licence rather than a
   // licence that cannot be used. Card 193 kept those apart deliberately.
-  if (root.licence !== null) held(root.licence, "$.licence");
+  if (root.licence !== null) {
+    held(root.licence, "$.licence");
+  }
 }
 
 export function assertLicenceOutcome(value: unknown): asserts value is LicenceOutcomeProjection {
@@ -47,7 +51,9 @@ export function assertLicenceOutcome(value: unknown): asserts value is LicenceOu
   const root = object(value, "$");
   oneOf(root.status, "$.status", LICENCE_OUTCOME_STATUSES);
   exact(root, "$", variantFields("LicenceOutcomeProjection", root, "$"));
-  if (root.status === "rejected") oneOf(root.code, "$.code", LICENCE_REJECTION_CODES);
+  if (root.status === "rejected") {
+    oneOf(root.code, "$.code", LICENCE_REJECTION_CODES);
+  }
   assertLicenceSnapshot(root.snapshot);
 }
 
@@ -74,14 +80,20 @@ export function assertLicenceActivateCommand(
   // The one place credential material crosses, and it crosses inward only.
   // Checked for shape, never echoed: `noCredential` runs on everything coming
   // back and would reject a projection that returned any of this.
-  if (credential.kind === "key") nonEmpty(credential.key, "$.credential.key");
-  if (credential.kind === "accountToken") nonEmpty(credential.token, "$.credential.token");
+  if (credential.kind === "key") {
+    nonEmpty(credential.key, "$.credential.key");
+  }
+  if (credential.kind === "accountToken") {
+    nonEmpty(credential.token, "$.credential.token");
+  }
   if (credential.kind === "licenceFile") {
     nonEmpty(credential.contentsBase64, "$.credential.contentsBase64");
   }
   // The label a customer gives this machine, asked for at the only moment it
   // can be without inventing a settings screen. Absent is fine.
-  if (root.label !== null) nonEmpty(root.label, "$.label");
+  if (root.label !== null) {
+    nonEmpty(root.label, "$.label");
+  }
 }
 
 export function assertLicenceDeactivateCommand(
@@ -110,7 +122,9 @@ export function assertLicenceRenameSeatCommand(
   nonEmpty(root.machineId, "$.machineId");
   // Null clears the label back to unnamed; an empty string is a mistake
   // wearing null's clothes and is refused rather than stored.
-  if (root.label !== null) nonEmpty(root.label, "$.label");
+  if (root.label !== null) {
+    nonEmpty(root.label, "$.label");
+  }
 }
 
 function held(value: unknown, path: string): void {
@@ -131,7 +145,9 @@ function held(value: unknown, path: string): void {
     // checks it is present and never what it says, because anything derived
     // from the host would be a different value wearing the same field.
     nonEmpty(seat.machineId, `${at}.machineId`);
-    if (seat.label !== null) nonEmpty(seat.label, `${at}.label`);
+    if (seat.label !== null) {
+      nonEmpty(seat.label, `${at}.label`);
+    }
     boolean(seat.thisMachine, `${at}.thisMachine`);
   });
   array(licence.entitlements, `${path}.entitlements`).forEach((entry, index) => {
@@ -141,7 +157,9 @@ function held(value: unknown, path: string): void {
     // Opaque by design: Longhorn enumerates no features, so this checks that
     // an id is present and never what it says.
     nonEmpty(entitlement.id, `${at}.id`);
-    if (entitlement.atMost !== null) positive(entitlement.atMost, `${at}.atMost`);
+    if (entitlement.atMost !== null) {
+      positive(entitlement.atMost, `${at}.atMost`);
+    }
   });
 }
 
@@ -152,7 +170,9 @@ function usability(value: unknown, path: string): void {
   // `clockRefused` carries no timestamp on purpose: a licence refused because
   // the machine clock moved is not expired, and giving it a date would invite
   // a surface to render it as one.
-  if (root.state === "inGrace") timestamp(root.until, `${path}.until`);
+  if (root.state === "inGrace") {
+    timestamp(root.until, `${path}.until`);
+  }
   if (root.state === "useWindowExpired" || root.state === "leaseLapsed") {
     timestamp(root.at, `${path}.at`);
   }
@@ -162,10 +182,12 @@ function trustBasis(value: unknown, path: string): void {
   const root = object(value, path);
   oneOf(root.kind, `${path}.kind`, LICENCE_TRUST_BASIS_KINDS);
   exact(root, path, variantFields("LicenceTrustBasisProjection", root, path));
-  if (root.kind === "remoteAssertion") timestamp(root.checked, `${path}.checked`);
+  if (root.kind === "remoteAssertion") {
+    timestamp(root.checked, `${path}.checked`);
+  }
 }
 
-function commandBase(value: unknown, expected: readonly string[]): Record<string, unknown> {
+function commandBase(value: unknown, expected: ReadonlyArray<string>): Record<string, unknown> {
   const root = object(value, "$");
   exact(root, "$", expected);
   protocol(root.protocolVersion, "$.protocolVersion");
@@ -187,8 +209,10 @@ function commandBase(value: unknown, expected: readonly string[]): Record<string
 function noCredential(value: unknown): void {
   const forbidden = ["credential", "secret", "signature", "token", "privatekey", "keyid"];
   const visit = (candidate: unknown, path: string): void => {
-    if (Array.isArray(candidate)) return candidate.forEach((item, index) => visit(item, `${path}[${index}]`));
-    if (candidate !== null && typeof candidate === "object")
+    if (Array.isArray(candidate)) {
+      return candidate.forEach((item, index) => visit(item, `${path}[${index}]`));
+    }
+    if (candidate !== null && typeof candidate === "object") {
       for (const [key, child] of Object.entries(candidate)) {
         const lowered = key.toLocaleLowerCase();
         if (forbidden.some((needle) => lowered.includes(needle))) {
@@ -196,6 +220,7 @@ function noCredential(value: unknown): void {
         }
         visit(child, `${path}.${key}`);
       }
+    }
   };
   visit(value, "$");
 }
@@ -204,23 +229,80 @@ function variantFields(
   type: string,
   value: Record<string, unknown>,
   path: string,
-): readonly string[] {
+): ReadonlyArray<string> {
   const discriminant = value[LICENCE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
   const fields = LICENCE_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (fields === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  if (fields === undefined) {
+    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  }
   return fields;
 }
 
-function object(value: unknown, path: string): Record<string, unknown> { if (value === null || typeof value !== "object" || Array.isArray(value)) fail(path, "expected object"); return value as Record<string, unknown>; }
-function array(value: unknown, path: string): unknown[] { if (!Array.isArray(value)) fail(path, "expected array"); return value; }
-function exact(value: Record<string, unknown>, path: string, expected: readonly string[]): void { const actual = Object.keys(value).sort(); const wanted = [...expected].sort(); if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) fail(path, `unexpected keys: ${actual.join(",")}`); }
-function protocol(value: unknown, path: string): void { if (value !== LICENCE_PROTOCOL_VERSION) fail(path, `expected exact protocol ${LICENCE_PROTOCOL_VERSION}`); }
-function positive(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) fail(path, "expected positive safe integer"); }
-function string(value: unknown, path: string): void { if (typeof value !== "string") fail(path, "expected string"); }
-function nonEmpty(value: unknown, path: string): void { string(value, path); if ((value as string).length === 0) fail(path, "expected a non-empty string"); }
+function object(value: unknown, path: string): Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    fail(path, "expected object");
+  }
+  return value as Record<string, unknown>;
+}
+function array(value: unknown, path: string): Array<unknown> {
+  if (!Array.isArray(value)) {
+    fail(path, "expected array");
+  }
+  return value;
+}
+function exact(
+  value: Record<string, unknown>,
+  path: string,
+  expected: ReadonlyArray<string>,
+): void {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    fail(path, `unexpected keys: ${actual.join(",")}`);
+  }
+}
+function protocol(value: unknown, path: string): void {
+  if (value !== LICENCE_PROTOCOL_VERSION) {
+    fail(path, `expected exact protocol ${LICENCE_PROTOCOL_VERSION}`);
+  }
+}
+function positive(value: unknown, path: string): void {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
+    fail(path, "expected positive safe integer");
+  }
+}
+function string(value: unknown, path: string): void {
+  if (typeof value !== "string") {
+    fail(path, "expected string");
+  }
+}
+function nonEmpty(value: unknown, path: string): void {
+  string(value, path);
+  if ((value as string).length === 0) {
+    fail(path, "expected a non-empty string");
+  }
+}
 /** Unix seconds, and negative is a real point in time. */
-function timestamp(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value)) fail(path, "expected a unix-second timestamp"); }
-function optionalTimestamp(value: unknown, path: string): void { if (value !== null) timestamp(value, path); }
-function boolean(value: unknown, path: string): void { if (typeof value !== "boolean") fail(path, "expected boolean"); }
-function oneOf(value: unknown, path: string, values: readonly string[]): void { if (typeof value !== "string" || !values.includes(value)) fail(path, "unsupported value"); }
-function fail(path: string, message: string): never { throw new LicenceValidationError(path, message); }
+function timestamp(value: unknown, path: string): void {
+  if (typeof value !== "number" || !Number.isSafeInteger(value)) {
+    fail(path, "expected a unix-second timestamp");
+  }
+}
+function optionalTimestamp(value: unknown, path: string): void {
+  if (value !== null) {
+    timestamp(value, path);
+  }
+}
+function boolean(value: unknown, path: string): void {
+  if (typeof value !== "boolean") {
+    fail(path, "expected boolean");
+  }
+}
+function oneOf(value: unknown, path: string, values: ReadonlyArray<string>): void {
+  if (typeof value !== "string" || !values.includes(value)) {
+    fail(path, "unsupported value");
+  }
+}
+function fail(path: string, message: string): never {
+  throw new LicenceValidationError(path, message);
+}

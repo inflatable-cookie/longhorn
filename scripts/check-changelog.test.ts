@@ -3,7 +3,8 @@ import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
-import { checkChangelog, type ChangelogVerdict, judgeReleaseStatus } from "./check-changelog.ts";
+import { checkChangelog, judgeReleaseStatus } from "./check-changelog.ts";
+import type { ChangelogVerdict } from "./check-changelog.ts";
 
 // Each fixture is a fresh mktemp repo with only what Effigy's release status
 // reads: the workspace version, the release table, and the changelog.
@@ -22,7 +23,7 @@ pre-1-0 = true
 tag-format = "v{version}"
 `;
 
-const scratchRoots: string[] = [];
+const scratchRoots: Array<string> = [];
 
 async function fixture(changelog: string): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "check-changelog-"));

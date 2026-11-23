@@ -56,9 +56,7 @@ const crates = [
 ] as const;
 
 if (process.platform !== "darwin") {
-  console.error(
-    `native-content:local runs on macOS hosts only; this host is ${process.platform}.`,
-  );
+  console.error(`native-content:local runs on macOS hosts only; this host is ${process.platform}.`);
   process.exit(1);
 }
 
@@ -66,11 +64,7 @@ const stage = await mkdtemp(join(tmpdir(), "longhorn-native-content-local-"));
 // Private final Cargo outputs for the disposable consumer, on external build
 // scratch. The intermediates keep the build directory the exec lease supplies.
 const buildScratch = await taskScratch("longhorn-native-content-local");
-const stagedBinary = join(
-  buildScratch.root,
-  "debug",
-  consumerName,
-);
+const stagedBinary = join(buildScratch.root, "debug", consumerName);
 
 try {
   await verifyExampleSources();
@@ -88,7 +82,7 @@ try {
   // real `target/` directory keeps the lease adoption-free; see
   // `prepareStagedWorkspace`.
   await prepareStagedWorkspace(stage);
-  const staged = (args: readonly string[]) =>
+  const staged = (args: ReadonlyArray<string>) =>
     rustExec(privateCargoCommand(buildScratch.root, args), {
       manifestPath: join(stage, "Cargo.toml"),
       toolchain: MSRV_TOOLCHAIN,
@@ -96,7 +90,10 @@ try {
 
   if (checkOnly) {
     run(staged(["cargo", "fmt", "--check", "-p", consumerName]), stage);
-    run(staged(["cargo", "check", "-p", consumerName, "--all-targets", "--offline", "--quiet"]), stage);
+    run(
+      staged(["cargo", "check", "-p", consumerName, "--all-targets", "--offline", "--quiet"]),
+      stage,
+    );
     console.log(
       JSON.stringify(
         {
@@ -130,9 +127,7 @@ try {
     });
     const seconds = Number(((performance.now() - startedAt) / 1000).toFixed(1));
     const stdout = app.stdout ?? "";
-    const reportLine = stdout
-      .split("\n")
-      .find((line) => line.startsWith("ncl-proof-report:"));
+    const reportLine = stdout.split("\n").find((line) => line.startsWith("ncl-proof-report:"));
     if (reportLine === undefined) {
       throw new Error(
         `the native consumer printed no proof report (exit ${app.status}, signal ${app.signal})\n${stdout}\n${app.stderr ?? ""}`,
@@ -158,7 +153,7 @@ try {
     if (!report.policyEvents.some((event: { kind: string }) => event.kind === "downloadDenied")) {
       throw new Error("the native proof recorded no download denial");
     }
-    const pageLoadUrls = report.pageLoadUrls as string[];
+    const pageLoadUrls = report.pageLoadUrls as Array<string>;
     if (pageLoadUrls.length === 0) {
       throw new Error("the proof recorded no page-load events");
     }
@@ -167,7 +162,7 @@ try {
         throw new Error(`a page-load event left the application asset protocol: ${url}`);
       }
     }
-    const ipcWebviews = report.ipc.webviews as string[];
+    const ipcWebviews = report.ipc.webviews as Array<string>;
     if (JSON.stringify(ipcWebviews) !== JSON.stringify(["proof-child"])) {
       throw new Error(`the scoped IPC receipt came from unexpected webviews: ${ipcWebviews}`);
     }
@@ -208,7 +203,7 @@ try {
     );
   }
 } catch (error) {
-  console.error(String(error instanceof Error ? error.stack ?? error.message : error));
+  console.error(String(error instanceof Error ? (error.stack ?? error.message) : error));
   process.exitCode = 1;
 } finally {
   if (process.env.KEEP_NATIVE_CONTENT_LOCAL === "1") {
@@ -240,7 +235,7 @@ async function verifyExampleSources(): Promise<void> {
     (match) => match[1]!,
   );
   for (const name of declared) {
-    if (!(crates as readonly string[]).includes(name)) {
+    if (!(crates as ReadonlyArray<string>).includes(name)) {
       throw new Error(`the consumer depends on ${name}, which is not a staged crate`);
     }
   }
@@ -250,18 +245,25 @@ async function verifyExampleSources(): Promise<void> {
 
   // Longhorn's own names are fine; another repository's product vocabulary is
   // not, because the consumer must not copy a donor's product policy.
-  const productVocabulary = /acowtancy|bovine|praxis|jetstream|loophole|nucleus|soundcheck|figmatic/i;
-  const offenders: string[] = [];
+  const productVocabulary =
+    /acowtancy|bovine|praxis|jetstream|loophole|nucleus|soundcheck|figmatic/i;
+  const offenders: Array<string> = [];
   for (const relative of await readdir(consumerRoot, { recursive: true })) {
-    if (!(await lstat(join(consumerRoot, relative))).isFile()) continue;
-    for (const [index, line] of (await readFile(join(consumerRoot, relative), "utf8")).split("\n").entries()) {
+    if (!(await lstat(join(consumerRoot, relative))).isFile()) {
+      continue;
+    }
+    for (const [index, line] of (await readFile(join(consumerRoot, relative), "utf8"))
+      .split("\n")
+      .entries()) {
       if (productVocabulary.test(line)) {
         offenders.push(`${relative}:${index + 1}: ${line.trim()}`);
       }
     }
   }
   if (offenders.length > 0) {
-    throw new Error(`the native-content local consumer carries product vocabulary:\n${offenders.join("\n")}`);
+    throw new Error(
+      `the native-content local consumer carries product vocabulary:\n${offenders.join("\n")}`,
+    );
   }
 }
 
@@ -271,13 +273,12 @@ async function verifyExampleSources(): Promise<void> {
  * is the check that those sources are the ones a package ships.
  */
 function verifyPackageInventory(name: string): { name: string; files: number } {
-  const listing = run(
-    rustCommand(["package", "-p", name, "--list", "--allow-dirty"]),
-    repoRoot,
-  );
+  const listing = run(rustCommand(["package", "-p", name, "--list", "--allow-dirty"]), repoRoot);
   const files = listing.trim().split("\n");
   for (const required of ["Cargo.toml"]) {
-    if (!files.includes(required)) throw new Error(`${name}'s package inventory omits ${required}`);
+    if (!files.includes(required)) {
+      throw new Error(`${name}'s package inventory omits ${required}`);
+    }
   }
   if (!files.some((file) => file.startsWith("src/"))) {
     throw new Error(`${name}'s package inventory omits its sources`);
@@ -295,7 +296,9 @@ async function privateWorkspaceManifest(): Promise<string> {
   const root = await readFile(join(repoRoot, "Cargo.toml"), "utf8");
   const tail = root.slice(root.indexOf("[workspace.package]"));
   const version = /\nversion = "([^"]+)"/.exec(tail)?.[1];
-  if (!version) throw new Error("the workspace package version is missing");
+  if (!version) {
+    throw new Error("the workspace package version is missing");
+  }
   const selected = new Set<string>(crates);
   const filtered = tail
     .split("\n")
@@ -304,9 +307,6 @@ async function privateWorkspaceManifest(): Promise<string> {
       return match === null || selected.has(match[1]!);
     })
     .join("\n");
-  const members = [
-    ...crates.map((name) => `  "crates/${name}",`),
-    '  "consumer",',
-  ].join("\n");
+  const members = [...crates.map((name) => `  "crates/${name}",`), '  "consumer",'].join("\n");
   return `[workspace]\nmembers = [\n${members}\n]\nresolver = "2"\n\n${filtered}`;
 }

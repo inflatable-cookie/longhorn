@@ -18,16 +18,16 @@ type CandidateReceipt = {
     consumers: Record<string, { commit: string }>;
   };
   artifacts: {
-    longhornTypescript: { setSha256: string; packages: unknown[] };
-    poodle: { setSha256: string; packages: unknown[] };
-    longhornRust: { setSha256: string; packages: unknown[] };
+    longhornTypescript: { setSha256: string; packages: Array<unknown> };
+    poodle: { setSha256: string; packages: Array<unknown> };
+    longhornRust: { setSha256: string; packages: Array<unknown> };
   };
-  compatibility: { protocols: unknown[]; protocolNegotiation: string };
+  compatibility: { protocols: Array<unknown>; protocolNegotiation: string };
   graphs: Array<{
     name: string;
-    typescriptPackages: unknown[];
-    rustDirectPackages: unknown[];
-    rustResolvedPackages: unknown[];
+    typescriptPackages: Array<unknown>;
+    rustDirectPackages: Array<unknown>;
+    rustResolvedPackages: Array<unknown>;
   }>;
   audits: Record<string, boolean>;
 };
@@ -60,15 +60,24 @@ export function factsFromReceipt(receipt: {
   };
   graphs?: unknown;
 }): CandidateFacts {
-  assert(typeof receipt.version === "string" && receipt.version.length > 0, "receipt no longer records version");
+  assert(
+    typeof receipt.version === "string" && receipt.version.length > 0,
+    "receipt no longer records version",
+  );
   const rustPackages = receipt.artifacts?.longhornRust?.packages;
-  assert(Array.isArray(rustPackages) && rustPackages.length > 0, "receipt no longer records Rust packages");
+  assert(
+    Array.isArray(rustPackages) && rustPackages.length > 0,
+    "receipt no longer records Rust packages",
+  );
   const typescriptPackages = receipt.artifacts?.longhornTypescript?.packages;
   assert(
     Array.isArray(typescriptPackages) && typescriptPackages.length > 0,
     "receipt no longer records TypeScript packages",
   );
-  assert(Array.isArray(receipt.graphs) && receipt.graphs.length > 0, "receipt no longer records consumer graphs");
+  assert(
+    Array.isArray(receipt.graphs) && receipt.graphs.length > 0,
+    "receipt no longer records consumer graphs",
+  );
   return {
     version: receipt.version,
     rustCrates: rustPackages.length,
@@ -78,19 +87,19 @@ export function factsFromReceipt(receipt: {
 }
 
 function foldProse(text: string): string {
-  return text.replaceAll("`", "").replace(/\s+/g, " ").trim();
+  return text.replaceAll("`", "").replaceAll(/\s+/g, " ").trim();
 }
 
 export function assertCandidateFactsInProse(
   label: string,
   text: string,
   facts: CandidateFacts,
-  fields: readonly FactField[],
+  fields: ReadonlyArray<FactField>,
 ): void {
   const folded = foldProse(text);
   for (const field of fields) {
     if (field === "version") {
-      const version = facts.version.replaceAll(".", "\\.");
+      const version = facts.version.replaceAll(".", String.raw`\.`);
       assert(
         new RegExp(`${version}.{0,80}candidate|candidate.{0,80}${version}`, "i").test(folded),
         `${label} lacks candidate version ${facts.version}`,
@@ -98,7 +107,10 @@ export function assertCandidateFactsInProse(
       continue;
     }
     if (field === "rustCrates") {
-      assert(hasCountNear(folded, facts.rustCrates, "Rust"), `${label} lacks ${facts.rustCrates} Rust crates`);
+      assert(
+        hasCountNear(folded, facts.rustCrates, "Rust"),
+        `${label} lacks ${facts.rustCrates} Rust crates`,
+      );
       continue;
     }
     if (field === "typescriptPackages") {
@@ -128,7 +140,10 @@ export async function verifyPrivateCandidateDocs(root = repoRoot): Promise<{
   ) as CandidateReceipt;
   const facts = factsFromReceipt(receipt);
   const reference = await readFile(join(root, "docs/reference/private-0-1-candidate.md"), "utf8");
-  const compatibility = await readFile(join(root, "docs/guides/compatibility-and-upgrades.md"), "utf8");
+  const compatibility = await readFile(
+    join(root, "docs/guides/compatibility-and-upgrades.md"),
+    "utf8",
+  );
   const changelog = await readFile(join(root, "CHANGELOG.md"), "utf8");
   const releaseToml = await readFile(join(root, "config/release.toml"), "utf8");
 
@@ -156,18 +171,35 @@ export async function verifyPrivateCandidateDocs(root = repoRoot): Promise<{
     "rustCrates",
     "consumerGraphs",
   ]);
-  assertCandidateFactsInProse("compatibility-and-upgrades.md", compatibility, facts, ["version", "consumerGraphs"]);
+  assertCandidateFactsInProse("compatibility-and-upgrades.md", compatibility, facts, [
+    "version",
+    "consumerGraphs",
+  ]);
   requireAll(compatibility, ["read-only gates only"]);
-  assert(releaseToml.includes('version-path = "workspace.package.version"'), "release.toml lacks version-path");
+  assert(
+    releaseToml.includes('version-path = "workspace.package.version"'),
+    "release.toml lacks version-path",
+  );
   const gates = parseReleaseGates(releaseToml);
   const privateCandidate = gates.find((gate) => gate.name === "private-candidate");
-  assert(privateCandidate?.command === GATE_SCRIPT, `release.toml private-candidate must be ${GATE_SCRIPT}`);
+  assert(
+    privateCandidate?.command === GATE_SCRIPT,
+    `release.toml private-candidate must be ${GATE_SCRIPT}`,
+  );
   const workspace = gates.find((gate) => gate.name === "workspace");
   assert(workspace?.command === "effigy qa", 'release.toml workspace must be "effigy qa"');
   assert(receipt.compatibility.protocols.length === 12, "protocol fixture count drift");
   assert(receipt.compatibility.protocolNegotiation === "exact-v1", "protocol negotiation drift");
   for (const [name, value] of Object.entries(receipt.audits)) {
-    if (["siblingWorkspaceResolution", "consumerRepositoryWrites", "packageManagerPublication", "gitTags", "hostedReleases"].includes(name)) {
+    if (
+      [
+        "siblingWorkspaceResolution",
+        "consumerRepositoryWrites",
+        "packageManagerPublication",
+        "gitTags",
+        "hostedReleases",
+      ].includes(name)
+    ) {
       assert(value === false, `${name} must remain false`);
     }
   }
@@ -192,12 +224,16 @@ function hasCountNear(folded: string, count: number, noun: string): boolean {
   return new RegExp(`\\b(?:${tokens})\\s+${noun}\\b`, "i").test(folded);
 }
 
-function requireAll(content: string, values: string[]): void {
-  for (const value of values) assert(content.includes(value), `human surface lacks ${value}`);
+function requireAll(content: string, values: Array<string>): void {
+  for (const value of values) {
+    assert(content.includes(value), `human surface lacks ${value}`);
+  }
 }
 
 function displayName(name: string): string {
-  if (name === "optional-server") return "optional server";
+  if (name === "optional-server") {
+    return "optional server";
+  }
   if (["nucleus", "loophole", "soundcheck", "split-shell", "jetstream"].includes(name)) {
     return `${name[0]!.toUpperCase()}${name.slice(1)}`;
   }

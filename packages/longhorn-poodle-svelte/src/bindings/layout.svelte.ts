@@ -3,16 +3,10 @@ import type {
   LayoutMutationRequest,
   LayoutMutationReceipt,
 } from "@inflatable-cookie/longhorn/layout";
-import type {
-  SurfaceDocument,
-} from "@inflatable-cookie/longhorn/surfaces";
+import type { SurfaceDocument } from "@inflatable-cookie/longhorn/surfaces";
 
-import {
-  OptimisticProjectionState,
-  UnsupportedCapabilityError,
-  type ClientStatus,
-  type OptimisticProjector,
-} from "./index.ts";
+import { OptimisticProjectionState, UnsupportedCapabilityError } from "./index.ts";
+import type { ClientStatus, OptimisticProjector } from "./index.ts";
 
 export type LayoutDispatchResult =
   | { readonly status: "committed"; readonly receipt: LayoutMutationReceipt }
@@ -21,9 +15,7 @@ export type LayoutDispatchResult =
       readonly rejection: LayoutMutationRejection;
     };
 
-export type LayoutDispatcher = (
-  request: LayoutMutationRequest,
-) => Promise<LayoutDispatchResult>;
+export type LayoutDispatcher = (request: LayoutMutationRequest) => Promise<LayoutDispatchResult>;
 
 export interface LayoutStateOptions {
   readonly dispatch?: LayoutDispatcher;
@@ -54,7 +46,7 @@ export class LayoutState {
     return this.#projection.projected;
   }
 
-  get pendingRequestIds(): readonly string[] {
+  get pendingRequestIds(): ReadonlyArray<string> {
     return this.#projection.pendingRequestIds;
   }
 
@@ -64,9 +56,7 @@ export class LayoutState {
       this.#options.dispatch === undefined
         ? {
             kind: "unsupported",
-            reason:
-              this.#options.unsupportedReason ??
-              "layout dispatch is unavailable",
+            reason: this.#options.unsupportedReason ?? "layout dispatch is unavailable",
           }
         : { kind: "loading" };
   }
@@ -83,9 +73,7 @@ export class LayoutState {
   reconnecting(): void {
     this.#assertAlive();
     this.#status =
-      this.#projection.authoritative === undefined
-        ? { kind: "loading" }
-        : { kind: "reconnecting" };
+      this.#projection.authoritative === undefined ? { kind: "loading" } : { kind: "reconnecting" };
   }
 
   async dispatch(
@@ -95,9 +83,7 @@ export class LayoutState {
     this.#assertAlive();
     const dispatch = this.#options.dispatch;
     if (dispatch === undefined) {
-      const reason =
-        this.#options.unsupportedReason ??
-        "layout dispatch is unavailable";
+      const reason = this.#options.unsupportedReason ?? "layout dispatch is unavailable";
       this.#status = { kind: "unsupported", reason };
       throw new UnsupportedCapabilityError(reason);
     }

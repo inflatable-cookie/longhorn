@@ -605,7 +605,7 @@ pub fn field_map(task: &str, constant: &str, declarations: &[String]) -> (String
     rendered.push_str("// contract 010's Boundary Validation Target.\n\n");
     rendered.push_str("export const ");
     rendered.push_str(constant);
-    rendered.push_str(": Record<string, readonly string[]> = {\n");
+    rendered.push_str(" = {\n");
 
     let mut skipped = Vec::new();
     for declaration in declarations {
@@ -625,7 +625,7 @@ pub fn field_map(task: &str, constant: &str, declarations: &[String]) -> (String
         rendered.push_str(&fields.join(", "));
         rendered.push_str("],\n");
     }
-    rendered.push_str("};\n");
+    rendered.push_str("} as const;\n");
     (rendered, skipped)
 }
 

@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "bun:test";
 
 import { findByName, install, openPage } from "./support.ts";
@@ -6,18 +7,20 @@ describe("agent-control synthetic input", () => {
   test("click dispatches the pointer/mouse sequence onto real handlers", () => {
     const window = openPage(`<button id="go">Go</button><span id="out"></span>`);
     const button = window.document.getElementById("go")!;
-    const seen: string[] = [];
+    const seen: Array<string> = [];
     for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) {
       button.addEventListener(type, () => seen.push(type));
     }
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const go = findByName(snapshot.root, "Go");
     expect(api.click(go!.elementRef).ok).toBe(true);
     expect(seen).toEqual(["pointerdown", "mousedown", "pointerup", "mouseup", "click"]);
-    expect(window.document.activeElement).toBe(button as unknown as typeof window.document.activeElement);
+    expect<unknown>(window.document.activeElement).toBe(button as unknown);
   });
 
   test("type reaches key handlers and value listeners", () => {
@@ -26,8 +29,8 @@ describe("agent-control synthetic input", () => {
       value: string;
       addEventListener: (type: string, listener: (event: Event) => void) => void;
     };
-    const keys: string[] = [];
-    const inputs: string[] = [];
+    const keys: Array<string> = [];
+    const inputs: Array<string> = [];
     let changed = false;
     field.addEventListener("keydown", (event) => keys.push((event as KeyboardEvent).key));
     field.addEventListener("input", () => inputs.push(field.value));
@@ -37,7 +40,9 @@ describe("agent-control synthetic input", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const note = findByName(snapshot.root, "Note");
     expect(api.type(note!.elementRef, "hi").ok).toBe(true);
     expect(field.value).toBe("hi");
@@ -71,7 +76,9 @@ describe("agent-control synthetic input", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     // The scroller itself may be flattened; stamp it directly if needed.
     box.setAttribute("data-longhorn-agent-ref", "scroller");
     expect(api.scroll(0, 80, "scroller").ok).toBe(true);
@@ -84,7 +91,7 @@ describe("agent-control synthetic input", () => {
     const dst = window.document.getElementById("dst")!;
     src.setAttribute("data-longhorn-agent-ref", "src");
     dst.setAttribute("data-longhorn-agent-ref", "dst");
-    const seen: string[] = [];
+    const seen: Array<string> = [];
     src.addEventListener("dragstart", () => seen.push("dragstart"));
     dst.addEventListener("dragover", () => seen.push("dragover"));
     dst.addEventListener("drop", () => seen.push("drop"));
@@ -118,12 +125,15 @@ describe("agent-control setFileInput", () => {
     field.addEventListener("change", () => {
       seen.change = true;
       const file = field.files[0];
+      assert(file);
       read = file.text().then((text) => ({ name: file.name, type: file.type, text }));
     });
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const target = findByName(snapshot.root, "Manifest");
     expect(api.setFileInput(target!.elementRef, [hi]).ok).toBe(true);
     expect(seen.input).toBe(true);
@@ -141,11 +151,15 @@ describe("agent-control setFileInput", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const go = findByName(snapshot.root, "Go");
     const result = api.setFileInput(go!.elementRef, [hi]);
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok) {
+      return;
+    }
     expect(result.error).toEqual({
       error: "unsupported",
       message: "set_file_input requires an input type=file",
@@ -157,27 +171,30 @@ describe("agent-control setFileInput", () => {
     const api = install(window);
     const result = api.setFileInput("missing", [hi]);
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok) {
+      return;
+    }
     expect(result.error).toEqual({ error: "unresolvedRef", element: "missing" });
   });
 
   test("rejects more than one file unless multiple", () => {
-    const window = openPage(
-      `<label for="one">One</label><input id="one" type="file" />`,
-    );
+    const window = openPage(`<label for="one">One</label><input id="one" type="file" />`);
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const one = findByName(snapshot.root, "One");
-    const result = api.setFileInput(one!.elementRef, [
-      hi,
-      { ...hi, name: "other.json" },
-    ]);
+    const result = api.setFileInput(one!.elementRef, [hi, { ...hi, name: "other.json" }]);
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok) {
+      return;
+    }
     expect(result.error.error).toBe("unsupported");
-    if (result.error.error !== "unsupported") return;
+    if (result.error.error !== "unsupported") {
+      return;
+    }
     expect(result.error.message).toContain("multiple");
   });
 
@@ -191,11 +208,11 @@ describe("agent-control setFileInput", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const many = findByName(snapshot.root, "Many");
-    expect(
-      api.setFileInput(many!.elementRef, [hi, { ...hi, name: "other.json" }]).ok,
-    ).toBe(true);
+    expect(api.setFileInput(many!.elementRef, [hi, { ...hi, name: "other.json" }]).ok).toBe(true);
     expect(field.files.length).toBe(2);
     expect(field.files[0]?.name).toBe("manifest.json");
     expect(field.files[1]?.name).toBe("other.json");
@@ -208,15 +225,21 @@ describe("agent-control setFileInput", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const json = findByName(snapshot.root, "Json");
     const result = api.setFileInput(json!.elementRef, [
       { name: "photo.png", mediaType: "image/png", contentBase64: hi.contentBase64 },
     ]);
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok) {
+      return;
+    }
     expect(result.error.error).toBe("unsupported");
-    if (result.error.error !== "unsupported") return;
+    if (result.error.error !== "unsupported") {
+      return;
+    }
     expect(result.error.message).toContain("accept");
   });
 
@@ -227,7 +250,9 @@ describe("agent-control setFileInput", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const pics = findByName(snapshot.root, "Pics");
     expect(
       api.setFileInput(pics!.elementRef, [
@@ -248,15 +273,21 @@ describe("agent-control setFileInput", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const target = findByName(snapshot.root, "Manifest");
     const result = api.setFileInput(target!.elementRef, [
       { name: "manifest.json", contentBase64: "@@@" },
     ]);
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok) {
+      return;
+    }
     expect(result.error.error).toBe("unsupported");
-    if (result.error.error !== "unsupported") return;
+    if (result.error.error !== "unsupported") {
+      return;
+    }
     expect(result.error.message).toContain("base64");
   });
 
@@ -267,13 +298,19 @@ describe("agent-control setFileInput", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const target = findByName(snapshot.root, "Manifest");
     const result = api.setFileInput(target!.elementRef, []);
     expect(result.ok).toBe(false);
-    if (result.ok) return;
+    if (result.ok) {
+      return;
+    }
     expect(result.error.error).toBe("unsupported");
-    if (result.error.error !== "unsupported") return;
+    if (result.error.error !== "unsupported") {
+      return;
+    }
     expect(result.error.message).toContain("at least one file");
   });
 });

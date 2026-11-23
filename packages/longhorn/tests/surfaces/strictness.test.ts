@@ -24,16 +24,14 @@ describe("surfaces boundary strictness", () => {
   });
 
   test("rejects an unknown field", () => {
-    expect(() =>
-      assertValidSurfaceSnapshot({ ...valid, extra: 1 }),
-    ).toThrow(SurfaceProtocolValidationError);
+    expect(() => assertValidSurfaceSnapshot({ ...valid, extra: 1 })).toThrow(
+      SurfaceProtocolValidationError,
+    );
   });
 
   test("rejects a missing field", () => {
     const { epoch: _dropped, ...missing } = valid;
-    expect(() => assertValidSurfaceSnapshot(missing)).toThrow(
-      SurfaceProtocolValidationError,
-    );
+    expect(() => assertValidSurfaceSnapshot(missing)).toThrow(SurfaceProtocolValidationError);
   });
 
   test("reports a non-object as invalid_object", () => {
@@ -43,9 +41,7 @@ describe("surfaces boundary strictness", () => {
       assertValidSurfaceSnapshot([]);
       throw new Error("expected a rejection");
     } catch (error) {
-      expect((error as SurfaceProtocolValidationError).code).toBe(
-        "invalid_object",
-      );
+      expect((error as SurfaceProtocolValidationError).code).toBe("invalid_object");
     }
   });
 });

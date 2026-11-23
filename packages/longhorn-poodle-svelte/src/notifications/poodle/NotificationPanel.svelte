@@ -23,7 +23,7 @@
 
   function toggle(record: NotificationRecordProjection): void {
     session.select(session.selectedNotificationId === record.notificationId ? undefined : record.notificationId);
-    if (record.readState === "unseen") void session.markSeen(record.notificationId).catch(() => undefined);
+    if (record.readState === "unseen") {void session.markSeen(record.notificationId).catch(() => undefined);}
   }
 </script>
 

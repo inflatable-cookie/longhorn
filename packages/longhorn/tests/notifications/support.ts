@@ -12,8 +12,8 @@ export interface NotificationFixture {
   protocolVersion: number;
   snapshotQuery: NotificationSnapshotQuery;
   snapshotResponse: NotificationSnapshotResponse;
-  mutationCommands: NotificationMutationCommand[];
-  mutationResults: NotificationMutationResult[];
+  mutationCommands: Array<NotificationMutationCommand>;
+  mutationResults: Array<NotificationMutationResult>;
   changedEvents: Array<NotificationChangedEvent | null>;
   incompatibility: Record<string, unknown>;
 }
@@ -29,4 +29,6 @@ export function fixturePort(): NotificationPort {
   };
 }
 
-export function cloned<Value>(value: Value): Value { return JSON.parse(JSON.stringify(value)) as Value; }
+export function cloned<Value>(value: Value): Value {
+  return JSON.parse(JSON.stringify(value)) as Value;
+}

@@ -11,8 +11,10 @@ import type {
 import {
   resolveSettingsDeepLink,
   searchSettingsRegistry,
-  type SettingsRegistryProjection,
-  type SettingsSearchResult,
+} from "@inflatable-cookie/longhorn/settings";
+import type {
+  SettingsRegistryProjection,
+  SettingsSearchResult,
 } from "@inflatable-cookie/longhorn/settings";
 import type { SettingsClient } from "@inflatable-cookie/longhorn/settings";
 import { createSettingsPageRenderContext } from "./context.ts";
@@ -35,7 +37,7 @@ export interface SettingsSessionOptions {
   readonly client: SettingsClient;
   readonly nextRequestId: () => SettingsRequestId;
   readonly initialRoute?: SettingsRoute;
-  readonly onClose?: () => void;
+  readonly onClose?: (() => void) | undefined;
   readonly onError?: (error: unknown) => void;
 }
 
@@ -133,10 +135,10 @@ export class SettingsSession {
     return this.draftCount === 1 && !this.busy;
   }
 
-  get activationRequirements(): readonly SettingsActivationRequirement[] {
-    return this.#runtime.document.currentScopes().flatMap(
-      ({ snapshot }) => snapshot?.activationRequirements ?? [],
-    );
+  get activationRequirements(): ReadonlyArray<SettingsActivationRequirement> {
+    return this.#runtime.document
+      .currentScopes()
+      .flatMap(({ snapshot }) => snapshot?.activationRequirements ?? []);
   }
 
   get recovery() {
@@ -154,16 +156,13 @@ export class SettingsSession {
     if (page === undefined || session === undefined) {
       return { kind: "idle" };
     }
-    const statuses = page.writableApplyUnitIds.map((id) =>
-      session.status(id),
-    );
+    const statuses = page.writableApplyUnitIds.map((id) => session.status(id));
     return (
       statuses.find(({ kind }) => kind === "pending") ??
       statuses.find(({ kind }) => kind === "failed") ??
       statuses.find(({ kind }) => kind === "conflict") ??
       statuses.find(({ kind }) => kind === "rejected") ??
-      statuses.find(({ kind }) => kind === "saved") ??
-      { kind: "idle" }
+      statuses.find(({ kind }) => kind === "saved") ?? { kind: "idle" }
     );
   }
 
@@ -177,10 +176,8 @@ export class SettingsSession {
     await this.#runtime.stop();
   }
 
-  search(query: string): readonly SettingsSearchResult[] {
-    return this.registry === undefined
-      ? []
-      : searchSettingsRegistry(this.registry, query);
+  search(query: string): ReadonlyArray<SettingsSearchResult> {
+    return this.registry === undefined ? [] : searchSettingsRegistry(this.registry, query);
   }
 
   async navigate(route: SettingsRoute): Promise<boolean> {
@@ -205,7 +202,9 @@ export class SettingsSession {
   async resolveGuard(resolution: SettingsGuardResolution): Promise<boolean> {
     const guard = this.#guard;
     const page = this.currentPageSession;
-    if (guard === undefined) return true;
+    if (guard === undefined) {
+      return true;
+    }
     if (resolution === "stay") {
       this.#guard = undefined;
       return false;
@@ -214,9 +213,13 @@ export class SettingsSession {
       this.#guard = undefined;
       return false;
     }
-    if (page.busy) return false;
+    if (page.busy) {
+      return false;
+    }
     if (resolution === "apply") {
-      if (!(await page.applyOnlyDraft())) return false;
+      if (!(await page.applyOnlyDraft())) {
+        return false;
+      }
     } else {
       page.cancel();
     }
@@ -239,10 +242,12 @@ export class SettingsSession {
 
   async requestReset(
     applyUnitId: SettingsApplyUnitId,
-    entryIds: readonly SettingsEntryId[],
+    entryIds: ReadonlyArray<SettingsEntryId>,
   ): Promise<void> {
     const page = this.currentPage;
-    if (page === undefined) throw new SettingsPageUnavailableError();
+    if (page === undefined) {
+      throw new SettingsPageUnavailableError();
+    }
     const request = {
       pageId: page.id,
       applyUnitId,
@@ -280,9 +285,6 @@ export class SettingsSession {
     if (request.pageId !== this.currentPage?.id) {
       throw new SettingsPageUnavailableError();
     }
-    await this.currentPageSession?.reset(
-      request.applyUnitId,
-      request.entryIds,
-    );
+    await this.currentPageSession?.reset(request.applyUnitId, request.entryIds);
   }
 }

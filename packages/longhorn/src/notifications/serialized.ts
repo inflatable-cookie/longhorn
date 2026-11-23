@@ -1,4 +1,7 @@
-import type { NotificationMutationCommand, NotificationSnapshotQuery } from "./generated/protocol.ts";
+import type {
+  NotificationMutationCommand,
+  NotificationSnapshotQuery,
+} from "./generated/protocol.ts";
 import type { NotificationPort, NotificationUnlisten } from "./ports.ts";
 
 export class SerializedNotificationPort implements NotificationPort {
@@ -13,7 +16,9 @@ export class SerializedNotificationPort implements NotificationPort {
   }
 
   async listen(listener: (event: unknown) => void): Promise<NotificationUnlisten> {
-    if (this.inner.listen === undefined) return () => {};
+    if (this.inner.listen === undefined) {
+      return () => {};
+    }
     return this.inner.listen((event) => listener(clone(event)));
   }
 

@@ -1,7 +1,5 @@
-import {
-  BRIDGE_RETRY_CLASSES,
-  type BridgeRetryClass,
-} from "../generated/protocol.ts";
+import { BRIDGE_RETRY_CLASSES } from "../generated/protocol.ts";
+import type { BridgeRetryClass } from "../generated/protocol.ts";
 
 export const MAXIMUM_BRIDGE_AUTOMATIC_RETRIES = 64;
 
@@ -22,10 +20,7 @@ export class BridgeRuntimeError extends Error {
     | "invalid_time"
     | "retry_not_due";
 
-  constructor(
-    code: BridgeRuntimeError["code"],
-    detail: string,
-  ) {
+  constructor(code: BridgeRuntimeError["code"], detail: string) {
     super(`bridge runtime: ${detail}`);
     this.name = "BridgeRuntimeError";
     this.code = code;
@@ -33,11 +28,7 @@ export class BridgeRuntimeError extends Error {
 }
 
 export function checkedRetryLimit(value: number): number {
-  if (
-    !Number.isSafeInteger(value) ||
-    value < 0 ||
-    value > MAXIMUM_BRIDGE_AUTOMATIC_RETRIES
-  ) {
+  if (!Number.isSafeInteger(value) || value < 0 || value > MAXIMUM_BRIDGE_AUTOMATIC_RETRIES) {
     throw new BridgeRuntimeError(
       "invalid_retry_limit",
       `retry limit must be 0..${MAXIMUM_BRIDGE_AUTOMATIC_RETRIES}`,
@@ -46,24 +37,16 @@ export function checkedRetryLimit(value: number): number {
   return value;
 }
 
-export function checkedRetryClass(
-  value: BridgeRetryClass,
-): BridgeRetryClass {
+export function checkedRetryClass(value: BridgeRetryClass): BridgeRetryClass {
   if (!BRIDGE_RETRY_CLASSES.includes(value)) {
-    throw new BridgeRuntimeError(
-      "invalid_retry_class",
-      "unknown retry class",
-    );
+    throw new BridgeRuntimeError("invalid_retry_class", "unknown retry class");
   }
   return value;
 }
 
 export function checkedMonotonic(value: number): number {
   if (!Number.isSafeInteger(value) || value < 0) {
-    throw new BridgeRuntimeError(
-      "invalid_time",
-      "clock must return a nonnegative safe integer",
-    );
+    throw new BridgeRuntimeError("invalid_time", "clock must return a nonnegative safe integer");
   }
   return value;
 }
@@ -80,10 +63,7 @@ export function checkedDeadline(at: number, delay: number): number {
 export function checkedIncrement(value: number): number {
   const next = value + 1;
   if (!Number.isSafeInteger(next)) {
-    throw new BridgeRuntimeError(
-      "invalid_time",
-      "transition sequence exhausted",
-    );
+    throw new BridgeRuntimeError("invalid_time", "transition sequence exhausted");
   }
   return next;
 }

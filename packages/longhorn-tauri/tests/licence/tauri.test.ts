@@ -13,9 +13,11 @@ describe("Tauri licence composition", () => {
       renameSeatCommand,
     } = fixture();
     const activateCommand = activateCommands[0];
-    if (activateCommand === undefined) throw new Error("fixture has no activate command");
+    if (activateCommand === undefined) {
+      throw new Error("fixture has no activate command");
+    }
     const calls: Array<[string, unknown]> = [];
-    const listened: string[] = [];
+    const listened: Array<string> = [];
     const transport = {
       async invoke(command: string, args?: Record<string, unknown>) {
         calls.push([command, args]);

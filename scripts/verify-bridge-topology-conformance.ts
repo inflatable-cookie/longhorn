@@ -1,18 +1,13 @@
-import {
-  readFile,
-  readdir,
-} from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import { runBridgeTopologyProof } from "../examples/bridge-topology-proof/proof.ts";
-import {
-  declaration,
-  type ShapeName,
-} from "../examples/bridge-topology-proof/common.ts";
+import { declaration } from "../examples/bridge-topology-proof/common.ts";
+import type { ShapeName } from "../examples/bridge-topology-proof/common.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/bridge-topology-proof");
-const shapes: readonly ShapeName[] = [
+const shapes: ReadonlyArray<ShapeName> = [
   "minimal-shell",
   "ordered-streams",
   "jobs-and-service-failure",
@@ -24,11 +19,7 @@ const importGraph = Object.fromEntries(
   await Promise.all(
     shapes.map(async (shape) => {
       const imports = await packageImports(join(proofRoot, `${shape}.ts`));
-      assertEqualSet(
-        `${shape} Longhorn imports`,
-        imports,
-        declaration(shape).imports,
-      );
+      assertEqualSet(`${shape} Longhorn imports`, imports, declaration(shape).imports);
       return [shape, imports];
     }),
   ),
@@ -44,7 +35,7 @@ for (const shape of shapes) {
   const imports = importGraph[shape]!;
   const hasEvents = imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events");
   const hasEventAdmission = fixture.tauriPermissions.some((permission) =>
-    permission.startsWith("core:event:")
+    permission.startsWith("core:event:"),
   );
   if (hasEvents !== hasEventAdmission) {
     throw new Error(`${shape} event imports and permissions diverge`);
@@ -57,23 +48,17 @@ for (const shape of shapes) {
 
 const queryCapability = JSON.parse(
   await readFile(
-    join(
-      repoRoot,
-      "crates/longhorn-tauri-bridge/examples/capabilities/query-only.json",
-    ),
+    join(repoRoot, "crates/longhorn-tauri-bridge/examples/capabilities/query-only.json"),
     "utf8",
   ),
-) as { readonly permissions: readonly string[] };
+) as { readonly permissions: ReadonlyArray<string> };
 assertEqualSet(
   "Minimal shell query-only Tauri admission",
   queryCapability.permissions,
   declaration("minimal-shell").tauriPermissions,
 );
 
-const rootBarrel = await readFile(
-  join(repoRoot, "packages/longhorn/src/bridge/index.ts"),
-  "utf8",
-);
+const rootBarrel = await readFile(join(repoRoot, "packages/longhorn/src/bridge/index.ts"), "utf8");
 for (const optional of ["./stream", "./supervision", "./tauri-events"]) {
   if (rootBarrel.includes(optional)) {
     throw new Error(`bridge root barrel imports optional seam ${optional}`);
@@ -123,14 +108,8 @@ if (/\b(token|password|secret)\b/i.test(proofSources)) {
   throw new Error("topology proof contains credential vocabulary");
 }
 
-const manifest = await readFile(
-  join(repoRoot, "crates/longhorn-bridge/Cargo.toml"),
-  "utf8",
-);
-if (
-  !manifest.includes("supervision = []") ||
-  /^\s*default\s*=/m.test(manifest)
-) {
+const manifest = await readFile(join(repoRoot, "crates/longhorn-bridge/Cargo.toml"), "utf8");
+if (!manifest.includes("supervision = []") || /^\s*default\s*=/m.test(manifest)) {
   throw new Error("Rust supervision is not an explicit opt-in feature");
 }
 
@@ -155,7 +134,7 @@ console.log(
   ),
 );
 
-async function packageImports(entry: string): Promise<readonly string[]> {
+async function packageImports(entry: string): Promise<ReadonlyArray<string>> {
   const visited = new Set<string>();
   const packages = new Set<string>();
 
@@ -180,10 +159,10 @@ async function packageImports(entry: string): Promise<readonly string[]> {
   return [...packages].sort();
 }
 
-async function sourceText(roots: readonly string[]): Promise<string> {
-  const paths: string[] = [];
+async function sourceText(roots: ReadonlyArray<string>): Promise<string> {
+  const paths: Array<string> = [];
   for (const root of roots) {
-    paths.push(...await files(root));
+    paths.push(...(await files(root)));
   }
   return (
     await Promise.all(
@@ -194,13 +173,13 @@ async function sourceText(roots: readonly string[]): Promise<string> {
   ).join("\n");
 }
 
-async function files(root: string): Promise<string[]> {
+async function files(root: string): Promise<Array<string>> {
   const entries = await readdir(root, { withFileTypes: true });
-  const output: string[] = [];
+  const output: Array<string> = [];
   for (const entry of entries) {
     const path = join(root, entry.name);
     if (entry.isDirectory()) {
-      output.push(...await files(path));
+      output.push(...(await files(path)));
     } else if (entry.isFile()) {
       output.push(path);
     }
@@ -210,14 +189,12 @@ async function files(root: string): Promise<string[]> {
 
 function assertEqualSet(
   label: string,
-  actual: readonly string[],
-  expected: readonly string[],
+  actual: ReadonlyArray<string>,
+  expected: ReadonlyArray<string>,
 ): void {
   const left = [...actual].sort();
   const right = [...expected].sort();
   if (JSON.stringify(left) !== JSON.stringify(right)) {
-    throw new Error(
-      `${label} mismatch: ${JSON.stringify(left)} != ${JSON.stringify(right)}`,
-    );
+    throw new Error(`${label} mismatch: ${JSON.stringify(left)} != ${JSON.stringify(right)}`);
   }
 }

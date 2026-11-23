@@ -17,24 +17,18 @@ const fixture = record(JSON.parse(readFileSync(fixturePath, "utf8")));
 test("routes Surface operations through the shared transport seam", async () => {
   const transport = new MockTransport(
     new Map([
-      [
-        TRANSFER_START_SURFACE_COMMAND,
-        array(fixture.session_responses)[0],
-      ],
-      [
-        TRANSFER_COMMIT_SURFACE_COMMAND,
-        array(fixture.commit_responses)[0],
-      ],
+      [TRANSFER_START_SURFACE_COMMAND, array(fixture.session_responses)[0]],
+      [TRANSFER_COMMIT_SURFACE_COMMAND, array(fixture.commit_responses)[0]],
     ]),
   );
   const client = new SurfaceTransferClient(transport);
 
-  expect(
-    await client.start(array(fixture.session_requests)[0] as never),
-  ).toEqual(array(fixture.session_responses)[0] as never);
-  expect(
-    await client.commit(array(fixture.commit_requests)[0] as never),
-  ).toEqual(array(fixture.commit_responses)[0] as never);
+  expect<unknown>(await client.start(array(fixture.session_requests)[0] as never)).toEqual(
+    array(fixture.session_responses)[0],
+  );
+  expect<unknown>(await client.commit(array(fixture.commit_requests)[0] as never)).toEqual(
+    array(fixture.commit_responses)[0],
+  );
   expect(transport.calls.map((call) => call.command)).toEqual([
     TRANSFER_START_SURFACE_COMMAND,
     TRANSFER_COMMIT_SURFACE_COMMAND,
@@ -55,10 +49,7 @@ class MockTransport implements InvokeTransport {
     this.#responses = responses;
   }
 
-  async invoke(
-    command: string,
-    arguments_: Record<string, unknown>,
-  ): Promise<unknown> {
+  async invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown> {
     this.calls.push({ command, arguments_ });
     if (!this.#responses.has(command)) {
       throw new Error(`unexpected command ${command}`);
@@ -74,7 +65,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function array(value: unknown): unknown[] {
+function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     throw new TypeError("expected JSON array");
   }

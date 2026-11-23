@@ -1,9 +1,6 @@
 <script lang="ts">
-  import {
-    SettingsShell,
-    type SettingsPageRenderContext,
-    type SettingsSession,
-  } from "../../src/settings/poodle.ts";
+  import { SettingsShell } from '../../src/settings/poodle.ts';
+import type { SettingsPageRenderContext, SettingsSession } from '../../src/settings/poodle.ts';
 
   let {
     session,

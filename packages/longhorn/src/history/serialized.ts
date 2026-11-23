@@ -1,7 +1,4 @@
-import type {
-  HistoryNavigationCommand,
-  HistoryPageCommand,
-} from "./generated/protocol.ts";
+import type { HistoryNavigationCommand, HistoryPageCommand } from "./generated/protocol.ts";
 import type { HistoryPort, HistoryUnlisten } from "./ports.ts";
 
 export class SerializedHistoryPort implements HistoryPort {
@@ -24,7 +21,9 @@ export class SerializedHistoryPort implements HistoryPort {
   }
 
   async listen(listener: (event: unknown) => void): Promise<HistoryUnlisten> {
-    if (this.#inner.listen === undefined) return () => {};
+    if (this.#inner.listen === undefined) {
+      return () => {};
+    }
     return this.#inner.listen((event) => listener(clone(event)));
   }
 

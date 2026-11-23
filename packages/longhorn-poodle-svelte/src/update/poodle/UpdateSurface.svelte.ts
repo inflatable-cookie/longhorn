@@ -59,20 +59,47 @@ export function sampleUpdateController(getController: () => UpdateController) {
   });
 
   return {
-    get status() { void notify; return controller.status; },
+    get status() {
+      void notify;
+      return controller.status;
+    },
     get availability() {
       void notify;
       const availability = controller.availability;
       return availability?.state === "notChecked" ? undefined : availability;
     },
-    get progress() { void notify; return controller.progress; },
-    get channel() { void notify; return controller.channel; },
-    get installedVersion() { void notify; return controller.installedVersion; },
-    get deferral() { void notify; return controller.deferral; },
-    get lastRejection() { void notify; return controller.lastRejection; },
-    get aheadOfChannel() { void notify; return controller.aheadOfChannel; },
-    get presence() { void notify; return controller.presence; },
-    get pending() { void notify; return controller.pending; },
+    get progress() {
+      void notify;
+      return controller.progress;
+    },
+    get channel() {
+      void notify;
+      return controller.channel;
+    },
+    get installedVersion() {
+      void notify;
+      return controller.installedVersion;
+    },
+    get deferral() {
+      void notify;
+      return controller.deferral;
+    },
+    get lastRejection() {
+      void notify;
+      return controller.lastRejection;
+    },
+    get aheadOfChannel() {
+      void notify;
+      return controller.aheadOfChannel;
+    },
+    get presence() {
+      void notify;
+      return controller.presence;
+    },
+    get pending() {
+      void notify;
+      return controller.pending;
+    },
 
     /**
      * The version an install or defer would act on.
@@ -84,7 +111,9 @@ export function sampleUpdateController(getController: () => UpdateController) {
     get actionableVersion(): string | undefined {
       void notify;
       const progress = controller.progress;
-      if (progress?.state === "readyToInstall") return progress.version;
+      if (progress?.state === "readyToInstall") {
+        return progress.version;
+      }
       const availability = controller.availability;
       return availability?.state === "offer" ? availability.version : undefined;
     },

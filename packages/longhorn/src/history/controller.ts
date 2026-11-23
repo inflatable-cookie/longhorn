@@ -1,14 +1,14 @@
 import { HistoryClient } from "./client.ts";
-import {
-  HISTORY_PROTOCOL_VERSION,
-  type HistoryChangedEvent,
-  type HistoryEntryId,
-  type HistoryEntryRecord,
-  type HistoryNavigationRejectionProjection,
-  type HistoryNavigationResult,
-  type HistoryNavigationTargetProjection,
-  type HistoryPageSnapshot,
-  type HistorySnapshot,
+import { HISTORY_PROTOCOL_VERSION } from "./generated/protocol.ts";
+import type {
+  HistoryChangedEvent,
+  HistoryEntryId,
+  HistoryEntryRecord,
+  HistoryNavigationRejectionProjection,
+  HistoryNavigationResult,
+  HistoryNavigationTargetProjection,
+  HistoryPageSnapshot,
+  HistorySnapshot,
 } from "./generated/protocol.ts";
 import { HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE } from "./generated/protocol.ts";
 import type { HistoryPort, HistoryUnlisten } from "./ports.ts";
@@ -39,7 +39,7 @@ export class HistoryController {
   #lifecycleRevision = 0;
   #loadRevision = 0;
   #navigationRevision = 0;
-  #unlisten: HistoryUnlisten[] = [];
+  #unlisten: Array<HistoryUnlisten> = [];
 
   constructor(options: HistoryControllerOptions) {
     this.#client = new HistoryClient(options.port);
@@ -78,10 +78,12 @@ export class HistoryController {
     return this.#pageSnapshot?.totalEntries ?? 0;
   }
 
-  get entries(): readonly HistoryEntryRecord[] {
+  get entries(): ReadonlyArray<HistoryEntryRecord> {
     const entries = this.#pageSnapshot?.entries ?? [];
     const query = this.#filter.trim().toLocaleLowerCase();
-    if (query.length === 0) return entries;
+    if (query.length === 0) {
+      return entries;
+    }
     return entries.filter(
       (entry) =>
         entry.label.toLocaleLowerCase().includes(query) ||
@@ -107,7 +109,9 @@ export class HistoryController {
   }
 
   async start(): Promise<void> {
-    if (this.#started) return;
+    if (this.#started) {
+      return;
+    }
     this.#started = true;
     const lifecycleRevision = ++this.#lifecycleRevision;
     this.#setStatus({ kind: "loading" });
@@ -145,11 +149,15 @@ export class HistoryController {
   }
 
   async refresh(): Promise<void> {
-    if (!this.#started) return;
+    if (!this.#started) {
+      return;
+    }
     const revision = ++this.#loadRevision;
     try {
       const state = await this.#readAuthoritativeState();
-      if (!this.#started || revision !== this.#loadRevision) return;
+      if (!this.#started || revision !== this.#loadRevision) {
+        return;
+      }
       this.#install(state.snapshot, state.page);
       this.#setStatus({ kind: "ready" });
     } catch (error) {
@@ -199,9 +207,7 @@ export class HistoryController {
     return this.#navigate({ kind: "checkoutRoot" });
   }
 
-  async #navigate(
-    target: HistoryNavigationTargetProjection,
-  ): Promise<HistoryNavigationResult> {
+  async #navigate(target: HistoryNavigationTargetProjection): Promise<HistoryNavigationResult> {
     const snapshot = this.#snapshot;
     if (!this.#started || snapshot === undefined) {
       throw new HistoryControllerUnavailableError();
@@ -219,19 +225,12 @@ export class HistoryController {
         expectedRevision: snapshot.summary.revision,
         target,
       });
-      if (
-        !this.#started ||
-        revision !== this.#navigationRevision
-      ) {
+      if (!this.#started || revision !== this.#navigationRevision) {
         throw new HistoryLateResultError();
       }
-      this.#rejection =
-        result.status === "rejected" ? result.rejection : undefined;
+      this.#rejection = result.status === "rejected" ? result.rejection : undefined;
       const page = await this.#readPageForSnapshot(result.snapshot);
-      if (
-        !this.#started ||
-        revision !== this.#navigationRevision
-      ) {
+      if (!this.#started || revision !== this.#navigationRevision) {
         throw new HistoryLateResultError();
       }
       this.#install(result.snapshot, page);
@@ -261,14 +260,14 @@ export class HistoryController {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const snapshot = await this.#client.snapshot();
       const page = await this.#readPageForSnapshot(snapshot);
-      if (sameAuthority(snapshot, page)) return { snapshot, page };
+      if (sameAuthority(snapshot, page)) {
+        return { snapshot, page };
+      }
     }
     throw new HistoryProjectionGapError();
   }
 
-  async #readPageForSnapshot(
-    snapshot: HistorySnapshot,
-  ): Promise<HistoryPageSnapshot> {
+  async #readPageForSnapshot(snapshot: HistorySnapshot): Promise<HistoryPageSnapshot> {
     const maximumPage = Math.max(
       1,
       Math.ceil(snapshot.summary.retainedEntryCount / this.#pageSize),
@@ -285,7 +284,9 @@ export class HistoryController {
   }
 
   #install(snapshot: HistorySnapshot, page: HistoryPageSnapshot): void {
-    if (!sameAuthority(snapshot, page)) throw new HistoryProjectionGapError();
+    if (!sameAuthority(snapshot, page)) {
+      throw new HistoryProjectionGapError();
+    }
     const current = this.#snapshot;
     if (
       current !== undefined &&
@@ -301,7 +302,9 @@ export class HistoryController {
   }
 
   #handleChanged(event: HistoryChangedEvent): void {
-    if (!this.#started) return;
+    if (!this.#started) {
+      return;
+    }
     const snapshot = this.#snapshot;
     if (snapshot === undefined) {
       void this.refresh();
@@ -314,7 +317,9 @@ export class HistoryController {
       void this.refresh();
       return;
     }
-    if (event.committedRevision <= snapshot.summary.revision) return;
+    if (event.committedRevision <= snapshot.summary.revision) {
+      return;
+    }
     void this.refresh();
   }
 
@@ -328,7 +333,9 @@ export class HistoryController {
   }
 
   #notify(): void {
-    for (const observer of this.#observers) observer();
+    for (const observer of this.#observers) {
+      observer();
+    }
   }
 }
 
@@ -353,10 +360,7 @@ export class HistoryLateResultError extends Error {
   }
 }
 
-function sameAuthority(
-  snapshot: HistorySnapshot,
-  page: HistoryPageSnapshot,
-): boolean {
+function sameAuthority(snapshot: HistorySnapshot, page: HistoryPageSnapshot): boolean {
   return (
     page.authorityEpoch === snapshot.authorityEpoch &&
     page.historyId === snapshot.summary.historyId &&
@@ -372,11 +376,7 @@ function checkedPage(value: number): number {
 }
 
 function checkedPageSize(value: number): number {
-  if (
-    !Number.isSafeInteger(value) ||
-    value < 1 ||
-    value > HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE
-  ) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE) {
     throw new RangeError(
       `history page size must be between 1 and ${HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE}`,
     );

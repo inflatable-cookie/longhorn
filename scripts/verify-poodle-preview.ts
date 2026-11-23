@@ -17,6 +17,4 @@ if (sveltePeerRange !== ">=5.56.8 <6") {
   );
 }
 
-console.log(
-  `verified Poodle ${release.version} (${release.packages.length} published packages)`,
-);
+console.log(`verified Poodle ${release.version} (${release.packages.length} published packages)`);

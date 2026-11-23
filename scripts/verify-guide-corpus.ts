@@ -1,6 +1,6 @@
 import { run } from "./proof-support.ts";
 import { access, readdir, readFile } from "node:fs/promises";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const guidePaths = [
@@ -23,7 +23,9 @@ const checkedPaths = [
 
 await run(["bun", "scripts/generate-api-reference.ts"], repoRoot);
 const documents = new Map<string, string>();
-for (const path of checkedPaths) documents.set(path, await readFile(join(repoRoot, path), "utf8"));
+for (const path of checkedPaths) {
+  documents.set(path, await readFile(join(repoRoot, path), "utf8"));
+}
 await verifyLocalLinks(documents);
 verifySnippetBoundaries(documents);
 
@@ -37,7 +39,7 @@ requireAll(guides, [
   "shared-product-root-v1",
   "portable-v1",
   "Application Support/<leaf>/config",
-  "%LOCALAPPDATA%\\<leaf>\\config",
+  String.raw`%LOCALAPPDATA%\<leaf>\config`,
   "$XDG_CONFIG_HOME/<leaf>",
   ".longhorn-backup",
   ".longhorn-backup.age",
@@ -62,15 +64,13 @@ const api = documents.get("docs/reference/api-surface.md")!;
 // generated inventory lists everything, not that the total equals a number
 // someone wrote down.
 const rustCount = [...api.matchAll(/^\| `longhorn-[^`]+` \|/gm)].length;
-const typescriptCount = [
-  ...api.matchAll(/^\| `@inflatable-cookie\/longhorn[^`]*` \|/gm),
-].length;
-const crateDirectories = (await readdir(join(repoRoot, "crates"), { withFileTypes: true }))
-  .filter((entry) => entry.isDirectory())
-  .length;
-const packageDirectories = (await readdir(join(repoRoot, "packages"), { withFileTypes: true }))
-  .filter((entry) => entry.isDirectory())
-  .length;
+const typescriptCount = [...api.matchAll(/^\| `@inflatable-cookie\/longhorn[^`]*` \|/gm)].length;
+const crateDirectories = (await readdir(join(repoRoot, "crates"), { withFileTypes: true })).filter(
+  (entry) => entry.isDirectory(),
+).length;
+const packageDirectories = (
+  await readdir(join(repoRoot, "packages"), { withFileTypes: true })
+).filter((entry) => entry.isDirectory()).length;
 if (rustCount !== crateDirectories || typescriptCount !== packageDirectories) {
   throw new Error(
     `API inventory does not list the workspace: api-surface.md has ${rustCount} crates and ${typescriptCount} packages, ` +
@@ -80,28 +80,40 @@ if (rustCount !== crateDirectories || typescriptCount !== packageDirectories) {
 // Card 166 made the three TypeScript packages publishable, so the posture the
 // reference must state is no longer "private everywhere". The Rust half is
 // unchanged: `publish = false`, nothing on crates.io.
-if (!api.includes("not on crates.io") || !api.includes("publishConfig.access: public") || !api.includes("publish = false")) {
+if (
+  !api.includes("not on crates.io") ||
+  !api.includes("publishConfig.access: public") ||
+  !api.includes("publish = false")
+) {
   throw new Error("API reference publication posture missing");
 }
 
-console.log(JSON.stringify({
-  schema: "longhorn.card126-guide-proof.v1",
-  outcome: "pass",
-  guides: guidePaths.length,
-  checkedDocuments: checkedPaths.length,
-  localLinks: "pass",
-  snippets: "public-or-artifact-paths",
-  registryInstall: "forbidden",
-  rustPackages: rustCount,
-  typescriptPackages: typescriptCount,
-  packageManagerPublication: false,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      schema: "longhorn.card126-guide-proof.v1",
+      outcome: "pass",
+      guides: guidePaths.length,
+      checkedDocuments: checkedPaths.length,
+      localLinks: "pass",
+      snippets: "public-or-artifact-paths",
+      registryInstall: "forbidden",
+      rustPackages: rustCount,
+      typescriptPackages: typescriptCount,
+      packageManagerPublication: false,
+    },
+    null,
+    2,
+  ),
+);
 
 async function verifyLocalLinks(documents: Map<string, string>): Promise<void> {
   for (const [path, content] of documents) {
     for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
       const target = match[1]!;
-      if (/^(?:https?:|mailto:|#)/.test(target)) continue;
+      if (/^(?:https?:|mailto:|#)/.test(target)) {
+        continue;
+      }
       const filesystemTarget = target.split("#", 1)[0]!;
       try {
         await access(resolve(repoRoot, dirname(path), filesystemTarget));
@@ -133,7 +145,9 @@ function verifySnippetBoundaries(documents: Map<string, string>): void {
         }
       }
       for (const pattern of forbidden) {
-        if (pattern.test(block)) throw new Error(`${path} contains non-public snippet ${pattern}`);
+        if (pattern.test(block)) {
+          throw new Error(`${path} contains non-public snippet ${pattern}`);
+        }
       }
     }
   }
@@ -144,19 +158,27 @@ function verifySnippetBoundaries(documents: Map<string, string>): void {
 // imply that a Longhorn or Poodle package is installable from a registry.
 function registryInstallTarget(line: string): string | null {
   for (const match of line.matchAll(/(?:^|\s)(?:npm|pnpm|yarn|bun)\s+(?:add|install)\s+/g)) {
-    const rest = line.slice(match.index! + match[0].length).split(/[;&|]/, 1)[0]!;
+    const rest = line.slice(match.index + match[0].length).split(/[;&|]/, 1)[0]!;
     for (const token of rest.trim().split(/\s+/)) {
-      if (token === "" || token.startsWith("-")) continue;
-      if (/^@(?:longhorn|poodle)\/[\w.-]+$/.test(token)) return token;
-      if (/^longhorn-[\w.-]+$/.test(token) && !token.endsWith(".tgz")) return token;
+      if (token === "" || token.startsWith("-")) {
+        continue;
+      }
+      if (/^@(?:longhorn|poodle)\/[\w.-]+$/.test(token)) {
+        return token;
+      }
+      if (/^longhorn-[\w.-]+$/.test(token) && !token.endsWith(".tgz")) {
+        return token;
+      }
       break;
     }
   }
   return null;
 }
 
-function requireAll(content: string, required: string[]): void {
+function requireAll(content: string, required: Array<string>): void {
   for (const value of required) {
-    if (!content.includes(value)) throw new Error(`guide corpus missing required claim: ${value}`);
+    if (!content.includes(value)) {
+      throw new Error(`guide corpus missing required claim: ${value}`);
+    }
   }
 }

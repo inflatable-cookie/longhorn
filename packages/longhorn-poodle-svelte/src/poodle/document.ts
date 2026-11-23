@@ -14,10 +14,7 @@ import type {
 
 import { MissingLayoutMemberError } from "./types.ts";
 
-export function findContainer(
-  document: SurfaceDocument,
-  containerId: SurfaceId,
-): SurfaceRecord {
+export function findContainer(document: SurfaceDocument, containerId: SurfaceId): SurfaceRecord {
   const container = document.surfaces.find(({ id }) => id === containerId);
   if (!container) {
     throw new MissingLayoutMemberError("layout container", containerId);
@@ -25,13 +22,8 @@ export function findContainer(
   return container;
 }
 
-export function findRegion(
-  container: SurfaceRecord,
-  regionId: RegionId,
-): RegionState {
-  const region = container.regions.find(
-    ({ region_id }) => region_id === regionId,
-  );
+export function findRegion(container: SurfaceRecord, regionId: RegionId): RegionState {
+  const region = container.regions.find(({ region_id }) => region_id === regionId);
   if (!region) {
     throw new MissingLayoutMemberError("region state", regionId);
   }
@@ -42,9 +34,7 @@ export function findPanelInstance(
   document: SurfaceDocument,
   panelInstanceId: PanelInstanceId,
 ): PanelInstance {
-  const instance = document.panel_instances.find(
-    ({ id }) => id === panelInstanceId,
-  );
+  const instance = document.panel_instances.find(({ id }) => id === panelInstanceId);
   if (!instance) {
     throw new MissingLayoutMemberError("panel instance", panelInstanceId);
   }
@@ -65,13 +55,8 @@ export function findPanelLocation(
   throw new MissingLayoutMemberError("panel placement", panelInstanceId);
 }
 
-export function selectorMatches(
-  selector: PlacementSelector,
-  region: RegionDefinition,
-): boolean {
-  return selector.kind === "region"
-    ? selector.id === region.id
-    : selector.id === region.family_id;
+export function selectorMatches(selector: PlacementSelector, region: RegionDefinition): boolean {
+  return selector.kind === "region" ? selector.id === region.id : selector.id === region.family_id;
 }
 
 export function updateRegion(
@@ -95,16 +80,13 @@ export function updateRegion(
   };
 }
 
-export function removePanel(
-  region: RegionState,
-  panelInstanceId: PanelInstanceId,
-): RegionState {
+export function removePanel(region: RegionState, panelInstanceId: PanelInstanceId): RegionState {
   const index = region.panel_instance_ids.indexOf(panelInstanceId);
-  if (index < 0) return region;
+  if (index < 0) {
+    return region;
+  }
 
-  const panelInstanceIds = region.panel_instance_ids.filter(
-    (id) => id !== panelInstanceId,
-  );
+  const panelInstanceIds = region.panel_instance_ids.filter((id) => id !== panelInstanceId);
   const activePanelInstanceId =
     region.active_panel_instance_id === panelInstanceId
       ? (panelInstanceIds[index] ?? panelInstanceIds.at(-1) ?? null)

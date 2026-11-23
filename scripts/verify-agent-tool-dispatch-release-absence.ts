@@ -33,16 +33,7 @@ const forbidden = [
 
 try {
   const tree = await run(
-    rustCommand([
-      "tree",
-      "-p",
-      DISPATCH,
-      "--locked",
-      "-e",
-      "normal",
-      "--prefix",
-      "none",
-    ]),
+    rustCommand(["tree", "-p", DISPATCH, "--locked", "-e", "normal", "--prefix", "none"]),
     repoRoot,
   );
   if (tree.includes(DEV_CONTROL) || tree.includes("longhorn_agent_control")) {
