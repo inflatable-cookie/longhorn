@@ -258,7 +258,11 @@ already classifies those strings keeps its classification. A refusal's
 `git rev-parse --is-inside-work-tree` to answer `true`, resolves and
 canonicalises the worktree root (`git rev-parse --path-format=absolute
 --show-toplevel`) and the Git common directory (`git rev-parse
---path-format=absolute --git-common-dir`), reads Unix `device` and `inode`
+--path-format=absolute --git-common-dir`) read as exact bytes — only Git's
+single trailing record terminator (one `\n`) is removed, with no trim and no
+lossy decode before the path is built (`OsStr::from_bytes` on Unix), so a
+path ending in whitespace or holding non-UTF-8 bytes keeps its exact bytes —
+reads Unix `device` and `inode`
 filesystem identity (`FilesystemIdentity`) for both directories when on Unix,
 reads the current branch short name via `git symbolic-ref --quiet --short HEAD`
 (`None` when detached), and reads the full `HEAD` object ID via `git rev-parse
@@ -450,7 +454,10 @@ while any failure detail from `worktree_identity` still goes through
   the first failure). The tests run real `git` on `PATH` against temporary
   local repositories and bare remotes, with no network and no OS credential
   backend. They cover exact worktree and repository identity (`worktree_identity`
-  across distinct repositories whose paths redact to the same text, linked
+  across distinct repositories whose paths redact to the same text, sibling
+  repositories whose names differ only by trailing whitespace, and (on
+  filesystems that admit them) non-UTF-8 worktree names kept byte-exact
+  against a UTF-8 sibling with the same lossy rendering, linked
   worktrees vs main checkouts, symlinked and subdirectory paths, detached HEAD
   with full object ID, non-worktree `RepositoryUnavailable` refusals with
   redacted detail, and opaque `Debug` output), status, conflicts, ahead and

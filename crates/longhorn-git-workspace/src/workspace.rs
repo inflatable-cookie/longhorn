@@ -129,6 +129,29 @@ impl fmt::Debug for WorktreeIdentity {
     }
 }
 
+/// Builds a path from Git's exact output bytes, with no trim and no lossy
+/// decode, so two byte-distinct locations can never collapse into one string.
+#[cfg(unix)]
+fn path_from_exact_bytes(bytes: Vec<u8>) -> Result<PathBuf, GitFailure> {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt as _;
+    Ok(PathBuf::from(OsStr::from_bytes(&bytes).to_owned()))
+}
+
+/// Builds a path from Git's exact output bytes on a host without byte-level
+/// path access. Git paths that are not valid UTF-8 are refused instead of
+/// decoded lossily, so two byte-distinct locations can never collapse into
+/// one string.
+#[cfg(not(unix))]
+fn path_from_exact_bytes(bytes: Vec<u8>) -> Result<PathBuf, GitFailure> {
+    String::from_utf8(bytes)
+        .map(PathBuf::from)
+        .map_err(|_| GitFailure::Unavailable {
+            code: GitFailureCode::RepositoryUnavailable,
+            detail: "Git returned a path that is not valid UTF-8.".to_owned(),
+        })
+}
+
 fn same_location(
     left_path: &Path,
     left_fs: Option<FilesystemIdentity>,
@@ -179,9 +202,11 @@ impl Git<'_> {
     /// Reads one folder's exact, unredacted worktree and repository identity.
     ///
     /// Resolves the canonical worktree root and canonical Git common directory
-    /// (`--git-common-dir`), records Unix device/inode filesystem identity for
-    /// both, and reads the exact branch short name (`None` when detached) and
-    /// full `HEAD` object ID.
+    /// (`--git-common-dir`) from Git's exact output bytes — only Git's single
+    /// trailing record terminator is removed, so a path ending in whitespace
+    /// or holding non-UTF-8 bytes keeps its exact bytes — records Unix
+    /// device/inode filesystem identity for both, and reads the exact branch
+    /// short name (`None` when detached) and full `HEAD` object ID.
     ///
     /// # Errors
     ///
@@ -192,18 +217,18 @@ impl Git<'_> {
     pub fn worktree_identity(&self, root: &Path) -> Result<WorktreeIdentity, GitFailure> {
         let requested = self.canonicalize_directory(root)?;
         self.ensure_git_repository(&requested)?;
-        let toplevel = self.run_git(
+        let toplevel = path_from_exact_bytes(self.run_git_bytes(
             &requested,
             &["rev-parse", "--path-format=absolute", "--show-toplevel"],
             GitFailureCode::RepositoryUnavailable,
-        )?;
-        let worktree_root = self.canonicalize_directory(Path::new(&toplevel))?;
-        let common = self.run_git(
+        )?)?;
+        let worktree_root = self.canonicalize_directory(&toplevel)?;
+        let common = path_from_exact_bytes(self.run_git_bytes(
             &worktree_root,
             &["rev-parse", "--path-format=absolute", "--git-common-dir"],
             GitFailureCode::RepositoryUnavailable,
-        )?;
-        let common_dir = self.canonicalize_directory(Path::new(&common))?;
+        )?)?;
+        let common_dir = self.canonicalize_directory(&common)?;
         let root_filesystem_id = self.filesystem_identity(&worktree_root)?;
         let common_dir_filesystem_id = self.filesystem_identity(&common_dir)?;
         let branch = self
