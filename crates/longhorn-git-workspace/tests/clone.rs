@@ -92,8 +92,7 @@ fn an_existing_target_is_refused_and_left_untouched() {
     )
     .expect("the local bare remote clones");
 
-    let error = rename_exclusive(staging.path(), &target)
-        .expect_err("the target already exists");
+    let error = rename_exclusive(staging.path(), &target).expect_err("the target already exists");
 
     assert_eq!(error.kind(), std::io::ErrorKind::AlreadyExists);
     assert_eq!(
@@ -350,9 +349,7 @@ fn a_failed_cleanup_reports_the_error_and_leaves_the_folder() {
     fs::set_permissions(&parent, original).expect("the destination parent is writable again");
     assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
     assert!(
-        error
-            .to_string()
-            .contains("workspace.creating-"),
+        error.to_string().contains("workspace.creating-"),
         "the failure names the staging folder: {error}"
     );
     assert!(staging_path.is_dir(), "the staging folder is still there");

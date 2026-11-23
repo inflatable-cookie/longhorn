@@ -30,9 +30,8 @@ use longhorn_git_workspace::{
     GitCredential, GitCredentialBridge, GitFailure, GitFailureCode, GitPolicy, GithubAuthProgress,
     GithubTokenClient, RemoteAccessFailure, SwitchReading, SyncReading, SyncStop,
     classify_remote_failure, create_owned_staging, fresh_access_token, has_switch_blocking_dirt,
-    read_credential_presence, remote_for_display, remote_identity, remotes_match,
-    rename_exclusive, run_device_flow, staging_parent,
-    target_already_present, write_grant,
+    read_credential_presence, remote_for_display, remote_identity, remotes_match, rename_exclusive,
+    run_device_flow, staging_parent, target_already_present, write_grant,
 };
 use longhorn_redact::{RedactionRules, Redactor};
 use secrecy::{ExposeSecret as _, SecretString};
@@ -418,7 +417,10 @@ pub(crate) fn run() -> String {
     second
         .remove()
         .expect("the invocation removes its own staging folder");
-    assert!(!second_path.exists(), "the refused staging folder is removed");
+    assert!(
+        !second_path.exists(),
+        "the refused staging folder is removed"
+    );
     assert_eq!(
         checked(&target, &fixture.config, &["rev-parse", "HEAD"]),
         head_before,
@@ -432,7 +434,12 @@ pub(crate) fn run() -> String {
     let abandoned = create_owned_staging(fixture.temp.path(), OsStr::new("unreachable"))
         .expect("one owned staging folder for the refused clone");
     let failure = git
-        .clone_into(&absent_remote.to_string_lossy(), abandoned.path(), &cancel, None)
+        .clone_into(
+            &absent_remote.to_string_lossy(),
+            abandoned.path(),
+            &cancel,
+            None,
+        )
         .expect_err("a remote that does not exist refuses the clone");
     assert!(
         matches!(failure, CloneFailure::Refused { .. }),
