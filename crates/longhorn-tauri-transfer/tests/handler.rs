@@ -10,9 +10,9 @@ use longhorn_tauri_transfer::{
     project_client_point, project_client_rect,
 };
 use longhorn_transfer::{
-    ClientDropZone, ClientEpoch, LeaseGeneration, MonotonicClock, TransferDuration,
-    TransferInstant, TransferLeaseRequest, TransferLeaseResponse, TransferLimits, TransferRevision,
-    TransferTargetBinding,
+    ClientDropZone, ClientEpoch, LeaseGeneration, MonotonicClock, TransferAbortSource,
+    TransferDuration, TransferErrorCode, TransferInstant, TransferLeaseRequest,
+    TransferLeaseResponse, TransferLimits, TransferRevision, TransferTargetBinding,
 };
 use longhorn_windowing::HostWindowHandle;
 
@@ -137,36 +137,192 @@ fn mock_and_real_runtimes_share_epoch_lease_and_teardown_core() {
 }
 
 #[test]
-fn each_snapshot_advances_epoch_and_invalidates_prior_renderer_authority() {
+fn destroyed_windows_release_client_state_without_reusing_epochs() {
     let caller = handle("main");
-    let snapshot =
-        ManagedTransferSnapshot::new(&caller, [managed_window("main", "window:main")]).unwrap();
-    let runtime = move |_caller: &HostWindowHandle| Ok(snapshot.clone());
+    let main_window = WindowId::new("window:main").unwrap();
+    let runtime = |caller: &HostWindowHandle| {
+        let window_id = format!("window:{caller}");
+        ManagedTransferSnapshot::new(caller, [managed_window(caller.as_str(), &window_id)])
+    };
     let handler = TransferHandlerAssembly::new(runtime, Clock, limits());
 
     let first = handler.snapshot(&caller).unwrap();
-    handler
-        .destroy_window(&WindowId::new("window:main").unwrap())
-        .unwrap();
+    handler.destroy_window(&main_window).unwrap();
+    let mut previous_epoch = first.client_epoch();
+    for index in 0..32 {
+        let short_lived = handle(&format!("short-lived-{index}"));
+        let snapshot = handler.snapshot(&short_lived).unwrap();
+        assert!(snapshot.client_epoch() > previous_epoch);
+        previous_epoch = snapshot.client_epoch();
+        handler
+            .destroy_window(&WindowId::new(format!("window:{short_lived}")).unwrap())
+            .unwrap();
+    }
+
     let second = handler.snapshot(&caller).unwrap();
-    assert_eq!(first.client_epoch(), ClientEpoch::new(1));
-    assert_eq!(second.client_epoch(), ClientEpoch::new(2));
+    assert!(second.client_epoch() > previous_epoch);
     assert_ne!(first.client_id(), second.client_id());
 
-    let stale = lease_request(
-        "request:stale",
-        first.client_id().clone(),
-        first.client_epoch(),
+    let bounds = ClientRect::new(
+        ClientPoint::new(10.0, 10.0).unwrap(),
+        ClientSize::new(20.0, 20.0).unwrap(),
+    );
+    for client_id in [first.client_id(), second.client_id()] {
+        let stale = lease_request(
+            "request:stale",
+            client_id.clone(),
+            first.client_epoch(),
+            1,
+            bounds,
+        );
+        let TransferLeaseResponse::Aborted { abort } =
+            handler.publish_lease(&caller, stale).unwrap()
+        else {
+            panic!("a destroyed renderer epoch published a lease");
+        };
+        assert_eq!(
+            abort.source(),
+            TransferAbortSource::Transfer(TransferErrorCode::StaleClientEpoch)
+        );
+    }
+    let current = lease_request(
+        "request:current",
+        second.client_id().clone(),
+        second.client_epoch(),
         1,
-        ClientRect::new(
-            ClientPoint::new(10.0, 10.0).unwrap(),
-            ClientSize::new(20.0, 20.0).unwrap(),
-        ),
+        bounds,
     );
     assert!(matches!(
-        handler.publish_lease(&caller, stale).unwrap(),
-        TransferLeaseResponse::Aborted { .. }
+        handler.publish_lease(&caller, current).unwrap(),
+        TransferLeaseResponse::Published { .. }
     ));
+    handler.destroy_window(&main_window).unwrap();
+    let discarded = handler.teardown().unwrap();
+    assert_eq!(discarded.client_windows(), 0);
+    assert_eq!(discarded.leases(), 0);
+}
+
+#[test]
+fn snapshot_command_orders_window_hints_without_waiting_for_another_probe() {
+    use std::{
+        sync::{
+            Arc, Mutex,
+            atomic::{AtomicUsize, Ordering},
+            mpsc,
+        },
+        thread,
+        time::Duration,
+    };
+
+    use longhorn_tauri_transfer::{
+        AssembledTransferCommands, PanelTransferAdapter, TRANSFER_CLIENT_CHANGED_EVENT,
+        TauriTransferState, TransferCallerAuthority, TransferSessionRegistrar,
+        longhorn_transfer_snapshot,
+    };
+    use longhorn_transfer::{
+        PanelSessionStartRequest, PanelTransferCommand, PanelTransferResponse,
+        TerminalTransferAttempt, TransferClientSnapshot, TransferSessionResponse,
+    };
+    use tauri::{Listener, Manager, WebviewWindowBuilder};
+
+    struct SnapshotOnly;
+
+    impl PanelTransferAdapter for SnapshotOnly {
+        fn start_panel(
+            &mut self,
+            _: TransferCallerAuthority,
+            _: PanelSessionStartRequest,
+            _: &mut TransferSessionRegistrar<'_>,
+        ) -> TransferSessionResponse {
+            unreachable!("this test only invokes the snapshot command");
+        }
+
+        fn commit_panel(
+            &mut self,
+            _: TransferCallerAuthority,
+            _: PanelTransferCommand,
+            _: TerminalTransferAttempt,
+        ) -> PanelTransferResponse {
+            unreachable!("this test only invokes the snapshot command");
+        }
+    }
+
+    let timeout = Duration::from_secs(5);
+    let (blocked, reached_recheck) = mpsc::channel();
+    let (release_recheck, resume) = mpsc::channel();
+    let resume = Mutex::new(resume);
+    let main_probes = AtomicUsize::new(0);
+    let windows = [
+        managed_window("main", "window:main"),
+        managed_window("other", "window:other"),
+    ];
+    let runtime = move |caller: &HostWindowHandle| {
+        if caller.as_str() == "main" && main_probes.fetch_add(1, Ordering::SeqCst) == 1 {
+            blocked.send(()).unwrap();
+            resume.lock().unwrap().recv().unwrap();
+        }
+        ManagedTransferSnapshot::new(caller, windows.clone())
+    };
+    let handler = TransferHandlerAssembly::new(runtime, Clock, limits());
+    let commands = Arc::new(AssembledTransferCommands::new(handler, SnapshotOnly));
+    let app = tauri::test::mock_builder()
+        .manage(TauriTransferState::new(commands))
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let main = WebviewWindowBuilder::new(&app, "main", tauri::WebviewUrl::default())
+        .build()
+        .unwrap();
+    let other = WebviewWindowBuilder::new(&app, "other", tauri::WebviewUrl::default())
+        .build()
+        .unwrap();
+
+    let (events, received_events) = mpsc::channel();
+    for window in [&main, &other] {
+        let events = events.clone();
+        let label = window.label().to_owned();
+        window.listen(TRANSFER_CLIENT_CHANGED_EVENT, move |event| {
+            let snapshot: TransferClientSnapshot = serde_json::from_str(event.payload()).unwrap();
+            events
+                .send((label.clone(), snapshot.client_epoch()))
+                .unwrap();
+        });
+    }
+    let snapshot = |window: tauri::WebviewWindow<tauri::test::MockRuntime>| {
+        tauri::async_runtime::block_on(longhorn_transfer_snapshot(
+            window.clone(),
+            window.state::<TauriTransferState>(),
+        ))
+        .unwrap()
+    };
+    let first_window = main.clone();
+    let first = thread::spawn(move || snapshot(first_window));
+    reached_recheck.recv_timeout(timeout).unwrap();
+
+    let (completed, progress) = mpsc::channel();
+    let concurrent = thread::spawn(move || {
+        completed.send(snapshot(other)).unwrap();
+        completed.send(snapshot(main)).unwrap();
+    });
+    let other_before_release = progress.recv_timeout(timeout);
+    let main_before_release = if other_before_release.is_ok() {
+        progress.recv_timeout(timeout)
+    } else {
+        Err(mpsc::RecvTimeoutError::Timeout)
+    };
+    release_recheck.send(()).unwrap();
+    let first = first.join().unwrap();
+    concurrent.join().unwrap();
+    let other = other_before_release.expect("another window must finish while main is blocked");
+    let main = main_before_release.expect("a newer snapshot must overtake the stalled probe");
+
+    assert!(first.client_epoch() < main.client_epoch());
+    assert_eq!(
+        received_events.try_iter().collect::<Vec<_>>(),
+        [
+            ("other".to_owned(), other.client_epoch()),
+            ("main".to_owned(), main.client_epoch()),
+        ]
+    );
 }
 
 #[test]
@@ -239,38 +395,32 @@ fn handle(value: &str) -> HostWindowHandle {
 
 #[test]
 fn snapshot_destroy_race_never_leaks_client_capacity() {
-    use std::sync::{
-        Arc,
-        atomic::{AtomicBool, AtomicUsize, Ordering},
-    };
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
     let caller = handle("main");
-    let snapshot =
-        ManagedTransferSnapshot::new(&caller, [managed_window("main", "window:main")]).unwrap();
-    let calls = Arc::new(AtomicUsize::new(0));
-    let racing = Arc::new(AtomicBool::new(true));
-    let runtime = {
-        let calls = Arc::clone(&calls);
-        let racing = Arc::clone(&racing);
-        let snapshot = snapshot.clone();
-        move |caller: &HostWindowHandle| {
-            // While racing, every second probe simulates a window destroyed
-            // between the initial probe and the post-bind liveness recheck.
-            let call = calls.fetch_add(1, Ordering::SeqCst);
-            if racing.load(Ordering::SeqCst) && call % 2 == 1 {
-                Err(TransferRuntimeError::UnmanagedCaller(caller.clone()))
-            } else {
-                Ok(snapshot.clone())
+    let calls = AtomicUsize::new(0);
+    let racing = AtomicBool::new(true);
+    let runtime = |caller: &HostWindowHandle| {
+        let call = calls.fetch_add(1, Ordering::SeqCst);
+        let mut window_id = format!("window:{caller}");
+        // On the post-bind probe, simulate either a missing label or a label
+        // already bound to another window.
+        if racing.load(Ordering::SeqCst) && call % 2 == 1 {
+            if call % 4 == 1 {
+                return Err(TransferRuntimeError::UnmanagedCaller(caller.clone()));
             }
+            window_id = format!("replacement:{caller}");
         }
+        ManagedTransferSnapshot::new(caller, [managed_window(caller.as_str(), &window_id)])
     };
     let handler = TransferHandlerAssembly::new(runtime, Clock, limits());
 
     // Far more raced cycles than the client-window capacity: each must fail
     // with the runtime error, never with a capacity exhaustion from leaked
     // bindings.
-    for _ in 0..32 {
-        let error = handler.snapshot(&caller).unwrap_err();
+    for index in 0..32 {
+        let racing_caller = handle(&format!("racing-{index}"));
+        let error = handler.snapshot(&racing_caller).unwrap_err();
         assert!(
             matches!(error, TransferHandlerError::Runtime(_)),
             "raced snapshot leaked capacity: {error:?}"

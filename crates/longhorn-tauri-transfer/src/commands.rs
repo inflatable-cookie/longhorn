@@ -6,7 +6,7 @@ use longhorn_transfer::{
     TransferLeaseResponse, TransferSessionResponse,
 };
 use longhorn_windowing::HostWindowHandle;
-use tauri::{Emitter, Runtime, State, WebviewWindow};
+use tauri::{Emitter, EventTarget, Runtime, State, WebviewWindow};
 
 use crate::{
     ManagedTransferRuntime, PanelTransferAdapter, TransferHandlerAssembly, TransferHandlerError,
@@ -26,9 +26,10 @@ pub use surface::{
 };
 
 trait ErasedTransferCommands: Send + Sync {
-    fn snapshot(
+    fn snapshot_and_publish(
         &self,
         caller: &HostWindowHandle,
+        publish: &dyn Fn(&TransferClientSnapshot),
     ) -> Result<TransferClientSnapshot, TransferHandlerError>;
 
     fn start_panel(
@@ -159,11 +160,12 @@ where
     C: MonotonicClock + Send + Sync + 'static,
     P: PanelTransferAdapter + Send + 'static,
 {
-    fn snapshot(
+    fn snapshot_and_publish(
         &self,
         caller: &HostWindowHandle,
+        publish: &dyn Fn(&TransferClientSnapshot),
     ) -> Result<TransferClientSnapshot, TransferHandlerError> {
-        Self::snapshot(self, caller)
+        self.handler.snapshot_and_publish(caller, publish)
     }
 
     fn start_panel(
@@ -202,9 +204,6 @@ where
 /// Type-erased transfer commands installed once in Tauri managed state.
 pub struct TauriTransferState {
     commands: Arc<dyn ErasedTransferCommands>,
-    // Serializes snapshot acquisition with client-changed emission so two
-    // concurrent snapshots cannot deliver their events out of epoch order.
-    snapshot_emit: Arc<Mutex<()>>,
 }
 
 impl TauriTransferState {
@@ -216,10 +215,7 @@ impl TauriTransferState {
         C: MonotonicClock + Send + Sync + 'static,
         P: PanelTransferAdapter + Send + 'static,
     {
-        Self {
-            commands,
-            snapshot_emit: Arc::new(Mutex::new(())),
-        }
+        Self { commands }
     }
 }
 
@@ -247,27 +243,20 @@ pub async fn longhorn_transfer_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriTransferState>,
 ) -> Result<TransferClientSnapshot, TransferHostError> {
-    let caller = caller_handle(&window)?;
-    let commands = Arc::clone(&state.commands);
-    let snapshot_emit = Arc::clone(&state.snapshot_emit);
     let emit_window = window.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        let _ordered = snapshot_emit
-            .lock()
-            .map_err(|_| TransferHostError::state_unavailable())?;
-        let snapshot = commands
-            .snapshot(&caller)
-            .map_err(TransferHostError::from)?;
-        // The invoke result is the authoritative delivery; the event is advisory
-        // to other listeners. The epoch has already advanced, so an emit failure
-        // must not hide the new authority behind an error.
-        if let Err(error) = emit_window.emit(TRANSFER_CLIENT_CHANGED_EVENT, &snapshot) {
-            longhorn_core::report_best_effort_failure("transfer.client-changed-emit", error);
-        }
-        Ok(snapshot)
+    run_blocking(state, &window, move |commands, caller| {
+        commands.snapshot_and_publish(caller, &|snapshot| {
+            // Emission is advisory once the invoke has issued new authority.
+            if let Err(error) = emit_window.emit_to(
+                EventTarget::webview_window(emit_window.label()),
+                TRANSFER_CLIENT_CHANGED_EVENT,
+                snapshot,
+            ) {
+                longhorn_core::report_best_effort_failure("transfer.client-changed-emit", error);
+            }
+        })
     })
     .await
-    .map_err(|_| TransferHostError::state_unavailable())?
 }
 
 /// Admits one current panel transfer session.
