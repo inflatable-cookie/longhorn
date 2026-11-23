@@ -1272,4 +1272,18 @@ export type OuterCommand = { \
             variant_field_map("generate:test", "MAP", &[declaration.to_owned()]).unwrap();
         assert!(!rendered.contains("Wrapper"));
     }
+
+    #[test]
+    fn string_union_variants_preserves_delimiters_and_comment_markers_in_literals() {
+        let declaration =
+            r#"/** a = b */ export type Token<T = "x"> = "a|b" | "http://example.com" | "x=y";"#;
+        assert_eq!(
+            string_union_variants(declaration).unwrap(),
+            vec![
+                "a|b".to_owned(),
+                "http://example.com".to_owned(),
+                "x=y".to_owned(),
+            ]
+        );
+    }
 }
