@@ -81,17 +81,24 @@ systems. Their absence here is intentional, not a package limitation.
 Run:
 
 ```sh
-effigy qa:northstar:g01-greenfield-card125
+effigy proof:artifacts
 ```
 
-The proof packs 13 Longhorn TypeScript packages and five Poodle packages, then
-installs, checks, builds, and mounts all four renderers outside either source
-workspace. It inventories and archives 26 Rust crates, reconstructs a private
-workspace with the supported lock, runs all four roots offline on Rust 1.85,
-and runs optional server again without its server feature.
+[`scripts/verify-greenfield-compositions.ts`](../../../scripts/verify-greenfield-compositions.ts)
+packs the three Longhorn TypeScript packages (`@inflatable-cookie/longhorn`,
+`@inflatable-cookie/longhorn-poodle-svelte`, `@inflatable-cookie/longhorn-tauri`)
+against the two published Poodle packages (`@inflatable-cookie/poodle-core`,
+`@inflatable-cookie/poodle-svelte`), then installs, checks, builds, and mounts
+all four renderers outside either source workspace. It inventories and archives
+the 25 Rust crates listed in `allRustCrates` in
+`scripts/verify-greenfield-compositions.ts`, reconstructs a private workspace with the
+supported lock, runs all four roots offline at the MSRV declared in
+[`release-baselines/rust-toolchains.env`](../../../release-baselines/rust-toolchains.env)
+(currently Rust `1.97.1`), and runs optional server again without its server
+feature.
 
 The exact source, artifact-set, inventory, graph, and audit receipt is
-`fixtures/greenfield/card125/composition-matrix-v1.json`. The verifier rejects
+`fixtures/greenfield/composition-matrix-v1.json`. The verifier rejects
 selected-source drift, sibling resolution, optional-edge leakage, extra
 runtimes, donor vocabulary, copied Poodle implementation, umbrella packages,
 and package-manager publication.

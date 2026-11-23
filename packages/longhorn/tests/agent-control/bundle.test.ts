@@ -37,13 +37,31 @@ describe("agent-control packaging", () => {
     expect(second).toBe(first);
     window.console.log("one");
     const early = first.readEvents(0);
+    expect(early.epoch.length).toBeGreaterThan(0);
     expect(early.events.some((event) => event.kind === "console" && event.text === "one")).toBe(
       true,
     );
     window.console.log("two");
-    const later = first.readEvents(early.nextSeq - 1);
+    const later = first.readEvents(early.nextSeq - 1, early.epoch);
+    expect(later.epoch).toBe(early.epoch);
     expect(later.events.map((event) => ("text" in event ? event.text : ""))).toEqual(["two"]);
     expect(early.dropped).toBe(0);
     expect(EVENT_BUFFER_LIMIT).toBeGreaterThan(0);
+
+    // A reloaded document gets a fresh epoch, records its full-document load
+    // as a navigation event at seq 1, and passing the old cursor + old epoch
+    // resets to seq 0 so neither the navigation nor early events are lost.
+    const reloaded = openPage(`<button>Reloaded</button>`);
+    const reloadedApi = install(reloaded);
+    reloaded.console.log("before-load-finish");
+    const afterReload = reloadedApi.readEvents(later.nextSeq - 1, later.epoch);
+    expect(afterReload.epoch).not.toBe(early.epoch);
+    expect(afterReload.events[0]?.kind).toBe("navigation");
+    expect(afterReload.events[0]?.seq).toBe(1);
+    expect(
+      afterReload.events
+        .filter((event) => event.kind === "console")
+        .map((event) => ("text" in event ? event.text : "")),
+    ).toEqual(["before-load-finish"]);
   });
 });

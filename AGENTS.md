@@ -40,7 +40,8 @@ effigy test --plan
 effigy qa
 ```
 
-`doctor` is cheap orientation: it runs `fmt:rust`, `check:runner-tools`, and
+`doctor` is cheap orientation: it runs `health` (`fmt:rust`,
+`check:runner-tools`, `check:release-gates`, `check:agent-control-skill`) and
 built-in scans without compiling the workspace. `effigy qa` is the full
 Rust/TypeScript gate. `effigy test` uses the built-in test plan, which runs
 nextest and therefore does not cover the doc tests counted by `qa`. Use
@@ -82,22 +83,30 @@ Oxide owns local Cargo output placement. A route that needs a private directory
 keeps final outputs on external build scratch and never on the internal drive,
 the account home or a drive root:
 
-- `OXIDE_TASK_SCRATCH_ROOT`, when set, must already exist. Missing scratch fails
-  the route; nothing creates it, so an unmounted build volume cannot turn into
-  an ordinary directory on the internal drive.
-- The default is the build volume's own `scratch` directory, which must exist;
-  the repository creates only its `longhorn` child below it.
-- `scripts/rust-command.ts` (`taskScratch`, for TypeScript routes) and
-  `scripts/external-scratch.sh` (its shell counterpart) resolve a path before
-  accepting it and refuse one inside the internal temp directory, the account
-  home, a boot-volume top-level directory or a volume mount root.
+- `OXIDE_TASK_SCRATCH_ROOT`, when set, wins. It must already exist. Missing
+  scratch fails the route; nothing creates it, so an unmounted build volume
+  cannot turn into an ordinary directory on the internal drive.
+- When it is unset, the default is the scratch root Oxide reports for its
+  registered removable build pool (`oxide pool describe --json`,
+  `removable.suggested_scratch_root`, only when `removable.available` is true).
+  Nothing is hard-coded to a volume name. Any gap (no Oxide, no available pool,
+  no suggested root, or a missing directory) fails closed and names
+  `OXIDE_TASK_SCRATCH_ROOT`. The repository creates only a `longhorn` child below
+  the default root.
+- The resolved root, configured or reported, is refused when it is a drive root,
+  a boot-volume top-level directory, a volume mount root, the account home, or on
+  the boot volume. The internal drive is judged by volume
+  (the device of `/` or of the account home), never by `TMPDIR`: Nucleus points
+  `TMPDIR` at external scratch, and a `TMPDIR` on the boot volume is still refused.
+  `scripts/rust-command.ts` owns this rule (`taskScratch`, and the `scratch`
+  command that `scripts/external-scratch.sh` runs for shell routes).
 - Hosted CI keeps its runner-owned temporary storage.
 
 `oxide exec` replaces a `CARGO_TARGET_DIR` inherited on the outer call with
 `<workspace>/target`, so the private directory survives only when it is set
 inside the lease: `scripts/private-cargo.sh` is the tool behind the lease, it
-exports `CARGO_TARGET_DIR` (and, for the two scans, `CARGO_BUILD_BUILD_DIR`) for
-the plain Cargo child it runs, and it makes no routing decision of its own.
+exports `CARGO_TARGET_DIR` for the plain Cargo child it runs, and it makes no
+routing decision of its own.
 Setting either variable on the outer `exec` call, or in a proof's member
 environment, does nothing. Only `CARGO_TARGET_DIR` moves final outputs: an
 inherited `CARGO_BUILD_BUILD_DIR` still sends intermediates to the held slot, so
@@ -125,19 +134,17 @@ live on external build scratch and are removed after use.
 | Route | Form |
 | --- | --- |
 | Every `lint:*`/`test:*`/`docs:*` Rust selector, `check:prototypes`, `check:bindings`, `release:floor`, `ci:rehearse` | `rust-command.sh <cargo command>` |
-| `effigy fmt:rust` | `rust-command.sh fmt --check -p …` and `rust-command.sh metadata --no-deps` |
+| `effigy fmt:rust` | `rust-command.sh fmt --check -p …` (workspace), `rust-command.sh fmt --check` (prototypes), `rust-command.sh metadata --no-deps`, plus `rustfmt --edition 2024 --check` on staged example sources |
 | `[release.gates] advisories` / `effigy release:gates` | `rust-command.sh deny check advisories` |
-| `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`, `scripts/generate-api-reference-card126.ts` | `rustCommand(["metadata", …])` |
+| `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`, `scripts/generate-api-reference.ts` | `rustCommand(["metadata", …])` |
 | Checkout-level `package --list` inventories, bindings `run` checks, `tree` reads and `-p` tests in the proofs and the two absence scans | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |
 | Staged and disposable consumer builds: the `scripts/proof-artifacts.ts` members, `scripts/verify-desktop-support-conformance.ts`, `scripts/verify-agent-tool-dispatch-source-consumer.ts`, `scripts/verify-source-consumer.sh` | `rustExec(privateCargoCommand(...))`, one boundary per staged workspace, at the MSRV pin where the staged crates need it |
-| `check:agent-control-release-absence`, `check:agent-tool-dispatch-release-absence` | `rustExec(privateCargoCommand(..., { buildDir: true }))` with `--profile release` |
+| `check:agent-control-release-absence`, `check:agent-tool-dispatch-release-absence` | `rustExec(privateCargoCommand(...), { profile: "release" })`; the scan reads the rlib paths Cargo reports in `--message-format=json` output (`libraryArchives`), not a directory layout |
 | `cargo tauri build` in the example and prototype READMEs | documented as `oxide exec -- cargo tauri build`; source guidance only, no live Tauri run is claimed |
 
-Intentional private-layout exceptions: the two release-absence scans read
-Cargo's own `target/<profile>/deps` layout, so each pins
-`CARGO_BUILD_BUILD_DIR` to its private per-feature target inside the lease and
-keeps disjoint feature outputs. Those intermediates do not pool. Every other
-staged consumer keeps private final outputs and pools its intermediates.
+Each feature state of the release-absence scans is its own private final output
+directory, so no scan pins `CARGO_BUILD_BUILD_DIR`: intermediates pool like every
+other staged consumer's, and Cargo keys them by feature.
 
 Genuine Cargo exceptions:
 
@@ -145,7 +152,7 @@ Genuine Cargo exceptions:
 | --- | --- |
 | `.github/workflows/*`, including its `cargo metadata` step | CI, and workflow edits need approval |
 | Effigy's own `cargo update --workspace` lockfile sync from `config/release.toml` | Not a Longhorn entry point; Effigy runs it |
-| `scripts/check-runner-tools.ts`, `scripts/check-release-runner-tools.ts` | Read `cargo deny`/`cargo install` as text to check workflow installs; not entry points |
+| `scripts/check-runner-tools.ts` | Read `cargo deny`/`cargo install` as text to check workflow installs; not entry points |
 | `scripts/workspace-dependencies.ts` | Reads `Cargo.toml` text; runs no Cargo |
 | A consumer's own project commands in `docs/guides/` | Product Cargo behavior in the consumer's checkout, not this repository's route |
 | `.git/queue-hooks` warm-merge manifest | Nucleus-owned, outside the repository |

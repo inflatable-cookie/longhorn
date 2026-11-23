@@ -4,9 +4,9 @@ use longhorn_core::{DomainId, RegionId, ScreenPoint, ScreenRect, ScreenSize, Sur
 use longhorn_transfer::{
     ClientEpoch, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone, DropZoneId,
     InsertionPosition, LeaseGeneration, LeasePublication, LiveTransferWindow, MonotonicClock,
-    TransferCapability, TransferClientId, TransferCoordinator, TransferDuration,
-    TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision,
-    TransferSourceAuthority, TransferSubjectId, TransferTargetBinding,
+    TransferClientId, TransferCoordinator, TransferDuration, TransferHostBindingId,
+    TransferInstant, TransferLimits, TransferRevision, TransferSourceAuthority, TransferSubjectId,
+    TransferTargetBinding,
 };
 
 pub struct FakeClock(Cell<u64>);
@@ -142,7 +142,6 @@ pub fn panel_zone(id: &str, bounds: ScreenRect, insertion: Option<u32>) -> DropZ
         DropZoneId::new(id).unwrap(),
         bounds,
         insertion.map(InsertionPosition::new),
-        TransferCapability::MovePanel,
         TransferTargetBinding::PanelRegion {
             host_binding_id: TransferHostBindingId::new("host:target").unwrap(),
             document_id: DomainId::new("layout.workspace").unwrap(),
@@ -158,7 +157,6 @@ pub fn surface_zone(id: &str, bounds: ScreenRect) -> DropZone {
         DropZoneId::new(id).unwrap(),
         bounds,
         None,
-        TransferCapability::MoveSurface,
         TransferTargetBinding::SurfaceWindow {
             host_binding_id: TransferHostBindingId::new("host:target").unwrap(),
             document_id: DomainId::new("surface.workspace").unwrap(),

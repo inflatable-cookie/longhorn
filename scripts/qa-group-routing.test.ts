@@ -38,8 +38,8 @@ const taskTableRoutes = [
   },
   {
     group: "longhorn-getting-started-docs",
-    task: "proof:guides-card126",
-    scope: ["input:effigy-task-table-proof-guides-card126"],
+    task: "proof:guide-corpus",
+    scope: ["input:effigy-task-table-proof-guide-corpus"],
   },
 ] as const;
 

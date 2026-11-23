@@ -58,6 +58,7 @@ Eighteen selected Rust crates were inventoried and archived from Longhorn
 `ec465b2a86fe6fbaef789b3677a8e7288e7df2d2`; three dev-only support crates
 enable isolated workspace checking but enter no consumer's normal graph. The
 Soundcheck, the minimal consumer, and Jetstream graphs pass locked and offline on Rust 1.85.0
+(the historical MSRV at the time of the Card 114 freeze; current workspace MSRV lives in `release-baselines/rust-toolchains.env`)
 with Tauri 2.11.5. Native-content isolated-window and backing-surface packages
 remain independently selected.
 
@@ -355,8 +356,8 @@ Jetstream-selected Longhorn and Poodle paths are unchanged and clean relative
 to the frozen artifact sources, even though broader Poodle work has advanced.
 The renderer graph has one Svelte runtime. Peer evidence is Svelte
 `>=5.38.6 <6`, Tauri API `^2.10.1`, optional Poodle Svelte `0.1.0`, resolved
-Svelte 5.56.8 and Tauri API 2.11.1. The Rust artifact graph proves Rust 1.85.0
-and Tauri 2.11.5.
+Svelte 5.56.8 and Tauri API 2.11.1. The frozen Card 124 Rust artifact graph proves Rust 1.85.0
+(historical MSRV at the time of the freeze) and Tauri 2.11.5.
 
 No raw state event, raw viewport endpoint, generic bridge execution bus,
 renderer shortcut table, or process-lifetime native leak remains. Engine,

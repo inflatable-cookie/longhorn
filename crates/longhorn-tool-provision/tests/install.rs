@@ -2,6 +2,8 @@
 
 #![cfg(feature = "fixture-server")]
 
+mod support;
+
 use std::{
     ffi::{OsStr, OsString},
     fs,
@@ -12,7 +14,7 @@ use std::{
         mpsc,
     },
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use fs4::FileExt;
@@ -27,6 +29,7 @@ use longhorn_tool_provision::{
 use secrecy::SecretString;
 use semver::Version as SemverVersion;
 use sha2::{Digest, Sha256};
+use support::{TarEntry, ZipEntry, tar_gz, zip_of};
 
 const OWNER: &str = "example-owner";
 const REPOSITORY: &str = "example-tool";
@@ -122,7 +125,7 @@ fn redactor() -> Redactor {
 #[cfg(unix)]
 #[test]
 fn production_runner_executes_a_program_with_its_argument_vector() {
-    let output = CommandRunner
+    let output = CommandRunner::default()
         .run(
             Path::new("/usr/bin/printf"),
             &[OsString::from("%s"), OsString::from("fixed argument")],
@@ -803,4 +806,260 @@ fn concurrent_installs_of_the_same_tool_are_refused() {
         third,
         InstallError::Fault(InstallFault::ConcurrentInstall { .. })
     ));
+}
+
+#[cfg(unix)]
+#[test]
+fn production_runner_stops_a_process_that_outlives_its_limit() {
+    let started = Instant::now();
+    let error = CommandRunner::with_timeout(Duration::from_millis(200))
+        .run(Path::new("/bin/sleep"), &[OsString::from("30")])
+        .expect_err("a process past its limit is stopped");
+    assert!(error.detail().contains("did not finish"), "{error}");
+    assert!(started.elapsed() < Duration::from_secs(10));
+}
+
+#[cfg(unix)]
+#[test]
+fn production_runner_gives_the_process_no_standard_input() {
+    // `cat` copies standard input, so it finishes at once only when that
+    // input is closed rather than inherited from the caller.
+    let output = CommandRunner::with_timeout(Duration::from_secs(5))
+        .run(Path::new("/bin/cat"), &[])
+        .expect("cat sees end of input");
+    assert!(output.success());
+    assert!(output.stdout().is_empty());
+}
+
+#[test]
+fn a_raw_asset_named_like_its_binary_installs() {
+    // The download and the staged executable once both took the binary's
+    // name, so this install failed on the staged file's create-new.
+    let binary = bytes("1.2.3");
+    let server = fixture(TAG, &[(BINARY, binary.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let pinned = digest(&binary);
+    let mut tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned));
+    tool.asset = BINARY;
+
+    let receipt = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &version_runner(),
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect("a raw asset named like its binary installs");
+
+    assert_eq!(receipt.version(), "1.2.3");
+    assert_eq!(
+        fs::read(root.path().join("bin").join(BINARY)).unwrap(),
+        binary
+    );
+    assert_eq!(fs::read_dir(root.path().join("bin")).unwrap().count(), 1);
+}
+
+#[test]
+fn a_tar_gz_artifact_installs_the_declared_member() {
+    let binary = bytes("1.2.3");
+    let archive = tar_gz(&[
+        TarEntry::File {
+            name: "example-tool-1.2.3/README",
+            bytes: b"readme\n".to_vec(),
+            mode: 0o644,
+        },
+        TarEntry::File {
+            name: "example-tool-1.2.3/bin/example-tool",
+            bytes: binary.clone(),
+            mode: 0o755,
+        },
+    ]);
+    let server = fixture(TAG, &[(ASSET, archive.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let pinned = digest(&archive);
+    let mut tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned));
+    tool.shape = ArtifactShape::TarGz {
+        member: "example-tool-1.2.3/bin/example-tool",
+    };
+
+    let receipt = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &version_runner(),
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect("the tar member installs");
+
+    assert_eq!(receipt.version(), "1.2.3");
+    assert_eq!(
+        fs::read(root.path().join("bin").join(BINARY)).unwrap(),
+        binary
+    );
+    assert_eq!(fs::read_dir(root.path().join("bin")).unwrap().count(), 1);
+}
+
+#[test]
+fn a_zip_artifact_installs_the_declared_member() {
+    let binary = bytes("1.2.3");
+    let archive = zip_of(&[
+        ZipEntry::File {
+            name: "example-tool-1.2.3/README",
+            bytes: b"readme\n".to_vec(),
+        },
+        ZipEntry::File {
+            name: "example-tool-1.2.3/bin/example-tool",
+            bytes: binary.clone(),
+        },
+    ]);
+    let server = fixture(TAG, &[(ASSET, archive.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let pinned = digest(&archive);
+    let mut tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned));
+    tool.shape = ArtifactShape::Zip {
+        member: "example-tool-1.2.3/bin/example-tool",
+    };
+
+    let receipt = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &version_runner(),
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect("the zip member installs");
+
+    assert_eq!(receipt.version(), "1.2.3");
+    assert_eq!(
+        fs::read(root.path().join("bin").join(BINARY)).unwrap(),
+        binary
+    );
+    assert_eq!(fs::read_dir(root.path().join("bin")).unwrap().count(), 1);
+}
+
+#[test]
+fn a_leftover_backup_requires_recovery_and_is_never_overwritten() {
+    let server = fixture(TAG, &[(ASSET, bytes("2.0.0"))]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let bin = root.path().join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    let binary_path = bin.join(BINARY);
+    let backup_path = bin.join(format!(".{BINARY}.previous"));
+    fs::write(&binary_path, bytes("1.0.0")).unwrap();
+    fs::write(&backup_path, b"the only copy of 0.9.0").unwrap();
+    let pinned = digest(&bytes("2.0.0"));
+    let tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned));
+
+    let error = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &version_runner(),
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect_err("a leftover backup stops the install");
+
+    assert!(matches!(
+        error,
+        InstallError::Fault(InstallFault::RecoveryRequired { .. })
+    ));
+    assert!(server.request_paths().is_empty(), "no release is contacted");
+    assert_eq!(fs::read(&backup_path).unwrap(), b"the only copy of 0.9.0");
+    assert_eq!(fs::read(&binary_path).unwrap(), bytes("1.0.0"));
+}
+
+#[test]
+fn a_failed_rollback_keeps_the_restore_failure_beside_the_cause() {
+    let old = bytes("1.0.0");
+    let new = bytes("2.0.0");
+    let server = fixture("v2.0.0", &[(ASSET, new.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let binary_path = root.path().join("bin").join(BINARY);
+    fs::create_dir_all(binary_path.parent().unwrap()).unwrap();
+    fs::write(&binary_path, &old).unwrap();
+    let final_path = fs::canonicalize(&binary_path).unwrap();
+    let backup_path = final_path
+        .parent()
+        .unwrap()
+        .join(format!(".{BINARY}.previous"));
+    let new_for_runner = new.clone();
+    let backup_for_runner = backup_path.clone();
+    let final_for_runner = final_path.clone();
+    // Once the new binary is probed after the swap, the backup disappears, so
+    // the restore has nothing to rename back.
+    let runner = TestRunner(move |program: &Path, arguments: &[OsString]| {
+        let contents = fs::read(program).unwrap_or_default();
+        if program == final_for_runner && contents == new_for_runner {
+            fs::remove_file(&backup_for_runner).unwrap();
+            return Ok(ProcessOutput::new(
+                b"new executable failed".to_vec(),
+                Vec::new(),
+                false,
+                Some(7),
+            ));
+        }
+        version_runner().run(program, arguments)
+    });
+    let new_digest = digest(&new);
+    let tool = description(Some("v2.0.0"), None, DigestDeclaration::Pinned(&new_digest));
+
+    let error = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &runner,
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect_err("the post-swap probe fails and the restore cannot run");
+    match error {
+        InstallError::Fault(InstallFault::Rollback { cause, detail }) => {
+            assert!(matches!(
+                *cause,
+                InstallError::Fault(InstallFault::Probe {
+                    phase: ProbePhase::Installed,
+                    ..
+                })
+            ));
+            assert!(
+                detail.contains(&final_path.display().to_string()),
+                "{detail}"
+            );
+        }
+        other => panic!("expected a rollback fault, got {other:?}"),
+    }
+    assert!(!backup_path.exists());
+}
+
+#[test]
+fn install_errors_chain_to_the_class_that_caused_them() {
+    use std::error::Error as _;
+    let refusal = InstallError::Refused(InstallRefusal::BelowFloor {
+        found: Version::new(0, 9, 0),
+        floor: Version::new(1, 0, 0),
+    });
+    assert!(refusal.source().is_some());
+    let rollback = InstallError::Fault(InstallFault::Rollback {
+        cause: Box::new(refusal),
+        detail: "the restore failed".to_owned(),
+    });
+    let fault = rollback.source().expect("the fault names its class");
+    let cause = fault
+        .source()
+        .expect("a rollback names the failure it undid");
+    assert!(cause.source().is_some(), "the refusal names its own class");
 }

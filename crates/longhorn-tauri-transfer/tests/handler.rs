@@ -10,9 +10,9 @@ use longhorn_tauri_transfer::{
     project_client_point, project_client_rect,
 };
 use longhorn_transfer::{
-    ClientDropZone, ClientEpoch, LeaseGeneration, MonotonicClock, TransferCapability,
-    TransferDuration, TransferInstant, TransferLeaseRequest, TransferLeaseResponse, TransferLimits,
-    TransferRevision, TransferTargetBinding,
+    ClientDropZone, ClientEpoch, LeaseGeneration, MonotonicClock, TransferDuration,
+    TransferInstant, TransferLeaseRequest, TransferLeaseResponse, TransferLimits, TransferRevision,
+    TransferTargetBinding,
 };
 use longhorn_windowing::HostWindowHandle;
 
@@ -213,7 +213,6 @@ fn lease_request(
             DropZoneId::new("zone:primary").unwrap(),
             bounds,
             None,
-            TransferCapability::MovePanel,
             TransferTargetBinding::PanelRegion {
                 host_binding_id: TransferHostBindingId::new("binding:main").unwrap(),
                 document_id: DomainId::new("layout.main").unwrap(),

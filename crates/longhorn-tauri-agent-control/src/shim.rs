@@ -4,7 +4,7 @@
 //! Injection is gated with this module behind `agent-control`; the
 //! release-absence scan forbids the asset markers in a featureless build.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use longhorn_agent_control::{
     ActionReceipt, FileInputFile, PageState, SemanticNode, ToolError, WaitForResult, WaitPredicate,
@@ -162,18 +162,22 @@ pub fn decode_wait(value: Value) -> Result<bool, ToolError> {
 }
 
 /// Host-side `wait_for` pacing: the shim answers "holds now?"; timeout
-/// lives here. No time-only predicate exists in the shim.
+/// lives here and bounds both sleep intervals and each individual `check()`
+/// evaluation. No time-only predicate exists in the shim.
 pub async fn poll_until<F, Fut>(timeout_ms: u32, mut check: F) -> Result<WaitForResult, ToolError>
 where
     F: FnMut() -> Fut,
     Fut: std::future::Future<Output = Result<bool, ToolError>>,
 {
-    let deadline = Instant::now() + Duration::from_millis(u64::from(timeout_ms));
+    let deadline = tokio::time::Instant::now() + Duration::from_millis(u64::from(timeout_ms));
     loop {
-        if check().await? {
-            return Ok(WaitForResult {});
+        match tokio::time::timeout_at(deadline, check()).await {
+            Ok(Ok(true)) => return Ok(WaitForResult {}),
+            Ok(Ok(false)) => {}
+            Ok(Err(error)) => return Err(error),
+            Err(_) => return Err(ToolError::WaitTimeout { timeout_ms }),
         }
-        let now = Instant::now();
+        let now = tokio::time::Instant::now();
         if now >= deadline {
             return Err(ToolError::WaitTimeout { timeout_ms });
         }
@@ -296,5 +300,13 @@ console.log(JSON.stringify(results));
         .await
         .unwrap();
         assert_eq!(result, WaitForResult {});
+    }
+
+    #[tokio::test]
+    async fn poll_until_bounds_a_hanging_check() {
+        let error = poll_until(30, std::future::pending::<Result<bool, ToolError>>)
+            .await
+            .unwrap_err();
+        assert_eq!(error, ToolError::WaitTimeout { timeout_ms: 30 });
     }
 }

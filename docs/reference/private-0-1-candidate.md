@@ -4,7 +4,7 @@ Status: checked private candidate
 Version: `0.1.0`
 Date: 2026-08-02
 Machine receipt:
-[`private-0-1-candidate-v1.json`](../../fixtures/release/card127/private-0-1-candidate-v1.json)
+[`private-0-1-candidate-v1.json`](../../fixtures/release/private-0-1-candidate-v1.json)
 
 This is an installable local compatibility candidate, not a registry, tag, or
 hosted release. Working package names and registry ownership remain unresolved.
@@ -15,7 +15,7 @@ The candidate is the *only* documented way to consume Longhorn today. There is
 no npm, crates.io, or hosted download.
 
 - The machine receipt is
-  [`fixtures/release/card127/private-0-1-candidate-v1.json`](../../fixtures/release/card127/private-0-1-candidate-v1.json):
+  [`fixtures/release/private-0-1-candidate-v1.json`](../../fixtures/release/private-0-1-candidate-v1.json):
   it records every artifact set, checksum, frozen source commit, and consumer
   graph.
 - The receipt is produced (and re-producible) by the private-candidate
@@ -97,7 +97,7 @@ public-release gate.
 
 Each renderer installs from produced tarballs outside sibling workspace
 resolution. Each graph has one Svelte `5.56.8` runtime and one Tauri API
-`2.11.1` runtime. Each Rust root checks offline with Rust `1.85.0`, the exact
+`2.11.1` runtime. Each Rust root checks offline with Rust `1.85.0` (the historical MSRV at the 2026-08-02 freeze; current workspace MSRV lives in [`release-baselines/rust-toolchains.env`](../../release-baselines/rust-toolchains.env)), the exact
 candidate lock, and Tauri `2.11.5` where selected. The greenfield optional-
 server proof separately checks `--no-default-features` local authority.
 

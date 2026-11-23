@@ -439,7 +439,7 @@ Examples arrive with the capability they prove:
   installs plus pure and Tauri-hosted Rust graphs
 - `operation-notification-proof`: isolated minimal operation, Soundcheck scan,
   Loophole render/notification, and notification-only installs
-- `nucleus-no-surface-proof`: window-bound workspace without Surface packages
+- `window-bound-hosting-proof`: direct window hosting with one unlabelled layout Surface
 - optional local or remote service
 - installation from produced release artifacts
 

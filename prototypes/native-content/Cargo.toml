@@ -2,7 +2,7 @@
 name = "longhorn-native-content-prototype"
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.97.1"
 publish = false
 
 [workspace]

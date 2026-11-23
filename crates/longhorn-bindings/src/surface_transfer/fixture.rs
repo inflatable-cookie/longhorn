@@ -52,6 +52,8 @@ pub fn render(error_codes: &[String]) -> Result<String, Box<dyn Error>> {
         ),
     ];
     let aborts = aborts(error_codes)?;
+    let session_abort = find_abort(&aborts, "surface_transfer", "unknown_surface");
+    let commit_abort = find_abort(&aborts, "transfer", "lease_expired");
     let session_responses = vec![
         typed(json!({
             "status": "started",
@@ -64,7 +66,7 @@ pub fn render(error_codes: &[String]) -> Result<String, Box<dyn Error>> {
                 }
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[0]}))?,
+        typed(json!({"status": "aborted", "abort": session_abort}))?,
     ];
     let commit_responses = vec![
         typed(json!({
@@ -105,7 +107,7 @@ pub fn render(error_codes: &[String]) -> Result<String, Box<dyn Error>> {
                 })
             )
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[1]}))?,
+        typed(json!({"status": "aborted", "abort": commit_abort}))?,
     ];
     let fixture = GoldenFixture {
         protocol_version: TRANSFER_PROTOCOL_VERSION,
@@ -161,13 +163,13 @@ fn aborts(error_codes: &[String]) -> Result<Vec<SurfaceTransferAbort>, serde_jso
                 "request_id": format!("request:surface-error-{index:02}"),
                 "source": {"domain": "surface_transfer", "code": code},
                 "surface_code": if code == "surface_mutation_rejected" {
-                    Some("stale_revision")
+                    Some("move_target_unchanged")
                 } else {
                     None
                 },
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
-                "session_consumed": index % 2 == 0,
+                "session_consumed": surface_code_consumes_session(code),
                 "reconciliation_required": code == "host_reconciliation_required",
             }))
         })
@@ -184,6 +186,45 @@ fn aborts(error_codes: &[String]) -> Result<Vec<SurfaceTransferAbort>, serde_jso
             }))
         }))
         .collect()
+}
+
+fn find_abort<'a>(
+    aborts: &'a [SurfaceTransferAbort],
+    domain: &str,
+    code: &str,
+) -> &'a SurfaceTransferAbort {
+    aborts
+        .iter()
+        .find(|abort| {
+            serde_json::to_value(abort.source())
+                .ok()
+                .is_some_and(|value| value["domain"] == domain && value["code"] == code)
+        })
+        .unwrap_or_else(|| panic!("missing surface-transfer abort fixture for {domain}:{code}"))
+}
+
+// Codes that can occur during either admission or commit (such as
+// `unknown_host_binding` or `stale_host_binding`) are represented in their
+// unconsumed admission phase here; commit-only codes are always consumed.
+fn surface_code_consumes_session(code: &str) -> bool {
+    matches!(
+        code,
+        "unsupported_source"
+            | "unsupported_target"
+            | "cross_document"
+            | "stale_surface_revision"
+            | "ineligible_target"
+            | "target_changed"
+            | "invalid_insertion_position"
+            | "empty_display_disabled"
+            | "no_empty_display_target"
+            | "ambiguous_empty_display_target"
+            | "provision_failed"
+            | "provision_receipt_mismatch"
+            | "surface_mutation_rejected"
+            | "publication_failed"
+            | "host_reconciliation_required"
+    )
 }
 
 fn typed<T: serde::de::DeserializeOwned>(value: Value) -> Result<T, serde_json::Error> {

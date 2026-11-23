@@ -415,3 +415,58 @@ impl fmt::Display for StorageBootstrapPathError {
 }
 
 impl Error for StorageBootstrapPathError {}
+
+/// The fixed locator could not be written, read, or judged.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum StorageLocatorError {
+    /// The locator file exists but could not be read.
+    Unreadable {
+        /// Bounded host description.
+        detail: String,
+    },
+    /// The locator file is not a locator document.
+    InvalidDocument {
+        /// The decoder's description.
+        detail: String,
+    },
+    /// The locator names a schema version this build does not read.
+    UnsupportedSchema {
+        /// The schema version the file names.
+        observed: u32,
+    },
+    /// The explicit root is not UTF-8. The JSON locator would have to replace
+    /// its bytes, so the locator would name a different directory.
+    NonUtf8Root {
+        /// The root that cannot be written.
+        path: PathBuf,
+    },
+}
+
+impl fmt::Display for StorageLocatorError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unreadable { detail } => {
+                write!(formatter, "the storage locator could not be read: {detail}")
+            }
+            Self::InvalidDocument { detail } => {
+                write!(
+                    formatter,
+                    "the storage locator is not a valid document: {detail}"
+                )
+            }
+            Self::UnsupportedSchema { observed } => {
+                write!(
+                    formatter,
+                    "the storage locator uses unsupported schema version {observed}"
+                )
+            }
+            Self::NonUtf8Root { path } => write!(
+                formatter,
+                "the explicit storage root is not valid UTF-8 and cannot be written: {}",
+                path.display()
+            ),
+        }
+    }
+}
+
+impl Error for StorageLocatorError {}

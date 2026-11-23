@@ -54,12 +54,15 @@ impl BrowserUrl {
             ) => return Err(BrowserUrlError::NotHttps),
         };
 
+        // Indices are byte offsets into the whole URL, so they stay right for
+        // `http://` as well as `https://`.
+        let body_start = value.len() - rest.len();
         if let Some((index, character)) = rest
             .char_indices()
             .find(|(_, character)| !character.is_ascii())
         {
             return Err(BrowserUrlError::NonAscii {
-                index: index + "https://".len(),
+                index: body_start + index,
                 character,
             });
         }
@@ -68,22 +71,25 @@ impl BrowserUrl {
             .find(|(_, character)| character.is_ascii_control() || character.is_ascii_whitespace())
         {
             return Err(BrowserUrlError::ControlOrWhitespace {
-                index: index + "https://".len(),
+                index: body_start + index,
             });
         }
 
-        // The authority ends at the first `/`, `?` or `#`.
-        let authority_end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
-        let authority = &rest[..authority_end];
-        if authority.is_empty() {
+        // The host ends at the first `/`, `\`, `?` or `#`, as WHATWG and
+        // `longhorn-url` read it. The backslash is a path separator to WHATWG
+        // parsers, so it ends the host here too.
+        let host_end = rest.find(['/', '\\', '?', '#']).unwrap_or(rest.len());
+        if host_end == 0 {
             return Err(BrowserUrlError::MissingHost);
         }
         // `user:password@host` puts credentials in browser history and in any
         // launcher's argument logging, and it is also how a hostile URL
-        // disguises its real host from a reader. Shared loopback classification
-        // accepts userinfo on a genuine loopback host; this launcher allowlist
-        // still refuses it.
-        if authority.contains('@') {
+        // disguises its real host from a reader. Credentials are judged on the
+        // segment before the first `/`, `?` or `#`, so a backslash cannot move
+        // an `@` out of view. Shared loopback classification accepts userinfo
+        // on a genuine loopback host; this launcher allowlist still refuses it.
+        let segment_end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
+        if rest[..segment_end].contains('@') {
             return Err(BrowserUrlError::EmbeddedCredentials);
         }
 
@@ -339,6 +345,42 @@ mod loopback_tests {
                 "{value}"
             );
         }
+    }
+
+    /// Every containment rule still applies to a loopback URL.
+    /// The host ends at a backslash for `https` too, so an empty host before
+    /// one is a missing host, and a backslash cannot hide an `@` from the
+    /// credentials rule.
+    #[test]
+    fn a_backslash_cannot_hide_credentials_or_leave_the_host_empty() {
+        assert_eq!(
+            BrowserUrl::new(r"https://\@accounts.example.com/"),
+            Err(BrowserUrlError::MissingHost)
+        );
+        assert_eq!(
+            BrowserUrl::new(r"https://evil.example\@accounts.example.com/"),
+            Err(BrowserUrlError::EmbeddedCredentials)
+        );
+    }
+
+    /// Error indices count from the start of the URL, for either scheme.
+    #[test]
+    fn error_indices_are_offsets_into_the_whole_url() {
+        assert_eq!(
+            BrowserUrl::new("http://127.0.0.1/a b"),
+            Err(BrowserUrlError::ControlOrWhitespace { index: 18 })
+        );
+        assert_eq!(
+            BrowserUrl::new("http://127.0.0.1/é"),
+            Err(BrowserUrlError::NonAscii {
+                index: 17,
+                character: 'é',
+            })
+        );
+        assert_eq!(
+            BrowserUrl::new("https://example.com/a b"),
+            Err(BrowserUrlError::ControlOrWhitespace { index: 21 })
+        );
     }
 
     /// Every containment rule still applies to a loopback URL.

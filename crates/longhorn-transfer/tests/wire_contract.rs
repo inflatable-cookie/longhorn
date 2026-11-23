@@ -2,11 +2,12 @@
 
 use longhorn_core::{
     ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, RegionId, SurfaceId,
-    TransferClientId, TransferHostBindingId, TransferRequestId,
+    TransferClientId, TransferHostBindingId, TransferRequestId, WindowId,
 };
 use longhorn_transfer::{
-    ClientDropZone, ClientEpoch, InsertionPosition, LeaseGeneration, PanelSessionStartRequest,
-    TransferCapability, TransferLeaseRequest, TransferRevision, TransferTargetBinding,
+    ClientDropZone, ClientEpoch, InsertionPosition, LeaseGeneration, PanelHostBinding,
+    PanelHostBindings, PanelSessionStartRequest, PanelTransferErrorCode, TransferAbort,
+    TransferAbortSource, TransferLeaseRequest, TransferRevision, TransferTargetBinding,
 };
 use serde_json::json;
 
@@ -24,7 +25,6 @@ fn lease_wire_shape_cannot_supply_window_clock_or_screen_authority() {
                 ClientSize::new(300.0, 200.0).unwrap(),
             ),
             Some(InsertionPosition::new(1)),
-            TransferCapability::MovePanel,
             TransferTargetBinding::PanelRegion {
                 host_binding_id: TransferHostBindingId::new("binding:target").unwrap(),
                 document_id: DomainId::new("app.layout").unwrap(),
@@ -75,6 +75,61 @@ fn strict_wire_deserialization_rejects_future_version_and_spoof_fields() {
     let mut spoofed = valid;
     spoofed["window_id"] = json!("window:other");
     assert!(serde_json::from_value::<PanelSessionStartRequest>(spoofed).is_err());
+}
+
+#[test]
+fn from_panel_promotes_transfer_code_and_preserves_panel_and_layout_codes() {
+    let duplicate = PanelHostBindings::new([
+        PanelHostBinding::direct_window(
+            TransferHostBindingId::new("binding:dup").unwrap(),
+            WindowId::new("window:main").unwrap(),
+            DomainId::new("app.layout").unwrap(),
+            SurfaceId::new("surface:main").unwrap(),
+        ),
+        PanelHostBinding::direct_window(
+            TransferHostBindingId::new("binding:dup").unwrap(),
+            WindowId::new("window:main").unwrap(),
+            DomainId::new("app.layout").unwrap(),
+            SurfaceId::new("surface:main").unwrap(),
+        ),
+    ])
+    .unwrap_err();
+    let panel_abort = TransferAbort::from_panel(request_id("request:panel"), &duplicate);
+    assert_eq!(
+        panel_abort.source(),
+        TransferAbortSource::Panel(PanelTransferErrorCode::InvalidBindingSnapshot)
+    );
+    assert_eq!(panel_abort.layout_code(), None);
+    assert!(!panel_abort.retryable());
+    assert!(!panel_abort.session_consumed());
+}
+
+#[test]
+fn transfer_abort_requires_explicit_nullable_layout_code_key() {
+    let with_null = json!({
+        "protocol_version": 1,
+        "request_id": "request:abort-null",
+        "source": { "domain": "transfer", "code": "no_target" },
+        "layout_code": null,
+        "message": "no target",
+        "retryable": false,
+        "session_consumed": true,
+    });
+    let parsed_null: TransferAbort = serde_json::from_value(with_null.clone()).unwrap();
+    assert_eq!(parsed_null.layout_code(), None);
+
+    let mut with_code = with_null.clone();
+    with_code["source"] = json!({ "domain": "panel", "code": "ineligible_target" });
+    with_code["layout_code"] = json!("panel_placement_not_allowed");
+    let parsed_code: TransferAbort = serde_json::from_value(with_code).unwrap();
+    assert_eq!(
+        parsed_code.layout_code(),
+        Some(longhorn_surfaces::LayoutMutationRejectionCode::PanelPlacementNotAllowed)
+    );
+
+    let mut omitted = with_null;
+    omitted.as_object_mut().unwrap().remove("layout_code");
+    assert!(serde_json::from_value::<TransferAbort>(omitted).is_err());
 }
 
 fn request_id(value: &str) -> TransferRequestId {

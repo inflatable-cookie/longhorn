@@ -17,7 +17,7 @@ changelog = "CHANGELOG.md"
 # This is the only \`[release.gates]\` table; do not match this comment.
 
 [release.gates]
-private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
+private-candidate = "bun scripts/verify-private-candidate-docs.ts"
 advisories = "cargo deny check advisories"
 rustdoc = "effigy docs:rust"
 prototypes = "effigy check:prototypes"
@@ -28,7 +28,7 @@ source = "effigy release:source-consumer"
 
 const alignedEffigy = `
 "release:gates" = [
-  "bun scripts/verify-private-candidate-docs-card127.ts",
+  "bun scripts/verify-private-candidate-docs.ts",
   "cargo deny check advisories",
   { task = "docs:rust" },
   { task = "check:prototypes" },
@@ -50,7 +50,7 @@ describe("release:gates alignment", () => {
       "source",
     ]);
     expect(parseReleaseGatesSelector(alignedEffigy)).toEqual([
-      "bun scripts/verify-private-candidate-docs-card127.ts",
+      "bun scripts/verify-private-candidate-docs.ts",
       "cargo deny check advisories",
       "effigy docs:rust",
       "effigy check:prototypes",

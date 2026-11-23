@@ -1,3 +1,4 @@
+import { run } from "./proof-support.ts";
 import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 
@@ -20,7 +21,7 @@ const checkedPaths = [
   "examples/greenfield-compositions/README.md",
 ];
 
-await run(["bun", "scripts/generate-api-reference-card126.ts"]);
+await run(["bun", "scripts/generate-api-reference.ts"], repoRoot);
 const documents = new Map<string, string>();
 for (const path of checkedPaths) documents.set(path, await readFile(join(repoRoot, path), "utf8"));
 await verifyLocalLinks(documents);
@@ -158,15 +159,4 @@ function requireAll(content: string, required: string[]): void {
   for (const value of required) {
     if (!content.includes(value)) throw new Error(`guide corpus missing required claim: ${value}`);
   }
-}
-
-async function run(command: string[]): Promise<string> {
-  const process = Bun.spawn(command, { cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
-    process.exited,
-  ]);
-  if (exitCode !== 0) throw new Error(`${command.join(" ")} failed\n${stdout}\n${stderr}`);
-  return stdout;
 }

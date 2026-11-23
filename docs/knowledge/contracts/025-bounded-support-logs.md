@@ -61,6 +61,8 @@ no features, no TypeScript binding.
   `optional_integer`. Fields keep the order the caller adds them.
 - `bound_field(&Redactor, text, max_bytes) -> String`.
 - `bounded_tail(&Redactor, text, TailBounds { lines, bytes }) -> String`.
+- `single_line(text) -> String`: interior CR and LF written as `\r` and `\n`,
+  the line rule below. Diagnostics bundles use the same function.
 - `OMITTED_MARKER`: `[earlier output omitted]\n`.
 
 ## Redact, then bound

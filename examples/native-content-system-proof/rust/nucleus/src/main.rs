@@ -1,5 +1,5 @@
-use longhorn_native_content_artifact_proof_common::artifact_trace;
 use longhorn_native_content::AttachGeneration;
+use longhorn_native_content_artifact_proof_common::artifact_trace;
 use longhorn_tauri_native_content_child_view::{
     CHILD_VIEW_CAPABILITIES, ChildViewAdapter, ChildViewError, ChildViewNavigationOutcome,
     ChildViewNavigationReceipt, ChildViewRuntime,

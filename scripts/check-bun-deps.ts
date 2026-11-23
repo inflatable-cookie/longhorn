@@ -1,6 +1,4 @@
-// Fail fast when TypeScript or Svelte checks run before Bun dependencies exist.
-// Fresh worktrees reach `check:ts` with no `node_modules`; `bun x tsc` then
-// fetches the compiler and leaves every workspace import unresolved.
+// Ensure TypeScript and Svelte selectors have their locked workspace dependencies.
 
 import { access } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -12,31 +10,72 @@ const markers = [
   "node_modules/@inflatable-cookie/poodle-core",
 ];
 
-for (const marker of markers) {
-  try {
-    await access(join(repoRoot, marker));
-  } catch {
-    console.error(
-      [
-        "Bun dependencies are not installed.",
-        "",
-        "Run: effigy bootstrap:deps",
-        "",
-        "Fresh Git worktrees need the locked install before TypeScript checks.",
-      ].join("\n"),
-    );
-    process.exit(1);
+type CheckOptions = {
+  root?: string;
+  markerExists?: (path: string) => Promise<boolean>;
+  install?: (root: string) => Promise<number>;
+  log?: (message: string) => void;
+  error?: (message: string) => void;
+};
+
+export async function checkBunDependencies(options: CheckOptions = {}): Promise<boolean> {
+  const root = options.root ?? repoRoot;
+  const markerExists = options.markerExists ?? (async (path: string) => {
+    try {
+      await access(path);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  const log = options.log ?? console.log;
+  const error = options.error ?? console.error;
+  const missing = async () => {
+    const absent: string[] = [];
+    for (const marker of markers) {
+      if (!(await markerExists(join(root, marker)))) absent.push(marker);
+    }
+    return absent;
+  };
+
+  let absent = await missing();
+  if (absent.length > 0) {
+    log("Bun dependencies missing; running bun install --frozen-lockfile.");
+    const install = options.install ?? runLockedInstall;
+    let exitCode: number;
+    try {
+      exitCode = await install(root);
+    } catch (cause) {
+      error(`Frozen Bun install failed: ${String(cause)}`);
+      return false;
+    }
+    if (exitCode !== 0) {
+      error(`Frozen Bun install failed with exit code ${exitCode}.`);
+      return false;
+    }
+    absent = await missing();
+    if (absent.length > 0) {
+      error(`Bun install completed, but dependency markers are still missing: ${absent.join(", ")}.`);
+      return false;
+    }
   }
+
+  log(JSON.stringify({
+    schema: "longhorn.bun-deps.v1",
+    outcome: "pass",
+    markers,
+  }, null, 2));
+  return true;
 }
 
-console.log(
-  JSON.stringify(
-    {
-      schema: "longhorn.bun-deps.v1",
-      outcome: "pass",
-      markers,
-    },
-    null,
-    2,
-  ),
-);
+async function runLockedInstall(root: string): Promise<number> {
+  return Bun.spawnSync(["bun", "install", "--frozen-lockfile"], {
+    cwd: root,
+    stdout: "inherit",
+    stderr: "inherit",
+  }).exitCode;
+}
+
+if (import.meta.main && !(await checkBunDependencies())) {
+  process.exitCode = 1;
+}

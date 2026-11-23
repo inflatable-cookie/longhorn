@@ -108,10 +108,40 @@ impl PanelHostBinding {
     }
 }
 
+/// Deterministic unique-id index shared by panel and Surface host-binding snapshots.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostBindingIndex<B> {
+    bindings: BTreeMap<TransferHostBindingId, B>,
+}
+
+impl<B> HostBindingIndex<B> {
+    /// Validates unique binding ids and constructs a deterministic index.
+    pub fn new(
+        bindings: impl IntoIterator<Item = B>,
+        id_of: impl Fn(&B) -> &TransferHostBindingId,
+    ) -> Result<Self, TransferHostBindingId> {
+        let mut indexed = BTreeMap::new();
+        for binding in bindings {
+            let id = id_of(&binding).clone();
+            if indexed.insert(id.clone(), binding).is_some() {
+                return Err(id);
+            }
+        }
+        Ok(Self { bindings: indexed })
+    }
+
+    /// Looks up one current host binding by id.
+    #[must_use]
+    pub fn get(&self, id: &TransferHostBindingId) -> Option<&B> {
+        self.bindings.get(id)
+    }
+}
+
 /// Complete fresh host-binding snapshot used by one admission or commit.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PanelHostBindings {
-    bindings: BTreeMap<TransferHostBindingId, PanelHostBinding>,
+    index: HostBindingIndex<PanelHostBinding>,
 }
 
 impl PanelHostBindings {
@@ -119,24 +149,21 @@ impl PanelHostBindings {
     pub fn new(
         bindings: impl IntoIterator<Item = PanelHostBinding>,
     ) -> Result<Self, PanelTransferError> {
-        let mut indexed = BTreeMap::new();
-        for binding in bindings {
-            let id = binding.id.clone();
-            if indexed.insert(id.clone(), binding).is_some() {
-                return Err(PanelTransferError::new(
+        HostBindingIndex::new(bindings, PanelHostBinding::id)
+            .map(|index| Self { index })
+            .map_err(|id| {
+                PanelTransferError::new(
                     PanelTransferErrorCode::InvalidBindingSnapshot,
                     format!("duplicate panel host binding {id}"),
-                ));
-            }
-        }
-        Ok(Self { bindings: indexed })
+                )
+            })
     }
 
     pub(crate) fn get(
         &self,
         id: &TransferHostBindingId,
     ) -> Result<&PanelHostBinding, PanelTransferError> {
-        self.bindings.get(id).ok_or_else(|| {
+        self.index.get(id).ok_or_else(|| {
             PanelTransferError::new(
                 PanelTransferErrorCode::UnknownHostBinding,
                 format!("panel host binding {id} is not current"),

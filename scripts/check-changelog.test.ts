@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { checkChangelog, type ChangelogVerdict, judgeReleaseStatus } from "./check-changelog.ts";
 
@@ -119,25 +119,40 @@ describe("changelog check against Effigy's release parser", () => {
     expect(verdict.outcome === "fail" && verdict.reason).toContain("invalid release header");
   });
 
-  test("passes the repository's own CHANGELOG.md", async () => {
-    const verdict = await checkChangelog();
+  test("stages a clean copy so checkout release journals and config/release.toml do not apply", async () => {
+    const root = await fixture(withEntries);
+    await mkdir(join(root, "config"));
+    await writeFile(join(root, "config/release.toml"), effigyToml);
+    await writeFile(join(root, "effigy.toml"), '[manifest]\ninclude = ["config/release.toml"]\n');
+    await mkdir(join(root, ".effigy"));
+    await writeFile(join(root, ".effigy/release-state.json"), "{not-valid-json");
+
+    const verdict = await checkChangelog(root);
     expectPass(verdict);
   });
 
-  test("reads the binary from EFFIGY_BIN, so the released version can be checked", async () => {
+  test("reads the binary from EFFIGY_BIN and runs it inside the staged directory", async () => {
     const binDir = await mkdtemp(join(tmpdir(), "check-changelog-bin-"));
     scratchRoots.push(binDir);
+    const cwdCapture = join(binDir, "cwd");
     const bin = join(binDir, "effigy");
-    await writeFile(bin, `#!/bin/sh\nprintf '%s\\n' '{"ok":true}'\n`);
+    await writeFile(
+      bin,
+      `#!/bin/sh\ntest -f Cargo.toml && test -f effigy.toml && test -f CHANGELOG.md || exit 2\npwd -P > '${cwdCapture}'\nprintf '%s\\n' '{"ok":true}'\n`,
+    );
     await chmod(bin, 0o755);
+    const repoFixture = await fixture(withEntries);
     const previous = process.env.EFFIGY_BIN;
     process.env.EFFIGY_BIN = bin;
     try {
-      const verdict = await checkChangelog(await fixture(withEntries));
+      const verdict = await checkChangelog(repoFixture);
       expect(verdict).toEqual({
         outcome: "pass",
         note: "Effigy's release parser accepts CHANGELOG.md",
       });
+      const observedCwd = (await readFile(cwdCapture, "utf8")).trim();
+      expect(observedCwd).not.toBe(await realpath(repoFixture));
+      expect(basename(observedCwd)).toStartWith("check-changelog-stage-");
     } finally {
       if (previous === undefined) {
         delete process.env.EFFIGY_BIN;

@@ -45,30 +45,19 @@ impl TransferCoordinator {
         live_windows: &[LiveTransferWindow],
     ) -> Result<TerminalTransferResolution, TransferError> {
         let now = self.observe_now(clock)?;
-        let (source, expires_at, status) = self
-            .sessions
-            .get(&session_id)
-            .map(|session| (session.source.clone(), session.expires_at, session.status))
-            .ok_or_else(|| {
-                TransferError::new(
-                    TransferErrorCode::UnknownSession,
-                    format!("drag session {session_id} is unknown"),
-                )
-            })?;
-        if now >= expires_at {
+        let session = self.session_mut(session_id)?;
+        if now >= session.expires_at {
             return Err(TransferError::new(
                 TransferErrorCode::SessionExpired,
                 format!("drag session {session_id} is expired"),
             ));
         }
-        if status != SessionStatus::Active {
-            return Err(status_error(session_id, status));
+        if session.status != SessionStatus::Active {
+            return Err(status_error(session_id, session.status));
         }
 
-        self.sessions
-            .get_mut(&session_id)
-            .expect("session was resolved above")
-            .status = SessionStatus::Attempted;
+        session.status = SessionStatus::Attempted;
+        let source = session.source.clone();
         self.require_current_source(&source)
             .map_err(TransferError::consumed)?;
         let windows = validate_live_windows(live_windows).map_err(TransferError::consumed)?;

@@ -3,10 +3,12 @@
 // surface. Exact public symbols are used instead of broad words such as
 // "input" or "command", which are legitimate generic vocabulary elsewhere.
 
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+import { run } from "./proof-support.ts";
 import {
+  libraryArchives,
   privateCargoCommand,
   rustCommand,
   rustExec,
@@ -41,45 +43,38 @@ try {
       "--prefix",
       "none",
     ]),
-    {},
+    repoRoot,
   );
   if (tree.includes(DEV_CONTROL) || tree.includes("longhorn_agent_control")) {
     throw new Error(`${DISPATCH} imports contract 022's ${DEV_CONTROL} graph`);
   }
 
-  // The scan reads Cargo's own `release/deps` layout, so this one build pins both
-  // output roots to the scratch directory inside an `oxide exec` lease; the
-  // routing table in AGENTS.md names it as the intentional private-layout
-  // exception whose intermediates do not pool.
-  await run(
+  // The archive path is the one this build reported, so the scan never assumes
+  // a Cargo output layout. The build runs in one private target inside an
+  // `oxide exec` lease, from the repository root Cargo resolves against.
+  const built = await run(
     rustExec(
-      privateCargoCommand(
-        scanRoot,
-        [
-          "cargo",
-          "build",
-          "-p",
-          DISPATCH,
-          "--release",
-          "--locked",
-          "--no-default-features",
-          "--lib",
-        ],
-        { buildDir: true },
-      ),
+      privateCargoCommand(scanRoot, [
+        "cargo",
+        "build",
+        "-p",
+        DISPATCH,
+        "--release",
+        "--locked",
+        "--no-default-features",
+        "--lib",
+        "--message-format=json",
+      ]),
       { manifestPath: join(repoRoot, "Cargo.toml"), profile: "release" },
     ),
-    {},
+    repoRoot,
   );
 
-  const dependencies = join(scanRoot, "release", "deps");
-  const artifacts = (await readdir(dependencies)).filter(
-    (entry) => entry.startsWith("liblonghorn_agent_tool_dispatch-") && entry.endsWith(".rlib"),
-  );
-  if (artifacts.length !== 1) {
-    throw new Error(`expected one dispatcher rlib, found ${artifacts.length}`);
+  const archives = libraryArchives(built, DISPATCH);
+  if (archives.length !== 1) {
+    throw new Error(`expected one dispatcher rlib, found ${archives.length}`);
   }
-  const bytes = await readFile(join(dependencies, artifacts[0]!));
+  const bytes = await readFile(archives[0]!);
   const hits = forbidden.filter((marker) => bytes.includes(marker));
   if (hits.length > 0) {
     throw new Error(`release dispatcher contains contract 022 markers: ${hits.join(", ")}`);
@@ -110,27 +105,6 @@ try {
       2,
     ),
   );
-
-  async function run(
-    command: string[],
-    environment: Record<string, string> = {},
-  ): Promise<string> {
-    const subprocess = Bun.spawn(command, {
-      cwd: repoRoot,
-      env: { ...process.env, ...environment },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const [stdout, stderr, exitCode] = await Promise.all([
-      new Response(subprocess.stdout).text(),
-      new Response(subprocess.stderr).text(),
-      subprocess.exited,
-    ]);
-    if (exitCode !== 0) {
-      throw new Error(`${command.join(" ")} failed\n${stdout}\n${stderr}`);
-    }
-    return stdout;
-  }
 } finally {
   await scratch.dispose();
 }

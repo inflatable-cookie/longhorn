@@ -118,7 +118,6 @@ function snapshot(
     protocol_version: 1,
     client_id: clientId,
     client_epoch: epoch,
-    current_lease_generation: null,
   };
 }
 

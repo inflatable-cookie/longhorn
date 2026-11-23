@@ -34,7 +34,7 @@ pub fn apply_storage_transition_cleanup(
         receipt.transition_id(),
         &crate::storage_layout::layout_evidence(receipt.target_layout_digest()),
     )
-    .map_err(StorageTransitionError::Locator)?;
+    .map_err(|error| StorageTransitionError::Locator(error.to_string()))?;
     if !target_committed {
         return Err(StorageTransitionError::CleanupRefused(
             "fixed locator does not select the receipt target".into(),

@@ -2,20 +2,23 @@ import { resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const members = [
-  "app-shell-proof",
-  "bridge-topology-conformance",
-  "bridge-topology-artifacts",
-  "settings-composition-proof",
-  "command-system-artifacts",
-  "history-system-artifacts",
-  "history-tree-artifacts",
-  "operation-notification-artifacts",
-  "native-content-artifacts",
-  "poodle-preview",
-  "greenfield-card125",
-  "guides-card126",
-  "documented-commands",
-  "pack-typecheck",
+  { name: "app-shell-proof", script: "scripts/verify-app-shell-proof.ts" },
+  { name: "bridge-topology-conformance", script: "scripts/verify-bridge-topology-conformance.ts" },
+  { name: "bridge-topology-artifacts", script: "scripts/verify-bridge-topology-artifacts.ts" },
+  { name: "settings-composition-proof", script: "scripts/verify-settings-composition-proof.ts" },
+  { name: "command-system-artifacts", script: "scripts/verify-command-system-artifacts.ts" },
+  { name: "history-system-artifacts", script: "scripts/verify-history-system-artifacts.ts" },
+  { name: "history-tree-artifacts", script: "scripts/verify-history-tree-artifacts.ts" },
+  {
+    name: "operation-notification-artifacts",
+    script: "scripts/verify-operation-notification-artifacts.ts",
+  },
+  { name: "native-content-artifacts", script: "scripts/verify-native-content-artifacts.ts" },
+  { name: "poodle-preview", script: "scripts/verify-poodle-preview.ts" },
+  { name: "greenfield-compositions", script: "scripts/verify-greenfield-compositions.ts" },
+  { name: "guide-corpus", script: "scripts/verify-guide-corpus.ts" },
+  { name: "documented-commands", script: "scripts/verify-documented-commands.ts" },
+  { name: "pack-typecheck", script: "scripts/verify-pack-typecheck.ts" },
 ] as const;
 
 type Result = "pass" | "fail";
@@ -37,29 +40,36 @@ const memberEnvironment = { ...process.env };
 delete memberEnvironment.CARGO_TARGET_DIR;
 
 for (const member of members) {
-  console.log(`proof ${member}`);
+  console.log(`proof ${member.name}`);
 
   const startedAt = performance.now();
   let exitCode = 1;
+  let stdout = "";
   try {
-    const child = Bun.spawn(["bun", `scripts/verify-${member}.ts`], {
+    const child = Bun.spawn(["bun", member.script], {
       cwd: repoRoot,
       env: memberEnvironment,
-      stdout: "ignore",
+      stdout: "pipe",
       stderr: "inherit",
     });
-    exitCode = await child.exited;
+    const [text, code] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+    stdout = text;
+    exitCode = code;
   } catch (error) {
-    console.error(`failed to start proof ${member}: ${String(error)}`);
+    console.error(`failed to start proof ${member.name}: ${String(error)}`);
   }
 
   timings.push({
-    member,
+    member: member.name,
     seconds: ((performance.now() - startedAt) / 1000).toFixed(2),
     result: exitCode === 0 ? "pass" : "fail",
   });
 
   if (exitCode !== 0) {
+    if (stdout.trim().length > 0) {
+      process.stderr.write(stdout);
+      if (!stdout.endsWith("\n")) process.stderr.write("\n");
+    }
     reportTimings();
     process.exitCode = 1;
     failed = true;

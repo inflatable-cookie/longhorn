@@ -150,6 +150,27 @@ opaque_id!(
     TransferSubjectId,
     "Opaque adapter-supplied identity for one transfer subject."
 );
+
+macro_rules! opaque_id_total_conversion {
+    ($from:ident, $to:ident) => {
+        impl From<$from> for $to {
+            fn from(value: $from) -> Self {
+                Self(value.0)
+            }
+        }
+
+        impl From<&$from> for $to {
+            fn from(value: &$from) -> Self {
+                Self(value.0.clone())
+            }
+        }
+    };
+}
+
+opaque_id_total_conversion!(PanelInstanceId, TransferSubjectId);
+opaque_id_total_conversion!(TransferSubjectId, PanelInstanceId);
+opaque_id_total_conversion!(SurfaceId, TransferSubjectId);
+opaque_id_total_conversion!(TransferSubjectId, SurfaceId);
 opaque_id!(
     TransferHostBindingId,
     "Opaque adapter-supplied identity for one transfer host binding."

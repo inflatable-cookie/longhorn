@@ -16,9 +16,10 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ArtifactShape, Declaration, DigestSource, ExtractionLimits, InstallError, InstallFault,
-    InstallRefusal, ProbePhase, ProcessRunner, ProvisionError, Refusal, ReleaseError, ReleaseQuery,
-    ReleaseRefusal, ReleaseSource, SignatureVerifier, extract_executable, runner::RunnerError,
+    ArtifactShape, Declaration, DigestSource, ExtractionLimits, Fault, InstallError, InstallFault,
+    InstallRefusal, ProbePhase, ProcessRunner, ProvisionError, Refusal, Release, ReleaseError,
+    ReleaseQuery, ReleaseRefusal, ReleaseSource, SignatureVerifier, extract_executable,
+    name::{is_managed_file_name, is_plain_segment},
     verify_artifact, verify_signature,
 };
 
@@ -28,6 +29,10 @@ pub const MAX_DIGEST_METADATA_BYTES: usize = 64 * 1024;
 pub const MAX_PROBE_FIELD_BYTES: usize = 4096;
 /// Maximum bytes inspected from one runner output stream before decoding.
 const MAX_PROBE_CAPTURE_BYTES: usize = 64 * 1024;
+/// The private subdirectory of the staging directory that downloads land in.
+/// Its dot prefix keeps it apart from every binary name, which cannot start
+/// with a dot, so a downloaded asset can never collide with the executable.
+const DOWNLOAD_DIR: &str = ".download";
 
 /// Digest declaration for one release artifact.
 #[derive(Clone, Copy, Debug)]
@@ -166,14 +171,60 @@ struct ReceiptSnapshot {
     obstructed: bool,
 }
 
+/// What a failed install must put back: the previous binary and receipt.
 struct RollbackContext<'a> {
     binary: &'a Path,
     backup: &'a Path,
     had_previous: bool,
     receipt: &'a Path,
     receipt_snapshot: &'a ReceiptSnapshot,
-    bin_dir: &'a Path,
-    name: &'a str,
+}
+
+/// The managed paths one install uses, under canonical roots.
+struct ManagedLayout {
+    managed_root: PathBuf,
+    bin_dir: PathBuf,
+    binary: PathBuf,
+    backup: PathBuf,
+    receipt: PathBuf,
+}
+
+impl ManagedLayout {
+    fn create(tool: &ToolDescription<'_>, managed_root: &Path) -> Result<Self, InstallError> {
+        fs::create_dir_all(managed_root).map_err(|error| io_error(managed_root, error))?;
+        let managed_root =
+            fs::canonicalize(managed_root).map_err(|error| io_error(managed_root, error))?;
+        let bin_dir = managed_root.join("bin");
+        fs::create_dir_all(&bin_dir).map_err(|error| io_error(&bin_dir, error))?;
+        let bin_dir = fs::canonicalize(&bin_dir).map_err(|error| io_error(&bin_dir, error))?;
+        Ok(Self {
+            binary: bin_dir.join(tool.binary_name),
+            backup: bin_dir.join(format!(".{}.previous", tool.binary_name)),
+            receipt: receipt_path(&managed_root, tool.name),
+            managed_root,
+            bin_dir,
+        })
+    }
+}
+
+/// Digest metadata as the downloads produced it. The variants own the
+/// downloaded text, so verification can borrow it without a second read.
+enum FetchedDigest<'a> {
+    Absent,
+    Pinned(&'a str),
+    ReleaseChecksums(String),
+    Sidecar(String),
+}
+
+impl FetchedDigest<'_> {
+    fn source(&self) -> Option<DigestSource<'_>> {
+        match self {
+            Self::Absent => None,
+            Self::Pinned(pin) => Some(DigestSource::Pinned(pin)),
+            Self::ReleaseChecksums(text) => Some(DigestSource::ReleaseChecksums(text)),
+            Self::Sidecar(text) => Some(DigestSource::Sidecar(text)),
+        }
+    }
 }
 
 static ACTIVE_INSTALLS: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
@@ -201,24 +252,19 @@ pub fn install_tool(
     validate_tool(tool)?;
     progress(InstallStage::Checking);
 
-    fs::create_dir_all(managed_root).map_err(|error| io_error(managed_root, error))?;
-    let managed_root =
-        fs::canonicalize(managed_root).map_err(|error| io_error(managed_root, error))?;
-    let bin_dir = managed_root.join("bin");
-    fs::create_dir_all(&bin_dir).map_err(|error| io_error(&bin_dir, error))?;
-    let bin_dir = fs::canonicalize(&bin_dir).map_err(|error| io_error(&bin_dir, error))?;
-    let binary = bin_dir.join(tool.binary_name);
-    let _guard = reserve_install(&binary, &managed_root)?;
-    let backup = bin_dir.join(format!(".{}.previous", tool.binary_name));
-    if backup.exists() {
-        return Err(InstallFault::RecoveryRequired { backup }.into());
+    let layout = ManagedLayout::create(tool, managed_root)?;
+    let _guard = reserve_install(&layout.binary, &layout.managed_root)?;
+    if layout.backup.exists() {
+        return Err(InstallFault::RecoveryRequired {
+            backup: layout.backup,
+        }
+        .into());
     }
 
-    let had_previous = managed_binary_exists(&binary)?;
-    let receipt_path = receipt_path(&managed_root, tool.name);
+    let had_previous = managed_binary_exists(&layout.binary)?;
     let previous_probe = if had_previous {
         probe_version(
-            &binary,
+            &layout.binary,
             tool.version_arguments,
             runner,
             redactor,
@@ -229,47 +275,16 @@ pub fn install_tool(
         None
     };
     if let Some(installed) = previous_probe.as_ref()
-        && let Some(pin) = tool.release.pinned_tag.and_then(crate::version_from_tag)
-        && installed > &pin
-        && tool
-            .release
-            .version_floor
-            .is_none_or(|floor| installed >= floor)
+        && let Some(receipt) = retained_newer_install(tool, installed, &layout.receipt)
     {
-        let receipt = read_stored_receipt(&receipt_path).ok().flatten();
-        return Ok(InstallReceipt {
-            name: tool.name.to_owned(),
-            version: installed.to_string(),
-            release_tag: receipt.map(|stored| stored.release_tag),
-            replaced_version: None,
-            already_current: true,
-        });
+        return Ok(receipt);
     }
 
     progress(InstallStage::Resolving);
-    let release = source.resolve_release(&tool.release)?;
-    if let Some(requested) = tool.release.pinned_tag
-        && release.tag() != requested
-    {
-        return Err(ReleaseError::Refused(ReleaseRefusal::TagMismatch {
-            requested: requested.to_owned(),
-            found: release.tag().to_owned(),
-        })
-        .into());
-    }
-    if let Some(floor) = tool.release.version_floor
-        && release.version().is_none_or(|version| version < floor)
-    {
-        return Err(ReleaseError::Refused(ReleaseRefusal::NoCompatibleRelease {
-            floor: Some(floor.clone()),
-            requested: tool.release.pinned_tag.map(str::to_owned),
-        })
-        .into());
-    }
-
+    let release = resolve_release(tool, source)?;
     if let (Some(installed), Some(version)) = (previous_probe.as_ref(), release.version())
         && installed == version
-        && read_stored_receipt(&receipt_path)
+        && read_stored_receipt(&layout.receipt)
             .ok()
             .flatten()
             .is_some_and(|receipt| receipt.version == version.to_string())
@@ -292,52 +307,21 @@ pub fn install_tool(
 
     let staging = tempfile::Builder::new()
         .prefix(".longhorn-tool-provision-")
-        .tempdir_in(&bin_dir)
-        .map_err(|error| io_error(&bin_dir, error))?;
+        .tempdir_in(&layout.bin_dir)
+        .map_err(|error| io_error(&layout.bin_dir, error))?;
+    let downloads = staging.path().join(DOWNLOAD_DIR);
+    fs::create_dir(&downloads).map_err(|error| io_error(&downloads, error))?;
 
     progress(InstallStage::Downloading);
-    let artifact_path = source.download_asset(&release, tool.asset, staging.path())?;
-
-    let digest_text = match tool.digest {
-        DigestDeclaration::Pinned(_) | DigestDeclaration::None => None,
-        DigestDeclaration::ReleaseChecksums { asset } | DigestDeclaration::Sidecar { asset } => {
-            if !release.has_asset(asset) {
-                return Err(ReleaseError::Refused(ReleaseRefusal::MissingAsset {
-                    release: release.tag().to_owned(),
-                    asset: asset.to_owned(),
-                })
-                .into());
-            }
-            progress(InstallStage::DownloadingChecksums);
-            let path = source.download_asset(&release, asset, staging.path())?;
-            Some(read_digest_text(
-                &path,
-                asset,
-                matches!(tool.digest, DigestDeclaration::Sidecar { .. }),
-            )?)
-        }
-    };
-    let digest_source = match (tool.digest, digest_text.as_deref()) {
-        (DigestDeclaration::Pinned(pin), _) => Some(DigestSource::Pinned(pin)),
-        (DigestDeclaration::ReleaseChecksums { .. }, Some(text)) => {
-            Some(DigestSource::ReleaseChecksums(text))
-        }
-        (DigestDeclaration::Sidecar { .. }, Some(text)) => Some(DigestSource::Sidecar(text)),
-        (DigestDeclaration::None, _) => None,
-        _ => {
-            return Err(ProvisionError::Fault(crate::Fault::Usage {
-                detail: "digest metadata did not match its declaration".to_owned(),
-            })
-            .into());
-        }
-    };
+    let artifact_path = source.download_asset(&release, tool.asset, &downloads)?;
+    let fetched = fetch_digest(tool, &release, source, &downloads, progress)?;
 
     progress(InstallStage::Verifying);
     let verified = verify_artifact(
         &artifact_path,
         tool.asset,
         Declaration {
-            digest: digest_source,
+            digest: fetched.source(),
             vendor_team: tool.vendor_team,
         },
     )?;
@@ -364,127 +348,70 @@ pub fn install_tool(
         redactor,
         ProbePhase::Staged,
     )?;
-    if let Some(expected) = release.version()
-        && &staged_version != expected
-    {
-        return Err(InstallRefusal::VersionMismatch {
-            found: staged_version,
-            expected: expected.clone(),
-        }
-        .into());
-    }
-    if let Some(floor) = tool.release.version_floor
-        && staged_version < *floor
-    {
-        return Err(InstallRefusal::BelowFloor {
-            found: staged_version,
-            floor: floor.clone(),
-        }
-        .into());
-    }
+    check_staged_version(tool, &release, &staged_version)?;
 
     let replaced_version = previous_probe.map(|version| version.to_string());
-    let receipt_snapshot = snapshot_receipt(&receipt_path)?;
-    let receipt_dir = receipt_path.parent().ok_or_else(|| InstallFault::Io {
-        path: receipt_path.clone(),
+    let receipt_snapshot = snapshot_receipt(&layout.receipt)?;
+    let receipt_dir = layout.receipt.parent().ok_or_else(|| InstallFault::Io {
+        path: layout.receipt.clone(),
         detail: "the receipt path has no parent directory".to_owned(),
     })?;
     fs::create_dir_all(receipt_dir).map_err(|error| io_error(receipt_dir, error))?;
     let rollback_context = RollbackContext {
-        binary: &binary,
-        backup: &backup,
+        binary: &layout.binary,
+        backup: &layout.backup,
         had_previous,
-        receipt: &receipt_path,
+        receipt: &layout.receipt,
         receipt_snapshot: &receipt_snapshot,
-        bin_dir: &bin_dir,
-        name: tool.binary_name,
     };
 
-    let mut incoming = tempfile::Builder::new()
-        .prefix(&format!(".{}.incoming-", tool.binary_name))
-        .tempfile_in(&bin_dir)
-        .map_err(|error| io_error(&bin_dir, error))?;
-    let mut staged_file =
-        File::open(installable.path()).map_err(|error| io_error(installable.path(), error))?;
-    io::copy(&mut staged_file, incoming.as_file_mut())
-        .map_err(|error| io_error(incoming.path(), error))?;
-    make_executable(incoming.path()).map_err(|error| io_error(incoming.path(), error))?;
-    incoming
-        .as_file()
-        .sync_all()
-        .map_err(|error| io_error(incoming.path(), error))?;
-
-    staging.close().map_err(|error| io_error(&bin_dir, error))?;
     progress(InstallStage::Installing);
     if had_previous {
-        write_backup(&binary, &backup, &bin_dir, tool.binary_name)?;
+        write_backup(
+            &layout.binary,
+            &layout.backup,
+            &layout.bin_dir,
+            tool.binary_name,
+        )?;
     }
-
-    if let Err(error) = incoming.persist(&binary) {
-        let cause = InstallError::Fault(io_error(&binary, error.error));
+    if let Err(cause) = place_candidate(installable.path(), &layout.binary) {
         return Err(if had_previous {
-            cleanup_failed_swap(cause, &backup)
+            cleanup_failed_swap(cause, &layout.backup)
         } else {
             cause
         });
     }
+    // The candidate has moved out of the staging directory, so only downloads
+    // and scratch files remain. They are removed here, best effort: the swap
+    // has happened and nothing after it may fail on their account.
+    drop(staging);
 
-    let post_swap = probe_version(
-        &binary,
-        tool.version_arguments,
-        runner,
-        redactor,
-        ProbePhase::Installed,
-    )
-    .and_then(|version| {
-        if version == staged_version {
-            Ok(version)
-        } else {
-            Err(InstallRefusal::VersionMismatch {
-                found: version,
-                expected: staged_version.clone(),
-            }
-            .into())
-        }
-    });
-    let installed_version = match post_swap {
-        Ok(version) => version,
+    let installed_version =
+        match probe_installed(tool, &layout.binary, &staged_version, runner, redactor) {
+            Ok(version) => version,
+            Err(cause) => return Err(rollback(cause, &rollback_context)),
+        };
+    let stored = match stored_receipt(tool, &release, &layout.binary, &installed_version) {
+        Ok(stored) => stored,
         Err(cause) => return Err(rollback(cause, &rollback_context)),
-    };
-
-    let sha256 = match crate::sha256_file(&binary) {
-        Ok(sha256) => sha256,
-        Err(cause) => return Err(rollback(cause.into(), &rollback_context)),
-    };
-    let installed_at_unix = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let stored = StoredReceipt {
-        name: tool.name.to_owned(),
-        version: installed_version.to_string(),
-        release_tag: release.tag().to_owned(),
-        asset: tool.asset.to_owned(),
-        sha256,
-        installed_at_unix,
     };
     let receipt_bytes = match serde_json::to_vec(&stored) {
         Ok(bytes) => bytes,
         Err(error) => {
             let cause = InstallError::Fault(InstallFault::Io {
-                path: receipt_path.clone(),
+                path: layout.receipt.clone(),
                 detail: format!("the install receipt could not be encoded: {error}"),
             });
             return Err(rollback(cause, &rollback_context));
         }
     };
-    if let Err(error) = write_atomic(&receipt_path, receipt_dir, &receipt_bytes) {
-        let cause = InstallError::Fault(io_error(&receipt_path, error));
+    if let Err(error) = write_atomic(&layout.receipt, receipt_dir, &receipt_bytes) {
+        let cause = InstallError::Fault(io_error(&layout.receipt, error));
         return Err(rollback(cause, &rollback_context));
     }
 
-    if had_previous && let Err(error) = fs::remove_file(&backup) {
-        let cause = InstallError::Fault(io_error(&backup, error));
+    if had_previous && let Err(error) = fs::remove_file(&layout.backup) {
+        let cause = InstallError::Fault(io_error(&layout.backup, error));
         return Err(rollback(cause, &rollback_context));
     }
 
@@ -494,6 +421,175 @@ pub fn install_tool(
         release_tag: Some(release.tag().to_owned()),
         replaced_version,
         already_current: false,
+    })
+}
+
+/// A managed binary newer than the pinned tag, and within the floor, is kept
+/// as it is. The receipt supplies the tag it was installed from, if readable.
+fn retained_newer_install(
+    tool: &ToolDescription<'_>,
+    installed: &Version,
+    receipt_path: &Path,
+) -> Option<InstallReceipt> {
+    let pin = tool.release.pinned_tag.and_then(crate::version_from_tag)?;
+    let meets_floor = tool
+        .release
+        .version_floor
+        .is_none_or(|floor| installed >= floor);
+    if installed <= &pin || !meets_floor {
+        return None;
+    }
+    Some(InstallReceipt {
+        name: tool.name.to_owned(),
+        version: installed.to_string(),
+        release_tag: read_stored_receipt(receipt_path)
+            .ok()
+            .flatten()
+            .map(|stored| stored.release_tag),
+        replaced_version: None,
+        already_current: true,
+    })
+}
+
+/// Resolves the release and applies the caller's tag pin and version floor.
+fn resolve_release(
+    tool: &ToolDescription<'_>,
+    source: &dyn ReleaseSource,
+) -> Result<Release, InstallError> {
+    let release = source.resolve_release(&tool.release)?;
+    if let Some(requested) = tool.release.pinned_tag
+        && release.tag() != requested
+    {
+        return Err(ReleaseError::Refused(ReleaseRefusal::TagMismatch {
+            requested: requested.to_owned(),
+            found: release.tag().to_owned(),
+        })
+        .into());
+    }
+    if let Some(floor) = tool.release.version_floor
+        && release.version().is_none_or(|version| version < floor)
+    {
+        return Err(ReleaseError::Refused(ReleaseRefusal::NoCompatibleRelease {
+            floor: Some(floor.clone()),
+            requested: tool.release.pinned_tag.map(str::to_owned),
+        })
+        .into());
+    }
+    Ok(release)
+}
+
+/// Downloads the digest metadata the declaration names, if any.
+fn fetch_digest<'a>(
+    tool: &ToolDescription<'a>,
+    release: &Release,
+    source: &dyn ReleaseSource,
+    downloads: &Path,
+    progress: &mut dyn FnMut(InstallStage),
+) -> Result<FetchedDigest<'a>, InstallError> {
+    match tool.digest {
+        DigestDeclaration::None => Ok(FetchedDigest::Absent),
+        DigestDeclaration::Pinned(pin) => Ok(FetchedDigest::Pinned(pin)),
+        DigestDeclaration::ReleaseChecksums { asset } => Ok(FetchedDigest::ReleaseChecksums(
+            fetch_digest_text(release, source, downloads, asset, false, progress)?,
+        )),
+        DigestDeclaration::Sidecar { asset } => Ok(FetchedDigest::Sidecar(fetch_digest_text(
+            release, source, downloads, asset, true, progress,
+        )?)),
+    }
+}
+
+fn fetch_digest_text(
+    release: &Release,
+    source: &dyn ReleaseSource,
+    downloads: &Path,
+    asset: &str,
+    sidecar: bool,
+    progress: &mut dyn FnMut(InstallStage),
+) -> Result<String, InstallError> {
+    if !release.has_asset(asset) {
+        return Err(ReleaseError::Refused(ReleaseRefusal::MissingAsset {
+            release: release.tag().to_owned(),
+            asset: asset.to_owned(),
+        })
+        .into());
+    }
+    progress(InstallStage::DownloadingChecksums);
+    let path = source.download_asset(release, asset, downloads)?;
+    read_digest_text(&path, asset, sidecar)
+}
+
+/// Checks the staged executable's version against the release and the floor.
+fn check_staged_version(
+    tool: &ToolDescription<'_>,
+    release: &Release,
+    found: &Version,
+) -> Result<(), InstallError> {
+    if let Some(expected) = release.version()
+        && found != expected
+    {
+        return Err(InstallRefusal::VersionMismatch {
+            found: found.clone(),
+            expected: expected.clone(),
+        }
+        .into());
+    }
+    if let Some(floor) = tool.release.version_floor
+        && found < floor
+    {
+        return Err(InstallRefusal::BelowFloor {
+            found: found.clone(),
+            floor: floor.clone(),
+        }
+        .into());
+    }
+    Ok(())
+}
+
+/// Probes the installed binary after the swap; it must report the version
+/// the staged candidate reported.
+fn probe_installed(
+    tool: &ToolDescription<'_>,
+    binary: &Path,
+    staged_version: &Version,
+    runner: &dyn ProcessRunner,
+    redactor: &Redactor,
+) -> Result<Version, InstallError> {
+    let version = probe_version(
+        binary,
+        tool.version_arguments,
+        runner,
+        redactor,
+        ProbePhase::Installed,
+    )?;
+    if &version == staged_version {
+        Ok(version)
+    } else {
+        Err(InstallRefusal::VersionMismatch {
+            found: version,
+            expected: staged_version.clone(),
+        }
+        .into())
+    }
+}
+
+fn stored_receipt(
+    tool: &ToolDescription<'_>,
+    release: &Release,
+    binary: &Path,
+    version: &Version,
+) -> Result<StoredReceipt, InstallError> {
+    let sha256 = crate::sha256_file(binary).map_err(InstallError::from)?;
+    let installed_at_unix = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    Ok(StoredReceipt {
+        name: tool.name.to_owned(),
+        version: version.to_string(),
+        release_tag: release.tag().to_owned(),
+        asset: tool.asset.to_owned(),
+        sha256,
+        installed_at_unix,
     })
 }
 
@@ -556,48 +652,29 @@ pub fn parse_version(output: &str) -> Option<Version> {
 
 fn validate_tool(tool: &ToolDescription<'_>) -> Result<(), InstallError> {
     for (label, value) in [("tool name", tool.name), ("binary name", tool.binary_name)] {
-        if !is_plain_name(value) {
-            return Err(ProvisionError::Fault(crate::Fault::Usage {
+        if !is_managed_file_name(value) {
+            return Err(ProvisionError::Fault(Fault::Usage {
                 detail: format!("{label} must be a plain, non-hidden file name"),
             })
             .into());
         }
     }
-    if !is_plain_asset(tool.asset) {
-        return Err(ProvisionError::Fault(crate::Fault::Usage {
+    if !is_plain_segment(tool.asset) {
+        return Err(ProvisionError::Fault(Fault::Usage {
             detail: "the release asset must be a plain file name".to_owned(),
         })
         .into());
     }
     if let DigestDeclaration::ReleaseChecksums { asset } | DigestDeclaration::Sidecar { asset } =
         tool.digest
-        && !is_plain_asset(asset)
+        && !is_plain_segment(asset)
     {
-        return Err(ProvisionError::Fault(crate::Fault::Usage {
+        return Err(ProvisionError::Fault(Fault::Usage {
             detail: "the digest metadata asset must be a plain file name".to_owned(),
         })
         .into());
     }
     Ok(())
-}
-
-fn is_plain_name(value: &str) -> bool {
-    !value.is_empty()
-        && value != "."
-        && value != ".."
-        && !value.starts_with('.')
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
-}
-
-fn is_plain_asset(value: &str) -> bool {
-    !value.is_empty()
-        && value != "."
-        && value != ".."
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'+'))
 }
 
 fn reserve_install(binary: &Path, managed_root: &Path) -> Result<InstallGuard, InstallError> {
@@ -746,19 +823,7 @@ fn read_digest_text(path: &Path, asset: &str, sidecar: bool) -> Result<String, I
         .take((MAX_DIGEST_METADATA_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
         .map_err(|error| io_error(path, error))?;
-    if bytes.len() > MAX_DIGEST_METADATA_BYTES {
-        return Err(ProvisionError::Refused(if sidecar {
-            Refusal::MalformedSidecar {
-                asset: asset.to_owned(),
-            }
-        } else {
-            Refusal::MalformedChecksum {
-                asset: asset.to_owned(),
-            }
-        })
-        .into());
-    }
-    String::from_utf8(bytes).map_err(|_| {
+    let malformed = || {
         ProvisionError::Refused(if sidecar {
             Refusal::MalformedSidecar {
                 asset: asset.to_owned(),
@@ -768,8 +833,11 @@ fn read_digest_text(path: &Path, asset: &str, sidecar: bool) -> Result<String, I
                 asset: asset.to_owned(),
             }
         })
-        .into()
-    })
+    };
+    if bytes.len() > MAX_DIGEST_METADATA_BYTES {
+        return Err(malformed().into());
+    }
+    String::from_utf8(bytes).map_err(|_| malformed().into())
 }
 
 fn snapshot_receipt(path: &Path) -> Result<ReceiptSnapshot, InstallError> {
@@ -810,18 +878,14 @@ fn receipt_path(managed_root: &Path, name: &str) -> PathBuf {
         .join(format!("{name}.json"))
 }
 
+/// Copies the current binary to the backup name, which must not exist. A
+/// backup left by an earlier run is a recovery condition, never overwritten.
 fn write_backup(
     binary: &Path,
     backup: &Path,
     bin_dir: &Path,
     name: &str,
 ) -> Result<(), InstallError> {
-    if backup.exists() {
-        return Err(InstallFault::RecoveryRequired {
-            backup: backup.to_path_buf(),
-        }
-        .into());
-    }
     let mut temporary = tempfile::Builder::new()
         .prefix(&format!(".{name}.previous-"))
         .tempfile_in(bin_dir)
@@ -834,10 +898,27 @@ fn write_backup(
         .as_file()
         .sync_all()
         .map_err(|error| io_error(temporary.path(), error))?;
-    temporary
-        .persist_noclobber(backup)
-        .map_err(|error| io_error(backup, error.error))?;
+    temporary.persist_noclobber(backup).map_err(|error| {
+        if error.error.kind() == io::ErrorKind::AlreadyExists {
+            InstallError::Fault(InstallFault::RecoveryRequired {
+                backup: backup.to_path_buf(),
+            })
+        } else {
+            InstallError::Fault(io_error(backup, error.error))
+        }
+    })?;
     Ok(())
+}
+
+/// Makes the verified candidate the managed binary. The candidate sits in the
+/// staging directory on the same volume, so the swap is one rename: nothing
+/// is copied. The candidate is synced first, so the rename never publishes a
+/// file whose bytes are not yet on disk.
+fn place_candidate(candidate: &Path, binary: &Path) -> Result<(), InstallError> {
+    File::open(candidate)
+        .and_then(|file| file.sync_all())
+        .map_err(|error| io_error(candidate, error))?;
+    fs::rename(candidate, binary).map_err(|error| io_error(binary, error).into())
 }
 
 fn write_atomic(path: &Path, parent: &Path, bytes: &[u8]) -> io::Result<()> {
@@ -852,21 +933,14 @@ fn write_atomic(path: &Path, parent: &Path, bytes: &[u8]) -> io::Result<()> {
         .map_err(|error| error.error)
 }
 
+/// Restores what the failed install replaced, then reports the cause. A
+/// restore that also fails keeps its own description beside the cause.
 fn rollback(cause: InstallError, context: &RollbackContext<'_>) -> InstallError {
     let mut failures = Vec::new();
     if context.had_previous {
-        match restore_binary(
-            context.backup,
-            context.binary,
-            context.bin_dir,
-            context.name,
-        ) {
-            Ok(()) => {
-                if let Err(error) = remove_if_present(context.backup) {
-                    failures.push(format!("{}: {error}", context.backup.display()));
-                }
-            }
-            Err(error) => failures.push(format!("{}: {error}", context.binary.display())),
+        // Rename consumes the backup, so a successful restore leaves none.
+        if let Err(error) = fs::rename(context.backup, context.binary) {
+            failures.push(format!("{}: {error}", context.binary.display()));
         }
     } else if let Err(error) = remove_if_present(context.binary) {
         failures.push(format!("{}: {error}", context.binary.display()));
@@ -895,20 +969,6 @@ fn rollback(cause: InstallError, context: &RollbackContext<'_>) -> InstallError 
         }
         .into()
     }
-}
-
-fn restore_binary(backup: &Path, binary: &Path, bin_dir: &Path, name: &str) -> io::Result<()> {
-    let mut temporary = tempfile::Builder::new()
-        .prefix(&format!(".{name}.restore-"))
-        .tempfile_in(bin_dir)?;
-    let mut previous = File::open(backup)?;
-    io::copy(&mut previous, temporary.as_file_mut())?;
-    make_executable(temporary.path())?;
-    temporary.as_file().sync_all()?;
-    temporary
-        .persist(binary)
-        .map(|_| ())
-        .map_err(|error| error.error)
 }
 
 fn cleanup_failed_swap(cause: InstallError, backup: &Path) -> InstallError {
@@ -961,15 +1021,6 @@ impl From<InstallFault> for InstallError {
 impl From<InstallRefusal> for InstallError {
     fn from(refusal: InstallRefusal) -> Self {
         Self::Refused(refusal)
-    }
-}
-
-impl From<RunnerError> for InstallError {
-    fn from(error: RunnerError) -> Self {
-        Self::Fault(InstallFault::ProcessStart {
-            program: PathBuf::new(),
-            detail: error.to_string(),
-        })
     }
 }
 

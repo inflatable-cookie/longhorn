@@ -46,15 +46,15 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:surface-error-00",
+        "request_id": "request:surface-error-05",
         "source": {
           "domain": "surface_transfer",
-          "code": "invalid_binding_snapshot"
+          "code": "unknown_surface"
         },
         "surface_code": null,
-        "message": "golden fixture for invalid_binding_snapshot",
+        "message": "golden fixture for unknown_surface",
         "retryable": false,
-        "session_consumed": true,
+        "session_consumed": false,
         "reconciliation_required": false
       }
     }
@@ -127,15 +127,15 @@
       "status": "aborted",
       "abort": {
         "protocol_version": 1,
-        "request_id": "request:surface-error-01",
+        "request_id": "request:transfer-error",
         "source": {
-          "domain": "surface_transfer",
-          "code": "unknown_host_binding"
+          "domain": "transfer",
+          "code": "lease_expired"
         },
         "surface_code": null,
-        "message": "golden fixture for unknown_host_binding",
+        "message": "golden transfer failure",
         "retryable": false,
-        "session_consumed": false,
+        "session_consumed": true,
         "reconciliation_required": false
       }
     }
@@ -151,7 +151,7 @@
       "surface_code": null,
       "message": "golden fixture for invalid_binding_snapshot",
       "retryable": false,
-      "session_consumed": true,
+      "session_consumed": false,
       "reconciliation_required": false
     },
     {
@@ -177,7 +177,7 @@
       "surface_code": null,
       "message": "golden fixture for stale_host_binding",
       "retryable": false,
-      "session_consumed": true,
+      "session_consumed": false,
       "reconciliation_required": false
     },
     {
@@ -203,7 +203,7 @@
       "surface_code": null,
       "message": "golden fixture for surface_unavailable",
       "retryable": false,
-      "session_consumed": true,
+      "session_consumed": false,
       "reconciliation_required": false
     },
     {
@@ -229,7 +229,7 @@
       "surface_code": null,
       "message": "golden fixture for source_changed",
       "retryable": false,
-      "session_consumed": true,
+      "session_consumed": false,
       "reconciliation_required": false
     },
     {
@@ -242,7 +242,7 @@
       "surface_code": null,
       "message": "golden fixture for unsupported_source",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": false
     },
     {
@@ -268,7 +268,7 @@
       "surface_code": null,
       "message": "golden fixture for cross_document",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": false
     },
     {
@@ -294,7 +294,7 @@
       "surface_code": null,
       "message": "golden fixture for ineligible_target",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": false
     },
     {
@@ -320,7 +320,7 @@
       "surface_code": null,
       "message": "golden fixture for invalid_insertion_position",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": false
     },
     {
@@ -346,7 +346,7 @@
       "surface_code": null,
       "message": "golden fixture for no_empty_display_target",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": false
     },
     {
@@ -372,7 +372,7 @@
       "surface_code": null,
       "message": "golden fixture for provision_failed",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": false
     },
     {
@@ -395,10 +395,10 @@
         "domain": "surface_transfer",
         "code": "surface_mutation_rejected"
       },
-      "surface_code": "stale_revision",
+      "surface_code": "move_target_unchanged",
       "message": "golden fixture for surface_mutation_rejected",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": false
     },
     {
@@ -424,7 +424,7 @@
       "surface_code": null,
       "message": "golden fixture for host_reconciliation_required",
       "retryable": false,
-      "session_consumed": false,
+      "session_consumed": true,
       "reconciliation_required": true
     },
     {
@@ -437,7 +437,7 @@
       "surface_code": null,
       "message": "golden fixture for transfer_rejected",
       "retryable": false,
-      "session_consumed": true,
+      "session_consumed": false,
       "reconciliation_required": false
     },
     {

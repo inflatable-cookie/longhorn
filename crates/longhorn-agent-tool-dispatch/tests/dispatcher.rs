@@ -177,7 +177,6 @@ fn valid_call_invokes_one_callback_and_accepts_one_result() {
     assert_eq!(metrics.callbacks, 1);
     assert_eq!(metrics.results, 1);
     assert_eq!(metrics.cancellations, 0);
-    assert_eq!(metrics.mutation_replays, 0);
 }
 
 #[test]
@@ -488,8 +487,8 @@ fn duplicate_call_and_result_are_terminal_and_never_reinvoke() {
     assert_eq!(duplicate.kind(), DispatchErrorKind::DuplicateCall);
     assert_eq!(duplicate_result.kind(), DispatchErrorKind::DuplicateResult);
     assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(dispatcher.metrics().callbacks, 1);
     assert_eq!(dispatcher.metrics().results, 1);
-    assert_eq!(dispatcher.metrics().mutation_replays, 0);
 }
 
 struct RetainingCallback {
@@ -611,9 +610,420 @@ fn cancellation_reaches_in_flight_callback_once_and_blocks_late_result() {
     assert_eq!(error.kind(), DispatchErrorKind::Cancelled);
     assert_eq!(late.kind(), DispatchErrorKind::PostTerminalResult);
     assert_eq!(observations.load(Ordering::SeqCst), 1);
+    assert_eq!(dispatcher.metrics().callbacks, 1);
     assert_eq!(dispatcher.metrics().cancellations, 1);
     assert_eq!(dispatcher.metrics().results, 0);
-    assert_eq!(dispatcher.metrics().mutation_replays, 0);
+}
+
+#[test]
+fn deadline_overrun_during_callback_fails_with_deadline_exceeded() {
+    struct PendingThenComplete {
+        calls: Arc<AtomicUsize>,
+        retained: Arc<Mutex<Option<ResultRecorder>>>,
+    }
+
+    impl RecordingCallback for PendingThenComplete {
+        fn invoke(
+            &self,
+            call: AdmittedCall,
+            _cancellation: Cancellation,
+            result: ResultRecorder,
+        ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            if call.call_id() == "slow-call" {
+                *self.retained.lock().expect("retained recorder lock") = Some(result);
+                return Box::pin(std::future::pending());
+            }
+            Box::pin(ready(
+                result
+                    .record(CallbackResult::new(
+                        schema("1", "sha256:output"),
+                        b"after-overrun".to_vec(),
+                    ))
+                    .map_err(|_| CallbackFailure::new()),
+            ))
+        }
+    }
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let retained = Arc::new(Mutex::new(None));
+    let dispatcher = RecordingDispatcher::new(
+        expected_registration(),
+        expected_binding(),
+        PendingThenComplete {
+            calls: Arc::clone(&calls),
+            retained: Arc::clone(&retained),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+    let candidate = DispatchInvocation::new(
+        "slow-call",
+        expected_registration(),
+        expected_binding(),
+        BindingStatus::Current,
+        DispatchDeadline::active(Duration::from_millis(25)),
+        b"argument-secret".to_vec(),
+    )
+    .expect("fixture invocation");
+
+    // Uses a park-and-wake executor (not busy-polling): an idle callback that
+    // never wakes must still be woken by the dispatcher's deadline timer.
+    let error = block_on_parked(dispatcher.dispatch(candidate, cancellation.clone()))
+        .expect_err("overrun callback must fail with DeadlineExceeded");
+    assert_eq!(error.kind(), DispatchErrorKind::DeadlineExceeded);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(dispatcher.metrics().results, 0);
+
+    // Late result on the overrun call is rejected as post-terminal.
+    let late = retained
+        .lock()
+        .expect("retained recorder lock")
+        .as_ref()
+        .expect("callback retained recorder")
+        .record(CallbackResult::new(
+            schema("1", "sha256:output"),
+            b"late".to_vec(),
+        ))
+        .expect_err("late result after deadline must fail");
+    assert_eq!(late.kind(), DispatchErrorKind::PostTerminalResult);
+
+    // Active slot (max_outstanding_calls = 1) was released on expiry.
+    let next = block_on_parked(dispatcher.dispatch(
+        invocation(
+            "after-overrun",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation,
+    ))
+    .expect("subsequent call admitted after deadline expiry");
+    assert_eq!(next.result().payload_for_delivery(), b"after-overrun");
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn waker_replacement_between_polls_still_wakes_callback_at_deadline() {
+    struct AlwaysPending;
+
+    impl RecordingCallback for AlwaysPending {
+        fn invoke(
+            &self,
+            _call: AdmittedCall,
+            _cancellation: Cancellation,
+            _result: ResultRecorder,
+        ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+            Box::pin(std::future::pending())
+        }
+    }
+
+    let dispatcher =
+        RecordingDispatcher::new(expected_registration(), expected_binding(), AlwaysPending);
+    let (_, cancellation) = live_cancellation();
+    let candidate = DispatchInvocation::new(
+        "waker-replace",
+        expected_registration(),
+        expected_binding(),
+        BindingStatus::Current,
+        DispatchDeadline::active(Duration::from_millis(25)),
+        b"argument-secret".to_vec(),
+    )
+    .expect("fixture invocation");
+
+    let mut future = dispatcher.dispatch(candidate, cancellation);
+    // First poll registers a noop waker; second poll replaces it with a real
+    // park-and-wake waker, which must still wake when the deadline elapses.
+    let mut noop_cx = Context::from_waker(Waker::noop());
+    assert!(matches!(future.as_mut().poll(&mut noop_cx), Poll::Pending));
+
+    let error = block_on_parked(future)
+        .expect_err("re-registered waker must still wake on deadline expiry");
+    assert_eq!(error.kind(), DispatchErrorKind::DeadlineExceeded);
+}
+
+#[test]
+fn deadline_expiring_before_first_poll_rejects_without_invoking_callback() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let dispatcher = dispatcher(Arc::clone(&calls));
+    let (_, cancellation) = live_cancellation();
+    let candidate = DispatchInvocation::new(
+        "delayed-poll-call",
+        expected_registration(),
+        expected_binding(),
+        BindingStatus::Current,
+        DispatchDeadline::active(Duration::from_millis(20)),
+        b"argument-secret".to_vec(),
+    )
+    .expect("fixture invocation");
+
+    let future = dispatcher.dispatch(candidate, cancellation.clone());
+    std::thread::sleep(Duration::from_millis(35));
+
+    let error = block_on_parked(future)
+        .expect_err("call whose deadline elapsed before polling must fail typed");
+    assert_eq!(error.kind(), DispatchErrorKind::DeadlineExceeded);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    assert_eq!(dispatcher.metrics().callbacks, 0);
+
+    // Capacity (max_outstanding_calls = 1) remains available for the next call.
+    let next = block_on_parked(dispatcher.dispatch(
+        invocation(
+            "after-pre-poll-expiry",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation,
+    ))
+    .expect("next call admitted after pre-poll timeout");
+    assert_eq!(next.result().payload_for_delivery(), b"result-secret");
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn unrepresentable_deadline_fails_typed_without_panicking() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let wide = RegisteredCapability::new(
+        "registration-7",
+        "desktop/read_context",
+        schema("1", "sha256:input"),
+        schema("1", "sha256:output"),
+        ExecutionKind::NativeClient,
+        DispatchEffect::Mutating,
+        DispatchBounds::new(8, 1, 64, 64, 16, 2, Duration::MAX).expect("positive bounds"),
+    )
+    .expect("wide registration");
+    let dispatcher = RecordingDispatcher::new(
+        wide.clone(),
+        expected_binding(),
+        CompletingCallback {
+            calls: Arc::clone(&calls),
+            payload: b"ok".to_vec(),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+    let candidate = DispatchInvocation::new(
+        "overflow-deadline",
+        wide,
+        expected_binding(),
+        BindingStatus::Current,
+        DispatchDeadline::active(Duration::MAX),
+        b"argument-secret".to_vec(),
+    )
+    .expect("fixture invocation");
+
+    let error = block_on_parked(dispatcher.dispatch(candidate, cancellation))
+        .expect_err("overflowing Instant::checked_add must fail typed");
+    assert_eq!(error.kind(), DispatchErrorKind::LimitExceeded);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn recording_result_keeps_capacity_occupied_until_callback_finishes() {
+    struct RecordThenSuspend {
+        calls: Arc<AtomicUsize>,
+        release: Arc<AtomicBool>,
+    }
+
+    struct WaitForRelease(Arc<AtomicBool>);
+
+    impl Future for WaitForRelease {
+        type Output = Result<(), CallbackFailure>;
+
+        fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+            if self.0.load(Ordering::SeqCst) {
+                Poll::Ready(Ok(()))
+            } else {
+                Poll::Pending
+            }
+        }
+    }
+
+    impl RecordingCallback for RecordThenSuspend {
+        fn invoke(
+            &self,
+            call: AdmittedCall,
+            _cancellation: Cancellation,
+            result: ResultRecorder,
+        ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            result
+                .record(CallbackResult::new(
+                    schema("1", "sha256:output"),
+                    call.call_id().as_bytes().to_vec(),
+                ))
+                .expect("first result accepted");
+            if call.call_id() == "suspend-after-record" {
+                Box::pin(WaitForRelease(Arc::clone(&self.release)))
+            } else {
+                Box::pin(ready(Ok(())))
+            }
+        }
+    }
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let release = Arc::new(AtomicBool::new(false));
+    // expected_registration() has max_outstanding_calls = 1.
+    let dispatcher = RecordingDispatcher::new(
+        expected_registration(),
+        expected_binding(),
+        RecordThenSuspend {
+            calls: Arc::clone(&calls),
+            release: Arc::clone(&release),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+
+    let mut first = dispatcher.dispatch(
+        invocation(
+            "suspend-after-record",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation.clone(),
+    );
+    let mut context = Context::from_waker(Waker::noop());
+    assert!(matches!(first.as_mut().poll(&mut context), Poll::Pending));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    // Result was recorded, but callback is still suspended: capacity must stay occupied.
+    let second_err = block_on(dispatcher.dispatch(
+        invocation(
+            "concurrent-call",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation.clone(),
+    ))
+    .expect_err("max_outstanding_calls = 1 must still hold while callback is suspended");
+    assert_eq!(second_err.kind(), DispatchErrorKind::LimitExceeded);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    // Once the first callback finishes, the outcome returns and capacity is released.
+    release.store(true, Ordering::SeqCst);
+    let first_outcome = match first.as_mut().poll(&mut context) {
+        Poll::Ready(Ok(outcome)) => outcome,
+        other => panic!("expected completed outcome, got {other:?}"),
+    };
+    assert_eq!(
+        first_outcome.result().payload_for_delivery(),
+        b"suspend-after-record"
+    );
+
+    let third = block_on(dispatcher.dispatch(
+        invocation(
+            "after-release",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation,
+    ))
+    .expect("capacity freed once callback finished");
+    assert_eq!(third.result().payload_for_delivery(), b"after-release");
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn dropping_dispatch_future_mid_callback_frees_active_capacity_and_blocks_late_result() {
+    struct DropThenComplete {
+        calls: Arc<AtomicUsize>,
+        retained: Arc<Mutex<Option<ResultRecorder>>>,
+    }
+
+    impl RecordingCallback for DropThenComplete {
+        fn invoke(
+            &self,
+            call: AdmittedCall,
+            _cancellation: Cancellation,
+            result: ResultRecorder,
+        ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            if call.call_id() == "dropped-call" {
+                *self.retained.lock().expect("retained recorder lock") = Some(result);
+                return Box::pin(std::future::pending());
+            }
+            Box::pin(ready(
+                result
+                    .record(CallbackResult::new(
+                        schema("1", "sha256:output"),
+                        b"second-ok".to_vec(),
+                    ))
+                    .map_err(|_| CallbackFailure::new()),
+            ))
+        }
+    }
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let retained = Arc::new(Mutex::new(None));
+    // expected_registration() has max_outstanding_calls = 1.
+    let dispatcher = RecordingDispatcher::new(
+        expected_registration(),
+        expected_binding(),
+        DropThenComplete {
+            calls: Arc::clone(&calls),
+            retained: Arc::clone(&retained),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+
+    {
+        let mut future = dispatcher.dispatch(
+            invocation(
+                "dropped-call",
+                expected_registration(),
+                expected_binding(),
+                BindingStatus::Current,
+            ),
+            cancellation.clone(),
+        );
+        let mut context = Context::from_waker(Waker::noop());
+        assert!(matches!(future.as_mut().poll(&mut context), Poll::Pending));
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        // Drop `future` mid-callback here.
+    }
+
+    // Late result on the dropped call must fail as post-terminal.
+    let late = retained
+        .lock()
+        .expect("retained recorder lock")
+        .as_ref()
+        .expect("callback retained recorder")
+        .record(CallbackResult::new(
+            schema("1", "sha256:output"),
+            b"late".to_vec(),
+        ))
+        .expect_err("late result on dropped call must fail");
+    assert_eq!(late.kind(), DispatchErrorKind::PostTerminalResult);
+
+    // Replaying the dropped call_id is still refused as DuplicateCall.
+    let replay = block_on(dispatcher.dispatch(
+        invocation(
+            "dropped-call",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation.clone(),
+    ))
+    .expect_err("dropped call_id must not be replayable");
+    assert_eq!(replay.kind(), DispatchErrorKind::DuplicateCall);
+
+    // Capacity (max_outstanding_calls = 1) was freed: a new call succeeds.
+    let outcome = block_on(dispatcher.dispatch(
+        invocation(
+            "follow-up-call",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation,
+    ))
+    .expect("capacity must be freed after dropping the prior dispatch future");
+    assert_eq!(outcome.result().payload_for_delivery(), b"second-ok");
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
 }
 
 #[test]
@@ -657,6 +1067,29 @@ fn diagnostics_and_debug_output_are_redacted() {
         "call-secret",
     ] {
         assert!(!evidence.contains(protected));
+    }
+}
+
+struct ThreadWake(std::thread::Thread);
+
+impl std::task::Wake for ThreadWake {
+    fn wake(self: Arc<Self>) {
+        self.0.unpark();
+    }
+
+    fn wake_by_ref(self: &Arc<Self>) {
+        self.0.unpark();
+    }
+}
+
+fn block_on_parked<T>(mut future: DispatchFuture<'_, T>) -> T {
+    let waker = Waker::from(Arc::new(ThreadWake(std::thread::current())));
+    let mut context = Context::from_waker(&waker);
+    loop {
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(value) => return value,
+            Poll::Pending => std::thread::park(),
+        }
     }
 }
 

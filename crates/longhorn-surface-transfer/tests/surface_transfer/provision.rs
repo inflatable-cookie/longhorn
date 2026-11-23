@@ -19,7 +19,7 @@ fn policy_rejects_zero_geometry_and_duplicate_display_or_window_targets() {
     };
     assert!(
         SurfaceTransferPolicy::new(
-            [],
+            [window_id("window:a"), window_id("window:b")],
             EmptyWindowPolicy::Allow,
             EmptyDisplayProvisionPolicy::Enabled(vec![
                 valid("display:a", "window:a"),
@@ -30,7 +30,7 @@ fn policy_rejects_zero_geometry_and_duplicate_display_or_window_targets() {
     );
     assert!(
         SurfaceTransferPolicy::new(
-            [],
+            [window_id("window:a")],
             EmptyWindowPolicy::Allow,
             EmptyDisplayProvisionPolicy::Enabled(vec![
                 valid("display:a", "window:a"),
@@ -39,4 +39,11 @@ fn policy_rejects_zero_geometry_and_duplicate_display_or_window_targets() {
         )
         .is_err()
     );
+    let disallowed = SurfaceTransferPolicy::new(
+        [window_id("window:allowed")],
+        EmptyWindowPolicy::Allow,
+        EmptyDisplayProvisionPolicy::Enabled(vec![valid("display:a", "window:not-allowed")]),
+    )
+    .unwrap_err();
+    assert!(disallowed.detail().contains("allowed_target_windows"));
 }

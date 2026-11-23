@@ -280,13 +280,6 @@ impl DiscoveryRecord {
     pub const fn is_live(&self) -> bool {
         self.live
     }
-
-    /// Returns whether the record is stale: the pid is dead and the file
-    /// is leftover from an unclean exit.
-    #[must_use]
-    pub const fn is_stale(&self) -> bool {
-        !self.live
-    }
 }
 
 /// Result of enumerating the discovery directory.
@@ -378,7 +371,29 @@ pub fn process_alive(pid: u32) -> bool {
 }
 
 /// Writes owner-read-write-only bytes, creating or truncating the file.
+///
+/// Refuses to write the credential if narrowing permissions to `0o600` fails.
 fn write_credential_file(path: &Path, bytes: &[u8]) -> Result<(), DiscoveryError> {
+    write_credential_file_with(path, bytes, |file| {
+        #[cfg(unix)]
+        {
+            // An existing file keeps its old mode through truncate; re-assert.
+            use std::os::unix::fs::PermissionsExt;
+            file.set_permissions(fs::Permissions::from_mode(0o600))
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = file;
+            Ok(())
+        }
+    })
+}
+
+fn write_credential_file_with(
+    path: &Path,
+    bytes: &[u8],
+    set_permissions: impl FnOnce(&fs::File) -> io::Result<()>,
+) -> Result<(), DiscoveryError> {
     let mut options = fs::OpenOptions::new();
     options.write(true).create(true).truncate(true);
     #[cfg(unix)]
@@ -390,12 +405,10 @@ fn write_credential_file(path: &Path, bytes: &[u8]) -> Result<(), DiscoveryError
         path: path.to_path_buf(),
         source,
     })?;
-    #[cfg(unix)]
-    {
-        // An existing file keeps its old mode through truncate; re-assert.
-        use std::os::unix::fs::PermissionsExt;
-        let _ = file.set_permissions(fs::Permissions::from_mode(0o600));
-    }
+    set_permissions(&file).map_err(|source| DiscoveryError::Io {
+        path: path.to_path_buf(),
+        source,
+    })?;
     io::Write::write_all(&mut file, bytes).map_err(|source| DiscoveryError::Io {
         path: path.to_path_buf(),
         source,
@@ -416,4 +429,62 @@ fn narrow_directory_permissions(dir: &Path) -> Result<(), DiscoveryError> {
     }
     let _ = dir;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn write_credential_file_refuses_to_write_when_permissions_fail() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("cred.json");
+        let secret = b"{\"token\":\"must-never-be-written\"}";
+
+        let error = write_credential_file_with(&path, secret, |_| {
+            Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "cannot narrow permissions",
+            ))
+        })
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            DiscoveryError::Io { ref source, .. }
+                if source.kind() == io::ErrorKind::PermissionDenied
+        ));
+        let contents = fs::read(&path).unwrap();
+        assert!(
+            contents.is_empty(),
+            "credential bytes must not be written when set_permissions fails"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn publish_tightens_existing_world_readable_discovery_file() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = TempDir::new().unwrap();
+        let discovery_dir = dir.path().join("agent-control");
+        fs::create_dir_all(&discovery_dir).unwrap();
+        let existing =
+            discovery_dir.join(format!("dev.example.tighten-{}.json", std::process::id()));
+        fs::write(&existing, b"{}").unwrap();
+        fs::set_permissions(&existing, fs::Permissions::from_mode(0o644)).unwrap();
+
+        let instance = publish_discovery(
+            &discovery_dir,
+            "dev.example.tighten",
+            49170,
+            InstanceToken::generate().unwrap(),
+        )
+        .unwrap();
+
+        let mode = fs::metadata(instance.path()).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600);
+        instance.remove().unwrap();
+    }
 }

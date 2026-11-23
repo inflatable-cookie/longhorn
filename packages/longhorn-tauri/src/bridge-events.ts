@@ -136,7 +136,7 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
       return;
     }
     // Consumer callbacks are not transport failures: a throw here propagates
-    // to the event source and leaves the job's listeners in place.
+    // to the emitter and leaves the job's listeners in place.
     if (tracker.classifyProgress(event) === "accept") {
       listeners.progress?.(event);
     }

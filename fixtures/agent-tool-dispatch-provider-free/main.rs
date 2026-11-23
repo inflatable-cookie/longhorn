@@ -376,7 +376,6 @@ fn successful_and_refused_calls() {
     let metrics = adapter.inner().metrics();
     assert_eq!(metrics.callbacks, 1);
     assert_eq!(metrics.results, 1);
-    assert_eq!(metrics.mutation_replays, 0);
 
     let port = services
         .services()
@@ -458,7 +457,6 @@ fn cancelled_call_is_terminal_once() {
     assert_eq!(metrics.callbacks, 1);
     assert_eq!(metrics.cancellations, 1);
     assert_eq!(metrics.results, 0);
-    assert_eq!(metrics.mutation_replays, 0);
     assert_eq!(
         adapter
             .callbacks

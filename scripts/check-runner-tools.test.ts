@@ -1,21 +1,21 @@
-import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { checkCiRunnerTools } from "./check-ci-runner-tools.ts";
 import {
   cargoInstallCrates,
   checkReleaseRunnerTools,
   formatReleaseRunnerToolsFailure,
-  parseWorkflowInstalls,
+  checkCiRunnerTools,
+  findForbiddenTools,
+  releaseWorkflowInstalls,
   toolsNeededByCommand,
-  workflowRunScripts,
-} from "./check-release-runner-tools.ts";
+} from "./check-runner-tools.ts";
 
 const gates = `
 [release.gates]
-private-candidate = "bun scripts/verify-private-candidate-docs-card127.ts"
+private-candidate = "bun scripts/verify-private-candidate-docs.ts"
 advisories = "cargo deny check advisories"
 rustdoc = "effigy docs:rust"
 prototypes = "effigy check:prototypes"
@@ -129,19 +129,19 @@ ${setup}
 
 describe("release-gate runner tools", () => {
   test("cargo deny needs cargo-deny; stock cargo subcommands do not", () => {
-    expect(toolsNeededByCommand("cargo deny check advisories").map((item) => item.tool)).toEqual([
+    expect(toolsNeededByCommand("cargo deny check advisories")).toEqual([
       "cargo",
       "cargo-deny",
     ]);
-    expect(toolsNeededByCommand("cargo test --workspace").map((item) => item.tool)).toEqual(["cargo"]);
-    expect(toolsNeededByCommand("effigy docs:rust").map((item) => item.tool)).toEqual(["effigy"]);
-    expect(toolsNeededByCommand("bun scripts/verify-private-candidate-docs-card127.ts").map((item) => item.tool)).toEqual([
+    expect(toolsNeededByCommand("cargo test --workspace")).toEqual(["cargo"]);
+    expect(toolsNeededByCommand("effigy docs:rust")).toEqual(["effigy"]);
+    expect(toolsNeededByCommand("bun scripts/verify-private-candidate-docs.ts")).toEqual([
       "bun",
     ]);
   });
 
   test("sh -c with an inner cargo plugin is mapped; a bare sh -c is not", () => {
-    expect(toolsNeededByCommand("sh -c 'cargo deny check advisories'").map((item) => item.tool)).toEqual([
+    expect(toolsNeededByCommand("sh -c 'cargo deny check advisories'")).toEqual([
       "cargo",
       "cargo-deny",
     ]);
@@ -152,19 +152,17 @@ describe("release-gate runner tools", () => {
     // Locally that gate runs `oxide`; a runner still needs `cargo` and the
     // plugin, so the launcher must not hide the requirement.
     expect(
-      toolsNeededByCommand("bash scripts/rust-command.sh deny check advisories").map((item) => item.tool),
+      toolsNeededByCommand("bash scripts/rust-command.sh deny check advisories"),
     ).toEqual(["cargo", "cargo-deny"]);
     expect(
-      toolsNeededByCommand("bash scripts/rust-command.sh test --workspace").map((item) => item.tool),
+      toolsNeededByCommand("bash scripts/rust-command.sh test --workspace"),
     ).toEqual(["cargo"]);
   });
 
   test("cargo install is taken from run scripts, not comments or step names", () => {
-    const scripts = workflowRunScripts(workflowWithDeny);
-    expect(scripts).toContain("cargo install cargo-deny --locked --version 0.19.4");
     expect(cargoInstallCrates("cargo install cargo-deny --locked --version 0.19.4")).toEqual(["cargo-deny"]);
-    expect(parseWorkflowInstalls(workflowWithDeny).tools.has("cargo-deny")).toBe(true);
-    expect(parseWorkflowInstalls(workflowWithoutDeny).tools.has("cargo-deny")).toBe(false);
+    expect(releaseWorkflowInstalls(workflowWithDeny).has("cargo-deny")).toBe(true);
+    expect(releaseWorkflowInstalls(workflowWithoutDeny).has("cargo-deny")).toBe(false);
     expect(cargoInstallCrates("echo cargo install cargo-deny")).toEqual([]);
   });
 
@@ -191,9 +189,9 @@ describe("release-gate runner tools", () => {
     const after = await writeRepo(gates, workflowDenyAfterGates);
     const result = checkReleaseRunnerTools(after);
     expect(result.failures.some((item) => item.tool === "cargo-deny")).toBe(true);
-    expect(parseWorkflowInstalls(workflowDenyAfterGates).tools.has("cargo-deny")).toBe(false);
-    expect(parseWorkflowInstalls(workflowDenyConditional).tools.has("cargo-deny")).toBe(false);
-    expect(parseWorkflowInstalls(workflowDenySameScriptAfter).tools.has("cargo-deny")).toBe(false);
+    expect(releaseWorkflowInstalls(workflowDenyAfterGates).has("cargo-deny")).toBe(false);
+    expect(releaseWorkflowInstalls(workflowDenyConditional).has("cargo-deny")).toBe(false);
+    expect(releaseWorkflowInstalls(workflowDenySameScriptAfter).has("cargo-deny")).toBe(false);
   });
 
   test("cargo-deny install in another job does not satisfy the advisories gate", async () => {
@@ -202,7 +200,7 @@ describe("release-gate runner tools", () => {
     const denied = result.failures.filter((item) => item.tool === "cargo-deny");
     expect(denied.length).toBe(1);
     expect(denied[0]?.gate).toBe("advisories");
-    expect(parseWorkflowInstalls(workflowDenyOtherJob).tools.has("cargo-deny")).toBe(false);
+    expect(releaseWorkflowInstalls(workflowDenyOtherJob).has("cargo-deny")).toBe(false);
     expect(formatReleaseRunnerToolsFailure(result)).toContain("cargo-deny");
   });
 
@@ -211,7 +209,6 @@ describe("release-gate runner tools", () => {
     expect(live.failures).toEqual([]);
     const deny = live.requirements.find((item) => item.tool === "cargo-deny");
     expect(deny?.gate).toBe("advisories");
-    expect(deny?.provided).toBe(true);
     expect(deny?.via).toBe("cargo install cargo-deny");
   });
 });
@@ -247,8 +244,56 @@ describe("CI Rust runner tools", () => {
   });
 });
 
+describe("workflow YAML and runner source", () => {
+  test("handles folded commands, quoted actions and YAML comments", () => {
+    const workflow = workflowWithDeny
+      .replace("uses: oven-sh/setup-bun@abc", "uses: 'oven-sh/setup-bun@abc' # setup")
+      .replace(
+        "run: cargo install cargo-deny --locked --version 0.19.4",
+        "run: >-\n          cargo install cargo-deny\n          --locked --version 0.19.4",
+      )
+      .replace("run: effigy release:gates", "run: 'effigy release:gates' # gate");
+    const installs = releaseWorkflowInstalls(workflow);
+    expect(installs.get("bun")).toBe("oven-sh/setup-bun");
+    expect(installs.get("cargo-deny")).toBe("cargo install cargo-deny");
+  });
+
+  test("every release-gates job needs its own install", () => {
+    const secondJob = workflowWithoutDeny.slice(workflowWithoutDeny.indexOf("  release:"));
+    const workflow = workflowWithDeny + secondJob.replace("  release:", "  other:");
+    expect(releaseWorkflowInstalls(workflow).has("cargo-deny")).toBe(false);
+  });
+
+  test("a conditional Bun action cannot satisfy the Rust job", () => {
+    const conditionalBun = ciBunSetup.replace("        with:", "        if: false\n        with:");
+    expect(checkCiRunnerTools(ciWorkflow(conditionalBun))).toContain(
+      "rust must install Bun before its first Effigy step",
+    );
+  });
+
+  test("reports forbidden commands with their file and line", () => {
+    const shortName = "r" + "g";
+    const longName = "rip" + "grep";
+    expect(findForbiddenTools("scripts/example.sh", [
+      `# ${shortName} is only mentioned`,
+      `find . | ${shortName} needle`,
+      `${longName} pattern # command`,
+    ].join("\n"))).toEqual([
+      { file: "scripts/example.sh", line: 2, tool: shortName, text: `find . | ${shortName} needle` },
+      { file: "scripts/example.sh", line: 3, tool: longName, text: `${longName} pattern # command` },
+    ]);
+    expect(findForbiddenTools("effigy.toml", `# Prefer grep over ${shortName} commands`)).toEqual([]);
+  });
+});
+
+const fixtures: string[] = [];
+afterEach(async () => {
+  await Promise.all(fixtures.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+});
+
 async function writeRepo(releaseToml: string, workflow: string): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "longhorn-release-runner-tools-"));
+  fixtures.push(root);
   await mkdir(join(root, "config"), { recursive: true });
   await mkdir(join(root, ".github/workflows"), { recursive: true });
   await writeFile(join(root, "config/release.toml"), releaseToml);

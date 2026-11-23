@@ -3083,16 +3083,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "longhorn-nucleus-no-surface-proof"
-version = "0.5.0"
-dependencies = [
- "longhorn-core",
- "longhorn-surfaces",
- "longhorn-transfer",
- "longhorn-windowing",
-]
-
-[[package]]
 name = "longhorn-operation"
 version = "0.5.0"
 dependencies = [
@@ -3527,6 +3517,16 @@ dependencies = [
 [[package]]
 name = "longhorn-url"
 version = "0.5.0"
+
+[[package]]
+name = "longhorn-window-bound-hosting-proof"
+version = "0.5.0"
+dependencies = [
+ "longhorn-core",
+ "longhorn-surfaces",
+ "longhorn-transfer",
+ "longhorn-windowing",
+]
 
 [[package]]
 name = "longhorn-windowing"

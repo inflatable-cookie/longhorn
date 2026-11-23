@@ -149,7 +149,8 @@ pub enum BindingStatus {
 ///
 /// The composing host calculates the remaining duration from its trusted
 /// clock. Longhorn rejects expired, zero, or registration-exceeding values
-/// before invoking the callback.
+/// before invoking the callback and enforces the remaining duration while the
+/// callback runs and when recording its result.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum DispatchDeadline {
     /// The trusted clock reports this positive duration remains.
@@ -483,6 +484,4 @@ pub struct DispatchMetrics {
     pub cancellations: usize,
     /// Calls or results rejected.
     pub rejections: usize,
-    /// Automatic mutation replays. This is always zero.
-    pub mutation_replays: usize,
 }

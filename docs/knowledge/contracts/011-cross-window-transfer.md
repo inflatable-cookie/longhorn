@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-29
+Updated: 2026-11-22
 Depends on: contracts 002, 004, 009, 010, and 014
 Evidence: `010-surface-hosting-and-transfer-boundary.md` (Git history),
 `011-client-svelte-poodle-and-shell-boundary.md` (Git history)
@@ -22,7 +22,9 @@ keeps panel and Surface commit adapters explicit.
 ## Package Boundary
 
 - `longhorn-transfer` owns session, lease, target, and panel-transfer
-  coordination without importing Surface types.
+  coordination using only the shared layout/document types from
+  `longhorn-surfaces`, without importing whole-Surface transfer policy or
+  provisioning from `longhorn-surface-transfer`.
 - `longhorn-surface-transfer` supplies the optional whole-Surface transfer
   adapter.
 - `longhorn-tauri-transfer` binds current managed-window readback and handler
@@ -32,7 +34,7 @@ keeps panel and Surface commit adapters explicit.
   framework-neutral clients.
 
 Nucleus may depend on `longhorn-transfer` without linking
-`longhorn-surfaces`.
+`longhorn-surface-transfer`.
 
 ## Session
 
@@ -93,11 +95,11 @@ and client epoch. A lease contains a bounded set of unique `DropZoneId`
 records:
 
 - current `WindowId`
-- target host binding
-- target `LayoutContainerId` and `RegionId` for panel targets
+- target host binding (whose target variant — panel region or Surface window —
+  determines the derived accepted capability)
+- target `SurfaceId` and `RegionId` for panel-region targets
 - rectangle in `ScreenDip`
 - optional bounded insertion position
-- accepted capability
 - target layout or Surface revision
 - lease generation and expiry
 
@@ -115,10 +117,19 @@ destroy, client-epoch change, or expiry invalidates it. Drop zones are not a
 durable event stream.
 
 The host explicitly binds one current client and monotonically advancing epoch
-to each managed window. Epoch change removes the prior lease and invalidates
-active source sessions from the superseded client. Session, current-client,
-lease, per-lease zone, insertion-position, and lifetime limits are finite and
-checked before publication.
+to each managed window. Epoch change removes the prior lease, resets the
+epoch's accepted lease generation watermark, and invalidates active source
+sessions from the superseded client; a client snapshot therefore reports only
+the protocol version, client identity, and client epoch. Within one client
+epoch, lease generation monotonicity is preserved across lease expiry and
+reclamation: re-publishing an equal or lower generation after expiry still
+fails with `stale_lease_generation`. Session, current-client, lease, per-lease
+zone, insertion-position, and lifetime limits are finite and checked before
+publication; expired leases are discarded when reclaimed on lease publication
+so they do not hold lease capacity. Before reclamation, a terminal resolution
+attempt against an expired lease reports `lease_expired`; once reclaimed (for
+example by an unrelated window's lease publication), no expired lease record is
+retained, so resolution reports `no_target` unless another live target matches.
 
 ## Target Resolution
 
@@ -172,14 +183,17 @@ A whole-Surface transfer re-resolves:
 - the target window still participates and may accept it
 - consumer move and empty-window policies
 
-The expected-revision Surface move commits one complete Surface document or
-none. Layout-container contents do not move or serialize; the Surface retains
-its existing binding.
+The expected-revision Surface move publishes one complete unified Surface
+document or none. Relocation preserves the Surface identity and its contained
+regions, panels, and sizing slots while updating host placement.
 
-If an empty-display policy provisions a window before the Surface commit, the
-provisioner returns explicit commit and cleanup authority. A failed Surface
-commit must invoke cleanup and report both receipts. Unresolved cleanup is a
-typed host-reconciliation failure, never silent success.
+If an empty-display policy provisions a window before the Surface commit, every
+configured empty-display target window must appear in `allowed_target_windows`
+(validated when constructing `SurfaceTransferPolicy`), and the provisioner
+returns explicit commit and cleanup authority. A failed Surface commit must
+invoke cleanup and report both receipts. Unresolved cleanup or post-commit host
+failure is a typed host-reconciliation failure (`reconciliation_required`),
+never silent success.
 
 ## Completion And Cancellation
 
@@ -197,9 +211,13 @@ Success returns:
 - target-resolution evidence
 - optional provisioning and cleanup receipt
 
-Abort returns a stable code and current authority evidence when safe. Missing,
-stale, ineligible, expired, ambiguous, replayed, cancelled, cross-document, or
-disappeared targets leave the source document byte-for-byte unchanged.
+Abort returns a stable code (promoting underlying transfer-domain rejections
+and preserving layout/Surface mutation rejection codes) and current authority
+evidence when safe. Transfer aborts are terminal for the request
+(`retryable: false`): callers must acquire fresh authority or start a new
+session rather than replaying a failed request. Missing, stale, ineligible,
+expired, ambiguous, replayed, cancelled, cross-document, or disappeared targets
+leave the source document byte-for-byte unchanged.
 
 Optimistic renderer projection must reconcile to the authoritative response
 and roll back on abort. Optimism never advances durable revision locally.
@@ -230,10 +248,11 @@ opaque direct-window and Surface-container host projections, same-domain and
 revision rechecks, and the existing coordinated expected-revision `MovePanel`
 publication.
 
-The package now depends on core, config, layout, layout-config, and serde. It
-still imports no `longhorn-surfaces` type or package. Cross-document and copy
-attempts consume the terminal session and publish no bytes. Success returns
-the existing authoritative layout and configuration receipt.
+The package now depends on core, config, surfaces, surfaces-config, and serde
+(using the shared layout/document types folded into `longhorn-surfaces`); it
+imports no whole-Surface transfer adapter or provisioning types. Cross-document
+and copy attempts consume the terminal session and publish no bytes. Success
+returns the existing authoritative layout and configuration receipt.
 
 Card 033 adds `longhorn-surface-transfer`. Admission resolves the fresh
 registered Surface and primary host binding. Terminal commit rechecks the

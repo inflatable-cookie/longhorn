@@ -227,24 +227,24 @@ impl ProcessSession {
                 }
             }
             WireEventKind::FocusChanged { focused } => {
-                if let Ok(mut current) = self.snapshot.lock() {
-                    if let Some(snapshot) = current.as_mut() {
-                        snapshot.focused = *focused;
-                    }
+                if let Ok(mut current) = self.snapshot.lock()
+                    && let Some(snapshot) = current.as_mut()
+                {
+                    snapshot.focused = *focused;
                 }
             }
             WireEventKind::VisibilityChanged { visible } => {
-                if let Ok(mut current) = self.snapshot.lock() {
-                    if let Some(snapshot) = current.as_mut() {
-                        snapshot.visible = *visible;
-                    }
+                if let Ok(mut current) = self.snapshot.lock()
+                    && let Some(snapshot) = current.as_mut()
+                {
+                    snapshot.visible = *visible;
                 }
             }
             WireEventKind::ContentResized { size } => {
-                if let Ok(mut current) = self.snapshot.lock() {
-                    if let Some(snapshot) = current.as_mut() {
-                        snapshot.content_size = *size;
-                    }
+                if let Ok(mut current) = self.snapshot.lock()
+                    && let Some(snapshot) = current.as_mut()
+                {
+                    snapshot.content_size = *size;
                 }
             }
             WireEventKind::Progress { .. }
