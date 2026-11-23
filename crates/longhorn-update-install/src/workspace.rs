@@ -14,24 +14,29 @@ const WORKSPACE_FORMAT: &[u8] = b"Longhorn update install workspace v1\n";
 // turn a permitted target name into a workspace name.
 const WORKSPACE_NAMESPACE: &str = ".--.";
 
-/// Rejects targets in install state before apply can move anything. Check the
-/// parent separately because a symlink inside a workspace can resolve outside it.
-pub(super) fn check_target(target: &Path) -> Result<(), InstallFailure> {
+/// Resolve the parent used for filesystem operations and keep the final entry
+/// name, since replacement moves the entry itself, including a symlink.
+fn resolve_target(target: &Path) -> Result<PathBuf, InstallFailure> {
     if in_workspace_namespace(target) {
         return Err(reserved_target(target));
     }
+    let name = target.file_name().ok_or_else(|| InstallFailure::Failed {
+        detail: "install target has no bundle name".to_owned(),
+    })?;
     let parent = target_parent(target);
     let resolved_parent = fs::canonicalize(parent).map_err(|error| classify(&error, parent))?;
+    // The final entry can resolve outside a workspace even if its parent is inside.
     if in_workspace_namespace(&resolved_parent) {
         return Err(reserved_target(target));
     }
 
     match fs::canonicalize(target) {
-        Ok(resolved) if in_workspace_namespace(&resolved) => Err(reserved_target(target)),
-        Ok(_) => Ok(()),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(classify(&error, target)),
+        Ok(resolved) if in_workspace_namespace(&resolved) => return Err(reserved_target(target)),
+        Ok(_) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(classify(&error, target)),
     }
+    Ok(resolved_parent.join(name))
 }
 
 fn in_workspace_namespace(path: &Path) -> bool {
@@ -59,61 +64,61 @@ fn target_parent(target: &Path) -> &Path {
         .unwrap_or_else(|| Path::new("."))
 }
 
-/// Shared for ordinary applies, exclusive when escalation cannot lock a
-/// target workspace. The directory inode remains in place during replacement.
-pub(super) struct ParentLock {
+/// A target and the directory locks held through its entire apply.
+pub(super) struct LockedTarget {
+    pub(super) path: PathBuf,
     #[cfg(unix)]
-    _directory: File,
+    _directories: Vec<File>,
 }
 
-impl ParentLock {
-    pub(super) fn shared(target: &Path) -> Result<Self, InstallFailure> {
-        #[cfg(unix)]
-        {
-            Self::acquire(target, File::try_lock_shared)
-        }
-        #[cfg(not(unix))]
-        {
-            let _ = target;
-            Ok(Self {})
-        }
-    }
-
-    pub(super) fn into_exclusive(self, target: &Path) -> Result<Self, InstallFailure> {
-        #[cfg(unix)]
-        {
-            // An upgrade on the same handle is platform-dependent. Reopen
-            // and have the caller recheck the workspace under the new lock.
-            drop(self);
-            Self::acquire(target, File::try_lock)
-        }
-        #[cfg(not(unix))]
-        {
-            Err(InstallFailure::NotWritable {
-                detail: format!(
-                    "cannot coordinate privileged replacement of {}",
-                    target.display()
-                ),
-            })
-        }
-    }
-
+impl LockedTarget {
     #[cfg(unix)]
-    fn acquire(
-        target: &Path,
-        lock: impl FnOnce(&File) -> Result<(), TryLockError>,
-    ) -> Result<Self, InstallFailure> {
-        let parent = target_parent(target);
-        let directory = File::open(parent).map_err(|error| classify(&error, parent))?;
-        match lock(&directory) {
-            Ok(()) => Ok(Self {
-                _directory: directory,
-            }),
-            Err(TryLockError::WouldBlock) => Err(InstallFailure::Failed {
-                detail: format!("another update is active in {}", parent.display()),
-            }),
-            Err(TryLockError::Error(error)) => Err(classify(&error, parent)),
+    pub(super) fn acquire(target: &Path) -> Result<Self, InstallFailure> {
+        let path = resolve_target(target)?;
+        let parent = target_parent(&path);
+        let mut ancestors: Vec<_> = parent.ancestors().collect();
+        ancestors.reverse();
+
+        // Each shared lock prevents an apply from replacing the next directory.
+        // The exclusive parent lock also covers installs with no writable workspace.
+        let mut directories = Vec::with_capacity(ancestors.len());
+        for ancestor in ancestors {
+            let directory = File::open(ancestor).map_err(|error| classify(&error, ancestor))?;
+            let locked = if ancestor == parent {
+                directory.try_lock()
+            } else {
+                directory.try_lock_shared()
+            };
+            match locked {
+                Ok(()) => directories.push(directory),
+                Err(TryLockError::WouldBlock) => {
+                    return Err(InstallFailure::Failed {
+                        detail: format!("another update is active in {}", ancestor.display()),
+                    });
+                }
+                Err(TryLockError::Error(error)) => return Err(classify(&error, ancestor)),
+            }
         }
+
+        // A competing apply may have changed a path before we reached its lock.
+        // Recheck the caller's path and the resolved spelling we will actually use.
+        if resolve_target(target)? != path || resolve_target(&path)? != path {
+            return Err(InstallFailure::Failed {
+                detail: format!("install target parent changed for {}", target.display()),
+            });
+        }
+        Ok(Self {
+            path,
+            _directories: directories,
+        })
+    }
+
+    #[cfg(not(unix))]
+    pub(super) fn acquire(target: &Path) -> Result<Self, InstallFailure> {
+        let path = resolve_target(target)?;
+        Err(InstallFailure::NotWritable {
+            detail: format!("cannot lock install directory for {}", path.display()),
+        })
     }
 }
 

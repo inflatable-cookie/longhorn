@@ -210,15 +210,17 @@ earlier single-call stance.
 - The installer uses a private directory beside the target, named from the
   full bundle name. Path components starting with `.--.` are reserved for
   install workspaces. Apply refuses targets at or inside that namespace,
-  including paths resolved through symlinks. An OS file lock covers
-  recovery, staging, and replacement for that target, including direct
-  calls to `NativeInstaller`. An
-  overlapping apply to the same target returns `InstallFailure::Failed` and
-  can retry. An existing workspace needs a recognized lock marker. On Unix,
-  ordinary applies share a lock on the parent directory. Escalation without
-  a workspace takes that parent lock exclusively and rechecks for a workspace
-  before invoking the host port. If the lock is unavailable, apply fails
-  without invoking the port.
+  including paths resolved through symlinks. An existing workspace needs a
+  recognized lock marker and is locked for the duration of apply.
+- On Unix, every apply, including direct calls to `NativeInstaller`, locks the
+  resolved parent chain from the root down. It takes shared locks on strict
+  ancestors of the parent and an exclusive lock on the parent itself.
+  Recovery, staging, replacement, cleanup, and privileged replacement all
+  run under these locks. A competing apply to an ancestor, descendant, or
+  target with the same parent gets a retryable `InstallFailure::Failed`
+  before touching install state. Applies to separate branches can proceed
+  together when their only common locks are shared. Platforms without this
+  directory locking refuse native bundle replacement.
 - Each attempt cleans up only its own staging allocation. A process crash
   can leave its staging directory behind for manual cleanup. Later applies
   leave it and any legacy prefix-matching siblings untouched.

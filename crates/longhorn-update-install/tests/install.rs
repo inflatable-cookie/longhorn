@@ -4,6 +4,8 @@
 //! as fixtures, so nothing here can drift from the signing format it claims
 //! to accept.
 
+#![cfg(unix)]
+
 use std::{
     fs,
     io::Cursor,
@@ -241,7 +243,7 @@ struct Fixture {
 impl Fixture {
     fn new() -> Self {
         let temp = TempDir::new().unwrap();
-        let target = temp.path().join("Example.app");
+        let target = temp.path().canonicalize().unwrap().join("Example.app");
         fs::create_dir_all(target.join("Contents")).unwrap();
         fs::write(target.join("Contents/marker"), b"old").unwrap();
         Self {
@@ -278,10 +280,7 @@ fn the_native_installer_satisfies_the_shared_conformance_suite() {
         assert!(outcome.satisfied, "{}: {:?}", outcome.claim, outcome.detail);
     }
     // Four base claims plus one per hostile-archive fixture.
-    #[cfg(unix)]
     assert_eq!(outcomes.len(), 8);
-    #[cfg(not(unix))]
-    assert_eq!(outcomes.len(), 4);
 }
 
 #[test]

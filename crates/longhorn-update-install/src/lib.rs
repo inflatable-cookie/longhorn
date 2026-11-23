@@ -60,7 +60,7 @@ use std::{
 use flate2::read::GzDecoder;
 use longhorn_update::{Applied, InstallFailure, UpdateInstaller, VerifiedArtifact};
 
-use workspace::{Backup, InstallWorkspace, ParentLock, check_target, entry_exists};
+use workspace::{Backup, InstallWorkspace, LockedTarget, entry_exists};
 
 /// The most one artifact may unpack to.
 ///
@@ -115,7 +115,8 @@ impl ExtractionQuota {
 /// privileged move of user-writable content is the exact hole this shape
 /// closes.
 pub trait PrivilegedReplace {
-    /// Replaces `target` with `artifact`, with elevated privileges.
+    /// Replaces the `target` entry with `artifact`, with elevated privileges.
+    /// The parent is resolved and locked. A final symlink is replaced as an entry.
     fn replace(&self, artifact: &VerifiedArtifact, target: &Path) -> Result<(), String>;
 }
 
@@ -152,6 +153,7 @@ pub fn extract_bundle(
 /// Holds no key. The controller verifies and hands over a `VerifiedArtifact`;
 /// an installer with its own key could have been built with a different one
 /// from the controller checking on its behalf, and nothing would have noticed.
+/// Native bundle replacement requires Unix directory locks.
 pub struct NativeInstaller<E> {
     target: PathBuf,
     escalate: E,
@@ -178,7 +180,7 @@ impl<E> NativeInstaller<E> {
         }
     }
 
-    /// Returns the path this installer replaces.
+    /// Returns the configured destination path.
     #[must_use]
     pub fn target(&self) -> &Path {
         &self.target
@@ -197,20 +199,13 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         artifact: &VerifiedArtifact,
         rename: impl Fn(&Path, &Path) -> io::Result<()>,
     ) -> Result<Applied, InstallFailure> {
-        check_target(&self.target)?;
-        let parent_lock = ParentLock::shared(&self.target)?;
-        let workspace = InstallWorkspace::acquire(&self.target)?;
-        let (_parent_lock, workspace) = if workspace.is_some() {
-            (parent_lock, workspace)
-        } else {
-            let lock = parent_lock.into_exclusive(&self.target)?;
-            (lock, InstallWorkspace::acquire(&self.target)?)
-        };
-        match workspace {
-            Some(workspace) => self.apply_in_workspace(&workspace, artifact, rename)?,
+        let locked = LockedTarget::acquire(&self.target)?;
+        let target = &locked.path;
+        match InstallWorkspace::acquire(target)? {
+            Some(workspace) => self.apply_in_workspace(target, &workspace, artifact, rename)?,
             None => {
-                self.check_legacy_backup()?;
-                self.escalated_swap(artifact)?;
+                check_legacy_backup(target)?;
+                self.escalated_swap(target, artifact)?;
             }
         }
 
@@ -225,13 +220,14 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
 
     fn apply_in_workspace(
         &self,
+        target: &Path,
         workspace: &InstallWorkspace,
         artifact: &VerifiedArtifact,
         rename: impl Fn(&Path, &Path) -> io::Result<()>,
     ) -> Result<(), InstallFailure> {
         let backup = workspace.backup();
-        backup.restore(&self.target)?;
-        self.check_legacy_backup()?;
+        backup.restore(target)?;
+        check_legacy_backup(target)?;
 
         // Only this attempt's TempDir is eligible for staging cleanup.
         let staging = match tempfile::Builder::new()
@@ -240,16 +236,17 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         {
             Ok(staging) => staging,
             Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
-                return self.escalated_swap(artifact);
+                return self.escalated_swap(target, artifact);
             }
             Err(error) => return Err(classify(&error, &workspace.root)),
         };
         let unpacked = unpack(artifact.bytes(), staging.path())?;
-        self.swap(&unpacked, &backup, artifact, rename)
+        self.swap(target, &unpacked, &backup, artifact, rename)
     }
 
     fn swap(
         &self,
+        target: &Path,
         staged: &Path,
         backup: &Backup<'_>,
         artifact: &VerifiedArtifact,
@@ -257,20 +254,22 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
     ) -> Result<(), InstallFailure> {
         // Move the current install aside rather than deleting it, so a
         // failed swap leaves something to put back.
-        backup.record(&self.target)?;
-        let displaced = match rename(&self.target, &backup.bundle) {
+        backup.record(target)?;
+        let displaced = match rename(target, &backup.bundle) {
             Ok(()) => true,
             Err(error) => {
                 backup.clear_receipt();
                 match error.kind() {
                     io::ErrorKind::NotFound => false,
-                    io::ErrorKind::PermissionDenied => return self.escalated_swap(artifact),
-                    _ => return Err(classify(&error, &self.target)),
+                    io::ErrorKind::PermissionDenied => {
+                        return self.escalated_swap(target, artifact);
+                    }
+                    _ => return Err(classify(&error, target)),
                 }
             }
         };
 
-        match rename(staged, &self.target) {
+        match rename(staged, target) {
             Ok(()) => {
                 if displaced && backup.clear_receipt() {
                     drop(fs::remove_dir_all(&backup.bundle));
@@ -279,44 +278,48 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
             }
             Err(error) => {
                 if displaced {
-                    if let Err(rollback) = rename(&backup.bundle, &self.target) {
+                    if let Err(rollback) = rename(&backup.bundle, target) {
                         return Err(InstallFailure::Failed {
                             detail: format!(
                                 "could not replace {} ({error}). Rollback failed ({rollback}). \
                                  Previous bundle preserved at {}",
-                                self.target.display(),
+                                target.display(),
                                 backup.bundle.display(),
                             ),
                         });
                     }
                     backup.clear_receipt();
                 }
-                Err(classify(&error, &self.target))
+                Err(classify(&error, target))
             }
         }
     }
 
     /// Escalation re-extracts from the verified artifact in the privileged
     /// context — the user-writable staging tree is never what gets moved.
-    fn escalated_swap(&self, artifact: &VerifiedArtifact) -> Result<(), InstallFailure> {
+    fn escalated_swap(
+        &self,
+        target: &Path,
+        artifact: &VerifiedArtifact,
+    ) -> Result<(), InstallFailure> {
         self.escalate
-            .replace(artifact, &self.target)
+            .replace(artifact, target)
             .map_err(|detail| InstallFailure::NotWritable { detail })
     }
+}
 
-    fn check_legacy_backup(&self) -> Result<(), InstallFailure> {
-        let backup = self.target.with_extension("longhorn-previous");
-        if !entry_exists(&self.target)? && entry_exists(&backup)? {
-            return Err(InstallFailure::Failed {
-                detail: format!(
-                    "{} is missing; identify and restore the legacy backup at {} before retrying",
-                    self.target.display(),
-                    backup.display(),
-                ),
-            });
-        }
-        Ok(())
+fn check_legacy_backup(target: &Path) -> Result<(), InstallFailure> {
+    let backup = target.with_extension("longhorn-previous");
+    if !entry_exists(target)? && entry_exists(&backup)? {
+        return Err(InstallFailure::Failed {
+            detail: format!(
+                "{} is missing; identify and restore the legacy backup at {} before retrying",
+                target.display(),
+                backup.display(),
+            ),
+        });
     }
+    Ok(())
 }
 
 /// Extracts a gzip tar into `staging`, returning the unpacked root.
@@ -579,13 +582,31 @@ mod tests {
         .unwrap()
     }
 
+    #[cfg(unix)]
     fn existing_install(root: &Path) -> NativeInstaller<NoPrivilegedReplace> {
-        let installer = NativeInstaller::new(root.join("Example.app"));
+        let installer = NativeInstaller::new(root.canonicalize().unwrap().join("Example.app"));
         fs::create_dir(installer.target()).unwrap();
         fs::write(installer.target().join("original"), b"old").unwrap();
         installer
     }
 
+    #[cfg(not(unix))]
+    #[test]
+    fn apply_refuses_to_replace_a_bundle_without_directory_locking() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("Example.app");
+        fs::create_dir(&target).unwrap();
+        fs::write(target.join("original"), b"old").unwrap();
+
+        let error = NativeInstaller::new(&target)
+            .apply(&signed_archive())
+            .expect_err("native replacement requires directory locks");
+
+        assert!(matches!(error, InstallFailure::NotWritable { .. }));
+        assert_eq!(fs::read(target.join("original")).unwrap(), b"old");
+    }
+
+    #[cfg(unix)]
     fn fail_swap_and_rollback(
         installer: &NativeInstaller<NoPrivilegedReplace>,
         artifact: &VerifiedArtifact,
@@ -606,23 +627,30 @@ mod tests {
             .expect_err("both renames into the target failed")
     }
 
+    #[cfg(unix)]
     #[test]
     fn an_install_leaves_another_targets_live_staging_intact() {
         let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().canonicalize().unwrap();
         let artifact = signed_archive();
-        let first = NativeInstaller::new(directory.path().join("Example.app"));
-        let second = NativeInstaller::new(directory.path().join("Example.preview"));
-        fs::create_dir(first.target()).unwrap();
-        fs::create_dir(second.target()).unwrap();
+        let first = NativeInstaller::new(root.join("release/Example.app"));
+        let second = NativeInstaller::new(root.join("preview/Example.app"));
+        let sibling = NativeInstaller::new(root.join("release/Example.preview"));
+        fs::create_dir_all(first.target()).unwrap();
+        fs::create_dir_all(second.target()).unwrap();
 
         first
             .apply_with_rename(&artifact, |from, to| {
                 if to == first.target() {
-                    let error = first.apply(&artifact).expect_err("the target lock is held");
-                    assert!(error.to_string().contains("another update is active"));
+                    for overlapping in [&first, &sibling] {
+                        let error = overlapping
+                            .apply(&artifact)
+                            .expect_err("the parent lock is held");
+                        assert!(error.to_string().contains("another update is active"));
+                    }
                     second
                         .apply(&artifact)
-                        .expect("a different target can install");
+                        .expect("an install in a separate branch can proceed");
                     assert!(from.join("0").is_file(), "active staging was touched");
                 }
                 fs::rename(from, to)
@@ -631,8 +659,52 @@ mod tests {
 
         assert!(first.target().join("0").is_file());
         assert!(second.target().join("0").is_file());
+        assert!(!sibling.target().exists());
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn an_ancestor_install_cannot_remove_a_live_descendant_workspace() {
+        use std::os::unix::fs::symlink;
+
+        let directory = tempfile::tempdir().unwrap();
+        let parent = directory.path().join("parent");
+        fs::create_dir(&parent).unwrap();
+        let outer = existing_install(&parent);
+        let inner = NativeInstaller::new(outer.target().join("Inner.app"));
+        fs::create_dir(inner.target()).unwrap();
+        let alias = directory.path().join("alias");
+        symlink(&parent, &alias).unwrap();
+        let outer_via_alias = NativeInstaller::new(alias.join("Example.app"));
+        let artifact = signed_archive();
+
+        inner
+            .apply_with_rename(&artifact, |from, to| {
+                if to.ends_with("Inner.app") {
+                    let workspace = from.parent().unwrap().parent().unwrap();
+                    for ancestor in [&outer, &outer_via_alias] {
+                        let error = ancestor
+                            .apply(&artifact)
+                            .expect_err("the descendant update is active");
+                        assert!(error.to_string().contains("another update is active"));
+                    }
+                    assert!(workspace.join("previous").is_dir(), "backup was touched");
+                    assert!(workspace.join("longhorn-update-install-v1.lock").is_file());
+                    assert!(from.join("0").is_file(), "active staging was touched");
+                }
+                fs::rename(from, to)
+            })
+            .expect("the descendant can still publish its staged bundle");
+
+        assert!(inner.target().join("0").is_file());
+        assert!(outer.target().join("original").is_file());
+        outer_via_alias
+            .apply(&artifact)
+            .expect("the ancestor can install after the descendant finishes");
+        assert!(outer.target().join("0").is_file());
+    }
+
+    #[cfg(unix)]
     #[test]
     fn a_live_workspace_and_its_staged_bundle_cannot_be_install_targets() {
         let directory = tempfile::tempdir().unwrap();
@@ -659,14 +731,11 @@ mod tests {
                     let case_alias = workspace
                         .with_file_name(workspace.file_name().unwrap().to_ascii_uppercase());
                     assert_reserved(&case_alias);
-                    #[cfg(unix)]
-                    {
-                        let alias = directory.path().join("workspace-alias");
-                        std::os::unix::fs::symlink(workspace, &alias).unwrap();
-                        let nested = alias.join(stage.file_name().unwrap()).join("Example.app");
-                        assert_reserved(&alias);
-                        assert_reserved(&nested);
-                    }
+                    let alias = directory.path().join("workspace-alias");
+                    std::os::unix::fs::symlink(workspace, &alias).unwrap();
+                    let nested = alias.join(stage.file_name().unwrap()).join("Example.app");
+                    assert_reserved(&alias);
+                    assert_reserved(&nested);
                     assert!(from.join("0").is_file(), "active staging was touched");
                 }
                 fs::rename(from, to)
@@ -676,14 +745,17 @@ mod tests {
         assert!(installer.target().join("0").is_file());
     }
 
+    #[cfg(unix)]
     #[test]
     fn failed_rollback_reports_both_faults_and_leaves_the_bundle_for_recovery() {
         let directory = tempfile::tempdir().unwrap();
         let artifact = signed_archive();
         let installer = existing_install(directory.path());
         let error = fail_swap_and_rollback(&installer, &artifact);
-        let backup = directory
-            .path()
+        let backup = installer
+            .target()
+            .parent()
+            .unwrap()
             .join(".--.longhorn-install-Example.app/previous");
 
         assert!(matches!(error, InstallFailure::Failed { .. }));
@@ -694,14 +766,11 @@ mod tests {
         assert_eq!(fs::read(backup.join("original")).unwrap(), b"old");
         assert!(!installer.target().exists());
 
-        #[cfg(unix)]
-        {
-            installer
-                .apply(&artifact)
-                .expect("retry recovers and replaces");
-            assert!(installer.target().join("0").is_file());
-            assert!(!backup.exists());
-        }
+        installer
+            .apply(&artifact)
+            .expect("retry recovers and replaces");
+        assert!(installer.target().join("0").is_file());
+        assert!(!backup.exists());
     }
 
     #[test]
@@ -722,6 +791,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn an_occupied_target_keeps_the_displaced_bundle_for_inspection() {
         let directory = tempfile::tempdir().unwrap();
@@ -729,8 +799,10 @@ mod tests {
         let artifact = signed_archive();
         drop(fail_swap_and_rollback(&installer, &artifact));
         fs::create_dir(installer.target()).unwrap();
-        let backup = directory
-            .path()
+        let backup = installer
+            .target()
+            .parent()
+            .unwrap()
             .join(".--.longhorn-install-Example.app/previous");
 
         let error = installer.apply(&artifact).expect_err("both paths exist");
