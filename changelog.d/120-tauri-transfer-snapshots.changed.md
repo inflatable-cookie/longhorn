@@ -1,2 +1,3 @@
-Let transfer snapshots probe windows independently, order client-change
-hints per caller, and stop retaining destroyed window IDs for epoch issuance.
+Let transfer snapshots probe windows independently and issue epochs without
+retaining destroyed window IDs. Order client-change hints per webview and
+subscribe each renderer to its own webview.
