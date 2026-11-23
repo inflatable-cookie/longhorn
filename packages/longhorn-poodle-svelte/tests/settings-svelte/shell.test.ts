@@ -4,7 +4,13 @@ import { describe, expect, it } from "vitest";
 import { SettingsSession } from "../../src/settings/poodle.ts";
 import { SETTINGS_RESET_COMMAND } from "../../../longhorn/src/settings/index.ts";
 import SettingsShellHarness from "./SettingsShellHarness.svelte";
-import { FakeSettingsTransport, fixture, registry, requestIds } from "./support.ts";
+import {
+  FakeSettingsTransport,
+  fixture,
+  registry,
+  requestIds,
+  twoPageRegistry,
+} from "./support.ts";
 
 function createSession(transport: FakeSettingsTransport, onClose?: () => void): SettingsSession {
   return new SettingsSession({
@@ -141,6 +147,35 @@ describe("SettingsShell", () => {
     // The query survives. Clearing it on the first pick would throw away the
     // filter at the moment it became useful.
     expect((search as HTMLInputElement).value).toBe("Output");
+    await Promise.resolve(mounted.unmount());
+    await session.stop();
+  });
+
+  /**
+   * A rail click is a shell action, and a rejected navigation used to escape
+   * through a promise nobody observed: no record on screen, and the rejection
+   * surfacing only as an unhandled rejection. It now takes the same path as
+   * apply, guard resolution and reset, and the target page is not focused
+   * because it never committed.
+   */
+  it("shows a rejected navigation as a settings action failure", async () => {
+    const transport = new FakeSettingsTransport();
+    transport.registryValue = twoPageRegistry();
+    const session = createSession(transport);
+    const mounted = render(SettingsShellHarness, {
+      props: { session },
+    });
+    await mounted.findByTestId("consumer-page");
+
+    transport.loadError = new Error("scope unavailable");
+    await fireEvent.click(await mounted.findByText("Advanced"));
+
+    expect(await mounted.findByText("Settings action failed")).toBeTruthy();
+    // The scope's own failure is recorded too, so the message appears on the
+    // action callout and on the session's failed callout.
+    expect(mounted.getAllByText("scope unavailable").length).toBeGreaterThan(0);
+    expect(session.route?.pageId).toBe("app:audio");
+    expect(document.querySelector('[data-page-id="app:advanced"]')).toBeNull();
     await Promise.resolve(mounted.unmount());
     await session.stop();
   });
