@@ -6,6 +6,400 @@ crates by git tag and the packages by version.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-23
+
+### Breaking
+- **Tauri adapters: one authority trait per adapter (`longhorn-tauri-*`).**
+  The mirroring `*Service` traits are removed: `BridgeCommandService`,
+  `CommandHostService`, `ConfigOperationsCommandService`,
+  `ForkHistoryHostService`, `HistoryHostService`, `LicenceHostService`,
+  `NotificationHostService`, `OperationHostService`,
+  `SettingsCommandService`, `UpdateHostService`, `TransferCommandService` and
+  `SurfaceTransferCommandService`. Authorities are named `<Domain>HostAuthority`:
+  `ConfigOperationsAuthority` becomes `ConfigOperationsHostAuthority` and
+  `SettingsAuthority` becomes `SettingsHostAuthority`. `Tauri*State::new` takes
+  the handler assembly directly. Migration for config: replace
+  `ConfigOperationsCommandService` with `ConfigOperationsHostAuthority`
+  (changing `&self` receivers to `&mut self`, or wrapping the state in
+  `ConfigOperationsHandlerAssembly::new(authority)`), pass
+  `Arc::new(ConfigOperationsHandlerAssembly::new(authority))` to
+  `TauriConfigOperationsState::new`, and rename the `*Authority` references.
+  Transfer: `PanelTransferAdapter` and `SurfaceTransferAdapter` no longer
+  receive `&mut TransferCoordinator`. Create sessions in `start_*` through
+  `TransferSessionRegistrar::create_session`, with
+  `prepare_panel_session_source` or `prepare_surface_session_source`, and accept
+  `TerminalTransferAttempt` / `TerminalTransferResolution` in `commit_*`, with
+  `commit_resolved_panel_transfer` or `commit_resolved_surface_transfer`.
+  `TransferHandlerError::Projection` is removed, and transfer commands return
+  typed `TransferHostError` payloads instead of `String`.
+  `BridgeHandlerAssembly::teardown` returns `Result<(), BridgeHostError>`
+  instead of silently skipping on a poisoned mutex, so callers must handle the
+  result. `TransferHandlerAssembly::project_selector` is now `pub(crate)` and
+  has no public replacement.
+- **Licence: product binding is required (`longhorn-licence`).** `verify`,
+  `SignedFileSource::new` and `TokenRedemptionSource::new` take the expected
+  product, and a mismatch returns `VerificationError::ProductMismatch`. The
+  `asserted_remotely` alias is removed: use
+  `VerifiedLicence::from_remote_assertion`. Contract 019 documents the binding.
+- **Surface: one validator, one limits type, one config stack
+  (`longhorn-surfaces`, `longhorn-surfaces-config`).**
+  - `LayoutLimits` is replaced by `SurfaceLimits`, built with
+    `SurfaceLimits::builder()`. `RegisteredLayoutDomain` and its sibling
+    duplicates are removed; use `RegisteredSurfaceDomain`,
+    `PersistedSurfaceDocument`, `SurfaceMigration`,
+    `LegacySurfaceFormatMigration` and `SurfaceBackupPolicy`.
+  - `validate_document`, `normalize_document`,
+    `validate_normalized_document`, `validate_normalized_layout`,
+    `resolve_surfaces`, `compose_surface_window_plan`,
+    `SurfaceMutationEngine::new` and `RegisteredSurfaceDomain::new` bind
+    `&LayoutDefinitionRegistry`.
+  - `PersistedSurfaceDocument` carries `registryDigest`. Consumers with
+    pre-unification digest-less Surface files, or layout files written under an
+    earlier digest, bump their `DomainDescriptor` schema version, attach
+    `LegacySurfaceFormatMigration::digestless` or
+    `LegacySurfaceFormatMigration::with_expected_digest` (or a custom
+    `SurfaceMigration`), and rewrite through
+    `ConfigStore::rewrite_migrated_domain` after a pre-migration safety backup.
+  - `debounced_layout_presentation` binds presentation debounce lanes to their
+    `RegisteredSurfaceDomain`'s registry. It replaces
+    `LayoutPresentationStrategy::new`.
+  - `publish_surface_mutation` and `commit_surface_transfer` drop their
+    per-call registry argument. `admit_panel_session` and
+    `commit_panel_transfer` take `&RegisteredSurfaceDomain<M>`.
+  - `PanelInstancePolicy::OnePerContainer` is renamed
+    `PanelInstancePolicy::OnePerSurface` (`"one_per_surface"` on the wire)
+    across Rust, the generated TypeScript bindings and
+    `@inflatable-cookie/longhorn-poodle-svelte`.
+  - Behaviour changes that callers see: `CloseSurface` removes the closed
+    Surface's regions, sizing slots and placed panel instances in the same
+    commit; `DuplicateSurface` preserves `SurfacePresentation`; the
+    `MoveSurface` active-Surface fallback uses the primary-member index.
+- **History, operation and notification kernels.**
+  `ForkHistory::record_applied` derives encoded weight from `HistoryPolicy`:
+  `ForkRecord` drops `encoded_weight`, and `ForkHistoryError::Policy` is new.
+  `ForkLoadError` splits `PayloadMigration` from `Payload`.
+  `NotificationLedger::dismiss` takes `NotificationDismiss`, and
+  `NotificationPublishOutcome::AlreadyPublished` carries `notification_id` and
+  `record: Option<NotificationRecord>`. `observe_terminal_operation` and
+  `observe_terminal_receipt` accept `OperationTerminalEvidence`.
+  `OperationCatalogue::request_cancellation` moves queued work to `Cancelling`
+  for executor dispatch unless `QueuedCancellationConfirmation::ConfirmedUnstarted`
+  is supplied.
+- **Update native content (`longhorn-update`).** `PreparedTransfer::new`
+  allocates a transfer identity and is no longer callable in a `const` context;
+  call it at runtime. `StagedArtifact::new` takes the channel and the verified
+  artifact, and derives its version from the artifact. Apply commands require
+  the observed staged digest.
+- **PTY `Failure` (`longhorn-pty`).** OS-backed `Failure` variants are now struct
+  variants carrying `raw_os_error`. Match the struct form, or read the code
+  through `Failure::raw_os_error()`.
+- **Core bridge command bindings.** Plain host services are no longer `Copy`,
+  `Clone` or comparable; each issues a unique request ID. Share a service by
+  reference or behind an `Arc`. Command revision and registry generation
+  advances, and bridge stream sequence advances, return a typed overflow error
+  that callers must handle. Shared core revisions and counters reject values
+  outside JavaScript's safe-integer range.
+- **Transfer and surface transfer (`longhorn-transfer`,
+  `longhorn-surface-transfer`).** `TransferClientSnapshot` removes the always-`None`
+  `current_lease_generation` field; use `TransferCoordinator::current_lease_generation`.
+  `DropZone` and `ClientDropZone` derive `accepted_capability()` from
+  `target.capability()` and no longer store a duplicate field. `TransferAbort`
+  gains `layout_code` and getters, including `retryable()`, on both
+  `TransferAbort` and `SurfaceTransferAbort`. Code that builds either struct
+  literally must supply the new field.
+- **Git staging (`longhorn-git-workspace`).** `remove_owned_staging` is removed,
+  and `create_owned_staging` returns an `OwnedStaging` handle instead of a
+  `PathBuf`. Hold the handle and pass `staging.path()` where the staging path
+  was passed, then call `staging.remove()` where `remove_owned_staging(&staging)`
+  was called. `OwnedStaging::remove` returns the operating system's error
+  instead of dropping it. Contract 029 matches.
+- **Git credentials (`longhorn-git-workspace`).** `credential_bridge_configured`
+  is removed; use `credential.is_some()`. Apps that apply `env_vars()` to their
+  own Git commands must clear configured credential helpers in their isolation
+  block. Corrupt, unsupported and legacy plain-text grants need a new GitHub
+  sign-in.
+- **Settings.** Settings loads and scope connections
+  require the requesting page ID; request IDs provide correlation only. Command
+  and config operations registration takes consumer-supplied labels, keywords
+  and order.
+- **Shared windowing (`longhorn-windowing`).**
+  `execute_tauri_window_apply_in_place` replaces the removed Tauri dispatch and
+  owning apply APIs. Import shared clocks, close handlers, capture records and
+  flush ports from `longhorn-windowing`. The Tauri lifecycle services and default
+  capture constructors no longer take a mapper; explicit capture and readback
+  mapper constructors validate host support. Custom capture backends return
+  `TauriWindowCaptureError`. GPUI user-close handlers take `&self`.
+- **Agent-control discovery (`longhorn-agent-control`).** `DiscoveryRecord::is_stale`
+  and `HOST_SELECTION_ENTRY` are removed; the release names no replacement.
+  `DispatchMetrics::mutation_replays`, which was hard-coded to zero, is removed.
+- **Desktop support installs (`longhorn-tool-provision`, `longhorn-config`).**
+  `CommandRunner` is a struct built with `CommandRunner::default()` or
+  `CommandRunner::with_timeout`, and the `From<RunnerError>` conversion into
+  `InstallError` is removed. `InstallError` and `InstallFault` report their cause
+  through `Error::source`. `encode_locator` returns a `Result` and refuses a
+  non-UTF-8 explicit root; `locator_matches` returns the new
+  `StorageLocatorError`, which `longhorn-config` maps.
+- **Config correctness (`longhorn-config`, `longhorn-tauri-config`).**
+  `ConfigStore::load` is strictly read-only: a terminal restore journal now
+  needs an explicit `recover_restore`, a coordinated load-set, or a mutation.
+  `RecheckCurrent` is distinct from `CaptureRollback` for stale restore targets.
+  `StorageTransitionAction::Conflict` is new. `AgeInspectionOutcome::ProviderFailed`
+  and `AgeReencryptionError::SourceProviderFailed` separate provider failures
+  from `Locked`. `TauriDirectorySnapshot::Linux.runtime_dir` is
+  `Option<PathBuf>`. The unused `longhorn-tauri-config` `ports` traits and
+  `RestoreUnlockState` are removed.
+- **Support log (`longhorn-support-log`).** `LogStats` gains
+  `repair_required: bool`, which latches and defaults to `false`. Code that builds
+  or exhaustively destructures `LogStats` must handle the field. Contract 025
+  matches.
+- **Settings search (`@inflatable-cookie/longhorn`, Svelte).**
+  `searchSettingsRegistry` takes a third `services: SettingsSearchHostServices`
+  argument, and `SettingsSession` requires `searchHostServices` in its options.
+  Each Svelte consumer passes a `foldCase` that follows its host's locale; there
+  is no default. Rust callers are unchanged.
+
+### Added
+- **`longhorn-git-workspace`: exact worktree identity.**
+  `Git::worktree_identity(&self, root: &Path) -> Result<WorktreeIdentity, GitFailure>`
+  reads the worktree and repository identity without redaction: canonical root,
+  canonical `--git-common-dir`, Unix device and inode metadata, the exact branch
+  short name (or `None` when detached), and the full `HEAD` object ID. It
+  compares with `same_repository` and `same_worktree`, and `Debug` formatting
+  is opaque. `WorktreeIdentity` and `FilesystemIdentity` are new public types.
+  The worktree root and Git common directory are read as exact bytes: the
+  runner drops only Git's single trailing record terminator (one `\n`) and
+  builds the path with no trim and no lossy decode (`OsStr::from_bytes` on
+  Unix). Sibling repositories such as `repository` and `repository ` (or a
+  non-UTF-8 name and its lossy twin) therefore no longer resolve to one identity.
+  The `HEAD` object ID and the `symbolic-ref` branch keep their existing handling.
+
+### Changed
+- **Toolchain and MSRV.** The workspace pins Rust 1.100.0. The declared MSRV is
+  1.97.1, including the release floor and compatibility guidance.
+- **Effigy.** `[bootstrap].setup` uses the plain selector string
+  `"bootstrap:deps"`, which is Effigy v0.15 strict manifest syntax.
+- **Tauri adapters (`longhorn-tauri-*`).** Sync `#[tauri::command]` handlers in
+  `longhorn-tauri-bridge`, `longhorn-tauri-history`,
+  `longhorn-tauri-history-tree`, `longhorn-tauri-licence`,
+  `longhorn-tauri-notifications`, `longhorn-tauri-operation`,
+  `longhorn-tauri-transfer` and `longhorn-tauri-update` run off the main thread
+  through `tauri::async_runtime::spawn_blocking`. Poisoned mutexes and
+  `spawn_blocking` join failures report `retryable: false` across the adapters,
+  and `longhorn-core::MemoryCredentialStore` returns
+  `CredentialError::Unavailable` on poison instead of recovering with
+  `into_inner`. `longhorn-tauri-bridge` adds `bridge_plugin`, which installs
+  `TauriBridgeState` and wires window-destroyed teardown by default, and
+  collapses the duplicate `authorize_*` helpers. `longhorn-tauri-settings`
+  accepts an optional `ConsumerSettingsTransactionAuthority` through
+  `SettingsHandlerAssembly::with_transaction_authority` and
+  `SettingsHostAuthority::authorize_transaction`. `longhorn-tauri-notifications`
+  scopes command-triggered change hints to the invoking `WebviewWindow`
+  (`window.emit`) rather than the whole app. `longhorn-tauri-transfer` drops its
+  shadow client map for `TransferCoordinator::current_client` and releases the
+  coordinator mutex before calling the panel and Surface transfer adapters.
+- **Tauri and GPUI windowing.** Ordered window apply, dependency skips,
+  convergence readback and lifecycle ports are shared. A native window whose
+  admission fails is discarded or tracked for cleanup retry. GPUI close flushes
+  pending captures, and shutdown receipts expose per-window failures. Tauri
+  capture and event translation use the platform desktop mapper. Restore keeps
+  the saved home through fallback, and the config sink serialises overlapping
+  flushes.
+- **Settings registry replacement (`longhorn-poodle-svelte`).** One settings
+  registry replacement installs at a time, and each turn installs the newest
+  queued generation. A replacement turn belongs to the session that started it.
+  The update centre and compact status share the check, stage-or-apply and
+  "not now" commands with the sampled projection.
+- **History, operation and notification kernels.** `ForkHistory` fork pruning
+  and branch-page projection are bounded without full-lineage materialisation.
+  `NotificationLedger::publish_once` remembers producer tokens across dismissal
+  and pruning in a bounded FIFO ring of up to 4,096 distinct tokens. A no-op
+  `change_retention` preserves the revision. Terminal events stay observable
+  under zero terminal retention, through post-commit `operation()` accessors on
+  receipts and `OperationTeardownOutcome::Completed`. `retry_of` no longer
+  requires the source operation to remain retained.
+- **Agent-control tool dispatch.** `listen` tracks a per-document epoch across
+  page reloads, so events starting at seq 1 are not dropped by a stale cursor.
+  It records a full-document load as a `navigation` event at seq 1 and keeps the
+  64-event ring. Selection updates go over a `watch` channel without resetting
+  the 50 ms page-event poll interval or its 2 s per-eval bound.
+  `wait_for` timeouts are bounded
+  (`MAX_WAIT_TIMEOUT_MS = 300_000`, advertised in the MCP schema). Selection
+  tombstones are bounded at 300 s and 256 entries. Discovery refuses to write
+  tokens when `0o600` permissions cannot be enforced. `RecordingDispatcher`
+  wakes idle callbacks at their deadline through a pure-`std` timer reactor,
+  holds `max_outstanding_calls` occupancy until the callback future finishes or
+  drops, and handles unrepresentable durations through `Instant::checked_add`.
+  The agent-control shim bundle is regenerated for these source changes.
+- **Update installs (`longhorn-update-install`).** Native installs stage per
+  target and clean up only the current attempt's files. Unix directory locks
+  protect live workspaces from updates to ancestor bundles, and serialise updates
+  that share a parent, including privileged replacements. Platforms without
+  these locks refuse native bundle replacement. Install targets inside the
+  reserved workspace namespace are refused. If publishing and rollback both
+  fail, the error reports both faults and the preserved bundle's path. The next
+  apply verifies the backup's filesystem identity before restoring it.
+  Unverified and legacy backups remain available for manual recovery.
+- **Update native content.** Snapshots report `notChecked` before a channel
+  check. Superseded or cancelled transfers cannot stage bytes. Tauri emits change
+  hints for checks, channel selection and deferrals. Bundle installation rejects
+  extra archive roots and uses the executable's location to corroborate package
+  provenance. Child-view sources require HTTPS or loopback HTTP. Isolated-window
+  requests refused at capacity can retry with the same ID. Replay history and
+  teardown reports are bounded. Generation gates return the admitted attachment,
+  and equal generations compare successfully.
+- **Desktop support installs (`longhorn-tool-provision`).** Managed-tool installs
+  publish a raw asset named like its binary. Probes and login-shell runs get no
+  standard input and stop after 30 seconds by default. Release listings are read
+  to 4 MiB, and a zip's declared entry count is refused before its directory is
+  parsed. The install swap renames the verified candidate into place. Tool,
+  binary and PATH lookup names follow the managed-name rule (ASCII letters,
+  digits, `.`, `_`, `-`, `+`, no leading dot). Browser URL error indices are
+  offsets into the whole URL for `http://` and `https://`, and a backslash ends
+  the host for `https` as it does for loopback, so a backslash cannot hide
+  credentials from the `@` rule. The browser callback survives a
+  closed tab after a valid redirect. The real-keychain credential tests run only
+  with the `real-keychain-tests` feature. `longhorn_support_log::single_line` is
+  public, and the diagnostics bundle uses it.
+- **Transfer snapshots.**
+  Snapshots probe windows independently and issue epochs without retaining
+  destroyed window IDs. Client-change hints are ordered per webview, and each
+  renderer subscribes to its own webview.
+- **Windowing scheduler.** Lifecycle wake queues stay
+  bounded during rescheduling.
+- **Bindings (`longhorn-bindings`).** Generated tagged-union output and its
+  fixtures cover nested tagged unions.
+- **Repository checks and tooling.**
+  - `scripts/rust-command.sh` is executable and has direct-invocation tests.
+    `proof:artifacts` runs `check:bun-deps` before starting proofs and keeps
+    failing member stdout. `fmt:rust` checks prototype workspaces and staged
+    example crates through `scripts/fmt-rust.ts`. `check:prototypes` runs
+    Clippy with `--all-targets --locked -- -D warnings`. `scripts/msrv.ts` reads
+    `[workspace.package].rust-version` as TOML.
+  - `qa:docs:changelog` parses a staged minimal copy, so checkout release
+    journals do not affect it. The `longhorn-docs` QA group covers
+    `changelog.d` fragments, so docs-touching tasks no longer hit
+    `needs_planner` on a fragment scope token. Stale `doctor`, greenfield and
+    MSRV knowledge facts are updated.
+  - Consolidated runner-tool checks and shared proof helpers across artifact
+    verifiers. `effigy proof:guide-corpus` runs the guide proof. Bridge
+    neutrality markers match whole words.
+  - Local private-output Rust routes take their default scratch root from
+    Oxide's registered removable build pool (`oxide pool describe --json`).
+    `OXIDE_TASK_SCRATCH_ROOT` still wins, and a missing pool or root fails
+    closed, naming that variable. The internal-drive refusal is judged by volume,
+    not `TMPDIR`. `scripts/external-scratch.sh` runs the same TypeScript rule.
+    `scripts/private-cargo.sh --build-dir` and the `buildDir` option of
+    `privateCargoCommand` are removed. Build scratch allocation is hardened
+    against redirected bases, and Rust lint coverage is widened.
+  - TypeScript and Svelte selectors install missing Bun dependencies with the
+    frozen lockfile and verify the required markers before continuing. Papercut
+    8ae3913b is closed.
+  - TypeScript and Svelte QA check strict package and script types, Svelte
+    warnings, type-aware lint, formatting and unused code. The published adapter
+    has no wildcard Svelte declaration. Rust QA adds a local unused-dependency
+    check, and the release flow checks dependency licences, sources and bans
+    alongside advisories.
+  - `docs/reference/held-surface.md` records every public item a quality pass
+    kept, in a checked `Assessed And Retained` table. The `held-surface` gate
+    fails when a listed item disappears without its row being removed.
+    `AGENTS.md` records that having no callers is not grounds for removal.
+
+### Fixed
+- **Licence (`longhorn-licence`).** Check-only symbols (`*~$=U`) are rejected in
+  the key body. A `TrustBasis::RemoteAssertion` with no `lease_until` reports
+  `Usability::LeaseLapsed`. `TokenRedemptionSource::renew` and `release` return
+  `ActivationError::MissingActivationId` when `activation_id` is absent or
+  empty. `constant_time_eq` aligns with `longhorn-agent-control`. Contract 019
+  documents product binding, no-lease remote assertions and the consumer-integrated
+  Contract 018 update-window boundary.
+- **Config (`longhorn-config`).** Backup archive inspection enforces real
+  inflated-byte and ratio bounds. First writes sync every created ancestor
+  directory. Domain-file reads are bounded. `SourceRetained` storage-transition
+  recovery cleans partial ordinary target copies.
+- **Settings (`longhorn-settings`).** Rust enforces readable scopes and reset
+  authorisation. Seal checks that pages can read the scopes of their writable
+  units. Config refusals stay typed, revision exhaustion is checked before
+  publication, and Rust and TypeScript reject contradictory snapshots. Settings
+  scope connections record accepted snapshots after acceptance, not inside the
+  predicate. Settings shell apply, guard and reset failures show on the page.
+  Config pages show a restore refusal's detail, not its protocol code, with
+  archive timestamps localised.
+- **Agent-control.** `set_file_input` validation streams without allocating
+  decoded buffers, runs once on the MCP-to-Tauri path, and maps to
+  `ToolError::InvalidArgument`. Individual `poll_until` checks are bounded.
+  Selection expiry runs through one shared-clock sweep with atomic outcome
+  delivery. Cancelled and shutdown waits map to `ToolError::CancelledSelection`.
+  The stdio carrier disables HTTP proxies and keeps `InstanceToken`'s
+  `SecretString` posture.
+- **PTY (`longhorn-pty`).** Every OS-backed `Failure` carries `raw_os_error`, and
+  `Failure::raw_os_error()` reads it; `Display` shows `(os error <code>)`. `CLOEXEC`
+  is set atomically on slave opens, descriptor duplications and master opens on
+  Linux, FreeBSD, macOS and illumos. An output reader blocked on a full queue
+  wakes when `close()` runs, including after the child has exited, so descriptors
+  are released even if the consumer stops reading. Contract 028 matches.
+- **Transfer (`longhorn-transfer`, `longhorn-surface-transfer`).** Underlying
+  `TransferErrorCode` rejections promote, and `TransferAbort::from_panel`
+  preserves `layout_code`. Expired leases are reclaimed before `maximum_leases`
+  capacity is enforced. Empty-display target windows are validated against
+  `allowed_target_windows` in `SurfaceTransferPolicy::new`. Non-test panics in ID
+  conversions, session consumption and post-commit Surface checks become total
+  conversions and `HostReconciliationRequired`. `map_mutation_error` matches
+  `LayoutMutationRejectionCode` and `SurfaceMutationRejectionCode` exhaustively.
+  Host-binding indexing and registered Surface document loading are shared.
+  Contract 011 matches.
+- **Transport and subscriptions (`@inflatable-cookie/longhorn`,
+  `longhorn-poodle-svelte`).** A throwing consumer callback in
+  `listenTauriBridgeJob` no longer ends the job or reports a malformed event. A
+  malformed progress event during terminal registration releases the terminal
+  listener. Renderer subscriptions stay active when a consumer callback throws.
+  Malformed events are reported separately. Teardown releases every job listener,
+  and a failed port operation keeps its original rejection. Native-content
+  connections share the snapshot connection lifecycle: an invalid request no
+  longer leaks its pending slot, and `dispose()` finishes cleanup before it rejects
+  with an unlisten failure. A start failure, already in `failures()`, still does
+  not reject `dispose()`. Shared `CheckedSnapshotConnection` gains `offer()`.
+- **Svelte.** The operation panel closes its cancel dialog when the request fails,
+  and the failure shows on the page. Window drag ignores tab, link, menu-item,
+  label, summary and editable targets. A rejected settings rail navigation takes
+  the shell's action-failure path. The failure callout sits above the page region,
+  so it survives a session failure, and focus moves only after the route commits.
+- **Support log (`longhorn-support-log`).** A failed append truncates the live
+  file to its pre-append length, so a later line cannot join a partial JSON
+  record. If truncation fails too, the log latches `repair_required` in
+  `stats()` until the operator repairs the file. Contract 025 whole-line
+  promise holds.
+- **Deadlines and loopback limits.** Unrepresentable browser and process
+  deadlines are rejected before waiting or spawning. The loopback request-head
+  limit is enforced before its terminator is parsed.
+- **Bindings (`longhorn-bindings`).** Tagged-union arms are scanned in one
+  depth- and string-literal-aware pass, so quoted delimiters and nested tagged
+  unions are no longer mistaken for outer tags.
+- **Core bridge.** Bridge reconnect and negotiation apply state only after a valid
+  receipt is prepared. A forbidden reconnect reports `retryForbidden`. Keymap
+  loads reuse compiled state and expose stable unavailable and validation codes.
+  Bridge and command host errors have generated TypeScript bindings. Restore
+  identity labels have shared Rust and TypeScript parity coverage.
+- **Shared windowing scheduler.** Accepted wakes are preserved when timer startup
+  fails.
+- **Git workspace device flow (`longhorn-git-workspace`).** A `slow_down` answer
+  only lengthens the poll interval: the server's suggestion is adopted when it is
+  longer than the interval in force, and the 5 s step applies otherwise, so a
+  shorter suggestion can no longer shorten the wait.
+- **Tauri operation adapter (`longhorn-tauri-operation`).** A poisoned executor
+  derives its dispatch code from
+  `OperationHostErrorCode::ExecutorStateUnavailable::as_str()` with
+  `retryable: false`, instead of a string literal with `retryable: true`.
+- **Settings search (`@inflatable-cookie/longhorn`,
+  `longhorn-poodle-svelte`).** Case folding follows the host on both routes. The
+  Svelte route lowercased with a fixed en-US policy, so Turkish dotted and
+  dotless `i` could disagree with Rust.
+
+### Security
+- **Git workspace credentials (`longhorn-git-workspace`).** Credentials stay
+  scoped to the resolved HTTPS destination. Git skips ambient credential helpers
+  even when the app supplies no credential. Askpass credentials own their helper.
+  The migration steps are under Breaking.
+
 ## [0.5.0] - 2026-11-02
 
 ### Breaking

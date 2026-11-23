@@ -193,6 +193,17 @@ package version, checksum or package set changes, but the rewrite is unrelated
 to the advisory, so a lock-only security patch keeps the edges the version
 bump wrote instead of folding an unrelated re-resolution into its diff.
 
+## 0.6.0 release
+
+Tom authorized one Longhorn release tag cut from `main` after longhorn#128
+(relayed by the Nucleus planner, 2026-11-23: "Authorise a patch tag"), then
+chose v0.6.0 over a patch because `main` carries public-API breaks (T3
+planning thread, 2026-11-23: "Aim for 0.6.0"). This PR is the
+bump-preparation slice only: it folds the changelog fragments, runs
+`effigy release:bump -- 0.6.0`, and records the evidence for Steps 1 to 5.
+It does not tag, dispatch `release.yml`, or publish. Those steps stay gated
+by Tom's approval under Steps 6 and 7.
+
 ## 0.5.0 release
 
 Tom approved the annotated `v0.5.0` tag and publication of all three npm
