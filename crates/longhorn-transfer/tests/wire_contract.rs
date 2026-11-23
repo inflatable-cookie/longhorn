@@ -104,6 +104,34 @@ fn from_panel_promotes_transfer_code_and_preserves_panel_and_layout_codes() {
     assert!(!panel_abort.session_consumed());
 }
 
+#[test]
+fn transfer_abort_requires_explicit_nullable_layout_code_key() {
+    let with_null = json!({
+        "protocol_version": 1,
+        "request_id": "request:abort-null",
+        "source": { "domain": "transfer", "code": "no_target" },
+        "layout_code": null,
+        "message": "no target",
+        "retryable": false,
+        "session_consumed": true,
+    });
+    let parsed_null: TransferAbort = serde_json::from_value(with_null.clone()).unwrap();
+    assert_eq!(parsed_null.layout_code(), None);
+
+    let mut with_code = with_null.clone();
+    with_code["source"] = json!({ "domain": "panel", "code": "ineligible_target" });
+    with_code["layout_code"] = json!("panel_placement_not_allowed");
+    let parsed_code: TransferAbort = serde_json::from_value(with_code).unwrap();
+    assert_eq!(
+        parsed_code.layout_code(),
+        Some(longhorn_surfaces::LayoutMutationRejectionCode::PanelPlacementNotAllowed)
+    );
+
+    let mut omitted = with_null;
+    omitted.as_object_mut().unwrap().remove("layout_code");
+    assert!(serde_json::from_value::<TransferAbort>(omitted).is_err());
+}
+
 fn request_id(value: &str) -> TransferRequestId {
     TransferRequestId::new(value).unwrap()
 }

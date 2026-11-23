@@ -97,7 +97,7 @@ records:
 - current `WindowId`
 - target host binding (whose target variant — panel region or Surface window —
   determines the derived accepted capability)
-- target `LayoutContainerId` and `RegionId` for panel targets
+- target `SurfaceId` and `RegionId` for panel-region targets
 - rectangle in `ScreenDip`
 - optional bounded insertion position
 - target layout or Surface revision
@@ -183,9 +183,9 @@ A whole-Surface transfer re-resolves:
 - the target window still participates and may accept it
 - consumer move and empty-window policies
 
-The expected-revision Surface move commits one complete Surface document or
-none. Layout-container contents do not move or serialize; the Surface retains
-its existing binding.
+The expected-revision Surface move publishes one complete unified Surface
+document or none. Relocation preserves the Surface identity and its contained
+regions, panels, and sizing slots while updating host placement.
 
 If an empty-display policy provisions a window before the Surface commit, every
 configured empty-display target window must appear in `allowed_target_windows`

@@ -222,10 +222,20 @@ pub struct TransferAbort {
     protocol_version: TransferProtocolVersion,
     request_id: TransferRequestId,
     source: TransferAbortSource,
+    #[serde(deserialize_with = "deserialize_required_nullable_layout_code")]
     layout_code: Option<LayoutMutationRejectionCode>,
     message: String,
     retryable: bool,
     session_consumed: bool,
+}
+
+fn deserialize_required_nullable_layout_code<'de, D>(
+    deserializer: D,
+) -> Result<Option<LayoutMutationRejectionCode>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Option::<LayoutMutationRejectionCode>::deserialize(deserializer)
 }
 
 impl TransferAbort {

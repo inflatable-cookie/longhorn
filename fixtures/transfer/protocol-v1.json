@@ -704,7 +704,7 @@
         "domain": "panel",
         "code": "ineligible_target"
       },
-      "layout_code": null,
+      "layout_code": "panel_placement_not_allowed",
       "message": "golden fixture for ineligible_target",
       "retryable": false,
       "session_consumed": true
@@ -716,7 +716,7 @@
         "domain": "panel",
         "code": "instance_policy_exceeded"
       },
-      "layout_code": null,
+      "layout_code": "instance_policy_exceeded",
       "message": "golden fixture for instance_policy_exceeded",
       "retryable": false,
       "session_consumed": true
@@ -728,7 +728,7 @@
         "domain": "panel",
         "code": "invalid_insertion_position"
       },
-      "layout_code": null,
+      "layout_code": "invalid_insertion_index",
       "message": "golden fixture for invalid_insertion_position",
       "retryable": false,
       "session_consumed": true

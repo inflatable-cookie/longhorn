@@ -252,17 +252,23 @@ fn aborts(
                 "protocol_version": 1,
                 "request_id": format!("request:panel-error-{index:02}"),
                 "source": {"domain": "panel", "code": code},
-                "layout_code": if code == "layout_mutation_rejected" {
-                    Some("move_target_unchanged")
-                } else {
-                    None
-                },
+                "layout_code": panel_layout_code(code),
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
                 "session_consumed": panel_code_consumes_session(code),
             }))
         }))
         .collect()
+}
+
+fn panel_layout_code(code: &str) -> Option<&'static str> {
+    match code {
+        "ineligible_target" => Some("panel_placement_not_allowed"),
+        "instance_policy_exceeded" => Some("instance_policy_exceeded"),
+        "invalid_insertion_position" => Some("invalid_insertion_index"),
+        "layout_mutation_rejected" => Some("move_target_unchanged"),
+        _ => None,
+    }
 }
 
 fn find_transfer_abort<'a>(aborts: &'a [TransferAbort], code: &str) -> &'a TransferAbort {
