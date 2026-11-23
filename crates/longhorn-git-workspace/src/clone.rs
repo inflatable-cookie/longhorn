@@ -7,9 +7,14 @@
 //! and the copy.
 //!
 //! The composition rule is the application's to keep: create the staging
-//! folder beside the target, clone into it, remove it on every failure, and
-//! move it into place only with [`rename_exclusive`]. A refused clone then
-//! leaves no partial target.
+//! folder beside the target, clone into it, remove it on every failure with
+//! [`OwnedStaging::remove`], and move it into place only with
+//! [`rename_exclusive`]. A refused clone then leaves no partial target.
+//!
+//! [`create_owned_staging`] returns [`OwnedStaging`], a handle for the one
+//! folder it made. Cleanup is a consuming method on that handle, so it can name
+//! no other path, and it returns the operating system's error when the removal
+//! fails instead of dropping it.
 
 use std::{
     ffi::OsStr,
@@ -77,6 +82,49 @@ pub fn staging_parent(target: &Path) -> Option<&Path> {
     }
 }
 
+/// One staging directory [`create_owned_staging`] made for this invocation.
+///
+/// The handle exists so cleanup names only a folder this invocation created:
+/// [`OwnedStaging::remove`] takes the handle, not a path the caller assembles,
+/// and a removal that fails is returned rather than dropped. The caller hands
+/// [`OwnedStaging::path`] to [`Git::clone_into`] and to [`rename_exclusive`].
+#[derive(Debug)]
+pub struct OwnedStaging {
+    path: PathBuf,
+}
+
+impl OwnedStaging {
+    /// The staging folder this invocation owns.
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// Removes the staging folder this invocation created, consuming the
+    /// handle.
+    ///
+    /// Consuming the handle means one cleanup per staging folder, and it means
+    /// a caller whose staging was moved into place can no longer remove it.
+    ///
+    /// # Errors
+    ///
+    /// Returns the operating system's error, naming the folder, when the
+    /// recursive removal fails: a permission the removal needs is absent, or
+    /// something inside still holds a file the removal cannot unlink. A folder
+    /// [`rename_exclusive`] already moved into place is gone, so its removal
+    /// reports [`io::ErrorKind::NotFound`]: the composition removes staging on
+    /// failure, not after a move.
+    pub fn remove(self) -> io::Result<()> {
+        let path = self.path;
+        fs::remove_dir_all(&path).map_err(|error| {
+            io::Error::new(
+                error.kind(),
+                format!("cannot remove staging {}: {error}", path.display()),
+            )
+        })
+    }
+}
+
 /// Creates one unique staging directory this invocation owns.
 ///
 /// The name keeps the target's own name and appends `.creating-` and a v7
@@ -87,7 +135,7 @@ pub fn staging_parent(target: &Path) -> Option<&Path> {
 /// Returns the operating system's error when the directory cannot be created.
 /// A bounded retry keeps a collision with a concurrent creator from reading as
 /// a failure.
-pub fn create_owned_staging(parent: &Path, target_name: &OsStr) -> io::Result<PathBuf> {
+pub fn create_owned_staging(parent: &Path, target_name: &OsStr) -> io::Result<OwnedStaging> {
     let mut last = None;
     for _ in 0..16 {
         let name = format!(
@@ -97,7 +145,7 @@ pub fn create_owned_staging(parent: &Path, target_name: &OsStr) -> io::Result<Pa
         );
         let staging = parent.join(name);
         match fs::create_dir(&staging) {
-            Ok(()) => return Ok(staging),
+            Ok(()) => return Ok(OwnedStaging { path: staging }),
             Err(error) if error.kind() == io::ErrorKind::AlreadyExists => last = Some(error),
             Err(error) => return Err(error),
         }
@@ -134,18 +182,14 @@ pub fn rename_exclusive(from: &Path, to: &Path) -> io::Result<()> {
     }
 }
 
-/// Removes only a staging path this invocation created.
-pub fn remove_owned_staging(staging: &Path) {
-    let _ = fs::remove_dir_all(staging);
-}
-
 impl Git<'_> {
     /// Clones `remote` into the invocation-owned empty staging folder `target`,
     /// bounded by the caller's cancellation flag, with the caller's credential
     /// environment applied after isolation so the credential wins.
     ///
-    /// The caller renames the staging folder into place with
-    /// [`rename_exclusive`] after its own branch and validation steps.
+    /// The caller passes [`OwnedStaging::path`], and renames the staging folder
+    /// into place with [`rename_exclusive`] after its own branch and validation
+    /// steps.
     ///
     /// # Errors
     ///

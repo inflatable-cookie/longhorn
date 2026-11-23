@@ -60,7 +60,7 @@ pub use auth::{
     write_grant,
 };
 pub use clone::{
-    CloneFailure, create_owned_staging, remove_owned_staging, rename_exclusive, staging_parent,
+    CloneFailure, OwnedStaging, create_owned_staging, rename_exclusive, staging_parent,
     target_already_present,
 };
 pub use execution::{

@@ -125,7 +125,7 @@ The readings, all methods on `Git`:
 Free functions:
 
 - staging: `target_already_present`, `staging_parent`, `create_owned_staging`,
-  `rename_exclusive`, `remove_owned_staging`;
+  `OwnedStaging::{path, remove}`, `rename_exclusive`;
 - classification and comparison: `is_https_github`, `classify_remote_failure`,
   `RemoteAccessFailure`,
   `is_remote_credential_operation`, `remotes_match`, `remote_identity`,
@@ -329,16 +329,21 @@ application that admits its roots keeps owning that admission.
 ## Clone staging and the exclusive rename
 
 An invocation owns one unique staging folder under the destination's parent.
-`create_owned_staging` names it `<target>.creating-<uuid-v7>` and retries a
-bounded sixteen times on a collision. `clone_into` requires that empty folder,
-spawns `git clone --progress -- <remote> <staging>`, applies isolation before
-the caller's credential environment, and bounds the clone by the caller's
-cancellation flag: a cancelled clone has its process group killed, is reaped
-and is reported as `Cancelled`. The flag also bounds the drain after Git
-exits: a remote helper or another descendant that still holds standard error
-cannot delay a cancel, which kills the group by the id taken at spawn. Standard
-error keeps its head within the capture bound; its refusal detail is redacted with the caller's redactor and
-the credential secret, then cut to `FAILURE_DETAIL_BOUND`.
+`create_owned_staging` names it `<target>.creating-<uuid-v7>`, retries a
+bounded sixteen times on a collision, and returns an `OwnedStaging` handle for
+the folder it made. The handle names that one folder with `path`, and `remove`
+consumes it and returns the operating system's error, naming the folder, when
+the recursive removal fails: cleanup can name no path the creator did not
+produce, happens once, and cannot silently fail. `clone_into` requires that
+empty folder, spawns `git clone --progress -- <remote> <staging>`, applies
+isolation before the caller's credential environment, and bounds the clone by
+the caller's cancellation flag: a cancelled clone has its process group killed,
+is reaped and is reported as `Cancelled`. The flag also bounds the drain after
+Git exits: a remote helper or another descendant that still holds standard
+error cannot delay a cancel, which kills the group by the id taken at spawn.
+Standard error keeps its head within the capture bound; its refusal detail is
+redacted with the caller's redactor and the credential secret, then cut to
+`FAILURE_DETAIL_BOUND`.
 
 `rename_exclusive` moves the staging folder into place with a same-parent
 exclusive rename: `RENAME_NOREPLACE` on Linux and `RENAME_EXCL` on macOS,
@@ -349,9 +354,11 @@ The composition rule is the application's, and this contract pins it: check
 `target_already_present` first, preflight the remote before any filesystem
 write, create the staging folder next to the target, clone into it, run the
 application's branch and validation steps inside it, remove the staging folder
-on every failure with `remove_owned_staging`, and move it into place only with
+on every failure with `OwnedStaging::remove`, and move it into place only with
 `rename_exclusive`. A target that appears mid-run survives unchanged and the
-staging folder is removed; a failed clone leaves no partial target.
+staging folder is removed; a failed clone leaves no partial target. A folder
+`rename_exclusive` already moved into place is gone, so its removal reports
+`NotFound`: the composition removes staging on failure, not after a move.
 
 ## Attach
 
@@ -562,10 +569,12 @@ poll that has not answered yet.
 Each poll posts `client_id`, `device_code` and the device-code grant type.
 The interval is the device response's `interval` or `DEFAULT_POLL_INTERVAL`
 (5 s), never below 5 s. An `authorization_pending` answer keeps polling; a
-`slow_down` answer lengthens the interval to the server's suggestion or by 5 s,
-never below 5 s; `access_denied` is `Denied`; `expired_token` and
-`token_expired` are `TimedOut`; anything else is `Failed`; 429 and 5xx on a poll
-are `Offline`.
+`slow_down` answer only lengthens the interval: to the server's suggestion when
+that is longer than the interval in force, and by 5 s otherwise, so a
+suggestion shorter than the interval in force never shortens the wait. The
+interval never falls below 5 s. `access_denied` is `Denied`; `expired_token`
+and `token_expired` are `TimedOut`; anything else is `Failed`; 429 and 5xx on a
+poll are `Offline`.
 
 A poll interval too large to represent waits only until the flow's deadline, so
 an endpoint's `interval` suggestion cannot panic the wait.
