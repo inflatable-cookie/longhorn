@@ -1,0 +1,1 @@
+Native update installs lock and stage per target and clean up only the current attempt's files. If publishing and rollback both fail, the error reports both faults and the preserved bundle's path. The next apply restores a displaced bundle from the new private workspace. Legacy backups remain available for manual recovery when the destination is missing.

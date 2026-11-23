@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-09-22
+Updated: 2026-11-23
 Architecture: `../architecture/system-architecture.md`
 Research: `019-application-update-and-release-channels.md` (Git history)
 
@@ -205,6 +205,27 @@ earlier single-call stance.
   long call to return. Committed Tauri command hints distinguish checks,
   channel selection, deferrals, and install progress.
 
+### Native bundle replacement
+
+- The installer uses a private directory beside the target, named from the
+  full bundle name. An OS file lock covers recovery, staging, and replacement
+  for that target, including calls made directly to `NativeInstaller`. An
+  overlapping apply to the same target returns `InstallFailure::Failed` and
+  can retry. An existing directory without the installer's lock marker is
+  refused.
+- Each attempt cleans up only its own staging allocation. A process crash
+  can leave its staging directory behind for manual cleanup. Later applies
+  leave it and any legacy prefix-matching siblings untouched.
+- Replacement moves the current bundle to `previous` inside the private
+  directory. If publishing fails, the installer tries to restore that bundle.
+  If restoration also fails, `InstallFailure::Failed` names both faults and
+  the preserved bundle's path. When the destination is absent, the next apply
+  restores `previous` before extracting the next artifact. When both paths
+  exist, the installer reports the backup path for inspection and preserves it.
+- A legacy sibling named `*.longhorn-previous` can match several targets.
+  If the destination is absent and only that legacy backup exists, the error
+  names it so the caller can confirm its identity and restore it manually.
+
 ## Exclusive Admission Lease
 
 - Authorization is no longer a point-in-time answer. `UpdateGate` acquires an
@@ -253,6 +274,7 @@ earlier single-call stance.
 
 - Artifact hosting, signing key custody, and notarization remain
   consumer-owned.
-- Delta updates, rollback, and server-side rollout orchestration are out of
-  scope for the compiled boundary.
+- Delta updates, rollback to a previously installed release after a successful
+  replacement, and server-side rollout orchestration are out of scope for the
+  compiled boundary.
 - Longhorn publishes no update server.
