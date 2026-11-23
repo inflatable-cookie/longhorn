@@ -564,9 +564,9 @@ members = [
     task = "qa:docs:changelog",
     args = [],
     targets = ["path:CHANGELOG.md"],
-    covers = ["path:CHANGELOG.md"],
+    covers = ["path:CHANGELOG.md", "path:changelog.d/**"],
     limits = [
-      "Parses CHANGELOG.md with Effigy's release parser and checks its links; does not judge release wording or whether entries are accurate",
+      "Parses CHANGELOG.md with Effigy's release parser and checks its links; does not judge release wording or whether entries are accurate; changelog.d fragments are routed here and folded at release preparation",
     ],
   },
 ]
