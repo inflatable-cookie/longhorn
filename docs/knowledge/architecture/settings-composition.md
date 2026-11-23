@@ -37,7 +37,9 @@ clear-and-install: the second clear would find nothing to dispose, install
 first, and be overwritten when the older clear finished. A session therefore
 runs one replacement at a time and each turn installs the newest queued
 generation. A change that is not newer than the installed or queued generation
-is dropped, never installed over a newer document.
+is dropped, never installed over a newer document. A turn belongs to the session
+that started it: stopping abandons it, and a change queued after a restart gets
+its own turn instead of waiting on the stopped session's completion.
 
 ## Composition Shapes
 

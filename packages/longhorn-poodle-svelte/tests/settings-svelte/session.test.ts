@@ -302,6 +302,46 @@ describe("SettingsSession", () => {
     await session.stop();
   });
 
+  /**
+   * A stopped session's install turn must not swallow a restarted session's
+   * queue. The turn belongs to the session that started it, so a change queued
+   * after the restart is a new turn's work; handing it the stopped session's
+   * completion leaves it queued with no turn left to install it, and the
+   * document stays on the registry it already had.
+   */
+  it("installs a change queued after a restart over a stopped session's drain", async () => {
+    const newer = fixture.registry.generation + 1;
+    const newest = fixture.registry.generation + 2;
+    const transport = new FakeSettingsTransport();
+    const session = new SettingsSession({
+      client: transport.client(),
+      nextRequestId: requestIds("restart"),
+    });
+    await session.start(() => renderer());
+
+    // Hold a replacement's scope disposal open, then stop the session while
+    // that turn is still waiting to clear authority.
+    const disposal = transport.deferNextScopeUnlisten();
+    transport.publishRegistry(newer);
+    await disposal.entered;
+    await session.stop();
+
+    await session.start(() => renderer());
+    expect(session.registry?.generation).toBe(newer);
+
+    transport.publishRegistry(newest);
+    await transport.settle(
+      () => session.registry?.generation === newest && session.status.kind === "ready",
+    );
+    // The abandoned turn finishes only now; it must not take the queue with it.
+    disposal.release();
+    await transport.drain();
+
+    expect(session.registry?.generation).toBe(newest);
+    expect(session.status.kind).toBe("ready");
+    await session.stop();
+  });
+
   it("ignores a mutation result that arrives after teardown", async () => {
     const transport = new FakeSettingsTransport();
     const session = new SettingsSession({

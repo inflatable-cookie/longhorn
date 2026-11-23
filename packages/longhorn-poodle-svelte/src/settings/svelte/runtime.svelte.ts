@@ -26,6 +26,7 @@ export class SettingsSessionRuntime {
   #startTask: Promise<void> | undefined;
   #stopTask: Promise<void> | undefined;
   #installTask: Promise<void> | undefined;
+  #installTurn = 0;
   #pendingRegistry: SettingsRegistrySnapshot | undefined;
   #requestedGeneration = 0;
   #generation = 0;
@@ -64,6 +65,11 @@ export class SettingsSessionRuntime {
     this.#startTask = undefined;
     this.#pendingRegistry = undefined;
     this.#requestedGeneration = 0;
+    // The install turn belongs to the session this call ends. Abandoning it
+    // here is what lets a restarted session queue its own turn: its completion
+    // can never be handed back to the stopped session's drain.
+    this.#installTask = undefined;
+    this.#installTurn += 1;
     ++this.#generation;
     this.#status = { kind: "idle" };
     this.#stopTask = (async () => {
@@ -168,14 +174,43 @@ export class SettingsSessionRuntime {
       this.#pendingRegistry = registry;
     }
     this.#requestedGeneration = Math.max(this.#requestedGeneration, registry.generation);
-    if (this.#installTask === undefined) {
-      this.#status = { kind: "reconnecting" };
-      const generation = this.#generation;
-      this.#installTask = this.#drainInstalls(generation).finally(() => {
-        this.#installTask = undefined;
-      });
+    return this.#drain();
+  }
+
+  /**
+   * The running install turn, started if there is none.
+   *
+   * The turn clears itself and picks up whatever was queued while it was
+   * settling. A queued change must never wait for another change event that may
+   * never come: without that second look, a change queued in the same microtask
+   * that finished the previous turn would sit in the queue with no turn left to
+   * install it.
+   */
+  #drain(): Promise<void> {
+    const running = this.#installTask;
+    if (running !== undefined) {
+      return running;
     }
-    return this.#installTask;
+    this.#status = { kind: "reconnecting" };
+    const generation = this.#generation;
+    const turn = (this.#installTurn += 1);
+    const completion = this.#drainInstalls(generation).finally(() => {
+      // A turn that a stop abandoned, or one a later turn replaced, owns
+      // nothing: the queue and the task belong to the session that replaced it.
+      if (this.#installTurn !== turn) {
+        return;
+      }
+      this.#installTask = undefined;
+      if (this.#pendingRegistry !== undefined) {
+        void this.#drain().catch((error: unknown) => {
+          if (generation === this.#generation) {
+            this.#fail(error);
+          }
+        });
+      }
+    });
+    this.#installTask = completion;
+    return completion;
   }
 
   async #drainInstalls(generation: number): Promise<void> {
