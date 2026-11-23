@@ -82,24 +82,34 @@ export function projectSettingsRegistry(
   };
 }
 
+/**
+ * Case folding for search, supplied by the host. This is the TypeScript
+ * counterpart of Rust's `HostServices::fold_case`: the host names the locale,
+ * and nothing in search guesses one. Used for matching only, never for display.
+ */
+export interface SettingsSearchHostServices {
+  foldCase(value: string): string;
+}
+
 export function searchSettingsRegistry(
   registry: SettingsRegistrySnapshot,
   query: string,
+  services: SettingsSearchHostServices,
 ): ReadonlyArray<SettingsSearchResult> {
-  const needle = normalize(query);
+  const needle = services.foldCase(query.trim());
   if (needle.length === 0) {
     return [];
   }
   const results: Array<SettingsSearchResult> = [];
   for (const page of registry.pages) {
     const pageMatch = [page.label, ...page.keywords]
-      .map(normalize)
+      .map((value) => services.foldCase(value))
       .some((value) => value.includes(needle));
     if (pageMatch) {
       results.push({ kind: "page", page, anchor: undefined });
     }
     for (const anchor of page.anchors) {
-      if (anchor.label !== null && normalize(anchor.label).includes(needle)) {
+      if (anchor.label !== null && services.foldCase(anchor.label).includes(needle)) {
         results.push({ kind: "anchor", page, anchor });
       }
     }
@@ -126,8 +136,4 @@ export function resolveSettingsDeepLink(
     );
   }
   return { page, anchor };
-}
-
-function normalize(value: string): string {
-  return value.trim().toLocaleLowerCase("en-US");
 }

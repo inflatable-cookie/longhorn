@@ -7,6 +7,7 @@ import { FakeSettingsTransport, registry, requestIds } from "./support.ts";
 
 function createSession(transport: FakeSettingsTransport): SettingsSession {
   return new SettingsSession({
+    searchHostServices: { foldCase: (value) => value.toLowerCase() },
     client: transport.client(),
     nextRequestId: requestIds("renderer-only-shell"),
   });

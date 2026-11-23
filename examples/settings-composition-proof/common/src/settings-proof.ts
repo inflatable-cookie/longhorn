@@ -55,6 +55,7 @@ export class SettingsProofTransport implements EventTransport {
   session(onClose?: () => void): SettingsSession {
     let request = 0;
     return new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: this.client(),
       nextRequestId: () => `request:${this.shape}-${++request}`,
       onClose,

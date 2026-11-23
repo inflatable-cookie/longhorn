@@ -40,6 +40,7 @@ describe("renderer-only settings pages", () => {
     transport.registryValue = value;
 
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("renderer-only"),
     });
@@ -68,6 +69,7 @@ describe("renderer-only settings pages", () => {
     transport.loadGate = gate.promise;
 
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("route-race"),
       initialRoute: { pageId: scoped.id },

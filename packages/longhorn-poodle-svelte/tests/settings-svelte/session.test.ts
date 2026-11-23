@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import parity from "../../../../fixtures/parity/projection-v1.json";
 
 import {
   MissingSettingsRendererError,
@@ -21,14 +22,37 @@ const intent = {
 };
 
 describe("SettingsSession", () => {
+  it("uses the host folding policy for page and anchor search", async () => {
+    for (const testCase of parity.settingsSearch) {
+      const transport = new FakeSettingsTransport();
+      const page = transport.registryValue.pages[0]!;
+      page.label = testCase.label;
+      page.keywords = [testCase.keyword];
+      page.anchors = [{ id: "app:search-anchor", label: testCase.anchorLabel, order: 0 }];
+      const session = new SettingsSession({
+        client: transport.client(),
+        nextRequestId: requestIds("search"),
+        searchHostServices: { foldCase: (value) => value.toLocaleLowerCase("tr") },
+      });
+      await session.start(() => renderer());
+      expect(
+        session.search(testCase.query).map(({ kind }) => kind),
+        testCase.name,
+      ).toEqual(testCase.expect);
+      await session.stop();
+    }
+  });
+
   it("keeps route and drafts isolated across two instances", async () => {
     const firstTransport = new FakeSettingsTransport();
     const secondTransport = new FakeSettingsTransport();
     const first = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: firstTransport.client(),
       nextRequestId: requestIds("first"),
     });
     const second = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: secondTransport.client(),
       nextRequestId: requestIds("second"),
     });
@@ -48,6 +72,7 @@ describe("SettingsSession", () => {
     const transport = new FakeSettingsTransport();
     transport.registryValue = twoPageRegistry();
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("shared-scope"),
     });
@@ -80,6 +105,7 @@ describe("SettingsSession", () => {
     transport.registryValue = twoPageRegistry();
     let closes = 0;
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("guard"),
       onClose: () => {
@@ -108,6 +134,7 @@ describe("SettingsSession", () => {
       fixture.mutationResults[2],
     ) as typeof transport.mutationValue;
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("conflict"),
     });
@@ -129,6 +156,7 @@ describe("SettingsSession", () => {
     const failure = new Error("authority offline");
     transport.mutationError = failure;
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("immediate"),
     });
@@ -148,6 +176,7 @@ describe("SettingsSession", () => {
     const errors: Array<unknown> = [];
     transport.loadError = failure;
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("scope-failure"),
       onError: (error) => errors.push(error),
@@ -163,6 +192,7 @@ describe("SettingsSession", () => {
     const transport = new FakeSettingsTransport();
     transport.registryValue = twoPageRegistry();
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("activation"),
     });
@@ -186,6 +216,7 @@ describe("SettingsSession", () => {
   it("fails before reveal when a registered renderer is missing", async () => {
     const transport = new FakeSettingsTransport();
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("missing"),
     });
@@ -202,6 +233,7 @@ describe("SettingsSession", () => {
     const transport = new FakeSettingsTransport();
     transport.deferRegistryListener = true;
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("late"),
     });
@@ -220,6 +252,7 @@ describe("SettingsSession", () => {
     const unsupportedTransport = new FakeSettingsTransport();
     unsupportedTransport.registryValue.pages = [];
     const unsupported = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: unsupportedTransport.client(),
       nextRequestId: requestIds("unsupported"),
     });
@@ -233,6 +266,7 @@ describe("SettingsSession", () => {
       diagnostic: null,
     };
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("reconnect"),
     });
@@ -257,6 +291,7 @@ describe("SettingsSession", () => {
     });
     transport.registryValue.pages[0]!.writableApplyUnitIds.push("app:advanced-audio");
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("multi"),
     });
@@ -281,6 +316,7 @@ describe("SettingsSession", () => {
     const newest = fixture.registry.generation + 2;
     const transport = new FakeSettingsTransport();
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("replace"),
     });
@@ -314,6 +350,7 @@ describe("SettingsSession", () => {
     const newest = fixture.registry.generation + 2;
     const transport = new FakeSettingsTransport();
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("restart"),
     });
@@ -345,6 +382,7 @@ describe("SettingsSession", () => {
   it("ignores a mutation result that arrives after teardown", async () => {
     const transport = new FakeSettingsTransport();
     const session = new SettingsSession({
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
       client: transport.client(),
       nextRequestId: requestIds("pending"),
     });

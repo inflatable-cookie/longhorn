@@ -362,3 +362,96 @@ fn restore_identity_labels_match_the_shared_fixture() {
         );
     }
 }
+
+#[test]
+fn settings_search_uses_host_folding_as_the_fixture_states() {
+    use longhorn_core::{
+        HostServices, SettingsAnchorId, SettingsModuleId, SettingsPageId, SettingsRendererId,
+        SettingsSectionId,
+    };
+    use longhorn_settings::{
+        SettingsAnchorDefinition, SettingsLimits, SettingsModuleDefinition, SettingsPageDefinition,
+        SettingsPageFeatures, SettingsRegistryBuilder, SettingsRegistryGeneration,
+        SettingsRendererDefinition, SettingsSectionDefinition,
+    };
+
+    struct Turkish;
+    impl HostServices for Turkish {
+        fn new_request_id(&self) -> String {
+            String::new()
+        }
+        fn format_timestamp(&self, _: i64) -> String {
+            String::new()
+        }
+        fn fold_case(&self, value: &str) -> String {
+            value
+                .chars()
+                .flat_map(|c| match c {
+                    'I' => 'ı'.to_lowercase(),
+                    'İ' => 'i'.to_lowercase(),
+                    c => c.to_lowercase(),
+                })
+                .collect()
+        }
+    }
+    for case in cases("settingsSearch") {
+        let mut builder = SettingsRegistryBuilder::new(
+            SettingsRegistryGeneration::new(1),
+            SettingsLimits::default(),
+        );
+        let module = SettingsModuleId::new("core").expect("module id");
+        let section = SettingsSectionId::new("general").expect("section id");
+        let renderer = SettingsRendererId::new("core:renderer").expect("renderer id");
+        builder
+            .register_module(SettingsModuleDefinition {
+                id: module.clone(),
+                label: "Core".into(),
+                order: 0,
+            })
+            .expect("module");
+        builder
+            .register_section(SettingsSectionDefinition {
+                id: section.clone(),
+                module_id: module.clone(),
+                label: "General".into(),
+                order: 0,
+            })
+            .expect("section");
+        builder
+            .register_renderer(SettingsRendererDefinition {
+                id: renderer.clone(),
+                module_id: module.clone(),
+            })
+            .expect("renderer");
+        builder
+            .register_page(SettingsPageDefinition {
+                id: SettingsPageId::new("page").expect("page id"),
+                module_id: module,
+                section_id: section,
+                renderer_id: renderer,
+                label: text(&case, "label"),
+                keywords: vec![text(&case, "keyword")],
+                order: 0,
+                anchors: vec![SettingsAnchorDefinition {
+                    id: SettingsAnchorId::new("anchor").expect("anchor id"),
+                    label: Some(text(&case, "anchorLabel")),
+                    order: 0,
+                }],
+                required_capabilities: Vec::new(),
+                readable_scope_ids: Vec::new(),
+                writable_apply_unit_ids: Vec::new(),
+                features: SettingsPageFeatures::default(),
+            })
+            .expect("page");
+        let registry = builder.seal(Vec::new()).expect("seal");
+        let hits: Vec<&str> =
+            longhorn_poodle::settings::search(&registry, &text(&case, "query"), &Turkish)
+                .iter()
+                .map(|hit| match hit.kind {
+                    longhorn_poodle::settings::SearchMatch::Page => "page",
+                    longhorn_poodle::settings::SearchMatch::Anchor => "anchor",
+                })
+                .collect();
+        assert_eq!(serde_json::json!(hits), case["expect"], "{case}");
+    }
+}

@@ -8,6 +8,8 @@ import {
 } from "../../src/settings/index.ts";
 import { registry } from "./support.ts";
 
+const services = { foldCase: (value: string) => value.toLowerCase() };
+
 describe("settings registry projection", () => {
   test("projects registered order without adding empty navigation", () => {
     const projection = projectSettingsRegistry(registry());
@@ -20,7 +22,7 @@ describe("settings registry projection", () => {
 
   test("searches only labels and registered keywords in stable order", () => {
     expect(
-      searchSettingsRegistry(registry(), "OUTPUT").map((result) => [
+      searchSettingsRegistry(registry(), "OUTPUT", services).map((result) => [
         result.kind,
         result.page.id,
         result.anchor?.id,
@@ -29,8 +31,8 @@ describe("settings registry projection", () => {
       ["page", "app:audio", undefined],
       ["anchor", "app:audio", "app:output"],
     ]);
-    expect(searchSettingsRegistry(registry(), "audio")).toHaveLength(1);
-    expect(searchSettingsRegistry(registry(), "selected")).toEqual([]);
+    expect(searchSettingsRegistry(registry(), "audio", services)).toHaveLength(1);
+    expect(searchSettingsRegistry(registry(), "selected", services)).toEqual([]);
   });
 
   test("resolves structural page and anchor links without a DOM", () => {

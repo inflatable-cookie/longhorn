@@ -137,11 +137,9 @@ pub struct SearchResult<'a> {
 
 /// Searches a sealed registry for pages and anchors matching `query`.
 ///
-/// Case folding comes from `services` rather than from `str::to_lowercase`.
-/// The Svelte tier pins `en-US`; Rust's default is locale-free; the two
-/// disagree on Turkish dotless i and on any locale the product later ships
-/// in. Making it the host's answer is what keeps the backends from choosing
-/// independently — see memo 022, D4.
+/// Case folding comes only from `services`. The Svelte route takes the same
+/// policy as `searchHostServices.foldCase`, so the two tiers agree by
+/// construction rather than by each choosing a locale.
 ///
 /// An empty or whitespace-only query returns nothing rather than everything.
 /// A search box that has not been typed into is not a request to list the
