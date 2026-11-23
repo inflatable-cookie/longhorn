@@ -56,7 +56,7 @@ no features, no TypeScript binding.
 - `RotatingLog::open(config, redactor)`, `RotatingLog::discarding()`;
   `record(event, detail)`, `record_at(at, event, detail)`,
   `record_json(&JsonRecord)`, `directory()`, `stats() -> LogStats { written,
-  oversized, failed }`.
+  oversized, failed, repair_required }`.
 - `JsonRecord::new()` with `text`, `optional_text`, `integer` (`i64`) and
   `optional_integer`. Fields keep the order the caller adds them.
 - `bound_field(&Redactor, text, max_bytes) -> String`.
@@ -141,6 +141,12 @@ or two processes, on one file are not supported.
 - A failed directory creation, open, rotation or write drops the line and
   counts it in `failed`. A failed write also drops the handle, so the next
   write reopens.
+- A write appends one whole line or nothing. A writer may commit a prefix
+  before it fails, so a failed write truncates the stream back to its
+  pre-append length and the next line cannot join onto a partial record.
+  When the truncation fails too the log latches `repair_required` in
+  `stats()`; the file may hold a partial line until the operator repairs
+  it.
 - An empty `directory` writes nothing and counts each line in `failed`. Use
   `discarding()` for a log that writes nowhere; it opens no file and counts
   nothing.
@@ -203,7 +209,9 @@ Against the Acowtancy donor at `89c8bf568`:
   then: a tail cut inside a PEM private-key block, cuts next to multi-byte
   UTF-8, two threads writing at once, a restart over a full live file,
   interior CR and LF, an oversized line, failed directory creation, failed
-  writes, a rotation that cannot clear the live file, and timestamps at
+  writes, a short write with an injected writer (a committed prefix, then
+  failure, truncated back to the pre-append length; a failed truncation
+  latches repair-required), a rotation that cannot clear the live file, and timestamps at
   fixed instants including a leap day, a non-leap century, a sub-millisecond
   carry and pre-epoch time.
 
