@@ -121,8 +121,9 @@ broadcast.
   - **Non-retryable poison:** poisoned adapter state (and `spawn_blocking`
     `JoinError`) maps to a typed `*StateUnavailable` error with
     `retryable: false`.
-  - **Window-scoped hints:** command-triggered invalidation hints emit on the
-    invoking `WebviewWindow` (`window.emit`), never app-wide.
+  - **Window-scoped hints:** target the invoking webview window explicitly
+    with `emit_to`. Tauri's default `Any` subscription matches targeted
+    events too, so window-local listeners must subscribe to their window.
 - Domain packages own typed command, query, and subscription clients.
 - Command catalogue and keymap adapters may expose typed metadata, preview,
   and mutation queries. They expose no generic product command executor.

@@ -131,6 +131,10 @@ attempt against an expired lease reports `lease_expired`; once reclaimed (for
 example by an unrelated window's lease publication), no expired lease record is
 retained, so resolution reports `no_target` unless another live target matches.
 
+The Tauri host issues epochs from one process-local counter. Destroy releases
+the window binding and lease. A recreated window receives a newer epoch without
+the host keeping the old window ID.
+
 ## Target Resolution
 
 A commit request names the session and either:
@@ -276,6 +280,9 @@ geometry, and exposes optional Surface commands over the same coordinator.
 The client installs the epoch listener before requesting its initial snapshot,
 accepts only the newest epoch, and tears down safely even when listener
 registration resolves late.
+Snapshot readback and the liveness recheck run outside adapter locks. An invoke
+returns its issued epoch. The best-effort hint goes to the caller's webview,
+with publication ordered for that window and superseded snapshots skipped.
 
 Packaged multi-window runtime evidence remains Card 035.
 

@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, sync::Mutex};
+use std::{
+    collections::BTreeSet,
+    sync::{Condvar, Mutex},
+};
 
 use longhorn_core::{TransferClientId, WindowId};
 use longhorn_transfer::{
@@ -11,7 +14,8 @@ use longhorn_transfer::{
 use longhorn_windowing::HostWindowHandle;
 
 use crate::{
-    ManagedTransferRuntime, ManagedTransferSnapshot, TransferHandlerError, project_client_rect,
+    ManagedTransferRuntime, ManagedTransferSnapshot, TransferHandlerError, TransferRuntimeError,
+    project_client_rect,
 };
 
 mod panel;
@@ -35,8 +39,8 @@ struct CurrentClient {
 #[derive(Debug)]
 struct HandlerState {
     coordinator: TransferCoordinator,
-    epoch_high_water: BTreeMap<WindowId, ClientEpoch>,
     next_client: u64,
+    publishing: BTreeSet<HostWindowHandle>,
     active: bool,
 }
 
@@ -83,6 +87,21 @@ pub struct TransferHandlerAssembly<R, C> {
     session_lifetime: TransferDuration,
     lease_lifetime: TransferDuration,
     state: Mutex<HandlerState>,
+    publication_finished: Condvar,
+}
+
+struct SnapshotPublication<'a, R, C> {
+    handler: &'a TransferHandlerAssembly<R, C>,
+    caller: &'a HostWindowHandle,
+}
+
+impl<R, C> Drop for SnapshotPublication<'_, R, C> {
+    fn drop(&mut self) {
+        if let Ok(mut state) = self.handler.state.lock() {
+            state.publishing.remove(self.caller);
+        }
+        self.handler.publication_finished.notify_all();
+    }
 }
 
 impl<R, C> TransferHandlerAssembly<R, C>
@@ -100,10 +119,11 @@ where
             lease_lifetime: limits.maximum_lease_lifetime(),
             state: Mutex::new(HandlerState {
                 coordinator: TransferCoordinator::new(limits),
-                epoch_high_water: BTreeMap::new(),
                 next_client: 1,
+                publishing: BTreeSet::new(),
                 active: true,
             }),
+            publication_finished: Condvar::new(),
         }
     }
 
@@ -112,49 +132,94 @@ where
         &self,
         caller_handle: &HostWindowHandle,
     ) -> Result<TransferClientSnapshot, TransferHandlerError> {
+        self.snapshot_for_window(caller_handle)
+            .map(|(_, snapshot)| snapshot)
+    }
+
+    pub(crate) fn snapshot_and_publish(
+        &self,
+        caller_handle: &HostWindowHandle,
+        publish: impl FnOnce(&TransferClientSnapshot),
+    ) -> Result<TransferClientSnapshot, TransferHandlerError> {
+        let (window_id, snapshot) = self.snapshot_for_window(caller_handle)?;
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| TransferHandlerError::StateUnavailable)?;
+        loop {
+            if state.coordinator.current_client(&window_id)
+                != Some((snapshot.client_id(), snapshot.client_epoch()))
+            {
+                return Ok(snapshot);
+            }
+            if !state.publishing.contains(caller_handle) {
+                break;
+            }
+            state = self
+                .publication_finished
+                .wait(state)
+                .map_err(|_| TransferHandlerError::StateUnavailable)?;
+        }
+        // Order delivery by webview label, including across a destroy and rebind.
+        // The permit lives only for this emission, with no mutex held by the emitter.
+        state.publishing.insert(caller_handle.clone());
+        drop(state);
+        let _publication = SnapshotPublication {
+            handler: self,
+            caller: caller_handle,
+        };
+        publish(&snapshot);
+        Ok(snapshot)
+    }
+
+    fn snapshot_for_window(
+        &self,
+        caller_handle: &HostWindowHandle,
+    ) -> Result<(WindowId, TransferClientSnapshot), TransferHandlerError> {
         let runtime = self.runtime.snapshot(caller_handle)?;
         let window_id = runtime.caller().window_id().clone();
-        let client_id = {
+        let client = {
             let mut state = self.lock_active()?;
-            let epoch = state.epoch_high_water.get(&window_id).map_or(
-                Ok(ClientEpoch::new(1)),
-                |current| {
-                    current
-                        .get()
-                        .checked_add(1)
-                        .map(ClientEpoch::new)
-                        .ok_or(TransferHandlerError::IdentityExhausted)
-                },
-            )?;
-            let client_id = issue_client_id(&mut state)?;
+            let client = issue_client(&mut state)?;
             state
                 .coordinator
-                .bind_client_epoch(&self.clock, window_id.clone(), client_id.clone(), epoch)
+                .bind_client_epoch(
+                    &self.clock,
+                    window_id.clone(),
+                    client.client_id.clone(),
+                    client.epoch,
+                )
                 .map_err(|error| {
                     TransferHandlerError::ClientBinding(error.code(), error.detail().to_owned())
                 })?;
-            state.epoch_high_water.insert(window_id.clone(), epoch);
-            CurrentClient { client_id, epoch }
+            client
         };
         // Close the probe/bind race with destroy_window: a destroy ordered
         // before this recheck either already removed the binding or is undone
         // here; one ordered after it removes the binding itself. Without this,
         // a window destroyed between the unlocked probe and the bind would
         // leak a client slot until teardown.
-        if let Err(error) = self.runtime.snapshot(caller_handle) {
+        let recheck = self.runtime.snapshot(caller_handle).and_then(|runtime| {
+            if runtime.caller().window_id() == &window_id {
+                Ok(())
+            } else {
+                Err(TransferRuntimeError::UnmanagedCaller(caller_handle.clone()))
+            }
+        });
+        if let Err(error) = recheck {
             let mut state = self.lock_active()?;
             if state
                 .coordinator
                 .current_client(&window_id)
-                .is_some_and(|(current_id, _)| *current_id == client_id.client_id)
+                .is_some_and(|(current_id, _)| *current_id == client.client_id)
             {
                 state.coordinator.destroy_window(&window_id);
             }
             return Err(error.into());
         }
-        Ok(TransferClientSnapshot::new(
-            client_id.client_id,
-            client_id.epoch,
+        Ok((
+            window_id,
+            TransferClientSnapshot::new(client.client_id, client.epoch),
         ))
     }
 
@@ -260,7 +325,6 @@ where
             });
         }
         let discarded = state.coordinator.discard_all();
-        state.epoch_high_water.clear();
         state.active = false;
         Ok(TransferHandlerTeardownReceipt {
             status: TransferHandlerTeardownStatus::TornDown,
@@ -307,13 +371,17 @@ fn current_caller(
         })
 }
 
-fn issue_client_id(state: &mut HandlerState) -> Result<TransferClientId, TransferHandlerError> {
+fn issue_client(state: &mut HandlerState) -> Result<CurrentClient, TransferHandlerError> {
     let value = state.next_client;
     state.next_client = value
         .checked_add(1)
         .ok_or(TransferHandlerError::IdentityExhausted)?;
-    TransferClientId::new(format!("client:{value:016x}"))
-        .map_err(|_| TransferHandlerError::InvalidIssuedClientId)
+    let client_id = TransferClientId::new(format!("client:{value:016x}"))
+        .map_err(|_| TransferHandlerError::InvalidIssuedClientId)?;
+    Ok(CurrentClient {
+        client_id,
+        epoch: ClientEpoch::new(value),
+    })
 }
 
 fn project_zones(
