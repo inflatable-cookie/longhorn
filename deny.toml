@@ -29,6 +29,13 @@ ignore = [
   # i18n-embed-impl -> i18n-config -> basic-toml, proc macros only.
   # Not vulnerable; no upgrade drops it; build-time only. Accepted 2026-10-20.
   "RUSTSEC-2026-0374",
+  # chrono 0.4.45 (unmaintained; all versions affected) — via rmcp 3.9.0 and
+  # schemars 1.2.2 under longhorn-agent-control, both of which take chrono
+  # directly. No safe upgrade exists, so no lock move drops it. Not a
+  # vulnerability. Accepted for 0.6.0 under Tom's bounded dependency
+  # approval (2026-11-23). Follow-up: prefer jiff or time once rmcp and
+  # schemars move off chrono upstream.
+  "RUSTSEC-2026-0543",
 ]
 
 [bans]

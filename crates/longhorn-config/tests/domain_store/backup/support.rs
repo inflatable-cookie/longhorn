@@ -129,7 +129,7 @@ impl SqliteAdapter {
         let source =
             Connection::open(&self.database).map_err(|_| adapter_failure("sqlite-open-source"))?;
         source
-            .backup(MAIN_DB, &snapshot, None)
+            .backup(MAIN_DB, &snapshot, None::<fn(rusqlite::backup::Progress)>)
             .map_err(|_| adapter_failure("sqlite-online-backup"))?;
         validate_database(&snapshot)?;
         fs::read(snapshot).map_err(|_| adapter_failure("sqlite-read-snapshot"))

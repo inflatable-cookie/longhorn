@@ -77,7 +77,7 @@ impl BackupAdapter for SqliteTransitionAdapter {
         let snapshot = scratch.path().join("snapshot.sqlite3");
         let source = Connection::open(&self.database).map_err(|_| failure("sqlite-open-source"))?;
         source
-            .backup(MAIN_DB, &snapshot, None)
+            .backup(MAIN_DB, &snapshot, None::<fn(rusqlite::backup::Progress)>)
             .map_err(|_| failure("sqlite-backup"))?;
         validate_database(&snapshot)?;
         let bytes = fs::read(snapshot).map_err(|_| failure("sqlite-read-snapshot"))?;
