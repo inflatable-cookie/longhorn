@@ -32,6 +32,10 @@ crates by git tag and the packages by version.
   `commit_resolved_panel_transfer` or `commit_resolved_surface_transfer`.
   `TransferHandlerError::Projection` is removed, and transfer commands return
   typed `TransferHostError` payloads instead of `String`.
+  `BridgeHandlerAssembly::teardown` returns `Result<(), BridgeHostError>`
+  instead of silently skipping on a poisoned mutex, so callers must handle the
+  result. `TransferHandlerAssembly::project_selector` is now `pub(crate)` and
+  has no public replacement.
 - **Licence: product binding is required (`longhorn-licence`).** `verify`,
   `SignedFileSource::new` and `TokenRedemptionSource::new` take the expected
   product, and a mismatch returns `VerificationError::ProductMismatch`. The
@@ -174,6 +178,25 @@ crates by git tag and the packages by version.
   1.97.1, including the release floor and compatibility guidance.
 - **Effigy.** `[bootstrap].setup` uses the plain selector string
   `"bootstrap:deps"`, which is Effigy v0.15 strict manifest syntax.
+- **Tauri adapters (`longhorn-tauri-*`).** Sync `#[tauri::command]` handlers in
+  `longhorn-tauri-bridge`, `longhorn-tauri-history`,
+  `longhorn-tauri-history-tree`, `longhorn-tauri-licence`,
+  `longhorn-tauri-notifications`, `longhorn-tauri-operation`,
+  `longhorn-tauri-transfer` and `longhorn-tauri-update` run off the main thread
+  through `tauri::async_runtime::spawn_blocking`. Poisoned mutexes and
+  `spawn_blocking` join failures report `retryable: false` across the adapters,
+  and `longhorn-core::MemoryCredentialStore` returns
+  `CredentialError::Unavailable` on poison instead of recovering with
+  `into_inner`. `longhorn-tauri-bridge` adds `bridge_plugin`, which installs
+  `TauriBridgeState` and wires window-destroyed teardown by default, and
+  collapses the duplicate `authorize_*` helpers. `longhorn-tauri-settings`
+  accepts an optional `ConsumerSettingsTransactionAuthority` through
+  `SettingsHandlerAssembly::with_transaction_authority` and
+  `SettingsHostAuthority::authorize_transaction`. `longhorn-tauri-notifications`
+  scopes command-triggered change hints to the invoking `WebviewWindow`
+  (`window.emit`) rather than the whole app. `longhorn-tauri-transfer` drops its
+  shadow client map for `TransferCoordinator::current_client` and releases the
+  coordinator mutex before calling the panel and Surface transfer adapters.
 - **Tauri and GPUI windowing.** Ordered window apply, dependency skips,
   convergence readback and lifecycle ports are shared. A native window whose
   admission fails is discarded or tracked for cleanup retry. GPUI close flushes
@@ -196,11 +219,17 @@ crates by git tag and the packages by version.
   requires the source operation to remain retained.
 - **Agent-control tool dispatch.** `listen` tracks a per-document epoch across
   page reloads, so events starting at seq 1 are not dropped by a stale cursor.
-  Selection updates go over a `watch` channel. `wait_for` timeouts are bounded
+  It records a full-document load as a `navigation` event at seq 1 and keeps the
+  64-event ring. Selection updates go over a `watch` channel without resetting
+  the 50 ms page-event poll interval or its 2 s per-eval bound.
+  `wait_for` timeouts are bounded
   (`MAX_WAIT_TIMEOUT_MS = 300_000`, advertised in the MCP schema). Selection
   tombstones are bounded at 300 s and 256 entries. Discovery refuses to write
   tokens when `0o600` permissions cannot be enforced. `RecordingDispatcher`
-  wakes idle callbacks at their deadline through a pure-`std` timer reactor.
+  wakes idle callbacks at their deadline through a pure-`std` timer reactor,
+  holds `max_outstanding_calls` occupancy until the callback future finishes or
+  drops, and handles unrepresentable durations through `Instant::checked_add`.
+  The agent-control shim bundle is regenerated for these source changes.
 - **Update installs (`longhorn-update-install`).** Native installs stage per
   target and clean up only the current attempt's files. Unix directory locks
   protect live workspaces from updates to ancestor bundles, and serialise updates
@@ -226,7 +255,8 @@ crates by git tag and the packages by version.
   binary and PATH lookup names follow the managed-name rule (ASCII letters,
   digits, `.`, `_`, `-`, `+`, no leading dot). Browser URL error indices are
   offsets into the whole URL for `http://` and `https://`, and a backslash ends
-  the host for `https` as it does for loopback. The browser callback survives a
+  the host for `https` as it does for loopback, so a backslash cannot hide
+  credentials from the `@` rule. The browser callback survives a
   closed tab after a valid redirect. The real-keychain credential tests run only
   with the `real-keychain-tests` feature. `longhorn_support_log::single_line` is
   public, and the diagnostics bundle uses it.
@@ -248,7 +278,8 @@ crates by git tag and the packages by version.
   - `qa:docs:changelog` parses a staged minimal copy, so checkout release
     journals do not affect it. The `longhorn-docs` QA group covers
     `changelog.d` fragments, so docs-touching tasks no longer hit
-    `needs_planner` on a fragment scope token.
+    `needs_planner` on a fragment scope token. Stale `doctor`, greenfield and
+    MSRV knowledge facts are updated.
   - Consolidated runner-tool checks and shared proof helpers across artifact
     verifiers. `effigy proof:guide-corpus` runs the guide proof. Bridge
     neutrality markers match whole words.
@@ -261,7 +292,8 @@ crates by git tag and the packages by version.
     `privateCargoCommand` are removed. Build scratch allocation is hardened
     against redirected bases, and Rust lint coverage is widened.
   - TypeScript and Svelte selectors install missing Bun dependencies with the
-    frozen lockfile and verify the required markers before continuing.
+    frozen lockfile and verify the required markers before continuing. Papercut
+    8ae3913b is closed.
   - TypeScript and Svelte QA check strict package and script types, Svelte
     warnings, type-aware lint, formatting and unused code. The published adapter
     has no wildcard Svelte declaration. Rust QA adds a local unused-dependency
@@ -295,9 +327,10 @@ crates by git tag and the packages by version.
 - **Agent-control.** `set_file_input` validation streams without allocating
   decoded buffers, runs once on the MCP-to-Tauri path, and maps to
   `ToolError::InvalidArgument`. Individual `poll_until` checks are bounded.
-  Cancelled and shutdown waits map to `ToolError::CancelledSelection`. The stdio
-  carrier disables HTTP proxies and keeps `InstanceToken`'s `SecretString`
-  posture.
+  Selection expiry runs through one shared-clock sweep with atomic outcome
+  delivery. Cancelled and shutdown waits map to `ToolError::CancelledSelection`.
+  The stdio carrier disables HTTP proxies and keeps `InstanceToken`'s
+  `SecretString` posture.
 - **PTY (`longhorn-pty`).** Every OS-backed `Failure` carries `raw_os_error`, and
   `Failure::raw_os_error()` reads it; `Display` shows `(os error <code>)`. `CLOEXEC`
   is set atomically on slave opens, descriptor duplications and master opens on
@@ -348,6 +381,18 @@ crates by git tag and the packages by version.
   identity labels have shared Rust and TypeScript parity coverage.
 - **Shared windowing scheduler.** Accepted wakes are preserved when timer startup
   fails.
+- **Git workspace device flow (`longhorn-git-workspace`).** A `slow_down` answer
+  only lengthens the poll interval: the server's suggestion is adopted when it is
+  longer than the interval in force, and the 5 s step applies otherwise, so a
+  shorter suggestion can no longer shorten the wait.
+- **Tauri operation adapter (`longhorn-tauri-operation`).** A poisoned executor
+  derives its dispatch code from
+  `OperationHostErrorCode::ExecutorStateUnavailable::as_str()` with
+  `retryable: false`, instead of a string literal with `retryable: true`.
+- **Settings search (`@inflatable-cookie/longhorn`,
+  `longhorn-poodle-svelte`).** Case folding follows the host on both routes. The
+  Svelte route lowercased with a fixed en-US policy, so Turkish dotted and
+  dotless `i` could disagree with Rust.
 
 ### Security
 - **Git workspace credentials (`longhorn-git-workspace`).** Credentials stay
