@@ -15,6 +15,7 @@ import {
 import type {
   SettingsRegistryProjection,
   SettingsSearchResult,
+  SettingsSearchHostServices,
 } from "@inflatable-cookie/longhorn/settings";
 import type { SettingsClient } from "@inflatable-cookie/longhorn/settings";
 import { createSettingsPageRenderContext } from "./context.ts";
@@ -35,6 +36,7 @@ import type {
 
 export interface SettingsSessionOptions {
   readonly client: SettingsClient;
+  readonly searchHostServices: SettingsSearchHostServices;
   readonly nextRequestId: () => SettingsRequestId;
   readonly initialRoute?: SettingsRoute;
   readonly onClose?: (() => void) | undefined;
@@ -177,7 +179,9 @@ export class SettingsSession {
   }
 
   search(query: string): ReadonlyArray<SettingsSearchResult> {
-    return this.registry === undefined ? [] : searchSettingsRegistry(this.registry, query);
+    return this.registry === undefined
+      ? []
+      : searchSettingsRegistry(this.registry, query, this.#options.searchHostServices);
   }
 
   async navigate(route: SettingsRoute): Promise<boolean> {

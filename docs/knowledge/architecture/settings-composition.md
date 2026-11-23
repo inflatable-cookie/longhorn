@@ -1,7 +1,7 @@
 # Settings Composition
 
 Status: canonical for g01.008
-Updated: 2026-07-29
+Updated: 2026-11-23
 Governing contracts: 004, 005, 010, 012, and 013
 
 ## Boundary
@@ -19,7 +19,9 @@ The shell is optional infrastructure. It is not an application framework.
 1. Register stable modules, sections, pages, renderers, scopes, apply units,
    and capabilities.
 2. Seal the registry before opening a settings host.
-3. Create one `SettingsSession` per mounted host.
+3. Create one `SettingsSession` per mounted host. Pass `searchHostServices`
+   with a `foldCase` that follows the host's folding policy, the same policy
+   the Rust host gives `HostServices::fold_case`. There is no default locale.
 4. Load the sealed registry and authoritative scope snapshot.
 5. Resolve page renderers in the consumer.
 6. Reveal the modal, window, or panel only after the session is ready.

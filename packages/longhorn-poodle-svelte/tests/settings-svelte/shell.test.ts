@@ -14,6 +14,7 @@ import {
 
 function createSession(transport: FakeSettingsTransport, onClose?: () => void): SettingsSession {
   return new SettingsSession({
+    searchHostServices: { foldCase: (value) => value.toLowerCase() },
     client: transport.client(),
     nextRequestId: requestIds("shell"),
     onClose,

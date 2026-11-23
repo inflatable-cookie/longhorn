@@ -2,7 +2,7 @@
 
 Status: active
 Owner: Tom
-Updated: 2026-09-26
+Updated: 2026-11-23
 Contracts: 005, 013, 016, 020
 
 Longhorn has two permanent, first-class hosts: Tauri (with a Svelte tier) and
@@ -23,14 +23,19 @@ sides, and its list of deliberate differences is empty.
   Where a label interpolates fields, both tiers fill `{name}` placeholders from
   the same generated template. `identityLabel` is the one known exception and
   is still stated twice.
-- **Settings search and deep-link resolution live in Rust**
-  (`longhorn-poodle::settings`). Page and anchor hits are distinct
-  destinations. An unknown anchor is an error, never a silent fall back to the
-  top of the page.
+- **Settings search runs in Rust and in the Svelte route under one folding
+  policy.** `longhorn-poodle::settings::search` and `searchSettingsRegistry`
+  both trim the query, fold it, then fold each page label, keyword and anchor
+  label and test for containment. Case folding comes from the host on both
+  sides: `HostServices::fold_case` in Rust, and `searchHostServices.foldCase`
+  in TypeScript, which `SettingsSession` requires. Neither tier chooses a
+  locale. Page and anchor hits are distinct destinations. An unknown anchor is
+  an error, never a silent fall back to the top of the page.
 - **The host decides case folding, timestamps and request ids** through
   `longhorn_core::HostServices` (`new_request_id`, `format_timestamp`,
-  `fold_case`), supplied once at composition. `PlainHostServices` is for tests
-  only.
+  `fold_case`), supplied once at composition. The Svelte route receives the
+  same folding as `searchHostServices.foldCase` when it creates a
+  `SettingsSession`. `PlainHostServices` is for tests only.
 - **Critical stays distinct from Error in text.** A `Critical` record's toast
   title carries `NotificationSeverity::title_prefix` (`"Critical: "`), generated
   into `NOTIFICATION_SEVERITY_TITLE_PREFIXES` and applied by both tiers. A

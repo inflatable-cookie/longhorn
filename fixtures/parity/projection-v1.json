@@ -269,6 +269,24 @@
       "canUseArchive": false
     }
   ],
+  "settingsSearch": [
+    {
+      "name": "Turkish folding matches page keyword and anchor separately",
+      "label": "Görünüm",
+      "keyword": "IŞIK",
+      "anchorLabel": "IŞIK ayarı",
+      "query": "  ışık  ",
+      "expect": ["page", "anchor"]
+    },
+    {
+      "name": "Turkish dotted I does not match dotless I",
+      "label": "İzleme",
+      "keyword": "İZ",
+      "anchorLabel": "İZ ayarı",
+      "query": "ız",
+      "expect": []
+    }
+  ],
   "deliberateDifferences": [],
   "settingsNavigation": [
     {
