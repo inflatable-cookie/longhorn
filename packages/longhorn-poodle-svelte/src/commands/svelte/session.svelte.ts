@@ -1,7 +1,5 @@
-import {
-  routeCommandKeyboardEvent,
-  type KeyboardEventLike,
-} from "@inflatable-cookie/longhorn/commands";
+import { routeCommandKeyboardEvent } from "@inflatable-cookie/longhorn/commands";
+import type { KeyboardEventLike } from "@inflatable-cookie/longhorn/commands";
 import type {
   CommandKeyChord,
   CommandKeymapPatch,
@@ -11,32 +9,23 @@ import type {
   CommandControllerStatus,
   CommandMutationStatus,
 } from "@inflatable-cookie/longhorn/commands";
-import { CommandController } from "@inflatable-cookie/longhorn/commands";
+import type { CommandController } from "@inflatable-cookie/longhorn/commands";
 import type {
   CommandProjectionRecord,
   CommandSettingsRecord,
 } from "@inflatable-cookie/longhorn/commands";
 
 export interface CommandKeyboardTarget {
-  addEventListener(
-    type: "keydown",
-    listener: (event: KeyboardEventLike) => void,
-  ): void;
-  removeEventListener(
-    type: "keydown",
-    listener: (event: KeyboardEventLike) => void,
-  ): void;
+  addEventListener(type: "keydown", listener: (event: KeyboardEventLike) => void): void;
+  removeEventListener(type: "keydown", listener: (event: KeyboardEventLike) => void): void;
 }
 
 export interface CommandSessionOptions {
   readonly controller: CommandController;
   readonly platform: CommandPlatform;
-  readonly contextPath: () => readonly string[];
+  readonly contextPath: () => ReadonlyArray<string>;
   readonly keyboardTarget?: CommandKeyboardTarget;
-  readonly reserved?: (
-    platform: CommandPlatform,
-    chord: CommandKeyChord,
-  ) => boolean;
+  readonly reserved?: (platform: CommandPlatform, chord: CommandKeyChord) => boolean;
 }
 
 export interface CapturedCommandChord {
@@ -66,30 +55,30 @@ export class CommandSession {
   }
 
   get status(): CommandControllerStatus {
-    this.#revision;
+    void this.#revision;
     return this.#controller.status;
   }
 
   get mutation(): CommandMutationStatus {
-    this.#revision;
+    void this.#revision;
     return this.#controller.mutation;
   }
 
   get projection() {
-    this.#revision;
+    void this.#revision;
     return this.#controller.projection;
   }
 
-  get paletteRecords(): readonly CommandProjectionRecord[] {
+  get paletteRecords(): ReadonlyArray<CommandProjectionRecord> {
     const records = this.projection?.palette ?? [];
-    if (this.#query.length === 0) return records;
-    const hits = new Set(
-      this.#controller.searchHits.map(({ record }) => record.id),
-    );
+    if (this.#query.length === 0) {
+      return records;
+    }
+    const hits = new Set(this.#controller.searchHits.map(({ record }) => record.id));
     return records.filter(({ id }) => hits.has(id));
   }
 
-  get settingsRecords(): readonly CommandSettingsRecord[] {
+  get settingsRecords(): ReadonlyArray<CommandSettingsRecord> {
     return this.projection?.settings ?? [];
   }
 
@@ -114,7 +103,7 @@ export class CommandSession {
   }
 
   get dirty(): boolean {
-    this.#revision;
+    void this.#revision;
     return this.#controller.dirty;
   }
 
@@ -133,10 +122,7 @@ export class CommandSession {
 
   async stop(): Promise<void> {
     if (this.#listening && this.#options.keyboardTarget !== undefined) {
-      this.#options.keyboardTarget.removeEventListener(
-        "keydown",
-        this.#keydown,
-      );
+      this.#options.keyboardTarget.removeEventListener("keydown", this.#keydown);
       this.#listening = false;
     }
     this.#removeObserver?.();
@@ -157,7 +143,7 @@ export class CommandSession {
     await this.#controller.search(query);
   }
 
-  select(commandId: string): Promise<unknown> {
+  select(commandId: string) {
     return this.#controller.dispatch({
       commandId,
       source: "palette",
@@ -192,7 +178,9 @@ export class CommandSession {
 
   handleKeyboard(event: KeyboardEventLike): void {
     const model = this.#controller.model;
-    if (model === undefined) return;
+    if (model === undefined) {
+      return;
+    }
     routeCommandKeyboardEvent(event, {
       platform: this.#options.platform,
       contextPath: this.#options.contextPath(),
@@ -203,7 +191,9 @@ export class CommandSession {
       dispatcher: this.#controller,
       onCapture: (chord, label) => {
         const bindingId = this.#captureBindingId;
-        if (bindingId === undefined) return;
+        if (bindingId === undefined) {
+          return;
+        }
         this.#captured = { bindingId, chord, label };
         this.#captureBindingId = undefined;
       },

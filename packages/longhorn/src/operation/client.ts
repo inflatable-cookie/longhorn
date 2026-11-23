@@ -1,7 +1,7 @@
-import {
-  CheckedSnapshotConnection,
-  type ConnectionFailure,
-  type ConnectionFailureReporter,
+import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import type {
+  ConnectionFailure,
+  ConnectionFailureReporter,
 } from "@inflatable-cookie/longhorn/core";
 
 import {
@@ -12,22 +12,21 @@ import {
   assertValidOperationMutationResult,
   assertValidOperationSnapshotResponse,
 } from "./validation.ts";
-import {
-  OPERATION_PROTOCOL_VERSION,
-  type OperationCancellationCommand,
-  type OperationCancellationResult,
-  type OperationChangedEvent,
-  type OperationMutationCommand,
-  type OperationMutationResult,
-  type OperationSnapshot,
-  type OperationSnapshotResponse,
+import { OPERATION_PROTOCOL_VERSION } from "./generated/protocol.ts";
+import type {
+  OperationCancellationCommand,
+  OperationCancellationResult,
+  OperationMutationCommand,
+  OperationMutationResult,
+  OperationSnapshot,
+  OperationSnapshotResponse,
 } from "./generated/protocol.ts";
 import type { OperationPort } from "./ports.ts";
 
 export interface OperationSubscription {
   readonly ready: Promise<void>;
   current(): OperationSnapshot | undefined;
-  failures(): readonly ConnectionFailure[];
+  failures(): ReadonlyArray<ConnectionFailure>;
   dispose(): Promise<void>;
 }
 
@@ -78,14 +77,21 @@ export class OperationClient {
 }
 
 export class OperationResponseCorrelationError extends Error {
-  constructor(readonly expectedRequestId: string, readonly receivedRequestId: string) {
-    super(`operation response correlation mismatch: expected ${expectedRequestId}; received ${receivedRequestId}`);
+  constructor(
+    readonly expectedRequestId: string,
+    readonly receivedRequestId: string,
+  ) {
+    super(
+      `operation response correlation mismatch: expected ${expectedRequestId}; received ${receivedRequestId}`,
+    );
     this.name = "OperationResponseCorrelationError";
   }
 }
 
 function assertResponseCorrelation(received: string, expected: string): void {
-  if (received !== expected) throw new OperationResponseCorrelationError(expected, received);
+  if (received !== expected) {
+    throw new OperationResponseCorrelationError(expected, received);
+  }
 }
 
 class CheckedOperationSubscription implements OperationSubscription {
@@ -100,7 +106,9 @@ class CheckedOperationSubscription implements OperationSubscription {
   ) {
     this.#connection = new CheckedSnapshotConnection({
       listen: async (receive) => {
-        if (port.listen === undefined) return () => {};
+        if (port.listen === undefined) {
+          return () => {};
+        }
         return port.listen(receive);
       },
       loadSnapshot: async () => (await client.snapshot()).snapshot,
@@ -117,7 +125,7 @@ class CheckedOperationSubscription implements OperationSubscription {
     return this.#connection.current();
   }
 
-  failures(): readonly ConnectionFailure[] {
+  failures(): ReadonlyArray<ConnectionFailure> {
     return this.#connection.failures();
   }
 
@@ -129,7 +137,7 @@ class CheckedOperationSubscription implements OperationSubscription {
 function parseSnapshot(value: unknown): OperationSnapshot {
   const response = { requestId: "request:validation", snapshot: value };
   assertValidOperationSnapshotResponse(response);
-  return value as OperationSnapshot;
+  return response.snapshot;
 }
 
 export function operationEventAction(
@@ -137,8 +145,10 @@ export function operationEventAction(
   current: OperationSnapshot | undefined,
 ): { kind: "ignore" } | { kind: "refresh" } {
   assertValidOperationChangedEvent(value);
-  const event = value as OperationChangedEvent;
-  if (current === undefined) return { kind: "refresh" };
+  const event = value;
+  if (current === undefined) {
+    return { kind: "refresh" };
+  }
   if (event.authority.authorityId !== current.authority.authorityId) {
     return { kind: "ignore" };
   }
@@ -158,8 +168,12 @@ export function isNewerOperationSnapshot(
   candidate: OperationSnapshot,
   current: OperationSnapshot | undefined,
 ): boolean {
-  if (current === undefined) return true;
-  if (candidate.authority.authorityId !== current.authority.authorityId) return false;
+  if (current === undefined) {
+    return true;
+  }
+  if (candidate.authority.authorityId !== current.authority.authorityId) {
+    return false;
+  }
   if (candidate.authority.authorityEpoch !== current.authority.authorityEpoch) {
     return candidate.authority.authorityEpoch > current.authority.authorityEpoch;
   }

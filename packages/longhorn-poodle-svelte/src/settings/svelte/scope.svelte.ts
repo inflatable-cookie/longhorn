@@ -24,9 +24,7 @@ export class SettingsScopeState {
   readonly #options: SettingsScopeStateOptions;
   #status = $state.raw<SettingsScopeStatus>({ kind: "idle" });
   #snapshot = $state.raw<SettingsScopeSnapshot | undefined>(undefined);
-  #subscription:
-    | SettingsSubscription<SettingsScopeSnapshot>
-    | undefined;
+  #subscription: SettingsSubscription<SettingsScopeSnapshot> | undefined;
   #startTask: Promise<void> | undefined;
   #stopTask: Promise<void> | undefined;
   #generation = 0;
@@ -52,10 +50,7 @@ export class SettingsScopeState {
       return this.#startTask;
     }
     const afterStop = this.#stopTask;
-    this.#startTask =
-      afterStop === undefined
-        ? this.#begin()
-        : afterStop.then(() => this.#begin());
+    this.#startTask = afterStop === undefined ? this.#begin() : afterStop.then(() => this.#begin());
     return this.#startTask;
   }
 
@@ -69,8 +64,7 @@ export class SettingsScopeState {
       return this.#stopTask;
     }
     const subscription = this.#subscription;
-    const priorFailure =
-      this.#status.kind === "failed" ? this.#status.error : undefined;
+    const priorFailure = this.#status.kind === "failed" ? this.#status.error : undefined;
     this.#subscription = undefined;
     this.#startTask = undefined;
     ++this.#generation;
@@ -81,7 +75,9 @@ export class SettingsScopeState {
         try {
           await subscription?.dispose();
         } catch (error) {
-          if (error !== priorFailure) throw error;
+          if (error !== priorFailure) {
+            throw error;
+          }
         }
       } finally {
         this.#stopTask = undefined;

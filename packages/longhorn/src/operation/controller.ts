@@ -1,17 +1,14 @@
-import {
-  isNewerOperationSnapshot,
-  OperationClient,
-  type OperationSubscription,
-} from "./client.ts";
-import {
-  OPERATION_PROTOCOL_VERSION,
-  type OperationCancellationResult,
-  type OperationEntryProjection,
-  type OperationId,
-  type OperationMutationResult,
-  type OperationRejection,
-  type OperationRequestId,
-  type OperationSnapshot,
+import { isNewerOperationSnapshot, OperationClient } from "./client.ts";
+import type { OperationSubscription } from "./client.ts";
+import { OPERATION_PROTOCOL_VERSION } from "./generated/protocol.ts";
+import type {
+  OperationCancellationResult,
+  OperationEntryProjection,
+  OperationId,
+  OperationMutationResult,
+  OperationRejection,
+  OperationRequestId,
+  OperationSnapshot,
 } from "./generated/protocol.ts";
 import type { OperationPort } from "./ports.ts";
 
@@ -67,11 +64,11 @@ export class OperationController {
     return this.#snapshot;
   }
 
-  get active(): readonly OperationEntryProjection[] {
+  get active(): ReadonlyArray<OperationEntryProjection> {
     return this.#snapshot?.active ?? [];
   }
 
-  get recent(): readonly OperationEntryProjection[] {
+  get recent(): ReadonlyArray<OperationEntryProjection> {
     return this.#snapshot?.recent ?? [];
   }
 
@@ -80,11 +77,13 @@ export class OperationController {
   }
 
   get selected(): OperationEntryProjection | undefined {
-    if (this.#selectedOperationId === undefined) return undefined;
+    if (this.#selectedOperationId === undefined) {
+      return undefined;
+    }
     return this.#entry(this.#selectedOperationId);
   }
 
-  get pendingCommands(): readonly OperationPendingCommand[] {
+  get pendingCommands(): ReadonlyArray<OperationPendingCommand> {
     return [...this.#pending.values()];
   }
 
@@ -102,7 +101,9 @@ export class OperationController {
   }
 
   async start(): Promise<void> {
-    if (this.#started) return;
+    if (this.#started) {
+      return;
+    }
     this.#started = true;
     const lifecycleRevision = ++this.#lifecycleRevision;
     this.#setStatus({ kind: "loading" });
@@ -191,23 +192,17 @@ export class OperationController {
       operationId,
       expectedOperationRevision: operation.revision,
     } as const;
-    return this.#runCommand(
-      { requestId: command.requestId, operationId, kind: "dismissal" },
-      () => this.#client.mutate(command),
+    return this.#runCommand({ requestId: command.requestId, operationId, kind: "dismissal" }, () =>
+      this.#client.mutate(command),
     );
   }
 
-  async #runCommand<
-    Result extends OperationCancellationResult | OperationMutationResult,
-  >(
+  async #runCommand<Result extends OperationCancellationResult | OperationMutationResult>(
     pending: OperationPendingCommand,
     run: () => Promise<Result>,
   ): Promise<Result> {
     if (this.#hasPending(pending.operationId, pending.kind)) {
-      throw new OperationControllerCommandPendingError(
-        pending.operationId,
-        pending.kind,
-      );
+      throw new OperationControllerCommandPendingError(pending.operationId, pending.kind);
     }
     const lifecycleRevision = this.#lifecycleRevision;
     const commandRevision = ++this.#commandRevision;
@@ -220,10 +215,7 @@ export class OperationController {
       const result = await run();
       if (this.#isCurrentLifecycle(lifecycleRevision)) {
         this.#install(result.snapshot);
-        if (
-          commandRevision === this.#commandRevision &&
-          result.status === "rejected"
-        ) {
+        if (commandRevision === this.#commandRevision && result.status === "rejected") {
           this.#commandRejection = { ...pending, rejection: result.rejection };
         }
       }
@@ -256,22 +248,19 @@ export class OperationController {
   }
 
   #entry(operationId: OperationId): OperationEntryProjection | undefined {
-    return [...this.active, ...this.recent].find(
-      (entry) => entry.operationId === operationId,
-    );
+    return [...this.active, ...this.recent].find((entry) => entry.operationId === operationId);
   }
 
-  #hasPending(
-    operationId: OperationId,
-    kind: OperationPendingCommandKind,
-  ): boolean {
+  #hasPending(operationId: OperationId, kind: OperationPendingCommandKind): boolean {
     return [...this.#pending.values()].some(
       (pending) => pending.operationId === operationId && pending.kind === kind,
     );
   }
 
   #install(snapshot: OperationSnapshot): void {
-    if (!isNewerOperationSnapshot(snapshot, this.#snapshot)) return;
+    if (!isNewerOperationSnapshot(snapshot, this.#snapshot)) {
+      return;
+    }
     this.#snapshot = snapshot;
     if (
       this.#selectedOperationId !== undefined &&
@@ -292,7 +281,9 @@ export class OperationController {
   }
 
   #notify(): void {
-    for (const observer of this.#observers) observer();
+    for (const observer of this.#observers) {
+      observer();
+    }
   }
 }
 

@@ -34,12 +34,12 @@ describe("operation Svelte and public Poodle adapters", () => {
     expect(firstMount.getByText("soundcheck detail for operation:scan")).toBeTruthy();
     expect(second.session.selected).toBeUndefined();
 
-    await firstMount.unmount();
+    await Promise.resolve(firstMount.unmount());
     await waitFor(() => expect(first.port.listeners.size).toBe(0));
     expect(first.port.unlistenCount).toBe(1);
     expect(first.port.cancellations).toEqual([]);
     expect(second.port.listeners.size).toBe(1);
-    await secondMount.unmount();
+    await Promise.resolve(secondMount.unmount());
   });
 
   it("remounts from current host truth", async () => {
@@ -48,7 +48,7 @@ describe("operation Svelte and public Poodle adapters", () => {
       props: { session: state.session, shape: "soundcheck" },
     });
     await waitFor(() => expect(state.session.status.kind).toBe("ready"));
-    await first.unmount();
+    await Promise.resolve(first.unmount());
     state.port.snapshotValue = loopholeSnapshot();
 
     const second = render(OperationPanelHarness, {
@@ -56,7 +56,7 @@ describe("operation Svelte and public Poodle adapters", () => {
     });
     expect(await second.findByRole("button", { name: "Render final sequence" })).toBeTruthy();
     expect(state.port.unlistenCount).toBe(1);
-    await second.unmount();
+    await Promise.resolve(second.unmount());
     await waitFor(() => expect(state.port.unlistenCount).toBe(2));
   });
 
@@ -76,9 +76,7 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(port.listeners.size).toBe(2);
     });
 
-    await fireEvent.click(
-      within(first.container).getByRole("button", { name: "Scan plug-ins" }),
-    );
+    await fireEvent.click(within(first.container).getByRole("button", { name: "Scan plug-ins" }));
     expect(firstSession.selected?.operationId).toBe("operation:scan");
     expect(secondSession.selected).toBeUndefined();
 
@@ -89,8 +87,8 @@ describe("operation Svelte and public Poodle adapters", () => {
     });
     expect(firstSession.selected).toBeUndefined();
 
-    await first.unmount();
-    await second.unmount();
+    await Promise.resolve(first.unmount());
+    await Promise.resolve(second.unmount());
     await waitFor(() => expect(port.listeners.size).toBe(0));
     expect(port.unlistenCount).toBe(2);
   });
@@ -107,14 +105,16 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(loophole.session.status.kind).toBe("ready");
     });
 
-    await fireEvent.click(renderPanel.getByRole("button", { name: "Cancel Render final sequence" }));
+    await fireEvent.click(
+      renderPanel.getByRole("button", { name: "Cancel Render final sequence" }),
+    );
     await fireEvent.click(renderPanel.getByRole("button", { name: "Request cancellation" }));
     await waitFor(() => {
       expect(renderPanel.getByText("host refused cancellation")).toBeTruthy();
       expect(renderPanel.queryByRole("alertdialog", { name: "Cancel operation?" })).toBeNull();
     });
 
-    await renderPanel.unmount();
+    await Promise.resolve(renderPanel.unmount());
   });
 
   it("projects Soundcheck and Loophole through the same controlled panel", async () => {
@@ -131,13 +131,27 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(loophole.session.status.kind).toBe("ready");
     });
 
-    expect(scanPanel.getByRole("progressbar", { name: "Scan plug-ins progress" }).getAttribute("aria-valuenow")).toBe("2");
-    expect(renderPanel.getByRole("progressbar", { name: "Render final sequence progress" }).getAttribute("aria-valuenow")).toBe("0.65");
-    expect(renderPanel.getByRole("progressbar", { name: "Render trailer progress" }).hasAttribute("aria-valuenow")).toBe(false);
+    expect(
+      scanPanel
+        .getByRole("progressbar", { name: "Scan plug-ins progress" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("2");
+    expect(
+      renderPanel
+        .getByRole("progressbar", { name: "Render final sequence progress" })
+        .getAttribute("aria-valuenow"),
+    ).toBe("0.65");
+    expect(
+      renderPanel
+        .getByRole("progressbar", { name: "Render trailer progress" })
+        .hasAttribute("aria-valuenow"),
+    ).toBe(false);
     expect(renderPanel.getByText("Queued")).toBeTruthy();
     expect(renderPanel.getByText("Succeeded")).toBeTruthy();
 
-    await fireEvent.click(renderPanel.getByRole("button", { name: "Cancel Render final sequence" }));
+    await fireEvent.click(
+      renderPanel.getByRole("button", { name: "Cancel Render final sequence" }),
+    );
     expect(renderPanel.getByRole("alertdialog", { name: "Cancel operation?" })).toBeTruthy();
     await fireEvent.click(renderPanel.getByRole("button", { name: "Request cancellation" }));
     await waitFor(() => {
@@ -145,13 +159,15 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(loophole.session.active[0]?.state).toBe("cancelling");
     });
 
-    await fireEvent.click(renderPanel.getByRole("button", { name: "Dismiss Render opening titles" }));
+    await fireEvent.click(
+      renderPanel.getByRole("button", { name: "Dismiss Render opening titles" }),
+    );
     await waitFor(() => {
       expect(loophole.port.mutations).toHaveLength(1);
       expect(loophole.session.recent).toHaveLength(0);
     });
 
-    await scanPanel.unmount();
-    await renderPanel.unmount();
+    await Promise.resolve(scanPanel.unmount());
+    await Promise.resolve(renderPanel.unmount());
   });
 });

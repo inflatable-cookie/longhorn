@@ -28,16 +28,49 @@ export function sampleLicenceController(getController: () => LicenceController) 
   });
 
   return {
-    get status() { void notify; return controller.status; },
-    get activated() { void notify; return controller.activated; },
-    get usable() { void notify; return controller.usable; },
-    get usability() { void notify; return controller.usability; },
-    get trustBasis() { void notify; return controller.trustBasis; },
-    get useUntil() { void notify; return controller.useUntil ?? null; },
-    get updateUntil() { void notify; return controller.updateUntil ?? null; },
-    get attention() { void notify; return controller.attention; },
-    get seats() { void notify; return controller.seats; },
-    get pending() { void notify; return controller.pending; },
-    get lastRejection() { void notify; return controller.lastRejection; },
+    get status() {
+      void notify;
+      return controller.status;
+    },
+    get activated() {
+      void notify;
+      return controller.activated;
+    },
+    get usable() {
+      void notify;
+      return controller.usable;
+    },
+    get usability() {
+      void notify;
+      return controller.usability;
+    },
+    get trustBasis() {
+      void notify;
+      return controller.trustBasis;
+    },
+    get useUntil() {
+      void notify;
+      return controller.useUntil ?? null;
+    },
+    get updateUntil() {
+      void notify;
+      return controller.updateUntil ?? null;
+    },
+    get attention() {
+      void notify;
+      return controller.attention;
+    },
+    get seats() {
+      void notify;
+      return controller.seats;
+    },
+    get pending() {
+      void notify;
+      return controller.pending;
+    },
+    get lastRejection() {
+      void notify;
+      return controller.lastRejection;
+    },
   };
 }

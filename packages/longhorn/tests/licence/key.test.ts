@@ -1,16 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import cases from "../../src/licence/generated/key-conformance.json";
-import {
-  MINIMUM_KEY_SYMBOLS,
-  isProbablyATypo,
-  parseLicenceKey,
-  type LicenceKeyProblem,
-} from "../../src/licence/key.ts";
+import { MINIMUM_KEY_SYMBOLS, isProbablyATypo, parseLicenceKey } from "../../src/licence/key.ts";
+import type { LicenceKeyProblem } from "../../src/licence/key.ts";
 
 /** The Rust outcome vocabulary, rendered from a TypeScript result. */
 function outcome(input: string): string {
   const result = parseLicenceKey(input);
-  if (result.ok) return `ok:${result.grouped}`;
+  if (result.ok) {
+    return `ok:${result.grouped}`;
+  }
   const problem: LicenceKeyProblem = result.problem;
   switch (problem.kind) {
     case "checkFailed":
@@ -48,7 +46,9 @@ describe("licence key format", () => {
 
     expect(mistyped.ok).toBeFalse();
     expect(truncated.ok).toBeFalse();
-    if (mistyped.ok || truncated.ok) throw new Error("expected both to fail");
+    if (mistyped.ok || truncated.ok) {
+      throw new Error("expected both to fail");
+    }
 
     expect(isProbablyATypo(mistyped.problem)).toBeTrue();
     expect(isProbablyATypo(truncated.problem)).toBeFalse();
@@ -58,6 +58,8 @@ describe("licence key format", () => {
     expect(MINIMUM_KEY_SYMBOLS).toBe(20);
     const short = parseLicenceKey("ABCDE");
     expect(short.ok).toBeFalse();
-    if (!short.ok) expect(short.problem).toEqual({ kind: "tooShort", minimum: 20, actual: 5 });
+    if (!short.ok) {
+      expect(short.problem).toEqual({ kind: "tooShort", minimum: 20, actual: 5 });
+    }
   });
 });

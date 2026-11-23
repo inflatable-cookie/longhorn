@@ -3,9 +3,11 @@ import {
   LAYOUT_MUTATION_OUTCOME_KINDS,
   LAYOUT_MUTATION_REJECTION_CODES,
   LAYOUT_PROTOCOL_VERSION,
-  type LayoutMutationCommand,
-  type LayoutMutationOutcome,
-  type LayoutMutationRejectionCode,
+} from "./generated/protocol.ts";
+import type {
+  LayoutMutationCommand,
+  LayoutMutationOutcome,
+  LayoutMutationRejectionCode,
 } from "./generated/protocol.ts";
 
 export type LayoutProtocolValidationCode =
@@ -30,10 +32,7 @@ export function assertLayoutProtocolVersion(
   version: unknown,
 ): asserts version is typeof LAYOUT_PROTOCOL_VERSION {
   if (version !== LAYOUT_PROTOCOL_VERSION) {
-    throw new LayoutProtocolValidationError(
-      "unsupported_protocol_version",
-      version,
-    );
+    throw new LayoutProtocolValidationError("unsupported_protocol_version", version);
   }
 }
 
@@ -54,20 +53,15 @@ export function assertValidLayoutMutationRejectionCode(
 ): asserts value is LayoutMutationRejectionCode {
   if (
     typeof value !== "string" ||
-    !LAYOUT_MUTATION_REJECTION_CODES.includes(
-      value as (typeof LAYOUT_MUTATION_REJECTION_CODES)[number],
-    )
+    !LAYOUT_MUTATION_REJECTION_CODES.some((code) => code === value)
   ) {
-    throw new LayoutProtocolValidationError(
-      "unknown_rejection_code",
-      value,
-    );
+    throw new LayoutProtocolValidationError("unknown_rejection_code", value);
   }
 }
 
 function assertKnownKind(
   value: unknown,
-  known: readonly string[],
+  known: ReadonlyArray<string>,
   code: "unknown_command" | "unknown_outcome",
 ): asserts value is Record<"kind", string> {
   if (
@@ -81,10 +75,7 @@ function assertKnownKind(
   }
 }
 
-function message(
-  code: LayoutProtocolValidationCode,
-  received: unknown,
-): string {
+function message(code: LayoutProtocolValidationCode, received: unknown): string {
   switch (code) {
     case "unsupported_protocol_version":
       return `unsupported layout protocol version ${String(received)}; expected ${LAYOUT_PROTOCOL_VERSION}`;

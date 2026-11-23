@@ -14,11 +14,11 @@ export interface OperationFixture {
   protocolVersion: number;
   snapshotQuery: OperationSnapshotQuery;
   snapshotResponse: OperationSnapshotResponse;
-  mutationCommands: OperationMutationCommand[];
-  mutationResults: OperationMutationResult[];
+  mutationCommands: Array<OperationMutationCommand>;
+  mutationResults: Array<OperationMutationResult>;
   cancellationCommand: OperationCancellationCommand;
   cancellationResult: OperationCancellationResult;
-  changedEvents: OperationChangedEvent[];
+  changedEvents: Array<OperationChangedEvent>;
   incompatibility: Record<string, unknown>;
 }
 
@@ -37,5 +37,5 @@ export function fixturePort(): OperationPort {
 }
 
 export function cloned<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

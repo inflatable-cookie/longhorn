@@ -1,4 +1,14 @@
-import { digest, fileDependency, assertExactSet, parseTrace, runArtifactCommand as run } from "./proof-support.ts";
+import { parseJsonRecord, requireRecord, requireList, requireString } from "./proof-json.ts";
+import { errorCode } from "./proof-support.ts";
+import { readPackageIdentity, readPackageManifest, readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
+import {
+  digest,
+  fileDependency,
+  assertExactSet,
+  parseTrace,
+  runArtifactCommand as run,
+} from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
@@ -48,9 +58,7 @@ const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
   "1770327218ac9381fc59613d966040d550331c57eb25895d8c7e03dd4c06cd08";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "native-content-system-proof");
-const temporaryRoot = await mkdtemp(
-  join(tmpdir(), "longhorn-native-content-artifact-proof-"),
-);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-native-content-artifact-proof-"));
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(typescriptArtifactRoot);
 // Private final Cargo outputs for the staged workspace, on external build
@@ -63,13 +71,6 @@ interface ArtifactIdentity {
   readonly name: string;
   readonly filename: string;
   readonly sha256: string;
-}
-
-interface PackageManifest {
-  readonly name: string;
-  dependencies: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  overrides?: Record<string, string>;
 }
 
 try {
@@ -217,20 +218,15 @@ async function verifyProtocolIsolation() {
 }
 
 async function packTypescriptArtifacts() {
-  const packages = [["@inflatable-cookie/longhorn", "longhorn"], ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"]] as const;
-  const identities: ArtifactIdentity[] = [];
+  const packages = [
+    ["@inflatable-cookie/longhorn", "longhorn"],
+    ["@inflatable-cookie/longhorn-poodle-svelte", "longhorn-poodle-svelte"],
+  ] as const;
+  const identities: Array<ArtifactIdentity> = [];
   const paths = new Map<string, string>();
   for (const [name, directory] of packages) {
     await run(
-      [
-        "bun",
-        "pm",
-        "pack",
-        "--destination",
-        typescriptArtifactRoot,
-        "--ignore-scripts",
-        "--quiet",
-      ],
+      ["bun", "pm", "pack", "--destination", typescriptArtifactRoot, "--ignore-scripts", "--quiet"],
       join(repoRoot, "packages", directory),
     );
     const path = join(
@@ -253,46 +249,31 @@ async function inspectTypescriptArtifact(name: string, path: string) {
   ) {
     throw new Error(`${name} artifact contains proof or workspace material`);
   }
-  const manifest = JSON.parse(
+  const manifest = readPackageManifest(
     await run(["tar", "-xOzf", path, "package/package.json"], typescriptArtifactRoot),
-  ) as {
-    readonly name: string;
-    readonly version: string;
-    readonly dependencies?: Record<string, string>;
-    readonly peerDependencies?: Record<string, string>;
-    readonly exports?: Record<string, unknown>;
-  };
+  );
   if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
   // Card 164: both tiers carry no dependencies at all. The framework package
   // has none by construction, and the projection tier expresses its needs as
   // peers rather than dependencies.
-  const expectedDependencies: Record<string, readonly string[]> = {
-    "@inflatable-cookie/longhorn": [],
-    "@inflatable-cookie/longhorn-poodle-svelte": [],
-  };
-  assertExactSet(
-    `${name} dependencies`,
-    Object.keys(manifest.dependencies ?? {}),
-    expectedDependencies[name] ?? [],
-  );
+  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), []);
   if (name === "@inflatable-cookie/longhorn-native-content-svelte") {
-    assertExactSet(
-      "native-content Svelte peers",
-      Object.keys(manifest.peerDependencies ?? {}),
-      ["svelte"],
-    );
+    assertExactSet("native-content Svelte peers", Object.keys(manifest.peerDependencies ?? {}), [
+      "svelte",
+    ]);
     if (manifest.peerDependencies?.svelte !== ">=5.38.6 <6") {
       throw new Error("native-content Svelte peer range changed");
     }
   }
   if (name === "@inflatable-cookie/longhorn-native-content") {
-    assertExactSet(
-      "native-content exports",
-      Object.keys(manifest.exports ?? {}),
-      [".", "./package.json", "./protocol", "./tauri"],
-    );
+    assertExactSet("native-content exports", Object.keys(manifest.exports ?? {}), [
+      ".",
+      "./package.json",
+      "./protocol",
+      "./tauri",
+    ]);
   }
 
   const extractRoot = join(
@@ -326,9 +307,7 @@ async function inspectTypescriptArtifact(name: string, path: string) {
       ? await readSourceTree(join(packageSrc, "native-content"))
       : source;
   if (nativeContentSource.includes("@inflatable-cookie/poodle-")) {
-    throw new Error(
-      `${name} native-content tier contains a Poodle edge`,
-    );
+    throw new Error(`${name} native-content tier contains a Poodle edge`);
   }
 }
 
@@ -345,7 +324,7 @@ async function packAndRunRustArtifacts() {
   const workspace = join(temporaryRoot, "rust-workspace");
   await mkdir(archiveRoot);
   await mkdir(workspace);
-  const identities: ArtifactIdentity[] = [];
+  const identities: Array<ArtifactIdentity> = [];
   for (const name of crates) {
     // Checkout-level and non-building: `package --list` runs through the switch
     // point at the MSRV pin. The `run`/`tree` calls below lease the staged
@@ -364,9 +343,7 @@ async function packAndRunRustArtifacts() {
   }
 
   const sharedSource = (
-    await Promise.all(
-      crates.map((name) => readSourceTree(join(workspace, "crates", name, "src"))),
-    )
+    await Promise.all(crates.map((name) => readSourceTree(join(workspace, "crates", name, "src"))))
   ).join("\n");
   for (const marker of ["@inflatable-cookie/poodle-", "SignalPlugin", "wgpu::", "PluginPayload"]) {
     if (sharedSource.includes(marker)) {
@@ -410,30 +387,19 @@ async function packAndRunRustArtifacts() {
   // `target/` directory keeps the lease adoption-free; see
   // `prepareStagedWorkspace`.
   await prepareStagedWorkspace(workspace);
-  const staged = (args: readonly string[]) =>
+  const staged = (args: ReadonlyArray<string>) =>
     rustExec(privateCargoCommand(buildScratch.root, args), {
       manifestPath: join(workspace, "Cargo.toml"),
       toolchain: MSRV_TOOLCHAIN,
     });
   const traces: Record<string, Record<string, unknown>> = {};
-  const graphs: Record<string, readonly string[]> = {};
-  for (const shape of Object.keys(packages) as Array<keyof typeof packages>) {
+  const graphs: Record<string, ReadonlyArray<string>> = {};
+  for (const shape of ["pure", "nucleus", "soundcheck", "jetstream"] as const) {
     traces[shape] = parseTrace(
-      await run(
-        staged(["cargo", "run", "-p", packages[shape], "--offline", "--quiet"]),
-        workspace,
-      ),
+      await run(staged(["cargo", "run", "-p", packages[shape], "--offline", "--quiet"]), workspace),
     );
     const tree = await run(
-      staged([
-        "cargo",
-        "tree",
-        "-p",
-        packages[shape],
-        "--offline",
-        "--prefix",
-        "none",
-      ]),
+      staged(["cargo", "tree", "-p", packages[shape], "--offline", "--prefix", "none"]),
       workspace,
     );
     graphs[shape] = longhornPackages(tree);
@@ -464,19 +430,14 @@ async function verifyConsumer(
   await mkdir(join(stage, "consumers"), { recursive: true });
   await cp(source, join(stage, "consumers", shape), { recursive: true });
   await cp(join(proofRoot, "common.ts"), join(stage, "common.ts"));
-  await cp(
-    join(proofRoot, "consumer-tsconfig.json"),
-    join(stage, "consumer-tsconfig.json"),
-  );
+  await cp(join(proofRoot, "consumer-tsconfig.json"), join(stage, "consumer-tsconfig.json"));
   await writeFile(
     join(stage, "consumers", shape, "fixture.json"),
     `${JSON.stringify(native.rendererFixture, null, 2)}\n`,
   );
 
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
-  manifest.dependencies = rewriteDependencies(manifest.dependencies, artifacts);
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
+  manifest.dependencies = rewriteDependencies(manifest.dependencies ?? {}, artifacts);
   // Only Longhorn's own packs are overridden onto paths. Poodle is published,
   // so the staged consumer resolves it from the registry as a real consumer
   // does -- which is what the pack indirection stood in for before it shipped.
@@ -489,14 +450,9 @@ async function verifyConsumer(
   await run(["bun", "x", "tsc", "-p", "consumer-tsconfig.json"], stage);
   const usesSvelte = shape !== "soundcheck";
   if (usesSvelte) {
-    await run(
-      ["bun", "x", "svelte-check", "--tsconfig", "consumer-tsconfig.json"],
-      stage,
-    );
+    await run(["bun", "x", "svelte-check", "--tsconfig", "consumer-tsconfig.json"], stage);
   }
-  const renderer = parseTrace(
-    await run(["bun", `consumers/${shape}/proof.ts`], stage),
-  );
+  const renderer = parseTrace(await run(["bun", `consumers/${shape}/proof.ts`], stage));
   if (!equalJson(renderer.publicTrace, native.publicTrace)) {
     throw new Error(`${shape} renderer trace diverged from packed Rust trace`);
   }
@@ -507,17 +463,17 @@ async function verifyConsumer(
   const expectedLonghorn =
     shape === "soundcheck"
       ? ["@inflatable-cookie/longhorn"]
-      : [
-          "@inflatable-cookie/longhorn",
-          "@inflatable-cookie/longhorn-poodle-svelte",
-        ];
+      : ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte"];
   assertExactSet(
     `${shape} installed Longhorn packages`,
-    (await installedScope(stage, "@inflatable-cookie")).filter((name) => name === "longhorn" || name.startsWith("longhorn-")).map((name) => `@inflatable-cookie/${name}`),
+    (await installedScope(stage, "@inflatable-cookie"))
+      .filter((name) => name === "longhorn" || name.startsWith("longhorn-"))
+      .map((name) => `@inflatable-cookie/${name}`),
     expectedLonghorn,
   );
-  for (const name of expectedLonghorn)
+  for (const name of expectedLonghorn) {
     await assertArtifactInstall(stage, name, LONGHORN_VERSION);
+  }
   for (const forbidden of [
     "@inflatable-cookie/longhorn-bridge",
     "@inflatable-cookie/longhorn-commands",
@@ -547,7 +503,7 @@ async function verifyConsumer(
     assertExactSet(
       "Soundcheck installed Poodle packages",
       (await installedScope(stage, "@inflatable-cookie")).filter((name) =>
-        name.startsWith("poodle-")
+        name.startsWith("poodle-"),
       ),
       [],
     );
@@ -562,10 +518,8 @@ async function verifyConsumer(
         "core:event:allow-unlisten",
       ]
     : [];
-  const permissions = (
-    JSON.parse(
-      await readFile(join(source, "capability.json"), "utf8"),
-    ) as { readonly permissions: readonly string[] }
+  const permissions = readPermissions(
+    await readFile(join(source, "capability.json"), "utf8"),
   ).permissions;
   assertExactSet(`${shape} permissions`, permissions, expectedPermissions);
 
@@ -637,54 +591,46 @@ async function verifyPackagedMechanisms() {
   const results = [];
   for (const declaration of declarations) {
     const root = join(repoRoot, "examples", declaration.directory, "evidence");
-    const inventory = JSON.parse(
-      await readFile(join(root, "inventory.json"), "utf8"),
-    ) as {
-      readonly packaged_run: {
-        readonly report: string;
-        readonly transcript: string;
-        readonly outcome: string;
-        readonly passed_checks: number;
-      };
-      readonly native_boundary: Record<string, unknown>;
-      readonly forbidden_edges: Record<string, boolean>;
-    };
+    const inventory = parseJsonRecord(await readFile(join(root, "inventory.json"), "utf8"));
+    const packaged = requireRecord(inventory.packaged_run, "packaged run");
     if (
-      inventory.packaged_run.outcome !== declaration.reportOutcome ||
-      inventory.packaged_run.passed_checks !== declaration.passing
+      packaged.outcome !== declaration.reportOutcome ||
+      packaged.passed_checks !== declaration.passing
     ) {
       throw new Error(`${declaration.shape} packaged inventory regressed`);
     }
-    if (Object.values(inventory.forbidden_edges).some(Boolean)) {
+    if (Object.values(requireRecord(inventory.forbidden_edges, "forbidden edges")).some(Boolean)) {
       throw new Error(`${declaration.shape} packaged graph has a forbidden edge`);
     }
-    const report = JSON.parse(
-      await readFile(join(root, inventory.packaged_run.report.replace("evidence/", "")), "utf8"),
-    ) as {
-      readonly outcome: string;
-      readonly checks: readonly { readonly id: string; readonly status: string }[];
-    };
+    const report = parseJsonRecord(
+      await readFile(
+        join(root, requireString(packaged.report, "packaged run report").replace("evidence/", "")),
+        "utf8",
+      ),
+    );
     if (report.outcome !== declaration.reportOutcome) {
       throw new Error(`${declaration.shape} packaged report outcome regressed`);
     }
-    const passing = report.checks.filter(({ status }) => status === "pass").length;
+    const passing = requireList(report.checks, "packaged checks").filter(
+      (check) => requireRecord(check, "packaged check").status === "pass",
+    ).length;
     if (passing !== declaration.passing) {
       throw new Error(`${declaration.shape} passing check count regressed`);
     }
     const transcript = await readFile(
-      join(root, inventory.packaged_run.transcript.replace("evidence/", "")),
+      join(
+        root,
+        requireString(packaged.transcript, "packaged transcript").replace("evidence/", ""),
+      ),
       "utf8",
     );
     if (/fixture_error|proof_failed/.test(transcript)) {
       throw new Error(`${declaration.shape} transcript contains failure evidence`);
     }
-    const support = JSON.parse(
-      await readFile(join(root, "target-support.json"), "utf8"),
-    ) as {
-      readonly targets: Record<string, { readonly status: string }>;
-    };
+    const support = parseJsonRecord(await readFile(join(root, "target-support.json"), "utf8"));
+    const targets = requireRecord(support.targets, "target support");
     for (const target of ["macos", "windows", "linux"] as const) {
-      if (support.targets[target]?.status !== declaration[target]) {
+      if (requireRecord(targets[target], target).status !== declaration[target]) {
         throw new Error(`${declaration.shape} ${target} support status changed`);
       }
     }
@@ -714,10 +660,7 @@ async function verifyPrototypeDisposition() {
     "native-content-backing-surface",
   ];
   for (const root of roots) {
-    const manifest = await readFile(
-      join(repoRoot, "prototypes", root, "Cargo.toml"),
-      "utf8",
-    );
+    const manifest = await readFile(join(repoRoot, "prototypes", root, "Cargo.toml"), "utf8");
     if (!manifest.includes("publish = false")) {
       throw new Error(`${root} prototype is not explicitly non-publishable`);
     }
@@ -759,13 +702,7 @@ longhorn-tauri-native-content-child-view = { path = "crates/longhorn-tauri-nativ
 longhorn-native-content-isolated-window = { path = "crates/longhorn-native-content-isolated-window", version = "${LONGHORN_VERSION}" }
 longhorn-native-content-backing-surface = { path = "crates/longhorn-native-content-backing-surface", version = "${LONGHORN_VERSION}" }
 longhorn-native-content-artifact-proof-common = { path = "consumers/common" }
-${workspaceDependencies([
-  "proptest",
-  "serde",
-  "serde_json",
-  "tauri",
-  "ts-rs",
-])}
+${workspaceDependencies(["proptest", "serde", "serde_json", "tauri", "ts-rs"])}
 
 [workspace.lints.rust]
 missing_docs = "deny"
@@ -783,35 +720,35 @@ function rewriteDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
 
-function longhornPackages(tree: string): readonly string[] {
+function longhornPackages(tree: string): ReadonlyArray<string> {
   return [
     ...new Set(
       tree
         .split("\n")
         .map((line) => line.trim().split(/\s+/)[0] ?? "")
-        .filter(
-          (name) =>
-            name.startsWith("longhorn-") && !name.includes("artifact-proof"),
-        ),
+        .filter((name) => name.startsWith("longhorn-") && !name.includes("artifact-proof")),
     ),
   ].sort();
 }
 
 async function packageImports(stage: string) {
   const files = (await readdir(stage, { recursive: true })).filter(
-    (path) =>
-      /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules/"),
+    (path) => /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules/"),
   );
   const imports = new Set<string>();
   for (const path of files) {
     const source = await readFile(join(stage, path), "utf8");
-    for (const match of source.matchAll(/from\s+["']((?:@inflatable-cookie\/(?:longhorn[/-]|poodle-))[^"']+)["']/g)) {
-      imports.add(match[1]!);
+    for (const match of source.matchAll(
+      /from\s+["']((?:@inflatable-cookie\/(?:longhorn[/-]|poodle-))[^"']+)["']/g,
+    )) {
+      imports.add(requireValue(match[1], "match[1]"));
     }
   }
   return [...imports].sort();
@@ -821,21 +758,16 @@ async function installedScope(stage: string, scope: string) {
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    if (errorCode(error) === "ENOENT") {
+      return [];
+    }
     throw error;
   }
 }
 
-async function assertArtifactInstall(
-  stage: string,
-  name: string,
-  expected: string,
-) {
+async function assertArtifactInstall(stage: string, name: string, expected: string) {
   const installed = await installedPackage(stage, name);
-  for (const root of [
-    "/Dev/projects/longhorn/packages/",
-    "/Dev/projects/poodle/packages/",
-  ]) {
+  for (const root of ["/Dev/projects/longhorn/packages/", "/Dev/projects/poodle/packages/"]) {
     if (installed.realPath.includes(root)) {
       throw new Error(`${name} resolved to sibling source: ${installed.realPath}`);
     }
@@ -844,17 +776,13 @@ async function assertArtifactInstall(
   // caller's: LONGHORN_VERSION for a Longhorn package, the pinned Poodle
   // release for a Poodle one.
   if (installed.manifest.version !== expected) {
-    throw new Error(
-      `${name} installed ${installed.manifest.version}, expected ${expected}`,
-    );
+    throw new Error(`${name} installed ${installed.manifest.version}, expected ${expected}`);
   }
 }
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(
-    await readFile(join(path, "package.json"), "utf8"),
-  ) as { readonly name: string; readonly version: string };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -865,19 +793,21 @@ async function assertPackageAbsent(stage: string, name: string) {
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    if (errorCode(error) === "ENOENT") {
+      return;
+    }
     throw error;
   }
   throw new Error(`${name} unexpectedly entered the install graph`);
 }
 
 async function assertSingleSvelteRuntime(stage: string) {
-  const manifests = (await readdir(join(stage, "node_modules"), {
-    recursive: true,
-  })).filter(
-    (path) =>
-      path === "svelte/package.json" ||
-      path.endsWith("/node_modules/svelte/package.json"),
+  const manifests = (
+    await readdir(join(stage, "node_modules"), {
+      recursive: true,
+    })
+  ).filter(
+    (path) => path === "svelte/package.json" || path.endsWith("/node_modules/svelte/package.json"),
   );
   if (manifests.length !== 1) {
     throw new Error(`expected one Svelte runtime, found ${manifests.length}`);
@@ -889,17 +819,18 @@ async function readSourceTree(root: string, include = (_path: string) => true) {
     .filter((path) => /\.(rs|ts|svelte)$/.test(path))
     .filter((path) => include(path.replaceAll("\\", "/")))
     .sort();
-  return (
-    await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))
-  ).join("\n");
+  return (await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))).join("\n");
 }
 
 function equalJson(left: unknown, right: unknown) {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
+// oxlint-disable-next-line quality/no-unknown-returns -- Canonicalize arbitrary JSON for comparison without assuming its shape.
 function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
+  if (Array.isArray(value)) {
+    return value.map(canonical);
+  }
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)

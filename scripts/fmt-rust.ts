@@ -1,3 +1,4 @@
+import { readCargoInventory } from "./cargo-metadata.ts";
 // Format-check all Rust sources in the repository:
 // 1. Root workspace members via `cargo metadata --no-deps` + `cargo fmt --check -p ...`
 //    (never `--all`, which would walk relative path dependencies into sibling repos).
@@ -32,7 +33,7 @@ type CommandResult = {
   stderr: string;
 };
 
-async function runChecked(command: readonly string[], cwd: string): Promise<CommandResult> {
+async function runChecked(command: ReadonlyArray<string>, cwd: string): Promise<CommandResult> {
   const proc = Bun.spawn([...command], {
     cwd,
     stdout: "pipe",
@@ -45,15 +46,19 @@ async function runChecked(command: readonly string[], cwd: string): Promise<Comm
   ]);
   if (exitCode !== 0) {
     const output = [stdout.trim(), stderr.trim()].filter(Boolean).join("\n");
-    throw new Error(`${command.join(" ")} failed in ${relative(repoRoot, cwd) || "."} (exit ${exitCode})\n${output}`);
+    throw new Error(
+      `${command.join(" ")} failed in ${relative(repoRoot, cwd) || "."} (exit ${exitCode})\n${output}`,
+    );
   }
   return { exitCode, stdout, stderr };
 }
 
-async function listRsFiles(directory: string): Promise<string[]> {
-  const files: string[] = [];
+async function listRsFiles(directory: string): Promise<Array<string>> {
+  const files: Array<string> = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (entry.name === "node_modules" || entry.name === "target" || entry.name === "gen") continue;
+    if (entry.name === "node_modules" || entry.name === "target" || entry.name === "gen") {
+      continue;
+    }
     const full = join(directory, entry.name);
     if (entry.isDirectory()) {
       files.push(...(await listRsFiles(full)));
@@ -71,11 +76,8 @@ const metadataResult = await runChecked(
   rustCommand(["metadata", "--no-deps", "--format-version", "1"]),
   repoRoot,
 );
-const metadata = JSON.parse(metadataResult.stdout) as { packages?: Array<{ name?: string }> };
-const packageFlags = (metadata.packages ?? [])
-  .map((pkg) => pkg.name)
-  .filter((name): name is string => typeof name === "string" && name.length > 0)
-  .map((name) => `-p${name}`);
+const metadata = readCargoInventory(metadataResult.stdout);
+const packageFlags = metadata.packages.map((pkg) => `-p${pkg.name}`);
 if (packageFlags.length === 0) {
   throw new Error("cargo metadata --no-deps returned zero workspace packages");
 }
@@ -95,7 +97,7 @@ for (const name of prototypeDirs) {
 }
 
 // 3. Staged example template sources
-const exampleFiles: string[] = [];
+const exampleFiles: Array<string> = [];
 for (const root of stagedExampleRoots) {
   exampleFiles.push(...(await listRsFiles(join(repoRoot, root))));
 }

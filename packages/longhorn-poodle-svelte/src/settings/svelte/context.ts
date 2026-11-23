@@ -9,18 +9,15 @@ import type {
   SettingsScopeSnapshot,
 } from "@inflatable-cookie/longhorn/settings/protocol";
 import type { SettingsPageSession } from "./page.svelte.ts";
-import type {
-  SettingsPageRenderContext,
-  SettingsRoute,
-} from "./types.ts";
+import type { SettingsPageRenderContext, SettingsRoute } from "./types.ts";
 
 export interface SettingsContextHost {
-  readonly activationRequirements: readonly SettingsActivationRequirement[];
+  readonly activationRequirements: ReadonlyArray<SettingsActivationRequirement>;
   readonly recovery: SettingsRecoveryState | null;
   scopeSnapshot(scopeId: SettingsScopeId): SettingsScopeSnapshot | undefined;
   requestReset(
     applyUnitId: SettingsApplyUnitId,
-    entryIds: readonly SettingsEntryId[],
+    entryIds: ReadonlyArray<SettingsEntryId>,
   ): Promise<void>;
 }
 
@@ -48,14 +45,10 @@ export function createSettingsPageRenderContext(
     snapshot: (scopeId) => host.scopeSnapshot(scopeId),
     unitStatus: (applyUnitId) => session.status(applyUnitId),
     draft: (applyUnitId) => session.draft(applyUnitId),
-    change: (
-      applyUnitId: SettingsApplyUnitId,
-      intent: SettingsOpaqueValue,
-    ) => session.change(applyUnitId, intent),
+    change: (applyUnitId: SettingsApplyUnitId, intent: SettingsOpaqueValue) =>
+      session.change(applyUnitId, intent),
     apply: (applyUnitId) => session.apply(applyUnitId),
     cancel: () => session.cancel(),
-    requestReset: (applyUnitId, entryIds) =>
-      host.requestReset(applyUnitId, entryIds),
+    requestReset: (applyUnitId, entryIds) => host.requestReset(applyUnitId, entryIds),
   };
 }
-

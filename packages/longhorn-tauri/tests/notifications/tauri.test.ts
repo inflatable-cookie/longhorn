@@ -6,9 +6,11 @@ import { fixture } from "../../../longhorn/tests/notifications/support.ts";
 describe("Tauri notification composition", () => {
   test("uses two narrow commands and one invalidation event", async () => {
     const mutationCommand = fixture.mutationCommands[0];
-    if (mutationCommand === undefined) throw new Error("fixture has no mutation command");
+    if (mutationCommand === undefined) {
+      throw new Error("fixture has no mutation command");
+    }
     const calls: Array<[string, unknown]> = [];
-    const listened: string[] = [];
+    const listened: Array<string> = [];
     const transport = {
       async invoke(command: string, args?: Record<string, unknown>) {
         calls.push([command, args]);

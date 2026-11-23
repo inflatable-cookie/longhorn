@@ -24,7 +24,9 @@ export interface LicencePort {
   refresh(command: LicenceRefreshCommand): Promise<unknown>;
   releaseSeat(command: LicenceReleaseSeatCommand): Promise<unknown>;
   renameSeat(command: LicenceRenameSeatCommand): Promise<unknown>;
-  listen?(listener: (event: unknown) => void): LicenceUnlisten | Promise<LicenceUnlisten>;
+  listen?:
+    | ((listener: (event: unknown) => void) => LicenceUnlisten | Promise<LicenceUnlisten>)
+    | undefined;
 }
 
 /** The same seam after validation. */

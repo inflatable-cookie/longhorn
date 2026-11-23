@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   SURFACE_TRANSFER_VARIANT_FIELDS,
   SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
@@ -8,10 +9,12 @@ import {
   SURFACE_TRANSFER_ERROR_CODES,
   SURFACE_TRANSFER_RESPONSE_STATUSES,
   SURFACE_TRANSFER_TARGET_KINDS,
-  type SurfaceSessionResponse,
-  type SurfaceTransferAbort,
-  type SurfaceTransferResponse,
-  type SurfaceTransferTarget,
+} from "./generated/protocol.ts";
+import type {
+  SurfaceSessionResponse,
+  SurfaceTransferAbort,
+  SurfaceTransferResponse,
+  SurfaceTransferTarget,
 } from "./generated/protocol.ts";
 import { SURFACE_TRANSFER_FIELDS } from "./generated/fields.ts";
 import {
@@ -19,9 +22,7 @@ import {
   assertValidTransferTargetBinding,
   assertTransferProtocolVersion,
 } from "@inflatable-cookie/longhorn/transfer";
-import {
-  assertValidSurfaceMutationRejectionCode,
-} from "@inflatable-cookie/longhorn/surfaces";
+import { assertValidSurfaceMutationRejectionCode } from "@inflatable-cookie/longhorn/surfaces";
 
 export type SurfaceTransferProtocolValidationCode =
   | "unknown_target"
@@ -37,10 +38,7 @@ export class SurfaceTransferProtocolValidationError extends Error {
   readonly code: SurfaceTransferProtocolValidationCode;
   readonly received: unknown;
 
-  constructor(
-    code: SurfaceTransferProtocolValidationCode,
-    received: unknown,
-  ) {
+  constructor(code: SurfaceTransferProtocolValidationCode, received: unknown) {
     super(`incompatible Surface transfer protocol: ${code}`);
     this.name = "SurfaceTransferProtocolValidationError";
     this.code = code;
@@ -55,16 +53,10 @@ export function assertValidSurfaceTransferTarget(
   // its discriminant and one list is wrong for every variant. That used to
   // mean no key check at all here; the generated per-variant map supplies one.
   const target = record(value);
-  assertKnown(
-    target.kind,
-    SURFACE_TRANSFER_TARGET_KINDS,
-    "unknown_target",
-  );
+  assertKnown(target.kind, SURFACE_TRANSFER_TARGET_KINDS, "unknown_target");
   record(target, variantKeys("SurfaceTransferTarget", target));
   if (target.kind === "existing") {
-    assertValidTransferTargetBinding(
-      record(record(target.target).binding),
-    );
+    assertValidTransferTargetBinding(record(record(target.target).binding));
   }
 }
 
@@ -74,24 +66,12 @@ export function assertValidSurfaceTransferAbort(
   const abort = record(value, SURFACE_TRANSFER_FIELDS.SurfaceTransferAbort);
   assertTransferProtocolVersion(abort.protocol_version);
   const source = record(abort.source);
-  assertKnown(
-    source.domain,
-    SURFACE_TRANSFER_ABORT_DOMAINS,
-    "unknown_abort_domain",
-  );
+  assertKnown(source.domain, SURFACE_TRANSFER_ABORT_DOMAINS, "unknown_abort_domain");
   record(source, variantKeys("SurfaceTransferAbortSource", source));
   if (source.domain === "transfer") {
-    assertKnown(
-      source.code,
-      TRANSFER_ERROR_CODES,
-      "unknown_transfer_error_code",
-    );
+    assertKnown(source.code, TRANSFER_ERROR_CODES, "unknown_transfer_error_code");
   } else {
-    assertKnown(
-      source.code,
-      SURFACE_TRANSFER_ERROR_CODES,
-      "unknown_surface_transfer_error_code",
-    );
+    assertKnown(source.code, SURFACE_TRANSFER_ERROR_CODES, "unknown_surface_transfer_error_code");
   }
   if (abort.surface_code !== null) {
     assertValidSurfaceMutationRejectionCode(abort.surface_code);
@@ -124,7 +104,10 @@ export function assertValidSurfaceTransferResponse(
     "SurfaceTransferResponse",
   );
   if (response.status === "committed") {
-    const completion = record(response.completion, SURFACE_TRANSFER_FIELDS.SurfaceTransferCompletion);
+    const completion = record(
+      response.completion,
+      SURFACE_TRANSFER_FIELDS.SurfaceTransferCompletion,
+    );
     assertTransferProtocolVersion(completion.protocol_version);
     assertValidSurfaceTransferTarget(completion.target);
   } else {
@@ -134,7 +117,7 @@ export function assertValidSurfaceTransferResponse(
 
 function responseWithStatus(
   value: unknown,
-  statuses: readonly string[],
+  statuses: ReadonlyArray<string>,
   type: string,
 ): Record<string, unknown> {
   const response = record(value);
@@ -151,12 +134,12 @@ function responseWithStatus(
  * A missing entry means the generator failed to read the union — every caller
  * runs `assertKnown` over the discriminant above this.
  */
-function variantKeys(
-  type: string,
-  value: Record<string, unknown>,
-): readonly string[] {
+function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = SURFACE_TRANSFER_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string"
+      ? SURFACE_TRANSFER_VARIANT_FIELDS[type]?.[discriminant]
+      : undefined;
   if (keys === undefined) {
     throw new SurfaceTransferProtocolValidationError("unknown_response_status", {
       type,
@@ -168,7 +151,7 @@ function variantKeys(
 
 function assertKnown(
   value: unknown,
-  known: readonly string[],
+  known: ReadonlyArray<string>,
   code: SurfaceTransferProtocolValidationCode,
 ): asserts value is string {
   if (typeof value !== "string" || !known.includes(value)) {
@@ -184,15 +167,14 @@ function assertKnown(
  * Passing no list keeps shape-only behaviour for the tagged unions, whose
  * allowed keys depend on their discriminant and so are not one flat set.
  */
-function record(
-  value: unknown,
-  allowed?: readonly string[],
-): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
+  if (!isRecord(value)) {
     throw new SurfaceTransferProtocolValidationError("invalid_object", value);
   }
-  const result = value as Record<string, unknown>;
-  if (allowed === undefined) return result;
+  const result = value;
+  if (allowed === undefined) {
+    return result;
+  }
 
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {

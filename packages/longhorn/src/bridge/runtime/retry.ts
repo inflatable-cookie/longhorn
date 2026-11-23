@@ -8,9 +8,8 @@ import {
   checkedMonotonic,
   checkedRetryClass,
   checkedRetryLimit,
-  type BridgeRuntimeBackoff,
-  type BridgeRuntimeClock,
 } from "./policy.ts";
+import type { BridgeRuntimeBackoff, BridgeRuntimeClock } from "./policy.ts";
 
 export class BridgeQueryRetryRuntime {
   readonly #clock: BridgeRuntimeClock;
@@ -18,11 +17,7 @@ export class BridgeQueryRetryRuntime {
   readonly #limit: number;
   #scheduled = 0;
 
-  constructor(
-    clock: BridgeRuntimeClock,
-    backoff: BridgeRuntimeBackoff,
-    limit: number,
-  ) {
+  constructor(clock: BridgeRuntimeClock, backoff: BridgeRuntimeBackoff, limit: number) {
     this.#clock = clock;
     this.#backoff = backoff;
     this.#limit = checkedRetryLimit(limit);
@@ -33,11 +28,7 @@ export class BridgeQueryRetryRuntime {
     retryClass: BridgeRetryClass,
   ): BridgeReconnectSchedule | undefined {
     const checkedClass = checkedRetryClass(retryClass);
-    if (
-      decision !== "retry" ||
-      checkedClass === "never" ||
-      this.#scheduled >= this.#limit
-    ) {
+    if (decision !== "retry" || checkedClass === "never" || this.#scheduled >= this.#limit) {
       return undefined;
     }
     const attempt = this.#scheduled + 1;
@@ -45,10 +36,7 @@ export class BridgeQueryRetryRuntime {
     const schedule = {
       attempt,
       retryClass: checkedClass,
-      notBefore: checkedDeadline(
-        at,
-        this.#backoff.delay(checkedClass, attempt),
-      ),
+      notBefore: checkedDeadline(at, this.#backoff.delay(checkedClass, attempt)),
     };
     this.#scheduled = attempt;
     return schedule;

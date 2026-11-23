@@ -8,11 +8,13 @@ import {
   assertLicenceOutcome,
   assertLicenceSnapshot,
   createDirectLicencePort,
-  type HeldLicenceProjection,
-  type LicenceOutcomeProjection,
-  type LicencePort,
-  type LicenceSnapshot,
-  type LicenceUsabilityProjection,
+} from "../../src/licence/index.ts";
+import type {
+  HeldLicenceProjection,
+  LicenceOutcomeProjection,
+  LicencePort,
+  LicenceSnapshot,
+  LicenceUsabilityProjection,
 } from "../../src/licence/index.ts";
 
 function held(overrides: Partial<HeldLicenceProjection> = {}): HeldLicenceProjection {
@@ -45,13 +47,27 @@ class Port implements LicencePort {
     private state: LicenceSnapshot = snapshot(),
     private outcome: () => LicenceOutcomeProjection = () => committed(this.state),
   ) {}
-  async snapshot(): Promise<unknown> { return this.state; }
-  async activate(): Promise<unknown> { return this.outcome(); }
-  async deactivate(): Promise<unknown> { return this.outcome(); }
-  async refresh(): Promise<unknown> { return this.outcome(); }
-  async releaseSeat(): Promise<unknown> { return this.outcome(); }
-  async renameSeat(): Promise<unknown> { return this.outcome(); }
-  async listen(): Promise<() => void> { return () => {}; }
+  async snapshot(): Promise<unknown> {
+    return this.state;
+  }
+  async activate(): Promise<unknown> {
+    return this.outcome();
+  }
+  async deactivate(): Promise<unknown> {
+    return this.outcome();
+  }
+  async refresh(): Promise<unknown> {
+    return this.outcome();
+  }
+  async releaseSeat(): Promise<unknown> {
+    return this.outcome();
+  }
+  async renameSeat(): Promise<unknown> {
+    return this.outcome();
+  }
+  async listen(): Promise<() => void> {
+    return () => {};
+  }
 }
 
 describe("licence validation", () => {
@@ -155,19 +171,19 @@ describe("licence client", () => {
   });
 
   test("the serialized port survives a structured-clone round trip", async () => {
-    await expect(new LicenceClient(new SerializedLicencePort(new Port())).snapshot()).resolves.toEqual(
-      snapshot(),
-    );
+    await expect(
+      new LicenceClient(new SerializedLicencePort(new Port())).snapshot(),
+    ).resolves.toEqual(snapshot());
   });
 });
 
-describe("licence controller", () => {
-  async function ready(state: LicenceSnapshot): Promise<LicenceController> {
-    const controller = new LicenceController({ port: new Port(state) });
-    await controller.start();
-    return controller;
-  }
+async function ready(state: LicenceSnapshot): Promise<LicenceController> {
+  const controller = new LicenceController({ port: new Port(state) });
+  await controller.start();
+  return controller;
+}
 
+describe("licence controller", () => {
   test("start reads the snapshot and reports ready", async () => {
     const controller = await ready(snapshot());
 
@@ -191,7 +207,7 @@ describe("licence controller", () => {
    */
   test("an in-lease renewal failure asks for no attention", async () => {
     const controller = await ready(
-      snapshot(held({ usability: { state: "inGrace", until: 5_000 } })),
+      snapshot(held({ usability: { state: "inGrace", until: 5000 } })),
     );
 
     expect(controller.usable).toBeTrue();
@@ -200,7 +216,7 @@ describe("licence controller", () => {
 
   test("an expired use window is actionable", async () => {
     const controller = await ready(
-      snapshot(held({ usability: { state: "useWindowExpired", at: 5_000 } })),
+      snapshot(held({ usability: { state: "useWindowExpired", at: 5000 } })),
     );
 
     expect(controller.usable).toBeFalse();
@@ -214,17 +230,24 @@ describe("licence controller", () => {
    * an error.
    */
   test("the two windows are separate reads", async () => {
-    const controller = await ready(snapshot(held({ useUntil: 9_000, updateUntil: 1_000 })));
+    const controller = await ready(snapshot(held({ useUntil: 9000, updateUntil: 1000 })));
 
-    expect(controller.useUntil).toBe(9_000);
-    expect(controller.updateUntil).toBe(1_000);
+    expect(controller.useUntil).toBe(9000);
+    expect(controller.updateUntil).toBe(1000);
     expect(controller.usable).toBeTrue();
     expect(controller.attention).toBe("informational");
   });
 
   test("entitlements are opaque ids with optional bounds", async () => {
     const controller = await ready(
-      snapshot(held({ entitlements: [{ id: "pro", atMost: null }, { id: "seats", atMost: 5 }] })),
+      snapshot(
+        held({
+          entitlements: [
+            { id: "pro", atMost: null },
+            { id: "seats", atMost: 5 },
+          ],
+        }),
+      ),
     );
 
     expect(controller.entitlements).toEqual(["pro", "seats"]);
@@ -240,7 +263,9 @@ describe("licence controller", () => {
     const transportError = new Error("connection lost");
     const controller = new LicenceController({
       port: new Port(snapshot(), () => {
-        if (fail) throw transportError;
+        if (fail) {
+          throw transportError;
+        }
         return refuse ? { status: "rejected", code: "revoked", snapshot: snapshot() } : committed();
       }),
     });
@@ -262,7 +287,10 @@ describe("licence controller", () => {
     const expected = snapshot();
     const controller = await ready(expected);
 
-    await expect(controller.refreshLease()).resolves.toEqual({ status: "committed", snapshot: expected });
+    await expect(controller.refreshLease()).resolves.toEqual({
+      status: "committed",
+      snapshot: expected,
+    });
   });
 
   test("a command before the first read fails saying so", async () => {

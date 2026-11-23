@@ -13,19 +13,15 @@
     Surface,
     Table,
   } from "@inflatable-cookie/poodle-svelte";
-  import type {
-    SelectOption,
-    TableColumn,
-    TableRow,
-  } from "@inflatable-cookie/poodle-svelte";
+  import type { SelectOption, TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
-  import {
-    CONFIG_OPERATIONS_PROTOCOL_VERSION,
-    type ConfigOperationsSnapshot,
-    type StorageProfileId,
-    type StorageTransitionPreviewProjection,
-    type StorageTransitionReceiptProjection,
+  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/config";
+  import type {
+    ConfigOperationsSnapshot,
+    StorageProfileId,
+    StorageTransitionPreviewProjection,
+    StorageTransitionReceiptProjection,
   } from "@inflatable-cookie/longhorn/config";
   import type { ConfigOperationsPageProps } from "./types.ts";
 
@@ -47,21 +43,19 @@
   let notice = $state<string | null>(null);
 
   const storage = $derived(snapshot?.storage ?? null);
-  const canTransition = $derived(
-    snapshot?.capabilities.includes("storageTransition") === true,
-  );
-  const profileOptions = $derived<SelectOption[]>(
+  const canTransition = $derived(snapshot?.capabilities.includes("storageTransition") === true);
+  const profileOptions = $derived<Array<SelectOption>>(
     storage?.availableProfiles.map((value) => ({
       value,
       label: profileLabel(value),
     })) ?? [],
   );
-  const rootColumns: TableColumn[] = [
+  const rootColumns: Array<TableColumn> = [
     { id: "kind", label: "Purpose", isRowHeader: true },
     { id: "path", label: "Resolved path" },
     { id: "provenance", label: "Source" },
   ];
-  const rootRows = $derived<TableRow[]>(
+  const rootRows = $derived<Array<TableRow>>(
     storage?.layout.roots.map((root) => ({
       id: root.kind,
       cells: {
@@ -73,7 +67,9 @@
   );
 
   onMount(() => {
-    if (snapshot === null) void refresh();
+    if (snapshot === null) {
+      void refresh();
+    }
   });
 
   async function refresh(): Promise<void> {
@@ -89,7 +85,9 @@
 
   async function inspect(): Promise<void> {
     const targetProfile = selectedProfile;
-    if (targetProfile === null) return;
+    if (targetProfile === null) {
+      return;
+    }
     await run(async () => {
       receipt = null;
       const outcome = await client.inspectStorageTransition({
@@ -111,13 +109,17 @@
   }
 
   async function execute(): Promise<void> {
-    if (snapshot === null || preview === null) return;
+    const inspected = preview;
+    const current = snapshot;
+    if (current === null || inspected === null) {
+      return;
+    }
     await run(async () => {
       const outcome = await client.executeStorageTransition({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        generation: snapshot!.generation,
-        confirmationDigest: preview!.confirmationDigest,
+        generation: current.generation,
+        confirmationDigest: inspected.confirmationDigest,
       });
       if (outcome.status === "committed") {
         receipt = outcome.receipt;
@@ -146,13 +148,16 @@
   }
 
   async function cleanup(): Promise<void> {
-    if (receipt === null) return;
+    const committed = receipt;
+    if (committed === null) {
+      return;
+    }
     await run(async () => {
       const outcome = await client.cleanupStorage({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        transitionId: receipt!.transitionId,
-        transitionReceiptDigest: receipt!.receiptDigest,
+        transitionId: committed.transitionId,
+        transitionReceiptDigest: committed.receiptDigest,
       });
       if (outcome.status === "applied") {
         acceptSnapshot(outcome.snapshot);
@@ -170,8 +175,8 @@
     notice = null;
     try {
       await action();
-    } catch (cause) {
-      error = errorMessage(cause);
+    } catch (error_) {
+      error = errorMessage(error_);
     } finally {
       busy = false;
     }
@@ -204,10 +209,20 @@
 <div aria-busy={busy}>
   <Stack gap="md">
     {#if error}
-      <Callout tone="danger" title="Storage operation failed" message={error} announceMode="assertive" />
+      <Callout
+        tone="danger"
+        title="Storage operation failed"
+        message={error}
+        announceMode="assertive"
+      />
     {/if}
     {#if notice}
-      <Callout tone="success" title="Storage operation complete" message={notice} announceMode="polite" />
+      <Callout
+        tone="success"
+        title="Storage operation complete"
+        message={notice}
+        announceMode="polite"
+      />
     {/if}
 
     <!-- Three different situations used to render this one warning: the first
@@ -269,7 +284,11 @@
           <DetailItem label="Directory leaf" value={storage.layout.effectiveLeaf} />
           <DetailItem label="Leaf source" value={storage.layout.leafProvenance} />
           <DetailItem label="Platform" value={storage.layout.platform} />
-          <DetailItem label="Layout digest" value={storage.layout.layoutDigest} truncateValue={true} />
+          <DetailItem
+            label="Layout digest"
+            value={storage.layout.layoutDigest}
+            truncateValue={true}
+          />
         </Grid>
       </Surface>
 

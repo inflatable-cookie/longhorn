@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "bun:test";
 
 import {
@@ -17,7 +18,9 @@ describe("operation transport conformance", () => {
       const client = new OperationClient(port);
       expect(await client.snapshot()).toEqual(fixture.snapshotResponse);
       for (const [index, command] of fixture.mutationCommands.entries()) {
-        expect(await client.mutate(command)).toEqual(fixture.mutationResults[index]);
+        const expected = fixture.mutationResults[index];
+        assert(expected);
+        expect(await client.mutate(command)).toEqual(expected);
       }
       expect(await client.cancel(fixture.cancellationCommand)).toEqual(fixture.cancellationResult);
     }

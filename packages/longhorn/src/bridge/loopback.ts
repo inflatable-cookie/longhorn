@@ -1,6 +1,6 @@
 import type { BridgeHelloRequest } from "./generated/protocol.ts";
 import type { BridgeOperationDescriptor } from "./operation.ts";
-import { BridgeHostRouter } from "./router.ts";
+import type { BridgeHostRouter } from "./router.ts";
 
 export type BridgeSerializationPhase =
   | "negotiation_request"
@@ -30,15 +30,9 @@ export class SerializedLoopbackBridgeAdapter {
   }
 
   async negotiate(request: BridgeHelloRequest): Promise<unknown> {
-    const encodedRequest = serialize(
-      request,
-      "negotiation_request",
-    );
+    const encodedRequest = serialize(request, "negotiation_request");
     const reply = await this.#router.negotiate(JSON.parse(encodedRequest));
-    return deserialize(
-      serialize(reply, "negotiation_reply"),
-      "negotiation_reply",
-    );
+    return deserialize(serialize(reply, "negotiation_reply"), "negotiation_reply");
   }
 
   async invoke<Request, Reply>(
@@ -46,21 +40,12 @@ export class SerializedLoopbackBridgeAdapter {
     request: Request,
   ): Promise<unknown> {
     const encodedRequest = serialize(request, "operation_request");
-    const reply = await this.#router.invoke(
-      operation.route,
-      JSON.parse(encodedRequest),
-    );
-    return deserialize(
-      serialize(reply, "operation_reply"),
-      "operation_reply",
-    );
+    const reply = await this.#router.invoke(operation.route, JSON.parse(encodedRequest));
+    return deserialize(serialize(reply, "operation_reply"), "operation_reply");
   }
 }
 
-export function serialize(
-  value: unknown,
-  phase: BridgeSerializationPhase,
-): string {
+export function serialize(value: unknown, phase: BridgeSerializationPhase): string {
   try {
     const encoded = JSON.stringify(value);
     if (encoded === undefined) {
@@ -72,10 +57,7 @@ export function serialize(
   }
 }
 
-export function deserialize(
-  value: string,
-  phase: BridgeSerializationPhase,
-): unknown {
+export function deserialize(value: string, phase: BridgeSerializationPhase): unknown {
   try {
     return JSON.parse(value);
   } catch (error) {

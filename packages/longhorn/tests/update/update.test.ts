@@ -8,15 +8,17 @@ import {
   assertUpdateSnapshot,
   createDirectUpdatePort,
   SerializedUpdatePort,
-  type Channel,
-  type DeferralCause,
-  type UpdateApplyCommand,
-  type UpdateAvailabilityProjection,
-  type UpdateChangedEvent,
-  type UpdateOutcomeProjection,
-  type UpdatePort,
-  type UpdateProgressProjection,
-  type UpdateSnapshot,
+} from "../../src/update/index.ts";
+import type {
+  Channel,
+  DeferralCause,
+  UpdateApplyCommand,
+  UpdateAvailabilityProjection,
+  UpdateChangedEvent,
+  UpdateOutcomeProjection,
+  UpdatePort,
+  UpdateProgressProjection,
+  UpdateSnapshot,
 } from "../../src/update/index.ts";
 
 function snapshot(overrides: Partial<UpdateSnapshot> = {}): UpdateSnapshot {
@@ -44,31 +46,56 @@ function committed(value: UpdateSnapshot = snapshot()): UpdateOutcomeProjection 
 }
 
 class Port implements UpdatePort {
-  calls: string[] = [];
-  applied: UpdateApplyCommand[] = [];
-  #progressListener?: (event: unknown) => void;
+  calls: Array<string> = [];
+  applied: Array<UpdateApplyCommand> = [];
+  #progressListener: ((event: unknown) => void) | undefined;
   constructor(
     private state: UpdateSnapshot = snapshot(),
     private outcome: (command: string) => UpdateOutcomeProjection = () => committed(this.state),
   ) {}
-  async snapshot(): Promise<unknown> { this.calls.push("snapshot"); return this.state; }
-  async check(): Promise<unknown> { this.calls.push("check"); return this.outcome("check"); }
-  async selectChannel(): Promise<unknown> { this.calls.push("selectChannel"); return this.outcome("selectChannel"); }
-  async defer(): Promise<unknown> { this.calls.push("defer"); return this.outcome("defer"); }
-  async prepare(): Promise<unknown> { this.calls.push("prepare"); return this.outcome("prepare"); }
+  async snapshot(): Promise<unknown> {
+    this.calls.push("snapshot");
+    return this.state;
+  }
+  async check(): Promise<unknown> {
+    this.calls.push("check");
+    return this.outcome("check");
+  }
+  async selectChannel(): Promise<unknown> {
+    this.calls.push("selectChannel");
+    return this.outcome("selectChannel");
+  }
+  async defer(): Promise<unknown> {
+    this.calls.push("defer");
+    return this.outcome("defer");
+  }
+  async prepare(): Promise<unknown> {
+    this.calls.push("prepare");
+    return this.outcome("prepare");
+  }
   async apply(command: UpdateApplyCommand): Promise<unknown> {
     this.calls.push("apply");
     this.applied.push(command);
     return this.outcome("apply");
   }
-  async cancel(): Promise<unknown> { this.calls.push("cancel"); return this.outcome("cancel"); }
-  async listen(): Promise<() => void> { this.calls.push("listen"); return () => {}; }
+  async cancel(): Promise<unknown> {
+    this.calls.push("cancel");
+    return this.outcome("cancel");
+  }
+  async listen(): Promise<() => void> {
+    this.calls.push("listen");
+    return () => {};
+  }
   async listenProgress(listener: (event: unknown) => void): Promise<() => void> {
     this.calls.push("listenProgress");
     this.#progressListener = listener;
-    return () => { this.#progressListener = undefined; };
+    return () => {
+      this.#progressListener = undefined;
+    };
   }
-  emitProgress(event: unknown): void { this.#progressListener?.(event); }
+  emitProgress(event: unknown): void {
+    this.#progressListener?.(event);
+  }
 }
 
 describe("update validation", () => {
@@ -81,7 +108,10 @@ describe("update validation", () => {
   });
 
   test("a surplus key on a union variant is rejected", () => {
-    const availability = { state: "upToDate", version: "1.4.0" } as unknown as UpdateAvailabilityProjection;
+    const availability = {
+      state: "upToDate",
+      version: "1.4.0",
+    } as unknown as UpdateAvailabilityProjection;
     expect(() => assertUpdateSnapshot(snapshot({ availability }))).toThrow(UpdateValidationError);
   });
 
@@ -99,7 +129,7 @@ describe("update validation", () => {
   test("a downloading state with no fraction passes, and zero is not substituted", () => {
     const progress: UpdateProgressProjection = {
       state: "downloading",
-      received: 4_096,
+      received: 4096,
       expected: null,
       fraction: null,
     };
@@ -107,12 +137,22 @@ describe("update validation", () => {
   });
 
   test("a fraction outside zero to one is rejected", () => {
-    const progress = { state: "downloading", received: 1, expected: 2, fraction: 1.5 } as unknown as UpdateProgressProjection;
+    const progress = {
+      state: "downloading",
+      received: 1,
+      expected: 2,
+      fraction: 1.5,
+    } as unknown as UpdateProgressProjection;
     expect(() => assertUpdateSnapshot(snapshot({ progress }))).toThrow(UpdateValidationError);
   });
 
   test("a negative byte count is rejected", () => {
-    const progress = { state: "downloading", received: -1, expected: null, fraction: null } as unknown as UpdateProgressProjection;
+    const progress = {
+      state: "downloading",
+      received: -1,
+      expected: null,
+      fraction: null,
+    } as unknown as UpdateProgressProjection;
     expect(() => assertUpdateSnapshot(snapshot({ progress }))).toThrow(UpdateValidationError);
   });
 
@@ -331,8 +371,12 @@ describe("update controller", () => {
     const transportError = new Error("connection lost");
     const controller = new UpdateController({
       port: new Port(snapshot(), () => {
-        if (fail) throw transportError;
-        return refuse ? { status: "rejected", code: "unreachable", snapshot: snapshot() } : committed();
+        if (fail) {
+          throw transportError;
+        }
+        return refuse
+          ? { status: "rejected", code: "unreachable", snapshot: snapshot() }
+          : committed();
       }),
     });
 
@@ -360,7 +404,7 @@ describe("update controller", () => {
   test("a command sends the epoch the last snapshot carried", async () => {
     const port = new Port(snapshot({ authorityEpoch: 9 }));
     const client = new UpdateClient(port);
-    const sent: number[] = [];
+    const sent: Array<number> = [];
     const controller = new UpdateController({
       port: {
         snapshot: () => client.snapshot(),
@@ -413,10 +457,14 @@ describe("update controller", () => {
       "apply",
       "cancel",
     ]);
-    expect(port.applied).toEqual([{
-      protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: 3,
-      version: STAGED.version, digest: STAGED.digest,
-    }]);
+    expect(port.applied).toEqual([
+      {
+        protocolVersion: UPDATE_PROTOCOL_VERSION,
+        authorityEpoch: 3,
+        version: STAGED.version,
+        digest: STAGED.digest,
+      },
+    ]);
   });
 
   test("stop releases the listener and returns to idle", async () => {
@@ -501,13 +549,13 @@ describe("update controller", () => {
   });
 });
 
-describe("update presence", () => {
-  async function presence(state: UpdateSnapshot): Promise<string> {
-    const controller = new UpdateController({ port: new Port(state) });
-    await controller.start();
-    return controller.presence;
-  }
+async function presence(state: UpdateSnapshot): Promise<string> {
+  const controller = new UpdateController({ port: new Port(state) });
+  await controller.start();
+  return controller.presence;
+}
 
+describe("update presence", () => {
   test("nothing to install collapses to nothing", async () => {
     expect(await presence(snapshot())).toBe("hidden");
   });
@@ -518,7 +566,7 @@ describe("update presence", () => {
    * taken; the settings panel is where they get explained.
    */
   test("withheld, ahead-of-channel and externally managed all stay hidden", async () => {
-    const cases: UpdateAvailabilityProjection[] = [
+    const cases: Array<UpdateAvailabilityProjection> = [
       { state: "withheldByRollout", version: "1.4.0" },
       { state: "aheadOfChannel", installed: "1.3.0-nightly.4", channel: "1.2.9" },
       { state: "managedElsewhere", version: "1.4.0", manager: "homebrewCask" },
@@ -569,7 +617,7 @@ describe("update presence", () => {
   test("work in flight is quiet, and ready-to-install asks again", async () => {
     const downloading: UpdateProgressProjection = {
       state: "downloading",
-      received: 4_096,
+      received: 4096,
       expected: null,
       fraction: null,
     };

@@ -1,7 +1,5 @@
 export type RevisionOf<Document> = (document: Document) => number;
-export type OptimisticProjector<Document> = (
-  authoritative: Document,
-) => Document;
+export type OptimisticProjector<Document> = (authoritative: Document) => Document;
 
 interface PendingProjection<Document> {
   readonly requestId: string;
@@ -11,7 +9,7 @@ interface PendingProjection<Document> {
 export class OptimisticProjectionState<Document> {
   readonly #revisionOf: RevisionOf<Document>;
   #authoritative = $state.raw<Document | undefined>(undefined);
-  #pending = $state.raw<readonly PendingProjection<Document>[]>([]);
+  #pending = $state.raw<ReadonlyArray<PendingProjection<Document>>>([]);
 
   constructor(revisionOf: RevisionOf<Document>) {
     this.#revisionOf = revisionOf;
@@ -32,26 +30,20 @@ export class OptimisticProjectionState<Document> {
     return document;
   }
 
-  get pendingRequestIds(): readonly string[] {
+  get pendingRequestIds(): ReadonlyArray<string> {
     return this.#pending.map(({ requestId }) => requestId);
   }
 
   accept(document: Document): boolean {
     const current = this.#authoritative;
-    if (
-      current !== undefined &&
-      this.#revisionOf(document) < this.#revisionOf(current)
-    ) {
+    if (current !== undefined && this.#revisionOf(document) < this.#revisionOf(current)) {
       return false;
     }
     this.#authoritative = document;
     return true;
   }
 
-  begin(
-    requestId: string,
-    project: OptimisticProjector<Document>,
-  ): void {
+  begin(requestId: string, project: OptimisticProjector<Document>): void {
     if (this.#pending.some((pending) => pending.requestId === requestId)) {
       throw new DuplicateOptimisticRequestError(requestId);
     }
@@ -70,9 +62,7 @@ export class OptimisticProjectionState<Document> {
   }
 
   cancel(requestId: string): void {
-    this.#pending = this.#pending.filter(
-      (pending) => pending.requestId !== requestId,
-    );
+    this.#pending = this.#pending.filter((pending) => pending.requestId !== requestId);
   }
 
   clear(): void {

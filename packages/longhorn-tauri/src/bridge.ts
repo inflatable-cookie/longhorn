@@ -9,15 +9,11 @@ import type {
 import type {
   BridgeOperationAdapter,
   BridgeOperationDescriptor,
-} from "@inflatable-cookie/longhorn/bridge";
-import {
-  BridgeDomainClient,
-} from "@inflatable-cookie/longhorn/bridge";
-import type { BridgeNegotiationAdapter } from "@inflatable-cookie/longhorn/bridge";
-import {
   BridgeSession,
-  BridgeSessionClient,
 } from "@inflatable-cookie/longhorn/bridge";
+import { BridgeDomainClient } from "@inflatable-cookie/longhorn/bridge";
+import type { BridgeNegotiationAdapter } from "@inflatable-cookie/longhorn/bridge";
+import { BridgeSessionClient } from "@inflatable-cookie/longhorn/bridge";
 
 export const BRIDGE_HELLO_COMMAND = "longhorn_bridge_hello";
 export const BRIDGE_AUTHORITY_COMMAND = "longhorn_bridge_authority";
@@ -32,8 +28,7 @@ export const BRIDGE_RESYNC_COMMAND = "longhorn_bridge_resync";
  * Domain routes and payload vocabulary arrive only through operation
  * descriptors owned by adapted domain packages.
  */
-export class TauriBridgeAdapter
-  implements BridgeNegotiationAdapter, BridgeOperationAdapter {
+export class TauriBridgeAdapter implements BridgeNegotiationAdapter, BridgeOperationAdapter {
   readonly #transport: InvokeTransport;
 
   constructor(transport: InvokeTransport = new TauriTransport()) {
@@ -86,9 +81,7 @@ export async function connectTauriBridge(
   };
 }
 
-function commandFor<Request, Reply>(
-  operation: BridgeOperationDescriptor<Request, Reply>,
-): string {
+function commandFor<Request, Reply>(operation: BridgeOperationDescriptor<Request, Reply>): string {
   switch (operation.kind) {
     case "query":
       return BRIDGE_QUERY_COMMAND;

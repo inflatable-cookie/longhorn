@@ -1,8 +1,5 @@
-import {
-  isEventTransport,
-  type EventTransport,
-  type InvokeTransport,
-} from "@inflatable-cookie/longhorn/core";
+import { isEventTransport } from "@inflatable-cookie/longhorn/core";
+import type { EventTransport, InvokeTransport } from "@inflatable-cookie/longhorn/core";
 
 import type { HistoryPort } from "@inflatable-cookie/longhorn/history";
 
@@ -16,29 +13,17 @@ export interface TauriHistoryPortOptions {
   readonly nextPlanId: () => string;
 }
 
-export function createTauriHistoryPort(
-  options: TauriHistoryPortOptions,
-): HistoryPort {
-  const events = isEventTransport(options.transport)
-    ? options.transport
-    : undefined;
+export function createTauriHistoryPort(options: TauriHistoryPortOptions): HistoryPort {
+  const events = isEventTransport(options.transport) ? options.transport : undefined;
   return {
     snapshot: () => options.transport.invoke(HISTORY_SNAPSHOT_COMMAND, {}),
-    page: (command) =>
-      options.transport.invoke(HISTORY_PAGE_COMMAND, { command }),
-    navigate: (command) =>
-      options.transport.invoke(HISTORY_NAVIGATE_COMMAND, { command }),
-    listen:
-      events === undefined
-        ? undefined
-        : (listener) => listenChanged(events, listener),
+    page: (command) => options.transport.invoke(HISTORY_PAGE_COMMAND, { command }),
+    navigate: (command) => options.transport.invoke(HISTORY_NAVIGATE_COMMAND, { command }),
+    listen: events === undefined ? undefined : (listener) => listenChanged(events, listener),
     nextPlanId: options.nextPlanId,
   };
 }
 
-async function listenChanged(
-  transport: EventTransport,
-  listener: (event: unknown) => void,
-) {
+async function listenChanged(transport: EventTransport, listener: (event: unknown) => void) {
   return transport.listen(HISTORY_CHANGED_EVENT, listener);
 }

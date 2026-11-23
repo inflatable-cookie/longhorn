@@ -15,10 +15,7 @@ import {
   projectOrdinaryRegionVisibility,
 } from "@inflatable-cookie/longhorn/layout";
 
-const fixturePath = new URL(
-  "../../../../fixtures/layout/protocol-v1.json",
-  import.meta.url,
-);
+const fixturePath = new URL("../../../../fixtures/layout/protocol-v1.json", import.meta.url);
 const fixture = record(JSON.parse(readFileSync(fixturePath, "utf8")));
 
 describe("Rust layout protocol fixture", () => {
@@ -54,15 +51,9 @@ describe("Rust layout protocol fixture", () => {
       return code;
     });
 
-    expect(new Set(commandKinds)).toEqual(
-      new Set(LAYOUT_MUTATION_COMMAND_KINDS),
-    );
-    expect(new Set(outcomeKinds)).toEqual(
-      new Set(LAYOUT_MUTATION_OUTCOME_KINDS),
-    );
-    expect(new Set(rejectionCodes)).toEqual(
-      new Set(LAYOUT_MUTATION_REJECTION_CODES),
-    );
+    expect(new Set(commandKinds)).toEqual(new Set(LAYOUT_MUTATION_COMMAND_KINDS));
+    expect(new Set(outcomeKinds)).toEqual(new Set(LAYOUT_MUTATION_OUTCOME_KINDS));
+    expect(new Set(rejectionCodes)).toEqual(new Set(LAYOUT_MUTATION_REJECTION_CODES));
   });
 
   test("preserves integer fixed-point ratios", () => {
@@ -77,9 +68,7 @@ describe("Rust layout protocol fixture", () => {
       expect(Number.isInteger(ratio)).toBeTrue();
       expect(layoutRatioFromMillionths(number(ratio))).toBe(number(ratio));
     }
-    expect(layoutRatioToUnitInterval(layoutRatioFromMillionths(250_000))).toBe(
-      0.25,
-    );
+    expect(layoutRatioToUnitInterval(layoutRatioFromMillionths(250_000))).toBe(0.25);
   });
 
   test("rejects non-integer and out-of-range ratios", () => {
@@ -99,23 +88,17 @@ describe("Rust layout protocol fixture", () => {
     const states = array(surface.regions).map(record);
 
     for (const definition of regions) {
-      const state = states.find(
-        (candidate) => candidate.region_id === definition.id,
-      );
+      const state = states.find((candidate) => candidate.region_id === definition.id);
       expect(state).toBeDefined();
-      const projected = projectOrdinaryRegionVisibility(
-        definition as never,
-        state as never,
-      );
+      const projected = projectOrdinaryRegionVisibility(definition as never, state as never);
       const rustProjection = array(fixture.visibility)
         .map(record)
         .find(
           (candidate) =>
-            candidate.region_id === definition.id &&
-            candidate.state !== "transiently_revealed",
+            candidate.region_id === definition.id && candidate.state !== "transiently_revealed",
         );
       expect(rustProjection).toBeDefined();
-      expect(projected).toEqual(rustProjection as never);
+      expect<unknown>(projected).toEqual(rustProjection);
     }
   });
 });
@@ -124,32 +107,26 @@ describe("protocol incompatibility", () => {
   const incompatibility = record(fixture.incompatibility);
 
   test("rejects future protocol versions", () => {
-    expect(() =>
-      assertLayoutProtocolVersion(incompatibility.future_protocol_version),
-    ).toThrow(LayoutProtocolValidationError);
+    expect(() => assertLayoutProtocolVersion(incompatibility.future_protocol_version)).toThrow(
+      LayoutProtocolValidationError,
+    );
   });
 
   test("rejects unknown future variants", () => {
+    expect(() => assertValidLayoutMutationCommand(incompatibility.unknown_command)).toThrow(
+      LayoutProtocolValidationError,
+    );
+    expect(() => assertValidLayoutMutationOutcome(incompatibility.unknown_outcome)).toThrow(
+      LayoutProtocolValidationError,
+    );
     expect(() =>
-      assertValidLayoutMutationCommand(
-        incompatibility.unknown_command,
-      ),
-    ).toThrow(LayoutProtocolValidationError);
-    expect(() =>
-      assertValidLayoutMutationOutcome(
-        incompatibility.unknown_outcome,
-      ),
-    ).toThrow(LayoutProtocolValidationError);
-    expect(() =>
-      assertValidLayoutMutationRejectionCode(
-        incompatibility.unknown_rejection_code,
-      ),
+      assertValidLayoutMutationRejectionCode(incompatibility.unknown_rejection_code),
     ).toThrow(LayoutProtocolValidationError);
   });
 });
 
 function roundTrip(value: unknown): unknown {
-  return JSON.parse(JSON.stringify(value));
+  return structuredClone(value);
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -159,7 +136,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function array(value: unknown): unknown[] {
+function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     throw new TypeError("expected JSON array");
   }

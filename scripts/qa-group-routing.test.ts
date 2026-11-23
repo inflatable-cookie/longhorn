@@ -8,9 +8,9 @@ type PlannedMember = { task: string };
 type QaGroupPlan = {
   schema: string;
   scope_assessment: "declared_match" | "needs_planner" | string;
-  members?: PlannedMember[];
-  unmatched_scope_inputs?: string[];
-  needs_planner_reasons?: { token: string; reason: string }[];
+  members?: Array<PlannedMember>;
+  unmatched_scope_inputs?: Array<string>;
+  needs_planner_reasons?: Array<{ token: string; reason: string }>;
 };
 
 const runtimeInputs = ["external:root-node-modules", "external:bun-runtime"];
@@ -56,7 +56,9 @@ test("mapped proof inputs route to their owning standalone selector", () => {
     "path:examples/bridge-topology-proof/README.md",
   ]);
   expect(examples.scope_assessment).toBe("declared_match");
-  expect(examples.members?.some((member) => member.task === "proof:documented-commands")).toBe(true);
+  expect(examples.members?.some((member) => member.task === "proof:documented-commands")).toBe(
+    true,
+  );
 
   const packageClosure = planGroup("longhorn-pack-typecheck", [
     "bun-package:@inflatable-cookie/longhorn",
@@ -68,7 +70,9 @@ test("mapped proof inputs route to their owning standalone selector", () => {
     ...runtimeInputs,
   ]);
   expect(packageClosure.scope_assessment).toBe("declared_match");
-  expect(packageClosure.members?.some((member) => member.task === "proof:pack-typecheck")).toBe(true);
+  expect(packageClosure.members?.some((member) => member.task === "proof:pack-typecheck")).toBe(
+    true,
+  );
 
   const bridgeManifest = planGroup("longhorn-bridge-topology-conformance", [
     "bun-package:@inflatable-cookie/longhorn",
@@ -77,7 +81,9 @@ test("mapped proof inputs route to their owning standalone selector", () => {
     ...runtimeInputs,
   ]);
   expect(bridgeManifest.scope_assessment).toBe("declared_match");
-  expect(bridgeManifest.members?.some((member) => member.task === "proof:bridge-topology-conformance")).toBe(true);
+  expect(
+    bridgeManifest.members?.some((member) => member.task === "proof:bridge-topology-conformance"),
+  ).toBe(true);
 });
 
 test("prototype dependency changes route through rustdoc and prototype checks", () => {
@@ -85,7 +91,9 @@ test("prototype dependency changes route through rustdoc and prototype checks", 
   expect(plan.scope_assessment).toBe("declared_match");
   expect(plan.members?.some((member) => member.task === "docs:rust")).toBe(true);
   expect(plan.members?.some((member) => member.task === "check:prototypes")).toBe(true);
-  expect(plan.members?.some((member) => member.task === "check:prototype-dependency-coverage")).toBe(true);
+  expect(
+    plan.members?.some((member) => member.task === "check:prototype-dependency-coverage"),
+  ).toBe(true);
 });
 
 test("every staged desktop support crate and the consumer route to the conformance proof", () => {
@@ -101,9 +109,9 @@ test("every staged desktop support crate and the consumer route to the conforman
     "path:scripts/verify-desktop-support-conformance.ts",
   ]);
   expect(plan.scope_assessment).toBe("declared_match");
-  expect(
-    plan.members?.some((member) => member.task === "proof:desktop-support-conformance"),
-  ).toBe(true);
+  expect(plan.members?.some((member) => member.task === "proof:desktop-support-conformance")).toBe(
+    true,
+  );
 });
 
 test("global Effigy changes remain planner-owned, even beside a task-table token", () => {
@@ -131,9 +139,11 @@ test("unmapped proof closures and task-table entries remain planner-owned", () =
   expect(taskPlan.unmatched_scope_inputs).toContain(unknownTask);
 });
 
-function planGroup(group: string, scope: readonly string[]): QaGroupPlan {
+function planGroup(group: string, scope: ReadonlyArray<string>): QaGroupPlan {
   const args = ["--json", "tasks", "qa-group", "run", group];
-  for (const token of scope) args.push("--scope", token);
+  for (const token of scope) {
+    args.push("--scope", token);
+  }
   args.push("--plan");
 
   const process = spawnSync("effigy", args, {
@@ -141,7 +151,9 @@ function planGroup(group: string, scope: readonly string[]): QaGroupPlan {
     encoding: "utf8",
     timeout: 20_000,
   });
-  if (process.error) throw process.error;
+  if (process.error) {
+    throw process.error;
+  }
   if (process.stdout.trim() === "") {
     throw new Error(`Effigy returned no plan for ${group}: ${process.stderr}`);
   }

@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "files": [
+    "svelte-for-tsc.d.ts"
+  ]
+}

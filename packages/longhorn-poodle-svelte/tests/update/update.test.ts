@@ -1,12 +1,11 @@
 import { render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import {
-  UPDATE_PROTOCOL_VERSION,
-  UpdateController,
-  type UpdateOutcomeProjection,
-  type UpdatePort,
-  type UpdateSnapshot,
+import { UPDATE_PROTOCOL_VERSION, UpdateController } from "@inflatable-cookie/longhorn/update";
+import type {
+  UpdateOutcomeProjection,
+  UpdatePort,
+  UpdateSnapshot,
 } from "@inflatable-cookie/longhorn/update";
 
 import ObserveOnlyHarness from "./ObserveOnlyHarness.svelte";
@@ -33,15 +32,29 @@ const OFFER = snapshot({
 /** A port whose snapshot changes between reads, and that can notify. */
 class Port implements UpdatePort {
   state: UpdateSnapshot = snapshot();
-  #listeners: ((event: unknown) => void)[] = [];
-  #progressListeners: ((event: unknown) => void)[] = [];
-  async snapshot(): Promise<unknown> { return this.state; }
-  async check(): Promise<unknown> { return this.#committed(); }
-  async selectChannel(): Promise<unknown> { return this.#committed(); }
-  async defer(): Promise<unknown> { return this.#committed(); }
-  async prepare(): Promise<unknown> { return this.#committed(); }
-  async apply(): Promise<unknown> { return this.#committed(); }
-  async cancel(): Promise<unknown> { return this.#committed(); }
+  #listeners: Array<(event: unknown) => void> = [];
+  #progressListeners: Array<(event: unknown) => void> = [];
+  async snapshot(): Promise<unknown> {
+    return this.state;
+  }
+  async check(): Promise<unknown> {
+    return this.#committed();
+  }
+  async selectChannel(): Promise<unknown> {
+    return this.#committed();
+  }
+  async defer(): Promise<unknown> {
+    return this.#committed();
+  }
+  async prepare(): Promise<unknown> {
+    return this.#committed();
+  }
+  async apply(): Promise<unknown> {
+    return this.#committed();
+  }
+  async cancel(): Promise<unknown> {
+    return this.#committed();
+  }
   listen(listener: (event: unknown) => void) {
     this.#listeners.push(listener);
     return () => {};
@@ -143,7 +156,9 @@ describe("update surface bindings", () => {
     port.state = OFFER;
     port.notify();
     await controller.refresh();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
 
     expect(document.body.textContent).toContain("1.4.0");
     mounted.unmount();
@@ -169,12 +184,14 @@ describe("update surface bindings", () => {
       fraction: 0.5,
     });
 
-    await waitFor(() => expect(controller.progress).toEqual({
-      state: "downloading",
-      received: 50,
-      expected: 100,
-      fraction: 0.5,
-    }));
+    await waitFor(() =>
+      expect(controller.progress).toEqual({
+        state: "downloading",
+        received: 50,
+        expected: 100,
+        fraction: 0.5,
+      }),
+    );
     mounted.unmount();
   });
 });

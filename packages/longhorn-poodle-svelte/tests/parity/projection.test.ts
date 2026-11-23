@@ -32,10 +32,9 @@ describe("cross-backend projection parity", () => {
     expect(fixture.notificationSeverityTone).toHaveLength(5);
 
     for (const testCase of fixture.notificationSeverityTone) {
-      expect(
-        notificationStatusTone(testCase.severity as never),
-        JSON.stringify(testCase),
-      ).toBe(testCase.tone);
+      expect(notificationStatusTone(testCase.severity as never), JSON.stringify(testCase)).toBe(
+        testCase.tone,
+      );
     }
   });
 
@@ -44,12 +43,8 @@ describe("cross-backend projection parity", () => {
 
     for (const testCase of fixture.operationState) {
       const state = testCase.state as never;
-      expect(operationStatusTone(state), JSON.stringify(testCase)).toBe(
-        testCase.tone,
-      );
-      expect(operationStateLabel(state), JSON.stringify(testCase)).toBe(
-        testCase.label,
-      );
+      expect(operationStatusTone(state), JSON.stringify(testCase)).toBe(testCase.tone);
+      expect(operationStateLabel(state), JSON.stringify(testCase)).toBe(testCase.label);
     }
   });
 
@@ -57,9 +52,7 @@ describe("cross-backend projection parity", () => {
     for (const testCase of fixture.operationProgress) {
       const view = operationProgressView(testCase.progress as never);
 
-      expect(view.indeterminate, JSON.stringify(testCase)).toBe(
-        testCase.indeterminate,
-      );
+      expect(view.indeterminate, JSON.stringify(testCase)).toBe(testCase.indeterminate);
       expect(view.value, JSON.stringify(testCase)).toBe(testCase.value);
       expect(view.max, JSON.stringify(testCase)).toBe(testCase.max);
       expect(view.valueText, JSON.stringify(testCase)).toBe(testCase.valueText);
@@ -73,9 +66,7 @@ describe("cross-backend projection parity", () => {
         state: testCase.state,
       } as never;
 
-      expect(canCancelOperation(entry), JSON.stringify(testCase)).toBe(
-        testCase.canCancel,
-      );
+      expect(canCancelOperation(entry), JSON.stringify(testCase)).toBe(testCase.canCancel);
     }
   });
 
@@ -85,13 +76,10 @@ describe("cross-backend projection parity", () => {
     for (const testCase of fixture.restoreCompatibility) {
       const compatibility = testCase.compatibility as never;
 
-      expect(compatibilityLabel(compatibility), JSON.stringify(testCase)).toBe(
-        testCase.label,
+      expect(compatibilityLabel(compatibility), JSON.stringify(testCase)).toBe(testCase.label);
+      expect(canUseArchive({ compatibility } as never), JSON.stringify(testCase)).toBe(
+        testCase.canUseArchive,
       );
-      expect(
-        canUseArchive({ compatibility } as never),
-        JSON.stringify(testCase),
-      ).toBe(testCase.canUseArchive);
     }
   });
 
@@ -100,15 +88,20 @@ describe("cross-backend projection parity", () => {
       if (identity.status === "compatible") {
         expect(identityLabel({ status: identity.status })).toBe(label);
       } else {
-        if (identity.status !== "mismatch" || identity.expected === undefined ||
-          identity.archive === undefined) {
+        if (
+          identity.status !== "mismatch" ||
+          identity.expected === undefined ||
+          identity.archive === undefined
+        ) {
           throw new TypeError("invalid mismatch identity fixture");
         }
-        expect(identityLabel({
-          status: "mismatch",
-          expected: identity.expected,
-          archive: identity.archive,
-        })).toBe(label);
+        expect(
+          identityLabel({
+            status: "mismatch",
+            expected: identity.expected,
+            archive: identity.archive,
+          }),
+        ).toBe(label);
       }
     }
   });
@@ -135,9 +128,7 @@ describe("cross-backend projection parity", () => {
         title: testCase.title,
       } as never;
 
-      expect(toastTitle(draft), JSON.stringify(testCase)).toBe(
-        testCase.toastTitle,
-      );
+      expect(toastTitle(draft), JSON.stringify(testCase)).toBe(testCase.toastTitle);
     }
   });
 

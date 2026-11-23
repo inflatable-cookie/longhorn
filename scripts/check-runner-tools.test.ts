@@ -129,15 +129,10 @@ ${setup}
 
 describe("release-gate runner tools", () => {
   test("cargo deny needs cargo-deny; stock cargo subcommands do not", () => {
-    expect(toolsNeededByCommand("cargo deny check advisories")).toEqual([
-      "cargo",
-      "cargo-deny",
-    ]);
+    expect(toolsNeededByCommand("cargo deny check advisories")).toEqual(["cargo", "cargo-deny"]);
     expect(toolsNeededByCommand("cargo test --workspace")).toEqual(["cargo"]);
     expect(toolsNeededByCommand("effigy docs:rust")).toEqual(["effigy"]);
-    expect(toolsNeededByCommand("bun scripts/verify-private-candidate-docs.ts")).toEqual([
-      "bun",
-    ]);
+    expect(toolsNeededByCommand("bun scripts/verify-private-candidate-docs.ts")).toEqual(["bun"]);
   });
 
   test("sh -c with an inner cargo plugin is mapped; a bare sh -c is not", () => {
@@ -151,16 +146,19 @@ describe("release-gate runner tools", () => {
   test("the rust-command.sh switch point keeps the runner Cargo identity", () => {
     // Locally that gate runs `oxide`; a runner still needs `cargo` and the
     // plugin, so the launcher must not hide the requirement.
-    expect(
-      toolsNeededByCommand("bash scripts/rust-command.sh deny check advisories"),
-    ).toEqual(["cargo", "cargo-deny"]);
-    expect(
-      toolsNeededByCommand("bash scripts/rust-command.sh test --workspace"),
-    ).toEqual(["cargo"]);
+    expect(toolsNeededByCommand("bash scripts/rust-command.sh deny check advisories")).toEqual([
+      "cargo",
+      "cargo-deny",
+    ]);
+    expect(toolsNeededByCommand("bash scripts/rust-command.sh test --workspace")).toEqual([
+      "cargo",
+    ]);
   });
 
   test("cargo install is taken from run scripts, not comments or step names", () => {
-    expect(cargoInstallCrates("cargo install cargo-deny --locked --version 0.19.4")).toEqual(["cargo-deny"]);
+    expect(cargoInstallCrates("cargo install cargo-deny --locked --version 0.19.4")).toEqual([
+      "cargo-deny",
+    ]);
     expect(releaseWorkflowInstalls(workflowWithDeny).has("cargo-deny")).toBe(true);
     expect(releaseWorkflowInstalls(workflowWithoutDeny).has("cargo-deny")).toBe(false);
     expect(cargoInstallCrates("echo cargo install cargo-deny")).toEqual([]);
@@ -181,7 +179,9 @@ describe("release-gate runner tools", () => {
     const result = checkReleaseRunnerTools(present);
     expect(result.failures).toEqual([]);
     expect(
-      result.requirements.some((item) => item.tool === "cargo-deny" && item.via === "cargo install cargo-deny"),
+      result.requirements.some(
+        (item) => item.tool === "cargo-deny" && item.via === "cargo install cargo-deny",
+      ),
     ).toBe(true);
   });
 
@@ -208,7 +208,7 @@ describe("release-gate runner tools", () => {
     const live = checkReleaseRunnerTools();
     expect(live.failures).toEqual([]);
     const deny = live.requirements.find((item) => item.tool === "cargo-deny");
-    expect(deny?.gate).toBe("advisories");
+    expect(deny?.gate).toBe("dependencies");
     expect(deny?.via).toBe("cargo install cargo-deny");
   });
 });
@@ -274,19 +274,36 @@ describe("workflow YAML and runner source", () => {
   test("reports forbidden commands with their file and line", () => {
     const shortName = "r" + "g";
     const longName = "rip" + "grep";
-    expect(findForbiddenTools("scripts/example.sh", [
-      `# ${shortName} is only mentioned`,
-      `find . | ${shortName} needle`,
-      `${longName} pattern # command`,
-    ].join("\n"))).toEqual([
-      { file: "scripts/example.sh", line: 2, tool: shortName, text: `find . | ${shortName} needle` },
-      { file: "scripts/example.sh", line: 3, tool: longName, text: `${longName} pattern # command` },
+    expect(
+      findForbiddenTools(
+        "scripts/example.sh",
+        [
+          `# ${shortName} is only mentioned`,
+          `find . | ${shortName} needle`,
+          `${longName} pattern # command`,
+        ].join("\n"),
+      ),
+    ).toEqual([
+      {
+        file: "scripts/example.sh",
+        line: 2,
+        tool: shortName,
+        text: `find . | ${shortName} needle`,
+      },
+      {
+        file: "scripts/example.sh",
+        line: 3,
+        tool: longName,
+        text: `${longName} pattern # command`,
+      },
     ]);
-    expect(findForbiddenTools("effigy.toml", `# Prefer grep over ${shortName} commands`)).toEqual([]);
+    expect(findForbiddenTools("effigy.toml", `# Prefer grep over ${shortName} commands`)).toEqual(
+      [],
+    );
   });
 });
 
-const fixtures: string[] = [];
+const fixtures: Array<string> = [];
 afterEach(async () => {
   await Promise.all(fixtures.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });

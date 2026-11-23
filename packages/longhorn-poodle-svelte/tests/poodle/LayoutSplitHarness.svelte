@@ -1,8 +1,6 @@
 <script lang="ts">
-  import {
-    LayoutSplitView,
-    type PoodleLayoutBinding,
-  } from "../../src/poodle/index.ts";
+  import { LayoutSplitView } from "../../src/poodle/index.ts";
+  import type { PoodleLayoutBinding } from "../../src/poodle/index.ts";
 
   interface Props {
     binding: PoodleLayoutBinding;

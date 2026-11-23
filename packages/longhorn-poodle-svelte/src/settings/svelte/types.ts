@@ -57,7 +57,7 @@ export type SettingsGuardResolution = "apply" | "discard" | "stay";
 export interface SettingsResetRequest {
   readonly pageId: SettingsPageId;
   readonly applyUnitId: SettingsApplyUnitId;
-  readonly entryIds: readonly string[];
+  readonly entryIds: ReadonlyArray<string>;
 }
 
 export interface SettingsPageRenderContext {
@@ -65,21 +65,15 @@ export interface SettingsPageRenderContext {
   readonly route: SettingsRoute;
   readonly dirty: boolean;
   readonly busy: boolean;
-  readonly activationRequirements: readonly SettingsActivationRequirement[];
+  readonly activationRequirements: ReadonlyArray<SettingsActivationRequirement>;
   readonly recovery: SettingsRecoveryState | null;
   snapshot(scopeId: SettingsScopeId): SettingsScopeSnapshot | undefined;
   unitStatus(applyUnitId: SettingsApplyUnitId): SettingsUnitStatus;
   draft(applyUnitId: SettingsApplyUnitId): SettingsDraft | undefined;
-  change(
-    applyUnitId: SettingsApplyUnitId,
-    intent: SettingsOpaqueValue,
-  ): Promise<void>;
+  change(applyUnitId: SettingsApplyUnitId, intent: SettingsOpaqueValue): Promise<void>;
   apply(applyUnitId: SettingsApplyUnitId): Promise<void>;
   cancel(): void;
-  requestReset(
-    applyUnitId: SettingsApplyUnitId,
-    entryIds: readonly string[],
-  ): Promise<void>;
+  requestReset(applyUnitId: SettingsApplyUnitId, entryIds: ReadonlyArray<string>): Promise<void>;
 }
 
 export type SettingsPageRenderer = Snippet<[SettingsPageRenderContext]>;

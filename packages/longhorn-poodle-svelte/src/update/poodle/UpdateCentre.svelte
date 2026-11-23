@@ -34,29 +34,36 @@
 
   function install(): void {
     const version = update.actionableVersion;
-    if (version === undefined) return;
+    if (version === undefined) {
+      return;
+    }
     // Two halves of one button. A retained artifact is applied; anything else
     // is staged first, and the surface's progress then says when to restart.
-    if (update.progress?.state === "readyToInstall") void controller.apply(version);
-    else void controller.prepare(version);
+    if (update.progress?.state === "readyToInstall") {
+      void controller.apply(version);
+    } else {
+      void controller.prepare(version);
+    }
   }
 
   function defer(): void {
     const version = update.actionableVersion;
-    if (version !== undefined) void controller.defer(version, { cause: "userPostponed" });
+    if (version !== undefined) {
+      void controller.defer(version, { cause: "userPostponed" });
+    }
   }
 </script>
 
 <PoodleUpdateCenter
   presence={update.presence}
   status={update.status}
-  availability={update.availability}
-  progress={update.progress}
-  channel={update.channel}
-  installedVersion={update.installedVersion}
-  deferral={update.deferral}
-  lastRejection={update.lastRejection}
-  aheadOfChannel={update.aheadOfChannel}
+  {...update.availability === undefined ? {} : { availability: update.availability }}
+  {...update.progress === undefined ? {} : { progress: update.progress }}
+  {...update.channel === undefined ? {} : { channel: update.channel }}
+  {...update.installedVersion === undefined ? {} : { installedVersion: update.installedVersion }}
+  {...update.deferral === undefined ? {} : { deferral: update.deferral }}
+  {...update.lastRejection === undefined ? {} : { lastRejection: update.lastRejection }}
+  {...update.aheadOfChannel === undefined ? {} : { aheadOfChannel: update.aheadOfChannel }}
   pending={update.pending}
   {title}
   {ariaLabel}

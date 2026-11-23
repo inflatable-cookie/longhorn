@@ -1,3 +1,4 @@
+import { requireValue } from "../../../../scripts/proof-support.ts";
 import { OperationSession } from "../../src/operation/svelte.ts";
 import type {
   OperationCancellationCommand,
@@ -14,8 +15,8 @@ import { cloned, fixture } from "../../../longhorn/tests/operation/support.ts";
 
 export class MountedOperationPort implements OperationPort {
   readonly listeners = new Set<(event: unknown) => void>();
-  readonly cancellations: OperationCancellationCommand[] = [];
-  readonly mutations: OperationMutationCommand[] = [];
+  readonly cancellations: Array<OperationCancellationCommand> = [];
+  readonly mutations: Array<OperationMutationCommand> = [];
   snapshotValue: OperationSnapshot;
   unlistenCount = 0;
   #request = 0;
@@ -67,19 +68,23 @@ export class MountedOperationPort implements OperationPort {
       operationId: null,
       kind: "mutation",
     };
-    for (const listener of this.listeners) listener(event);
+    for (const listener of this.listeners) {
+      listener(event);
+    }
   }
 }
 
 export function soundcheckSnapshot(): OperationSnapshot {
-  return cloned(fixture.mutationResults[1]!.snapshot);
+  return cloned(requireValue(fixture.mutationResults[1], "fixture.mutationResults[1]").snapshot);
 }
 
 export function loopholeSnapshot(): OperationSnapshot {
-  const snapshot = cloned(fixture.mutationResults[2]!.snapshot);
+  const snapshot = cloned(
+    requireValue(fixture.mutationResults[2], "fixture.mutationResults[2]").snapshot,
+  );
   snapshot.catalogueRevision = 8;
   snapshot.recent[0] = operation({
-    ...snapshot.recent[0]!,
+    ...requireValue(snapshot.recent[0], "snapshot.recent[0]"),
     operationId: "operation:render-complete",
     kindId: "loophole.render",
     label: "Render opening titles",
@@ -88,7 +93,7 @@ export function loopholeSnapshot(): OperationSnapshot {
   });
   snapshot.active = [
     operation({
-      ...snapshot.recent[0]!,
+      ...snapshot.recent[0],
       operationId: "operation:render-running",
       label: "Render final sequence",
       state: "running",
@@ -101,7 +106,7 @@ export function loopholeSnapshot(): OperationSnapshot {
       },
     }),
     operation({
-      ...snapshot.recent[0]!,
+      ...snapshot.recent[0],
       operationId: "operation:render-queued",
       label: "Render trailer",
       state: "queued",
@@ -131,11 +136,15 @@ function dismissResult(
   snapshot: OperationSnapshot,
   command: OperationMutationCommand,
 ): OperationMutationResult {
-  if (command.kind !== "dismiss") throw new Error("fixture only supports dismissal");
+  if (command.kind !== "dismiss") {
+    throw new Error("fixture only supports dismissal");
+  }
   const next = cloned(snapshot);
   const index = next.recent.findIndex(({ operationId }) => operationId === command.operationId);
   const [removed] = next.recent.splice(index, 1);
-  if (removed === undefined) throw new Error("missing retained operation");
+  if (removed === undefined) {
+    throw new Error("missing retained operation");
+  }
   next.catalogueRevision += 1;
   next.retainedTerminalEncodedWeight = next.recent.reduce(
     (total, entry) => total + entry.encodedMetadataWeight,
@@ -164,10 +173,10 @@ function cancelResult(
   command: OperationCancellationCommand,
 ): OperationCancellationResult {
   const next = cloned(snapshot);
-  const operation = next.active.find(
-    ({ operationId }) => operationId === command.operationId,
-  );
-  if (operation === undefined) throw new Error("missing active operation");
+  const operation = next.active.find(({ operationId }) => operationId === command.operationId);
+  if (operation === undefined) {
+    throw new Error("missing active operation");
+  }
   const previousState = operation.state;
   const previousOperationRevision = operation.revision;
   const previousCatalogueRevision = next.catalogueRevision;

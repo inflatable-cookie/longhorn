@@ -7,10 +7,12 @@ import {
   SURFACE_MUTATE_COMMAND,
   SURFACE_SNAPSHOT_COMMAND,
   SurfaceClient,
-  type SurfaceChangedEvent,
-  type SurfaceMutationRequest,
-  type SurfaceMutationResponse,
-  type SurfaceSnapshot,
+} from "@inflatable-cookie/longhorn/surfaces";
+import type {
+  SurfaceChangedEvent,
+  SurfaceMutationRequest,
+  SurfaceMutationResponse,
+  SurfaceSnapshot,
 } from "@inflatable-cookie/longhorn/surfaces";
 
 import fixture from "../../../../fixtures/surfaces/protocol-v1.json";
@@ -69,11 +71,15 @@ describe("SurfaceState", () => {
     }));
     expect(state.pendingRequestIds).toEqual([request.request_id]);
 
+    const nextSnapshot = fixture.snapshots[1];
+    if (nextSnapshot === undefined) {
+      throw new Error("missing surface fixture");
+    }
     snapshot = {
-      ...fixture.snapshots[1],
+      ...nextSnapshot,
       epoch: 8,
       revision: 1,
-      document: { ...fixture.snapshots[1].document, revision: 1 },
+      document: { ...nextSnapshot.document, revision: 1 },
     } as SurfaceSnapshot;
     listener?.({
       protocol_version: 1,
@@ -95,11 +101,9 @@ describe("SurfaceState", () => {
         response: fixture.responses[0],
       },
     ]);
-    expect(
-      state.projectedDocument?.surfaces.some(
-        ({ id }) => id === "surface:optimistic",
-      ),
-    ).toBe(false);
+    expect(state.projectedDocument?.surfaces.some(({ id }) => id === "surface:optimistic")).toBe(
+      false,
+    );
     await state.destroy();
   });
 
@@ -121,7 +125,7 @@ describe("SurfaceState", () => {
     });
     const mounted = render(LifecycleHarness, { props: { state } });
     await Promise.resolve();
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
 
     registration.resolve(() => {
       unlistens += 1;

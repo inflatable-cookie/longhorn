@@ -1,13 +1,12 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
-import {
-  LICENCE_PROTOCOL_VERSION,
-  LicenceController,
-  type HeldLicenceProjection,
-  type LicenceOutcomeProjection,
-  type LicencePort,
-  type LicenceSnapshot,
+import { LICENCE_PROTOCOL_VERSION, LicenceController } from "@inflatable-cookie/longhorn/licence";
+import type {
+  HeldLicenceProjection,
+  LicenceOutcomeProjection,
+  LicencePort,
+  LicenceSnapshot,
 } from "@inflatable-cookie/longhorn/licence";
 
 import LicenceHarness from "./LicenceHarness.svelte";
@@ -30,25 +29,33 @@ function snapshot(licence: HeldLicenceProjection | null = held()): LicenceSnapsh
 }
 
 class Port implements LicencePort {
-  released: string[] = [];
+  released: Array<string> = [];
   constructor(public state: LicenceSnapshot = snapshot()) {}
   #committed(): LicenceOutcomeProjection {
     return { status: "committed", snapshot: this.state };
   }
-  async snapshot(): Promise<unknown> { return this.state; }
-  async activate(): Promise<unknown> { return this.#committed(); }
-  async deactivate(): Promise<unknown> { return this.#committed(); }
-  async refresh(): Promise<unknown> { return this.#committed(); }
+  async snapshot(): Promise<unknown> {
+    return this.state;
+  }
+  async activate(): Promise<unknown> {
+    return this.#committed();
+  }
+  async deactivate(): Promise<unknown> {
+    return this.#committed();
+  }
+  async refresh(): Promise<unknown> {
+    return this.#committed();
+  }
   async releaseSeat(command: unknown): Promise<unknown> {
     this.released.push((command as { machineId: string }).machineId);
     return this.#committed();
   }
-  renamed: { machineId: string; label: string | null }[] = [];
+  renamed: Array<{ machineId: string; label: string | null }> = [];
   async renameSeat(command: unknown): Promise<unknown> {
     this.renamed.push(command as { machineId: string; label: string | null });
     return this.#committed();
   }
-  #listeners: ((event: unknown) => void)[] = [];
+  #listeners: Array<(event: unknown) => void> = [];
   listen(listener: (event: unknown) => void) {
     this.#listeners.push(listener);
     return () => {};
@@ -81,7 +88,7 @@ describe("licence surface bindings", () => {
 
     await waitFor(() => expect(document.body.textContent).toContain("Licence"));
 
-    port.state = snapshot(held({ usability: { state: "useWindowExpired", at: 1_000 } }));
+    port.state = snapshot(held({ usability: { state: "useWindowExpired", at: 1000 } }));
     port.notify();
 
     // Poodle's copy for an expired use window is "use coverage ended" — the
@@ -124,7 +131,9 @@ describe("licence surface bindings", () => {
     // The old machine's release control, whichever ordering Poodle renders:
     // click every button and assert exactly one release went through for the
     // machine that is not this one.
-    for (const button of release) await fireEvent.click(button);
+    for (const button of release) {
+      await fireEvent.click(button);
+    }
 
     await waitFor(() => expect(port.released).toEqual(["m-old-macbook-16chars"]));
     mounted.unmount();
@@ -149,7 +158,9 @@ describe("licence surface bindings", () => {
     const submit = mounted
       .getAllByRole("button")
       .find((button) => button.textContent?.toLowerCase().includes("activate"));
-    if (submit === undefined) throw new Error("no activate control");
+    if (submit === undefined) {
+      throw new Error("no activate control");
+    }
     await fireEvent.click(submit);
 
     await waitFor(() => {
@@ -185,9 +196,9 @@ describe("licence surface bindings", () => {
     await fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() =>
-      expect(
-        port.renamed.map(({ machineId, label }) => ({ machineId, label })),
-      ).toEqual([{ machineId: "m-this-machine-16chars", label: "Studio iMac" }]),
+      expect(port.renamed.map(({ machineId, label }) => ({ machineId, label }))).toEqual([
+        { machineId: "m-this-machine-16chars", label: "Studio iMac" },
+      ]),
     );
   });
 });

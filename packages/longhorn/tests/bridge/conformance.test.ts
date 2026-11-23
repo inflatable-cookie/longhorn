@@ -14,11 +14,13 @@ import {
   parseBridgeNegotiationReceipt,
   parseBridgeQueryEnvelope,
   parseBridgeQueryReply,
-  type BridgeCommandEnvelope,
-  type BridgeCommandReply,
-  type BridgeOperationDescriptor,
-  type BridgeQueryEnvelope,
-  type BridgeQueryReply,
+} from "@inflatable-cookie/longhorn/bridge";
+import type {
+  BridgeCommandEnvelope,
+  BridgeCommandReply,
+  BridgeOperationDescriptor,
+  BridgeQueryEnvelope,
+  BridgeQueryReply,
 } from "@inflatable-cookie/longhorn/bridge";
 
 import {
@@ -28,12 +30,9 @@ import {
   jsonCodec,
   queryPayloadCodec,
   successPayloadCodec,
-  type CommandPayload,
-  type FailureDetail,
-  type QueryPayload,
-  type SuccessPayload,
   values,
 } from "./support.ts";
+import type { CommandPayload, FailureDetail, QueryPayload, SuccessPayload } from "./support.ts";
 
 type QueryRequest = BridgeQueryEnvelope<QueryPayload>;
 type QueryReply = BridgeQueryReply<SuccessPayload, FailureDetail>;
@@ -45,27 +44,20 @@ const queryOperation: BridgeOperationDescriptor<QueryRequest, QueryReply> = {
   domainId: "example.workspace",
   kind: "query",
   requiredCapability: "query",
-  request: bridgeCodec((value) =>
-    parseBridgeQueryEnvelope(value, queryPayloadCodec)
-  ),
+  request: bridgeCodec((value) => parseBridgeQueryEnvelope(value, queryPayloadCodec)),
   reply: bridgeCodec((value) =>
-    parseBridgeQueryReply(value, successPayloadCodec, failureDetailCodec)
+    parseBridgeQueryReply(value, successPayloadCodec, failureDetailCodec),
   ),
 };
 
-const commandOperation: BridgeOperationDescriptor<
-  CommandRequest,
-  CommandReply
-> = {
+const commandOperation: BridgeOperationDescriptor<CommandRequest, CommandReply> = {
   route: "example.workspace.mutate",
   domainId: "example.workspace",
   kind: "command",
   requiredCapability: "mutate",
-  request: bridgeCodec((value) =>
-    parseBridgeCommandEnvelope(value, commandPayloadCodec)
-  ),
+  request: bridgeCodec((value) => parseBridgeCommandEnvelope(value, commandPayloadCodec)),
   reply: bridgeCodec((value) =>
-    parseBridgeCommandReply(value, successPayloadCodec, failureDetailCodec)
+    parseBridgeCommandReply(value, successPayloadCodec, failureDetailCodec),
   ),
 };
 
@@ -75,10 +67,7 @@ describe("direct and serialized loopback conformance", () => {
     const direct = new DirectBridgeAdapter(router);
     const loopback = new SerializedLoopbackBridgeAdapter(router);
 
-    const [directTrace, loopbackTrace] = await Promise.all([
-      runTrace(direct),
-      runTrace(loopback),
-    ]);
+    const [directTrace, loopbackTrace] = await Promise.all([runTrace(direct), runTrace(loopback)]);
     expect(loopbackTrace).toEqual(directTrace);
     expect(directTrace).toEqual({
       host: "host:fixture",
@@ -93,9 +82,7 @@ describe("direct and serialized loopback conformance", () => {
     const requestFailure = rawOperation("fixture.serialization.request");
     router.register(requestFailure, (value) => value);
 
-    await expect(
-      loopback.invoke(requestFailure, { impossible: 1n }),
-    ).rejects.toMatchObject({
+    await expect(loopback.invoke(requestFailure, { impossible: 1n })).rejects.toMatchObject({
       name: "BridgeSerializationError",
       phase: "operation_request",
     });
@@ -111,18 +98,14 @@ describe("direct and serialized loopback conformance", () => {
       throw new Error("expected reply serialization failure");
     } catch (error) {
       expect(error).toBeInstanceOf(BridgeSerializationError);
-      expect((error as BridgeSerializationError).phase)
-        .toBe("operation_reply");
+      expect((error as BridgeSerializationError).phase).toBe("operation_reply");
     }
   });
 });
 
 function fixtureRouter(): BridgeHostRouter {
   const hello = parseBridgeHelloRequest(fixture.hello);
-  const negotiation = parseBridgeNegotiationReceipt(
-    fixture.negotiation,
-    hello,
-  );
+  const negotiation = parseBridgeNegotiationReceipt(fixture.negotiation, hello);
   const router = new BridgeHostRouter(() => negotiation);
   router.register(queryOperation, (request) => {
     expect(request.context.domainId).toBe("example.workspace");
@@ -144,10 +127,7 @@ async function runTrace(
   const client = new BridgeDomainClient(session, adapter);
   return {
     host: session.receipt.host.hostInstanceId,
-    query: await client.execute(
-      queryOperation,
-      values(fixture.queryRequests)[0] as QueryRequest,
-    ),
+    query: await client.execute(queryOperation, values(fixture.queryRequests)[0] as QueryRequest),
     command: await client.execute(
       commandOperation,
       values(fixture.commandRequests)[0] as CommandRequest,
@@ -155,9 +135,7 @@ async function runTrace(
   };
 }
 
-function rawOperation(
-  route: string,
-): BridgeOperationDescriptor<unknown, unknown> {
+function rawOperation(route: string): BridgeOperationDescriptor<unknown, unknown> {
   return {
     route,
     domainId: "example.workspace",

@@ -14,10 +14,7 @@ export class SettingsProtocolValidationError extends Error {
   readonly code: SettingsProtocolValidationCode;
   readonly actual: unknown;
 
-  constructor(
-    code: SettingsProtocolValidationCode,
-    actual: unknown,
-  ) {
+  constructor(code: SettingsProtocolValidationCode, actual: unknown) {
     super(`incompatible settings protocol: ${code}`);
     this.name = "SettingsProtocolValidationError";
     this.code = code;
@@ -25,9 +22,6 @@ export class SettingsProtocolValidationError extends Error {
   }
 }
 
-export function incompatible(
-  code: SettingsProtocolValidationCode,
-  actual: unknown,
-): never {
+export function incompatible(code: SettingsProtocolValidationCode, actual: unknown): never {
   throw new SettingsProtocolValidationError(code, actual);
 }

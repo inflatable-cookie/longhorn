@@ -31,7 +31,7 @@ export interface UpdateFixture {
   readonly cancelCommand: UpdateCancelCommand;
   readonly authorizationHeld: UpdateInstallAuthorizationProjection;
   readonly authorizationDeferred: UpdateInstallAuthorizationProjection;
-  readonly outcomes: readonly UpdateOutcomeProjection[];
+  readonly outcomes: ReadonlyArray<UpdateOutcomeProjection>;
   readonly changedEvent: UpdateChangedEvent;
   readonly progressEvent: UpdateProgressEvent;
   readonly incompatibility: Record<string, unknown>;
@@ -39,13 +39,10 @@ export interface UpdateFixture {
 
 export function fixture(): UpdateFixture {
   return JSON.parse(
-    readFileSync(
-      new URL("../../../../fixtures/update/protocol-v1.json", import.meta.url),
-      "utf8",
-    ),
+    readFileSync(new URL("../../../../fixtures/update/protocol-v1.json", import.meta.url), "utf8"),
   ) as UpdateFixture;
 }
 
 export function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

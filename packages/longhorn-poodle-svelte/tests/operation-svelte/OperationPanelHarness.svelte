@@ -1,6 +1,7 @@
 <script lang="ts">
   import { OperationPanel } from "../../src/operation/poodle.ts";
-  import { useOperationSession, type OperationSession } from "../../src/operation/svelte.ts";
+  import { useOperationSession } from "../../src/operation/svelte.ts";
+  import type { OperationSession } from "../../src/operation/svelte.ts";
 
   let {
     session,

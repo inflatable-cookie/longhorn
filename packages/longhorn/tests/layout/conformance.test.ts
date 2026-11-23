@@ -11,7 +11,7 @@ import {
 const fixtures = [
   load("surface-bound-conformance-v1.json"),
   load("window-bound-conformance-v1.json"),
-];
+] as const;
 
 const sharedCommandKinds = [
   "create_panel",
@@ -46,18 +46,14 @@ describe("two-shape layout conformance", () => {
     });
     expect(schemaRegions(windowBound)).toHaveLength(5);
     expect(schemaSizingSlots(windowBound)).toHaveLength(4);
-    expect(
-      schemaRegions(windowBound).map((region) => record(region).id),
-    ).toEqual([
+    expect(schemaRegions(windowBound).map((region) => record(region).id)).toEqual([
       "left",
       "center_top",
       "center_bottom",
       "right_top",
       "right_bottom",
     ]);
-    expect(
-      schemaSizingSlots(windowBound).map((slot) => record(slot).id),
-    ).toEqual([
+    expect(schemaSizingSlots(windowBound).map((slot) => record(slot).id)).toEqual([
       "left-center",
       "center-right",
       "center-stack",
@@ -104,17 +100,14 @@ describe("two-shape layout conformance", () => {
         assertValidLayoutMutationCommand(command);
         assertValidLayoutMutationOutcome(outcome);
         expect(receipt.previous_revision).toBe(request.expected_revision);
-        expect(receipt.committed_revision).toBe(
-          number(receipt.previous_revision) + 1,
-        );
+        expect(receipt.committed_revision).toBe(number(receipt.previous_revision) + 1);
         return command.kind;
       });
 
       expect(commandKinds).toEqual([...sharedCommandKinds]);
       expect(record(fixture.expected_snapshot).revision).toBe(8);
       expect(fixture.expected_snapshot).toEqual(
-        record(record(array(fixture.steps).at(-1)).receipt)
-          .authoritative_document,
+        record(record(array(fixture.steps).at(-1)).receipt).authoritative_document,
       );
     }
   });
@@ -128,9 +121,7 @@ describe("two-shape layout conformance", () => {
       const rejection = record(singleton.second_rejection);
       assertValidLayoutMutationRejectionCode(rejection.code);
       expect(rejection.code).toBe("instance_policy_exceeded");
-      expect(rejection.authoritative_document).toEqual(
-        firstReceipt.authoritative_document,
-      );
+      expect(rejection.authoritative_document).toEqual(firstReceipt.authoritative_document);
     }
   });
 
@@ -168,18 +159,14 @@ describe("two-shape layout conformance", () => {
       expect(stale.code).toBe("stale_revision");
       expect(invalid.code).toBe("move_target_unchanged");
       expect(stale.authoritative_document).toEqual(fixture.expected_snapshot);
-      expect(invalid.authoritative_document).toEqual(
-        fixture.expected_snapshot,
-      );
+      expect(invalid.authoritative_document).toEqual(fixture.expected_snapshot);
     }
   });
 
   test("round-trips Rust expected snapshots exactly in TypeScript", () => {
     for (const fixture of fixtures) {
-      expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
-      expect(
-        JSON.parse(JSON.stringify(fixture.expected_snapshot)),
-      ).toEqual(fixture.expected_snapshot);
+      expect(structuredClone(fixture)).toEqual(fixture);
+      expect(structuredClone(fixture.expected_snapshot)).toEqual(fixture.expected_snapshot);
     }
   });
 });
@@ -189,11 +176,11 @@ function load(name: string): Record<string, unknown> {
   return record(JSON.parse(readFileSync(path, "utf8")));
 }
 
-function schemaRegions(fixture: Record<string, unknown>): unknown[] {
+function schemaRegions(fixture: Record<string, unknown>): Array<unknown> {
   return array(record(record(fixture.definitions).schema).regions);
 }
 
-function schemaSizingSlots(fixture: Record<string, unknown>): unknown[] {
+function schemaSizingSlots(fixture: Record<string, unknown>): Array<unknown> {
   return array(record(record(fixture.definitions).schema).sizing_slots);
 }
 
@@ -204,7 +191,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function array(value: unknown): unknown[] {
+function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     throw new TypeError("expected JSON array");
   }

@@ -4,11 +4,13 @@ import {
   BEGIN_SELECTION_COMMAND,
   SELECTION_RESOURCE_URI,
   bindFileSelection,
-  type FileSelectionPorts,
-  type OpenDialogOptions,
-  type OpenDialogResult,
-  type SaveDialogOptions,
-  type SaveDialogResult,
+} from "../../src/agent-control/index.ts";
+import type {
+  FileSelectionPorts,
+  OpenDialogOptions,
+  OpenDialogResult,
+  SaveDialogOptions,
+  SaveDialogResult,
 } from "../../src/agent-control/index.ts";
 import { findByName, install, openPage } from "./support.ts";
 
@@ -17,11 +19,11 @@ type InvokeCall = { command: string; args: Record<string, unknown> };
 function ports(): FileSelectionPorts & {
   opens: Array<OpenDialogOptions | undefined>;
   saves: Array<SaveDialogOptions | undefined>;
-  invokes: InvokeCall[];
+  invokes: Array<InvokeCall>;
 } {
   const opens: Array<OpenDialogOptions | undefined> = [];
   const saves: Array<SaveDialogOptions | undefined> = [];
-  const invokes: InvokeCall[] = [];
+  const invokes: Array<InvokeCall> = [];
   return {
     opens,
     saves,
@@ -87,7 +89,9 @@ describe("bindFileSelection", () => {
     const shim = install(window);
     const snapshot = shim.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     expect(shim.click(findByName(snapshot.root, "Import")!.elementRef).ok).toBe(true);
     const recorded = ports();
     recorded.invoke = async (command, args) => {

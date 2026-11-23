@@ -41,8 +41,9 @@
     return { ok: true };
   }
   function resolveRef(document, element) {
-    if (element === TRUNCATED_REF || element.length === 0)
+    if (element === TRUNCATED_REF || element.length === 0) {
       return null;
+    }
     return document.querySelector(`[${REF_ATTR}="${element}"]`);
   }
   function refPrefix(document) {
@@ -61,8 +62,9 @@
   }
   function stamp(element, document) {
     const existing = element.getAttribute(REF_ATTR);
-    if (existing)
+    if (existing) {
       return existing;
+    }
     const id = allocRef(document);
     element.setAttribute(REF_ATTR, id);
     return id;
@@ -72,89 +74,118 @@
     return view ? view.getComputedStyle(element) : null;
   }
   function isVisible(element) {
-    if (element.hasAttribute("hidden"))
+    if (element.hasAttribute("hidden")) {
       return false;
-    if (element.getAttribute("aria-hidden") === "true")
+    }
+    if (element.getAttribute("aria-hidden") === "true") {
       return false;
+    }
     const style = computedStyle(element);
-    if (!style)
+    if (!style) {
       return true;
+    }
     return style.display !== "none" && style.visibility !== "hidden";
   }
   function implicitRole(element) {
     const tag = element.tagName;
-    if (tag === "A")
+    if (tag === "A") {
       return element.hasAttribute("href") ? "link" : null;
-    if (tag === "BUTTON")
+    }
+    if (tag === "BUTTON") {
       return "button";
-    if (tag === "TEXTAREA")
+    }
+    if (tag === "TEXTAREA") {
       return "textbox";
-    if (tag === "SELECT")
+    }
+    if (tag === "SELECT") {
       return "combobox";
-    if (tag === "OPTION")
+    }
+    if (tag === "OPTION") {
       return "option";
-    if (tag === "SUMMARY")
+    }
+    if (tag === "SUMMARY") {
       return "button";
-    if (tag === "DETAILS")
+    }
+    if (tag === "DETAILS") {
       return "group";
-    if (tag === "NAV")
+    }
+    if (tag === "NAV") {
       return "navigation";
-    if (tag === "MAIN")
+    }
+    if (tag === "MAIN") {
       return "main";
-    if (tag === "HEADER")
+    }
+    if (tag === "HEADER") {
       return "banner";
-    if (tag === "FOOTER")
+    }
+    if (tag === "FOOTER") {
       return "contentinfo";
-    if (tag === "FORM")
+    }
+    if (tag === "FORM") {
       return "form";
-    if (tag === "UL" || tag === "OL")
+    }
+    if (tag === "UL" || tag === "OL") {
       return "list";
-    if (tag === "LI")
+    }
+    if (tag === "LI") {
       return "listitem";
-    if (tag === "TABLE")
+    }
+    if (tag === "TABLE") {
       return "table";
-    if (tag === "DIALOG")
+    }
+    if (tag === "DIALOG") {
       return "dialog";
-    if (tag === "IMG")
+    }
+    if (tag === "IMG") {
       return "image";
+    }
     if (tag === "H1" || tag === "H2" || tag === "H3" || tag === "H4" || tag === "H5" || tag === "H6") {
       return "heading";
     }
     if (tag === "INPUT") {
       const type = (element.getAttribute("type") ?? "text").toLowerCase();
-      if (type === "checkbox")
+      if (type === "checkbox") {
         return "checkbox";
-      if (type === "radio")
+      }
+      if (type === "radio") {
         return "radio";
-      if (type === "number")
+      }
+      if (type === "number") {
         return "spinbutton";
-      if (type === "range")
+      }
+      if (type === "range") {
         return "slider";
+      }
       if (type === "button" || type === "submit" || type === "reset" || type === "file") {
         return "button";
       }
-      if (type === "hidden")
+      if (type === "hidden") {
         return null;
+      }
       return "textbox";
     }
-    if (element.hasAttribute("contenteditable"))
+    if (element.hasAttribute("contenteditable")) {
       return "textbox";
+    }
     return null;
   }
   function roleOf(element) {
     const explicit = element.getAttribute("role");
-    if (explicit === "none" || explicit === "presentation")
+    if (explicit === "none" || explicit === "presentation") {
       return null;
-    if (explicit)
+    }
+    if (explicit) {
       return explicit;
+    }
     return implicitRole(element);
   }
   function labelledByText(element) {
     const ids = element.getAttribute("aria-labelledby");
-    if (!ids)
+    if (!ids) {
       return;
+    }
     const document = element.ownerDocument;
-    const text = ids.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? "").join(" ").replace(/\s+/g, " ").trim();
+    const text = ids.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? "").join(" ").replaceAll(/\s+/g, " ").trim();
     return text.length > 0 ? text : undefined;
   }
   function associatedLabel(element) {
@@ -162,59 +193,71 @@
     const document = element.ownerDocument;
     if (id) {
       const label = document.querySelector(`label[for="${id}"]`);
-      const text = label?.textContent?.replace(/\s+/g, " ").trim();
-      if (text)
+      const text = label?.textContent?.replaceAll(/\s+/g, " ").trim();
+      if (text) {
         return text;
+      }
     }
     const parent = element.closest("label");
     if (parent) {
-      const text = parent.textContent?.replace(/\s+/g, " ").trim();
-      if (text)
+      const text = parent.textContent?.replaceAll(/\s+/g, " ").trim();
+      if (text) {
         return text;
+      }
     }
     return;
   }
   function accessibleName(element) {
     const labelled = labelledByText(element);
-    if (labelled)
+    if (labelled) {
       return labelled;
+    }
     const aria = element.getAttribute("aria-label")?.trim();
-    if (aria)
+    if (aria) {
       return aria;
+    }
     const label = associatedLabel(element);
-    if (label)
+    if (label) {
       return label;
+    }
     if (element.tagName === "IMG") {
       const alt = element.getAttribute("alt")?.trim();
-      if (alt)
+      if (alt) {
         return alt;
+      }
     }
     const role = roleOf(element);
     if (role === "button" || role === "link" || role === "heading" || role === "option" || role === "tab" || role === "listitem") {
-      const text = element.textContent?.replace(/\s+/g, " ").trim();
-      if (text)
+      const text = element.textContent?.replaceAll(/\s+/g, " ").trim();
+      if (text) {
         return text;
+      }
     }
     const title = element.getAttribute("title")?.trim();
-    if (title)
+    if (title) {
       return title;
+    }
     const placeholder = element.getAttribute("placeholder")?.trim();
-    if (placeholder)
+    if (placeholder) {
       return placeholder;
+    }
     return;
   }
   function valueOf(element) {
     const now = element.getAttribute("aria-valuenow");
-    if (now)
+    if (now) {
       return now;
+    }
     if (element.tagName === "INPUT") {
       const type = (prop(element, "type") ?? "text").toLowerCase();
-      if (type === "checkbox" || type === "radio")
+      if (type === "checkbox" || type === "radio") {
         return;
+      }
       return prop(element, "value");
     }
-    if (element.tagName === "TEXTAREA")
+    if (element.tagName === "TEXTAREA") {
       return prop(element, "value");
+    }
     if (element.tagName === "SELECT") {
       const selected = prop(element, "selectedOptions");
       const first = selected && selected.length > 0 ? selected[0] : undefined;
@@ -227,20 +270,24 @@
   }
   function statesOf(element, document) {
     const states = [];
-    if (isVisible(element))
+    if (isVisible(element)) {
       states.push("visible");
+    }
     if (element.hasAttribute("disabled") || element.getAttribute("aria-disabled") === "true" || prop(element, "disabled") === true) {
       states.push("disabled");
     }
     if (prop(element, "checked") === true || element.getAttribute("aria-checked") === "true") {
       states.push("checked");
     }
-    if (document.activeElement === element)
+    if (document.activeElement === element) {
       states.push("focused");
-    if (element.getAttribute("aria-expanded") === "true")
+    }
+    if (element.getAttribute("aria-expanded") === "true") {
       states.push("expanded");
-    if (element.getAttribute("aria-pressed") === "true")
+    }
+    if (element.getAttribute("aria-pressed") === "true") {
       states.push("pressed");
+    }
     if (element.getAttribute("aria-selected") === "true" || prop(element, "selected") === true) {
       states.push("selected");
     }
@@ -250,18 +297,24 @@
     return states;
   }
   function isInteresting(element) {
-    if (SKIP_TAGS.has(element.tagName))
+    if (SKIP_TAGS.has(element.tagName)) {
       return false;
-    if (element.tagName === "LABEL")
+    }
+    if (element.tagName === "LABEL") {
       return false;
-    if (roleOf(element))
+    }
+    if (roleOf(element)) {
       return true;
-    if (accessibleName(element))
+    }
+    if (accessibleName(element)) {
       return true;
-    if (element.tagName === "INPUT")
+    }
+    if (element.tagName === "INPUT") {
       return true;
-    if (element.hasAttribute("tabindex"))
+    }
+    if (element.hasAttribute("tabindex")) {
       return true;
+    }
     return false;
   }
   function truncatedNode() {
@@ -273,15 +326,17 @@
     };
   }
   function walk(element, document, depth, budget) {
-    if (SKIP_TAGS.has(element.tagName) || !isVisible(element))
+    if (SKIP_TAGS.has(element.tagName) || !isVisible(element)) {
       return [];
+    }
     const interesting = isInteresting(element) || depth === 0;
     if (!interesting) {
       const promoted = [];
       for (const child of Array.from(element.children)) {
         promoted.push(...walk(child, document, depth, budget));
-        if (budget.truncated)
+        if (budget.truncated) {
           break;
+        }
       }
       return promoted;
     }
@@ -297,11 +352,13 @@
       children: []
     };
     const name = accessibleName(element);
-    if (name)
+    if (name) {
       node.name = name;
+    }
     const value = valueOf(element);
-    if (value !== undefined && value.length > 0)
+    if (value !== undefined && value.length > 0) {
       node.value = value;
+    }
     if (depth >= MAX_DEPTH) {
       if (element.children.length > 0) {
         budget.truncated = true;
@@ -379,18 +436,20 @@
   }
   function click(world, element) {
     const node = resolveRef(world.document, element);
-    if (!node)
+    if (!node) {
       return unresolved(element);
+    }
     focus(node);
     dispatchMouse(world, node, "pointerdown");
     dispatchMouse(world, node, "mousedown");
     dispatchMouse(world, node, "pointerup");
     dispatchMouse(world, node, "mouseup");
     const nativeClick = prop(node, "click");
-    if (nativeClick)
+    if (nativeClick) {
       nativeClick.call(node);
-    else
+    } else {
       dispatchMouse(world, node, "click");
+    }
     return ok();
   }
   function insertText(element, text) {
@@ -399,7 +458,7 @@
       const start = prop(element, "selectionStart") ?? current.length;
       const end = prop(element, "selectionEnd") ?? start;
       const next = `${current.slice(0, start)}${text}${current.slice(end)}`;
-      element.value = next;
+      Object.assign(element, { value: next });
       const cursor = start + text.length;
       prop(element, "setSelectionRange")?.call(element, cursor, cursor);
       return;
@@ -410,8 +469,9 @@
   }
   function typeInto(world, element, text) {
     const node = resolveRef(world.document, element);
-    if (!node)
+    if (!node) {
       return unresolved(element);
+    }
     focus(node);
     for (const char of text) {
       dispatchKey(world, node, "keydown", char, []);
@@ -426,8 +486,9 @@
     let node;
     if (element) {
       node = resolveRef(world.document, element);
-      if (!node)
+      if (!node) {
         return unresolved(element);
+      }
     } else {
       node = world.document.activeElement ?? world.document.body ?? world.document.documentElement;
     }
@@ -439,8 +500,9 @@
   function scroll(world, deltaX, deltaY, element) {
     if (element) {
       const node = resolveRef(world.document, element);
-      if (!node)
+      if (!node) {
         return unresolved(element);
+      }
       node.scrollTop += deltaY;
       node.scrollLeft += deltaX;
       node.dispatchEvent(new world.Event("scroll", { bubbles: true }));
@@ -454,11 +516,13 @@
   }
   function drag(world, sourceRef, targetRef) {
     const source = resolveRef(world.document, sourceRef);
-    if (!source)
+    if (!source) {
       return unresolved(sourceRef);
+    }
     const target = resolveRef(world.document, targetRef);
-    if (!target)
+    if (!target) {
       return unresolved(targetRef);
+    }
     const from = centerOf(source);
     const to = centerOf(target);
     dispatchMouse(world, source, "pointerdown", from);
@@ -490,8 +554,9 @@
     try {
       const binary = atob(content);
       const bytes = new Uint8Array(binary.length);
-      for (let i = 0;i < binary.length; i += 1)
+      for (let i = 0;i < binary.length; i += 1) {
         bytes[i] = binary.charCodeAt(i);
+      }
       return bytes;
     } catch {
       return null;
@@ -499,23 +564,27 @@
   }
   function acceptMatches(fileName, mediaType, accept) {
     const tokens = accept.split(",").map((token) => token.trim()).filter((token) => token.length > 0);
-    if (tokens.length === 0)
+    if (tokens.length === 0) {
       return true;
+    }
     const name = fileName.toLowerCase();
     const type = mediaType.toLowerCase();
     return tokens.some((token) => {
       const needle = token.toLowerCase();
-      if (needle.startsWith("."))
+      if (needle.startsWith(".")) {
         return name.endsWith(needle);
-      if (needle.endsWith("/*"))
+      }
+      if (needle.endsWith("/*")) {
         return type.startsWith(needle.slice(0, -1));
+      }
       return type === needle;
     });
   }
   function setFileInput(world, element, files) {
     const node = resolveRef(world.document, element);
-    if (!node)
+    if (!node) {
       return unresolved(element);
+    }
     const inputType = (prop(node, "type") ?? node.getAttribute("type") ?? "").toLowerCase();
     if (node.tagName !== "INPUT" || inputType !== "file") {
       return unsupported("set_file_input requires an input type=file");
@@ -535,8 +604,9 @@
     const accept = node.getAttribute("accept") ?? "";
     const transfer = new DataTransferCtor;
     for (const file of files) {
-      if (!file.name)
+      if (!file.name) {
         return unsupported("set_file_input file name must be non-empty");
+      }
       const bytes = decodeBase64(file.contentBase64);
       if (!bytes) {
         return unsupported(`set_file_input file ${JSON.stringify(file.name)} is not valid base64`);
@@ -548,7 +618,7 @@
       transfer.items.add(new FileCtor([bytes], file.name, mediaType ? { type: mediaType } : undefined));
     }
     try {
-      node.files = transfer.files;
+      Object.assign(node, { files: transfer.files });
     } catch (error) {
       return unsupported(`the page refused FileList assignment from a constructed DataTransfer: ${String(error)}`);
     }
@@ -582,8 +652,9 @@
   }
   function installEventRing(world) {
     const existing = world[SHIM_GLOBAL];
-    if (existing)
+    if (existing) {
       return existing.readEvents.bind(existing);
+    }
     const epoch = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     const ring = [];
     let nextSeq = 1;
@@ -604,7 +675,7 @@
           seq: nextSeq,
           kind: "console",
           level,
-          text: args.map((value) => String(value)).join(" ")
+          text: args.map(String).join(" ")
         });
         original?.(...args);
       };
@@ -653,8 +724,9 @@
     let agentOriginSeq = 0;
     let humanOriginSeq = 0;
     const markHuman = (event) => {
-      if (event.isTrusted)
+      if (event.isTrusted) {
         humanOriginSeq = agentOriginSeq + 1;
+      }
     };
     world.addEventListener("pointerdown", markHuman, true);
     world.addEventListener("keydown", markHuman, true);
@@ -668,8 +740,9 @@
   }
   function installAgentControlShim(world) {
     const existing = world[SHIM_GLOBAL];
-    if (existing)
+    if (existing) {
       return existing;
+    }
     const readEvents = installEventRing(world);
     const origin = installOriginTracking(world);
     const api = {

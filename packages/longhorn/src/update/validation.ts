@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import { UPDATE_FIELDS } from "./generated/fields.ts";
 import {
   UPDATE_AVAILABILITY_STATES,
@@ -11,17 +12,19 @@ import {
   UPDATE_PROGRESS_STATES,
   UPDATE_PROTOCOL_VERSION,
   UPDATE_REJECTION_CODES,
-  type UpdateApplyCommand,
-  type UpdateCancelCommand,
-  type UpdateChangedEvent,
-  type UpdateCheckCommand,
-  type UpdateDeferCommand,
-  type UpdateInstallAuthorizationProjection,
-  type UpdateOutcomeProjection,
-  type UpdatePrepareCommand,
-  type UpdateProgressEvent,
-  type UpdateSelectChannelCommand,
-  type UpdateSnapshot,
+} from "./generated/protocol.ts";
+import type {
+  UpdateApplyCommand,
+  UpdateCancelCommand,
+  UpdateChangedEvent,
+  UpdateCheckCommand,
+  UpdateDeferCommand,
+  UpdateInstallAuthorizationProjection,
+  UpdateOutcomeProjection,
+  UpdatePrepareCommand,
+  UpdateProgressEvent,
+  UpdateSelectChannelCommand,
+  UpdateSnapshot,
 } from "./generated/protocol.ts";
 import {
   UPDATE_VARIANT_FIELDS,
@@ -68,7 +71,9 @@ export function assertUpdateOutcome(value: unknown): asserts value is UpdateOutc
   const root = object(value, "$");
   oneOf(root.status, "$.status", UPDATE_OUTCOME_STATUSES);
   exact(root, "$", variantFields("UpdateOutcomeProjection", root, "$"));
-  if (root.status === "rejected") oneOf(root.code, "$.code", UPDATE_REJECTION_CODES);
+  if (root.status === "rejected") {
+    oneOf(root.code, "$.code", UPDATE_REJECTION_CODES);
+  }
   assertUpdateSnapshot(root.snapshot);
 }
 
@@ -140,7 +145,9 @@ export function assertUpdateInstallAuthorization(
   const root = object(value, "$");
   oneOf(root.status, "$.status", UPDATE_INSTALL_AUTHORIZATION_STATUSES);
   exact(root, "$", variantFields("UpdateInstallAuthorizationProjection", root, "$"));
-  if (root.status === "deferred") cause(root.cause, "$.cause");
+  if (root.status === "deferred") {
+    cause(root.cause, "$.cause");
+  }
 }
 
 function availability(value: unknown, path: string): void {
@@ -160,7 +167,9 @@ function availability(value: unknown, path: string): void {
     version(root.installed, `${path}.installed`);
     version(root.channel, `${path}.channel`);
   }
-  if (root.state === "withheldByRollout") version(root.version, `${path}.version`);
+  if (root.state === "withheldByRollout") {
+    version(root.version, `${path}.version`);
+  }
   if (root.state === "managedElsewhere") {
     version(root.version, `${path}.version`);
     oneOf(root.manager, `${path}.manager`, UPDATE_INSTALL_MANAGERS);
@@ -196,7 +205,7 @@ function cause(value: unknown, path: string): void {
   }
 }
 
-function commandBase(value: unknown, expected: readonly string[]): void {
+function commandBase(value: unknown, expected: ReadonlyArray<string>): void {
   noPayload(value);
   const root = object(value, "$");
   exact(root, "$", expected);
@@ -215,35 +224,104 @@ function variantFields(
   type: string,
   value: Record<string, unknown>,
   path: string,
-): readonly string[] {
+): ReadonlyArray<string> {
   const discriminant = value[UPDATE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const fields = UPDATE_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (fields === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  const fields =
+    typeof discriminant === "string" ? UPDATE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
+  if (fields === undefined) {
+    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  }
   return fields;
 }
 
 function noPayload(value: unknown): void {
   const visit = (candidate: unknown, path: string): void => {
-    if (Array.isArray(candidate)) return candidate.forEach((item, index) => visit(item, `${path}[${index}]`));
-    if (candidate !== null && typeof candidate === "object")
+    if (Array.isArray(candidate)) {
+      return candidate.forEach((item, index) => visit(item, `${path}[${index}]`));
+    }
+    if (candidate !== null && typeof candidate === "object") {
       for (const [key, child] of Object.entries(candidate)) {
-        if (key.toLocaleLowerCase().includes("payload")) fail(`${path}.${key}`, "product payload field is forbidden");
+        if (key.toLocaleLowerCase().includes("payload")) {
+          fail(`${path}.${key}`, "product payload field is forbidden");
+        }
         visit(child, `${path}.${key}`);
       }
+    }
   };
   visit(value, "$");
 }
-function object(value: unknown, path: string): Record<string, unknown> { if (value === null || typeof value !== "object" || Array.isArray(value)) fail(path, "expected object"); return value as Record<string, unknown>; }
-function exact(value: Record<string, unknown>, path: string, expected: readonly string[]): void { const actual = Object.keys(value).sort(); const wanted = [...expected].sort(); if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) fail(path, `unexpected keys: ${actual.join(",")}`); }
-function protocol(value: unknown, path: string): void { if (value !== UPDATE_PROTOCOL_VERSION) fail(path, `expected exact protocol ${UPDATE_PROTOCOL_VERSION}`); }
-function positive(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) fail(path, "expected positive safe integer"); }
-function count(value: unknown, path: string): void { if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) fail(path, "expected a non-negative safe byte count"); }
-function optionalCount(value: unknown, path: string): void { if (value !== null) count(value, path); }
-function digest(value: unknown, path: string): void { if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) fail(path, "expected 64 lowercase hex digits"); }
-function string(value: unknown, path: string): void { if (typeof value !== "string") fail(path, "expected string"); }
-function optionalString(value: unknown, path: string): void { if (value !== null) string(value, path); }
+function object(value: unknown, path: string): Record<string, unknown> {
+  if (!isRecord(value)) {
+    fail(path, "expected object");
+  }
+  return value;
+}
+function exact(
+  value: Record<string, unknown>,
+  path: string,
+  expected: ReadonlyArray<string>,
+): void {
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+    fail(path, `unexpected keys: ${actual.join(",")}`);
+  }
+}
+function protocol(value: unknown, path: string): void {
+  if (value !== UPDATE_PROTOCOL_VERSION) {
+    fail(path, `expected exact protocol ${UPDATE_PROTOCOL_VERSION}`);
+  }
+}
+function positive(value: unknown, path: string): void {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
+    fail(path, "expected positive safe integer");
+  }
+}
+function count(value: unknown, path: string): void {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    fail(path, "expected a non-negative safe byte count");
+  }
+}
+function optionalCount(value: unknown, path: string): void {
+  if (value !== null) {
+    count(value, path);
+  }
+}
+function digest(value: unknown, path: string): void {
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) {
+    fail(path, "expected 64 lowercase hex digits");
+  }
+}
+function string(value: unknown, path: string): asserts value is string {
+  if (typeof value !== "string") {
+    fail(path, "expected string");
+  }
+}
+function optionalString(value: unknown, path: string): void {
+  if (value !== null) {
+    string(value, path);
+  }
+}
 /** Versions are strings on the wire, as `semver::Version` serialises them. */
-function version(value: unknown, path: string): void { string(value, path); if ((value as string).length === 0) fail(path, "expected non-empty version"); }
-function fraction(value: unknown, path: string): void { if (value === null) return; if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1) fail(path, "expected a fraction between 0 and 1, or null"); }
-function oneOf(value: unknown, path: string, values: readonly string[]): void { if (typeof value !== "string" || !values.includes(value)) fail(path, "unsupported value"); }
-function fail(path: string, message: string): never { throw new UpdateValidationError(path, message); }
+function version(value: unknown, path: string): void {
+  string(value, path);
+  if (value.length === 0) {
+    fail(path, "expected non-empty version");
+  }
+}
+function fraction(value: unknown, path: string): void {
+  if (value === null) {
+    return;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1) {
+    fail(path, "expected a fraction between 0 and 1, or null");
+  }
+}
+function oneOf(value: unknown, path: string, values: ReadonlyArray<string>): void {
+  if (typeof value !== "string" || !values.includes(value)) {
+    fail(path, "unsupported value");
+  }
+}
+function fail(path: string, message: string): never {
+  throw new UpdateValidationError(path, message);
+}

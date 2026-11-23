@@ -34,14 +34,11 @@ export class BridgeStreamTracker {
     if (cursor.domainId !== this.#domainId) {
       return "wrongDomain";
     }
-    const pendingIsNewer = this.#pending !== undefined &&
-      newer(this.#pending, cursor);
+    const pendingIsNewer = this.#pending !== undefined && newer(this.#pending, cursor);
     this.#accepted = cursor;
     this.#pending = undefined;
     this.#requiresSnapshot = pendingIsNewer;
-    return pendingIsNewer
-      ? "acceptedResnapshotRequired"
-      : "accepted";
+    return pendingIsNewer ? "acceptedResnapshotRequired" : "accepted";
   }
 
   classifyEvent(cursor: BridgeStreamCursor): BridgeStreamDecision {
@@ -99,11 +96,9 @@ export class BridgeStreamTracker {
   }
 }
 
-export function newer(
-  candidate: BridgeStreamCursor,
-  current: BridgeStreamCursor,
-): boolean {
-  return candidate.authorityEpoch > current.authorityEpoch ||
-    (candidate.authorityEpoch === current.authorityEpoch &&
-      candidate.sequence > current.sequence);
+export function newer(candidate: BridgeStreamCursor, current: BridgeStreamCursor): boolean {
+  return (
+    candidate.authorityEpoch > current.authorityEpoch ||
+    (candidate.authorityEpoch === current.authorityEpoch && candidate.sequence > current.sequence)
+  );
 }

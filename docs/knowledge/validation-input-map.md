@@ -60,3 +60,23 @@ ignored or lockfile inputs.
 - TypeScript and Svelte selectors that chain `check:bun-deps` run
   `bun install --frozen-lockfile` when dependency markers are missing, then
   recheck them. The install outcome is part of that run's environment evidence.
+
+
+## Static gates
+
+- `typescript-static` covers the three packages, repository scripts,
+  agent-control proof drivers and their toolchain configuration. It runs
+  TypeScript, Svelte, Oxlint, Oxfmt, Knip and the local tests. Use the
+  package-specific groups for ordinary package work. Template props and
+  warnings are checked by Svelte. The private ambient shim is loaded only by
+  the adapter's plain TypeScript config.
+- Oxlint uses Cloudflare's preset with the pinned tsgolint backend and fails
+  on diagnostics. The lint config documents exceptions for raw port boundaries
+  and test doubles. Rust-generated bindings use their separate byte check.
+- Oxfmt runs with Node and Svelte support enabled. The standalone Svelte
+  formatting pass reports component coverage separately from TypeScript.
+- `rust-dependencies` combines Machete's root Cargo workspace inventory
+  with cargo-deny's bans, licenses and sources checks. Run it locally with
+  both Cargo plugins installed. The release gate also checks live RustSec
+  advisories. Standalone prototypes and staged consumers have their own
+  validation routes.

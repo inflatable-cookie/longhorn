@@ -13,7 +13,7 @@ describe("Tauri fork-history composition", () => {
     const pruneCommand = { seam: "prune" } as never;
     const navigateCommand = { seam: "navigate" } as never;
     const calls: Array<[string, unknown]> = [];
-    const listened: string[] = [];
+    const listened: Array<string> = [];
     const transport = {
       async invoke(command: string, args?: Record<string, unknown>) {
         calls.push([command, args]);

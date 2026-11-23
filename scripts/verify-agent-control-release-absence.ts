@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Proves contract 022's compile-time opt-in for the agent control surface:
 // three feature states of `longhorn-tauri-agent-control`, each with a
 // positive control so a broken scan cannot pass vacuously.
@@ -67,7 +68,7 @@ type BuildResult = {
   coreRlib: string | null;
 };
 
-function featureArgs(features: FeatureSet): string[] {
+function featureArgs(features: FeatureSet): Array<string> {
   switch (features) {
     case "off":
       return ["--no-default-features"];
@@ -81,7 +82,7 @@ function featureArgs(features: FeatureSet): string[] {
 // `cargo test -- FILTER --exact` exits 0 with `running 0 tests` when the
 // filter matches nothing (a cfg'd-out name, a rename). The scan must not
 // pass that as a positive control.
-async function runExactTest(command: readonly string[], testName: string) {
+async function runExactTest(command: ReadonlyArray<string>, testName: string) {
   const output = await run(command, repoRoot, { env: { CARGO_TERM_COLOR: "never" } });
   if (!output.includes(testName)) {
     throw new Error(
@@ -100,17 +101,7 @@ async function build(features: FeatureSet): Promise<BuildResult> {
   const targetDir = join(SCAN_ROOT, features);
 
   const tree = await run(
-    rustCommand([
-      "tree",
-      "-p",
-      PLUGIN,
-      "--locked",
-      "-e",
-      "normal",
-      "--prefix",
-      "none",
-      ...args,
-    ]),
+    rustCommand(["tree", "-p", PLUGIN, "--locked", "-e", "normal", "--prefix", "none", ...args]),
     repoRoot,
   );
   const built = await run(
@@ -141,9 +132,7 @@ async function build(features: FeatureSet): Promise<BuildResult> {
       );
     }
     if (coreRlibs.length > 0) {
-      throw new Error(
-        `feature-off build produced core-crate artifacts: ${coreRlibs.join(", ")}`,
-      );
+      throw new Error(`feature-off build produced core-crate artifacts: ${coreRlibs.join(", ")}`);
     }
   } else {
     if (!tree.includes(CORE)) {
@@ -164,25 +153,25 @@ async function build(features: FeatureSet): Promise<BuildResult> {
     features,
     targetDir,
     tree,
-    pluginRlib: pluginRlibs[0]!,
-    coreRlib: coreRlibs.length === 0 ? null : coreRlibs[0]!,
+    pluginRlib: requireValue(pluginRlibs[0], "pluginRlibs[0]"),
+    coreRlib: coreRlibs.length === 0 ? null : requireValue(coreRlibs[0], "coreRlibs[0]"),
   };
 }
 
-async function markerHits(path: string, markers: readonly string[]): Promise<string[]> {
+async function markerHits(path: string, markers: ReadonlyArray<string>): Promise<Array<string>> {
   const bytes = await readFile(path);
   return markers.filter((marker) => bytes.includes(marker));
 }
 
 async function proveServerPresent(buildResult: BuildResult): Promise<{
-  pluginMarkersFound: string[];
-  coreMarkersFound: string[];
+  pluginMarkersFound: Array<string>;
+  coreMarkersFound: Array<string>;
 }> {
   if (buildResult.coreRlib === null) {
     throw new Error(`${buildResult.features} build produced no core-crate rlib`);
   }
   const pluginHits = await markerHits(buildResult.pluginRlib, MARKERS);
-  if (!pluginHits.includes(CORE_MARKERS[0]!)) {
+  if (!pluginHits.includes(requireValue(CORE_MARKERS[0], "CORE_MARKERS[0]"))) {
     throw new Error(
       `${buildResult.features} release artifact does not reference ${CORE_MARKERS[0]} — the scan would pass vacuously`,
     );
@@ -222,7 +211,10 @@ try {
   }
 
   const packagedHits = await proveServerPresent(packaged);
-  const packagedEvaluate = await markerHits(packaged.coreRlib!, EVALUATE_MARKERS);
+  const packagedEvaluate = await markerHits(
+    requireValue(packaged.coreRlib, "packaged.coreRlib"),
+    EVALUATE_MARKERS,
+  );
   if (packagedEvaluate.length > 0) {
     throw new Error(
       `agent-control-only core artifact carries evaluate markers: ${packagedEvaluate.join(", ")}`,
@@ -230,10 +222,11 @@ try {
   }
 
   const evaluateHits = await proveServerPresent(withEvaluate);
-  const evaluatePresent = await markerHits(withEvaluate.coreRlib!, EVALUATE_MARKERS);
-  const missingEvaluate = EVALUATE_MARKERS.filter(
-    (marker) => !evaluatePresent.includes(marker),
+  const evaluatePresent = await markerHits(
+    requireValue(withEvaluate.coreRlib, "withEvaluate.coreRlib"),
+    EVALUATE_MARKERS,
   );
+  const missingEvaluate = EVALUATE_MARKERS.filter((marker) => !evaluatePresent.includes(marker));
   if (missingEvaluate.length > 0) {
     throw new Error(
       `agent-control-evaluate core artifact is missing evaluate markers: ${missingEvaluate.join(", ")} — the scan would pass vacuously`,

@@ -8,8 +8,8 @@ import {
   RESTORE_DOMAIN_COMPATIBILITY_STATUSES,
   RESTORE_IDENTITY_STATUSES,
   STORAGE_BOOTSTRAP_STATES,
-  type ConfigOperationsSnapshot,
 } from "../generated/protocol.ts";
+import type { ConfigOperationsSnapshot } from "../generated/protocol.ts";
 import {
   array,
   boolean,
@@ -38,27 +38,25 @@ export function assertValidConfigOperationsSnapshot(
   protocol(snapshot.protocolVersion, "$.protocolVersion");
   finiteNumber(snapshot.generation, "$.generation");
   array(snapshot.capabilities, "$.capabilities").forEach((capability, index) =>
-    discriminant(
-      capability,
-      CONFIG_OPERATION_CAPABILITIES,
-      `$.capabilities[${index}]`,
-    ),
+    discriminant(capability, CONFIG_OPERATION_CAPABILITIES, `$.capabilities[${index}]`),
   );
-  if (snapshot.storage !== null) storage(snapshot.storage, "$.storage");
-  if (snapshot.backup !== null) backup(snapshot.backup, "$.backup");
-  if (snapshot.restore !== null) restoreState(snapshot.restore, "$.restore");
+  if (snapshot.storage !== null) {
+    storage(snapshot.storage, "$.storage");
+  }
+  if (snapshot.backup !== null) {
+    backup(snapshot.backup, "$.backup");
+  }
+  if (snapshot.restore !== null) {
+    restoreState(snapshot.restore, "$.restore");
+  }
 }
 
 export function assertRestoreInspection(value: unknown, path: string): void {
   const inspection = record(value, path, CONFIG_FIELDS.RestoreInspectionProjection);
   digest(inspection.archiveSha256, `${path}.archiveSha256`);
-  [
-    "archiveId",
-    "createdAt",
-    "kind",
-    "applicationVersion",
-    "producerVersion",
-  ].forEach((key) => nonempty(inspection[key], `${path}.${key}`));
+  ["archiveId", "createdAt", "kind", "applicationVersion", "producerVersion"].forEach((key) =>
+    nonempty(inspection[key], `${path}.${key}`),
+  );
   discriminant(inspection.integrity, ["verified"], `${path}.integrity`);
   discriminant(
     inspection.authenticity,
@@ -66,22 +64,14 @@ export function assertRestoreInspection(value: unknown, path: string): void {
     `${path}.authenticity`,
   );
   identity(
-    record(
-      inspection.identity,
-      `${path}.identity`,
-      CONFIG_FIELDS.RestoreIdentityProjection,
-    ),
+    record(inspection.identity, `${path}.identity`, CONFIG_FIELDS.RestoreIdentityProjection),
     `${path}.identity`,
   );
-  array(inspection.consistencyGroups, `${path}.consistencyGroups`).forEach(
-    (value, index) => {
-      const groupPath = `${path}.consistencyGroups[${index}]`;
-      const group = record(value, groupPath, CONFIG_FIELDS.RestoreConsistencyGroupProjection);
-      ["id", "mode", "authority"].forEach((key) =>
-        nonempty(group[key], `${groupPath}.${key}`),
-      );
-    },
-  );
+  array(inspection.consistencyGroups, `${path}.consistencyGroups`).forEach((value, index) => {
+    const groupPath = `${path}.consistencyGroups[${index}]`;
+    const group = record(value, groupPath, CONFIG_FIELDS.RestoreConsistencyGroupProjection);
+    ["id", "mode", "authority"].forEach((key) => nonempty(group[key], `${groupPath}.${key}`));
+  });
   array(inspection.domains, `${path}.domains`).forEach((value, index) =>
     restoreDomain(value, `${path}.domains[${index}]`),
   );
@@ -111,13 +101,11 @@ export function assertRestorePlan(value: unknown, path: string): void {
     const entryPath = `${path}.entries[${index}]`;
     const entry = record(value, entryPath, CONFIG_FIELDS.RestorePlanEntryProjection);
     nonempty(entry.domainId, `${entryPath}.domainId`);
-    discriminant(
-      entry.choice,
-      ["useArchive", "keepCurrent"],
-      `${entryPath}.choice`,
-    );
+    discriminant(entry.choice, ["useArchive", "keepCurrent"], `${entryPath}.choice`);
     nullableString(entry.action, `${entryPath}.action`);
-    if (entry.current !== null) currentEvidence(entry.current, `${entryPath}.current`);
+    if (entry.current !== null) {
+      currentEvidence(entry.current, `${entryPath}.current`);
+    }
   });
   countReceipt(plan.receipt, `${path}.receipt`, [
     "selected",
@@ -130,10 +118,7 @@ export function assertRestorePlan(value: unknown, path: string): void {
   ]);
 }
 
-export function assertRestoreExecutionReceipt(
-  value: unknown,
-  path: string,
-): void {
+export function assertRestoreExecutionReceipt(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.RestoreExecutionReceiptProjection);
   digest(receipt.confirmationDigest, `${path}.confirmationDigest`);
   countReceipt(receipt.staging, `${path}.staging`, [
@@ -166,23 +151,15 @@ export function assertRestoreFailure(value: unknown, path: string): void {
   string(failure.detail, `${path}.detail`);
 }
 
-export function assertRestoreAdapterReceipt(
-  value: unknown,
-  path: string,
-): void {
+export function assertRestoreAdapterReceipt(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.RestoreAdapterReceiptProjection);
-  ["domainId", "adapter", "outcome"].forEach((key) =>
-    nonempty(receipt[key], `${path}.${key}`),
-  );
+  ["domainId", "adapter", "outcome"].forEach((key) => nonempty(receipt[key], `${path}.${key}`));
   participation(receipt.participation, `${path}.participation`);
   digest(receipt.confirmationDigest, `${path}.confirmationDigest`);
   nullableDigest(receipt.evidence, `${path}.evidence`);
 }
 
-export function assertRestoreRecoveryReceipt(
-  value: unknown,
-  path: string,
-): void {
+export function assertRestoreRecoveryReceipt(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.RestoreRecoveryReceiptProjection);
   discriminant(
     receipt.outcome,
@@ -190,10 +167,6 @@ export function assertRestoreRecoveryReceipt(
     `${path}.outcome`,
   );
   stringArray(receipt.domainIds, `${path}.domainIds`);
-}
-
-export function assertPublication(value: unknown, path: string): void {
-  publication(value, path);
 }
 
 function storage(value: unknown, path: string): void {
@@ -205,36 +178,40 @@ function storage(value: unknown, path: string): void {
   );
   digest(layout.layoutDigest, `${path}.layout.layoutDigest`);
   array(layout.roots, `${path}.layout.roots`).forEach((rootValue, index) => {
-    const root = record(rootValue, `${path}.layout.roots[${index}]`, CONFIG_FIELDS.StorageRootProjection);
+    const root = record(
+      rootValue,
+      `${path}.layout.roots[${index}]`,
+      CONFIG_FIELDS.StorageRootProjection,
+    );
     ["kind", "path", "provenance"].forEach((key) =>
       nonempty(root[key], `${path}.layout.roots[${index}].${key}`),
     );
   });
   const bootstrap = record(projection.bootstrap, `${path}.bootstrap`);
   discriminant(bootstrap.state, STORAGE_BOOTSTRAP_STATES, `${path}.bootstrap.state`);
-  array(projection.availableProfiles, `${path}.availableProfiles`).forEach(
-    (profile, index) =>
-      discriminant(profile, STORAGE_PROFILES, `${path}.availableProfiles[${index}]`),
+  array(projection.availableProfiles, `${path}.availableProfiles`).forEach((profile, index) =>
+    discriminant(profile, STORAGE_PROFILES, `${path}.availableProfiles[${index}]`),
   );
 }
 
 function backup(value: unknown, path: string): void {
   const projection = record(value, path, CONFIG_FIELDS.BackupOperationsProjection);
-  const inventory = record(projection.inventory, `${path}.inventory`, CONFIG_FIELDS.BackupInventoryProjection);
-  nonempty(inventory.root, `${path}.inventory.root`);
-  array(inventory.archives, `${path}.inventory.archives`).forEach(
-    (archiveValue, index) => {
-      const archivePath = `${path}.inventory.archives[${index}]`;
-      const archive = record(archiveValue, archivePath, CONFIG_FIELDS.BackupArchiveProjection);
-      ["path", "archiveId", "createdAt", "kind"].forEach((key) =>
-        nonempty(archive[key], `${archivePath}.${key}`),
-      );
-      digest(archive.archiveSha256, `${archivePath}.archiveSha256`);
-    },
+  const inventory = record(
+    projection.inventory,
+    `${path}.inventory`,
+    CONFIG_FIELDS.BackupInventoryProjection,
   );
-  array(inventory.entries, `${path}.inventory.entries`).forEach(
-    (entryValue, index) =>
-      inventoryEntry(entryValue, `${path}.inventory.entries[${index}]`),
+  nonempty(inventory.root, `${path}.inventory.root`);
+  array(inventory.archives, `${path}.inventory.archives`).forEach((archiveValue, index) => {
+    const archivePath = `${path}.inventory.archives[${index}]`;
+    const archive = record(archiveValue, archivePath, CONFIG_FIELDS.BackupArchiveProjection);
+    ["path", "archiveId", "createdAt", "kind"].forEach((key) =>
+      nonempty(archive[key], `${archivePath}.${key}`),
+    );
+    digest(archive.archiveSha256, `${archivePath}.archiveSha256`);
+  });
+  array(inventory.entries, `${path}.inventory.entries`).forEach((entryValue, index) =>
+    inventoryEntry(entryValue, `${path}.inventory.entries[${index}]`),
   );
   boolean(inventory.complete, `${path}.inventory.complete`);
   const pending = record(projection.pending, `${path}.pending`);
@@ -242,23 +219,22 @@ function backup(value: unknown, path: string): void {
   const encryption = record(projection.encryption, `${path}.encryption`);
   discriminant(encryption.state, BACKUP_ENCRYPTION_STATES, `${path}.encryption.state`);
   if (projection.retention !== null) {
-    const retention = record(projection.retention, `${path}.retention`, CONFIG_FIELDS.BackupRetentionProjection);
+    const retention = record(
+      projection.retention,
+      `${path}.retention`,
+      CONFIG_FIELDS.BackupRetentionProjection,
+    );
     stringArray(retention.deletionPaths, `${path}.retention.deletionPaths`);
     digest(retention.confirmationDigest, `${path}.retention.confirmationDigest`);
-    array(retention.diagnostics, `${path}.retention.diagnostics`).forEach(
-      (entryValue, index) =>
-        inventoryEntry(entryValue, `${path}.retention.diagnostics[${index}]`),
+    array(retention.diagnostics, `${path}.retention.diagnostics`).forEach((entryValue, index) =>
+      inventoryEntry(entryValue, `${path}.retention.diagnostics[${index}]`),
     );
   }
 }
 
 function restoreState(value: unknown, path: string): void {
   const projection = record(value, path, CONFIG_FIELDS.RestoreOperationsProjection);
-  discriminant(
-    projection.state,
-    ["inactive", "active", "recoveryRequired"],
-    `${path}.state`,
-  );
+  discriminant(projection.state, ["inactive", "active", "recoveryRequired"], `${path}.state`);
   nullableDigest(projection.safetyBackupSha256, `${path}.safetyBackupSha256`);
 }
 
@@ -276,8 +252,8 @@ function identity(value: Record<string, unknown>, path: string): void {
 
 function restoreDomain(value: unknown, path: string): void {
   const domain = record(value, path, CONFIG_FIELDS.RestoreDomainInspectionProjection);
-  ["domainId", "storageClass", "consistencyGroup", "adapter", "sourceState"].forEach(
-    (key) => nonempty(domain[key], `${path}.${key}`),
+  ["domainId", "storageClass", "consistencyGroup", "adapter", "sourceState"].forEach((key) =>
+    nonempty(domain[key], `${path}.${key}`),
   );
   if (domain.sourceSchemaVersion !== null) {
     finiteNumber(domain.sourceSchemaVersion, `${path}.sourceSchemaVersion`);
@@ -304,12 +280,10 @@ function restoreDomain(value: unknown, path: string): void {
 
 function participation(value: unknown, path: string): void {
   const projection = record(value, path);
-  discriminant(
-    projection.kind,
-    RESTORE_ADAPTER_PARTICIPATION_KINDS,
-    `${path}.kind`,
-  );
-  if (projection.kind === "excluded") nonempty(projection.reason, `${path}.reason`);
+  discriminant(projection.kind, RESTORE_ADAPTER_PARTICIPATION_KINDS, `${path}.kind`);
+  if (projection.kind === "excluded") {
+    nonempty(projection.reason, `${path}.reason`);
+  }
 }
 
 function currentEvidence(value: unknown, path: string): void {
@@ -334,14 +308,12 @@ function inventoryEntry(value: unknown, path: string): void {
 
 function publication(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.BackupPublicationReceiptProjection);
-  ["path", "destination", "durability"].forEach((key) =>
-    nonempty(receipt[key], `${path}.${key}`),
-  );
+  ["path", "destination", "durability"].forEach((key) => nonempty(receipt[key], `${path}.${key}`));
   digest(receipt.archiveSha256, `${path}.archiveSha256`);
   boolean(receipt.replacedExisting, `${path}.replacedExisting`);
 }
 
-function countReceipt(value: unknown, path: string, keys: string[]): void {
+function countReceipt(value: unknown, path: string, keys: Array<string>): void {
   const receipt = record(value, path);
   keys.forEach((key) => finiteNumber(receipt[key], `${path}.${key}`));
 }

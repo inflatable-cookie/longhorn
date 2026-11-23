@@ -1,4 +1,5 @@
-import { isEventTransport, type EventTransport, type InvokeTransport } from "@inflatable-cookie/longhorn/core";
+import { isEventTransport } from "@inflatable-cookie/longhorn/core";
+import type { EventTransport, InvokeTransport } from "@inflatable-cookie/longhorn/core";
 
 import type { NotificationPort } from "@inflatable-cookie/longhorn/notifications";
 
@@ -11,7 +12,9 @@ export interface TauriNotificationPortOptions {
   readonly nextRequestId: () => string;
 }
 
-export function createTauriNotificationPort(options: TauriNotificationPortOptions): NotificationPort {
+export function createTauriNotificationPort(
+  options: TauriNotificationPortOptions,
+): NotificationPort {
   const events = isEventTransport(options.transport) ? options.transport : undefined;
   return {
     snapshot: (query) => options.transport.invoke(NOTIFICATION_SNAPSHOT_COMMAND, { query }),

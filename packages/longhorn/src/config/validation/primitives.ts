@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import { CONFIG_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/base.ts";
 import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "../generated/protocol.ts";
 
@@ -10,11 +11,7 @@ export class ConfigProtocolValidationError extends Error {
   readonly code: ConfigProtocolValidationCode;
   readonly path: string;
 
-  constructor(
-    code: ConfigProtocolValidationCode,
-    path: string,
-    message: string,
-  ) {
+  constructor(code: ConfigProtocolValidationCode, path: string, message: string) {
     super(message);
     this.name = "ConfigProtocolValidationError";
     this.code = code;
@@ -25,7 +22,7 @@ export class ConfigProtocolValidationError extends Error {
 export function baseCommand(
   value: unknown,
   path: string,
-  allowed?: readonly string[],
+  allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
   const command = record(value, path, allowed);
   protocol(command.protocolVersion, `${path}.protocolVersion`);
@@ -58,13 +55,15 @@ export function protocol(value: unknown, path: string): void {
 export function record(
   value: unknown,
   path: string,
-  allowed?: readonly string[],
+  allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail("invalid_payload", path, "expected object");
   }
-  const result = value as Record<string, unknown>;
-  if (allowed === undefined) return result;
+  const result = value;
+  if (allowed === undefined) {
+    return result;
+  }
 
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {
@@ -80,24 +79,20 @@ export function record(
   return result;
 }
 
-export function array(value: unknown, path: string): unknown[] {
-  if (!Array.isArray(value)) fail("invalid_payload", path, "expected array");
+export function array(value: unknown, path: string): Array<unknown> {
+  if (!Array.isArray(value)) {
+    fail("invalid_payload", path, "expected array");
+  }
   return value;
 }
 
-export function string(
-  value: unknown,
-  path: string,
-): asserts value is string {
+export function string(value: unknown, path: string): asserts value is string {
   if (typeof value !== "string") {
     fail("invalid_payload", path, "expected string");
   }
 }
 
-export function nonempty(
-  value: unknown,
-  path: string,
-): asserts value is string {
+export function nonempty(value: unknown, path: string): asserts value is string {
   string(value, path);
   if (value.length === 0) {
     fail("invalid_payload", path, "expected nonempty string");
@@ -105,13 +100,12 @@ export function nonempty(
 }
 
 export function nullableString(value: unknown, path: string): void {
-  if (value !== null) string(value, path);
+  if (value !== null) {
+    string(value, path);
+  }
 }
 
-export function digest(
-  value: unknown,
-  path: string,
-): asserts value is string {
+export function digest(value: unknown, path: string): asserts value is string {
   string(value, path);
   if (!/^[0-9a-f]{64}$/.test(value)) {
     fail("invalid_payload", path, "expected lowercase SHA-256 digest");
@@ -119,36 +113,18 @@ export function digest(
 }
 
 export function nullableDigest(value: unknown, path: string): void {
-  if (value !== null) digest(value, path);
-}
-
-export function opaqueId(
-  value: unknown,
-  path: string,
-): asserts value is string {
-  string(value, path);
-  if (
-    value.length === 0 ||
-    value.length > CONFIG_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z0-9._:-]+$/.test(value)
-  ) {
-    fail("invalid_payload", path, "expected bounded lowercase opaque id");
+  if (value !== null) {
+    digest(value, path);
   }
 }
 
-export function finiteNumber(
-  value: unknown,
-  path: string,
-): asserts value is number {
+export function finiteNumber(value: unknown, path: string): asserts value is number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     fail("invalid_payload", path, "expected non-negative safe integer");
   }
 }
 
-export function boolean(
-  value: unknown,
-  path: string,
-): asserts value is boolean {
+export function boolean(value: unknown, path: string): asserts value is boolean {
   if (typeof value !== "boolean") {
     fail("invalid_payload", path, "expected boolean");
   }
@@ -156,7 +132,7 @@ export function boolean(
 
 export function discriminant(
   value: unknown,
-  variants: readonly string[],
+  variants: ReadonlyArray<string>,
   path: string,
 ): asserts value is string {
   string(value, path);
@@ -165,10 +141,17 @@ export function discriminant(
   }
 }
 
-export function fail(
-  code: ConfigProtocolValidationCode,
-  path: string,
-  message: string,
-): never {
+export function fail(code: ConfigProtocolValidationCode, path: string, message: string): never {
   throw new ConfigProtocolValidationError(code, path, message);
+}
+
+function opaqueId(value: unknown, path: string): asserts value is string {
+  string(value, path);
+  if (
+    value.length === 0 ||
+    value.length > CONFIG_MAXIMUM_OPAQUE_ID_BYTES ||
+    !/^[a-z0-9._:-]+$/.test(value)
+  ) {
+    fail("invalid_payload", path, "expected bounded lowercase opaque id");
+  }
 }

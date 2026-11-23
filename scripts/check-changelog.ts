@@ -1,3 +1,5 @@
+import { isRecord } from "../packages/longhorn/src/core/record.ts";
+import { parseJsonRecord } from "./proof-json.ts";
 // Fail when Effigy's release parser refuses CHANGELOG.md.
 //
 // longhorn#049 added `### Release facts` under a release heading. The docs
@@ -21,17 +23,6 @@ import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
 const defaultRepoRoot = resolve(import.meta.dir, "..");
 const EMPTY_UNRELEASED = "unreleased changelog section has no entries";
 
-type ReleaseStatusDetails = {
-  blockers?: string[];
-  changelog?: { valid?: boolean };
-  unreleased?: { empty?: boolean };
-};
-
-type ReleaseStatusEnvelope = {
-  ok?: boolean;
-  error?: { message?: string; details?: ReleaseStatusDetails | null } | null;
-};
-
 export type ChangelogVerdict =
   | { outcome: "pass"; note: string }
   | { outcome: "fail"; reason: string };
@@ -45,20 +36,25 @@ export function effigyBinary(): string {
   return override === undefined || override === "" ? "effigy" : override;
 }
 
-function parseEnvelope(stdout: string): ReleaseStatusEnvelope | undefined {
+function parseEnvelope(stdout: string) {
   try {
-    return JSON.parse(stdout) as ReleaseStatusEnvelope;
+    return parseJsonRecord(stdout);
   } catch {
     return undefined;
   }
 }
 
-function isEmptyUnreleasedGap(details: ReleaseStatusDetails | null | undefined): boolean {
-  return details?.changelog?.valid === true
-    && details.unreleased?.empty === true
-    && Array.isArray(details.blockers)
-    && details.blockers.length > 0
-    && details.blockers.every((blocker) => blocker === EMPTY_UNRELEASED);
+function isEmptyUnreleasedGap(details: unknown): boolean {
+  return (
+    isRecord(details) &&
+    isRecord(details.changelog) &&
+    details.changelog.valid === true &&
+    isRecord(details.unreleased) &&
+    details.unreleased.empty === true &&
+    Array.isArray(details.blockers) &&
+    details.blockers.length > 0 &&
+    details.blockers.every((blocker) => blocker === EMPTY_UNRELEASED)
+  );
 }
 
 export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
@@ -69,12 +65,16 @@ export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
   if (envelope.ok === true) {
     return { outcome: "pass", note: "Effigy's release parser accepts CHANGELOG.md" };
   }
-  if (isEmptyUnreleasedGap(envelope.error?.details)) {
+  const error = isRecord(envelope.error) ? envelope.error : undefined;
+  if (isEmptyUnreleasedGap(error?.details)) {
     return { outcome: "pass", note: "CHANGELOG.md parses; [Unreleased] is empty" };
   }
   return {
     outcome: "fail",
-    reason: envelope.error?.message ?? "effigy release status failed without a message",
+    reason:
+      typeof error?.message === "string"
+        ? error.message
+        : "effigy release status failed without a message",
   };
 }
 
@@ -90,7 +90,9 @@ async function readReleaseTable(repoRoot: string): Promise<string> {
   let releaseConfig: ReleaseConfig | undefined;
   for (const relativePath of ["config/release.toml", "effigy.toml"]) {
     const content = await readFile(join(repoRoot, relativePath), "utf8").catch(() => null);
-    if (content === null) continue;
+    if (content === null) {
+      continue;
+    }
     const parsed = Bun.TOML.parse(content) as { release?: ReleaseConfig };
     if (parsed.release) {
       releaseConfig = parsed.release;

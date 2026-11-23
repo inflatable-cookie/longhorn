@@ -23,18 +23,10 @@ const scriptRoot = resolve(import.meta.dir, "..");
 const longhornRoot = resolve(requireEnvironment("AGENT_LONGHORN_REPO"));
 const projectsRoot = resolve(requireEnvironment("AGENT_PROJECTS_ROOT"));
 const swallowtailRoot = join(projectsRoot, "swallowtail");
-const sourcePath = join(
-  scriptRoot,
-  "fixtures",
-  "agent-tool-dispatch-provider-free",
-  "main.rs",
-);
+const sourcePath = join(scriptRoot, "fixtures", "agent-tool-dispatch-provider-free", "main.rs");
 
 const longhornHead = await cleanHead(longhornRoot, "AGENT_LONGHORN_REPO");
-const swallowtailHead = await cleanHead(
-  swallowtailRoot,
-  "AGENT_PROJECTS_ROOT/swallowtail",
-);
+const swallowtailHead = await cleanHead(swallowtailRoot, "AGENT_PROJECTS_ROOT/swallowtail");
 if (swallowtailHead !== SWALLOWTAIL_SHA) {
   throw new Error(
     `AGENT_PROJECTS_ROOT/swallowtail must be ${SWALLOWTAIL_SHA}; got ${swallowtailHead}`,
@@ -54,8 +46,8 @@ try {
   const firstEvidence = await prepare(first);
   const secondEvidence = await prepare(second);
   if (
-    firstEvidence.manifestSha256 !== secondEvidence.manifestSha256
-    || firstEvidence.lockSha256 !== secondEvidence.lockSha256
+    firstEvidence.manifestSha256 !== secondEvidence.manifestSha256 ||
+    firstEvidence.lockSha256 !== secondEvidence.lockSha256
   ) {
     throw new Error("normalized manifest or lockfile hash is not reproducible");
   }
@@ -65,17 +57,14 @@ try {
     // on build scratch: the tool inside calls plain Cargo.
     const outcome = (
       await run(
-        rustExec(
-          privateCargoCommand(buildScratch.root, ["cargo", "run", "--locked", "--quiet"]),
-          { manifestPath: join(first, "Cargo.toml") },
-        ),
+        rustExec(privateCargoCommand(buildScratch.root, ["cargo", "run", "--locked", "--quiet"]), {
+          manifestPath: join(first, "Cargo.toml"),
+        }),
         first,
       )
     ).trim();
     if (outcome !== SAFE_OUTCOME) {
-      throw new Error(
-        `fixture run ${index + 1} returned an unexpected safe outcome: ${outcome}`,
-      );
+      throw new Error(`fixture run ${index + 1} returned an unexpected safe outcome: ${outcome}`);
     }
   }
 
@@ -119,7 +108,9 @@ try {
   await rm(second, { recursive: true, force: true });
   await buildScratch.dispose();
 }
-if (!receipt) throw new Error("fixture completed without a receipt");
+if (!receipt) {
+  throw new Error("fixture completed without a receipt");
+}
 console.log(JSON.stringify(receipt, null, 2));
 
 async function prepare(directory: string) {
@@ -137,10 +128,7 @@ async function prepare(directory: string) {
     }),
     directory,
   );
-  const normalized = renderManifest(
-    "${AGENT_LONGHORN_REPO}",
-    "${AGENT_PROJECTS_ROOT}/swallowtail",
-  );
+  const normalized = renderManifest("${AGENT_LONGHORN_REPO}", "${AGENT_PROJECTS_ROOT}/swallowtail");
   const lock = await readFile(join(directory, "Cargo.lock"));
   return {
     manifestSha256: sha256(normalized),
@@ -148,8 +136,10 @@ async function prepare(directory: string) {
   };
 }
 
+const path = (value: string) =>
+  value.replaceAll("\\", String.raw`\\`).replaceAll('"', String.raw`\"`);
+
 function renderManifest(longhorn: string, swallowtail: string): string {
-  const path = (value: string) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
   return `[package]\nname = "longhorn-agent-tool-dispatch-provider-free-fixture"\nversion = "0.0.0"\nedition = "2024"\nrust-version = "${MSRV}"\npublish = false\n\n[workspace]\n\n[dependencies]\nlonghorn-agent-tool-dispatch = { path = "${path(join(longhorn, "crates", "longhorn-agent-tool-dispatch"))}" }\nswallowtail-core = { path = "${path(join(swallowtail, "crates", "swallowtail-core"))}" }\nswallowtail-host-local = { path = "${path(join(swallowtail, "crates", "swallowtail-host-local"))}" }\nswallowtail-runtime = { path = "${path(join(swallowtail, "crates", "swallowtail-runtime"))}" }\nswallowtail-testkit = { path = "${path(join(swallowtail, "crates", "swallowtail-testkit"))}" }\n\n[[bin]]\nname = "provider-free-fixture"\npath = "main.rs"\n`;
 }
 
@@ -174,6 +164,8 @@ async function sourceGraphDigests(longhorn: string, swallowtail: string): Promis
 
 function requireEnvironment(key: string): string {
   const value = process.env[key];
-  if (!value) throw new Error(`${key} is required`);
+  if (!value) {
+    throw new Error(`${key} is required`);
+  }
   return value;
 }

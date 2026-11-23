@@ -9,15 +9,14 @@ import {
   SETTINGS_RESET_COMMAND,
   SETTINGS_SCOPE_CHANGED_EVENT,
   SettingsClient,
-  type SettingsApplyCommand,
-  type SettingsResetCommand,
 } from "../../src/settings/index.ts";
+import type { SettingsApplyCommand, SettingsResetCommand } from "../../src/settings/index.ts";
 import { fixture, registry, snapshot } from "./support.ts";
 
 describe("settings client", () => {
   test("installs registry listener before snapshot and rejects stale generations", async () => {
     const transport = new FakeSettingsTransport();
-    const seen: number[] = [];
+    const seen: Array<number> = [];
     const client = new SettingsClient(transport);
     const connection = client.connectRegistry((value) => {
       seen.push(value.generation);
@@ -52,7 +51,7 @@ describe("settings client", () => {
     transport.scopeValue = snapshot(3);
     const client = new SettingsClient(transport);
     let request = 0;
-    const seen: number[] = [];
+    const seen: Array<number> = [];
     const connection = client.connectScope({
       registry: registry(),
       pageId: "app:audio",
@@ -98,9 +97,7 @@ describe("settings client", () => {
     await expect(ready).rejects.toThrow(/disposed/);
     await disposal;
     expect(
-      transport.trace.filter((item) =>
-        item.startsWith(`invoke:${SETTINGS_REGISTRY_COMMAND}`),
-      ),
+      transport.trace.filter((item) => item.startsWith(`invoke:${SETTINGS_REGISTRY_COMMAND}`)),
     ).toEqual([]);
     expect(transport.unlistenCount).toBe(1);
   });
@@ -109,12 +106,8 @@ describe("settings client", () => {
     const transport = new FakeSettingsTransport();
     transport.serialize = true;
     const client = new SettingsClient(transport);
-    const apply = structuredClone(
-      fixture.applyCommands[0],
-    ) as SettingsApplyCommand;
-    const reset = structuredClone(
-      fixture.resetCommands[0],
-    ) as SettingsResetCommand;
+    const apply = structuredClone(fixture.applyCommands[0]) as SettingsApplyCommand;
+    const reset = structuredClone(fixture.resetCommands[0]) as SettingsResetCommand;
     transport.mutationValue = fixture.mutationResults[0]!;
     expect((await client.apply(registry(), apply)).status).toBe("applied");
     transport.mutationValue = fixture.mutationResults[1]!;
@@ -129,7 +122,7 @@ describe("settings client", () => {
 });
 
 class FakeSettingsTransport implements EventTransport {
-  readonly trace: string[] = [];
+  readonly trace: Array<string> = [];
   registryValue = registry();
   scopeValue = snapshot();
   mutationValue: unknown = fixture.mutationResults[0]!;
@@ -141,13 +134,10 @@ class FakeSettingsTransport implements EventTransport {
   readonly #arguments = new Map<string, Record<string, unknown>>();
   #release: (() => void) | undefined;
 
-  async invoke(
-    command: string,
-    arguments_: Record<string, unknown>,
-  ): Promise<unknown> {
+  async invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown> {
     this.trace.push(`invoke:${command}`);
     this.#arguments.set(command, clone(arguments_));
-    let response: unknown;
+    let response;
     switch (command) {
       case SETTINGS_REGISTRY_COMMAND:
         response = this.registryValue;
@@ -165,10 +155,7 @@ class FakeSettingsTransport implements EventTransport {
     return this.serialize ? clone(response) : response;
   }
 
-  async listen(
-    event: string,
-    listener: (payload: unknown) => void,
-  ): Promise<Unlisten> {
+  async listen(event: string, listener: (payload: unknown) => void): Promise<Unlisten> {
     this.trace.push(`listen:${event}`);
     this.#listeners.set(event, listener);
     if (this.deferListener) {
@@ -206,5 +193,5 @@ class FakeSettingsTransport implements EventTransport {
 }
 
 function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

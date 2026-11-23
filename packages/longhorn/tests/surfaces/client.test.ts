@@ -5,9 +5,8 @@ import {
   SURFACE_CHANGED_EVENT,
   SURFACE_SNAPSHOT_COMMAND,
   SurfaceClient,
-  type SurfaceChangedEvent,
-  type SurfaceSnapshot,
 } from "@inflatable-cookie/longhorn/surfaces";
+import type { SurfaceChangedEvent, SurfaceSnapshot } from "@inflatable-cookie/longhorn/surfaces";
 
 describe("Surface snapshot subscription", () => {
   test("attaches before snapshot and closes a mutation race", async () => {
@@ -18,7 +17,7 @@ describe("Surface snapshot subscription", () => {
       transport.current = revision12;
       transport.emit(changed(4, 12));
     };
-    const observed: number[] = [];
+    const observed: Array<number> = [];
 
     const subscription = new SurfaceClient(transport).subscribe((value) => {
       observed.push(value.revision);
@@ -86,10 +85,8 @@ describe("Surface snapshot subscription", () => {
 
   test("reports invalid event and load failures and tears down", async () => {
     const invalidEventTransport = new MockTransport(snapshot(1, 1));
-    const failures: string[] = [];
-    const subscription = new SurfaceClient(
-      invalidEventTransport,
-    ).subscribe(
+    const failures: Array<string> = [];
+    const subscription = new SurfaceClient(invalidEventTransport).subscribe(
       () => {},
       ({ phase }) => failures.push(phase),
     );
@@ -98,9 +95,7 @@ describe("Surface snapshot subscription", () => {
     await tick();
 
     expect(failures).toEqual(["event"]);
-    expect(subscription.failures().map(({ phase }) => phase)).toEqual([
-      "event",
-    ]);
+    expect(subscription.failures().map(({ phase }) => phase)).toEqual(["event"]);
     expect(invalidEventTransport.unlistenCalls).toBe(1);
 
     const loadFailure = new Error("snapshot load failed");
@@ -108,16 +103,14 @@ describe("Surface snapshot subscription", () => {
     failedTransport.snapshotFailure = loadFailure;
     const failed = new SurfaceClient(failedTransport).subscribe(() => {});
     await expect(failed.ready).rejects.toBe(loadFailure);
-    expect(failed.failures().map(({ phase }) => phase)).toEqual([
-      "snapshot",
-    ]);
+    expect(failed.failures().map(({ phase }) => phase)).toEqual(["snapshot"]);
     expect(failedTransport.unlistenCalls).toBe(1);
   });
 });
 
 class MockTransport implements EventTransport {
   current: SurfaceSnapshot;
-  operations: string[] = [];
+  operations: Array<string> = [];
   snapshotInvocations = 0;
   unlistenCalls = 0;
   snapshotFailure: Error | undefined;
@@ -150,10 +143,7 @@ class MockTransport implements EventTransport {
     return result;
   }
 
-  listen(
-    event: string,
-    listener: (payload: unknown) => void,
-  ): Promise<Unlisten> {
+  listen(event: string, listener: (payload: unknown) => void): Promise<Unlisten> {
     this.operations.push(`listen:${event}`);
     this.#listener = listener;
     if (this.#registration !== undefined) {
@@ -171,9 +161,7 @@ class MockTransport implements EventTransport {
   }
 
   deferRegistration(): void {
-    let resolve:
-      | ((unlisten: Unlisten) => void)
-      | undefined;
+    let resolve: ((unlisten: Unlisten) => void) | undefined;
     const promise = new Promise<Unlisten>((accept) => {
       resolve = accept;
     });
@@ -216,5 +204,7 @@ function changed(epoch: number, revision: number): SurfaceChangedEvent {
 }
 
 async function tick(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }

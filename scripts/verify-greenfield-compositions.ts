@@ -1,3 +1,13 @@
+import { errorCode } from "./proof-support.ts";
+import {
+  parseJsonRecord,
+  requireRecord,
+  requireString,
+  requireStrings,
+  readPackageIdentity,
+  readPackageManifest,
+} from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { digest, fileDependency, run, assertExactSet, sha256 } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { randomUUID } from "node:crypto";
@@ -14,7 +24,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
-import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
+import { MSRV_TOOLCHAIN } from "./msrv.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { longhornVersion } from "./longhorn-version.ts";
 import {
@@ -25,14 +35,15 @@ import {
   taskScratch,
 } from "./rust-command.ts";
 
-type ShapeName = "minimal" | "workspace" | "full-hosting" | "optional-server";
+const shapeNames = ["minimal", "workspace", "full-hosting", "optional-server"] as const;
+type ShapeName = (typeof shapeNames)[number];
 type ShapePolicy = {
-  hierarchy: readonly string[];
-  typescript: readonly string[];
-  rust: readonly string[];
-  forbiddenTypescript: readonly string[];
-  forbiddenRust: readonly string[];
-  permissions: readonly string[];
+  hierarchy: ReadonlyArray<string>;
+  typescript: ReadonlyArray<string>;
+  rust: ReadonlyArray<string>;
+  forbiddenTypescript: ReadonlyArray<string>;
+  forbiddenRust: ReadonlyArray<string>;
+  permissions: ReadonlyArray<string>;
 };
 type ArtifactIdentity = { name: string; filename: string; sha256: string };
 
@@ -90,22 +101,41 @@ const allRustCrates = [
 ] as const;
 
 const baseRust = [
-  "longhorn-config", "longhorn-core", "longhorn-settings",
-  "longhorn-settings-config", "longhorn-storage-layout", "longhorn-tauri-config",
+  "longhorn-config",
+  "longhorn-core",
+  "longhorn-settings",
+  "longhorn-settings-config",
+  "longhorn-storage-layout",
+  "longhorn-tauri-config",
   "longhorn-tauri-settings",
 ] as const;
 const workspaceRust = [
-  "longhorn-command", "longhorn-command-config", "longhorn-command-settings",
-  "longhorn-config", "longhorn-core", "longhorn-display",
-  "longhorn-storage-layout", "longhorn-surfaces", "longhorn-surfaces-config",
-  "longhorn-settings", "longhorn-settings-config", "longhorn-tauri-command",
-  "longhorn-tauri-config", "longhorn-tauri-settings", "longhorn-tauri-windowing",
-  "longhorn-windowing", "longhorn-windowing-config",
+  "longhorn-command",
+  "longhorn-command-config",
+  "longhorn-command-settings",
+  "longhorn-config",
+  "longhorn-core",
+  "longhorn-display",
+  "longhorn-storage-layout",
+  "longhorn-surfaces",
+  "longhorn-surfaces-config",
+  "longhorn-settings",
+  "longhorn-settings-config",
+  "longhorn-tauri-command",
+  "longhorn-tauri-config",
+  "longhorn-tauri-settings",
+  "longhorn-tauri-windowing",
+  "longhorn-windowing",
+  "longhorn-windowing-config",
 ] as const;
 const fullRust = [
   ...workspaceRust,
-  "longhorn-history", "longhorn-surface-transfer", "longhorn-surface-windowing",
-  "longhorn-tauri-history", "longhorn-tauri-transfer", "longhorn-transfer",
+  "longhorn-history",
+  "longhorn-surface-transfer",
+  "longhorn-surface-windowing",
+  "longhorn-tauri-history",
+  "longhorn-tauri-transfer",
+  "longhorn-transfer",
 ] as const;
 
 const policies: Record<ShapeName, ShapePolicy> = {
@@ -114,27 +144,77 @@ const policies: Record<ShapeName, ShapePolicy> = {
     typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-tauri"],
     rust: baseRust,
     forbiddenTypescript: ["@inflatable-cookie/longhorn-poodle-svelte"],
-    forbiddenRust: ["longhorn-surfaces", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
-    permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-config-read", "core:event:allow-listen", "core:event:allow-unlisten"],
+    forbiddenRust: [
+      "longhorn-surfaces",
+      "longhorn-bridge",
+      "longhorn-history",
+      "longhorn-native-content",
+    ],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "allow-longhorn-config-read",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+    ],
   },
   workspace: {
     hierarchy: ["window", "layout-container", "region", "panel"],
-    typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri"],
+    typescript: [
+      "@inflatable-cookie/longhorn",
+      "@inflatable-cookie/longhorn-poodle-svelte",
+      "@inflatable-cookie/longhorn-tauri",
+    ],
     rust: workspaceRust,
     forbiddenTypescript: [],
     // Card 179 folded longhorn-layout into longhorn-surfaces, so a composition
     // that uses layout necessarily depends on longhorn-surfaces. What these
     // shapes still exclude is Surface *transfer*, and the domains above.
-    forbiddenRust: ["longhorn-transfer", "longhorn-surface-transfer", "longhorn-bridge", "longhorn-history", "longhorn-native-content"],
-    permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-command-read", "allow-longhorn-command-mutate", "core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-start-dragging"],
+    forbiddenRust: [
+      "longhorn-transfer",
+      "longhorn-surface-transfer",
+      "longhorn-bridge",
+      "longhorn-history",
+      "longhorn-native-content",
+    ],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "allow-longhorn-command-read",
+      "allow-longhorn-command-mutate",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+      "core:window:allow-start-dragging",
+    ],
   },
   "full-hosting": {
     hierarchy: ["display", "window", "surface", "layout-container", "region", "panel"],
-    typescript: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri"],
+    typescript: [
+      "@inflatable-cookie/longhorn",
+      "@inflatable-cookie/longhorn-poodle-svelte",
+      "@inflatable-cookie/longhorn-tauri",
+    ],
     rust: fullRust,
     forbiddenTypescript: [],
-    forbiddenRust: ["longhorn-bridge", "longhorn-native-content", "longhorn-operation", "longhorn-notifications"],
-    permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-command-read", "allow-longhorn-command-mutate", "allow-longhorn-transfer-base", "allow-longhorn-transfer-surface", "allow-longhorn-history-read", "allow-longhorn-history-mutate", "core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-start-dragging"],
+    forbiddenRust: [
+      "longhorn-bridge",
+      "longhorn-native-content",
+      "longhorn-operation",
+      "longhorn-notifications",
+    ],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "allow-longhorn-command-read",
+      "allow-longhorn-command-mutate",
+      "allow-longhorn-transfer-base",
+      "allow-longhorn-transfer-surface",
+      "allow-longhorn-history-read",
+      "allow-longhorn-history-mutate",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+      "core:window:allow-start-dragging",
+    ],
   },
   "optional-server": {
     hierarchy: ["window", "optional-service-bridge"],
@@ -142,7 +222,13 @@ const policies: Record<ShapeName, ShapePolicy> = {
     rust: [...baseRust, "longhorn-bridge", "longhorn-tauri-bridge"],
     forbiddenTypescript: ["@inflatable-cookie/longhorn-poodle-svelte"],
     forbiddenRust: ["longhorn-surfaces", "longhorn-history", "longhorn-native-content"],
-    permissions: ["allow-longhorn-settings-read", "allow-longhorn-settings-mutate", "allow-longhorn-bridge-query", "core:event:allow-listen", "core:event:allow-unlisten"],
+    permissions: [
+      "allow-longhorn-settings-read",
+      "allow-longhorn-settings-mutate",
+      "allow-longhorn-bridge-query",
+      "core:event:allow-listen",
+      "core:event:allow-unlisten",
+    ],
   },
 };
 
@@ -150,7 +236,12 @@ try {
   await mkdir(typescriptArtifactRoot);
   await mkdir(rustArtifactRoot);
   await verifyExampleSources();
-  const typescript = await packPackages(repoRoot, longhornTypescriptPackages, typescriptArtifactRoot, LONGHORN_VERSION);
+  const typescript = await packPackages(
+    repoRoot,
+    longhornTypescriptPackages,
+    typescriptArtifactRoot,
+    LONGHORN_VERSION,
+  );
   const poodleIdentities = publishedPoodle.packages.map((pkg) => ({
     name: pkg.name,
     filename: `${pkg.name.replace("@", "").replace("/", "-")}-${pkg.version}.tgz`,
@@ -218,23 +309,25 @@ async function writeReceipt(report: {
   schema: string;
   sources: { longhorn: string; poodle: string };
   artifacts: {
-    typescript: ArtifactIdentity[];
-    poodle: ArtifactIdentity[];
-    rust: ArtifactIdentity[];
+    typescript: Array<ArtifactIdentity>;
+    poodle: Array<ArtifactIdentity>;
+    rust: Array<ArtifactIdentity>;
     sets: { typescript: string; poodle: string; rust: string };
   };
   shapes: Array<{
     shape: ShapeName;
-    hierarchy: readonly string[];
-    typescriptPackages: string[];
-    rust: { rustPackages: string[] } | undefined;
+    hierarchy: ReadonlyArray<string>;
+    typescriptPackages: Array<string>;
+    rust: { rustPackages: Array<string> } | undefined;
   }>;
-  optionalServerLocal: { rustPackages: string[] };
+  optionalServerLocal: { rustPackages: Array<string> };
   audits: Record<string, boolean>;
 }): Promise<void> {
   const shapes = Object.fromEntries(
     report.shapes.map((shape) => {
-      if (!shape.rust) throw new Error(`${shape.shape} Rust report missing`);
+      if (!shape.rust) {
+        throw new Error(`${shape.shape} Rust report missing`);
+      }
       return [
         shape.shape,
         {
@@ -245,9 +338,9 @@ async function writeReceipt(report: {
           typescript: [...shape.typescriptPackages].sort(),
           rust: [...shape.rust.rustPackages].sort(),
         },
-      ];
+      ] as const;
     }),
-  ) as Record<ShapeName, { hierarchy: string[]; typescript: string[]; rust: string[] }>;
+  );
   const receipt = {
     schema: report.schema,
     sources: {
@@ -272,48 +365,75 @@ async function writeReceipt(report: {
 async function verifyReceipt(report: {
   schema: string;
   artifacts: {
-    typescript: ArtifactIdentity[];
-    poodle: ArtifactIdentity[];
-    rust: ArtifactIdentity[];
+    typescript: Array<ArtifactIdentity>;
+    poodle: Array<ArtifactIdentity>;
+    rust: Array<ArtifactIdentity>;
     sets: { typescript: string; poodle: string; rust: string };
   };
   shapes: Array<{
     shape: ShapeName;
-    hierarchy: readonly string[];
-    typescriptPackages: string[];
-    rust: { rustPackages: string[] } | undefined;
+    hierarchy: ReadonlyArray<string>;
+    typescriptPackages: Array<string>;
+    rust: { rustPackages: Array<string> } | undefined;
   }>;
-  optionalServerLocal: { rustPackages: string[] };
+  optionalServerLocal: { rustPackages: Array<string> };
   audits: Record<string, boolean>;
 }): Promise<void> {
-  const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
-    schema: string;
-    sources: { longhornSelected: string; poodleSelected: string };
-    artifacts: {
-      sets: { typescript: string; poodle: string; rust: string };
-      inventories: { typescript: string[]; poodle: string[]; rust: string[] };
-    };
-    shapes: Record<ShapeName, { hierarchy: string[]; typescript: string[]; rust: string[] }>;
-    optionalServerLocalRust: string[];
-    audits: Record<string, boolean>;
-  };
-  if (receipt.schema !== report.schema) throw new Error("greenfield receipt schema drift");
+  const receipt = parseJsonRecord(await readFile(receiptPath, "utf8"));
+  const artifacts = requireRecord(receipt.artifacts, "receipt artifacts");
+  const inventories = requireRecord(artifacts.inventories, "receipt inventories");
+  const shapes = requireRecord(receipt.shapes, "receipt shapes");
+  if (receipt.schema !== report.schema) {
+    throw new Error("greenfield receipt schema drift");
+  }
   // The artifact set ids are emitted as evidence of what this run built. They
   // are not compared against the receipt: every id is a hash over packed
   // contents, so any change to any crate or package moves them, and asserting
   // equality would re-freeze the tree through the back door.
-  assertExactSet("receipt TypeScript inventory", report.artifacts.typescript.map(({ name }) => name), receipt.artifacts.inventories.typescript);
-  assertExactSet("receipt Poodle inventory", report.artifacts.poodle.map(({ name }) => name), receipt.artifacts.inventories.poodle);
-  assertExactSet("receipt Rust inventory", report.artifacts.rust.map(({ name }) => name), receipt.artifacts.inventories.rust);
+  assertExactSet(
+    "receipt TypeScript inventory",
+    report.artifacts.typescript.map(({ name }) => name),
+    requireStrings(inventories.typescript, "receipt TypeScript packages"),
+  );
+  assertExactSet(
+    "receipt Poodle inventory",
+    report.artifacts.poodle.map(({ name }) => name),
+    requireStrings(inventories.poodle, "receipt Poodle packages"),
+  );
+  assertExactSet(
+    "receipt Rust inventory",
+    report.artifacts.rust.map(({ name }) => name),
+    requireStrings(inventories.rust, "receipt Rust packages"),
+  );
   for (const shape of report.shapes) {
-    const expected = receipt.shapes[shape.shape];
-    if (!shape.rust) throw new Error(`${shape.shape} Rust report missing`);
-    assertExactSet(`${shape.shape} receipt hierarchy`, shape.hierarchy, expected.hierarchy);
-    assertExactSet(`${shape.shape} receipt TypeScript graph`, shape.typescriptPackages, expected.typescript);
-    assertExactSet(`${shape.shape} receipt Rust graph`, shape.rust.rustPackages, expected.rust);
+    const expected = requireRecord(shapes[shape.shape], shape.shape);
+    if (!shape.rust) {
+      throw new Error(`${shape.shape} Rust report missing`);
+    }
+    assertExactSet(
+      `${shape.shape} receipt hierarchy`,
+      shape.hierarchy,
+      requireStrings(expected.hierarchy, "expected hierarchy"),
+    );
+    assertExactSet(
+      `${shape.shape} receipt TypeScript graph`,
+      shape.typescriptPackages,
+      requireStrings(expected.typescript, "expected TypeScript packages"),
+    );
+    assertExactSet(
+      `${shape.shape} receipt Rust graph`,
+      shape.rust.rustPackages,
+      requireStrings(expected.rust, "expected Rust packages"),
+    );
   }
-  assertExactSet("receipt optional-server local graph", report.optionalServerLocal.rustPackages, receipt.optionalServerLocalRust);
-  if (JSON.stringify(receipt.audits) !== JSON.stringify(report.audits)) throw new Error("greenfield audit receipt drift");
+  assertExactSet(
+    "receipt optional-server local graph",
+    report.optionalServerLocal.rustPackages,
+    requireStrings(receipt.optionalServerLocalRust, "local Rust packages"),
+  );
+  if (JSON.stringify(receipt.audits) !== JSON.stringify(report.audits)) {
+    throw new Error("greenfield audit receipt drift");
+  }
 }
 
 // Contract 012 requires that an adopted graph "records the exact clean
@@ -341,9 +461,15 @@ async function verifyReceipt(report: {
 // The composition claims are computed from whatever source is present, so they
 // remain true either way. The report says whether the sources it built from
 // were clean, and a release gate can require that they were.
-async function selectedSourcesClean(root: string, paths: readonly string[]): Promise<boolean> {
-  const status = Bun.spawnSync(["git", "status", "--porcelain", "--", ...paths], { cwd: root, stdout: "pipe", stderr: "pipe" });
-  if (status.exitCode !== 0) throw new Error(`git status failed in ${root}:\n${status.stderr.toString()}`);
+async function selectedSourcesClean(root: string, paths: ReadonlyArray<string>): Promise<boolean> {
+  const status = Bun.spawnSync(["git", "status", "--porcelain", "--", ...paths], {
+    cwd: root,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (status.exitCode !== 0) {
+    throw new Error(`git status failed in ${root}:\n${status.stderr.toString()}`);
+  }
   return status.stdout.toString().trim().length === 0;
 }
 
@@ -360,10 +486,12 @@ async function verifyExampleSources(): Promise<void> {
   // top level, above this point, so a module-scope const is still in the
   // temporal dead zone by the time this is called.
   const donorVocabulary = /loophole|nucleus|soundcheck|minimal-shell|jetstream/i;
-  const offenders: string[] = [];
+  const offenders: Array<string> = [];
   for (const relative of await readdir(exampleRoot, { recursive: true })) {
     const path = join(exampleRoot, relative);
-    if (!(await lstat(path)).isFile()) continue;
+    if (!(await lstat(path)).isFile()) {
+      continue;
+    }
     const lines = (await readFile(path, "utf8")).split("\n");
     for (const [index, line] of lines.entries()) {
       if (donorVocabulary.test(line)) {
@@ -372,42 +500,54 @@ async function verifyExampleSources(): Promise<void> {
     }
   }
   if (offenders.length > 0) {
-    throw new Error(
-      `greenfield examples contain donor vocabulary:\n${offenders.join("\n")}`,
-    );
+    throw new Error(`greenfield examples contain donor vocabulary:\n${offenders.join("\n")}`);
   }
-  const svelteFiles = (await readdir(exampleRoot, { recursive: true }))
-    .filter((path) => path.endsWith(".svelte"));
+  const svelteFiles = (await readdir(exampleRoot, { recursive: true })).filter((path) =>
+    path.endsWith(".svelte"),
+  );
   assertExactSet("greenfield Svelte implementation inventory", svelteFiles, ["common/App.svelte"]);
   const shell = await readFile(join(exampleRoot, "common/App.svelte"), "utf8");
-  if (!shell.includes('from "@inflatable-cookie/poodle-svelte"') || !shell.includes('import "@inflatable-cookie/poodle-core/tokens/styles.css"')) {
+  if (
+    !shell.includes('from "@inflatable-cookie/poodle-svelte"') ||
+    !shell.includes('import "@inflatable-cookie/poodle-core/tokens/styles.css"')
+  ) {
     throw new Error("greenfield shell does not compose public Poodle roots");
   }
 }
 
-
 async function packPackages(
   root: string,
-  packages: readonly (readonly [string, string])[],
+  packages: ReadonlyArray<readonly [string, string]>,
   destination: string,
   expected: string,
-): Promise<{ identities: ArtifactIdentity[]; paths: Map<string, string> }> {
-  const identities: ArtifactIdentity[] = [];
+): Promise<{ identities: Array<ArtifactIdentity>; paths: Map<string, string> }> {
+  const identities: Array<ArtifactIdentity> = [];
   const paths = new Map<string, string>();
   for (const [name, directory] of packages) {
     try {
-      await run([...bunCommand, "pm", "pack", "--destination", destination, "--ignore-scripts", "--quiet"], join(root, directory));
+      await run(
+        [...bunCommand, "pm", "pack", "--destination", destination, "--ignore-scripts", "--quiet"],
+        join(root, directory),
+      );
     } catch (error) {
-      throw new Error(`${name} pack failed from ${join(root, directory)}: ${String(error)}`);
+      throw new Error(`${name} pack failed from ${join(root, directory)}: ${String(error)}`, {
+        cause: error,
+      });
     }
     const path = join(destination, `${name.replace("@", "").replace("/", "-")}-${expected}.tgz`);
     const listing = await run(["tar", "-tzf", path], destination);
     const manifest = await run(["tar", "-xOzf", path, "package/package.json"], destination);
-    if (listing.includes("node_modules/") || listing.includes("/tests/") || /workspace:|link:/.test(manifest)) {
+    if (
+      listing.includes("node_modules/") ||
+      listing.includes("/tests/") ||
+      /workspace:|link:/.test(manifest)
+    ) {
       throw new Error(`${name} artifact contains workspace or proof material`);
     }
-    const parsed = JSON.parse(manifest) as { name: string; version: string };
-    if (parsed.name !== name || parsed.version !== expected) throw new Error(`${name} artifact identity drift`);
+    const parsed = readPackageIdentity(manifest);
+    if (parsed.name !== name || parsed.version !== expected) {
+      throw new Error(`${name} artifact identity drift`);
+    }
     const identity = { name, filename: basename(path), sha256: await digest(path) };
     identities.push(identity);
     paths.set(name, path);
@@ -417,61 +557,98 @@ async function packPackages(
 
 async function verifyRenderers(artifacts: Map<string, string>) {
   const reports = [];
-  for (const shape of Object.keys(policies) as ShapeName[]) {
+  for (const shape of shapeNames) {
     const policy = policies[shape];
     const stage = join(temporaryRoot, `renderer-${shape}-${randomUUID()}`);
     await mkdir(stage);
     await cp(join(exampleRoot, "common"), join(stage, "common"), { recursive: true });
     await cp(join(exampleRoot, shape), join(stage, shape), { recursive: true });
-    const manifest = JSON.parse(await readFile(join(exampleRoot, shape, "package.json"), "utf8")) as {
-      dependencies: Record<string, string>;
-      devDependencies: Record<string, string>;
-      overrides?: Record<string, string>;
-    };
-    manifest.dependencies = rewriteArtifactDependencies(manifest.dependencies, artifacts);
-    manifest.overrides = Object.fromEntries([...artifacts].map(([name, path]) => [name, fileDependency(path)]));
+    const manifest = readPackageManifest(
+      await readFile(join(exampleRoot, shape, "package.json"), "utf8"),
+    );
+    manifest.dependencies = rewriteArtifactDependencies(manifest.dependencies ?? {}, artifacts);
+    manifest.overrides = Object.fromEntries(
+      [...artifacts].map(([name, path]) => [name, fileDependency(path)]),
+    );
     await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     await installProofStage(stage);
     await run([...bunCommand, "x", "svelte-check", "--tsconfig", `${shape}/tsconfig.json`], stage);
-    await run([...bunCommand, "x", "vite", "build", shape, "--config", `${shape}/vite.config.ts`], stage);
-    const tests = await run([...bunCommand, "x", "vitest", "run", "--config", `${shape}/vitest.config.ts`], stage);
-    if (!/1 passed/.test(tests)) throw new Error(`${shape} mounted lifecycle test did not pass`);
+    await run(
+      [...bunCommand, "x", "vite", "build", shape, "--config", `${shape}/vite.config.ts`],
+      stage,
+    );
+    const tests = await run(
+      [...bunCommand, "x", "vitest", "run", "--config", `${shape}/vitest.config.ts`],
+      stage,
+    );
+    if (!/1 passed/.test(tests)) {
+      throw new Error(`${shape} mounted lifecycle test did not pass`);
+    }
 
-    const installedLonghorn = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name === "longhorn" || name.startsWith("longhorn-")).map((name) => `@inflatable-cookie/${name}`).sort();
+    const installedLonghorn = (await readdir(join(stage, "node_modules/@inflatable-cookie")))
+      .filter((name) => name === "longhorn" || name.startsWith("longhorn-"))
+      .map((name) => `@inflatable-cookie/${name}`)
+      .sort();
     assertExactSet(`${shape} TypeScript graph`, installedLonghorn, policy.typescript);
-    for (const name of policy.forbiddenTypescript) await assertAbsent(stage, name);
-    const installedPoodle = (await readdir(join(stage, "node_modules/@inflatable-cookie"))).filter((name) => name.startsWith("poodle-")).map((name) => `@inflatable-cookie/${name}`).sort();
+    for (const name of policy.forbiddenTypescript) {
+      await assertAbsent(stage, name);
+    }
+    const installedPoodle = (await readdir(join(stage, "node_modules/@inflatable-cookie")))
+      .filter((name) => name.startsWith("poodle-"))
+      .map((name) => `@inflatable-cookie/${name}`)
+      .sort();
     assertExactSet(`${shape} Poodle graph`, installedPoodle, [...poodlePackages]);
     await assertOnePackage(stage, "svelte", "5.56.8");
     await assertOnePackage(stage, "@tauri-apps/api", "2.10.1");
     await assertSingleRuntime(stage, "svelte");
     await assertSingleRuntime(stage, "@tauri-apps/api");
-    for (const name of [...installedLonghorn, ...installedPoodle]) await assertArtifactInstall(stage, name);
+    for (const name of [...installedLonghorn, ...installedPoodle]) {
+      await assertArtifactInstall(stage, name);
+    }
 
-    const capability = JSON.parse(await readFile(join(stage, shape, "capability.json"), "utf8")) as {
-      schema: string; shape: string; hierarchy: string[]; permissions: string[]; failurePosture: string;
-    };
-    if (capability.schema !== "longhorn.greenfield-capability.v1" || capability.shape !== shape) throw new Error(`${shape} capability identity drift`);
-    assertExactSet(`${shape} hierarchy`, capability.hierarchy, policy.hierarchy);
-    assertExactSet(`${shape} permissions`, capability.permissions, policy.permissions);
-    if (!capability.failurePosture.includes("visible") && shape !== "optional-server") throw new Error(`${shape} hides failure posture`);
+    const capability = parseJsonRecord(
+      await readFile(join(stage, shape, "capability.json"), "utf8"),
+    );
+    if (capability.schema !== "longhorn.greenfield-capability.v1" || capability.shape !== shape) {
+      throw new Error(`${shape} capability identity drift`);
+    }
+    assertExactSet(
+      `${shape} hierarchy`,
+      requireStrings(capability.hierarchy, "capability hierarchy"),
+      policy.hierarchy,
+    );
+    assertExactSet(
+      `${shape} permissions`,
+      requireStrings(capability.permissions, "capability permissions"),
+      policy.permissions,
+    );
+    if (
+      !requireString(capability.failurePosture, "failure posture").includes("visible") &&
+      shape !== "optional-server"
+    ) {
+      throw new Error(`${shape} hides failure posture`);
+    }
     const selectedSource = await readFile(join(stage, shape, "src/selected.ts"), "utf8");
     // Card 164: selected.ts names subpaths now, and the policy names packages.
     // Fold each specifier back to the package that provides it.
-    const selectedNames = [...new Set(
-      [...selectedSource.matchAll(/"(@inflatable-cookie\/longhorn(?:[/-][^"]*)?)"/g)].map(
-        (match) => {
-          const specifier = match[1]!;
-          for (const pkg of [
-            "@inflatable-cookie/longhorn-poodle-svelte",
-            "@inflatable-cookie/longhorn-tauri",
-          ]) {
-            if (specifier === pkg || specifier.startsWith(`${pkg}/`)) return pkg;
-          }
-          return "@inflatable-cookie/longhorn";
-        },
+    const selectedNames = [
+      ...new Set(
+        [...selectedSource.matchAll(/"(@inflatable-cookie\/longhorn(?:[/-][^"]*)?)"/g)].map(
+          (match) => {
+            const specifier = requireValue(match[1], "match[1]");
+            for (const pkg of [
+              "@inflatable-cookie/longhorn-poodle-svelte",
+              "@inflatable-cookie/longhorn-tauri",
+            ]) {
+              if (specifier === pkg || specifier.startsWith(`${pkg}/`)) {
+                return pkg;
+              }
+            }
+            return "@inflatable-cookie/longhorn";
+          },
+        ),
       ),
-    )];
+    ];
     assertExactSet(`${shape} selected imports`, selectedNames, policy.typescript);
     const lock = await readFile(join(stage, "bun.lock"), "utf8");
     if (/workspace:|link:/.test(lock) || lock.includes(join(repoRoot, "packages"))) {
@@ -496,7 +673,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
 async function verifyRustArtifacts() {
   const workspace = join(temporaryRoot, "rust-workspace");
   await mkdir(workspace);
-  const identities: ArtifactIdentity[] = [];
+  const identities: Array<ArtifactIdentity> = [];
   // The `package --list` inventories below are checkout-level and
   // non-building, so they run through the switch point at the MSRV pin. The
   // unpacked crates then build in the `mktemp -d` workspace under one exec lease
@@ -506,15 +683,19 @@ async function verifyRustArtifacts() {
       rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
       repoRoot,
     );
-    if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) throw new Error(`${name} package inventory incomplete`);
+    if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
+      throw new Error(`${name} package inventory incomplete`);
+    }
     const archive = join(rustArtifactRoot, `${name}-${LONGHORN_VERSION}.private.tar`);
     await run(["tar", "-cf", archive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["tar", "-xf", archive, "-C", workspace], repoRoot);
     identities.push({ name, filename: basename(archive), sha256: await digest(archive) });
   }
   await cp(join(exampleRoot, "common-rust"), join(workspace, "common-rust"), { recursive: true });
-  for (const shape of Object.keys(policies) as ShapeName[]) {
-    await cp(join(exampleRoot, shape, "src-tauri"), join(workspace, "consumers", shape), { recursive: true });
+  for (const shape of shapeNames) {
+    await cp(join(exampleRoot, shape, "src-tauri"), join(workspace, "consumers", shape), {
+      recursive: true,
+    });
   }
   await writeFile(join(workspace, "Cargo.toml"), await privateWorkspaceManifest());
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
@@ -526,47 +707,105 @@ async function verifyRustArtifacts() {
   // `target/` directory keeps the lease adoption-free; see
   // `prepareStagedWorkspace`.
   await prepareStagedWorkspace(workspace);
-  const staged = (args: readonly string[]) =>
+  const staged = (args: ReadonlyArray<string>) =>
     rustExec(privateCargoCommand(buildScratch.root, args), {
       manifestPath: join(workspace, "Cargo.toml"),
       toolchain: MSRV_TOOLCHAIN,
     });
-  for (const shape of Object.keys(policies) as ShapeName[]) {
+  for (const shape of shapeNames) {
     const packageName = `longhorn-greenfield-${shape}-tauri`;
-    const output = await run(staged(["cargo", "run", "-p", packageName, "--offline", "--quiet"]), workspace);
-    const trace = JSON.parse(output.trim()) as Record<string, unknown>;
-    if (trace.firstLoad !== "compiled-default" || trace.mutation !== "atomic-published" || trace.reload !== "file" || trace.mutationPathConfined !== true) {
+    const output = await run(
+      staged(["cargo", "run", "-p", packageName, "--offline", "--quiet"]),
+      workspace,
+    );
+    const trace = parseJsonRecord(output.trim());
+    if (
+      trace.firstLoad !== "compiled-default" ||
+      trace.mutation !== "atomic-published" ||
+      trace.reload !== "file" ||
+      trace.mutationPathConfined !== true
+    ) {
       throw new Error(`${shape} config lifecycle trace failed`);
     }
-    const tree = await run(staged(["cargo", "tree", "-p", packageName, "--offline", "--edges", "normal", "--prefix", "none"]), workspace);
+    const tree = await run(
+      staged([
+        "cargo",
+        "tree",
+        "-p",
+        packageName,
+        "--offline",
+        "--edges",
+        "normal",
+        "--prefix",
+        "none",
+      ]),
+      workspace,
+    );
     const graph = rustLonghornPackages(tree);
     assertExactSet(`${shape} Rust graph`, graph, policies[shape].rust);
     for (const forbidden of policies[shape].forbiddenRust) {
-      if (graph.includes(forbidden)) throw new Error(`${shape} acquired forbidden Rust edge ${forbidden}`);
+      if (graph.includes(forbidden)) {
+        throw new Error(`${shape} acquired forbidden Rust edge ${forbidden}`);
+      }
     }
     shapes.push({ shape, rustPackages: graph, trace });
   }
-  const localOutput = await run(staged(["cargo", "run", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--quiet"]), workspace);
-  const localTrace = JSON.parse(localOutput.trim()) as Record<string, unknown>;
-  const localTree = await run(staged(["cargo", "tree", "-p", "longhorn-greenfield-optional-server-tauri", "--no-default-features", "--offline", "--edges", "normal", "--prefix", "none"]), workspace);
+  const localOutput = await run(
+    staged([
+      "cargo",
+      "run",
+      "-p",
+      "longhorn-greenfield-optional-server-tauri",
+      "--no-default-features",
+      "--offline",
+      "--quiet",
+    ]),
+    workspace,
+  );
+  const localTrace = parseJsonRecord(localOutput.trim());
+  const localTree = await run(
+    staged([
+      "cargo",
+      "tree",
+      "-p",
+      "longhorn-greenfield-optional-server-tauri",
+      "--no-default-features",
+      "--offline",
+      "--edges",
+      "normal",
+      "--prefix",
+      "none",
+    ]),
+    workspace,
+  );
   const localGraph = rustLonghornPackages(localTree);
   assertExactSet("optional-server local Rust graph", localGraph, baseRust);
-  if (localTrace.service !== "absent-local-authority-ready" || localTrace.reload !== "file") throw new Error("optional server local authority failed");
+  if (localTrace.service !== "absent-local-authority-ready" || localTrace.reload !== "file") {
+    throw new Error("optional server local authority failed");
+  }
   return {
     identities,
     shapes,
-    optionalServerLocal: { rustPackages: localGraph, service: localTrace.service, localAuthorityReady: true, supervisionRemoved: true },
+    optionalServerLocal: {
+      rustPackages: localGraph,
+      service: localTrace.service,
+      localAuthorityReady: true,
+      supervisionRemoved: true,
+    },
   };
 }
 
 async function privateWorkspaceManifest(): Promise<string> {
   const root = await readFile(join(repoRoot, "Cargo.toml"), "utf8");
   const tail = root.slice(root.indexOf("[workspace.package]"));
-  const selected = new Set(allRustCrates);
-  const filtered = tail.split("\n").filter((line) => {
-    const match = line.match(/^(longhorn-[\w-]+)\s*=/);
-    return match === null || selected.has(match[1]! as typeof allRustCrates[number]);
-  }).join("\n");
+  const selected = new Set<string>(allRustCrates);
+  const filtered = tail
+    .split("\n")
+    .filter((line) => {
+      const match = line.match(/^(longhorn-[\w-]+)\s*=/);
+      return match === null || selected.has(requireValue(match[1], "match[1]"));
+    })
+    .join("\n");
   const members = [
     ...allRustCrates.map((name) => `  "crates/${name}",`),
     '  "common-rust",',
@@ -575,12 +814,26 @@ async function privateWorkspaceManifest(): Promise<string> {
   return `[workspace]\nmembers = [\n${members}\n]\nresolver = "2"\n\n${filtered}`;
 }
 
-function rewriteArtifactDependencies(dependencies: Record<string, string>, artifacts: Map<string, string>) {
-  return Object.fromEntries(Object.entries(dependencies).map(([name, version]) => [name, artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version]));
+function rewriteArtifactDependencies(
+  dependencies: Record<string, string>,
+  artifacts: Map<string, string>,
+) {
+  return Object.fromEntries(
+    Object.entries(dependencies).map(([name, version]) => [
+      name,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
+    ]),
+  );
 }
 async function assertAbsent(stage: string, name: string): Promise<void> {
-  try { await lstat(join(stage, "node_modules", ...name.split("/"))); } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+  try {
+    await lstat(join(stage, "node_modules", ...name.split("/")));
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") {
+      return;
+    }
     throw error;
   }
   throw new Error(`${name} unexpectedly installed`);
@@ -588,21 +841,45 @@ async function assertAbsent(stage: string, name: string): Promise<void> {
 async function assertArtifactInstall(stage: string, name: string): Promise<void> {
   const path = join(stage, "node_modules", ...name.split("/"));
   const resolved = await realpath(path);
-  if (resolved.includes(join(repoRoot, "packages"))) throw new Error(`${name} resolved live source`);
+  if (resolved.includes(join(repoRoot, "packages"))) {
+    throw new Error(`${name} resolved live source`);
+  }
 }
 async function assertOnePackage(stage: string, name: string, version: string): Promise<void> {
-  const manifest = JSON.parse(await readFile(join(stage, "node_modules", ...name.split("/"), "package.json"), "utf8")) as { name: string; version: string };
-  if (manifest.name !== name || manifest.version !== version) throw new Error(`${name} resolved ${manifest.version}`);
+  const manifest = readPackageIdentity(
+    await readFile(join(stage, "node_modules", ...name.split("/"), "package.json"), "utf8"),
+  );
+  if (manifest.name !== name || manifest.version !== version) {
+    throw new Error(`${name} resolved ${manifest.version}`);
+  }
 }
 async function assertSingleRuntime(stage: string, name: string): Promise<void> {
   const suffix = `${name}/package.json`;
-  const files = (await readdir(join(stage, "node_modules"), { recursive: true })).filter((path) => path === suffix || path.endsWith(`/node_modules/${suffix}`));
-  if (files.length !== 1) throw new Error(`${name} runtime count ${files.length}`);
+  const files = (await readdir(join(stage, "node_modules"), { recursive: true })).filter(
+    (path) => path === suffix || path.endsWith(`/node_modules/${suffix}`),
+  );
+  if (files.length !== 1) {
+    throw new Error(`${name} runtime count ${files.length}`);
+  }
 }
-function rustLonghornPackages(tree: string): string[] {
-  return [...new Set(tree.split("\n").map((line) => line.trim().split(/\s+/)[0] ?? "").filter((name) => name.startsWith("longhorn-") && !name.startsWith("longhorn-greenfield")))].sort();
+function rustLonghornPackages(tree: string): Array<string> {
+  return [
+    ...new Set(
+      tree
+        .split("\n")
+        .map((line) => line.trim().split(/\s+/)[0] ?? "")
+        .filter((name) => name.startsWith("longhorn-") && !name.startsWith("longhorn-greenfield")),
+    ),
+  ].sort();
 }
-function artifactSet(identities: ArtifactIdentity[]): string {
-  return sha256(identities.map(({ name, sha256 }) => `${name}:${sha256}`).sort().join("\n"));
+function artifactSet(identities: Array<ArtifactIdentity>): string {
+  return sha256(
+    identities
+      .map(({ name, sha256 }) => `${name}:${sha256}`)
+      .sort()
+      .join("\n"),
+  );
 }
-async function git(root: string, args: string[]): Promise<string> { return (await run(["git", ...args], root)).trim(); }
+async function git(root: string, args: Array<string>): Promise<string> {
+  return (await run(["git", ...args], root)).trim();
+}

@@ -1,15 +1,15 @@
-import {
-  isNewerNativeContentSnapshot,
-  type ClientRect,
-  type DesiredUpdate,
-  type DesiredVisibility,
-  type FocusIntent,
-  type InputRoutingMode,
-  type NativeContentClient,
-  type NativeContentConnection,
-  type NativeContentProtocolRejection,
-  type NativeContentSnapshot,
-  type ScaleFactor,
+import { isNewerNativeContentSnapshot } from "@inflatable-cookie/longhorn/native-content";
+import type {
+  ClientRect,
+  DesiredUpdate,
+  DesiredVisibility,
+  FocusIntent,
+  InputRoutingMode,
+  NativeContentClient,
+  NativeContentConnection,
+  NativeContentProtocolRejection,
+  NativeContentSnapshot,
+  ScaleFactor,
 } from "@inflatable-cookie/longhorn/native-content";
 
 export type NativeContentSessionClient = Pick<NativeContentClient, "connect">;
@@ -72,8 +72,7 @@ export class NativeContentSession {
     this.#visibility = copyVisibility(options.visibility);
     this.#focus = options.focus;
     this.#inputRouting = options.inputRouting;
-    this.#resizeObserverFactory =
-      options.resizeObserverFactory ?? defaultResizeObserverFactory;
+    this.#resizeObserverFactory = options.resizeObserverFactory ?? defaultResizeObserverFactory;
   }
 
   get status(): NativeContentSessionStatus {
@@ -105,27 +104,35 @@ export class NativeContentSession {
   }
 
   start(): Promise<void> {
-    if (this.#startTask !== undefined) return this.#startTask;
-    if (this.#active) return Promise.resolve();
+    if (this.#startTask !== undefined) {
+      return this.#startTask;
+    }
+    if (this.#active) {
+      return Promise.resolve();
+    }
 
     const task =
-      this.#stopTask === undefined
-        ? this.#begin()
-        : this.#stopTask.then(() => this.#begin());
+      this.#stopTask === undefined ? this.#begin() : this.#stopTask.then(() => this.#begin());
     this.#startTask = task;
     void task.then(
       () => {
-        if (this.#startTask === task) this.#startTask = undefined;
+        if (this.#startTask === task) {
+          this.#startTask = undefined;
+        }
       },
       () => {
-        if (this.#startTask === task) this.#startTask = undefined;
+        if (this.#startTask === task) {
+          this.#startTask = undefined;
+        }
       },
     );
     return task;
   }
 
   stop(): Promise<void> {
-    if (this.#stopTask !== undefined) return this.#stopTask;
+    if (this.#stopTask !== undefined) {
+      return this.#stopTask;
+    }
     if (!this.#active && this.#connection === undefined) {
       this.#status = { kind: "idle" };
       this.#snapshot = undefined;
@@ -153,10 +160,14 @@ export class NativeContentSession {
     this.#stopTask = task;
     void task.then(
       () => {
-        if (this.#stopTask === task) this.#stopTask = undefined;
+        if (this.#stopTask === task) {
+          this.#stopTask = undefined;
+        }
       },
       () => {
-        if (this.#stopTask === task) this.#stopTask = undefined;
+        if (this.#stopTask === task) {
+          this.#stopTask = undefined;
+        }
       },
     );
     return task;
@@ -167,10 +178,14 @@ export class NativeContentSession {
     this.#disconnectObserver();
     this.#viewportElement = element;
     this.refreshViewport();
-    if (this.#active) this.#installObserver();
+    if (this.#active) {
+      this.#installObserver();
+    }
 
     return () => {
-      if (binding !== this.#viewportBinding) return;
+      if (binding !== this.#viewportBinding) {
+        return;
+      }
       ++this.#viewportBinding;
       this.#disconnectObserver();
       this.#viewportElement = undefined;
@@ -194,25 +209,33 @@ export class NativeContentSession {
 
   setScale(scale: ScaleFactor): void {
     assertScale(scale);
-    if (scale === this.#scale) return;
+    if (scale === this.#scale) {
+      return;
+    }
     this.#scale = scale;
     this.#requestPump();
   }
 
   setVisibilityPolicy(visibility: DesiredVisibility): void {
-    if (equalVisibility(visibility, this.#visibility)) return;
+    if (equalVisibility(visibility, this.#visibility)) {
+      return;
+    }
     this.#visibility = copyVisibility(visibility);
     this.#requestPump();
   }
 
   setFocusIntent(focus: FocusIntent): void {
-    if (focus === this.#focus) return;
+    if (focus === this.#focus) {
+      return;
+    }
     this.#focus = focus;
     this.#requestPump();
   }
 
   setInputRouting(inputRouting: InputRoutingMode): void {
-    if (inputRouting === this.#inputRouting) return;
+    if (inputRouting === this.#inputRouting) {
+      return;
+    }
     this.#inputRouting = inputRouting;
     this.#requestPump();
   }
@@ -230,6 +253,8 @@ export class NativeContentSession {
 
     try {
       this.#installObserver();
+      // The client may synchronously notify before it returns the connection.
+      // oxlint-disable-next-line prefer-const -- This binding must be initialized before connect calls its callbacks.
       let connection: NativeContentConnection | undefined;
       let earlySnapshot: NativeContentSnapshot | undefined;
       let earlyFailure: unknown;
@@ -253,9 +278,13 @@ export class NativeContentSession {
       if (earlyFailure !== undefined) {
         this.#status = { kind: "failed", error: earlyFailure };
       }
-      if (earlySnapshot !== undefined) this.#acceptSnapshot(earlySnapshot);
+      if (earlySnapshot !== undefined) {
+        this.#acceptSnapshot(earlySnapshot);
+      }
       const snapshot = await connection.ready;
-      if (!this.#isCurrent(lifecycle, connection)) return;
+      if (!this.#isCurrent(lifecycle, connection)) {
+        return;
+      }
       this.#acceptSnapshot(connection.current() ?? snapshot);
     } catch (error) {
       if (lifecycle === this.#lifecycle) {
@@ -277,26 +306,28 @@ export class NativeContentSession {
       current.cursor.client_epoch === snapshot.cursor.client_epoch &&
       current.cursor.desired_revision === snapshot.cursor.desired_revision &&
       current.cursor.observed_revision === snapshot.cursor.observed_revision;
-    if (
-      current !== undefined &&
-      !sameCursor &&
-      !isNewerNativeContentSnapshot(snapshot, current)
-    ) {
+    if (current !== undefined && !sameCursor && !isNewerNativeContentSnapshot(snapshot, current)) {
       return;
     }
     this.#snapshot = snapshot;
-    if (this.#status.kind !== "updating") this.#status = { kind: "ready" };
+    if (this.#status.kind !== "updating") {
+      this.#status = { kind: "ready" };
+    }
     this.#requestPump();
   }
 
   #requestPump(): void {
-    if (!this.#active || this.#connection === undefined) return;
+    if (!this.#active || this.#connection === undefined) {
+      return;
+    }
     this.#pumpRequested = true;
-    if (this.#pumpTask !== undefined) return;
+    if (this.#pumpTask !== undefined) {
+      return;
+    }
 
     const lifecycle = this.#lifecycle;
     const connection = this.#connection;
-    const task = this.#drain(lifecycle, connection).catch((error) => {
+    const task = this.#drain(lifecycle, connection).catch((error: unknown) => {
       if (this.#isCurrent(lifecycle, connection)) {
         this.#pumpRequested = false;
         this.#status = { kind: "failed", error };
@@ -304,30 +335,28 @@ export class NativeContentSession {
     });
     this.#pumpTask = task;
     void task.then(() => {
-      if (this.#pumpTask === task) this.#pumpTask = undefined;
+      if (this.#pumpTask === task) {
+        this.#pumpTask = undefined;
+      }
       if (this.#pumpRequested && this.#isCurrent(lifecycle, connection)) {
         this.#requestPump();
       }
     });
   }
 
-  async #drain(
-    lifecycle: number,
-    connection: NativeContentConnection,
-  ): Promise<void> {
+  async #drain(lifecycle: number, connection: NativeContentConnection): Promise<void> {
     while (this.#pumpRequested && this.#isCurrent(lifecycle, connection)) {
       this.#pumpRequested = false;
       await this.#updateOnce(lifecycle, connection);
     }
   }
 
-  async #updateOnce(
-    lifecycle: number,
-    connection: NativeContentConnection,
-  ): Promise<void> {
+  async #updateOnce(lifecycle: number, connection: NativeContentConnection): Promise<void> {
     const snapshot = connection.current() ?? this.#snapshot;
     const viewport = this.#viewport;
-    if (snapshot === undefined || viewport === undefined) return;
+    if (snapshot === undefined || viewport === undefined) {
+      return;
+    }
 
     const update = this.#desiredUpdate(snapshot, viewport);
     if (equalDesired(update, snapshot.desired)) {
@@ -338,13 +367,12 @@ export class NativeContentSession {
     const generation = snapshot.cursor.attach_generation;
     this.#status = { kind: "updating" };
     const result = await connection.updateDesired(update);
-    if (!this.#isCurrent(lifecycle, connection)) return;
+    if (!this.#isCurrent(lifecycle, connection)) {
+      return;
+    }
 
     const current = connection.current();
-    if (
-      current !== undefined &&
-      current.cursor.attach_generation !== generation
-    ) {
+    if (current !== undefined && current.cursor.attach_generation !== generation) {
       this.#acceptSnapshot(current);
       return;
     }
@@ -359,10 +387,7 @@ export class NativeContentSession {
     }
   }
 
-  #desiredUpdate(
-    snapshot: NativeContentSnapshot,
-    viewport: ClientRect,
-  ): DesiredUpdate {
+  #desiredUpdate(snapshot: NativeContentSnapshot, viewport: ClientRect): DesiredUpdate {
     return {
       generation: snapshot.cursor.attach_generation,
       host_window_id: snapshot.desired.host_window_id,
@@ -377,18 +402,16 @@ export class NativeContentSession {
   }
 
   #installObserver(): void {
-    if (
-      !this.#active ||
-      this.#viewportElement === undefined ||
-      this.#observer !== undefined
-    ) {
+    if (!this.#active || this.#viewportElement === undefined || this.#observer !== undefined) {
       return;
     }
     const observer = this.#resizeObserverFactory(() => {
       try {
         this.refreshViewport();
       } catch (error) {
-        if (this.#active) this.#status = { kind: "failed", error };
+        if (this.#active) {
+          this.#status = { kind: "failed", error };
+        }
       }
     });
     observer.observe(this.#viewportElement);
@@ -400,21 +423,12 @@ export class NativeContentSession {
     this.#observer = undefined;
   }
 
-  #isCurrent(
-    lifecycle: number,
-    connection: NativeContentConnection,
-  ): boolean {
-    return (
-      this.#active &&
-      lifecycle === this.#lifecycle &&
-      connection === this.#connection
-    );
+  #isCurrent(lifecycle: number, connection: NativeContentConnection): boolean {
+    return this.#active && lifecycle === this.#lifecycle && connection === this.#connection;
   }
 }
 
-function defaultResizeObserverFactory(
-  callback: () => void,
-): NativeContentResizeObserver {
+function defaultResizeObserverFactory(callback: () => void): NativeContentResizeObserver {
   if (typeof globalThis.ResizeObserver !== "function") {
     throw new NativeContentResizeObserverUnavailableError();
   }
@@ -434,10 +448,7 @@ function measureViewport(element: HTMLElement): ClientRect {
     }
   }
   if (rect.width < 0 || rect.height < 0) {
-    throw new NativeContentViewportMeasurementError(
-      "extent",
-      Math.min(rect.width, rect.height),
-    );
+    throw new NativeContentViewportMeasurementError("extent", Math.min(rect.width, rect.height));
   }
   return {
     origin: { x: rect.left, y: rect.top },
@@ -446,14 +457,8 @@ function measureViewport(element: HTMLElement): ClientRect {
 }
 
 function assertScale(scale: ScaleFactor): void {
-  if (
-    !Number.isSafeInteger(scale) ||
-    scale < 1 ||
-    scale > 0xffff_ffff
-  ) {
-    throw new RangeError(
-      "native-content scale must be integer thousandths in the u32 range",
-    );
+  if (!Number.isSafeInteger(scale) || scale < 1 || scale > 0xff_ff_ff_ff) {
+    throw new RangeError("native-content scale must be integer thousandths in the u32 range");
   }
 }
 
@@ -463,14 +468,10 @@ function copyVisibility(visibility: DesiredVisibility): DesiredVisibility {
     : { state: "hidden", reason: visibility.reason };
 }
 
-function equalVisibility(
-  left: DesiredVisibility,
-  right: DesiredVisibility,
-): boolean {
+function equalVisibility(left: DesiredVisibility, right: DesiredVisibility): boolean {
   return (
     left.state === right.state &&
-    (left.state === "visible" ||
-      (right.state === "hidden" && left.reason === right.reason))
+    (left.state === "visible" || (right.state === "hidden" && left.reason === right.reason))
   );
 }
 
@@ -484,10 +485,7 @@ function equalRect(left: ClientRect, right: ClientRect | undefined): boolean {
   );
 }
 
-function equalDesired(
-  update: DesiredUpdate,
-  desired: NativeContentSnapshot["desired"],
-): boolean {
+function equalDesired(update: DesiredUpdate, desired: NativeContentSnapshot["desired"]): boolean {
   return (
     update.generation === desired.generation &&
     update.host_window_id === desired.host_window_id &&

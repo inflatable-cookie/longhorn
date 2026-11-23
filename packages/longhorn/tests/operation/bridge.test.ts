@@ -1,9 +1,7 @@
+import assert from "node:assert/strict";
 import { describe, expect, test } from "bun:test";
-import {
-  BridgeDomainClient,
-  BridgeSession,
-  type BridgeOperationDescriptor,
-} from "@inflatable-cookie/longhorn/bridge";
+import { BridgeDomainClient, BridgeSession } from "@inflatable-cookie/longhorn/bridge";
+import type { BridgeOperationDescriptor } from "@inflatable-cookie/longhorn/bridge";
 
 import {
   BridgeOperationJobCorrelation,
@@ -17,28 +15,48 @@ describe("bridge operation composition", () => {
     const session = operationSession();
     const adapter = {
       async invoke(operation: BridgeOperationDescriptor<unknown, unknown>, request: unknown) {
-        const envelope = request as { context: { requestId: string }; payload: { requestId: string } };
+        const envelope = request as {
+          context: { requestId: string };
+          payload: { requestId: string };
+        };
         if (operation.route.endsWith("snapshot")) {
-          return { requestId: envelope.context.requestId, outcome: { success: fixture.snapshotResponse } };
+          return {
+            requestId: envelope.context.requestId,
+            outcome: { success: fixture.snapshotResponse },
+          };
         }
         if (operation.route.endsWith("mutate")) {
-          const result = fixture.mutationResults.find((candidate) => candidate.requestId === envelope.payload.requestId);
-          return { requestId: envelope.context.requestId, authoritativeRevision: result?.snapshot.catalogueRevision ?? null, outcome: { applied: result } };
+          const result = fixture.mutationResults.find(
+            (candidate) => candidate.requestId === envelope.payload.requestId,
+          );
+          return {
+            requestId: envelope.context.requestId,
+            authoritativeRevision: result?.snapshot.catalogueRevision ?? null,
+            outcome: { applied: result },
+          };
         }
-        return { requestId: envelope.context.requestId, outcome: { success: fixture.cancellationResult } };
+        return {
+          requestId: envelope.context.requestId,
+          outcome: { success: fixture.cancellationResult },
+        };
       },
     };
     let bridgeSequence = 0;
-    const client = new OperationClient(createBridgeOperationPort({
-      client: new BridgeDomainClient(session, adapter),
-      domainId: "longhorn.operation",
-      sessionId: "session:operation",
-      authorityEpoch: 7,
-      nextBridgeRequestId: () => `bridge-request:${++bridgeSequence}`,
-      nextOperationRequestId: () => fixture.snapshotQuery.requestId,
-    }));
+    const client = new OperationClient(
+      createBridgeOperationPort({
+        client: new BridgeDomainClient(session, adapter),
+        domainId: "longhorn.operation",
+        sessionId: "session:operation",
+        authorityEpoch: 7,
+        nextBridgeRequestId: () => `bridge-request:${++bridgeSequence}`,
+        nextOperationRequestId: () => fixture.snapshotQuery.requestId,
+      }),
+    );
     expect(await client.snapshot()).toEqual(fixture.snapshotResponse);
-    expect(await client.mutate(fixture.mutationCommands[0]!)).toEqual(fixture.mutationResults[0]);
+    const [command] = fixture.mutationCommands;
+    const [expected] = fixture.mutationResults;
+    assert(command && expected);
+    expect(await client.mutate(command)).toEqual(expected);
     expect(await client.cancel(fixture.cancellationCommand)).toEqual(fixture.cancellationResult);
   });
 
@@ -48,18 +66,22 @@ describe("bridge operation composition", () => {
       bridgeJobId: "bridge-job:1",
       operationId: "operation:scan",
     });
-    expect(correlation.acceptProgress({
-      requestId: "bridge-request:other",
-      jobId: "bridge-job:1",
-      progress: fixture.changedEvents[0]!,
-    })).toBeUndefined();
+    expect(
+      correlation.acceptProgress({
+        requestId: "bridge-request:other",
+        jobId: "bridge-job:1",
+        progress: fixture.changedEvents[0]!,
+      }),
+    ).toBeUndefined();
     const foreign = structuredClone(fixture.changedEvents[0]!);
     foreign.operationId = "operation:foreign";
-    expect(correlation.acceptProgress({
-      requestId: "bridge-request:1",
-      jobId: "bridge-job:1",
-      progress: foreign,
-    })).toBeUndefined();
+    expect(
+      correlation.acceptProgress({
+        requestId: "bridge-request:1",
+        jobId: "bridge-job:1",
+        progress: foreign,
+      }),
+    ).toBeUndefined();
   });
 });
 
@@ -71,20 +93,28 @@ function operationSession(): BridgeSession {
     connection: { state: "ready", reason: "negotiationAccepted" },
     authentication: "authenticated",
     transportFeatures: [],
-    domainCapabilities: [{
-      domainId: "longhorn.operation",
-      capabilities: ["longhorn.operation.read", "longhorn.operation.manage", "longhorn.operation.cancel"],
-    }],
-    domainAuthorities: [{
-      domainId: "longhorn.operation",
-      scopeId: "scope:operation",
-      availability: "available",
-      readAuthority: "authoritative",
-      writeAuthority: "authoritative",
-      executionAuthority: "executor",
-      authorityEpoch: 7,
-      authoritativeRevision: 0,
-    }],
+    domainCapabilities: [
+      {
+        domainId: "longhorn.operation",
+        capabilities: [
+          "longhorn.operation.read",
+          "longhorn.operation.manage",
+          "longhorn.operation.cancel",
+        ],
+      },
+    ],
+    domainAuthorities: [
+      {
+        domainId: "longhorn.operation",
+        scopeId: "scope:operation",
+        availability: "available",
+        readAuthority: "authoritative",
+        writeAuthority: "authoritative",
+        executionAuthority: "executor",
+        authorityEpoch: 7,
+        authoritativeRevision: 0,
+      },
+    ],
     diagnostics: [],
   });
 }

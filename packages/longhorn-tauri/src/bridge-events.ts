@@ -61,9 +61,7 @@ export interface BridgeJobListeners<Progress, Success, Detail> {
   readonly successCodec: BridgeCodec<Success>;
   readonly detailCodec: BridgeCodec<Detail>;
   readonly progress?: (event: BridgeProgressEvent<Progress>) => void;
-  readonly terminal: (
-    event: BridgeJobTerminalEvent<Success, Detail>,
-  ) => void;
+  readonly terminal: (event: BridgeJobTerminalEvent<Success, Detail>) => void;
   /**
    * Reports a malformed event or a teardown failure, mirroring
    * `CheckedSnapshotConnection`. A malformed terminal event is the only way
@@ -92,24 +90,26 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   // Set once the job has failed or been closed. Nothing reaches the consumer
   // after that, and a registration that completes later is released at once.
   let stopped = false;
-  const unlistens: Unlisten[] = [];
+  const unlistens: Array<Unlisten> = [];
 
   // Last registered, first released.
   const teardown = async (): Promise<void> => {
     const pending = unlistens.splice(0).reverse();
-    const results = await Promise.allSettled(
-      pending.map((unlisten) => unlisten()),
-    );
+    const results = await Promise.allSettled(pending.map((unlisten) => unlisten()));
     for (const result of results) {
-      if (result.status === "rejected") throw result.reason;
+      if (result.status === "rejected") {
+        throw result.reason;
+      }
     }
   };
 
   const fail = (error: unknown): void => {
-    if (stopped) return;
+    if (stopped) {
+      return;
+    }
     stopped = true;
     listeners.onFailure?.({ phase: "event", error });
-    void teardown().catch((teardownError) => {
+    void teardown().catch((teardownError: unknown) => {
       listeners.onFailure?.({ phase: "unlisten", error: teardownError });
     });
   };
@@ -127,7 +127,9 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   };
 
   const onProgress = (value: unknown): void => {
-    if (stopped) return;
+    if (stopped) {
+      return;
+    }
     let event: BridgeProgressEvent<Progress>;
     try {
       event = parseBridgeProgressEvent(value, listeners.progressCodec);
@@ -143,14 +145,12 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   };
 
   const onTerminal = (value: unknown): void => {
-    if (stopped) return;
+    if (stopped) {
+      return;
+    }
     let event: BridgeJobTerminalEvent<Success, Detail>;
     try {
-      event = parseBridgeJobTerminalEvent(
-        value,
-        listeners.successCodec,
-        listeners.detailCodec,
-      );
+      event = parseBridgeJobTerminalEvent(value, listeners.successCodec, listeners.detailCodec);
     } catch (error) {
       fail(error);
       return;

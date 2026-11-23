@@ -1,3 +1,4 @@
+import type { PanelTabItem } from "@inflatable-cookie/poodle-svelte";
 import type {
   LayoutMutationCommand,
   LayoutMutationRequest,
@@ -31,17 +32,19 @@ import {
   projectMove,
   projectReorder,
   projectSizingSlot,
-  type LayoutProjector,
 } from "./projectors.ts";
+import type { LayoutProjector } from "./projectors.ts";
 import {
   MissingSurfaceDocumentError,
   MissingLayoutMemberError,
   MissingPanelPresentationError,
-  type PanelPresentationResolver,
-  type PanelRenderContext,
-  type PoodleLayoutBindingOptions,
-  type RegionProjection,
-  type SizingSlotProjection,
+} from "./types.ts";
+import type {
+  PanelPresentationResolver,
+  PanelRenderContext,
+  PoodleLayoutBindingOptions,
+  RegionProjection,
+  SizingSlotProjection,
 } from "./types.ts";
 
 export type { PanelPresentation } from "./types.ts";
@@ -84,21 +87,19 @@ export class PoodleLayoutBinding {
         throw new MissingPanelPresentationError(instance.id);
       }
       if (presentation.label.trim().length === 0) {
-        throw new TypeError(
-          `panel presentation label is empty: ${panelInstanceId}`,
-        );
+        throw new TypeError(`panel presentation label is empty: ${panelInstanceId}`);
       }
       panels.set(panelInstanceId, {
         instance,
         definition: panelDefinition,
         presentation,
       });
-      return {
+      const item: PanelTabItem = {
         value: panelInstanceId,
         label: presentation.label,
-        icon: presentation.icon,
         closable: panelDefinition.closeable,
       };
+      return presentation.icon === undefined ? item : { ...item, icon: presentation.icon };
     });
 
     let active: PanelRenderContext | null = null;
@@ -122,25 +123,16 @@ export class PoodleLayoutBinding {
     };
   }
 
-  regionState(
-    containerId: SurfaceId,
-    regionId: RegionId,
-  ): RegionState {
+  regionState(containerId: SurfaceId, regionId: RegionId): RegionState {
     return findRegion(findContainer(this.document, containerId), regionId);
   }
 
-  regionDefinition(
-    containerId: SurfaceId,
-    regionId: RegionId,
-  ): RegionDefinition {
+  regionDefinition(containerId: SurfaceId, regionId: RegionId): RegionDefinition {
     const container = findContainer(this.document, containerId);
     return this.#regionDefinition(container, regionId);
   }
 
-  collapsibleRegionState(
-    containerId: SurfaceId,
-    regionId: RegionId,
-  ): RegionState {
+  collapsibleRegionState(containerId: SurfaceId, regionId: RegionId): RegionState {
     const definition = this.regionDefinition(containerId, regionId);
     const state = this.regionState(containerId, regionId);
     if (!definition.collapsible || state.collapsed === null) {
@@ -149,15 +141,10 @@ export class PoodleLayoutBinding {
     return state;
   }
 
-  sizingSlot(
-    containerId: SurfaceId,
-    sizingSlotId: SizingSlotId,
-  ): SizingSlotProjection {
+  sizingSlot(containerId: SurfaceId, sizingSlotId: SizingSlotId): SizingSlotProjection {
     const container = findContainer(this.document, containerId);
     const schema = this.#schema(container.schema_id);
-    const definition = schema.sizing_slots.find(
-      ({ id }) => id === sizingSlotId,
-    );
+    const definition = schema.sizing_slots.find(({ id }) => id === sizingSlotId);
     const state = container.sizing_slots.find(
       ({ sizing_slot_id }) => sizing_slot_id === sizingSlotId,
     );
@@ -175,31 +162,25 @@ export class PoodleLayoutBinding {
     const document = this.document;
     const instance = findPanelInstance(document, panelInstanceId);
     const definition = this.#panelDefinition(instance.definition_id);
-    if (!definition.movable) return false;
+    if (!definition.movable) {
+      return false;
+    }
 
     const source = findPanelLocation(document, panelInstanceId);
-    if (
-      source.container.id === targetContainerId &&
-      source.region.region_id === targetRegionId
-    ) {
+    if (source.container.id === targetContainerId && source.region.region_id === targetRegionId) {
       return false;
     }
 
     const target = findContainer(document, targetContainerId);
     const targetRegion = this.#regionDefinition(target, targetRegionId);
     if (
-      !definition.allowed_placements.some((selector) =>
-        selectorMatches(selector, targetRegion),
-      )
+      !definition.allowed_placements.some((selector) => selectorMatches(selector, targetRegion))
     ) {
       return false;
     }
 
     const peerCount = document.panel_instances.filter((candidate) => {
-      if (
-        candidate.id === panelInstanceId ||
-        candidate.definition_id !== instance.definition_id
-      ) {
+      if (candidate.id === panelInstanceId || candidate.definition_id !== instance.definition_id) {
         return false;
       }
       return findPanelLocation(document, candidate.id).container.id === target.id;
@@ -219,7 +200,7 @@ export class PoodleLayoutBinding {
   regionVisibilities(
     containerId: SurfaceId,
     movingPanelInstanceId?: PanelInstanceId,
-  ): readonly RegionVisibility[] {
+  ): ReadonlyArray<RegionVisibility> {
     const document = this.document;
     const container = findContainer(document, containerId);
     const schema = this.#schema(container.schema_id);
@@ -258,7 +239,7 @@ export class PoodleLayoutBinding {
   reorder(
     containerId: SurfaceId,
     regionId: RegionId,
-    panelInstanceIds: readonly PanelInstanceId[],
+    panelInstanceIds: ReadonlyArray<PanelInstanceId>,
   ): void {
     this.#submit(
       {
@@ -285,20 +266,11 @@ export class PoodleLayoutBinding {
         target_region_id: targetRegionId,
         insertion_index: insertionIndex,
       },
-      projectMove(
-        panelInstanceId,
-        targetContainerId,
-        targetRegionId,
-        insertionIndex,
-      ),
+      projectMove(panelInstanceId, targetContainerId, targetRegionId, insertionIndex),
     );
   }
 
-  setCollapsed(
-    containerId: SurfaceId,
-    regionId: RegionId,
-    collapsed: boolean,
-  ): void {
+  setCollapsed(containerId: SurfaceId, regionId: RegionId, collapsed: boolean): void {
     this.#submit(
       {
         kind: "set_region_collapsed",
@@ -310,11 +282,7 @@ export class PoodleLayoutBinding {
     );
   }
 
-  setSizingSlot(
-    containerId: SurfaceId,
-    sizingSlotId: SizingSlotId,
-    ratio: number,
-  ): void {
+  setSizingSlot(containerId: SurfaceId, sizingSlotId: SizingSlotId, ratio: number): void {
     this.#submit(
       {
         kind: "set_sizing_slot",
@@ -326,25 +294,24 @@ export class PoodleLayoutBinding {
     );
   }
 
-  #submit(
-    command: LayoutMutationCommand,
-    project: LayoutProjector,
-  ): void {
-    this.#mutationTail = this.#mutationTail.then(async () => {
-      const request: LayoutMutationRequest = {
-        request_id: this.#options.nextRequestId(),
-        expected_revision: this.document.revision,
-        command,
-      };
-      const result = await this.#options.state.dispatch(request, project);
-      this.#options.onResult?.(result);
-    }).catch((error) => {
-      try {
-        this.#options.onError(error);
-      } catch {
-        // Error reporting cannot poison later queued mutations.
-      }
-    });
+  #submit(command: LayoutMutationCommand, project: LayoutProjector): void {
+    this.#mutationTail = this.#mutationTail
+      .then(async () => {
+        const request: LayoutMutationRequest = {
+          request_id: this.#options.nextRequestId(),
+          expected_revision: this.document.revision,
+          command,
+        };
+        const result = await this.#options.state.dispatch(request, project);
+        this.#options.onResult?.(result);
+      })
+      .catch((error: unknown) => {
+        try {
+          this.#options.onError(error);
+        } catch {
+          // Error reporting cannot poison later queued mutations.
+        }
+      });
   }
 
   #schema(schemaId: string): LayoutSchemaDefinition {
@@ -355,13 +322,8 @@ export class PoodleLayoutBinding {
     return schema;
   }
 
-  #regionDefinition(
-    container: SurfaceRecord,
-    regionId: RegionId,
-  ): RegionDefinition {
-    const definition = this.#schema(container.schema_id).regions.find(
-      ({ id }) => id === regionId,
-    );
+  #regionDefinition(container: SurfaceRecord, regionId: RegionId): RegionDefinition {
+    const definition = this.#schema(container.schema_id).regions.find(({ id }) => id === regionId);
     if (!definition) {
       throw new MissingLayoutMemberError("region definition", regionId);
     }
@@ -371,10 +333,7 @@ export class PoodleLayoutBinding {
   #panelDefinition(panelDefinitionId: string): PanelDefinition {
     const definition = this.#panels.get(panelDefinitionId);
     if (!definition) {
-      throw new MissingLayoutMemberError(
-        "panel definition",
-        panelDefinitionId,
-      );
+      throw new MissingLayoutMemberError("panel definition", panelDefinitionId);
     }
     return definition;
   }
@@ -387,7 +346,7 @@ export function createPoodleLayoutBinding(
 }
 
 function uniqueMap<T extends { readonly id: string }>(
-  values: readonly T[],
+  values: ReadonlyArray<T>,
   kind: string,
 ): ReadonlyMap<string, T> {
   const result = new Map<string, T>();

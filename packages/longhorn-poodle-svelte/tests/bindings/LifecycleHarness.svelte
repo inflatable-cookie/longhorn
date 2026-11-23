@@ -1,8 +1,6 @@
 <script lang="ts">
-  import {
-    useClientState,
-    type StartableClientState,
-  } from "../../src/bindings/index.ts";
+  import { useClientState } from "../../src/bindings/index.ts";
+  import type { StartableClientState } from "../../src/bindings/index.ts";
 
   let { state }: { state: StartableClientState } = $props();
   useClientState({

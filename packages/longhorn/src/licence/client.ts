@@ -22,11 +22,48 @@ import {
 
 export class LicenceClient implements CheckedLicencePort {
   constructor(readonly port: LicencePort) {}
-  async snapshot(): Promise<LicenceSnapshot> { const value = await this.port.snapshot(); assertLicenceSnapshot(value); return value; }
-  async activate(command: LicenceActivateCommand): Promise<LicenceOutcomeProjection> { assertLicenceActivateCommand(command); const value = await this.port.activate(command); assertLicenceOutcome(value); return value; }
-  async deactivate(command: LicenceDeactivateCommand): Promise<LicenceOutcomeProjection> { assertLicenceDeactivateCommand(command); const value = await this.port.deactivate(command); assertLicenceOutcome(value); return value; }
-  async refresh(command: LicenceRefreshCommand): Promise<LicenceOutcomeProjection> { assertLicenceRefreshCommand(command); const value = await this.port.refresh(command); assertLicenceOutcome(value); return value; }
-  async releaseSeat(command: LicenceReleaseSeatCommand): Promise<LicenceOutcomeProjection> { assertLicenceReleaseSeatCommand(command); const value = await this.port.releaseSeat(command); assertLicenceOutcome(value); return value; }
-  async renameSeat(command: LicenceRenameSeatCommand): Promise<LicenceOutcomeProjection> { assertLicenceRenameSeatCommand(command); const value = await this.port.renameSeat(command); assertLicenceOutcome(value); return value; }
-  async listen(listener: (event: LicenceChangedEvent) => void): Promise<LicenceUnlisten> { if (this.port.listen === undefined) return () => {}; return this.port.listen((value) => { assertLicenceChangedEvent(value); listener(value); }); }
+  async snapshot(): Promise<LicenceSnapshot> {
+    const value = await this.port.snapshot();
+    assertLicenceSnapshot(value);
+    return value;
+  }
+  async activate(command: LicenceActivateCommand): Promise<LicenceOutcomeProjection> {
+    assertLicenceActivateCommand(command);
+    const value = await this.port.activate(command);
+    assertLicenceOutcome(value);
+    return value;
+  }
+  async deactivate(command: LicenceDeactivateCommand): Promise<LicenceOutcomeProjection> {
+    assertLicenceDeactivateCommand(command);
+    const value = await this.port.deactivate(command);
+    assertLicenceOutcome(value);
+    return value;
+  }
+  async refresh(command: LicenceRefreshCommand): Promise<LicenceOutcomeProjection> {
+    assertLicenceRefreshCommand(command);
+    const value = await this.port.refresh(command);
+    assertLicenceOutcome(value);
+    return value;
+  }
+  async releaseSeat(command: LicenceReleaseSeatCommand): Promise<LicenceOutcomeProjection> {
+    assertLicenceReleaseSeatCommand(command);
+    const value = await this.port.releaseSeat(command);
+    assertLicenceOutcome(value);
+    return value;
+  }
+  async renameSeat(command: LicenceRenameSeatCommand): Promise<LicenceOutcomeProjection> {
+    assertLicenceRenameSeatCommand(command);
+    const value = await this.port.renameSeat(command);
+    assertLicenceOutcome(value);
+    return value;
+  }
+  async listen(listener: (event: LicenceChangedEvent) => void): Promise<LicenceUnlisten> {
+    if (this.port.listen === undefined) {
+      return () => {};
+    }
+    return this.port.listen((value) => {
+      assertLicenceChangedEvent(value);
+      listener(value);
+    });
+  }
 }

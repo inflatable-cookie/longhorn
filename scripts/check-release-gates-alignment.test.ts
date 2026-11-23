@@ -80,10 +80,7 @@ describe("release:gates alignment", () => {
     const root = await mkdtemp(join(tmpdir(), "longhorn-release-gates-"));
     await mkdir(join(root, "config"), { recursive: true });
     await writeFile(join(root, "config/release.toml"), releaseToml);
-    await writeFile(
-      join(root, "effigy.toml"),
-      `"release:gates" = [{ task = "release:floor" }]\n`,
-    );
+    await writeFile(join(root, "effigy.toml"), `"release:gates" = [{ task = "release:floor" }]\n`);
     expect(() => checkReleaseGatesAlignment(root)).toThrow(/minus workspace/);
   });
 });

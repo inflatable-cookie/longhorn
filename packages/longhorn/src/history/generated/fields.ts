@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const HISTORY_FIELDS: Record<string, readonly string[]> = {
+export const HISTORY_FIELDS = {
   "HistoryBaselineProjection": ["prunedEntryCount", "prunedEncodedWeight", "lastPrunedEntryId", "lastPrunedSequence"],
   "HistorySummaryProjection": ["historyId", "revision", "mode", "undoDepth", "redoDepth", "currentEntryId", "nextUndoLabel", "nextRedoLabel", "retainedEntryCount", "retainedEncodedWeight", "retainedBaseline"],
   "HistorySnapshot": ["protocolVersion", "authorityEpoch", "summary"],
@@ -15,4 +15,4 @@ export const HISTORY_FIELDS: Record<string, readonly string[]> = {
   "HistoryNavigationReceiptProjection": ["historyId", "planId", "previousRevision", "committedRevision", "direction", "movedEntryIds", "sourcePosition", "authoritativePosition"],
   "HistoryNavigationRejectionProjection": ["code", "detail", "refreshRequired"],
   "HistoryChangedEvent": ["protocolVersion", "authorityEpoch", "historyId", "previousRevision", "committedRevision", "kind"],
-};
+} as const;

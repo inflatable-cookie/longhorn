@@ -1,3 +1,6 @@
+import { isRecord } from "../packages/longhorn/src/core/record.ts";
+import { parseJsonRecord, requireStrings } from "./proof-json.ts";
+import { errorCode } from "./proof-support.ts";
 // Scripts that run Cargo themselves build their argv here instead of naming a
 // runner. `scripts/rust-command.sh` is Longhorn's one switch point (`oxide`
 // locally, plain `cargo` when `GITHUB_ACTIONS=true` or under
@@ -16,7 +19,7 @@ const repositoryRoot = resolve(import.meta.dir, "..");
 const switchPoint = join(repositoryRoot, "scripts", "rust-command.sh");
 const privateCargo = join(repositoryRoot, "scripts", "private-cargo.sh");
 
-export type OxideProfile = "quick" | "debug" | "release";
+type OxideProfile = "quick" | "debug" | "release";
 
 /**
  * Full argv for the given Cargo arguments, run through the switch point.
@@ -25,14 +28,9 @@ export type OxideProfile = "quick" | "debug" | "release";
  * the pin travels as `RUSTUP_TOOLCHAIN`, which is also what `cargo` reads when
  * the same argv runs on a runner.
  */
-export function rustCommand(
-  args: readonly string[],
-  toolchain?: string,
-): string[] {
+export function rustCommand(args: ReadonlyArray<string>, toolchain?: string): Array<string> {
   const command = ["bash", switchPoint, ...args];
-  return toolchain === undefined
-    ? command
-    : ["env", `RUSTUP_TOOLCHAIN=${toolchain}`, ...command];
+  return toolchain === undefined ? command : ["env", `RUSTUP_TOOLCHAIN=${toolchain}`, ...command];
 }
 
 export type RustExecOptions = {
@@ -52,18 +50,11 @@ export type RustExecOptions = {
  * consumers calls this per staged workspace with that workspace's
  * `--manifest-path`, and the tool inside calls plain `cargo`, never Oxide.
  */
-export function rustExec(
-  command: readonly string[],
-  options: RustExecOptions,
-): string[] {
-  const router = [
-    "bash",
-    switchPoint,
-    "exec",
-    "--manifest-path",
-    options.manifestPath,
-  ];
-  if (options.profile !== undefined) router.push("--profile", options.profile);
+export function rustExec(command: ReadonlyArray<string>, options: RustExecOptions): Array<string> {
+  const router = ["bash", switchPoint, "exec", "--manifest-path", options.manifestPath];
+  if (options.profile !== undefined) {
+    router.push("--profile", options.profile);
+  }
   router.push("--", ...command);
   return options.toolchain === undefined
     ? router
@@ -74,10 +65,7 @@ export function rustExec(
  * Full argv that runs one disposable workspace's Cargo with private final
  * outputs under `target`.
  */
-export function privateCargoCommand(
-  target: string,
-  args: readonly string[],
-): string[] {
+export function privateCargoCommand(target: string, args: ReadonlyArray<string>): Array<string> {
   return ["bash", privateCargo, "--target", target, "--", ...args];
 }
 
@@ -88,20 +76,29 @@ export function privateCargoCommand(
  * `<target>/<profile>/`, not `deps/`), so a scan reads the files this build
  * reported rather than assuming a directory.
  */
-export function libraryArchives(messages: string, packageName: string): string[] {
+export function libraryArchives(messages: string, packageName: string): Array<string> {
   const libraryName = packageName.replaceAll("-", "_");
-  const archives: string[] = [];
+  const archives: Array<string> = [];
   for (const line of messages.split("\n")) {
-    if (!line.startsWith("{")) continue;
-    const message = JSON.parse(line) as {
-      reason?: string;
-      target?: { name?: string; kind?: string[] };
-      filenames?: string[];
-    };
-    if (message.reason !== "compiler-artifact") continue;
-    if (message.target?.name !== libraryName) continue;
-    if (!message.target.kind?.includes("lib")) continue;
-    archives.push(...(message.filenames ?? []).filter((file) => file.endsWith(".rlib")));
+    if (!line.startsWith("{")) {
+      continue;
+    }
+    const message = parseJsonRecord(line);
+    if (message.reason !== "compiler-artifact") {
+      continue;
+    }
+    const target = message.target;
+    if (!isRecord(target) || target.name !== libraryName) {
+      continue;
+    }
+    if (!requireStrings(target.kind ?? [], "Cargo target kind").includes("lib")) {
+      continue;
+    }
+    archives.push(
+      ...requireStrings(message.filenames ?? [], "Cargo artifact filenames").filter((file) =>
+        file.endsWith(".rlib"),
+      ),
+    );
   }
   return archives;
 }
@@ -161,7 +158,9 @@ export async function taskScratch(label: string): Promise<TaskScratch> {
 }
 
 async function scratchBase(): Promise<string> {
-  if (process.env.GITHUB_ACTIONS === "true") return tmpdir();
+  if (process.env.GITHUB_ACTIONS === "true") {
+    return tmpdir();
+  }
   const configured = process.env[scratchVariable];
   const explicit = configured !== undefined && configured !== "";
   const owner = explicit ? resolve(configured) : await reportedScratchRoot();
@@ -170,22 +169,20 @@ async function scratchBase(): Promise<string> {
   try {
     await mkdir(base);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+    if (errorCode(error) !== "EEXIST") {
       throw new Error(
         `cannot create build scratch ${base}: ${String(error)}. Its parent must already be an external build scratch root.`,
+        { cause: error },
       );
     }
   }
   return base;
 }
 
-type PoolDescription = {
-  removable?: {
-    available?: unknown;
-    unavailable_reason?: unknown;
-    suggested_scratch_root?: unknown;
-  };
-};
+const refusal = (why: string) =>
+  new Error(
+    `no build scratch root: ${why}. Set ${scratchVariable} to an existing directory on a build volume; nothing is created on the internal drive.`,
+  );
 
 /**
  * The scratch root Oxide reports for its registered removable build pool.
@@ -193,14 +190,11 @@ type PoolDescription = {
  * and names `OXIDE_TASK_SCRATCH_ROOT`, the operator's way to set it.
  */
 async function reportedScratchRoot(): Promise<string> {
-  const refusal = (why: string) =>
-    new Error(
-      `no build scratch root: ${why}. Set ${scratchVariable} to an existing directory on a build volume; nothing is created on the internal drive.`,
-    );
-  let proc: ReturnType<typeof Bun.spawn>;
+  let proc: Bun.Subprocess<"ignore", "pipe", "pipe">;
   try {
     // An explicit environment, so `oxide` is looked up on the current PATH.
     proc = Bun.spawn(["oxide", "pool", "describe", "--json"], {
+      stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
       env: { ...process.env },
@@ -213,17 +207,20 @@ async function reportedScratchRoot(): Promise<string> {
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
   ]);
-  if (code !== 0) throw refusal(`oxide pool describe --json exited ${code}: ${errors.trim()}`);
+  if (code !== 0) {
+    throw refusal(`oxide pool describe --json exited ${code}: ${errors.trim()}`);
+  }
 
-  let report: PoolDescription;
+  let report: Record<string, unknown>;
   try {
-    report = JSON.parse(output) as PoolDescription;
+    report = parseJsonRecord(output);
   } catch {
     throw refusal("oxide pool describe --json printed no JSON");
   }
-  const removable = report.removable;
+  const removable = isRecord(report.removable) ? report.removable : undefined;
   if (removable === undefined || removable.available !== true) {
-    const reason = typeof removable?.unavailable_reason === "string" ? ` (${removable.unavailable_reason})` : "";
+    const reason =
+      typeof removable?.unavailable_reason === "string" ? ` (${removable.unavailable_reason})` : "";
     throw refusal(`oxide reports no available removable build pool${reason}`);
   }
   const root = removable.suggested_scratch_root;
@@ -236,7 +233,7 @@ async function reportedScratchRoot(): Promise<string> {
 export type ScratchLocation = { readonly path: string; readonly device: number };
 
 /** Facts about the boot volume: its device numbers and the account home. */
-export type BootVolume = { readonly devices: readonly number[]; readonly home: string };
+export type BootVolume = { readonly devices: ReadonlyArray<number>; readonly home: string };
 
 /**
  * The reason a resolved scratch location is refused, or `null` when it is
@@ -247,11 +244,21 @@ export type BootVolume = { readonly devices: readonly number[]; readonly home: s
 export function scratchRefusal(location: ScratchLocation, boot: BootVolume): string | null {
   const { path, device } = location;
   // `dirname("/")` is `/`, so the drive root is tested before its children.
-  if (path === sep) return "a drive root";
-  if (dirname(path) === sep) return "a boot-volume top-level directory";
-  if (/^\/Volumes\/[^/]+$/.test(path)) return "a volume mount root";
-  if (path === boot.home || path.startsWith(`${boot.home}${sep}`)) return "the account home";
-  if (boot.devices.includes(device)) return "on the boot volume, the internal drive";
+  if (path === sep) {
+    return "a drive root";
+  }
+  if (dirname(path) === sep) {
+    return "a boot-volume top-level directory";
+  }
+  if (/^\/Volumes\/[^/]+$/.test(path)) {
+    return "a volume mount root";
+  }
+  if (path === boot.home || path.startsWith(`${boot.home}${sep}`)) {
+    return "the account home";
+  }
+  if (boot.devices.includes(device)) {
+    return "on the boot volume, the internal drive";
+  }
   return null;
 }
 
@@ -274,7 +281,10 @@ async function assertExternalScratch(owner: string): Promise<void> {
     );
   }
   const info = await stat(resolved);
-  if (!info.isDirectory()) throw new Error(`build scratch ${resolved} is not a directory`);
+  if (!info.isDirectory()) {
+    throw new Error(`build scratch ${resolved} is not a directory`);
+  }
+
   const refusal = scratchRefusal({ path: resolved, device: info.dev }, await bootVolume());
   if (refusal !== null) {
     throw new Error(
@@ -285,7 +295,12 @@ async function assertExternalScratch(owner: string): Promise<void> {
 
 if (import.meta.main) {
   const [command, label, ...extra] = process.argv.slice(2);
-  if (command !== "scratch" || label === undefined || extra.length > 0 || !/^[A-Za-z0-9._-]+$/.test(label)) {
+  if (
+    command !== "scratch" ||
+    label === undefined ||
+    extra.length > 0 ||
+    !/^[A-Za-z0-9._-]+$/.test(label)
+  ) {
     console.error("usage: external-scratch.sh <label>");
     process.exit(2);
   }

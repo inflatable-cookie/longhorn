@@ -47,15 +47,9 @@ describe("Rust Surface transfer protocol fixture", () => {
         assertValidSurfaceTransferTarget(target);
         return target.kind;
       });
-    expect(new Set(targets)).toEqual(
-      new Set(SURFACE_TRANSFER_TARGET_KINDS),
-    );
-    expect(statuses("session_responses")).toEqual(
-      new Set(SURFACE_SESSION_RESPONSE_STATUSES),
-    );
-    expect(statuses("commit_responses")).toEqual(
-      new Set(SURFACE_TRANSFER_RESPONSE_STATUSES),
-    );
+    expect(new Set(targets)).toEqual(new Set(SURFACE_TRANSFER_TARGET_KINDS));
+    expect(statuses("session_responses")).toEqual(new Set(SURFACE_SESSION_RESPONSE_STATUSES));
+    expect(statuses("commit_responses")).toEqual(new Set(SURFACE_TRANSFER_RESPONSE_STATUSES));
 
     const errorCodes = new Set<unknown>();
     const domains = new Set<unknown>();
@@ -83,19 +77,13 @@ describe("Surface transfer incompatibility", () => {
   const incompatibility = record(fixture.incompatibility);
 
   test("rejects future versions and unknown variants", () => {
-    expect(() =>
-      assertTransferProtocolVersion(incompatibility.future_protocol_version),
-    ).toThrow(TransferProtocolValidationError);
+    expect(() => assertTransferProtocolVersion(incompatibility.future_protocol_version)).toThrow(
+      TransferProtocolValidationError,
+    );
 
     for (const check of [
-      () =>
-        assertValidSurfaceTransferTarget(
-          incompatibility.unknown_target,
-        ),
-      () =>
-        assertValidSurfaceSessionResponse(
-          incompatibility.unknown_response_status,
-        ),
+      () => assertValidSurfaceTransferTarget(incompatibility.unknown_target),
+      () => assertValidSurfaceSessionResponse(incompatibility.unknown_response_status),
       () =>
         assertValidSurfaceTransferAbort({
           protocol_version: 1,
@@ -128,13 +116,11 @@ describe("Surface transfer incompatibility", () => {
 });
 
 function statuses(category: string): Set<unknown> {
-  return new Set(
-    array(fixture[category]).map((response) => record(response).status),
-  );
+  return new Set(array(fixture[category]).map((response) => record(response).status));
 }
 
 function roundTrip(value: unknown): unknown {
-  return JSON.parse(JSON.stringify(value));
+  return structuredClone(value);
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -144,7 +130,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function array(value: unknown): unknown[] {
+function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     throw new TypeError("expected JSON array");
   }

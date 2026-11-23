@@ -33,10 +33,7 @@ describe("SettingsSession", () => {
       nextRequestId: requestIds("second"),
     });
 
-    await Promise.all([
-      first.start(() => renderer()),
-      second.start(() => renderer()),
-    ]);
+    await Promise.all([first.start(() => renderer()), second.start(() => renderer())]);
     await first.currentContext!.change("app:audio", intent);
 
     expect(first.dirty).toBe(true);
@@ -59,8 +56,7 @@ describe("SettingsSession", () => {
     await session.navigate({ pageId: "app:advanced" });
 
     const loads = transport.arguments.filter(
-      ({ command }) =>
-        typeof command === "object" && command !== null && "scopeId" in command,
+      ({ command }) => typeof command === "object" && command !== null && "scopeId" in command,
     );
     expect(loads).toEqual([
       {
@@ -93,9 +89,7 @@ describe("SettingsSession", () => {
     await session.start(() => renderer());
     await session.currentContext!.change("app:audio", intent);
 
-    await expect(
-      session.navigate({ pageId: "app:advanced" }),
-    ).resolves.toBe(false);
+    await expect(session.navigate({ pageId: "app:advanced" })).resolves.toBe(false);
     expect(session.guard?.kind).toBe("navigate");
     expect(session.route?.pageId).toBe("app:audio");
     await expect(session.resolveGuard("stay")).resolves.toBe(false);
@@ -123,9 +117,9 @@ describe("SettingsSession", () => {
 
     expect(session.dirty).toBe(true);
     expect(session.primaryUnitStatus.kind).toBe("conflict");
-    expect(
-      session.scopeSnapshot("app:preferences")?.authority.authorityToken,
-    ).toBe("authority:current");
+    expect(session.scopeSnapshot("app:preferences")?.authority.authorityToken).toBe(
+      "authority:current",
+    );
     await session.stop();
   });
 
@@ -140,9 +134,7 @@ describe("SettingsSession", () => {
     });
     await session.start(() => renderer());
 
-    await expect(
-      session.currentContext!.change("app:audio", intent),
-    ).rejects.toBe(failure);
+    await expect(session.currentContext!.change("app:audio", intent)).rejects.toBe(failure);
     expect(session.primaryUnitStatus).toEqual({
       kind: "failed",
       error: failure,
@@ -153,7 +145,7 @@ describe("SettingsSession", () => {
   it("makes an authoritative scope load failure visible at session level", async () => {
     const transport = new FakeSettingsTransport();
     const failure = new Error("scope unavailable");
-    const errors: unknown[] = [];
+    const errors: Array<unknown> = [];
     transport.loadError = failure;
     const session = new SettingsSession({
       client: transport.client(),
@@ -263,9 +255,7 @@ describe("SettingsSession", () => {
       ...transport.registryValue.applyUnits[0]!,
       id: "app:advanced-audio",
     });
-    transport.registryValue.pages[0]!.writableApplyUnitIds.push(
-      "app:advanced-audio",
-    );
+    transport.registryValue.pages[0]!.writableApplyUnitIds.push("app:advanced-audio");
     const session = new SettingsSession({
       client: transport.client(),
       nextRequestId: requestIds("multi"),
@@ -274,9 +264,7 @@ describe("SettingsSession", () => {
     await session.currentContext!.change("app:audio", intent);
     await session.currentContext!.change("app:advanced-audio", intent);
 
-    await expect(session.applyCurrent()).rejects.toBeInstanceOf(
-      SettingsPageApplyAmbiguityError,
-    );
+    await expect(session.applyCurrent()).rejects.toBeInstanceOf(SettingsPageApplyAmbiguityError);
     expect(session.draftCount).toBe(2);
     await session.stop();
   });

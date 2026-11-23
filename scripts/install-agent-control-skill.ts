@@ -13,12 +13,12 @@ const repoRoot = resolve(import.meta.dir, "..");
 const sourceDir = join(repoRoot, "skills", "agent-control");
 const destRel = join(".claude", "skills", "agent-control");
 
-export function parseInstallTarget(argv: string[]): string | null {
+export function parseInstallTarget(argv: Array<string>): string | null {
   const args = argv.filter((arg) => arg !== "--");
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
+  const [arg, value] = args;
+  if (arg !== undefined) {
     if (arg === "--repo") {
-      return args[index + 1] ?? null;
+      return value ?? null;
     }
     if (arg === "--help" || arg === "-h") {
       throw new Error(usage());
@@ -52,25 +52,30 @@ export function compareVersions(left: string, right: string): number {
   const length = Math.max(leftParts.length, rightParts.length);
   for (let index = 0; index < length; index += 1) {
     const delta = (leftParts[index] ?? 0) - (rightParts[index] ?? 0);
-    if (delta !== 0) return delta < 0 ? -1 : 1;
+    if (delta !== 0) {
+      return delta < 0 ? -1 : 1;
+    }
   }
   return 0;
 }
 
+const list = async (root: string) =>
+  (await readdir(root, { recursive: true }))
+    .map((path) => String(path).replaceAll("\\", "/"))
+    .sort();
+
 /// True when the source and installed skill trees have identical files.
 async function treesMatch(source: string, dest: string): Promise<boolean> {
-  const list = async (root: string) =>
-    (await readdir(root, { recursive: true }))
-      .map((path) => String(path).replaceAll("\\", "/"))
-      .sort();
-  let sourceFiles: string[];
-  let destFiles: string[];
+  let sourceFiles: Array<string>;
+  let destFiles: Array<string>;
   try {
     [sourceFiles, destFiles] = [await list(source), await list(dest)];
   } catch {
     return false;
   }
-  if (sourceFiles.join("\n") !== destFiles.join("\n")) return false;
+  if (sourceFiles.join("\n") !== destFiles.join("\n")) {
+    return false;
+  }
   for (const file of sourceFiles) {
     let left: string;
     let right: string;
@@ -83,7 +88,9 @@ async function treesMatch(source: string, dest: string): Promise<boolean> {
       // Directories land in the recursive listing too; skip non-files.
       continue;
     }
-    if (left !== right) return false;
+    if (left !== right) {
+      return false;
+    }
   }
   return true;
 }
@@ -109,12 +116,8 @@ export async function installSkill(targetRepo: string): Promise<string> {
     throw new Error("source skill is missing a longhorn_version stamp");
   }
 
-  let destVersion: string | null = null;
-  try {
-    destVersion = parseVersionStamp(await readFile(join(dest, "SKILL.md"), "utf8"));
-  } catch {
-    destVersion = null;
-  }
+  const oldSkill = await readFile(join(dest, "SKILL.md"), "utf8").catch(() => null);
+  const destVersion = oldSkill === null ? null : parseVersionStamp(oldSkill);
 
   if (destVersion !== null) {
     const cmp = compareVersions(destVersion, sourceVersion);
@@ -149,7 +152,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   try {
     target = parseInstallTarget(argv);
   } catch (error) {
-    console.error((error as Error).message);
+    console.error(error instanceof Error ? error.message : String(error));
     return 2;
   }
   if (!target) {
@@ -160,7 +163,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.log(await installSkill(target));
     return 0;
   } catch (error) {
-    console.error((error as Error).message);
+    console.error(error instanceof Error ? error.message : String(error));
     return 1;
   }
 }

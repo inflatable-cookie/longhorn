@@ -2,17 +2,14 @@
   import { CommandPalette } from "@inflatable-cookie/poodle-svelte";
 
   import type { CommandSession } from "../svelte/session.svelte.ts";
-  import {
-    toPoodleCommandItems,
-    toPoodleDiscoveryState,
-  } from "./projectors.ts";
+  import { toPoodleCommandItems, toPoodleDiscoveryState } from "./projectors.ts";
 
   interface Props {
     session: CommandSession;
     title?: string;
     description?: string | null;
     invocationHint?: string | null;
-    categoryLabel?: (categoryPath: readonly string[]) => string | null;
+    categoryLabel?: (categoryPath: ReadonlyArray<string>) => string | null;
     onOpenChange?: (open: boolean) => void;
   }
 
@@ -27,9 +24,7 @@
 
   let records = $derived(session.paletteRecords);
   let items = $derived(toPoodleCommandItems(records, categoryLabel));
-  let state = $derived(
-    toPoodleDiscoveryState(session.status, session.query, items.length),
-  );
+  let state = $derived(toPoodleDiscoveryState(session.status, session.query, items.length));
 </script>
 
 <CommandPalette

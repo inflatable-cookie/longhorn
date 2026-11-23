@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   HISTORY_MAXIMUM_OPAQUE_ID_BYTES,
   HISTORY_CHANGED_KINDS,
@@ -9,12 +10,14 @@ import {
   HISTORY_NAVIGATION_STATUSES,
   HISTORY_NAVIGATION_TARGETS,
   HISTORY_PROTOCOL_VERSION,
-  type HistoryChangedEvent,
-  type HistoryNavigationCommand,
-  type HistoryNavigationResult,
-  type HistoryPageCommand,
-  type HistoryPageSnapshot,
-  type HistorySnapshot,
+} from "./generated/protocol.ts";
+import type {
+  HistoryChangedEvent,
+  HistoryNavigationCommand,
+  HistoryNavigationResult,
+  HistoryPageCommand,
+  HistoryPageSnapshot,
+  HistorySnapshot,
 } from "./generated/protocol.ts";
 import { HISTORY_FIELDS } from "./generated/fields.ts";
 import {
@@ -23,15 +26,16 @@ import {
 } from "./generated/variant-fields.ts";
 
 export class HistoryProtocolValidationError extends Error {
-  constructor(readonly path: string, message: string) {
+  constructor(
+    readonly path: string,
+    message: string,
+  ) {
     super(`${path}: ${message}`);
     this.name = "HistoryProtocolValidationError";
   }
 }
 
-export function assertValidHistorySnapshot(
-  value: unknown,
-): asserts value is HistorySnapshot {
+export function assertValidHistorySnapshot(value: unknown): asserts value is HistorySnapshot {
   assertNoPayload(value, "$");
   const record = object(value, "$");
   keys(record, "$", HISTORY_FIELDS.HistorySnapshot);
@@ -40,9 +44,7 @@ export function assertValidHistorySnapshot(
   summary(record.summary, "$.summary");
 }
 
-export function assertValidHistoryPageCommand(
-  value: unknown,
-): asserts value is HistoryPageCommand {
+export function assertValidHistoryPageCommand(value: unknown): asserts value is HistoryPageCommand {
   assertNoPayload(value, "$");
   const record = object(value, "$");
   keys(record, "$", HISTORY_FIELDS.HistoryPageCommand);
@@ -173,10 +175,7 @@ function receipt(value: unknown, path: string): void {
     id(entry, `${path}.movedEntryIds[${index}]`),
   );
   navigationPosition(record.sourcePosition, `${path}.sourcePosition`);
-  navigationPosition(
-    record.authoritativePosition,
-    `${path}.authoritativePosition`,
-  );
+  navigationPosition(record.authoritativePosition, `${path}.authoritativePosition`);
 }
 
 function navigationPosition(value: unknown, path: string): void {
@@ -193,11 +192,7 @@ function navigationPosition(value: unknown, path: string): void {
 function rejection(value: unknown, path: string): void {
   const record = object(value, path);
   keys(record, path, HISTORY_FIELDS.HistoryNavigationRejectionProjection);
-  oneOf(
-    record.code,
-    `${path}.code`,
-    HISTORY_NAVIGATION_REJECTION_CODES,
-  );
+  oneOf(record.code, `${path}.code`, HISTORY_NAVIGATION_REJECTION_CODES);
   string(record.detail, `${path}.detail`);
   boolean(record.refreshRequired, `${path}.refreshRequired`);
 }
@@ -209,36 +204,34 @@ function protocol(value: unknown, path: string): void {
 }
 
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
-}
-
-function array(value: unknown, path: string): readonly unknown[] {
-  if (!Array.isArray(value)) fail(path, "expected array");
   return value;
 }
 
-function keys(
-  value: Record<string, unknown>,
-  path: string,
-  allowed: readonly string[],
-): void {
+function array(value: unknown, path: string): ReadonlyArray<unknown> {
+  if (!Array.isArray(value)) {
+    fail(path, "expected array");
+  }
+  return value;
+}
+
+function keys(value: Record<string, unknown>, path: string, allowed: ReadonlyArray<string>): void {
   const allowedSet = new Set(allowed);
   for (const key of Object.keys(value)) {
-    if (!allowedSet.has(key)) fail(`${path}.${key}`, "unknown field");
+    if (!allowedSet.has(key)) {
+      fail(`${path}.${key}`, "unknown field");
+    }
   }
   for (const key of allowed) {
-    if (!(key in value)) fail(`${path}.${key}`, "missing field");
+    if (!(key in value)) {
+      fail(`${path}.${key}`, "missing field");
+    }
   }
 }
 
-function oneOf(
-  value: unknown,
-  path: string,
-  values: readonly string[],
-): void {
+function oneOf(value: unknown, path: string, values: ReadonlyArray<string>): void {
   if (typeof value !== "string" || !values.includes(value)) {
     fail(path, `expected one of ${values.join(", ")}`);
   }
@@ -247,45 +240,55 @@ function oneOf(
 function id(value: unknown, path: string): void {
   string(value, path);
   if (
-    (value as string).length === 0 ||
-    (value as string).length > HISTORY_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z0-9._:-]+$/.test(value as string)
+    value.length === 0 ||
+    value.length > HISTORY_MAXIMUM_OPAQUE_ID_BYTES ||
+    !/^[a-z0-9._:-]+$/.test(value)
   ) {
     fail(path, "expected bounded lowercase opaque id");
   }
 }
 
 function optionalId(value: unknown, path: string): void {
-  if (value !== null) id(value, path);
+  if (value !== null) {
+    id(value, path);
+  }
 }
 
-function string(value: unknown, path: string): void {
+function string(value: unknown, path: string): asserts value is string {
   if (typeof value !== "string" || value.length === 0) {
     fail(path, "expected nonempty string");
   }
 }
 
 function optionalString(value: unknown, path: string): void {
-  if (value !== null) string(value, path);
+  if (value !== null) {
+    string(value, path);
+  }
 }
 
-function integer(value: unknown, path: string): void {
-  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+function integer(value: unknown, path: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     fail(path, "expected nonnegative safe integer");
   }
 }
 
 function positiveInteger(value: unknown, path: string): void {
   integer(value, path);
-  if ((value as number) === 0) fail(path, "expected nonzero integer");
+  if (value === 0) {
+    fail(path, "expected nonzero integer");
+  }
 }
 
 function optionalInteger(value: unknown, path: string): void {
-  if (value !== null) integer(value, path);
+  if (value !== null) {
+    integer(value, path);
+  }
 }
 
 function boolean(value: unknown, path: string): void {
-  if (typeof value !== "boolean") fail(path, "expected boolean");
+  if (typeof value !== "boolean") {
+    fail(path, "expected boolean");
+  }
 }
 
 function assertNoPayload(value: unknown, path: string): void {
@@ -293,9 +296,13 @@ function assertNoPayload(value: unknown, path: string): void {
     value.forEach((entry, index) => assertNoPayload(entry, `${path}[${index}]`));
     return;
   }
-  if (typeof value !== "object" || value === null) return;
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
   for (const [key, child] of Object.entries(value)) {
-    if (key === "payload") fail(`${path}.payload`, "product payload is forbidden");
+    if (key === "payload") {
+      fail(`${path}.payload`, "product payload is forbidden");
+    }
     assertNoPayload(child, `${path}.${key}`);
   }
 }
@@ -316,7 +323,9 @@ function floor(value: unknown, path: string): void {
   const record = object(value, path);
   oneOf(record.kind, `${path}.kind`, HISTORY_PAGE_FLOORS);
   keys(record, path, variantKeys("HistoryPageFloorProjection", record, path));
-  if (record.kind === "baseline") integer(record.prunedEntryCount, `${path}.prunedEntryCount`);
+  if (record.kind === "baseline") {
+    integer(record.prunedEntryCount, `${path}.prunedEntryCount`);
+  }
 }
 
 /**
@@ -326,9 +335,16 @@ function floor(value: unknown, path: string): void {
  * A missing entry means the generator failed to read the union: every caller
  * checks the discriminant above this call.
  */
-function variantKeys(type: string, record: Record<string, unknown>, path: string): readonly string[] {
+function variantKeys(
+  type: string,
+  record: Record<string, unknown>,
+  path: string,
+): ReadonlyArray<string> {
   const discriminant = record[HISTORY_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const allowed = HISTORY_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (allowed === undefined) fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  const allowed =
+    typeof discriminant === "string" ? HISTORY_VARIANT_FIELDS[type]?.[discriminant] : undefined;
+  if (allowed === undefined) {
+    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
+  }
   return allowed;
 }

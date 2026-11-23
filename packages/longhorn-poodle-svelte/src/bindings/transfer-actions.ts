@@ -1,18 +1,15 @@
-import {
-  TRANSFER_PROTOCOL_VERSION,
-  type ClientDropZone,
-  type TransferLeaseRequest,
-  type TransferLeaseResponse,
+import { TRANSFER_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/transfer";
+import type {
+  ClientDropZone,
+  TransferLeaseRequest,
+  TransferLeaseResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 
 import type { TransferState } from "./transfer.svelte.ts";
 
 export type DropZoneDefinition = Omit<ClientDropZone, "bounds">;
 
-export type GeometryObserver = (
-  node: HTMLElement,
-  changed: () => void,
-) => () => void;
+export type GeometryObserver = (node: HTMLElement, changed: () => void) => () => void;
 
 export interface DropZoneLeaseRegistryOptions {
   readonly state: TransferState;
@@ -44,10 +41,7 @@ export class DropZoneLeaseRegistry {
     this.#options = options;
   }
 
-  readonly zone = (
-    node: HTMLElement,
-    initialDefinition: DropZoneDefinition,
-  ): DropZoneAction => {
+  readonly zone = (node: HTMLElement, initialDefinition: DropZoneDefinition): DropZoneAction => {
     this.#assertAlive();
     this.#assertUnique(initialDefinition.id);
     const registration: RegisteredZone = {
@@ -55,9 +49,10 @@ export class DropZoneLeaseRegistry {
       definition: initialDefinition,
       stopObserving: () => undefined,
     };
-    registration.stopObserving = (
-      this.#options.observeGeometry ?? observeElementGeometry
-    )(node, () => this.#schedulePublication());
+    registration.stopObserving = (this.#options.observeGeometry ?? observeElementGeometry)(
+      node,
+      () => this.#schedulePublication(),
+    );
     this.#zones.set(initialDefinition.id, registration);
     this.#schedulePublication();
 
@@ -74,9 +69,7 @@ export class DropZoneLeaseRegistry {
       },
       destroy: () => {
         registration.stopObserving();
-        if (
-          this.#zones.get(registration.definition.id) === registration
-        ) {
+        if (this.#zones.get(registration.definition.id) === registration) {
           this.#zones.delete(registration.definition.id);
           this.#schedulePublication();
         }
@@ -101,7 +94,9 @@ export class DropZoneLeaseRegistry {
   }
 
   async destroy(): Promise<void> {
-    if (this.#destroyed) return;
+    if (this.#destroyed) {
+      return;
+    }
     this.#active = false;
     this.#destroyed = true;
     for (const registration of this.#zones.values()) {
@@ -112,11 +107,15 @@ export class DropZoneLeaseRegistry {
   }
 
   #schedulePublication(): void {
-    if (!this.#active || this.#destroyed) return;
+    if (!this.#active || this.#destroyed) {
+      return;
+    }
     void this.#serialize(async () => {
-      if (!this.#active || this.#destroyed) return;
+      if (!this.#active || this.#destroyed) {
+        return;
+      }
       await this.#publishCurrent();
-    }).catch((error) => this.#report(error));
+    }).catch((error: unknown) => this.#report(error));
   }
 
   async #publishCurrent(): Promise<TransferLeaseResponse> {
@@ -222,10 +221,7 @@ function nextGeneration(lastGeneration: number): number {
   return generation;
 }
 
-function observeElementGeometry(
-  node: HTMLElement,
-  changed: () => void,
-): () => void {
+function observeElementGeometry(node: HTMLElement, changed: () => void): () => void {
   if (typeof ResizeObserver === "undefined") {
     return () => undefined;
   }

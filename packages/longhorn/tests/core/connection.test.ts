@@ -1,10 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  CheckedSnapshotConnection,
-  type ConnectionFailure,
-  type Unlisten,
-} from "@inflatable-cookie/longhorn/core";
+import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import type { ConnectionFailure, Unlisten } from "@inflatable-cookie/longhorn/core";
 
 interface Snapshot {
   epoch: number;
@@ -13,11 +10,11 @@ interface Snapshot {
 
 describe("CheckedSnapshotConnection", () => {
   test("registers first and closes an invalidation race with bounded refresh", async () => {
-    const operations: string[] = [];
+    const operations: Array<string> = [];
     let current = snapshot(2, 4);
     let listener: ((payload: unknown) => void) | undefined;
     let loads = 0;
-    const observed: number[] = [];
+    const observed: Array<number> = [];
     const connection = new CheckedSnapshotConnection<Snapshot>({
       async listen(next) {
         operations.push("listen");
@@ -57,7 +54,7 @@ describe("CheckedSnapshotConnection", () => {
 
   test("accepts checked event snapshots and rejects stale authority", async () => {
     let listener: ((payload: unknown) => void) | undefined;
-    const observed: Snapshot[] = [];
+    const observed: Array<Snapshot> = [];
     const connection = new CheckedSnapshotConnection<Snapshot>({
       async listen(next) {
         listener = next;
@@ -111,7 +108,7 @@ describe("CheckedSnapshotConnection", () => {
 
   test("reports registration, snapshot, event, and unlisten failures", async () => {
     const registrationFailure = new Error("registration failed");
-    const registrationFailures: ConnectionFailure[] = [];
+    const registrationFailures: Array<ConnectionFailure> = [];
     const failedRegistration = new CheckedSnapshotConnection<Snapshot>({
       async listen() {
         throw registrationFailure;
@@ -125,13 +122,11 @@ describe("CheckedSnapshotConnection", () => {
       onFailure: (failure) => registrationFailures.push(failure),
     });
     await expect(failedRegistration.ready).rejects.toBe(registrationFailure);
-    expect(registrationFailures).toEqual([
-      { phase: "registration", error: registrationFailure },
-    ]);
+    expect(registrationFailures).toEqual([{ phase: "registration", error: registrationFailure }]);
 
     let invalidationListener: ((payload: unknown) => void) | undefined;
     let unlistens = 0;
-    const eventFailures: ConnectionFailure[] = [];
+    const eventFailures: Array<ConnectionFailure> = [];
     const invalidEvent = new Error("invalid event");
     const connected = new CheckedSnapshotConnection<Snapshot>({
       async listen(next) {
@@ -153,9 +148,7 @@ describe("CheckedSnapshotConnection", () => {
     await connected.ready;
     invalidationListener?.({});
     await tick();
-    expect(eventFailures).toEqual([
-      { phase: "event", error: invalidEvent },
-    ]);
+    expect(eventFailures).toEqual([{ phase: "event", error: invalidEvent }]);
     expect(unlistens).toBe(1);
 
     const snapshotFailure = new Error("invalid snapshot");
@@ -174,9 +167,7 @@ describe("CheckedSnapshotConnection", () => {
       isNewer,
     });
     await expect(failedSnapshot.ready).rejects.toBe(snapshotFailure);
-    expect(failedSnapshot.failures()).toEqual([
-      { phase: "snapshot", error: snapshotFailure },
-    ]);
+    expect(failedSnapshot.failures()).toEqual([{ phase: "snapshot", error: snapshotFailure }]);
     expect(snapshotUnlistens).toBe(1);
 
     let validationUnlistens = 0;
@@ -194,9 +185,7 @@ describe("CheckedSnapshotConnection", () => {
       isNewer,
     });
     await expect(failedValidation.ready).rejects.toBeInstanceOf(TypeError);
-    expect(
-      failedValidation.failures().map(({ phase }) => phase),
-    ).toEqual(["snapshot"]);
+    expect(failedValidation.failures().map(({ phase }) => phase)).toEqual(["snapshot"]);
     expect(validationUnlistens).toBe(1);
 
     const unlistenFailure = new Error("unlisten failed");
@@ -215,9 +204,7 @@ describe("CheckedSnapshotConnection", () => {
     });
     await failedUnlisten.ready;
     await expect(failedUnlisten.dispose()).rejects.toBe(unlistenFailure);
-    expect(failedUnlisten.failures()).toEqual([
-      { phase: "unlisten", error: unlistenFailure },
-    ]);
+    expect(failedUnlisten.failures()).toEqual([{ phase: "unlisten", error: unlistenFailure }]);
   });
 });
 
@@ -239,34 +226,29 @@ function parseSnapshot(value: unknown): Snapshot {
   return { epoch: value.epoch, revision: value.revision };
 }
 
-function isNewer(
-  candidate: Snapshot,
-  current: Snapshot | undefined,
-): boolean {
+function isNewer(candidate: Snapshot, current: Snapshot | undefined): boolean {
   return (
     current === undefined ||
     candidate.epoch > current.epoch ||
-    (candidate.epoch === current.epoch &&
-      candidate.revision > current.revision)
+    (candidate.epoch === current.epoch && candidate.revision > current.revision)
   );
 }
 
-function deferred<Value>(): {
-  promise: Promise<Value>;
-  resolve(value: Value): void;
-} {
+function deferred<Value>() {
   let resolve: ((value: Value) => void) | undefined;
   const promise = new Promise<Value>((accept) => {
     resolve = accept;
   });
   return {
     promise,
-    resolve(value) {
+    resolve(value: Value) {
       resolve?.(value);
     },
   };
 }
 
 async function tick(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }

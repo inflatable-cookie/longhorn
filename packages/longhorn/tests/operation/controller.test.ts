@@ -15,8 +15,8 @@ import { cloned, fixture } from "./support.ts";
 
 class ControllerPort implements OperationPort {
   readonly listeners = new Set<(event: unknown) => void>();
-  readonly cancellations: OperationCancellationCommand[] = [];
-  readonly mutations: OperationMutationCommand[] = [];
+  readonly cancellations: Array<OperationCancellationCommand> = [];
+  readonly mutations: Array<OperationMutationCommand> = [];
   snapshotValue = cloned(fixture.mutationResults[1]!.snapshot);
   cancellation = deferred<OperationCancellationResult>();
   mutation = deferred<OperationMutationResult>();
@@ -64,7 +64,9 @@ class ControllerPort implements OperationPort {
       operationId: null,
       kind: "mutation",
     };
-    for (const listener of this.listeners) listener(event);
+    for (const listener of this.listeners) {
+      listener(event);
+    }
   }
 }
 
@@ -199,10 +201,7 @@ function dismissalResult(snapshot: OperationSnapshot): OperationMutationResult {
   };
 }
 
-function deferred<Value>(): {
-  promise: Promise<Value>;
-  resolve: (value: Value) => void;
-} {
+function deferred<Value>() {
   let resolve!: (value: Value) => void;
   const promise = new Promise<Value>((next) => {
     resolve = next;
@@ -212,7 +211,9 @@ function deferred<Value>(): {
 
 async function eventually(predicate: () => boolean): Promise<void> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    if (predicate()) return;
+    if (predicate()) {
+      return;
+    }
     await Promise.resolve();
   }
   throw new Error("condition did not become true");

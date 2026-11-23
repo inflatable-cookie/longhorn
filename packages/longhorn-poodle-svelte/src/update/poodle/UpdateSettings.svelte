@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { Field, Select, Stack, type SelectOption } from "@inflatable-cookie/poodle-svelte";
-  import { UPDATE_CHANNELS, type Channel, type UpdateController } from "@inflatable-cookie/longhorn/update";
+  import { Field, Select, Stack } from "@inflatable-cookie/poodle-svelte";
+  import type { SelectOption } from "@inflatable-cookie/poodle-svelte";
+  import { UPDATE_CHANNELS } from "@inflatable-cookie/longhorn/update";
+  import type { Channel, UpdateController } from "@inflatable-cookie/longhorn/update";
 
   import { sampleUpdateController } from "./UpdateSurface.svelte.ts";
   import UpdateStatus from "./UpdateStatus.svelte";
@@ -37,7 +39,7 @@
     nightly: "Continuous builds. Expect breakage.",
   };
 
-  const options = $derived<SelectOption[]>(
+  const options = $derived<Array<SelectOption>>(
     UPDATE_CHANNELS.map((value) => ({ value, label: CHANNEL_LABELS[value] })),
   );
 
@@ -48,11 +50,11 @@
   <Field
     id="longhorn-update-channel"
     label="Release channel"
-    description={selected === undefined ? undefined : CHANNEL_HINTS[selected]}
+    description={selected === undefined ? null : CHANNEL_HINTS[selected]}
   >
     <Select
       id="longhorn-update-channel"
-      options={options}
+      {options}
       value={selected ?? null}
       disabled={update.pending || selected === undefined}
       ariaLabel="Release channel"

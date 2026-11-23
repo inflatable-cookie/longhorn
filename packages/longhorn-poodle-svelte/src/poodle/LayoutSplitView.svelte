@@ -9,10 +9,8 @@
   import {
     layoutRatioFromMillionths,
     layoutRatioToUnitInterval,
-    type SurfaceId,
-    type RegionId,
-    type SizingSlotId,
   } from "@inflatable-cookie/longhorn/layout";
+  import type { SurfaceId, RegionId, SizingSlotId } from "@inflatable-cookie/longhorn/layout";
   import type { ComponentProps, Snippet } from "svelte";
 
   import type { PoodleLayoutBinding } from "./binding.ts";
@@ -20,9 +18,7 @@
   // Poodle 0.1.0 defines SplitToggleVisibility but does not re-export it from
   // its package root, and contract 012 forbids reaching past that root.
   // Derive it from the public component instead of mirroring the union.
-  type SplitToggleVisibility = NonNullable<
-    ComponentProps<typeof SplitView>["toggleVisibility"]
-  >;
+  type SplitToggleVisibility = NonNullable<ComponentProps<typeof SplitView>["toggleVisibility"]>;
 
   interface Props {
     binding: PoodleLayoutBinding;
@@ -66,15 +62,23 @@
   // Non-collapsible regions are valid split members; they just have no pill.
   // collapsibleRegionState throws for those — probe the definition first.
   const primaryRegion = $derived.by(() => {
-    if (!primaryRegionId) return null;
+    if (!primaryRegionId) {
+      return null;
+    }
     const definition = binding.regionDefinition(containerId, primaryRegionId);
-    if (!definition.collapsible) return null;
+    if (!definition.collapsible) {
+      return null;
+    }
     return binding.collapsibleRegionState(containerId, primaryRegionId);
   });
   const secondaryRegion = $derived.by(() => {
-    if (!secondaryRegionId) return null;
+    if (!secondaryRegionId) {
+      return null;
+    }
     const definition = binding.regionDefinition(containerId, secondaryRegionId);
-    if (!definition.collapsible) return null;
+    if (!definition.collapsible) {
+      return null;
+    }
     return binding.collapsibleRegionState(containerId, secondaryRegionId);
   });
 
@@ -94,8 +98,8 @@
   maxRatio={layoutRatioToUnitInterval(sizing.definition.maximum)}
   primaryCollapsed={primaryRegion?.collapsed ?? false}
   secondaryCollapsed={secondaryRegion?.collapsed ?? false}
-  primaryHidden={primaryHidden}
-  secondaryHidden={secondaryHidden}
+  {primaryHidden}
+  {secondaryHidden}
   showCollapsePrimary={!primaryHidden && primaryRegion !== null}
   showCollapseSecondary={!secondaryHidden && secondaryRegion !== null}
   disabled={primaryHidden || secondaryHidden}
@@ -115,6 +119,6 @@
       binding.setCollapsed(containerId, secondaryRegionId, collapsed);
     }
   }}
-  {primary}
-  {secondary}
+  {...primary ? { primary } : {}}
+  {...secondary ? { secondary } : {}}
 />

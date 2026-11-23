@@ -15,24 +15,31 @@ export interface HistoryFixture {
   readonly pageRequest: HistoryPageCommand;
   readonly page: HistoryPageSnapshot;
   readonly navigationCommand: HistoryNavigationCommand;
-  readonly navigationResults: readonly HistoryNavigationResult[];
+  readonly navigationResults: ReadonlyArray<HistoryNavigationResult>;
   readonly changedEvent: HistoryChangedEvent;
   readonly incompatibility: Record<string, unknown>;
 }
 
 export function fixture(): HistoryFixture {
   return JSON.parse(
-    readFileSync(
-      new URL("../../../../fixtures/history/protocol-v1.json", import.meta.url),
-      "utf8",
-    ),
+    readFileSync(new URL("../../../../fixtures/history/protocol-v1.json", import.meta.url), "utf8"),
   ) as HistoryFixture;
 }
 
 export function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }
 
 export function tick(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
+
+export function navigationResult(value: HistoryFixture, index: number): HistoryNavigationResult {
+  const result = value.navigationResults[index];
+  if (result === undefined) {
+    throw new Error(`missing history navigation result ${index}`);
+  }
+  return result;
 }

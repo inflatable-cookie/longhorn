@@ -1,16 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  CommandController,
-  routeCommandKeyboardEvent,
-  type CommandAvailabilitySnapshot,
-  type CommandExecutionIntent,
-  type CommandExecutionOutcome,
-  type CommandKeymapPort,
-  type CommandKeymapLoadOutcome,
-  type CommandPorts,
-  type CommandSnapshotPort,
-  type CommandUnlisten,
+import { CommandController, routeCommandKeyboardEvent } from "../../src/commands/index.ts";
+import type {
+  CommandAvailabilitySnapshot,
+  CommandExecutionIntent,
+  CommandExecutionOutcome,
+  CommandKeymapPort,
+  CommandKeymapLoadOutcome,
+  CommandPorts,
+  CommandSnapshotPort,
+  CommandUnlisten,
 } from "../../src/commands/index.ts";
 import { availability, fixture } from "./support.ts";
 
@@ -20,9 +19,9 @@ class SnapshotPort<Snapshot> implements CommandSnapshotPort<Snapshot> {
   pendingListen: Promise<void> | undefined;
   listeners = new Set<() => void>();
   unlistenCount = 0;
-  preview?: CommandKeymapPort["preview"];
-  commit?: CommandKeymapPort["commit"];
-  reset?: CommandKeymapPort["reset"];
+  declare preview?: NonNullable<CommandKeymapPort["preview"]>;
+  declare commit?: NonNullable<CommandKeymapPort["commit"]>;
+  declare reset?: NonNullable<CommandKeymapPort["reset"]>;
 
   constructor(value: Snapshot) {
     this.value = value;
@@ -35,7 +34,9 @@ class SnapshotPort<Snapshot> implements CommandSnapshotPort<Snapshot> {
   listen(listener: () => void): CommandUnlisten | Promise<CommandUnlisten> {
     this.listeners.add(listener);
     const dispose = () => {
-      if (this.listeners.delete(listener)) this.unlistenCount += 1;
+      if (this.listeners.delete(listener)) {
+        this.unlistenCount += 1;
+      }
     };
     return this.pendingListen?.then(() => dispose) ?? dispose;
   }
@@ -47,13 +48,9 @@ function harness(options?: {
   search?: ConstructorParameters<typeof CommandController>[0]["search"];
 }) {
   const catalogue = new SnapshotPort(fixture.catalogue);
-  const keymap = new SnapshotPort(
-    options?.keymap ?? fixture.loadOutcomes[0]!,
-  );
-  const currentAvailability = new SnapshotPort(
-    options?.availability ?? availability(),
-  );
-  const executions: CommandExecutionIntent[] = [];
+  const keymap = new SnapshotPort(options?.keymap ?? fixture.loadOutcomes[0]!);
+  const currentAvailability = new SnapshotPort(options?.availability ?? availability());
+  const executions: Array<CommandExecutionIntent> = [];
   let request = 0;
   const ports: CommandPorts = {
     catalogue,
@@ -67,11 +64,11 @@ function harness(options?: {
     },
     nextRequestId: () => `request:${++request}`,
   };
-  const controller = new CommandController({
-    ports,
-    platform: "macOs",
-    search: options?.search,
-  });
+  const controller = new CommandController(
+    options?.search === undefined
+      ? { ports, platform: "macOs" }
+      : { ports, platform: "macOs", search: options.search },
+  );
   return {
     controller,
     catalogue,
@@ -122,10 +119,7 @@ describe("CommandController", () => {
     expect(routed.consumed).toBeTrue();
     expect(prevented).toBe(1);
     expect(stopped).toBe(1);
-    expect(state.executions.map(({ source }) => source)).toEqual([
-      "palette",
-      "keyboard",
-    ]);
+    expect(state.executions.map(({ source }) => source)).toEqual(["palette", "keyboard"]);
     expect(state.executions.every((intent) => !("transport" in intent))).toBeTrue();
     await state.controller.stop();
   });
@@ -133,9 +127,7 @@ describe("CommandController", () => {
   test("does not consume gated, conflicted, or unbound browser events", async () => {
     const state = harness();
     await state.controller.start();
-    for (const semantic of fixture.semantics.keyboard.filter(
-      ({ consumed }) => !consumed,
-    )) {
+    for (const semantic of fixture.semantics.keyboard.filter(({ consumed }) => !consumed)) {
       let consumed = 0;
       const routed = routeCommandKeyboardEvent(
         {
@@ -146,9 +138,7 @@ describe("CommandController", () => {
           metaKey: semantic.input.chord.modifiers.meta,
           repeat: semantic.input.repeat,
           isComposing: semantic.input.composing,
-          target: semantic.input.editableText
-            ? { tagName: "INPUT" }
-            : undefined,
+          target: semantic.input.editableText ? { tagName: "INPUT" } : undefined,
           preventDefault: () => {
             consumed += 1;
           },
@@ -164,8 +154,7 @@ describe("CommandController", () => {
           commands: state.controller.model!.catalogue.commands,
           dispatcher: state.controller,
           reserved:
-            semantic.resolution.kind === "gated" &&
-            semantic.resolution.gate === "reserved"
+            semantic.resolution.kind === "gated" && semantic.resolution.gate === "reserved"
               ? () => true
               : undefined,
         },
@@ -179,11 +168,13 @@ describe("CommandController", () => {
   test("rejects stale search completion", async () => {
     const searches = new Map<
       string,
-      (value: typeof fixture.semantics.search[0]["hits"]) => void
+      (value: (typeof fixture.semantics.search)[0]["hits"]) => void
     >();
     const state = harness({
       search: async (records, query) => {
-        if (query.length === 0) return searchAll(records);
+        if (query.length === 0) {
+          return searchAll(records);
+        }
         return new Promise((resolve) => {
           searches.set(query, resolve);
         });
@@ -196,9 +187,7 @@ describe("CommandController", () => {
     await second;
     searches.get("open")!(fixture.semantics.search[1]!.hits);
     await first;
-    expect(state.controller.searchHits.map(({ record }) => record.id)).toEqual([
-      "app:save",
-    ]);
+    expect(state.controller.searchHits.map(({ record }) => record.id)).toEqual(["app:save"]);
     await state.controller.stop();
   });
 
@@ -299,6 +288,6 @@ describe("CommandController", () => {
 
 function searchAll(
   records: typeof fixture.catalogue.commands,
-): typeof fixture.semantics.search[0]["hits"] {
+): (typeof fixture.semantics.search)[0]["hits"] {
   return records.map((record) => ({ record, score: 0 }));
 }

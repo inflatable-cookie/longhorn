@@ -1,49 +1,28 @@
-import type {
-  PanelInstanceId,
-  RegionId,
-  SizingSlotId,
-} from "@inflatable-cookie/longhorn/layout";
-import type {
-  SurfaceId,
-  SurfaceDocument,
-} from "@inflatable-cookie/longhorn/surfaces";
+import type { PanelInstanceId, RegionId, SizingSlotId } from "@inflatable-cookie/longhorn/layout";
+import type { SurfaceId, SurfaceDocument } from "@inflatable-cookie/longhorn/surfaces";
 
 import { findPanelLocation, removePanel, updateRegion } from "./document.ts";
 
 export type LayoutProjector = (document: SurfaceDocument) => SurfaceDocument;
 
-export function projectActivate(
-  panelInstanceId: PanelInstanceId,
-): LayoutProjector {
+export function projectActivate(panelInstanceId: PanelInstanceId): LayoutProjector {
   return (document) => {
     const location = findPanelLocation(document, panelInstanceId);
-    return updateRegion(
-      document,
-      location.container.id,
-      location.region.region_id,
-      (region) => ({
-        ...region,
-        active_panel_instance_id: panelInstanceId,
-      }),
-    );
+    return updateRegion(document, location.container.id, location.region.region_id, (region) => ({
+      ...region,
+      active_panel_instance_id: panelInstanceId,
+    }));
   };
 }
 
-export function projectClose(
-  panelInstanceId: PanelInstanceId,
-): LayoutProjector {
+export function projectClose(panelInstanceId: PanelInstanceId): LayoutProjector {
   return (document) => {
     const location = findPanelLocation(document, panelInstanceId);
     return {
-      ...updateRegion(
-        document,
-        location.container.id,
-        location.region.region_id,
-        (region) => removePanel(region, panelInstanceId),
+      ...updateRegion(document, location.container.id, location.region.region_id, (region) =>
+        removePanel(region, panelInstanceId),
       ),
-      panel_instances: document.panel_instances.filter(
-        ({ id }) => id !== panelInstanceId,
-      ),
+      panel_instances: document.panel_instances.filter(({ id }) => id !== panelInstanceId),
     };
   };
 }
@@ -51,7 +30,7 @@ export function projectClose(
 export function projectReorder(
   containerId: SurfaceId,
   regionId: RegionId,
-  panelInstanceIds: readonly PanelInstanceId[],
+  panelInstanceIds: ReadonlyArray<PanelInstanceId>,
 ): LayoutProjector {
   const order = [...panelInstanceIds];
   return (document) =>
@@ -75,20 +54,15 @@ export function projectMove(
       source.region.region_id,
       (region) => removePanel(region, panelInstanceId),
     );
-    return updateRegion(
-      withoutSource,
-      targetContainerId,
-      targetRegionId,
-      (region) => {
-        const panelInstanceIds = [...region.panel_instance_ids];
-        panelInstanceIds.splice(insertionIndex, 0, panelInstanceId);
-        return {
-          ...region,
-          panel_instance_ids: panelInstanceIds,
-          active_panel_instance_id: panelInstanceId,
-        };
-      },
-    );
+    return updateRegion(withoutSource, targetContainerId, targetRegionId, (region) => {
+      const panelInstanceIds = [...region.panel_instance_ids];
+      panelInstanceIds.splice(insertionIndex, 0, panelInstanceId);
+      return {
+        ...region,
+        panel_instance_ids: panelInstanceIds,
+        active_panel_instance_id: panelInstanceId,
+      };
+    });
   };
 }
 

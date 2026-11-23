@@ -25,10 +25,7 @@ describe("generated settings protocol fixture", () => {
    */
   test("validates the recovery states the fixture publishes", () => {
     fixture.recoveryStates.forEach((state) => {
-      const snapshot = structuredClone(fixture.snapshots[0]!) as Record<
-        string,
-        unknown
-      >;
+      const snapshot = structuredClone(fixture.snapshots[0]!) as Record<string, unknown>;
       snapshot.recovery = state;
       assertValidSettingsScopeSnapshot(snapshot);
     });
@@ -36,70 +33,39 @@ describe("generated settings protocol fixture", () => {
 
   test("validates every Rust-produced payload category", () => {
     assertValidSettingsRegistrySnapshot(fixture.registry);
-    fixture.snapshots.forEach((value) =>
-      assertValidSettingsScopeSnapshot(value),
-    );
-    fixture.loadCommands.forEach((value) =>
-      assertValidSettingsLoadCommand(value),
-    );
-    fixture.applyCommands.forEach((value) =>
-      assertValidSettingsApplyCommand(value),
-    );
-    fixture.resetCommands.forEach((value) =>
-      assertValidSettingsResetCommand(value),
-    );
-    fixture.loadOutcomes.forEach((value) =>
-      assertValidSettingsLoadOutcome(value),
-    );
-    fixture.mutationResults.forEach((value) =>
-      assertValidSettingsMutationResult(value),
-    );
-    fixture.registryEvents.forEach((value) =>
-      assertValidSettingsRegistryChangedEvent(value),
-    );
-    fixture.scopeEvents.forEach((value) =>
-      assertValidSettingsScopeChangedEvent(value),
-    );
-    expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
+    fixture.snapshots.forEach((value) => assertValidSettingsScopeSnapshot(value));
+    fixture.loadCommands.forEach((value) => assertValidSettingsLoadCommand(value));
+    fixture.applyCommands.forEach((value) => assertValidSettingsApplyCommand(value));
+    fixture.resetCommands.forEach((value) => assertValidSettingsResetCommand(value));
+    fixture.loadOutcomes.forEach((value) => assertValidSettingsLoadOutcome(value));
+    fixture.mutationResults.forEach((value) => assertValidSettingsMutationResult(value));
+    fixture.registryEvents.forEach((value) => assertValidSettingsRegistryChangedEvent(value));
+    fixture.scopeEvents.forEach((value) => assertValidSettingsScopeChangedEvent(value));
+    expect(structuredClone(fixture)).toEqual(fixture);
   });
 
   test("fails safe on future versions and every fixture discriminant", () => {
     const futureRegistry = structuredClone(fixture.registry);
-    futureRegistry.protocolVersion =
-      fixture.incompatibility.futureProtocolVersion;
+    futureRegistry.protocolVersion = fixture.incompatibility.futureProtocolVersion;
+    incompatible(() => assertValidSettingsRegistrySnapshot(futureRegistry));
     incompatible(() =>
-      assertValidSettingsRegistrySnapshot(futureRegistry),
+      assertValidSettingsMutationResult(fixture.incompatibility.unknownMutationStatus),
     );
-    incompatible(() =>
-      assertValidSettingsMutationResult(
-        fixture.incompatibility.unknownMutationStatus,
-      ),
-    );
-    incompatible(() =>
-      assertValidSettingsLoadOutcome(
-        fixture.incompatibility.unknownLoadStatus,
-      ),
-    );
+    incompatible(() => assertValidSettingsLoadOutcome(fixture.incompatibility.unknownLoadStatus));
 
-    const durability = structuredClone(
-      fixture.mutationResults[0]!,
-    ) as { receipt: { durability: unknown } };
-    durability.receipt.durability =
-      fixture.incompatibility.unknownDurabilityKind;
+    const durability = structuredClone(fixture.mutationResults[0]!) as {
+      receipt: { durability: unknown };
+    };
+    durability.receipt.durability = fixture.incompatibility.unknownDurabilityKind;
     incompatible(() => assertValidSettingsMutationResult(durability));
 
     const rejection = structuredClone(
-      fixture.mutationResults.find(
-        (result) => result.status === "rejected",
-      )!,
+      fixture.mutationResults.find((result) => result.status === "rejected")!,
     ) as { rejection: { code: unknown } };
-    rejection.rejection.code =
-      fixture.incompatibility.unknownRejectionCode;
+    rejection.rejection.code = fixture.incompatibility.unknownRejectionCode;
     incompatible(() => assertValidSettingsMutationResult(rejection));
 
-    const recovery = structuredClone(
-      fixture.snapshots[0]!,
-    ) as unknown as { recovery: unknown };
+    const recovery = structuredClone(fixture.snapshots[0]!) as unknown as { recovery: unknown };
     recovery.recovery = {
       code: fixture.incompatibility.unknownRecoveryCode,
       diagnostic: null,
@@ -107,8 +73,7 @@ describe("generated settings protocol fixture", () => {
     incompatible(() => assertValidSettingsScopeSnapshot(recovery));
 
     const editability = structuredClone(fixture.snapshots[0]!);
-    editability.values[0]!.editability =
-      fixture.incompatibility.unknownEditability;
+    editability.values[0]!.editability = fixture.incompatibility.unknownEditability;
     incompatible(() => assertValidSettingsScopeSnapshot(editability));
 
     const timing = structuredClone(fixture.registry);
@@ -117,27 +82,21 @@ describe("generated settings protocol fixture", () => {
 
     const effectiveSource = structuredClone(fixture.snapshots[0]!);
     effectiveSource.values[0]!.effectiveSource = "remote";
-    incompatible(() =>
-      assertValidSettingsScopeSnapshot(effectiveSource),
-    );
+    incompatible(() => assertValidSettingsScopeSnapshot(effectiveSource));
 
     const policyEffect = structuredClone(fixture.snapshots[0]!);
     policyEffect.values[1]!.policy!.effect = "advisory";
-    incompatible(() =>
-      assertValidSettingsScopeSnapshot(policyEffect),
-    );
+    incompatible(() => assertValidSettingsScopeSnapshot(policyEffect));
 
     const activation = structuredClone(fixture.snapshots[0]!);
     activation.activationRequirements[0]!.state = "scheduled";
     incompatible(() => assertValidSettingsScopeSnapshot(activation));
 
-    const mutationOutcome = structuredClone(
-      fixture.mutationResults[0]!,
-    ) as { receipt: { outcome: unknown } };
+    const mutationOutcome = structuredClone(fixture.mutationResults[0]!) as {
+      receipt: { outcome: unknown };
+    };
     mutationOutcome.receipt.outcome = "merged";
-    incompatible(() =>
-      assertValidSettingsMutationResult(mutationOutcome),
-    );
+    incompatible(() => assertValidSettingsMutationResult(mutationOutcome));
   });
 
   test("rejects contradictory projection provenance and duplicate entries", () => {
@@ -151,28 +110,20 @@ describe("generated settings protocol fixture", () => {
       [{ ...managed, effectiveSource: "compiledDefault" }],
       [configured, { ...managed, entryId: configured.entryId }],
     ]) {
-      incompatible(() =>
-        assertValidSettingsScopeSnapshot({ ...snapshot, values }),
-      );
+      incompatible(() => assertValidSettingsScopeSnapshot({ ...snapshot, values }));
     }
   });
 
   test("rejects invalid tokens and oversized opaque values", () => {
     const invalidToken = structuredClone(fixture.snapshots[0]!);
     invalidToken.authority.authorityToken = "UPPERCASE";
-    incompatible(() =>
-      assertValidSettingsScopeSnapshot(invalidToken),
-    );
+    incompatible(() => assertValidSettingsScopeSnapshot(invalidToken));
 
-    const oversized = structuredClone(
-      fixture.snapshots[0]!,
-    ) as unknown as {
+    const oversized = structuredClone(fixture.snapshots[0]!) as unknown as {
       values: [{ effective: { value: unknown } }];
     };
     oversized.values[0].effective.value = "x".repeat(200);
-    expect(() =>
-      assertValidSettingsScopeSnapshot(oversized, 64),
-    ).toThrow(
+    expect(() => assertValidSettingsScopeSnapshot(oversized, 64)).toThrow(
       expect.objectContaining({
         code: "opaque_value_too_large",
       }),

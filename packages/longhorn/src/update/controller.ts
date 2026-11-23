@@ -1,14 +1,14 @@
 import { UpdateClient } from "./client.ts";
-import {
-  UPDATE_PROTOCOL_VERSION,
-  type Channel,
-  type DeferralCause,
-  type UpdateAvailabilityProjection,
-  type UpdateOutcomeProjection,
-  type UpdateProgressProjection,
-  type UpdateRejectionCode,
-  type UpdateSnapshot,
-  type UpdateStagedArtifactProjection,
+import { UPDATE_PROTOCOL_VERSION } from "./generated/protocol.ts";
+import type {
+  Channel,
+  DeferralCause,
+  UpdateAvailabilityProjection,
+  UpdateOutcomeProjection,
+  UpdateProgressProjection,
+  UpdateRejectionCode,
+  UpdateSnapshot,
+  UpdateStagedArtifactProjection,
 } from "./generated/protocol.ts";
 import type { UpdatePort, UpdateUnlisten } from "./ports.ts";
 
@@ -71,12 +71,12 @@ export class UpdateController {
   readonly #observers = new Set<() => void>();
   #status: UpdateControllerStatus = { kind: "idle" };
   #snapshot?: UpdateSnapshot;
-  #lastRejection?: UpdateRejectionCode;
+  #lastRejection: UpdateRejectionCode | undefined;
   #started = false;
   #lifecycle = 0;
   #commandSequence = 0;
   #pending = false;
-  #unlisten: UpdateUnlisten[] = [];
+  #unlisten: Array<UpdateUnlisten> = [];
   /**
    * The most recent live progress report.
    *
@@ -85,15 +85,21 @@ export class UpdateController {
    * said before the transfer began. It is cleared when the command that
    * started the transfer settles, so a stale report cannot outlive it.
    */
-  #liveProgress?: UpdateProgressProjection;
+  #liveProgress: UpdateProgressProjection | undefined;
 
   constructor(options: UpdateControllerOptions) {
     this.#client = new UpdateClient(options.port);
   }
 
-  get status(): UpdateControllerStatus { return this.#status; }
-  get snapshot(): UpdateSnapshot | undefined { return this.#snapshot; }
-  get availability(): UpdateAvailabilityProjection | undefined { return this.#snapshot?.availability; }
+  get status(): UpdateControllerStatus {
+    return this.#status;
+  }
+  get snapshot(): UpdateSnapshot | undefined {
+    return this.#snapshot;
+  }
+  get availability(): UpdateAvailabilityProjection | undefined {
+    return this.#snapshot?.availability;
+  }
   /**
    * What the transfer is doing right now.
    *
@@ -101,12 +107,22 @@ export class UpdateController {
    * fresh as the last commit and the transfer deliberately does not hold the
    * authority while it runs.
    */
-  get progress(): UpdateProgressProjection | undefined { return this.#liveProgress ?? this.#snapshot?.progress; }
+  get progress(): UpdateProgressProjection | undefined {
+    return this.#liveProgress ?? this.#snapshot?.progress;
+  }
   /** The retained verified artifact, when one is staged. */
-  get staged(): UpdateStagedArtifactProjection | undefined { return this.#snapshot?.staged ?? undefined; }
-  get channel(): Channel | undefined { return this.#snapshot?.channel; }
-  get installedVersion(): string | undefined { return this.#snapshot?.installedVersion; }
-  get pending(): boolean { return this.#pending; }
+  get staged(): UpdateStagedArtifactProjection | undefined {
+    return this.#snapshot?.staged ?? undefined;
+  }
+  get channel(): Channel | undefined {
+    return this.#snapshot?.channel;
+  }
+  get installedVersion(): string | undefined {
+    return this.#snapshot?.installedVersion;
+  }
+  get pending(): boolean {
+    return this.#pending;
+  }
 
   /**
    * Why the last install did not proceed, when it did not.
@@ -119,7 +135,9 @@ export class UpdateController {
   }
 
   /** The latest refusal, cleared as soon as the next command starts. */
-  get lastRejection(): UpdateRejectionCode | undefined { return this.#lastRejection; }
+  get lastRejection(): UpdateRejectionCode | undefined {
+    return this.#lastRejection;
+  }
 
   /**
    * Whether this install sits ahead of the channel it follows.
@@ -132,7 +150,9 @@ export class UpdateController {
    */
   get aheadOfChannel(): { readonly installed: string; readonly channel: string } | undefined {
     const availability = this.#snapshot?.availability;
-    if (availability?.state !== "aheadOfChannel") return undefined;
+    if (availability?.state !== "aheadOfChannel") {
+      return undefined;
+    }
     return { installed: availability.installed, channel: availability.channel };
   }
 
@@ -156,7 +176,9 @@ export class UpdateController {
    */
   get presence(): UpdatePresence {
     const snapshot = this.#snapshot;
-    if (snapshot === undefined) return "hidden";
+    if (snapshot === undefined) {
+      return "hidden";
+    }
 
     switch (this.progress?.state) {
       case "downloading":
@@ -170,7 +192,9 @@ export class UpdateController {
         break;
     }
 
-    if (snapshot.availability.state !== "offer") return "hidden";
+    if (snapshot.availability.state !== "offer") {
+      return "hidden";
+    }
     // Postponed by the operator, not by the gate. A gate deferral is transient
     // and the offer is still the answer; `userPostponed` is a decision.
     return snapshot.deferral?.cause.cause === "userPostponed" ? "quiet" : "attention";
@@ -182,7 +206,9 @@ export class UpdateController {
   }
 
   async start(): Promise<void> {
-    if (this.#started) return;
+    if (this.#started) {
+      return;
+    }
     this.#started = true;
     const lifecycle = ++this.#lifecycle;
     this.#setStatus({ kind: "loading" });
@@ -197,7 +223,9 @@ export class UpdateController {
       }
       this.#unlisten.push(unlisten);
       const unlistenProgress = await this.#client.listenProgress((event) => {
-        if (!this.#started || lifecycle !== this.#lifecycle) return;
+        if (!this.#started || lifecycle !== this.#lifecycle) {
+          return;
+        }
         this.#liveProgress = event.progress;
         this.#notify();
       });
@@ -208,7 +236,9 @@ export class UpdateController {
       this.#unlisten.push(unlistenProgress);
       await this.refresh();
     } catch (error) {
-      if (this.#started && lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error });
+      if (this.#started && lifecycle === this.#lifecycle) {
+        this.#setStatus({ kind: "failed", error });
+      }
     }
   }
 
@@ -217,7 +247,9 @@ export class UpdateController {
     this.#lifecycle += 1;
     const unlisten = this.#unlisten;
     this.#unlisten = [];
-    for (const stop of unlisten) await stop();
+    for (const stop of unlisten) {
+      await stop();
+    }
     this.#setStatus({ kind: "idle" });
   }
 
@@ -225,11 +257,15 @@ export class UpdateController {
     const lifecycle = this.#lifecycle;
     try {
       const snapshot = await this.#client.snapshot();
-      if (lifecycle !== this.#lifecycle) return;
+      if (lifecycle !== this.#lifecycle) {
+        return;
+      }
       this.#snapshot = snapshot;
       this.#setStatus({ kind: "ready" });
     } catch (error) {
-      if (lifecycle === this.#lifecycle) this.#setStatus({ kind: "failed", error });
+      if (lifecycle === this.#lifecycle) {
+        this.#setStatus({ kind: "failed", error });
+      }
     }
   }
 
@@ -243,14 +279,24 @@ export class UpdateController {
   /** Follows a different channel from now on. */
   async selectChannel(channel: Channel): Promise<UpdateCommandOutcome> {
     return this.#command((client, epoch) =>
-      client.selectChannel({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, channel }),
+      client.selectChannel({
+        protocolVersion: UPDATE_PROTOCOL_VERSION,
+        authorityEpoch: epoch,
+        channel,
+      }),
     );
   }
 
   /** Declines a version for now. */
   async defer(version: string, cause: DeferralCause): Promise<UpdateCommandOutcome> {
-    return this.#command((client, epoch) =>
-      client.defer({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version, cause }),
+    return this.#command(
+      (client, epoch) =>
+        client.defer({
+          protocolVersion: UPDATE_PROTOCOL_VERSION,
+          authorityEpoch: epoch,
+          version,
+          cause,
+        }),
       true,
     );
   }
@@ -271,7 +317,9 @@ export class UpdateController {
   async apply(version: string): Promise<UpdateCommandOutcome> {
     return this.#command(async (client, epoch, snapshot) => {
       const staged = snapshot.staged;
-      if (staged?.version !== version) return { status: "rejected", code: "noOffer", snapshot };
+      if (staged?.version !== version) {
+        return { status: "rejected", code: "noOffer", snapshot };
+      }
       return client.apply({
         protocolVersion: UPDATE_PROTOCOL_VERSION,
         authorityEpoch: epoch,
@@ -289,7 +337,11 @@ export class UpdateController {
   }
 
   async #command(
-    run: (client: UpdateClient, epoch: number, snapshot: UpdateSnapshot) => Promise<UpdateOutcomeProjection>,
+    run: (
+      client: UpdateClient,
+      epoch: number,
+      snapshot: UpdateSnapshot,
+    ) => Promise<UpdateOutcomeProjection>,
     committedMayDefer = false,
   ): Promise<UpdateCommandOutcome> {
     const commandSequence = ++this.#commandSequence;
@@ -308,11 +360,16 @@ export class UpdateController {
     this.#notify();
     try {
       const outcome = await run(this.#client, snapshot.authorityEpoch, snapshot);
-      const result: UpdateCommandOutcome = outcome.status === "rejected"
-        ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
-        : committedMayDefer && outcome.snapshot.deferral !== null
-          ? { status: "committedWithDeferral", snapshot: outcome.snapshot, deferral: outcome.snapshot.deferral }
-          : { status: "committed", snapshot: outcome.snapshot };
+      const result: UpdateCommandOutcome =
+        outcome.status === "rejected"
+          ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
+          : committedMayDefer && outcome.snapshot.deferral !== null
+            ? {
+                status: "committedWithDeferral",
+                snapshot: outcome.snapshot,
+                deferral: outcome.snapshot.deferral,
+              }
+            : { status: "committed", snapshot: outcome.snapshot };
       if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
         this.#snapshot = outcome.snapshot;
         this.#liveProgress = undefined;
@@ -339,6 +396,8 @@ export class UpdateController {
   }
 
   #notify(): void {
-    for (const observer of this.#observers) observer();
+    for (const observer of this.#observers) {
+      observer();
+    }
   }
 }

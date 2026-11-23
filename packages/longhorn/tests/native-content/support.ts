@@ -3,19 +3,21 @@ import fixture from "../../../../fixtures/native-content/protocol-v1.json";
 import {
   createDirectNativeContentPort,
   NATIVE_CONTENT_PROTOCOL_VERSION,
-  type DesiredUpdate,
-  type NativeContentChangedEvent,
-  type NativeContentConnectRequest,
-  type NativeContentContentSizeDecisionRequest,
-  type NativeContentDesiredUpdateRequest,
-  type NativeContentPort,
-  type NativeContentProtocolRejection,
-  type NativeContentSnapshot,
-  type NativeContentSnapshotRequest,
+} from "../../src/native-content/index.ts";
+import type {
+  DesiredUpdate,
+  NativeContentChangedEvent,
+  NativeContentConnectRequest,
+  NativeContentContentSizeDecisionRequest,
+  NativeContentDesiredUpdateRequest,
+  NativeContentPort,
+  NativeContentProtocolRejection,
+  NativeContentSnapshot,
+  NativeContentSnapshotRequest,
 } from "../../src/native-content/index.ts";
 
 export function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }
 
 export function baseSnapshot(): NativeContentSnapshot {
@@ -44,7 +46,7 @@ export function nextUpdate(
 }
 
 export class MemoryNativeContentHost {
-  readonly calls: string[] = [];
+  readonly calls: Array<string> = [];
   readonly listeners = new Set<(event: unknown) => void>();
   unlistenCount = 0;
   beforeConnectReturn: (() => void) | undefined;
@@ -97,9 +99,7 @@ export class MemoryNativeContentHost {
     };
   }
 
-  async updateDesired(
-    request: NativeContentDesiredUpdateRequest,
-  ): Promise<unknown> {
+  async updateDesired(request: NativeContentDesiredUpdateRequest): Promise<unknown> {
     this.calls.push("update");
     if (request.client_epoch !== this.#clientEpoch) {
       return {
@@ -108,10 +108,7 @@ export class MemoryNativeContentHost {
         rejection: staleSessionRejection(),
       };
     }
-    if (
-      request.expected_desired_revision !==
-      this.#snapshot.cursor.desired_revision
-    ) {
+    if (request.expected_desired_revision !== this.#snapshot.cursor.desired_revision) {
       return {
         status: "rejected",
         request_id: request.request_id,
@@ -150,9 +147,7 @@ export class MemoryNativeContentHost {
     };
   }
 
-  async decideContentSize(
-    request: NativeContentContentSizeDecisionRequest,
-  ): Promise<unknown> {
+  async decideContentSize(request: NativeContentContentSizeDecisionRequest): Promise<unknown> {
     this.calls.push("decide");
     const acceptedSize =
       request.decision.kind === "accepted"
@@ -184,7 +179,9 @@ export class MemoryNativeContentHost {
     this.calls.push("listen");
     this.listeners.add(listener);
     return () => {
-      if (this.listeners.delete(listener)) this.unlistenCount += 1;
+      if (this.listeners.delete(listener)) {
+        this.unlistenCount += 1;
+      }
     };
   }
 
@@ -242,7 +239,9 @@ export class MemoryNativeContentHost {
   }
 
   emit(event: NativeContentChangedEvent): void {
-    for (const listener of this.listeners) listener(clone(event));
+    for (const listener of this.listeners) {
+      listener(clone(event));
+    }
   }
 
   event(change: NativeContentChangedEvent["change"]): NativeContentChangedEvent {

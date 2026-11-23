@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Desktop support second-consumer conformance (contract 003 step 6).
 //
 // Contracts 024 to 029 each need a second consumer's conformance before their
@@ -68,7 +69,7 @@ const crates = [
 const units = ["024", "025", "026", "027", "028", "029"] as const;
 
 /** The crate each unit exercises. */
-const unitCrates: Record<(typeof units)[number], readonly string[]> = {
+const unitCrates: Record<(typeof units)[number], ReadonlyArray<string>> = {
   "024": ["longhorn-redact"],
   "025": ["longhorn-support-log"],
   "026": ["longhorn-diagnostics"],
@@ -152,7 +153,7 @@ try {
     ),
   );
 } catch (error) {
-  console.error(String(error instanceof Error ? error.stack ?? error.message : error));
+  console.error(String(error instanceof Error ? (error.stack ?? error.message) : error));
   process.exitCode = 1;
 } finally {
   if (process.env.KEEP_DESKTOP_SUPPORT_CONFORMANCE === "1") {
@@ -174,11 +175,11 @@ async function verifyExampleSources(): Promise<void> {
   }
 
   const manifest = await readFile(join(consumerRoot, "Cargo.toml"), "utf8");
-  const declared = [...manifest.matchAll(/^(longhorn-[\w-]+)(?:\.workspace)?\s*=/gm)].map(
-    (match) => match[1]!,
+  const declared = [...manifest.matchAll(/^(longhorn-[\w-]+)(?:\.workspace)?\s*=/gm)].map((match) =>
+    requireValue(match[1], "match[1]"),
   );
   for (const name of declared) {
-    if (!(crates as readonly string[]).includes(name)) {
+    if (!(crates as ReadonlyArray<string>).includes(name)) {
       throw new Error(`the consumer depends on ${name}, which is not a desktop support crate`);
     }
   }
@@ -186,7 +187,9 @@ async function verifyExampleSources(): Promise<void> {
   // but not imported here: it is contract 027's shared path rule, which travels
   // with `longhorn-tool-provision`.
   for (const name of units.flatMap((unit) => unitCrates[unit])) {
-    if (!declared.includes(name)) throw new Error(`the consumer does not depend on ${name}`);
+    if (!declared.includes(name)) {
+      throw new Error(`the consumer does not depend on ${name}`);
+    }
   }
 
   // Longhorn's own names are fine; another repository's product vocabulary is
@@ -194,17 +197,23 @@ async function verifyExampleSources(): Promise<void> {
   // may name the consumer history; the crate the private workspace builds may
   // not.
   const productVocabulary = /acowtancy|bovine|praxis|jetstream|loophole|nucleus|soundcheck/i;
-  const offenders: string[] = [];
+  const offenders: Array<string> = [];
   for (const relative of await readdir(consumerRoot, { recursive: true })) {
-    if (!(await lstat(join(consumerRoot, relative))).isFile()) continue;
-    for (const [index, line] of (await readFile(join(consumerRoot, relative), "utf8")).split("\n").entries()) {
+    if (!(await lstat(join(consumerRoot, relative))).isFile()) {
+      continue;
+    }
+    for (const [index, line] of (await readFile(join(consumerRoot, relative), "utf8"))
+      .split("\n")
+      .entries()) {
       if (productVocabulary.test(line)) {
         offenders.push(`${relative}:${index + 1}: ${line.trim()}`);
       }
     }
   }
   if (offenders.length > 0) {
-    throw new Error(`the conformance consumer carries product vocabulary:\n${offenders.join("\n")}`);
+    throw new Error(
+      `the conformance consumer carries product vocabulary:\n${offenders.join("\n")}`,
+    );
   }
 }
 
@@ -213,14 +222,13 @@ async function verifyExampleSources(): Promise<void> {
  * crate by tag actually receives. The proof copies crate sources, so this is
  * the check that those sources are the ones a package ships.
  */
-function verifyPackageInventory(name: string): { name: string; files: number } {
-  const listing = run(
-    rustCommand(["package", "-p", name, "--list", "--allow-dirty"]),
-    repoRoot,
-  );
+function verifyPackageInventory(name: string) {
+  const listing = run(rustCommand(["package", "-p", name, "--list", "--allow-dirty"]), repoRoot);
   const files = listing.trim().split("\n");
   for (const required of ["Cargo.toml"]) {
-    if (!files.includes(required)) throw new Error(`${name}'s package inventory omits ${required}`);
+    if (!files.includes(required)) {
+      throw new Error(`${name}'s package inventory omits ${required}`);
+    }
   }
   if (!files.some((file) => file.startsWith("src/"))) {
     throw new Error(`${name}'s package inventory omits its sources`);
@@ -238,13 +246,15 @@ async function privateWorkspaceManifest(): Promise<string> {
   const root = await readFile(join(repoRoot, "Cargo.toml"), "utf8");
   const tail = root.slice(root.indexOf("[workspace.package]"));
   const version = /\nversion = "([^"]+)"/.exec(tail)?.[1];
-  if (!version) throw new Error("the workspace package version is missing");
+  if (!version) {
+    throw new Error("the workspace package version is missing");
+  }
   const selected = new Set<string>(crates);
   const filtered = tail
     .split("\n")
     .filter((line) => {
       const match = line.match(/^(longhorn-[\w-]+)\s*=/);
-      return match === null || selected.has(match[1]!);
+      return match === null || selected.has(requireValue(match[1], "match[1]"));
     })
     .join("\n");
   // A staged crate with no `[workspace.dependencies]` line in the repository --
@@ -255,9 +265,10 @@ async function privateWorkspaceManifest(): Promise<string> {
   const additions = missing
     .map((name) => `${name} = { path = "crates/${name}", version = "${version}" }`)
     .join("\n");
-  const dependencies = additions.length === 0
-    ? filtered
-    : filtered.replace("[workspace.dependencies]\n", `[workspace.dependencies]\n${additions}\n`);
+  const dependencies =
+    additions.length === 0
+      ? filtered
+      : filtered.replace("[workspace.dependencies]\n", `[workspace.dependencies]\n${additions}\n`);
   const members = [...crates.map((name) => `  "crates/${name}",`), '  "consumer",'].join("\n");
   return `[workspace]\nmembers = [\n${members}\n]\nresolver = "2"\n\n${dependencies}`;
 }

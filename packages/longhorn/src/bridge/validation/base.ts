@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import { BRIDGE_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/protocol.ts";
 export type BridgeProtocolValidationCode =
   | "unsupported_protocol_version"
@@ -34,10 +35,7 @@ export class BridgeProtocolValidationError extends Error {
   readonly code: BridgeProtocolValidationCode;
   readonly received: unknown;
 
-  constructor(
-    code: BridgeProtocolValidationCode,
-    received: unknown,
-  ) {
+  constructor(code: BridgeProtocolValidationCode, received: unknown) {
     super(`incompatible bridge protocol: ${code}`);
     this.name = "BridgeProtocolValidationError";
     this.code = code;
@@ -49,21 +47,19 @@ export interface BridgeCodec<T> {
   parse(value: unknown): T;
 }
 
-export function bridgeCodec<T>(
-  parse: (value: unknown) => T,
-): BridgeCodec<T> {
+export function bridgeCodec<T>(parse: (value: unknown) => T): BridgeCodec<T> {
   return { parse };
 }
 
 export function record(
   value: unknown,
-  required: readonly string[],
-  optional: readonly string[] = [],
+  required: ReadonlyArray<string>,
+  optional: ReadonlyArray<string> = [],
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     incompatible("invalid_object", value);
   }
-  const result = value as Record<string, unknown>;
+  const result = value;
   const allowed = new Set([...required, ...optional]);
   for (const key of Object.keys(result)) {
     if (!allowed.has(key)) {
@@ -78,20 +74,14 @@ export function record(
   return result;
 }
 
-export function array(
-  value: unknown,
-  maximum: number,
-): readonly unknown[] {
+export function array(value: unknown, maximum: number): ReadonlyArray<unknown> {
   if (!Array.isArray(value) || value.length > maximum) {
     incompatible("invalid_array", value);
   }
   return value;
 }
 
-export function unique<T>(
-  values: readonly T[],
-  key: (value: T) => string,
-): void {
+export function unique<T>(values: ReadonlyArray<T>, key: (value: T) => string): void {
   const seen = new Set<string>();
   for (const value of values) {
     const identity = key(value);
@@ -124,15 +114,8 @@ export function domainId(value: unknown): string {
   return value;
 }
 
-export function integer(
-  value: unknown,
-  minimum = 0,
-): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < minimum
-  ) {
+export function integer(value: unknown, minimum = 0): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < minimum) {
     incompatible("invalid_number", value);
   }
   return value;
@@ -140,25 +123,20 @@ export function integer(
 
 export function oneOf<const T extends string>(
   value: unknown,
-  values: readonly T[],
+  values: ReadonlyArray<T>,
   code: BridgeProtocolValidationCode,
 ): T {
-  if (typeof value !== "string" || !values.includes(value as T)) {
+  const match = values.find((candidate) => candidate === value);
+  if (match === undefined) {
     incompatible(code, value);
   }
-  return value as T;
+  return match;
 }
 
-export function nullable<T>(
-  value: unknown,
-  parse: (value: unknown) => T,
-): T | null {
+export function nullable<T>(value: unknown, parse: (value: unknown) => T): T | null {
   return value === null ? null : parse(value);
 }
 
-export function incompatible(
-  code: BridgeProtocolValidationCode,
-  received: unknown,
-): never {
+export function incompatible(code: BridgeProtocolValidationCode, received: unknown): never {
   throw new BridgeProtocolValidationError(code, received);
 }

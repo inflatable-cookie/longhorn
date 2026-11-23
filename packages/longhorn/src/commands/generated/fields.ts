@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const COMMANDS_FIELDS: Record<string, readonly string[]> = {
+export const COMMANDS_FIELDS = {
   "CommandArgumentField": ["id", "required", "default", "kind"],
   "CommandVisibility": ["hidden", "palette", "menu", "shortcut", "settings", "help"],
   "CommandDiscoveryRecord": ["id", "label", "description", "categoryPath", "keywords", "icon", "visibility", "textInputPolicy", "arguments"],
@@ -41,4 +41,4 @@ export const COMMANDS_FIELDS: Record<string, readonly string[]> = {
   "CommandKeymapRecovery": ["code", "detail", "sourcePreserved"],
   "CommandKeymapMutationReceipt": ["requestId", "previousRevision", "committedRevision", "outcome", "durability", "patchDigest"],
   "CommandHostError": ["code", "message", "retryable"],
-};
+} as const;

@@ -1,14 +1,24 @@
 import { describe, expect, test } from "bun:test";
 
-import { isNewerNotificationSnapshot, NotificationClient, notificationEventAction } from "../../src/notifications/client.ts";
+import {
+  isNewerNotificationSnapshot,
+  NotificationClient,
+  notificationEventAction,
+} from "../../src/notifications/client.ts";
 import { cloned, fixture } from "./support.ts";
 
 describe("notification snapshot reconciliation", () => {
   test("registers the listener before loading the first snapshot", async () => {
-    const order: string[] = [];
+    const order: Array<string> = [];
     const client = new NotificationClient({
-      listen: async () => { order.push("listen"); return () => {}; },
-      snapshot: async (query) => { order.push("snapshot"); return { ...fixture.snapshotResponse, requestId: query.requestId }; },
+      listen: async () => {
+        order.push("listen");
+        return () => {};
+      },
+      snapshot: async (query) => {
+        order.push("snapshot");
+        return { ...fixture.snapshotResponse, requestId: query.requestId };
+      },
       mutate: async () => fixture.mutationResults[0],
       nextRequestId: () => fixture.snapshotQuery.requestId,
     });

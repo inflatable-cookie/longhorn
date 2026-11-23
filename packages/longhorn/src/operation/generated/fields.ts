@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const OPERATION_FIELDS: Record<string, readonly string[]> = {
+export const OPERATION_FIELDS = {
   "OperationAuthorityProjection": ["authorityId", "authorityEpoch"],
   "OperationPhaseProgressProjection": ["phaseId", "label", "completed", "total"],
   "OperationProgressProjection": ["sequence", "overall", "phase"],
@@ -17,4 +17,4 @@ export const OPERATION_FIELDS: Record<string, readonly string[]> = {
   "OperationRejection": ["code", "detail", "refreshRequired"],
   "OperationCancellationReceiptProjection": ["operationId", "outcome", "previousState", "committedState", "previousOperationRevision", "committedOperationRevision", "previousCatalogueRevision", "committedCatalogueRevision", "evicted"],
   "OperationChangedEvent": ["protocolVersion", "requestId", "authority", "previousCatalogueRevision", "committedCatalogueRevision", "operationId", "kind"],
-};
+} as const;

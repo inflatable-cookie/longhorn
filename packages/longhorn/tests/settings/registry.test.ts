@@ -11,12 +11,10 @@ import { registry } from "./support.ts";
 describe("settings registry projection", () => {
   test("projects registered order without adding empty navigation", () => {
     const projection = projectSettingsRegistry(registry());
-    expect(projection.modules.map(({ module }) => module.id)).toEqual([
-      "app:module",
+    expect(projection.modules.map(({ module }) => module.id)).toEqual(["app:module"]);
+    expect(projection.modules[0]!.sections.map(({ section }) => section.id)).toEqual([
+      "app:general",
     ]);
-    expect(
-      projection.modules[0]!.sections.map(({ section }) => section.id),
-    ).toEqual(["app:general"]);
     expect(projection.pages.map((page) => page.id)).toEqual(["app:audio"]);
   });
 

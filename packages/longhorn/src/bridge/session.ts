@@ -5,10 +5,7 @@ import type {
   DomainCapabilityDescriptor,
   DomainId,
 } from "./generated/protocol.ts";
-import {
-  parseBridgeHelloRequest,
-  parseBridgeNegotiationReceipt,
-} from "./validation.ts";
+import { parseBridgeHelloRequest, parseBridgeNegotiationReceipt } from "./validation.ts";
 
 export interface BridgeNegotiationAdapter {
   negotiate(request: BridgeHelloRequest): Promise<unknown>;
@@ -39,16 +36,10 @@ export class BridgeSession {
   constructor(receipt: BridgeNegotiationReceipt) {
     this.receipt = parseBridgeNegotiationReceipt(receipt);
     this.#capabilities = new Map(
-      this.receipt.domainCapabilities.map((value) => [
-        value.domainId,
-        value,
-      ]),
+      this.receipt.domainCapabilities.map((value) => [value.domainId, value]),
     );
     this.#authorities = new Map(
-      this.receipt.domainAuthorities.map((value) => [
-        value.domainId,
-        value,
-      ]),
+      this.receipt.domainAuthorities.map((value) => [value.domainId, value]),
     );
   }
 
@@ -61,7 +52,6 @@ export class BridgeSession {
   }
 
   supports(domainId: DomainId, capability: string): boolean {
-    return this.capability(domainId)?.capabilities.includes(capability) ??
-      false;
+    return this.capability(domainId)?.capabilities.includes(capability) ?? false;
   }
 }

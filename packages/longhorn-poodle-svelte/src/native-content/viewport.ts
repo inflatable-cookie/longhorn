@@ -15,7 +15,9 @@ export function nativeContentViewport(
 
   return {
     update(next) {
-      if (next === current) return;
+      if (next === current) {
+        return;
+      }
       unbind();
       current = next;
       unbind = current.bindViewport(node);

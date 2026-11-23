@@ -23,25 +23,25 @@ export interface CommandProjectionRecord {
   readonly id: CommandId;
   readonly label: string;
   readonly description: string | null;
-  readonly categoryPath: readonly string[];
-  readonly keywords: readonly string[];
+  readonly categoryPath: ReadonlyArray<string>;
+  readonly keywords: ReadonlyArray<string>;
   readonly icon: string | null;
   readonly availability: CommandAvailability;
-  readonly shortcuts: readonly CommandShortcutRecord[];
+  readonly shortcuts: ReadonlyArray<CommandShortcutRecord>;
 }
 
 export interface CommandSettingsRecord extends CommandProjectionRecord {
-  readonly bindings: readonly CommandEffectiveBinding[];
+  readonly bindings: ReadonlyArray<CommandEffectiveBinding>;
 }
 
 export interface CommandSurfaceProjection {
-  readonly palette: readonly CommandProjectionRecord[];
-  readonly menu: readonly CommandProjectionRecord[];
-  readonly help: readonly CommandProjectionRecord[];
-  readonly settings: readonly CommandSettingsRecord[];
-  readonly shortcuts: readonly CommandShortcutRecord[];
-  readonly reverseLookup: ReadonlyMap<CommandId, readonly CommandShortcutRecord[]>;
-  readonly conflicts: readonly CommandKeymapConflict[];
+  readonly palette: ReadonlyArray<CommandProjectionRecord>;
+  readonly menu: ReadonlyArray<CommandProjectionRecord>;
+  readonly help: ReadonlyArray<CommandProjectionRecord>;
+  readonly settings: ReadonlyArray<CommandSettingsRecord>;
+  readonly shortcuts: ReadonlyArray<CommandShortcutRecord>;
+  readonly reverseLookup: ReadonlyMap<CommandId, ReadonlyArray<CommandShortcutRecord>>;
+  readonly conflicts: ReadonlyArray<CommandKeymapConflict>;
 }
 
 const AVAILABLE: CommandAvailability = {
@@ -63,9 +63,7 @@ export function joinCommandState(
     );
   }
   if (keymap.registryDigest !== catalogue.registryDigest) {
-    throw new CommandProjectionConsistencyError(
-      "catalogue and keymap registry digests differ",
-    );
+    throw new CommandProjectionConsistencyError("catalogue and keymap registry digests differ");
   }
   const known = new Set(catalogue.commands.map(({ id }) => id));
   const records = new Set<string>();
@@ -90,13 +88,10 @@ export function projectCommandSurfaces(
   platform: CommandPlatform,
 ): CommandSurfaceProjection {
   const availability = new Map(
-    state.availability.records.map((record) => [
-      record.commandId,
-      record.availability,
-    ]),
+    state.availability.records.map((record) => [record.commandId, record.availability]),
   );
-  const reverseLookup = new Map<CommandId, readonly CommandShortcutRecord[]>();
-  const shortcuts: CommandShortcutRecord[] = [];
+  const reverseLookup = new Map<CommandId, ReadonlyArray<CommandShortcutRecord>>();
+  const shortcuts: Array<CommandShortcutRecord> = [];
   for (const command of state.catalogue.commands) {
     const records = shortcutsForCommand(state.keymap, command.id, platform);
     reverseLookup.set(command.id, records);
@@ -112,9 +107,7 @@ export function projectCommandSurfaces(
     availability: availability.get(record.id) ?? AVAILABLE,
     shortcuts: reverseLookup.get(record.id) ?? [],
   });
-  const visible = state.catalogue.commands.filter(
-    ({ visibility }) => !visibility.hidden,
-  );
+  const visible = state.catalogue.commands.filter(({ visibility }) => !visibility.hidden);
   return {
     palette: visible
       .filter(({ visibility }) => visibility.palette)
@@ -143,10 +136,13 @@ export function projectCommandSurfaces(
 }
 
 export function searchCommands(
-  records: readonly CommandDiscoveryRecord[],
+  records: ReadonlyArray<CommandDiscoveryRecord>,
   query: string,
-): readonly CommandSearchHit[] {
-  const terms = query.split(/\s+/u).filter(Boolean).map((term) => term.toLowerCase());
+): ReadonlyArray<CommandSearchHit> {
+  const terms = query
+    .split(/\s+/u)
+    .filter(Boolean)
+    .map((term) => term.toLowerCase());
   return records
     .flatMap((record) => {
       const score = scoreRecord(record, terms);
@@ -155,10 +151,7 @@ export function searchCommands(
     .sort(
       (left, right) =>
         left.score - right.score ||
-        compareUnicodeScalars(
-          left.record.label.toLowerCase(),
-          right.record.label.toLowerCase(),
-        ) ||
+        compareUnicodeScalars(left.record.label.toLowerCase(), right.record.label.toLowerCase()) ||
         compareUnicodeScalars(left.record.id, right.record.id),
     );
 }
@@ -167,12 +160,11 @@ export function shortcutsForCommand(
   keymap: CommandKeymapSnapshot,
   commandId: CommandId,
   platform: CommandPlatform,
-): readonly CommandShortcutRecord[] {
+): ReadonlyArray<CommandShortcutRecord> {
   return keymap.bindings
     .filter(
       (binding) =>
-        binding.invocation.commandId === commandId &&
-        includesPlatform(binding.platform, platform),
+        binding.invocation.commandId === commandId && includesPlatform(binding.platform, platform),
     )
     .map((binding) => {
       const chord = resolveTrigger(binding, platform);
@@ -186,10 +178,7 @@ export function shortcutsForCommand(
     });
 }
 
-export function shortcutLabel(
-  chord: CommandKeyChord,
-  platform: CommandPlatform,
-): string {
+export function shortcutLabel(chord: CommandKeyChord, platform: CommandPlatform): string {
   const key = keyLabel(chord.code);
   if (platform === "macOs") {
     return [
@@ -220,9 +209,11 @@ export class CommandProjectionConsistencyError extends Error {
 
 function scoreRecord(
   record: CommandDiscoveryRecord,
-  terms: readonly string[],
+  terms: ReadonlyArray<string>,
 ): number | undefined {
-  if (terms.length === 0) return 0;
+  if (terms.length === 0) {
+    return 0;
+  }
   const label = record.label.toLowerCase();
   const description = record.description?.toLowerCase() ?? "";
   const keywords = record.keywords.map((keyword) => keyword.toLowerCase());
@@ -248,8 +239,10 @@ function scoreRecord(
                       : description.includes(term)
                         ? 80
                         : undefined;
-    if (termScore === undefined) return undefined;
-    score = Math.min(0xffff_ffff, score + termScore);
+    if (termScore === undefined) {
+      return undefined;
+    }
+    score = Math.min(0xff_ff_ff_ff, score + termScore);
   }
   return score;
 }
@@ -280,8 +273,12 @@ function resolveTrigger(
 }
 
 function keyLabel(code: string): string {
-  if (code.length === 4 && code.startsWith("Key")) return code.slice(3);
-  if (code.length === 6 && code.startsWith("Digit")) return code.slice(5);
+  if (code.length === 4 && code.startsWith("Key")) {
+    return code.slice(3);
+  }
+  if (code.length === 6 && code.startsWith("Digit")) {
+    return code.slice(5);
+  }
   return (
     {
       ArrowUp: "↑",
@@ -294,13 +291,18 @@ function keyLabel(code: string): string {
 }
 
 function compareUnicodeScalars(left: string, right: string): number {
-  const leftValues = [...left];
-  const rightValues = [...right];
+  const leftValues = Array.from(left);
+  const rightValues = Array.from(right);
   const length = Math.min(leftValues.length, rightValues.length);
   for (let index = 0; index < length; index += 1) {
-    const leftCode = leftValues[index]!.codePointAt(0)!;
-    const rightCode = rightValues[index]!.codePointAt(0)!;
-    if (leftCode !== rightCode) return leftCode - rightCode;
+    const leftCode = leftValues[index]?.codePointAt(0);
+    const rightCode = rightValues[index]?.codePointAt(0);
+    if (leftCode === undefined || rightCode === undefined) {
+      break;
+    }
+    if (leftCode !== rightCode) {
+      return leftCode - rightCode;
+    }
   }
   return leftValues.length - rightValues.length;
 }

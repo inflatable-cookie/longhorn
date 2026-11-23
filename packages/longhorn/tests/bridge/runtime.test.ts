@@ -4,9 +4,8 @@ import {
   BridgeConnectionRuntime,
   BridgeQueryRetryRuntime,
   BridgeRuntimeError,
-  type BridgeRuntimeBackoff,
-  type BridgeRuntimeClock,
 } from "@inflatable-cookie/longhorn/bridge";
+import type { BridgeRuntimeBackoff, BridgeRuntimeClock } from "@inflatable-cookie/longhorn/bridge";
 
 import { fixture } from "./support.ts";
 
@@ -30,18 +29,22 @@ describe("checked bridge connection runtime", () => {
     expect(runtime.transportReady().current.state).toBe("negotiating");
 
     expect(() =>
-      runtime.acceptNegotiation(fixture.negotiation, [{
-        domainId: "missing.domain",
-        authority: "writable",
-      }])
+      runtime.acceptNegotiation(fixture.negotiation, [
+        {
+          domainId: "missing.domain",
+          authority: "writable",
+        },
+      ]),
     ).toThrow(BridgeRuntimeError);
     expect(runtime.status.state).toBe("negotiating");
     expect(runtime.session).toBeUndefined();
 
-    const ready = runtime.acceptNegotiation(fixture.negotiation, [{
-      domainId: "example.workspace",
-      authority: "writable",
-    }]);
+    const ready = runtime.acceptNegotiation(fixture.negotiation, [
+      {
+        domainId: "example.workspace",
+        authority: "writable",
+      },
+    ]);
     expect(ready.current.state).toBe("ready");
     expect(ready.sessionId).toBe("session:fixture");
   });
@@ -73,10 +76,12 @@ describe("checked bridge connection runtime", () => {
     replacement.domainAuthorities[0].authorityEpoch = 4;
     runtime.acceptNegotiation(replacement, []);
     expect(runtime.classifyCursor(current)).toBe("supersededSession");
-    expect(runtime.classifyCursor({
-      ...current,
-      sessionId: "session:replacement",
-    })).toBe("staleAuthority");
+    expect(
+      runtime.classifyCursor({
+        ...current,
+        sessionId: "session:replacement",
+      }),
+    ).toBe("staleAuthority");
   });
 
   test("bounded reconnect exhausts to offline", () => {
@@ -99,9 +104,7 @@ describe("checked bridge connection runtime", () => {
   test("degrade mismatch unauthorized failure and shutdown are explicit", () => {
     const clock = new Clock();
     const degraded = readyRuntime(clock, 0);
-    expect(degraded.degrade("capabilityChanged").current.state).toBe(
-      "degraded",
-    );
+    expect(degraded.degrade("capabilityChanged").current.state).toBe("degraded");
 
     const incompatible = negotiatingRuntime(clock);
     expect(incompatible.incompatible().current.state).toBe("incompatible");
@@ -126,9 +129,7 @@ test("query retry scheduling is bounded and injected", () => {
   expect(runtime.schedule("retry", "afterBackoff")?.attempt).toBe(1);
   expect(runtime.schedule("retry", "never")).toBeUndefined();
   expect(runtime.schedule("doNotRetry", "afterBackoff")).toBeUndefined();
-  expect(() => runtime.schedule("retry", "future" as any)).toThrow(
-    BridgeRuntimeError,
-  );
+  expect(() => runtime.schedule("retry", "future" as any)).toThrow(BridgeRuntimeError);
 });
 
 test("matches the Rust connection and query retry transition trace", () => {
@@ -145,7 +146,9 @@ test("matches the Rust connection and query retry transition trace", () => {
   try {
     runtime.transportReady();
   } catch (error) {
-    if (!(error instanceof BridgeRuntimeError) || error.code !== "retry_not_due") throw error;
+    if (!(error instanceof BridgeRuntimeError) || error.code !== "retry_not_due") {
+      throw error;
+    }
     earlyTransportRejected = true;
   }
   clock.value = 125;
@@ -169,19 +172,13 @@ test("matches the Rust connection and query retry transition trace", () => {
     queries.schedule("retry", "afterBackoff") ?? null,
   );
 
-  expect<unknown>({ connection, earlyTransportRejected, retryForbidden, queryRetry })
-    .toEqual(fixture.runtimeTrace);
+  expect<unknown>({ connection, earlyTransportRejected, retryForbidden, queryRetry }).toEqual(
+    fixture.runtimeTrace,
+  );
 });
 
-function readyRuntime(
-  clock: Clock,
-  reconnectLimit = 2,
-): BridgeConnectionRuntime {
-  const runtime = new BridgeConnectionRuntime(
-    clock,
-    backoff,
-    reconnectLimit,
-  );
+function readyRuntime(clock: Clock, reconnectLimit = 2): BridgeConnectionRuntime {
+  const runtime = new BridgeConnectionRuntime(clock, backoff, reconnectLimit);
   runtime.connect();
   runtime.transportReady();
   runtime.acceptNegotiation(fixture.negotiation, []);

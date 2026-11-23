@@ -7,19 +7,18 @@ import {
   TRANSFER_PUBLISH_LEASE_COMMAND,
   TRANSFER_SNAPSHOT_COMMAND,
   TransferClient,
-  type TransferClientSnapshot,
-  type TransferLeaseRequest,
-  type TransferLeaseResponse,
+} from "@inflatable-cookie/longhorn/transfer";
+import type {
+  TransferClientSnapshot,
+  TransferLeaseRequest,
+  TransferLeaseResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 
-import {
-  DropZoneLeaseRegistry,
-  TransferState,
-} from "../../src/bindings/transfer.svelte.ts";
+import { DropZoneLeaseRegistry, TransferState } from "../../src/bindings/transfer.svelte.ts";
 
 describe("DropZoneLeaseRegistry", () => {
   it("measures local geometry and publishes complete replacement leases", async () => {
-    const requests: TransferLeaseRequest[] = [];
+    const requests: Array<TransferLeaseRequest> = [];
     let listener: ((payload: unknown) => void) | undefined;
     const snapshot: TransferClientSnapshot = {
       protocol_version: 1,
@@ -33,7 +32,9 @@ describe("DropZoneLeaseRegistry", () => {
         return () => undefined;
       },
       async invoke(command, arguments_) {
-        if (command === TRANSFER_SNAPSHOT_COMMAND) return snapshot;
+        if (command === TRANSFER_SNAPSHOT_COMMAND) {
+          return snapshot;
+        }
         if (command === TRANSFER_PUBLISH_LEASE_COMMAND) {
           const request = arguments_.request as TransferLeaseRequest;
           requests.push(request);
@@ -60,7 +61,7 @@ describe("DropZoneLeaseRegistry", () => {
     });
     await state.start();
 
-    const errors: unknown[] = [];
+    const errors: Array<unknown> = [];
     const registry = new DropZoneLeaseRegistry({
       state,
       nextRequestId: (() => {
@@ -72,10 +73,8 @@ describe("DropZoneLeaseRegistry", () => {
     });
     const first = document.createElement("section");
     const second = document.createElement("section");
-    first.getBoundingClientRect = () =>
-      rectangle(20.25, 30.5, 400, 260);
-    second.getBoundingClientRect = () =>
-      rectangle(440, 30, 300, 260);
+    first.getBoundingClientRect = () => rectangle(20.25, 30.5, 400, 260);
+    second.getBoundingClientRect = () => rectangle(440, 30, 300, 260);
     const firstAction = registry.zone(first, {
       id: "zone:center",
       insertion_position: 1,
@@ -105,7 +104,7 @@ describe("DropZoneLeaseRegistry", () => {
       client_epoch: 4,
       generation: 1,
     });
-    expect(requests[0].zones).toEqual([
+    expect(requests[0]?.zones).toEqual([
       {
         id: "zone:center",
         bounds: {
@@ -158,12 +157,7 @@ function published(request: TransferLeaseRequest): TransferLeaseResponse {
   };
 }
 
-function rectangle(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): DOMRect {
+function rectangle(x: number, y: number, width: number, height: number): DOMRect {
   return {
     x,
     y,

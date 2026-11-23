@@ -3,11 +3,13 @@ import { describe, expect, test } from "bun:test";
 import {
   bridgeCodec,
   record,
-  type BridgeSnapshotEnvelope,
-  type BridgeStreamSource,
   connectBridgeStream,
   DirectBridgeStreamSource,
   SerializedLoopbackBridgeStreamSource,
+} from "@inflatable-cookie/longhorn/bridge/stream";
+import type {
+  BridgeSnapshotEnvelope,
+  BridgeStreamSource,
 } from "@inflatable-cookie/longhorn/bridge/stream";
 
 import { fixture } from "./support.ts";
@@ -39,8 +41,7 @@ const eventCodec = bridgeCodec<Event>((value) => {
 describe("checked bridge stream lifetime", () => {
   for (const mode of ["direct", "loopback"] as const) {
     test(`${mode} listener-first load cannot lose an intervening event`, async () => {
-      const oldSnapshot = structuredClone(fixture.snapshot) as
-        BridgeSnapshotEnvelope<Snapshot>;
+      const oldSnapshot = structuredClone(fixture.snapshot) as BridgeSnapshotEnvelope<Snapshot>;
       const event = {
         cursor: {
           ...oldSnapshot.cursor,
@@ -53,8 +54,7 @@ describe("checked bridge stream lifetime", () => {
         payload: { value: oldSnapshot.payload.value + 1 },
       };
       let loads = 0;
-      let direct!: DirectBridgeStreamSource;
-      direct = new DirectBridgeStreamSource(() => {
+      const direct = new DirectBridgeStreamSource(() => {
         loads += 1;
         if (loads === 1) {
           direct.emit(event);
@@ -62,9 +62,7 @@ describe("checked bridge stream lifetime", () => {
         }
         return current;
       });
-      const source = mode === "direct"
-        ? direct
-        : new SerializedLoopbackBridgeStreamSource(direct);
+      const source = mode === "direct" ? direct : new SerializedLoopbackBridgeStreamSource(direct);
       const connection = connectBridgeStream({
         sessionId: "session:fixture",
         domainId: "example.workspace",
@@ -85,9 +83,7 @@ describe("checked bridge stream lifetime", () => {
   }
 
   test("disposal during late registration removes the listener exactly once", async () => {
-    let resolveRegistration:
-      | ((unlisten: () => void) => void)
-      | undefined;
+    let resolveRegistration: ((unlisten: () => void) => void) | undefined;
     let unlistenCalls = 0;
     const source: BridgeStreamSource = {
       listen: () =>

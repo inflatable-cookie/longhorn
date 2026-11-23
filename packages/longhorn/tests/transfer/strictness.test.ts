@@ -21,15 +21,15 @@ describe("transfer boundary strictness", () => {
   } as const;
 
   test("the field map matches the declared snapshot fields", () => {
-    expect([...TRANSFER_FIELDS.TransferClientSnapshot!].sort()).toEqual(
+    expect<Array<string>>([...TRANSFER_FIELDS.TransferClientSnapshot].sort()).toEqual(
       Object.keys(valid).sort(),
     );
   });
 
   test("rejects an unknown field", () => {
-    expect(() =>
-      assertValidTransferClientSnapshot({ ...valid, extra: 1 }),
-    ).toThrow(TransferProtocolValidationError);
+    expect(() => assertValidTransferClientSnapshot({ ...valid, extra: 1 })).toThrow(
+      TransferProtocolValidationError,
+    );
   });
 
   test("rejects a missing field", () => {
@@ -44,7 +44,7 @@ describe("surface-transfer field map", () => {
   test("omits tagged unions rather than guessing their keys", () => {
     // Their allowed keys depend on a discriminant, so one flat list is wrong.
     // Handing `SurfaceTransferTarget` another type's list rejected `kind`.
-    expect(SURFACE_TRANSFER_FIELDS.SurfaceTransferTarget).toBeUndefined();
+    expect("SurfaceTransferTarget" in SURFACE_TRANSFER_FIELDS).toBe(false);
     expect(SURFACE_TRANSFER_FIELDS.SurfaceTransferCompletion).toBeDefined();
   });
 });

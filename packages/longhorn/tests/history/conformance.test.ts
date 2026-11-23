@@ -40,8 +40,12 @@ describe("Tauri transport adapter", () => {
     const transport: EventTransport = {
       async invoke(command, arguments_) {
         invocations.push([command, arguments_]);
-        if (command === HISTORY_SNAPSHOT_COMMAND) return clone(value.snapshot);
-        if (command === HISTORY_PAGE_COMMAND) return clone(value.page);
+        if (command === HISTORY_SNAPSHOT_COMMAND) {
+          return clone(value.snapshot);
+        }
+        if (command === HISTORY_PAGE_COMMAND) {
+          return clone(value.page);
+        }
         return clone(value.navigationResults[0]);
       },
       async listen(event, listener) {

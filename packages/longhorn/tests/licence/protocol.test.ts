@@ -30,7 +30,7 @@ describe("Rust-generated licence protocol", () => {
 
   test("carries one rejection per protocol rejection code", () => {
     const value = fixture();
-    const codes: string[] = value.outcomes.flatMap((outcome) =>
+    const codes: Array<string> = value.outcomes.flatMap((outcome) =>
       outcome.status === "rejected" ? [outcome.code] : [],
     );
     expect([...codes].sort()).toEqual(
@@ -83,9 +83,7 @@ describe("Rust-generated licence protocol", () => {
     // credential material comes back in a projection.
     const leaked = clone(value.snapshot) as unknown as Record<string, unknown>;
     leaked.keyId = "signing-key-fixture";
-    expect(() => assertLicenceSnapshot(leaked)).toThrow(
-      /credential material must not appear/,
-    );
+    expect(() => assertLicenceSnapshot(leaked)).toThrow(/credential material must not appear/);
   });
 
   test("rejects unsafe numeric and zero authority values", () => {

@@ -27,33 +27,37 @@ const cargoPath = join(repoRoot, "Cargo.toml");
 const skillPath = join(repoRoot, "skills", "agent-control", "SKILL.md");
 const finderPath = join(repoRoot, "skills", "agent-control", "scripts", "find-instance.ts");
 
-export function parseControlToolNames(source: string): string[] {
-  const block = source.match(
-    /pub const CONTROL_TOOL_NAMES: &\[&str\] = &\[([\s\S]*?)\];/,
-  );
-  if (!block) {
+export function parseControlToolNames(source: string): Array<string> {
+  const block = source.match(/pub const CONTROL_TOOL_NAMES: &\[&str\] = &\[([\s\S]*?)\];/);
+  if (!block?.[1]) {
     throw new Error(`CONTROL_TOOL_NAMES not found in ${toolsPath}`);
   }
-  const names = [...block[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+  const names = [...block[1].matchAll(/"([^"]+)"/g)].flatMap((match) =>
+    match[1] === undefined ? [] : [match[1]],
+  );
   if (names.length === 0) {
     throw new Error("CONTROL_TOOL_NAMES is empty");
   }
   return names;
 }
 
-export function parseSkillToolTable(skill: string): string[] {
+export function parseSkillToolTable(skill: string): Array<string> {
   const heading = skill.indexOf("\n| Tool |");
   if (heading < 0) {
     throw new Error("skill is missing a parseable `| Tool |` table");
   }
   const table = skill.slice(heading + 1);
-  const names: string[] = [];
+  const names: Array<string> = [];
   for (const line of table.split("\n")) {
-    if (!line.startsWith("|")) break;
-    if (line.startsWith("| Tool |") || /^\|[\s-:|]+\|$/.test(line)) continue;
+    if (!line.startsWith("|")) {
+      break;
+    }
+    if (line.startsWith("| Tool |") || /^\|[\s-:|]+\|$/.test(line)) {
+      continue;
+    }
     const cell = line.split("|")[1]?.trim() ?? "";
     const name = cell.match(/^`([^`]+)`$/);
-    if (!name) {
+    if (!name?.[1]) {
       throw new Error(`skill tool table row is not a backticked name: ${line}`);
     }
     names.push(name[1]);
@@ -68,7 +72,7 @@ export function parseWorkspaceVersion(cargo: string): string {
   return parseWorkspacePackageVersion(cargo);
 }
 
-function sameSet(left: string[], right: string[]): { missing: string[]; extra: string[] } {
+function sameSet(left: Array<string>, right: Array<string>) {
   const leftSet = new Set(left);
   const rightSet = new Set(right);
   return {
@@ -78,12 +82,12 @@ function sameSet(left: string[], right: string[]): { missing: string[]; extra: s
 }
 
 export function driftFailures(options: {
-  vocabulary: string[];
-  skillTools: string[];
+  vocabulary: Array<string>;
+  skillTools: Array<string>;
   skillVersion: string | null;
   workspaceVersion: string;
-}): string[] {
-  const failures: string[] = [];
+}): Array<string> {
+  const failures: Array<string> = [];
   const { missing, extra } = sameSet(options.skillTools, options.vocabulary);
   if (missing.length > 0) {
     failures.push(`skill is missing tools: ${missing.join(", ")}`);
@@ -118,18 +122,21 @@ async function checkLiveSkill(): Promise<void> {
   }
 }
 
-function withToolTable(skill: string, tools: string[]): string {
+function withToolTable(skill: string, tools: Array<string>): string {
   const heading = skill.indexOf("\n| Tool |");
-  if (heading < 0) throw new Error("cannot splice tool table");
+  if (heading < 0) {
+    throw new Error("cannot splice tool table");
+  }
   const start = heading + 1;
-  let end = start;
   const lines = skill.slice(start).split("\n");
   let consumed = 0;
   for (const line of lines) {
-    if (!line.startsWith("|")) break;
+    if (!line.startsWith("|")) {
+      break;
+    }
     consumed += line.length + 1;
   }
-  end = start + consumed;
+  const end = start + consumed;
   const header = "| Tool | Arguments | Result | Limits |\n| --- | --- | --- | --- |\n";
   const rows = tools.map((name) => `| \`${name}\` | args | result | limits |`).join("\n");
   return `${skill.slice(0, start)}${header}${rows}\n${skill.slice(end)}`;
@@ -154,7 +161,11 @@ async function runDriftFixtures(): Promise<void> {
   const cases: Array<{ name: string; mutate: (text: string) => string; expect: string }> = [
     {
       name: "removed tool",
-      mutate: (text) => withToolTable(text, vocabulary.filter((name) => name !== "snapshot")),
+      mutate: (text) =>
+        withToolTable(
+          text,
+          vocabulary.filter((name) => name !== "snapshot"),
+        ),
       expect: "missing tools: snapshot",
     },
     {
@@ -228,7 +239,9 @@ type DiscoveryFields = {
   token: string;
 };
 
-async function runFinder(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+async function runFinder(
+  args: Array<string>,
+): Promise<{ code: number; stdout: string; stderr: string }> {
   const subprocess = Bun.spawn(["bun", finderPath, ...args], {
     cwd: repoRoot,
     stdout: "pipe",
@@ -258,8 +271,8 @@ async function runFinderFixtures(): Promise<void> {
 
     const livePid = process.pid;
     const stalePid = 999_999_991;
-    await writeDiscovery(dir, "dev.example.live", livePid, 49152);
-    await writeDiscovery(dir, "dev.example.stale", stalePid, 49153);
+    await writeDiscovery(dir, "dev.example.live", livePid, 49_152);
+    await writeDiscovery(dir, "dev.example.stale", stalePid, 49_153);
     const stalePath = join(dir, `dev.example.stale-${stalePid}.json`);
     await writeFile(join(dir, "notes.txt"), "ignore me\n");
     await writeFile(join(dir, "broken.json"), "{not json\n");
@@ -291,12 +304,7 @@ async function runFinderFixtures(): Promise<void> {
       throw new Error("live discovery file was unlinked");
     }
 
-    const filtered = await runFinder([
-      "--discovery-dir",
-      dir,
-      "--app-id",
-      "dev.example.missing",
-    ]);
+    const filtered = await runFinder(["--discovery-dir", dir, "--app-id", "dev.example.missing"]);
     if (filtered.code === 0) {
       throw new Error("missing app id should exit nonzero");
     }
@@ -307,13 +315,17 @@ async function runFinderFixtures(): Promise<void> {
     const scan = await scanDiscovery(dir, undefined, (pid) => pid === livePid);
     const stdout = formatStdout(scan.live);
     const diagnostics = formatDiagnostics(scan, undefined);
-    if (!mcpAddLine(scan.live[0].file).includes("claude mcp add --transport http")) {
+    const [instance] = scan.live;
+    if (!instance) {
+      throw new Error("fixture discovery returned no live instance");
+    }
+    if (!mcpAddLine(instance.file).includes("claude mcp add --transport http")) {
       throw new Error("paste line is not a claude mcp add command");
     }
     // Claude Code rejects server names outside [A-Za-z0-9_-]; reverse-DNS
     // app ids must sanitize (Soundcheck adoption finding, 2026-08-19).
     const dotted = mcpAddLine({
-      ...scan.live[0].file,
+      ...instance.file,
       appId: "dev.example.some-app",
     });
     const dottedName = dotted.split(" ")[5] ?? "";
@@ -332,7 +344,7 @@ async function runFinderFixtures(): Promise<void> {
 
     // Unlink failure must not be reported as removal.
     const stuckPid = 999_999_992;
-    await writeDiscovery(dir, "dev.example.stuck", stuckPid, 49154);
+    await writeDiscovery(dir, "dev.example.stuck", stuckPid, 49_154);
     const stuckPath = join(dir, `dev.example.stuck-${stuckPid}.json`);
     const failed = await scanDiscovery(
       dir,
@@ -363,7 +375,7 @@ async function runFinderFixtures(): Promise<void> {
     if (process.platform !== "win32") {
       const locked = await mkdtemp(join(tmpdir(), "agent-control-finder-locked-"));
       try {
-        await writeDiscovery(locked, "dev.example.locked", stuckPid, 49155);
+        await writeDiscovery(locked, "dev.example.locked", stuckPid, 49_155);
         await chmod(locked, 0o555);
         const lockedRun = await runFinder(["--discovery-dir", locked]);
         if (lockedRun.code === 0) {
@@ -401,11 +413,13 @@ async function gitInit(dir: string): Promise<void> {
   }
 }
 
-async function listRelative(root: string): Promise<string[]> {
+async function listRelative(root: string): Promise<Array<string>> {
   const glob = new Bun.Glob("**/*");
-  const paths: string[] = [];
+  const paths: Array<string> = [];
   for await (const path of glob.scan({ cwd: root, dot: true })) {
-    if (path === ".git" || path.startsWith(".git/")) continue;
+    if (path === ".git" || path.startsWith(".git/")) {
+      continue;
+    }
     paths.push(path);
   }
   paths.sort();
@@ -423,7 +437,9 @@ async function runInstallFixtures(): Promise<void> {
       await installSkill(target);
       throw new Error("non-repo target should be refused");
     } catch (error) {
-      if (!(error as Error).message.includes("not a git repository")) {
+      if (
+        !(error instanceof Error ? error.message : String(error)).includes("not a git repository")
+      ) {
         throw error;
       }
     }
@@ -454,9 +470,7 @@ async function runInstallFixtures(): Promise<void> {
     }
 
     const touched = await listRelative(target);
-    const unexpected = touched.filter(
-      (path) => !path.startsWith(".claude/skills/agent-control/"),
-    );
+    const unexpected = touched.filter((path) => !path.startsWith(".claude/skills/agent-control/"));
     if (unexpected.length > 0) {
       throw new Error(`install touched paths outside the skill dir: ${unexpected.join(", ")}`);
     }
@@ -498,7 +512,9 @@ async function runInstallFixtures(): Promise<void> {
       await installSkill(newer);
       throw new Error("newer stamp should refuse overwrite");
     } catch (error) {
-      if (!(error as Error).message.includes("refusing to overwrite")) {
+      if (
+        !(error instanceof Error ? error.message : String(error)).includes("refusing to overwrite")
+      ) {
         throw error;
       }
     }
@@ -517,14 +533,11 @@ async function runEffigyInstallFixture(): Promise<void> {
   await mkdir(target, { recursive: true });
   await gitInit(target);
   try {
-    const subprocess = Bun.spawn(
-      ["bun", "scripts/install-agent-control-skill.ts", target],
-      {
-        cwd: repoRoot,
-        stdout: "pipe",
-        stderr: "pipe",
-      },
-    );
+    const subprocess = Bun.spawn(["bun", "scripts/install-agent-control-skill.ts", target], {
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
     const [code, stdout, stderr] = await Promise.all([
       subprocess.exited,
       new Response(subprocess.stdout).text(),

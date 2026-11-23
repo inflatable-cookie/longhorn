@@ -12,8 +12,10 @@ import {
   TRANSFER_SNAPSHOT_COMMAND,
   TRANSFER_START_PANEL_COMMAND,
   TransferClient,
-  type PanelTransferCommand,
-  type TransferCancelRequest,
+} from "@inflatable-cookie/longhorn/transfer";
+import type {
+  PanelTransferCommand,
+  TransferCancelRequest,
 } from "@inflatable-cookie/longhorn/transfer";
 import { TransferState } from "@inflatable-cookie/longhorn-poodle-svelte/transfer";
 
@@ -34,12 +36,9 @@ import {
 
 describe("public Poodle cross-window transfer seam", () => {
   it("arms before dragstart, writes only protocol payload, and commits an explicit lease zone", async () => {
-    const sourceRequests: unknown[] = [];
-    const commits: PanelTransferCommand[] = [];
-    const sourceState = transferState("client:source", async (
-      command,
-      arguments_,
-    ) => {
+    const sourceRequests: Array<unknown> = [];
+    const commits: Array<PanelTransferCommand> = [];
+    const sourceState = transferState("client:source", async (command, arguments_) => {
       if (command === TRANSFER_START_PANEL_COMMAND) {
         sourceRequests.push(arguments_.request);
         return fixture.session_responses[0];
@@ -49,10 +48,7 @@ describe("public Poodle cross-window transfer seam", () => {
       }
       throw new Error(`unexpected source command: ${command}`);
     });
-    const targetState = transferState("client:target", async (
-      command,
-      arguments_,
-    ) => {
+    const targetState = transferState("client:target", async (command, arguments_) => {
       if (command === TRANSFER_COMMIT_PANEL_COMMAND) {
         commits.push(arguments_.request as PanelTransferCommand);
         return fixture.commit_responses[0];
@@ -62,7 +58,7 @@ describe("public Poodle cross-window transfer seam", () => {
     await Promise.all([sourceState.start(), targetState.start()]);
 
     let terminal = 0;
-    const errors: unknown[] = [];
+    const errors: Array<unknown> = [];
     const dragSource = createPanelTransferDragSource({
       state: sourceState,
       makeStartRequest: (panelInstanceId) => ({
@@ -85,12 +81,18 @@ describe("public Poodle cross-window transfer seam", () => {
     const sourceBinding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const targetBinding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { secondary: [instance("instance:b")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const source = render(LayoutDockHarness, {
       props: {
@@ -109,15 +111,14 @@ describe("public Poodle cross-window transfer seam", () => {
     const dataTransfer = new DataTransfer();
 
     await fireEvent.pointerDown(sourceTab, { button: 0 });
-    await waitFor(() =>
-      expect(sourceState.preparation.status).toBe("prepared"),
-    );
+    await waitFor(() => expect(sourceState.preparation.status).toBe("prepared"));
     expect(sourceTab.getAttribute("draggable")).toBe("true");
     await fireEvent.dragStart(sourceTab, { dataTransfer });
     expect(dataTransfer.getData(LONGHORN_TRANSFER_MIME_TYPE)).toBe("");
-    const receipt = JSON.parse(
-      dataTransfer.getData(CROSS_WINDOW_DRAG_MIME_TYPE),
-    ) as { protocolVersion: number; token: string };
+    const receipt = JSON.parse(dataTransfer.getData(CROSS_WINDOW_DRAG_MIME_TYPE)) as {
+      protocolVersion: number;
+      token: string;
+    };
     expect(receipt).toEqual({
       protocolVersion: CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
       token: "abababababababababababababababab",
@@ -165,11 +166,10 @@ describe("public Poodle cross-window transfer seam", () => {
   it("rejects dragstart that races the prepared host session", async () => {
     const pending = deferred<unknown>();
     let cancellations = 0;
-    const state = transferState("client:source", async (
-      command,
-      arguments_,
-    ) => {
-      if (command === TRANSFER_START_PANEL_COMMAND) return pending.promise;
+    const state = transferState("client:source", async (command, arguments_) => {
+      if (command === TRANSFER_START_PANEL_COMMAND) {
+        return pending.promise;
+      }
       if (command === TRANSFER_CANCEL_COMMAND) {
         cancellations += 1;
         return cancelled(arguments_.request as TransferCancelRequest);
@@ -177,12 +177,15 @@ describe("public Poodle cross-window transfer seam", () => {
       throw new Error(`unexpected command: ${command}`);
     });
     await state.start();
-    const errors: unknown[] = [];
+    const errors: Array<unknown> = [];
     const shape = loadShape("surface-bound");
     const binding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const screen = render(LayoutDockHarness, {
       props: {
@@ -212,16 +215,13 @@ describe("public Poodle cross-window transfer seam", () => {
     await waitFor(() => expect(cancellations).toBe(1));
     expect(state.preparation.status).toBe("idle");
     expect(errors).toEqual([]);
-    await screen.unmount();
+    await Promise.resolve(screen.unmount());
     await state.destroy();
   });
 
   it("cancels an armed session when its public Poodle region unmounts", async () => {
     let cancellations = 0;
-    const state = transferState("client:source", async (
-      command,
-      arguments_,
-    ) => {
+    const state = transferState("client:source", async (command, arguments_) => {
       if (command === TRANSFER_START_PANEL_COMMAND) {
         return fixture.session_responses[0];
       }
@@ -236,7 +236,10 @@ describe("public Poodle cross-window transfer seam", () => {
     const binding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const screen = render(LayoutDockHarness, {
       props: {
@@ -254,12 +257,9 @@ describe("public Poodle cross-window transfer seam", () => {
       },
     });
 
-    await fireEvent.pointerDown(
-      screen.getByRole("tab", { name: "A" }),
-      { button: 0 },
-    );
+    await fireEvent.pointerDown(screen.getByRole("tab", { name: "A" }), { button: 0 });
     await waitFor(() => expect(state.preparation.status).toBe("prepared"));
-    await screen.unmount();
+    await Promise.resolve(screen.unmount());
     await waitFor(() => {
       expect(cancellations).toBe(1);
       expect(state.preparation.status).toBe("idle");
@@ -268,10 +268,7 @@ describe("public Poodle cross-window transfer seam", () => {
   });
 });
 
-function transferState(
-  clientId: string,
-  invoke: MockTransport["invoke"],
-): TransferState {
+function transferState(clientId: string, invoke: MockTransport["invoke"]): TransferState {
   const transport: MockTransport = {
     async listen() {
       return () => undefined;
@@ -298,14 +295,8 @@ function transferState(
 }
 
 interface MockTransport {
-  listen(
-    event: string,
-    listener: (payload: unknown) => void,
-  ): Promise<() => void>;
-  invoke(
-    command: string,
-    arguments_: Record<string, unknown>,
-  ): Promise<unknown>;
+  listen(event: string, listener: (payload: unknown) => void): Promise<() => void>;
+  invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown>;
 }
 
 function cancelled(request: TransferCancelRequest) {

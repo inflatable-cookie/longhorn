@@ -16,7 +16,6 @@ flate2.workspace = true
 longhorn-update.workspace = true
 longhorn-update-install.workspace = true
 minisign.workspace = true
-minisign-verify.workspace = true
 semver.workspace = true
 serde_json.workspace = true
 tar.workspace = true

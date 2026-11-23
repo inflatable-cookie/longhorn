@@ -9,7 +9,11 @@ import {
   NATIVE_CONTENT_UPDATE_DESIRED_COMMAND,
   createTauriNativeContentPort,
 } from "../../src/native-content.ts";
-import { MemoryNativeContentHost, flush, nextUpdate } from "../../../longhorn/tests/native-content/support.ts";
+import {
+  MemoryNativeContentHost,
+  flush,
+  nextUpdate,
+} from "../../../longhorn/tests/native-content/support.ts";
 
 describe("Tauri-shaped transport assembly", () => {
   test("uses four narrow commands and one product-neutral event", async () => {
@@ -43,16 +47,15 @@ describe("Tauri-shaped transport assembly", () => {
       transport,
       nextRequestId: () => `request:tauri-${++sequence}`,
     });
-    const connection = new NativeContentClient(
-      port,
-      "island:fixture",
-    ).connect();
+    const connection = new NativeContentClient(port, "island:fixture").connect();
     const initial = await connection.ready;
     await connection.updateDesired(nextUpdate(initial, 44));
     host.admitObservation();
     await flush();
     const current = connection.current();
-    if (current === undefined) throw new Error("missing current snapshot");
+    if (current === undefined) {
+      throw new Error("missing current snapshot");
+    }
     await connection.decideContentSize(
       {
         generation: current.cursor.attach_generation,

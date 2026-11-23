@@ -1,19 +1,16 @@
-import {
-  CheckedSnapshotConnection,
-  type ConnectionFailure,
-  type ConnectionFailureReporter,
-  type EventTransport,
+import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import type {
+  ConnectionFailure,
+  ConnectionFailureReporter,
+  EventTransport,
 } from "@inflatable-cookie/longhorn/core";
 
 import type { TransferClientSnapshot } from "./generated/protocol.ts";
 import { assertValidTransferClientSnapshot } from "./validation.ts";
 
-export const TRANSFER_CLIENT_CHANGED_EVENT =
-  "longhorn://transfer/client-changed";
+export const TRANSFER_CLIENT_CHANGED_EVENT = "longhorn://transfer/client-changed";
 
-export type TransferClientSnapshotListener = (
-  snapshot: TransferClientSnapshot,
-) => void;
+export type TransferClientSnapshotListener = (snapshot: TransferClientSnapshot) => void;
 
 export class TransferClientConnection {
   readonly ready: Promise<TransferClientSnapshot>;
@@ -27,16 +24,14 @@ export class TransferClientConnection {
     onFailure?: ConnectionFailureReporter,
   ) {
     this.#connection = new CheckedSnapshotConnection({
-      listen: (receive) =>
-        transport.listen(TRANSFER_CLIENT_CHANGED_EVENT, receive),
+      listen: (receive) => transport.listen(TRANSFER_CLIENT_CHANGED_EVENT, receive),
       loadSnapshot,
       validateSnapshot: parseTransferClientSnapshot,
       handleEvent: (value) => ({ kind: "snapshot", value }),
       isNewer: isCurrentTransferClientSnapshot,
       onSnapshot: listener,
       onFailure,
-      disposedBeforeReadyError: () =>
-        new TransferClientConnectionDisposedError(),
+      disposedBeforeReadyError: () => new TransferClientConnectionDisposedError(),
     });
     this.ready = this.#connection.ready.then((snapshot) => {
       if (snapshot === undefined) {
@@ -50,7 +45,7 @@ export class TransferClientConnection {
     return this.#connection.current();
   }
 
-  failures(): readonly ConnectionFailure[] {
+  failures(): ReadonlyArray<ConnectionFailure> {
     return this.#connection.failures();
   }
 
@@ -66,9 +61,7 @@ export class TransferClientConnectionDisposedError extends Error {
   }
 }
 
-function parseTransferClientSnapshot(
-  value: unknown,
-): TransferClientSnapshot {
+function parseTransferClientSnapshot(value: unknown): TransferClientSnapshot {
   assertValidTransferClientSnapshot(value);
   return value;
 }
@@ -81,7 +74,6 @@ function isCurrentTransferClientSnapshot(
     return true;
   }
   return (
-    candidate.client_epoch === current.client_epoch &&
-    candidate.client_id === current.client_id
+    candidate.client_epoch === current.client_epoch && candidate.client_id === current.client_id
   );
 }

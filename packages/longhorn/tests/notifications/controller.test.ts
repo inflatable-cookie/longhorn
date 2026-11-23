@@ -1,35 +1,58 @@
 import { describe, expect, test } from "bun:test";
 
-import { NotificationController, type NotificationActionExecutor } from "../../src/notifications/controller.ts";
-import type { NotificationChangedEvent, NotificationMutationCommand, NotificationMutationResult, NotificationSnapshot, NotificationSnapshotQuery } from "../../src/notifications/generated/protocol.ts";
+import { NotificationController } from "../../src/notifications/controller.ts";
+import type { NotificationActionExecutor } from "../../src/notifications/controller.ts";
+import type {
+  NotificationChangedEvent,
+  NotificationMutationCommand,
+  NotificationSnapshot,
+  NotificationSnapshotQuery,
+} from "../../src/notifications/generated/protocol.ts";
 import type { NotificationPort, NotificationUnlisten } from "../../src/notifications/ports.ts";
 import { cloned, fixture } from "./support.ts";
 
 class LivePort implements NotificationPort {
   readonly listeners = new Set<(event: unknown) => void>();
-  readonly mutations: NotificationMutationCommand[] = [];
+  readonly mutations: Array<NotificationMutationCommand> = [];
   snapshotValue = cloned(fixture.mutationResults[0]!.snapshot);
   unlistenCount = 0;
   request = 0;
 
-  async snapshot(query: NotificationSnapshotQuery): Promise<unknown> { return { requestId: query.requestId, snapshot: cloned(this.snapshotValue) }; }
+  async snapshot(query: NotificationSnapshotQuery): Promise<unknown> {
+    return { requestId: query.requestId, snapshot: cloned(this.snapshotValue) };
+  }
 
   async mutate(command: NotificationMutationCommand): Promise<unknown> {
     this.mutations.push(command);
-    const template = command.kind === "markSeen" ? fixture.mutationResults[1]! : fixture.mutationResults[2]!;
-    const result = { ...cloned(template), requestId: command.requestId } as NotificationMutationResult;
-    this.publish(result.snapshot, command.requestId, command.kind === "markSeen" ? "seen" : "dismissed");
+    const template =
+      command.kind === "markSeen" ? fixture.mutationResults[1]! : fixture.mutationResults[2]!;
+    const result = { ...cloned(template), requestId: command.requestId };
+    this.publish(
+      result.snapshot,
+      command.requestId,
+      command.kind === "markSeen" ? "seen" : "dismissed",
+    );
     return result;
   }
 
   listen(listener: (event: unknown) => void): NotificationUnlisten {
     this.listeners.add(listener);
-    return () => { this.listeners.delete(listener); this.unlistenCount += 1; };
+    return () => {
+      this.listeners.delete(listener);
+      this.unlistenCount += 1;
+    };
   }
 
-  nextRequestId(): string { this.request += 1; return `request:renderer-${this.request}`; }
+  nextRequestId(): string {
+    this.request += 1;
+    return `request:renderer-${this.request}`;
+  }
 
-  publish(snapshot: NotificationSnapshot, requestId = "request:external", kind: NotificationChangedEvent["kind"] = "added"): void {
+  publish(
+    snapshot: NotificationSnapshot,
+    requestId = "request:external",
+    kind: NotificationChangedEvent["kind"] = "added",
+  ): void {
     const previous = this.snapshotValue.ledgerRevision;
     this.snapshotValue = cloned(snapshot);
     const event: NotificationChangedEvent = {
@@ -41,7 +64,9 @@ class LivePort implements NotificationPort {
       affectedNotificationIds: snapshot.page.records.map((record) => record.notificationId),
       kind,
     };
-    for (const listener of this.listeners) listener(event);
+    for (const listener of this.listeners) {
+      listener(event);
+    }
   }
 }
 
@@ -91,11 +116,13 @@ describe("notification controller", () => {
   test("semantic action admission is evaluated at invocation time", async () => {
     const port = new LivePort();
     let admitted = true;
-    const decisions: boolean[] = [];
+    const decisions: Array<boolean> = [];
     const actions: NotificationActionExecutor = {
       admitAndExecute: async () => {
         decisions.push(admitted);
-        if (!admitted) throw new Error("action no longer admitted");
+        if (!admitted) {
+          throw new Error("action no longer admitted");
+        }
       },
     };
     const controller = new NotificationController({ port, toast: { select: () => true }, actions });
@@ -103,7 +130,9 @@ describe("notification controller", () => {
     port.publish(withNewRecord(port.snapshotValue));
     await eventually(() => controller.toasts.length === 1);
     admitted = false;
-    await expect(controller.invokeAction("notification:new", "action:open-result")).rejects.toThrow("action no longer admitted");
+    await expect(controller.invokeAction("notification:new", "action:open-result")).rejects.toThrow(
+      "action no longer admitted",
+    );
     expect(decisions).toEqual([false]);
     expect(controller.records.map((record) => record.notificationId)).toContain("notification:new");
     await controller.stop();
@@ -142,7 +171,9 @@ function withNewRecord(snapshot: NotificationSnapshot): NotificationSnapshot {
 
 async function eventually(predicate: () => boolean): Promise<void> {
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    if (predicate()) return;
+    if (predicate()) {
+      return;
+    }
     await Promise.resolve();
   }
   throw new Error("condition did not become true");

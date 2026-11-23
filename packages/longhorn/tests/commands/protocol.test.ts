@@ -24,26 +24,17 @@ describe("generated command/keymap protocol fixture", () => {
     assertValidCommandKeymapPreview(fixture.requests.preview);
     assertValidCommandKeymapCommit(fixture.requests.commit);
     assertValidCommandKeymapReset(fixture.requests.reset);
-    assertValidCommandCatalogueChangedEvent(
-      fixture.events.catalogueChanged,
-    );
+    assertValidCommandCatalogueChangedEvent(fixture.events.catalogueChanged);
     assertValidCommandKeymapChangedEvent(fixture.events.keymapChanged);
     fixture.snapshots.forEach(assertValidCommandKeymapSnapshot);
-    fixture.previewResults.forEach(
-      assertValidCommandKeymapPreviewResult,
-    );
+    fixture.previewResults.forEach(assertValidCommandKeymapPreviewResult);
     fixture.loadOutcomes.forEach(assertValidCommandKeymapLoadOutcome);
-    fixture.mutationResults.forEach(
-      assertValidCommandKeymapMutationResult,
-    );
-    expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
+    fixture.mutationResults.forEach(assertValidCommandKeymapMutationResult);
+    expect(structuredClone(fixture)).toEqual(fixture);
   });
 
   test("fails closed on future protocol and discriminants", () => {
-    const catalogue = structuredClone(fixture.catalogue) as Record<
-      string,
-      unknown
-    >;
+    const catalogue = structuredClone(fixture.catalogue) as Record<string, unknown>;
     catalogue.protocolVersion = fixture.incompatibility.futureProtocolVersion;
     incompatible(() => assertValidCommandCatalogue(catalogue));
 
@@ -72,8 +63,7 @@ describe("generated command/keymap protocol fixture", () => {
     const preview = structuredClone(fixture.requests.preview) as {
       patch: { upsertOverrides: Array<Record<string, unknown>> };
     };
-    preview.patch.upsertOverrides[0]!.kind =
-      fixture.incompatibility.unknownOverrideKind;
+    preview.patch.upsertOverrides[0]!.kind = fixture.incompatibility.unknownOverrideKind;
     incompatible(() => assertValidCommandKeymapPreview(preview));
 
     const rejected = structuredClone(
@@ -85,9 +75,7 @@ describe("generated command/keymap protocol fixture", () => {
     incompatible(() => assertValidCommandKeymapPreviewResult(rejected));
 
     const recovery = structuredClone(
-      fixture.loadOutcomes.find(
-        (result) => (result as { status?: unknown }).status === "recovery",
-      ),
+      fixture.loadOutcomes.find((result) => (result as { status?: unknown }).status === "recovery"),
     ) as { recovery: { code: unknown } };
     recovery.recovery.code = fixture.incompatibility.unknownRecoveryCode;
     incompatible(() => assertValidCommandKeymapLoadOutcome(recovery));
@@ -110,8 +98,7 @@ describe("generated command/keymap protocol fixture", () => {
     snapshot.origin.kind = fixture.incompatibility.unknownLoadOrigin;
     incompatible(() => assertValidCommandKeymapSnapshot(snapshot));
     snapshot.origin.kind = "default";
-    snapshot.bindings[0]!.source.kind =
-      fixture.incompatibility.unknownBindingSource;
+    snapshot.bindings[0]!.source.kind = fixture.incompatibility.unknownBindingSource;
     incompatible(() => assertValidCommandKeymapSnapshot(snapshot));
 
     const futureAvailability = availability() as {
@@ -129,9 +116,7 @@ describe("generated command/keymap protocol fixture", () => {
         detail: null,
       },
     };
-    incompatible(() =>
-      assertValidCommandAvailabilitySnapshot(futureAvailability),
-    );
+    incompatible(() => assertValidCommandAvailabilitySnapshot(futureAvailability));
   });
 });
 

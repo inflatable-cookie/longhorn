@@ -26,9 +26,8 @@ import {
   checkedRetryClass,
   checkedRetryLimit,
   BridgeRuntimeError,
-  type BridgeRuntimeBackoff,
-  type BridgeRuntimeClock,
 } from "./policy.ts";
+import type { BridgeRuntimeBackoff, BridgeRuntimeClock } from "./policy.ts";
 
 export class BridgeConnectionRuntime {
   readonly #clock: BridgeRuntimeClock;
@@ -40,11 +39,7 @@ export class BridgeConnectionRuntime {
   #reconnectNotBefore: number | undefined;
   #session: BridgeSession | undefined;
 
-  constructor(
-    clock: BridgeRuntimeClock,
-    backoff: BridgeRuntimeBackoff,
-    reconnectLimit: number,
-  ) {
+  constructor(clock: BridgeRuntimeClock, backoff: BridgeRuntimeBackoff, reconnectLimit: number) {
     this.#clock = clock;
     this.#backoff = backoff;
     this.#reconnectLimit = checkedRetryLimit(reconnectLimit);
@@ -69,32 +64,21 @@ export class BridgeConnectionRuntime {
       this.#reconnectNotBefore !== undefined &&
       at < this.#reconnectNotBefore
     ) {
-      throw new BridgeRuntimeError(
-        "retry_not_due",
-        "reconnect backoff has not elapsed",
-      );
+      throw new BridgeRuntimeError("retry_not_due", "reconnect backoff has not elapsed");
     }
     this.#requireTransition("negotiating");
-    const receipt = this.#prepareAt(
-      "negotiating",
-      "transportReady",
-      at,
-      null,
-      this.#session,
-    );
+    const receipt = this.#prepareAt("negotiating", "transportReady", at, null, this.#session);
     this.#reconnectNotBefore = undefined;
     return this.#apply(receipt);
   }
 
   acceptNegotiation(
     value: unknown,
-    requirements: readonly BridgeAuthorityRequirement[],
+    requirements: ReadonlyArray<BridgeAuthorityRequirement>,
     request?: BridgeHelloRequest,
   ): BridgeConnectionTransitionReceipt {
     this.#requireTransition("ready");
-    const checkedRequest = request === undefined
-      ? undefined
-      : parseBridgeHelloRequest(request);
+    const checkedRequest = request === undefined ? undefined : parseBridgeHelloRequest(request);
     const receipt = parseBridgeNegotiationReceipt(value, checkedRequest);
     assertRequiredAuthorities(receipt, requirements);
     const session = new BridgeSession(receipt);
@@ -112,20 +96,10 @@ export class BridgeConnectionRuntime {
   }
 
   degrade(
-    reason: Extract<
-      BridgeConnectionReason,
-      "capabilityChanged" | "transportLost" | "hostFailure"
-    >,
+    reason: Extract<BridgeConnectionReason, "capabilityChanged" | "transportLost" | "hostFailure">,
   ): BridgeConnectionTransitionReceipt {
-    if (
-      reason !== "capabilityChanged" &&
-      reason !== "transportLost" &&
-      reason !== "hostFailure"
-    ) {
-      throw new BridgeRuntimeError(
-        "invalid_transition",
-        "invalid degraded-state reason",
-      );
+    if (reason !== "capabilityChanged" && reason !== "transportLost" && reason !== "hostFailure") {
+      throw new BridgeRuntimeError("invalid_transition", "invalid degraded-state reason");
     }
     return this.#transition("degraded", reason);
   }
@@ -133,20 +107,22 @@ export class BridgeConnectionRuntime {
   reconnect(retryClass: BridgeRetryClass): BridgeConnectionTransitionReceipt {
     retryClass = checkedRetryClass(retryClass);
     const attempt = this.#reconnectAttempts + 1;
-    const admitted = retryClass !== "never" &&
-      attempt <= this.#reconnectLimit;
+    const admitted = retryClass !== "never" && attempt <= this.#reconnectLimit;
     this.#requireTransition(admitted ? "reconnecting" : "offline");
     const at = checkedMonotonic(this.#clock.now());
     const reconnect: BridgeReconnectSchedule | null = admitted
       ? {
-        attempt,
-        retryClass,
-        notBefore: checkedDeadline(at, this.#backoff.delay(retryClass, attempt)),
-      }
+          attempt,
+          retryClass,
+          notBefore: checkedDeadline(at, this.#backoff.delay(retryClass, attempt)),
+        }
       : null;
     let reason: BridgeConnectionReason = "transportLost";
-    if (admitted) reason = "retryScheduled";
-    else if (retryClass === "never") reason = "retryForbidden";
+    if (admitted) {
+      reason = "retryScheduled";
+    } else if (retryClass === "never") {
+      reason = "retryForbidden";
+    }
     const receipt = this.#prepareAt(
       admitted ? "reconnecting" : "offline",
       reason,
@@ -198,15 +174,16 @@ export class BridgeConnectionRuntime {
   }
 
   #terminal(
-    state: Extract<
-      BridgeConnectionState,
-      "incompatible" | "unauthorized" | "failed" | "closed"
-    >,
+    state: Extract<BridgeConnectionState, "incompatible" | "unauthorized" | "failed" | "closed">,
     reason: BridgeConnectionReason,
   ): BridgeConnectionTransitionReceipt {
     this.#requireTransition(state);
     const receipt = this.#prepareAt(
-      state, reason, checkedMonotonic(this.#clock.now()), null, undefined,
+      state,
+      reason,
+      checkedMonotonic(this.#clock.now()),
+      null,
+      undefined,
     );
     this.#session = undefined;
     this.#reconnectNotBefore = undefined;
@@ -218,9 +195,9 @@ export class BridgeConnectionRuntime {
     reason: BridgeConnectionReason,
   ): BridgeConnectionTransitionReceipt {
     this.#requireTransition(state);
-    return this.#apply(this.#prepareAt(
-      state, reason, checkedMonotonic(this.#clock.now()), null, this.#session,
-    ));
+    return this.#apply(
+      this.#prepareAt(state, reason, checkedMonotonic(this.#clock.now()), null, this.#session),
+    );
   }
 
   #prepareAt(
@@ -258,7 +235,7 @@ export class BridgeConnectionRuntime {
 
 function assertRequiredAuthorities(
   receipt: BridgeNegotiationReceipt,
-  requirements: readonly BridgeAuthorityRequirement[],
+  requirements: ReadonlyArray<BridgeAuthorityRequirement>,
 ): void {
   for (const requirement of requirements) {
     const authority = receipt.domainAuthorities.find(
@@ -295,30 +272,19 @@ function authoritySatisfies(
   }
 }
 
-function transitionAllowed(
-  current: BridgeConnectionState,
-  next: BridgeConnectionState,
-): boolean {
+function transitionAllowed(current: BridgeConnectionState, next: BridgeConnectionState): boolean {
   if (next === "closed") {
     return current !== "closed";
   }
-  const transitions: Partial<
-    Record<BridgeConnectionState, readonly BridgeConnectionState[]>
-  > = {
-    idle: ["connecting"],
-    connecting: ["negotiating", "reconnecting", "offline", "failed"],
-    negotiating: [
-      "ready",
-      "reconnecting",
-      "offline",
-      "incompatible",
-      "unauthorized",
-      "failed",
-    ],
-    ready: ["degraded", "reconnecting", "offline", "failed"],
-    degraded: ["ready", "reconnecting", "offline", "failed"],
-    reconnecting: ["negotiating", "reconnecting", "offline", "failed"],
-    offline: ["reconnecting", "failed"],
-  };
+  const transitions: Partial<Record<BridgeConnectionState, ReadonlyArray<BridgeConnectionState>>> =
+    {
+      idle: ["connecting"],
+      connecting: ["negotiating", "reconnecting", "offline", "failed"],
+      negotiating: ["ready", "reconnecting", "offline", "incompatible", "unauthorized", "failed"],
+      ready: ["degraded", "reconnecting", "offline", "failed"],
+      degraded: ["ready", "reconnecting", "offline", "failed"],
+      reconnecting: ["negotiating", "reconnecting", "offline", "failed"],
+      offline: ["reconnecting", "failed"],
+    };
   return transitions[current]?.includes(next) ?? false;
 }

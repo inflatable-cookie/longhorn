@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const NATIVE_CONTENT_FIELDS: Record<string, readonly string[]> = {
+export const NATIVE_CONTENT_FIELDS = {
   "ClientPoint": ["x", "y"],
   "ClientSize": ["width", "height"],
   "ClientRect": ["origin", "size"],
@@ -29,4 +29,4 @@ export const NATIVE_CONTENT_FIELDS: Record<string, readonly string[]> = {
   "NativeContentDesiredUpdateRequest": ["protocol_version", "request_id", "island_id", "client_epoch", "expected_desired_revision", "update"],
   "NativeContentContentSizeDecisionRequest": ["protocol_version", "request_id", "island_id", "client_epoch", "proposal", "decision"],
   "NativeContentChangedEvent": ["protocol_version", "cursor", "change"],
-};
+} as const;

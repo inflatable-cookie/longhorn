@@ -1,33 +1,17 @@
+import { readCargoInventory } from "./cargo-metadata.ts";
+import {
+  readPackageManifest,
+  requireList,
+  requireRecord,
+  requireString,
+  requireStrings,
+} from "./proof-json.ts";
 import { run, sha256 } from "./proof-support.ts";
 import { access, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
 import { rustCommand } from "./rust-command.ts";
-
-type CargoMetadata = {
-  packages: Array<{
-    name: string;
-    version: string;
-    manifest_path: string;
-    features: Record<string, string[]>;
-    publish: string[] | null;
-    targets: Array<{ kind: string[]; src_path: string }>;
-  }>;
-};
-
-type PackageManifest = {
-  name: string;
-  version: string;
-  private?: boolean;
-  license?: string;
-  publishConfig?: { access?: string };
-  repository?: { directory?: string };
-  exports: Record<string, string | Record<string, string>>;
-  dependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-};
 
 const repoRoot = resolve(import.meta.dir, "..");
 const outputPath = join(repoRoot, "docs/reference/api-surface.md");
@@ -48,23 +32,40 @@ if (write) {
   }
 }
 
-console.log(JSON.stringify({
-  schema: "longhorn.api-reference-generation.v1",
-  mode: write ? "write" : "check",
-  output: relative(repoRoot, outputPath),
-  sha256: sha256(content),
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      schema: "longhorn.api-reference-generation.v1",
+      mode: write ? "write" : "check",
+      output: relative(repoRoot, outputPath),
+      sha256: sha256(content),
+    },
+    null,
+    2,
+  ),
+);
 
 async function renderReference(): Promise<string> {
-  const cargo = JSON.parse(await run(rustCommand(["metadata", "--locked", "--no-deps", "--format-version", "1"]), repoRoot)) as CargoMetadata;
+  const cargo = readCargoInventory(
+    await run(
+      rustCommand(["metadata", "--locked", "--no-deps", "--format-version", "1"]),
+      repoRoot,
+    ),
+  );
   const crateRoot = join(repoRoot, "crates") + sep;
   const rustPackages = cargo.packages
-    .filter(({ manifest_path, name }) => manifest_path.startsWith(crateRoot) && name.startsWith("longhorn-"))
+    .filter(
+      ({ manifest_path, name }) =>
+        manifest_path.startsWith(crateRoot) && name.startsWith("longhorn-"),
+    )
     .sort((left, right) => left.name.localeCompare(right.name));
-  const crateDirectories = (await readdir(join(repoRoot, "crates"), { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory());
+  const crateDirectories = (
+    await readdir(join(repoRoot, "crates"), { withFileTypes: true })
+  ).filter((entry) => entry.isDirectory());
   if (rustPackages.length !== crateDirectories.length) {
-    throw new Error(`Rust inventory mismatch: metadata ${rustPackages.length}, directories ${crateDirectories.length}`);
+    throw new Error(
+      `Rust inventory mismatch: metadata ${rustPackages.length}, directories ${crateDirectories.length}`,
+    );
   }
 
   const packageDirectories = (await readdir(join(repoRoot, "packages"), { withFileTypes: true }))
@@ -73,31 +74,53 @@ async function renderReference(): Promise<string> {
   const typescriptPackages = [];
   for (const directory of packageDirectories) {
     const manifestPath = join(repoRoot, "packages", directory.name, "package.json");
-    if (!(await exists(manifestPath))) continue;
-    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as PackageManifest;
-    if (manifest.name !== "@inflatable-cookie/longhorn" && !manifest.name.startsWith("@inflatable-cookie/longhorn-") || manifest.version !== workspaceVersion) {
+    if (!(await exists(manifestPath))) {
+      continue;
+    }
+    const manifest = readPackageManifest(await readFile(manifestPath, "utf8"));
+    if (
+      (manifest.name !== "@inflatable-cookie/longhorn" &&
+        !manifest.name.startsWith("@inflatable-cookie/longhorn-")) ||
+      manifest.version !== workspaceVersion
+    ) {
       throw new Error(`${directory.name} package identity drift`);
     }
     // These carried `private: true` until Card 166 made them publishable. The
     // posture to hold is now the publishable one: a scoped package needs
     // `publishConfig.access` to go out publicly, and a tarball without a
     // licence is worse than one that never ships.
-    if (manifest.private === true || manifest.publishConfig?.access !== "public" || manifest.license !== "MIT" || manifest.repository?.directory !== `packages/${directory.name}`) {
+    const posture = requireRecord(manifest, "package manifest");
+    if (
+      posture.private === true ||
+      requireRecord(posture.publishConfig, "publish config").access !== "public" ||
+      posture.license !== "MIT" ||
+      requireRecord(posture.repository, "repository").directory !== `packages/${directory.name}`
+    ) {
       throw new Error(`${directory.name} publish posture drift`);
     }
     const entrypoints = [];
-    for (const [subpath, target] of Object.entries(manifest.exports)) {
-      if (subpath === "./package.json") continue;
-      const source = typeof target === "string"
-        ? target
-        : target.types ?? target.svelte ?? target.import ?? target.default;
-      if (!source?.startsWith("./src/") || source.includes("../")) {
+    for (const [subpath, target] of Object.entries(
+      requireRecord(manifest.exports, "package exports"),
+    )) {
+      if (subpath === "./package.json") {
+        continue;
+      }
+      const conditions = typeof target === "string" ? {} : requireRecord(target, subpath);
+      const source =
+        typeof target === "string"
+          ? target
+          : (conditions.types ?? conditions.svelte ?? conditions.import ?? conditions.default);
+      if (typeof source !== "string" || !source.startsWith("./src/") || source.includes("../")) {
         throw new Error(`${manifest.name} export ${subpath} escapes public source roots`);
       }
       await access(join(dirname(manifestPath), source));
       entrypoints.push(subpath === "." ? manifest.name : `${manifest.name}/${subpath.slice(2)}`);
     }
-    typescriptPackages.push({ directory: directory.name, manifest, entrypoints: entrypoints.sort() });
+    typescriptPackages.push({
+      directory: directory.name,
+      manifest,
+      entrypoints: entrypoints.sort(),
+    });
   }
 
   const lines = [
@@ -115,20 +138,33 @@ async function renderReference(): Promise<string> {
   ];
 
   for (const pkg of rustPackages) {
-    if (pkg.version !== workspaceVersion || pkg.publish === null || pkg.publish.length !== 0) {
+    const metadata = requireRecord(pkg, "Cargo package");
+    if (
+      pkg.version !== workspaceVersion ||
+      !Array.isArray(metadata.publish) ||
+      metadata.publish.length !== 0
+    ) {
       throw new Error(`${pkg.name} version or private publication posture drift`);
     }
     const directory = dirname(pkg.manifest_path);
     const relativeDirectory = relative(repoRoot, directory).split(sep).join("/");
     const readme = join(directory, "README.md");
-    const library = pkg.targets.find(({ kind }) => kind.includes("lib"));
-    const reference = await exists(readme)
+    const library = requireList(metadata.targets, "Cargo targets")
+      .map((target) => requireRecord(target, "Cargo target"))
+      .find(({ kind }) => requireStrings(kind, "target kind").includes("lib"));
+    const reference = (await exists(readme))
       ? `../../${relativeDirectory}/README.md`
       : library
-        ? `../../${relative(repoRoot, library.src_path).split(sep).join("/")}`
+        ? `../../${relative(repoRoot, requireString(library.src_path, "lib source path")).split(sep).join("/")}`
         : `../../${relativeDirectory}/Cargo.toml`;
     const kind = library ? "library" : "development tool";
-    const features = formatFeatures(pkg.features);
+    const features = formatFeatures(
+      Object.fromEntries(
+        Object.entries(requireRecord(metadata.features, "crate features")).map(
+          ([name, entries]) => [name, requireStrings(entries, name)],
+        ),
+      ),
+    );
     lines.push(`| \`${pkg.name}\` | ${kind} | ${features} | [source](${reference}) |`);
   }
 
@@ -146,7 +182,10 @@ async function renderReference(): Promise<string> {
 
   for (const { directory, manifest, entrypoints } of typescriptPackages) {
     const dependencies = Object.entries(manifest.dependencies ?? {})
-      .filter(([name]) => name === "@inflatable-cookie/longhorn" || name.startsWith("@inflatable-cookie/longhorn-"))
+      .filter(
+        ([name]) =>
+          name === "@inflatable-cookie/longhorn" || name.startsWith("@inflatable-cookie/longhorn-"),
+      )
       .map(([name, version]) => `\`${name} ${version}\``);
     const peers = Object.entries(manifest.peerDependencies ?? {}).map(([name, version]) => {
       const optional = manifest.peerDependenciesMeta?.[name]?.optional === true ? "; optional" : "";
@@ -164,9 +203,11 @@ async function renderReference(): Promise<string> {
   return `${lines.join("\n")}\n`;
 }
 
-function formatFeatures(features: Record<string, string[]>): string {
+function formatFeatures(features: Record<string, Array<string>>): string {
   const names = Object.keys(features).sort();
-  if (names.length === 0) return "none";
+  if (names.length === 0) {
+    return "none";
+  }
   return names.map((name) => `\`${name}\``).join(", ");
 }
 

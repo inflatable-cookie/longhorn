@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  HistoryController,
-  HistoryLateResultError,
-} from "../../src/history/controller.ts";
+import { HistoryController, HistoryLateResultError } from "../../src/history/controller.ts";
 import type {
   HistoryChangedEvent,
   HistoryNavigationCommand,
@@ -13,24 +10,22 @@ import type {
   HistorySnapshot,
 } from "../../src/history/generated/protocol.ts";
 import type { HistoryPort, HistoryUnlisten } from "../../src/history/ports.ts";
-import { clone, fixture, tick } from "./support.ts";
+import { clone, fixture, navigationResult, tick } from "./support.ts";
 
 class MutablePort implements HistoryPort {
   snapshotValue: HistorySnapshot;
   pageValue: HistoryPageSnapshot;
   result: HistoryNavigationResult;
-  calls: string[] = [];
+  calls: Array<string> = [];
   listener: ((event: unknown) => void) | undefined;
   onListen: ((listener: (event: unknown) => void) => void) | undefined;
-  navigateOverride:
-    | ((command: HistoryNavigationCommand) => Promise<unknown>)
-    | undefined;
+  navigateOverride: ((command: HistoryNavigationCommand) => Promise<unknown>) | undefined;
 
   constructor() {
     const value = fixture();
     this.snapshotValue = clone(value.snapshot);
     this.pageValue = clone(value.page);
-    this.result = clone(value.navigationResults[0]);
+    this.result = clone(navigationResult(value, 0));
   }
 
   async snapshot(): Promise<unknown> {
@@ -84,9 +79,9 @@ describe("history controller lifecycle", () => {
     const port = new MutablePort();
     port.onListen = (listener) => {
       port.snapshotValue = {
-        ...clone(value.navigationResults[0].snapshot),
+        ...clone(navigationResult(value, 0).snapshot),
         summary: {
-          ...clone(value.navigationResults[0].snapshot.summary),
+          ...clone(navigationResult(value, 0).snapshot.summary),
           revision: 12,
         },
       };
@@ -116,7 +111,7 @@ describe("history controller lifecycle", () => {
     const controller = new HistoryController({ port, pageSize: 2 });
     await controller.start();
 
-    port.snapshotValue = clone(value.navigationResults[0].snapshot);
+    port.snapshotValue = clone(navigationResult(value, 0).snapshot);
     port.pageValue = {
       ...clone(value.page),
       revision: 12,
@@ -150,7 +145,7 @@ describe("history controller lifecycle", () => {
   test("installs the authoritative snapshot from stale navigation rejection", async () => {
     const value = fixture();
     const port = new MutablePort();
-    port.result = clone(value.navigationResults[1]);
+    port.result = clone(navigationResult(value, 1));
     const controller = new HistoryController({ port, pageSize: 2 });
     await controller.start();
     port.pageValue = {
@@ -166,9 +161,7 @@ describe("history controller lifecycle", () => {
 
   test("disposes listener registration that completes after teardown", async () => {
     const port = new MutablePort();
-    let resolveListener:
-      | ((unlisten: HistoryUnlisten) => void)
-      | undefined;
+    let resolveListener: ((unlisten: HistoryUnlisten) => void) | undefined;
     let disposed = 0;
     port.listen = async () =>
       new Promise<HistoryUnlisten>((resolve) => {
@@ -188,9 +181,7 @@ describe("history controller lifecycle", () => {
 
   test("rejects a navigation result arriving after teardown", async () => {
     const port = new MutablePort();
-    let resolveNavigation:
-      | ((result: HistoryNavigationResult) => void)
-      | undefined;
+    let resolveNavigation: ((result: HistoryNavigationResult) => void) | undefined;
     port.navigateOverride = async () =>
       new Promise<HistoryNavigationResult>((resolve) => {
         resolveNavigation = resolve;
@@ -200,7 +191,7 @@ describe("history controller lifecycle", () => {
     const navigation = controller.undo();
     await tick();
     await controller.stop();
-    resolveNavigation?.(clone(fixture().navigationResults[0]));
+    resolveNavigation?.(clone(navigationResult(fixture(), 0)));
     await expect(navigation).rejects.toBeInstanceOf(HistoryLateResultError);
     expect(controller.snapshot).toBeUndefined();
   });
@@ -210,9 +201,7 @@ describe("history controller lifecycle", () => {
     const controller = new HistoryController({ port, pageSize: 2 });
     await controller.start();
     controller.setFilter("rename");
-    expect(controller.entries.map(({ entryId }) => entryId)).toEqual([
-      "entry:future",
-    ]);
+    expect(controller.entries.map(({ entryId }) => entryId)).toEqual(["entry:future"]);
     expect(controller.pageSnapshot?.entries).toHaveLength(2);
     await controller.stop();
   });

@@ -3,11 +3,7 @@ import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  compareSemver,
-  parseSemver,
-  parseWorkspacePackageVersion,
-} from "./longhorn-version.ts";
+import { compareSemver, parseSemver, parseWorkspacePackageVersion } from "./longhorn-version.ts";
 import {
   bumpPackageManifest,
   bumpRelease,
@@ -47,7 +43,9 @@ describe("release bump transforms", () => {
     expect(next).toContain('version = "0.2.2"');
     expect(next).toContain('age = { version = "=0.12.1"');
     expect(next).toContain('longhorn-core = { path = "crates/longhorn-core", version = "0.2.2" }');
-    expect(next).toContain('longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.2.2" }');
+    expect(next).toContain(
+      'longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.2.2" }',
+    );
   });
 
   test("bumps package version and Longhorn peer", () => {
@@ -61,17 +59,19 @@ describe("release bump transforms", () => {
 }
 `;
     expect(bumpPackageManifest(manifest, "0.2.2")).toContain('"version": "0.2.2"');
-    expect(bumpPackageManifest(manifest, "0.2.2")).toContain('"@inflatable-cookie/longhorn": "0.2.2"');
+    expect(bumpPackageManifest(manifest, "0.2.2")).toContain(
+      '"@inflatable-cookie/longhorn": "0.2.2"',
+    );
     expect(bumpPackageManifest(manifest, "0.2.2")).toContain('"@tauri-apps/api": "^2.10.1"');
   });
 
   test("throws when a package version line is not the expected shape", () => {
-    expect(() => bumpPackageManifest(`{\n  "name": "x",\n"version": "0.2.1"\n}\n`, "0.2.2")).toThrow(
-      /version line/,
-    );
-    expect(() => bumpPackageManifest(`{\n  "name": "x",\n  "version": "0.2.1"\n}\n`, "0.2.2")).toThrow(
-      /version line/,
-    );
+    expect(() =>
+      bumpPackageManifest(`{\n  "name": "x",\n"version": "0.2.1"\n}\n`, "0.2.2"),
+    ).toThrow(/version line/);
+    expect(() =>
+      bumpPackageManifest(`{\n  "name": "x",\n  "version": "0.2.1"\n}\n`, "0.2.2"),
+    ).toThrow(/version line/);
   });
 
   test("promotes empty Unreleased and is idempotent", () => {
@@ -121,7 +121,10 @@ describe("lock safety", () => {
   });
 
   test("fails when a third-party lock line moves", () => {
-    const moved = lock.replace('name = "serde"\nversion = "1.0.0"', 'name = "serde"\nversion = "1.0.1"');
+    const moved = lock.replace(
+      'name = "serde"\nversion = "1.0.0"',
+      'name = "serde"\nversion = "1.0.1"',
+    );
     const assessment = assessLock(parseLock(lock), parseLock(moved), "0.2.2");
     expect(assessment.thirdPartyMoved.length).toBeGreaterThan(0);
   });
@@ -130,12 +133,14 @@ describe("lock safety", () => {
 describe("release:bump", () => {
   test("refuses a non-increasing version and is idempotent at the same version", async () => {
     const root = await fixtureRepo("0.2.1");
-    await expect(bumpRelease({
-      repoRoot: root,
-      version: "0.2.0",
-      syncLocks: async () => undefined,
-      regenerateApiReference: async () => undefined,
-    })).rejects.toThrow(/non-increasing/);
+    await expect(
+      bumpRelease({
+        repoRoot: root,
+        version: "0.2.0",
+        syncLocks: async () => undefined,
+        regenerateApiReference: async () => undefined,
+      }),
+    ).rejects.toThrow(/non-increasing/);
 
     const first = await bumpRelease({
       repoRoot: root,
@@ -180,14 +185,18 @@ describe("release:bump", () => {
   test("fails when lock sync moves a third-party line", async () => {
     const root = await fixtureRepo("0.2.1");
     const originalCargo = await readFile(join(root, "Cargo.toml"), "utf8");
-    await expect(bumpRelease({
-      repoRoot: root,
-      version: "0.2.2",
-      syncLocks: async () => {
-        throw new Error("Cargo.lock moved more than Longhorn path versions:\n  serde 1.0.0 -> 1.0.1");
-      },
-      regenerateApiReference: async () => undefined,
-    })).rejects.toThrow(/third-party|moved more than Longhorn path versions/);
+    await expect(
+      bumpRelease({
+        repoRoot: root,
+        version: "0.2.2",
+        syncLocks: async () => {
+          throw new Error(
+            "Cargo.lock moved more than Longhorn path versions:\n  serde 1.0.0 -> 1.0.1",
+          );
+        },
+        regenerateApiReference: async () => undefined,
+      }),
+    ).rejects.toThrow(/third-party|moved more than Longhorn path versions/);
     expect(await readFile(join(root, "Cargo.toml"), "utf8")).toBe(originalCargo);
   });
 
@@ -224,12 +233,14 @@ describe("release:bump", () => {
       join(root, "packages/longhorn/package.json"),
       `{\n  "name": "@inflatable-cookie/longhorn",\n"version": "0.2.1"\n}\n`,
     );
-    await expect(bumpRelease({
-      repoRoot: root,
-      version: "0.2.2",
-      syncLocks: async () => undefined,
-      regenerateApiReference: async () => undefined,
-    })).rejects.toThrow(/packages\/longhorn\/package.json[\s\S]*version line/);
+    await expect(
+      bumpRelease({
+        repoRoot: root,
+        version: "0.2.2",
+        syncLocks: async () => undefined,
+        regenerateApiReference: async () => undefined,
+      }),
+    ).rejects.toThrow(/packages\/longhorn\/package.json[\s\S]*version line/);
     expect(await readFile(join(root, "Cargo.toml"), "utf8")).toBe(originalCargo);
   });
 
@@ -237,19 +248,21 @@ describe("release:bump", () => {
     const root = await fixtureRepo("0.2.1");
     const before = await snapshotTracked(root);
     let synced = false;
-    await expect(bumpRelease({
-      repoRoot: root,
-      version: "0.2.2",
-      date: "2026-09-26",
-      syncLocks: async (repoRoot) => {
-        synced = true;
-        const path = join(repoRoot, "Cargo.lock");
-        await writeFile(path, rewriteLonghornPathVersions(await readFile(path, "utf8"), "0.2.2"));
-      },
-      regenerateApiReference: async () => {
-        throw new Error("api regeneration failed");
-      },
-    })).rejects.toThrow(/api regeneration failed/);
+    await expect(
+      bumpRelease({
+        repoRoot: root,
+        version: "0.2.2",
+        date: "2026-09-26",
+        syncLocks: async (repoRoot) => {
+          synced = true;
+          const path = join(repoRoot, "Cargo.lock");
+          await writeFile(path, rewriteLonghornPathVersions(await readFile(path, "utf8"), "0.2.2"));
+        },
+        regenerateApiReference: async () => {
+          throw new Error("api regeneration failed");
+        },
+      }),
+    ).rejects.toThrow(/api regeneration failed/);
     expect(synced).toBe(true);
     expect(await snapshotTracked(root)).toEqual(before);
   });
@@ -257,19 +270,21 @@ describe("release:bump", () => {
   test("restores tracked files when a failure is injected after API regeneration writes", async () => {
     const root = await fixtureRepo("0.2.1");
     const before = await snapshotTracked(root);
-    await expect(bumpRelease({
-      repoRoot: root,
-      version: "0.2.2",
-      date: "2026-09-26",
-      syncLocks: async (repoRoot) => {
-        const path = join(repoRoot, "Cargo.lock");
-        await writeFile(path, rewriteLonghornPathVersions(await readFile(path, "utf8"), "0.2.2"));
-      },
-      regenerateApiReference: async (repoRoot) => {
-        await writeFile(join(repoRoot, "docs/reference/api-surface.md"), "generated 0.2.2\n");
-        throw new Error("post-regeneration failure");
-      },
-    })).rejects.toThrow(/post-regeneration failure/);
+    await expect(
+      bumpRelease({
+        repoRoot: root,
+        version: "0.2.2",
+        date: "2026-09-26",
+        syncLocks: async (repoRoot) => {
+          const path = join(repoRoot, "Cargo.lock");
+          await writeFile(path, rewriteLonghornPathVersions(await readFile(path, "utf8"), "0.2.2"));
+        },
+        regenerateApiReference: async (repoRoot) => {
+          await writeFile(join(repoRoot, "docs/reference/api-surface.md"), "generated 0.2.2\n");
+          throw new Error("post-regeneration failure");
+        },
+      }),
+    ).rejects.toThrow(/post-regeneration failure/);
     expect(await snapshotTracked(root)).toEqual(before);
   });
 });
@@ -301,10 +316,22 @@ async function fixtureRepo(version: string): Promise<string> {
   await mkdir(join(root, "skills/agent-control"), { recursive: true });
   await mkdir(join(root, "docs/reference"), { recursive: true });
   await mkdir(join(root, "prototypes/example"), { recursive: true });
-  await writeFile(join(root, "Cargo.toml"), `[workspace.package]\nversion = "${version}"\n\n[workspace.dependencies]\nlonghorn-core = { path = "crates/longhorn-core", version = "${version}" }\n`);
-  await writeFile(join(root, "Cargo.lock"), `# lock\n\n[[package]]\nname = "longhorn-core"\nversion = "${version}"\n`);
-  await writeFile(join(root, "prototypes/example/Cargo.lock"), `# lock\n\n[[package]]\nname = "longhorn-core"\nversion = "${version}"\n`);
-  await writeFile(join(root, "packages/longhorn/package.json"), `{\n  "name": "@inflatable-cookie/longhorn",\n  "version": "${version}",\n  "license": "MIT"\n}\n`);
+  await writeFile(
+    join(root, "Cargo.toml"),
+    `[workspace.package]\nversion = "${version}"\n\n[workspace.dependencies]\nlonghorn-core = { path = "crates/longhorn-core", version = "${version}" }\n`,
+  );
+  await writeFile(
+    join(root, "Cargo.lock"),
+    `# lock\n\n[[package]]\nname = "longhorn-core"\nversion = "${version}"\n`,
+  );
+  await writeFile(
+    join(root, "prototypes/example/Cargo.lock"),
+    `# lock\n\n[[package]]\nname = "longhorn-core"\nversion = "${version}"\n`,
+  );
+  await writeFile(
+    join(root, "packages/longhorn/package.json"),
+    `{\n  "name": "@inflatable-cookie/longhorn",\n  "version": "${version}",\n  "license": "MIT"\n}\n`,
+  );
   await writeFile(
     join(root, "packages/longhorn-tauri/package.json"),
     `{\n  "name": "@inflatable-cookie/longhorn-tauri",\n  "version": "${version}",\n  "peerDependencies": {\n    "@inflatable-cookie/longhorn": "${version}"\n  }\n}\n`,
@@ -313,8 +340,14 @@ async function fixtureRepo(version: string): Promise<string> {
     join(root, "packages/longhorn-poodle-svelte/package.json"),
     `{\n  "name": "@inflatable-cookie/longhorn-poodle-svelte",\n  "version": "${version}",\n  "peerDependencies": {\n    "@inflatable-cookie/longhorn": "${version}",\n    "@inflatable-cookie/poodle-core": "0.4.2"\n  }\n}\n`,
   );
-  await writeFile(join(root, "skills/agent-control/SKILL.md"), `---\nlonghorn_version: "${version}"\n---\n`);
-  await writeFile(join(root, "CHANGELOG.md"), `# Changelog\n\n## [Unreleased]\n\n## [${version}] - 2026-09-25\n`);
+  await writeFile(
+    join(root, "skills/agent-control/SKILL.md"),
+    `---\nlonghorn_version: "${version}"\n---\n`,
+  );
+  await writeFile(
+    join(root, "CHANGELOG.md"),
+    `# Changelog\n\n## [Unreleased]\n\n## [${version}] - 2026-09-25\n`,
+  );
   await writeFile(join(root, "docs/reference/api-surface.md"), `generated ${version}\n`);
   return root;
 }

@@ -11,7 +11,9 @@ describe("agent-control wait_for predicates", () => {
     const api = install(window);
     const snapshot = api.snapshot();
     expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
+    if (!snapshot.ok) {
+      return;
+    }
     const ready = findByName(snapshot.root, "Ready")!;
     expect(api.waitFor({ predicate: "refResolve", element: ready.elementRef })).toEqual({
       ok: true,
@@ -36,10 +38,7 @@ describe("agent-control wait_for predicates", () => {
   });
 
   test("source has no timer or animation-frame wait calls", () => {
-    const source = readFileSync(
-      join(import.meta.dir, "../../src/agent-control/shim.ts"),
-      "utf8",
-    );
+    const source = readFileSync(join(import.meta.dir, "../../src/agent-control/shim.ts"), "utf8");
     expect(source).not.toContain("setTimeout(");
     expect(source).not.toContain("setInterval(");
     expect(source).not.toContain("requestAnimationFrame(");

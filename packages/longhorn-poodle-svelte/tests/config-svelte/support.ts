@@ -14,14 +14,14 @@ import {
   CONFIG_STORAGE_INSPECT_COMMAND,
   CONFIG_STORAGE_RECOVER_COMMAND,
   ConfigOperationsClient,
-  type ConfigOperationsSnapshot,
 } from "../../../longhorn/src/config/index.ts";
+import type { ConfigOperationsSnapshot } from "../../../longhorn/src/config/index.ts";
 import fixtureJson from "../../../../fixtures/config/protocol-v1.json";
 
 export const fixture = fixtureJson;
 
-export class PageTransport implements EventTransport {
-  readonly calls: string[] = [];
+class PageTransport implements EventTransport {
+  readonly calls: Array<string> = [];
   readonly #held = new Map<string, Promise<void>>();
   readonly #release = new Map<string, () => void>();
   readonly responses = new Map<string, unknown>([
@@ -41,10 +41,14 @@ export class PageTransport implements EventTransport {
   ]);
 
   hold(command: string): void {
-    if (this.#held.has(command)) return;
+    if (this.#held.has(command)) {
+      return;
+    }
     this.#held.set(
       command,
-      new Promise<void>((resolve) => this.#release.set(command, resolve)),
+      new Promise<void>((resolve) => {
+        this.#release.set(command, resolve);
+      }),
     );
   }
 
@@ -58,7 +62,9 @@ export class PageTransport implements EventTransport {
     this.calls.push(command);
     await this.#held.get(command);
     const response = this.responses.get(command);
-    if (response === undefined) throw new Error(`unexpected command ${command}`);
+    if (response === undefined) {
+      throw new Error(`unexpected command ${command}`);
+    }
     return structuredClone(response);
   }
 
@@ -67,11 +73,7 @@ export class PageTransport implements EventTransport {
   }
 }
 
-export function pageFixture(): {
-  client: ConfigOperationsClient;
-  snapshot: ConfigOperationsSnapshot;
-  transport: PageTransport;
-} {
+export function pageFixture() {
   const transport = new PageTransport();
   return {
     client: new ConfigOperationsClient(transport),

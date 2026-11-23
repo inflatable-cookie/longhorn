@@ -4,24 +4,18 @@ const invokes: Array<{
   command: string;
   arguments_: Record<string, unknown>;
 }> = [];
-const listens: string[] = [];
+const listens: Array<string> = [];
 let eventListener: ((event: { payload: unknown }) => void) | undefined;
 let unlistenCount = 0;
 
-mock.module("@tauri-apps/api/core", () => ({
-  invoke: async (
-    command: string,
-    arguments_: Record<string, unknown>,
-  ) => {
+await mock.module("@tauri-apps/api/core", () => ({
+  invoke: async (command: string, arguments_: Record<string, unknown>) => {
     invokes.push({ command, arguments_ });
     return { ok: true };
   },
 }));
-mock.module("@tauri-apps/api/event", () => ({
-  listen: async (
-    event: string,
-    listener: (event: { payload: unknown }) => void,
-  ) => {
+await mock.module("@tauri-apps/api/event", () => ({
+  listen: async (event: string, listener: (event: { payload: unknown }) => void) => {
     listens.push(event);
     eventListener = listener;
     return () => {
@@ -44,12 +38,12 @@ test("adapts raw Tauri invoke without importing event support", async () => {
 test("adapts optional raw Tauri event payloads once", async () => {
   const { TauriEventTransport } = await import("@inflatable-cookie/longhorn-tauri/events");
   const transport = new TauriEventTransport();
-  const payloads: unknown[] = [];
+  const payloads: Array<unknown> = [];
   const unlisten = await transport.listen("event", (payload) => {
     payloads.push(payload);
   });
   eventListener?.({ payload: { epoch: 2 } });
-  unlisten();
+  await unlisten();
 
   expect(invokes).toEqual([{ command: "command", arguments_: { request: 1 } }]);
   expect(listens).toEqual(["event"]);

@@ -1,11 +1,21 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  type BootVolume,
   libraryArchives,
   prepareStagedWorkspace,
   privateCargoCommand,
@@ -14,20 +24,23 @@ import {
   scratchRefusal,
   taskScratch,
 } from "./rust-command.ts";
+import type { BootVolume } from "./rust-command.ts";
 
 const helper = fileURLToPath(new URL("./rust-command.sh", import.meta.url));
 const privateHelper = fileURLToPath(new URL("./private-cargo.sh", import.meta.url));
-const temporaryDirectories: string[] = [];
+const temporaryDirectories: Array<string> = [];
 
 afterEach(async () => {
-  await Promise.all(temporaryDirectories.splice(0).map((path) => rm(path, { recursive: true, force: true })));
+  await Promise.all(
+    temporaryDirectories.splice(0).map((path) => rm(path, { recursive: true, force: true })),
+  );
 });
 
 /**
  * Fake tools that record the tool name, every argument and the environment the
  * switch point handed them. No real Cargo or Oxide runs in these tests.
  */
-async function sandbox(tools: string[]) {
+async function sandbox(tools: Array<string>) {
   const root = await mkdtemp(join(tmpdir(), "longhorn-rust-command-"));
   temporaryDirectories.push(root);
   const bin = join(root, "bin");
@@ -74,25 +87,25 @@ async function passthroughSandbox() {
     "#!/usr/bin/env bash\n" +
       "{\n" +
       "  printf 'tool=oxide\\n'\n" +
-      "  for argument in \"$@\"; do printf 'arg=%s\\n' \"$argument\"; done\n" +
+      '  for argument in "$@"; do printf \'arg=%s\\n\' "$argument"; done\n' +
       "  printf 'env=CARGO_TARGET_DIR=%s\\n' \"${CARGO_TARGET_DIR-<unset>}\"\n" +
       "  printf 'env=CARGO_BUILD_BUILD_DIR=%s\\n' \"${CARGO_BUILD_BUILD_DIR-<unset>}\"\n" +
-      "} > \"$RUST_COMMAND_CAPTURE\"\n" +
+      '} > "$RUST_COMMAND_CAPTURE"\n' +
       "while (($#)); do\n" +
-      "  if [[ \"$1\" == \"--\" ]]; then shift; break; fi\n" +
+      '  if [[ "$1" == "--" ]]; then shift; break; fi\n' +
       "  shift\n" +
       "done\n" +
-      "exec \"$@\"\n",
+      'exec "$@"\n',
   );
   await writeFile(
     join(bin, "cargo"),
     "#!/bin/sh\n" +
       "{\n" +
       "  printf 'tool=cargo\\n'\n" +
-      "  for argument in \"$@\"; do printf 'arg=%s\\n' \"$argument\"; done\n" +
+      '  for argument in "$@"; do printf \'arg=%s\\n\' "$argument"; done\n' +
       "  printf 'env=CARGO_TARGET_DIR=%s\\n' \"${CARGO_TARGET_DIR-<unset>}\"\n" +
       "  printf 'env=CARGO_BUILD_BUILD_DIR=%s\\n' \"${CARGO_BUILD_BUILD_DIR-<unset>}\"\n" +
-      "} > \"$RUST_COMMAND_INNER_CAPTURE\"\n",
+      '} > "$RUST_COMMAND_INNER_CAPTURE"\n',
   );
   await chmod(join(bin, "oxide"), 0o755);
   await chmod(join(bin, "cargo"), 0o755);
@@ -109,7 +122,7 @@ type Invocation = {
 async function invoke(
   bin: string,
   capture: string,
-  arguments_: readonly string[],
+  arguments_: ReadonlyArray<string>,
   environment: Record<string, string> = {},
 ): Promise<Invocation> {
   const proc = Bun.spawn(["/bin/bash", helper, ...arguments_], {
@@ -143,7 +156,9 @@ describe("Rust command routing", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toContain("rust runner: oxide clippy --workspace -- -D warnings");
-    expect(result.run).toContain("tool=oxide\narg=clippy\narg=--workspace\narg=--\narg=-D\narg=warnings\n");
+    expect(result.run).toContain(
+      "tool=oxide\narg=clippy\narg=--workspace\narg=--\narg=-D\narg=warnings\n",
+    );
   });
 
   test("uses Cargo on GitHub Actions even without Oxide", async () => {
@@ -152,7 +167,9 @@ describe("Rust command routing", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toContain("rust runner: cargo clippy --workspace -- -D warnings");
-    expect(result.run).toContain("tool=cargo\narg=clippy\narg=--workspace\narg=--\narg=-D\narg=warnings\n");
+    expect(result.run).toContain(
+      "tool=cargo\narg=clippy\narg=--workspace\narg=--\narg=-D\narg=warnings\n",
+    );
   });
 
   test("the explicit escape runs Cargo locally without Oxide", async () => {
@@ -212,10 +229,7 @@ describe("Rust command routing", () => {
       stdout: "pipe",
       stderr: "pipe",
     });
-    const [exitCode, stderr] = await Promise.all([
-      proc.exited,
-      new Response(proc.stderr).text(),
-    ]);
+    const [exitCode, stderr] = await Promise.all([proc.exited, new Response(proc.stderr).text()]);
     const run = await readFile(capture, "utf8").catch(() => "");
 
     expect(exitCode).toBe(0);
@@ -304,53 +318,68 @@ describe("Rust exec routing", () => {
 
   test("pins the toolchain before the lease and hands it to the tool", async () => {
     const { bin, capture } = await sandbox(["oxide", "cargo"]);
-    const result = await invoke(bin, capture, [
-      "exec",
-      "--manifest-path",
-      "/scratch/staged/Cargo.toml",
-      "--",
-      ...EXEC_TOOL,
-    ], { RUSTUP_TOOLCHAIN: "1.95.0" });
+    const result = await invoke(
+      bin,
+      capture,
+      ["exec", "--manifest-path", "/scratch/staged/Cargo.toml", "--", ...EXEC_TOOL],
+      { RUSTUP_TOOLCHAIN: "1.95.0" },
+    );
 
     expect(result.exitCode).toBe(0);
     expect(result.run).toContain("env=RUSTUP_TOOLCHAIN=1.95.0");
-    expect(result.run).toContain("arg=--manifest-path\narg=/scratch/staged/Cargo.toml\narg=--\narg=cargo\n");
+    expect(result.run).toContain(
+      "arg=--manifest-path\narg=/scratch/staged/Cargo.toml\narg=--\narg=cargo\n",
+    );
   });
 
   test("runs the tool directly on GitHub Actions", async () => {
     const { bin, capture } = await sandbox(["oxide", "cargo"]);
-    const result = await invoke(bin, capture, [
-      "exec",
-      "--manifest-path",
-      "/scratch/staged/Cargo.toml",
-      "--profile",
-      "release",
-      "--",
-      ...EXEC_TOOL,
-    ], { GITHUB_ACTIONS: "true" });
+    const result = await invoke(
+      bin,
+      capture,
+      [
+        "exec",
+        "--manifest-path",
+        "/scratch/staged/Cargo.toml",
+        "--profile",
+        "release",
+        "--",
+        ...EXEC_TOOL,
+      ],
+      { GITHUB_ACTIONS: "true" },
+    );
 
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toContain("rust runner: cargo exec");
-    expect(result.run).toContain([`tool=cargo`, ...EXEC_TOOL.slice(1).map((argument) => `arg=${argument}`), ""].join("\n"));
+    expect(result.run).toContain(
+      [`tool=cargo`, ...EXEC_TOOL.slice(1).map((argument) => `arg=${argument}`), ""].join("\n"),
+    );
   });
 
   test("runs the tool directly under the explicit escape", async () => {
     const { bin, capture } = await sandbox(["cargo"]);
-    const result = await invoke(bin, capture, [
-      "exec",
-      "--manifest-path",
-      "/scratch/staged/Cargo.toml",
-      "--",
-      ...EXEC_TOOL,
-    ], { EFFIGY_OXIDE_ESCAPE: "cargo" });
+    const result = await invoke(
+      bin,
+      capture,
+      ["exec", "--manifest-path", "/scratch/staged/Cargo.toml", "--", ...EXEC_TOOL],
+      { EFFIGY_OXIDE_ESCAPE: "cargo" },
+    );
 
     expect(result.exitCode).toBe(0);
-    expect(result.run).toContain([`tool=cargo`, ...EXEC_TOOL.slice(1).map((argument) => `arg=${argument}`), ""].join("\n"));
+    expect(result.run).toContain(
+      [`tool=cargo`, ...EXEC_TOOL.slice(1).map((argument) => `arg=${argument}`), ""].join("\n"),
+    );
   });
 
   test("refuses an unsupported profile and a missing tool", async () => {
     const { bin, capture } = await sandbox(["oxide", "cargo"]);
-    const badProfile = await invoke(bin, capture, ["exec", "--profile", "fast", "--", ...EXEC_TOOL]);
+    const badProfile = await invoke(bin, capture, [
+      "exec",
+      "--profile",
+      "fast",
+      "--",
+      ...EXEC_TOOL,
+    ]);
     expect(badProfile.exitCode).toBe(2);
     expect(badProfile.stderr).toContain("--profile fast is not quick, debug or release");
 
@@ -365,31 +394,31 @@ describe("Rust exec routing", () => {
   });
 });
 
-describe("Private Cargo outputs", () => {
-  async function invokePrivate(
-    bin: string,
-    capture: string,
-    arguments_: readonly string[],
-  ): Promise<Invocation> {
-    const proc = Bun.spawn(["/bin/bash", privateHelper, ...arguments_], {
-      env: {
-        PATH: `${bin}:/bin`,
-        HOME: process.env.HOME ?? "/tmp",
-        RUST_COMMAND_CAPTURE: capture,
-        CARGO_BUILD_BUILD_DIR: "/pool/slot/build",
-      },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const [exitCode, stdout, stderr] = await Promise.all([
-      proc.exited,
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-    ]);
-    const run = await readFile(capture, "utf8").catch(() => "");
-    return { exitCode, stdout, stderr, run };
-  }
+async function invokePrivate(
+  bin: string,
+  capture: string,
+  arguments_: ReadonlyArray<string>,
+): Promise<Invocation> {
+  const proc = Bun.spawn(["/bin/bash", privateHelper, ...arguments_], {
+    env: {
+      PATH: `${bin}:/bin`,
+      HOME: process.env.HOME ?? "/tmp",
+      RUST_COMMAND_CAPTURE: capture,
+      CARGO_BUILD_BUILD_DIR: "/pool/slot/build",
+    },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [exitCode, stdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
+  const run = await readFile(capture, "utf8").catch(() => "");
+  return { exitCode, stdout, stderr, run };
+}
 
+describe("Private Cargo outputs", () => {
   test("moves final outputs and leaves the pooled build directory alone", async () => {
     const { bin, capture } = await sandbox(["cargo"]);
     const result = await invokePrivate(bin, capture, [
@@ -403,7 +432,9 @@ describe("Private Cargo outputs", () => {
     ]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.run).toContain("tool=cargo\narg=run\narg=-p\narg=longhorn-bindings\narg=--offline\n");
+    expect(result.run).toContain(
+      "tool=cargo\narg=run\narg=-p\narg=longhorn-bindings\narg=--offline\n",
+    );
     expect(result.run).toContain("env=CARGO_TARGET_DIR=/scratch/final");
     expect(result.run).toContain("env=CARGO_BUILD_BUILD_DIR=/pool/slot/build");
   });
@@ -534,11 +565,12 @@ describe("Switch point argv", () => {
   });
 });
 
-describe("Library archive paths from Cargo's JSON", () => {
-  const message = (reason: string, target: object, filenames: string[] = []) =>
-    JSON.stringify({ reason, target, filenames });
-  const lib = (name: string) => ({ name, kind: ["lib"] });
+const lib = (name: string) => ({ name, kind: ["lib"] });
 
+const message = (reason: string, target: Record<string, unknown>, filenames: Array<string> = []) =>
+  JSON.stringify({ reason, target, filenames });
+
+describe("Library archive paths from Cargo's JSON", () => {
   test("reports the rlib Cargo built for the named package, wherever Cargo put it", () => {
     const output = [
       "Compiling longhorn-agent-tool-dispatch v0.1.0",
@@ -569,13 +601,13 @@ describe("Library archive paths from Cargo's JSON", () => {
   });
 });
 
-describe("Staged workspace preparation", () => {
-  async function stagedWorkspace() {
-    const root = await mkdtemp(join(tmpdir(), "longhorn-staged-workspace-"));
-    temporaryDirectories.push(root);
-    return root;
-  }
+async function stagedWorkspace() {
+  const root = await mkdtemp(join(tmpdir(), "longhorn-staged-workspace-"));
+  temporaryDirectories.push(root);
+  return root;
+}
 
+describe("Staged workspace preparation", () => {
   test("creates the real target directory that keeps a lease adoption-free", async () => {
     const workspace = await stagedWorkspace();
     const target = await prepareStagedWorkspace(workspace);
@@ -627,7 +659,8 @@ const boot: BootVolume = {
   home: await realpath(homedir()),
 };
 const temporaryIsExternal =
-  scratchRefusal({ path: await realpath(tmpdir()), device: (await stat(tmpdir())).dev }, boot) === null;
+  scratchRefusal({ path: await realpath(tmpdir()), device: (await stat(tmpdir())).dev }, boot) ===
+  null;
 
 /** A fresh fixture under this run's temporary directory, removed after its test. */
 async function fixtureDirectory(label: string): Promise<string> {
@@ -657,18 +690,23 @@ function poolReport(removable: Record<string, unknown>): string {
   return JSON.stringify({ schema: "oxide.pool.describe/1", selected: "removable", removable });
 }
 
+const assign = (values: Record<string, string | undefined>) => {
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+};
+
 /** Sets process environment entries for `body` (undefined deletes), then restores them. */
 async function withEnvironment<T>(
   entries: Record<string, string | undefined>,
   body: () => Promise<T>,
 ): Promise<T> {
   const previous = Object.fromEntries(Object.keys(entries).map((key) => [key, process.env[key]]));
-  const assign = (values: Record<string, string | undefined>) => {
-    for (const [key, value] of Object.entries(values)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
-  };
+
   assign(entries);
   try {
     return await body();
@@ -681,7 +719,9 @@ describe("Scratch refusal rule", () => {
   const bootFacts: BootVolume = { devices: [1], home: "/Users/builder" };
 
   test("accepts external scratch, judged by volume and not by TMPDIR", () => {
-    expect(scratchRefusal({ path: "/Volumes/Stash/scratch/nucleus/run", device: 2 }, bootFacts)).toBeNull();
+    expect(
+      scratchRefusal({ path: "/Volumes/Stash/scratch/nucleus/run", device: 2 }, bootFacts),
+    ).toBeNull();
   });
 
   test("refuses any path on the boot volume, wherever TMPDIR points", () => {
@@ -691,25 +731,36 @@ describe("Scratch refusal rule", () => {
   });
 
   test("refuses the account home and anything below it", () => {
-    expect(scratchRefusal({ path: "/Users/builder", device: 2 }, bootFacts)).toBe("the account home");
-    expect(scratchRefusal({ path: "/Users/builder/scratch", device: 2 }, bootFacts)).toBe("the account home");
+    expect(scratchRefusal({ path: "/Users/builder", device: 2 }, bootFacts)).toBe(
+      "the account home",
+    );
+    expect(scratchRefusal({ path: "/Users/builder/scratch", device: 2 }, bootFacts)).toBe(
+      "the account home",
+    );
     expect(scratchRefusal({ path: "/Users/builder-scratch", device: 2 }, bootFacts)).toBeNull();
   });
 
   test("refuses a drive root, a boot-volume top-level directory and a volume mount root", () => {
     expect(scratchRefusal({ path: "/", device: 1 }, bootFacts)).toBe("a drive root");
-    expect(scratchRefusal({ path: "/usr", device: 2 }, bootFacts)).toBe("a boot-volume top-level directory");
-    expect(scratchRefusal({ path: "/Volumes/Builds", device: 2 }, bootFacts)).toBe("a volume mount root");
+    expect(scratchRefusal({ path: "/usr", device: 2 }, bootFacts)).toBe(
+      "a boot-volume top-level directory",
+    );
+    expect(scratchRefusal({ path: "/Volumes/Builds", device: 2 }, bootFacts)).toBe(
+      "a volume mount root",
+    );
   });
 });
 
 describe("Task scratch", () => {
   test("uses runner-owned temporary storage on GitHub Actions", async () => {
-    await withEnvironment({ GITHUB_ACTIONS: "true", OXIDE_TASK_SCRATCH_ROOT: "/nonexistent/scratch" }, async () => {
-      const scratch = await taskScratch("longhorn-ci-proof");
-      expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
-      await scratch.dispose();
-    });
+    await withEnvironment(
+      { GITHUB_ACTIONS: "true", OXIDE_TASK_SCRATCH_ROOT: "/nonexistent/scratch" },
+      async () => {
+        const scratch = await taskScratch("longhorn-ci-proof");
+        expect(scratch.root.startsWith(join(tmpdir(), "longhorn-ci-proof-"))).toBe(true);
+        await scratch.dispose();
+      },
+    );
   });
 
   test.skipIf(!temporaryIsExternal)(
@@ -733,7 +784,11 @@ describe("Task scratch", () => {
       const pool = await fixtureDirectory("longhorn-pool");
       const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: pool }));
       await withEnvironment(
-        { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+        {
+          GITHUB_ACTIONS: "",
+          OXIDE_TASK_SCRATCH_ROOT: undefined,
+          PATH: `${bin}:${process.env.PATH}`,
+        },
         async () => {
           const scratch = await taskScratch("longhorn-default");
           expect(scratch.root.startsWith(join(pool, "longhorn", "longhorn-default-"))).toBe(true);
@@ -749,18 +804,30 @@ describe("Task scratch", () => {
       const pool = await fixtureDirectory("longhorn-boot-pool");
       const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: pool }));
       await withEnvironment(
-        { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+        {
+          GITHUB_ACTIONS: "",
+          OXIDE_TASK_SCRATCH_ROOT: undefined,
+          PATH: `${bin}:${process.env.PATH}`,
+        },
         async () => {
-          await expect(taskScratch("longhorn-boot")).rejects.toThrow(/is on the boot volume, the internal drive/);
+          await expect(taskScratch("longhorn-boot")).rejects.toThrow(
+            /is on the boot volume, the internal drive/,
+          );
         },
       );
     },
   );
 
   test("fails closed when Oxide reports no available removable pool, and names the variable", async () => {
-    const bin = await fakeOxide(poolReport({ available: false, unavailable_reason: "volume absent" }));
+    const bin = await fakeOxide(
+      poolReport({ available: false, unavailable_reason: "volume absent" }),
+    );
     await withEnvironment(
-      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      {
+        GITHUB_ACTIONS: "",
+        OXIDE_TASK_SCRATCH_ROOT: undefined,
+        PATH: `${bin}:${process.env.PATH}`,
+      },
       async () => {
         await expect(taskScratch("longhorn-unavailable")).rejects.toThrow(
           /no available removable build pool \(volume absent\)\. Set OXIDE_TASK_SCRATCH_ROOT/,
@@ -772,7 +839,11 @@ describe("Task scratch", () => {
   test("fails closed when Oxide reports no suggested scratch root", async () => {
     const bin = await fakeOxide(poolReport({ available: true }));
     await withEnvironment(
-      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      {
+        GITHUB_ACTIONS: "",
+        OXIDE_TASK_SCRATCH_ROOT: undefined,
+        PATH: `${bin}:${process.env.PATH}`,
+      },
       async () => {
         await expect(taskScratch("longhorn-no-root")).rejects.toThrow(
           /no suggested scratch root[\s\S]*OXIDE_TASK_SCRATCH_ROOT/,
@@ -797,7 +868,11 @@ describe("Task scratch", () => {
     const missing = join(await fixtureDirectory("longhorn-missing-pool"), "absent");
     const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: missing }));
     await withEnvironment(
-      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      {
+        GITHUB_ACTIONS: "",
+        OXIDE_TASK_SCRATCH_ROOT: undefined,
+        PATH: `${bin}:${process.env.PATH}`,
+      },
       async () => {
         await expect(taskScratch("longhorn-missing")).rejects.toThrow(
           /does not exist\. No local build output is created[\s\S]*OXIDE_TASK_SCRATCH_ROOT/,
@@ -810,7 +885,9 @@ describe("Task scratch", () => {
   test("fails closed on a configured root that is missing, and never creates it", async () => {
     const missing = join(await fixtureDirectory("longhorn-missing-configured"), "absent");
     await withEnvironment({ GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: missing }, async () => {
-      await expect(taskScratch("longhorn-missing")).rejects.toThrow(/does not exist\. No local build output is created/);
+      await expect(taskScratch("longhorn-missing")).rejects.toThrow(
+        /does not exist\. No local build output is created/,
+      );
     });
     await expect(stat(missing)).rejects.toThrow();
   });
@@ -836,7 +913,7 @@ describe("External scratch helper (shell)", () => {
    * directory, Bun (the route's own TypeScript runner) and the system tools.
    */
   async function invokeExternalScratch(
-    arguments_: readonly string[],
+    arguments_: ReadonlyArray<string>,
     environment: Record<string, string> = {},
     oxideBin?: string,
   ) {
@@ -871,13 +948,17 @@ describe("External scratch helper (shell)", () => {
       const result = await invokeExternalScratch(["longhorn-source-consumer"], {}, bin);
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout.startsWith(join(pool, "longhorn", "longhorn-source-consumer-"))).toBe(true);
+      expect(result.stdout.startsWith(join(pool, "longhorn", "longhorn-source-consumer-"))).toBe(
+        true,
+      );
       expect((await stat(result.stdout)).isDirectory()).toBe(true);
     },
   );
 
   test("fails closed when Oxide reports no available pool, and names the variable", async () => {
-    const bin = await fakeOxide(poolReport({ available: false, unavailable_reason: "volume absent" }));
+    const bin = await fakeOxide(
+      poolReport({ available: false, unavailable_reason: "volume absent" }),
+    );
     const result = await invokeExternalScratch(["longhorn-unavailable"], {}, bin);
 
     expect(result.exitCode).toBe(1);
@@ -896,7 +977,9 @@ describe("External scratch helper (shell)", () => {
 
   test("fails closed on a configured root that is missing, and never creates it", async () => {
     const missing = join(await fixtureDirectory("longhorn-shell-missing"), "absent");
-    const result = await invokeExternalScratch(["longhorn-missing"], { OXIDE_TASK_SCRATCH_ROOT: missing });
+    const result = await invokeExternalScratch(["longhorn-missing"], {
+      OXIDE_TASK_SCRATCH_ROOT: missing,
+    });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("does not exist");
@@ -905,7 +988,9 @@ describe("External scratch helper (shell)", () => {
   });
 
   test("refuses the account home", async () => {
-    const result = await invokeExternalScratch(["longhorn-refused"], { OXIDE_TASK_SCRATCH_ROOT: homedir() });
+    const result = await invokeExternalScratch(["longhorn-refused"], {
+      OXIDE_TASK_SCRATCH_ROOT: homedir(),
+    });
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("is the account home");
   });

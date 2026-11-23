@@ -8,6 +8,10 @@ const markers = [
   "node_modules/typescript",
   "node_modules/svelte",
   "node_modules/@inflatable-cookie/poodle-core",
+  "node_modules/.bin/oxlint",
+  "node_modules/.bin/tsgolint",
+  "node_modules/.bin/oxfmt",
+  "node_modules/.bin/knip",
 ];
 
 type CheckOptions = {
@@ -20,20 +24,24 @@ type CheckOptions = {
 
 export async function checkBunDependencies(options: CheckOptions = {}): Promise<boolean> {
   const root = options.root ?? repoRoot;
-  const markerExists = options.markerExists ?? (async (path: string) => {
-    try {
-      await access(path);
-      return true;
-    } catch {
-      return false;
-    }
-  });
+  const markerExists =
+    options.markerExists ??
+    (async (path: string) => {
+      try {
+        await access(path);
+        return true;
+      } catch {
+        return false;
+      }
+    });
   const log = options.log ?? console.log;
   const error = options.error ?? console.error;
   const missing = async () => {
-    const absent: string[] = [];
+    const absent: Array<string> = [];
     for (const marker of markers) {
-      if (!(await markerExists(join(root, marker)))) absent.push(marker);
+      if (!(await markerExists(join(root, marker)))) {
+        absent.push(marker);
+      }
     }
     return absent;
   };
@@ -45,8 +53,8 @@ export async function checkBunDependencies(options: CheckOptions = {}): Promise<
     let exitCode: number;
     try {
       exitCode = await install(root);
-    } catch (cause) {
-      error(`Frozen Bun install failed: ${String(cause)}`);
+    } catch (error_) {
+      error(`Frozen Bun install failed: ${String(error_)}`);
       return false;
     }
     if (exitCode !== 0) {
@@ -55,16 +63,24 @@ export async function checkBunDependencies(options: CheckOptions = {}): Promise<
     }
     absent = await missing();
     if (absent.length > 0) {
-      error(`Bun install completed, but dependency markers are still missing: ${absent.join(", ")}.`);
+      error(
+        `Bun install completed, but dependency markers are still missing: ${absent.join(", ")}.`,
+      );
       return false;
     }
   }
 
-  log(JSON.stringify({
-    schema: "longhorn.bun-deps.v1",
-    outcome: "pass",
-    markers,
-  }, null, 2));
+  log(
+    JSON.stringify(
+      {
+        schema: "longhorn.bun-deps.v1",
+        outcome: "pass",
+        markers,
+      },
+      null,
+      2,
+    ),
+  );
   return true;
 }
 

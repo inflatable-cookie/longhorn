@@ -9,8 +9,8 @@ import {
   parseBridgeQueryEnvelope,
   parseBridgeStreamCursor,
   record,
-  type BridgeStreamCursor,
 } from "@inflatable-cookie/longhorn/bridge";
+import type { BridgeStreamCursor } from "@inflatable-cookie/longhorn/bridge";
 import { BridgeStreamTracker } from "@inflatable-cookie/longhorn/bridge/stream";
 
 import {
@@ -23,10 +23,7 @@ import {
 } from "./support.ts";
 
 test("TypeScript reproduces the Rust semantic trace exactly", () => {
-  const query = parseBridgeQueryEnvelope(
-    values(fixture.queryRequests)[0],
-    queryPayloadCodec,
-  );
+  const query = parseBridgeQueryEnvelope(values(fixture.queryRequests)[0], queryPayloadCodec);
   const command = parseBridgeCommandEnvelope(
     values(fixture.commandRequests)[0],
     commandPayloadCodec,
@@ -37,20 +34,14 @@ test("TypeScript reproduces the Rust semantic trace exactly", () => {
   );
   const finite = { finite: 8 } as const;
 
-  const listener = new BridgeStreamTracker(
-    "session:fixture",
-    "example.workspace",
-  );
+  const listener = new BridgeStreamTracker("session:fixture", "example.workspace");
   const listenerFirst = [
     listener.classifyEvent(cursor(3, 9)),
     listener.acceptSnapshot(cursor(3, 8)),
     listener.acceptSnapshot(cursor(3, 9)),
   ];
 
-  const ordered = new BridgeStreamTracker(
-    "session:fixture",
-    "example.workspace",
-  );
+  const ordered = new BridgeStreamTracker("session:fixture", "example.workspace");
   const orderedStream = [
     ordered.acceptSnapshot(cursor(3, 8)),
     ordered.classifyEvent(cursor(3, 8)),
@@ -79,24 +70,9 @@ test("TypeScript reproduces the Rust semantic trace exactly", () => {
 
   const actual = {
     command_retry: [
-      classifyBridgeCommandRetry(
-        command,
-        "uncertain",
-        "afterReconnect",
-        finite,
-      ),
-      classifyBridgeCommandRetry(
-        uncertain,
-        "uncertain",
-        "afterReconnect",
-        finite,
-      ),
-      classifyBridgeCommandRetry(
-        command,
-        "notDispatched",
-        "afterReconnect",
-        finite,
-      ),
+      classifyBridgeCommandRetry(command, "uncertain", "afterReconnect", finite),
+      classifyBridgeCommandRetry(uncertain, "uncertain", "afterReconnect", finite),
+      classifyBridgeCommandRetry(command, "notDispatched", "afterReconnect", finite),
     ],
     query_retry: [
       classifyBridgeQueryRetry(query, "afterBackoff", true),
@@ -114,13 +90,15 @@ test("TypeScript reproduces the Rust semantic trace exactly", () => {
     ],
   };
 
-  expect(actual as unknown).toEqual(record(fixture.semanticTrace, [
-    "command_retry",
-    "query_retry",
-    "listener_first",
-    "ordered_stream",
-    "job",
-  ]));
+  expect<unknown>(actual).toEqual(
+    record(fixture.semanticTrace, [
+      "command_retry",
+      "query_retry",
+      "listener_first",
+      "ordered_stream",
+      "job",
+    ]),
+  );
 });
 
 function cursor(epoch: number, sequence: number): BridgeStreamCursor {

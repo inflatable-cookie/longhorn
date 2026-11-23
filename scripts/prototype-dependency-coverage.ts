@@ -1,23 +1,21 @@
+import { readCargoInventory } from "./cargo-metadata.ts";
+import { requireList, requireRecord, requireString } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { dependencyReferences, isLonghornPathPackage, parseLock } from "./sync-prototype-locks.ts";
 import { rustCommand } from "./rust-command.ts";
 
-type CargoMetadata = {
-  packages: {
-    id: string;
-    name: string;
-    version: string;
-    source: string | null;
-    manifest_path: string;
-    dependencies: { name: string; source: string | null; optional: boolean }[];
-  }[];
-  workspace_members: string[];
-};
-
-async function metadataFor(directory: string): Promise<CargoMetadata> {
-  const command = rustCommand(["metadata", "--format-version", "1", "--locked", "--offline", "--no-deps"]);
+async function metadataFor(directory: string) {
+  const command = rustCommand([
+    "metadata",
+    "--format-version",
+    "1",
+    "--locked",
+    "--offline",
+    "--no-deps",
+  ]);
   const process = Bun.spawn(command, { cwd: directory, stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(process.stdout).text(),
@@ -27,7 +25,25 @@ async function metadataFor(directory: string): Promise<CargoMetadata> {
   if (exitCode !== 0) {
     throw new Error(`${command.join(" ")} failed in ${directory}\n${stdout}\n${stderr}`);
   }
-  return JSON.parse(stdout) as CargoMetadata;
+  const inventory = readCargoInventory(stdout);
+  return {
+    workspace_members: inventory.members,
+    packages: inventory.packages.map((pkg) => {
+      const record = requireRecord(pkg, "Cargo package");
+      return {
+        ...pkg,
+        id: requireString(record.id, "package id"),
+        dependencies: requireList(record.dependencies, "Cargo dependencies").map((value) => {
+          const dep = requireRecord(value, "Cargo dependency");
+          return {
+            name: requireString(dep.name, "dependency name"),
+            source: dep.source === null ? null : requireString(dep.source, "dependency source"),
+            optional: dep.optional === true,
+          };
+        }),
+      };
+    }),
+  };
 }
 
 function isWithin(parent: string, child: string): boolean {
@@ -35,7 +51,9 @@ function isWithin(parent: string, child: string): boolean {
   return path !== "" && path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path);
 }
 
-export async function discoverPrototypeWorkspaceDependencies(repoRoot: string): Promise<string[]> {
+export async function discoverPrototypeWorkspaceDependencies(
+  repoRoot: string,
+): Promise<Array<string>> {
   const prototypesRoot = join(repoRoot, "prototypes");
   const cratesRoot = resolve(repoRoot, "crates");
   const entries = await readdir(prototypesRoot, { withFileTypes: true });
@@ -61,34 +79,62 @@ export async function discoverPrototypeWorkspaceDependencies(repoRoot: string): 
 
     for (const memberId of metadata.workspace_members) {
       const member = packageById.get(memberId);
-      if (!member) throw new Error(`prototype metadata omitted workspace member ${memberId}`);
-      const lockPackage = lockPackages.find((pkg) => pkg.name === member.name && pkg.version === member.version && pkg.source === undefined);
-      if (!lockPackage) throw new Error(`${relative(repoRoot, directory)}/Cargo.lock is missing workspace package ${member.name}`);
+      if (!member) {
+        throw new Error(`prototype metadata omitted workspace member ${memberId}`);
+      }
+      const lockPackage = lockPackages.find(
+        (pkg) =>
+          pkg.name === member.name && pkg.version === member.version && pkg.source === undefined,
+      );
+      if (!lockPackage) {
+        throw new Error(
+          `${relative(repoRoot, directory)}/Cargo.lock is missing workspace package ${member.name}`,
+        );
+      }
       pending.push(lockPackage);
 
       for (const dependency of member.dependencies) {
-        if (dependency.optional || dependency.source !== null || !workspaceCrates.has(dependency.name)) continue;
+        if (
+          dependency.optional ||
+          dependency.source !== null ||
+          !workspaceCrates.has(dependency.name)
+        ) {
+          continue;
+        }
         if (!lockPackages.some((pkg) => pkg.name === dependency.name && pkg.source === undefined)) {
-          throw new Error(`${relative(repoRoot, directory)}/Cargo.lock is missing Longhorn path package ${dependency.name}`);
+          throw new Error(
+            `${relative(repoRoot, directory)}/Cargo.lock is missing Longhorn path package ${dependency.name}`,
+          );
         }
       }
     }
 
     while (pending.length > 0) {
-      const pkg = pending.pop()!;
+      const pkg = requireValue(pending.pop(), "pending.pop()");
       const key = `${pkg.name}\0${pkg.version}\0${pkg.source ?? "path"}`;
-      if (visited.has(key)) continue;
+      if (visited.has(key)) {
+        continue;
+      }
       visited.add(key);
 
-      if (isLonghornPathPackage(pkg) && workspaceCrates.has(pkg.name)) dependencies.add(pkg.name);
+      if (isLonghornPathPackage(pkg) && workspaceCrates.has(pkg.name)) {
+        dependencies.add(pkg.name);
+      }
 
       for (const reference of dependencyReferences(pkg)) {
-        const dependency = lockPackages.find((candidate) => candidate.name === reference.name &&
-          (reference.version === undefined || candidate.version === reference.version));
+        const dependency = lockPackages.find(
+          (candidate) =>
+            candidate.name === reference.name &&
+            (reference.version === undefined || candidate.version === reference.version),
+        );
         if (!dependency) {
-          throw new Error(`${relative(repoRoot, directory)}/Cargo.lock is missing package ${reference.name}`);
+          throw new Error(
+            `${relative(repoRoot, directory)}/Cargo.lock is missing package ${reference.name}`,
+          );
         }
-        if (dependency.source === undefined) pending.push(dependency);
+        if (dependency.source === undefined) {
+          pending.push(dependency);
+        }
       }
     }
   }
@@ -96,7 +142,7 @@ export async function discoverPrototypeWorkspaceDependencies(repoRoot: string): 
   return [...dependencies].sort();
 }
 
-export function prototypeGroupMemberCoverage(effigyToml: string, memberId: string): string[] {
+export function prototypeGroupMemberCoverage(effigyToml: string, memberId: string): Array<string> {
   const header = /^\[qa\.groups\.prototype-dependencies\]\s*$/m.exec(effigyToml);
   if (!header || header.index === undefined) {
     throw new Error("effigy.toml has no [qa.groups.prototype-dependencies] group");
@@ -116,16 +162,25 @@ export function prototypeGroupMemberCoverage(effigyToml: string, memberId: strin
   const member = body.slice(memberStart, memberEnd + 5);
   const covered = new Set<string>();
   for (const [, covers] of member.matchAll(/\bcovers\s*=\s*\[([\s\S]*?)\]/g)) {
-    for (const [, packageName] of covers!.matchAll(/"cargo-package:([^"]+)"/g)) covered.add(packageName!);
+    for (const [, packageName] of requireValue(covers, "covers").matchAll(
+      /"cargo-package:([^"]+)"/g,
+    )) {
+      covered.add(requireValue(packageName, "packageName"));
+    }
   }
   return [...covered].sort();
 }
 
-export function prototypeCoverageFailures(expected: string[], actual: string[]): string[] {
+export function prototypeCoverageFailures(
+  expected: Array<string>,
+  actual: Array<string>,
+): Array<string> {
   const expectedSet = new Set(expected);
   const actualSet = new Set(actual);
   return [
-    ...expected.filter((name) => !actualSet.has(name)).map((name) => `missing cargo-package:${name}`),
-    ...actual.filter((name) => !expectedSet.has(name)).map((name) => `unexpected cargo-package:${name}`),
+    ...expected.flatMap((name) => (actualSet.has(name) ? [] : [`missing cargo-package:${name}`])),
+    ...actual.flatMap((name) =>
+      expectedSet.has(name) ? [] : [`unexpected cargo-package:${name}`],
+    ),
   ];
 }

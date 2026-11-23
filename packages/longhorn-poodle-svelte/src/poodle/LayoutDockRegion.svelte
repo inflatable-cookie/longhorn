@@ -15,19 +15,12 @@
     SemanticControlSizeRole,
     TabVariant,
   } from "@inflatable-cookie/poodle-svelte";
-  import type {
-  RegionId,
-} from "@inflatable-cookie/longhorn/layout";
-import type {
-  SurfaceId,
-} from "@inflatable-cookie/longhorn/surfaces";
+  import type { RegionId } from "@inflatable-cookie/longhorn/layout";
+  import type { SurfaceId } from "@inflatable-cookie/longhorn/surfaces";
   import type { Snippet } from "svelte";
 
   import type { PoodleLayoutBinding } from "./binding.ts";
-  import type {
-    PanelPresentationResolver,
-    PanelRenderContext,
-  } from "./types.ts";
+  import type { PanelPresentationResolver, PanelRenderContext } from "./types.ts";
 
   interface Props {
     binding: PoodleLayoutBinding;
@@ -79,9 +72,7 @@ import type {
     panel,
   }: Props = $props();
 
-  const projection = $derived(
-    binding.region(containerId, regionId, resolvePanel),
-  );
+  const projection = $derived(binding.region(containerId, regionId, resolvePanel));
 
   function activate(panelInstanceId: string): void {
     if (panelInstanceId !== projection.state.active_panel_instance_id) {
@@ -128,21 +119,18 @@ import type {
   {size}
   {sizeRole}
   {density}
-  crossWindowDragSource={crossWindowDragSource ?? undefined}
-  crossWindowDropTarget={crossWindowDropTarget ?? undefined}
+  {...crossWindowDragSource ? { crossWindowDragSource } : {}}
+  {...crossWindowDropTarget ? { crossWindowDropTarget } : {}}
   dragZoneId={regionId}
   items={[...projection.items]}
   value={projection.state.active_panel_instance_id}
   {ariaLabel}
-  canAcceptPanel={(panelInstanceId) =>
-    binding.canMove(panelInstanceId, containerId, regionId)}
+  canAcceptPanel={(panelInstanceId) => binding.canMove(panelInstanceId, containerId, regionId)}
   onValueChange={activate}
-  onCollapsedChange={(collapsed) =>
-    binding.setCollapsed(containerId, regionId, collapsed)}
+  onCollapsedChange={(collapsed) => binding.setCollapsed(containerId, regionId, collapsed)}
   onClose={(panelInstanceId) => binding.close(panelInstanceId)}
-  onReorder={(panelInstanceIds) =>
-    binding.reorder(containerId, regionId, panelInstanceIds)}
+  onReorder={(panelInstanceIds) => binding.reorder(containerId, regionId, panelInstanceIds)}
   onPanelDrop={({ panel: dropped }) => movePanel(dropped.panelId)}
-  children={body ? renderBody : undefined}
-  panel={panel ? renderPanel : undefined}
+  {...body ? { children: renderBody } : {}}
+  {...panel ? { panel: renderPanel } : {}}
 />

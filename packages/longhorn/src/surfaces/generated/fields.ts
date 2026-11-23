@@ -3,7 +3,7 @@
 // A `record()` given one of these rejects unknown and missing keys —
 // contract 010's Boundary Validation Target.
 
-export const SURFACE_FIELDS: Record<string, readonly string[]> = {
+export const SURFACE_FIELDS = {
   "RegionState": ["region_id", "panel_instance_ids", "active_panel_instance_id", "collapsed"],
   "SizingSlotState": ["sizing_slot_id", "ratio"],
   "PanelInstance": ["id", "definition_id"],
@@ -16,4 +16,4 @@ export const SURFACE_FIELDS: Record<string, readonly string[]> = {
   "SurfaceMutationRejection": ["request_id", "current_revision", "code", "detail", "authoritative_document"],
   "SurfaceSnapshot": ["protocol_version", "epoch", "revision", "document"],
   "SurfaceChangedEvent": ["protocol_version", "epoch", "revision"],
-};
+} as const;

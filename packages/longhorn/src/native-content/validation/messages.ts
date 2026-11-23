@@ -7,14 +7,16 @@ import {
   NATIVE_CONTENT_RETRY_CLASSES,
   NATIVE_CONTENT_SNAPSHOT_STATUSES,
   NATIVE_CONTENT_UPDATE_STATUSES,
-  type NativeContentConnectRequest,
-  type NativeContentConnectResult,
-  type NativeContentContentSizeDecisionRequest,
-  type NativeContentContentSizeDecisionResult,
-  type NativeContentDesiredUpdateRequest,
-  type NativeContentDesiredUpdateResult,
-  type NativeContentSnapshotRequest,
-  type NativeContentSnapshotResult,
+} from "../generated/protocol.ts";
+import type {
+  NativeContentConnectRequest,
+  NativeContentConnectResult,
+  NativeContentContentSizeDecisionRequest,
+  NativeContentContentSizeDecisionResult,
+  NativeContentDesiredUpdateRequest,
+  NativeContentDesiredUpdateResult,
+  NativeContentSnapshotRequest,
+  NativeContentSnapshotResult,
 } from "../generated/protocol.ts";
 import {
   assertNativeContentProtocolVersion,
@@ -70,7 +72,11 @@ export function assertValidNativeContentDecisionRequest(
   value: unknown,
 ): asserts value is NativeContentContentSizeDecisionRequest {
   assertProductPayloadFree(value);
-  const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentContentSizeDecisionRequest);
+  const object = exactObject(
+    value,
+    "$",
+    NATIVE_CONTENT_FIELDS.NativeContentContentSizeDecisionRequest,
+  );
   requestEnvelope(object);
   positive(object.client_epoch, "$.client_epoch");
   assertValidContentSizeProposal(object.proposal);
@@ -117,22 +123,12 @@ export function assertValidNativeContentDesiredUpdateResult(
   member(object.status, NATIVE_CONTENT_UPDATE_STATUSES, "$.status");
   responseCorrelation(object);
   if (object.status === "committed") {
-    exactKeys(object, "$", [
-      "status",
-      "request_id",
-      "snapshot",
-      "receipt",
-      "event",
-    ]);
+    exactKeys(object, "$", ["status", "request_id", "snapshot", "receipt", "event"]);
     assertValidNativeContentSnapshot(object.snapshot);
     desiredReceipt(object.receipt, "$.receipt");
     assertValidNativeContentChangedEvent(object.event);
-    const event = object.event as Record<string, unknown>;
-    const change = event.change as Record<string, unknown>;
-    if (
-      change.kind !== "desired_updated" ||
-      change.request_id !== object.request_id
-    ) {
+    const change = object.event.change;
+    if (change.kind !== "desired_updated" || change.request_id !== object.request_id) {
       fail("$.event.change", "desired update event correlation mismatch");
     }
   } else {
@@ -149,22 +145,12 @@ export function assertValidNativeContentDecisionResult(
   member(object.status, NATIVE_CONTENT_DECISION_STATUSES, "$.status");
   responseCorrelation(object);
   if (object.status === "decided") {
-    exactKeys(object, "$", [
-      "status",
-      "request_id",
-      "snapshot",
-      "receipt",
-      "event",
-    ]);
+    exactKeys(object, "$", ["status", "request_id", "snapshot", "receipt", "event"]);
     assertValidNativeContentSnapshot(object.snapshot);
     proposalReceipt(object.receipt, "$.receipt");
     assertValidNativeContentChangedEvent(object.event);
-    const event = object.event as Record<string, unknown>;
-    const change = event.change as Record<string, unknown>;
-    if (
-      change.kind !== "content_size_decided" ||
-      change.request_id !== object.request_id
-    ) {
+    const change = object.event.change;
+    if (change.kind !== "content_size_decided" || change.request_id !== object.request_id) {
       fail("$.event.change", "content-size decision event correlation mismatch");
     }
   } else {

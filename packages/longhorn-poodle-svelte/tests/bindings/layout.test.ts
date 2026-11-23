@@ -5,14 +5,10 @@ import type {
   LayoutMutationRequest,
   LayoutMutationReceipt,
 } from "@inflatable-cookie/longhorn/layout";
-import type {
-  SurfaceDocument,
-} from "@inflatable-cookie/longhorn/surfaces";
+import type { SurfaceDocument } from "@inflatable-cookie/longhorn/surfaces";
 
-import {
-  LayoutState,
-  type LayoutDispatchResult,
-} from "../../src/bindings/layout.svelte.ts";
+import { LayoutState } from "../../src/bindings/layout.svelte.ts";
+import type { LayoutDispatchResult } from "../../src/bindings/layout.svelte.ts";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -68,9 +64,7 @@ describe("LayoutState", () => {
 
     const pending = state.dispatch(request, (current) => ({
       ...current,
-      panel_instances: [
-        { id: "optimistic", definition_id: "definition:test" },
-      ],
+      panel_instances: [{ id: "optimistic", definition_id: "definition:test" }],
     }));
     expect(state.pendingRequestIds).toEqual([request.request_id]);
     expect(state.projected?.panel_instances).toHaveLength(1);
@@ -91,9 +85,9 @@ describe("LayoutState", () => {
     await state.start();
     state.accept(document(1));
 
-    await expect(
-      state.dispatch(request, (current) => current),
-    ).rejects.toThrow("capability is unsupported");
+    await expect(state.dispatch(request, (current) => current)).rejects.toThrow(
+      "capability is unsupported",
+    );
     expect(state.status).toEqual({
       kind: "unsupported",
       reason: "consumer supplied no layout endpoint",
@@ -119,9 +113,7 @@ describe("LayoutState", () => {
 
     const result = await state.dispatch(request, (current) => ({
       ...current,
-      panel_instances: [
-        { id: "optimistic", definition_id: "definition:test" },
-      ],
+      panel_instances: [{ id: "optimistic", definition_id: "definition:test" }],
     }));
 
     expect(result.status).toBe("rejected");

@@ -1,15 +1,12 @@
+import { isRecord } from "../../core/record.ts";
 import { BRIDGE_FIELDS } from "../generated/fields.ts";
 import type {
   BridgeCancellationReceipt,
   BridgeJobTerminalEvent,
   BridgeProgressEvent,
 } from "../generated/protocol.ts";
-import {
-  type BridgeCodec,
-  incompatible,
-  opaqueId,
-  record,
-} from "./base.ts";
+import { incompatible, opaqueId, record } from "./base.ts";
+import type { BridgeCodec } from "./base.ts";
 import { parseBridgeFailure } from "./operations.ts";
 
 export function parseBridgeProgressEvent<P>(
@@ -58,11 +55,7 @@ function parseTerminalOutcome<S, D>(
   if (value === "cancelled") {
     return value;
   }
-  const source = singleVariant(
-    value,
-    ["succeeded", "failed"],
-    "unknown_job_outcome",
-  );
+  const source = singleVariant(value, ["succeeded", "failed"], "unknown_job_outcome");
   if ("succeeded" in source) {
     return { succeeded: success.parse(source.succeeded) };
   }
@@ -73,32 +66,25 @@ function parseCancellationOutcome<D>(
   value: unknown,
   details: BridgeCodec<D>,
 ): BridgeCancellationReceipt<D>["outcome"] {
-  if (
-    value === "accepted" ||
-    value === "alreadyTerminal" ||
-    value === "unknown"
-  ) {
+  if (value === "accepted" || value === "alreadyTerminal" || value === "unknown") {
     return value;
   }
-  const source = singleVariant(
-    value,
-    ["rejected"],
-    "unknown_cancellation_outcome",
-  );
+  const source = singleVariant(value, ["rejected"], "unknown_cancellation_outcome");
   return { rejected: parseBridgeFailure(source.rejected, details) };
 }
 
 function singleVariant(
   value: unknown,
-  keys: readonly string[],
+  variants: ReadonlyArray<string>,
   code: "unknown_job_outcome" | "unknown_cancellation_outcome",
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     incompatible(code, value);
   }
-  const source = value as Record<string, unknown>;
+  const source = value;
   const present = Object.keys(source);
-  if (present.length !== 1 || !keys.includes(present[0]!)) {
+  const [key] = present;
+  if (present.length !== 1 || key === undefined || !variants.includes(key)) {
     incompatible(code, value);
   }
   return source;

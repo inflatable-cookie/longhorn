@@ -14,8 +14,8 @@ import {
   CONFIG_RESTORE_PLAN_COMMAND,
   CONFIG_RESTORE_RECOVER_COMMAND,
   CONFIG_STORAGE_INSPECT_COMMAND,
-  type ConfigOperationsSnapshot,
 } from "../../../longhorn/src/config/index.ts";
+import { assertValidConfigOperationsSnapshot } from "../../../longhorn/src/config/validation/projection.ts";
 import { fixture, pageFixture } from "./support.ts";
 
 describe("public Poodle config pages", () => {
@@ -27,23 +27,15 @@ describe("public Poodle config pages", () => {
       nextRequestId: () => "request:mounted-storage",
     });
 
-    expect(
-      screen.getAllByText("com.example.sample-app"),
-    ).toHaveLength(2);
-    expect(
-      screen.getByText(
-        "/Users/example/Library/Caches/com.example.sample-app",
-      ),
-    ).toBeTruthy();
+    expect(screen.getAllByText("com.example.sample-app")).toHaveLength(2);
+    expect(screen.getByText("/Users/example/Library/Caches/com.example.sample-app")).toBeTruthy();
     const select = screen.getByLabelText("Storage profile");
     await fireEvent.change(select, {
       target: { value: "unified-app-root-v1" },
     });
     await fireEvent.click(screen.getByRole("button", { name: "Inspect change" }));
     expect(await screen.findByText("target contains different bytes")).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: "Confirm transition" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Confirm transition" })).toBeNull();
     expect(transport.calls).toEqual([CONFIG_STORAGE_INSPECT_COMMAND]);
 
     mounted.unmount();
@@ -62,9 +54,7 @@ describe("public Poodle config pages", () => {
     for (const state of ["locked", "corrupt", "foreign", "unknown"]) {
       expect(screen.getByRole("rowheader", { name: state })).toBeTruthy();
     }
-    expect(
-      screen.getByRole("button", { name: "Flush and create" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Flush and create" })).toBeTruthy();
   });
 
   test("explicit flush confirmation reaches only backup create", async () => {
@@ -75,12 +65,8 @@ describe("public Poodle config pages", () => {
       nextRequestId: () => "request:flush-backup",
     });
 
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Flush and create" }),
-    );
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Flush and create backup" }),
-    );
+    await fireEvent.click(screen.getByRole("button", { name: "Flush and create" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Flush and create backup" }));
     expect(await screen.findByText(/Backup published to/)).toBeTruthy();
     expect(transport.calls).toEqual([CONFIG_BACKUP_CREATE_COMMAND]);
   });
@@ -97,15 +83,14 @@ describe("public Poodle config pages", () => {
     expect(await screen.findByText("Migration required (1 → 2)")).toBeTruthy();
     expect(screen.getByText("Archive exclusions")).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Review exact plan" }) as HTMLButtonElement)
-        .disabled,
+      screen.getByRole<HTMLButtonElement>("button", { name: "Review exact plan" }).disabled,
     ).toBe(true);
 
     const archiveChoice = within(
       screen.getByRole("radiogroup", {
         name: "Restore choice for app.preferences",
       }),
-    ).getByRole("radio", { name: "Use archive" }) as HTMLInputElement;
+    ).getByRole<HTMLInputElement>("radio", { name: "Use archive" });
     await waitFor(() => expect(archiveChoice.disabled).toBe(false));
     await fireEvent.click(archiveChoice);
     for (const domainId of ["app.database", "app.future"]) {
@@ -117,24 +102,17 @@ describe("public Poodle config pages", () => {
         ).getByRole("radio", { name: "Keep current" }),
       );
     }
-    const review = screen.getByRole("button", {
+    const review = screen.getByRole<HTMLButtonElement>("button", {
       name: "Review exact plan",
-    }) as HTMLButtonElement;
+    });
     await waitFor(() => expect(review.disabled).toBe(false));
     await fireEvent.click(review);
 
+    expect(await screen.findByRole("region", { name: "Exact restore plan" })).toBeTruthy();
     expect(
-      await screen.findByRole("region", { name: "Exact restore plan" }),
+      screen.getByText("8888888888888888888888888888888888888888888888888888888888888888"),
     ).toBeTruthy();
-    expect(
-      screen.getByText(
-        "8888888888888888888888888888888888888888888888888888888888888888",
-      ),
-    ).toBeTruthy();
-    expect(transport.calls).toEqual([
-      CONFIG_RESTORE_INSPECT_COMMAND,
-      CONFIG_RESTORE_PLAN_COMMAND,
-    ]);
+    expect(transport.calls).toEqual([CONFIG_RESTORE_INSPECT_COMMAND, CONFIG_RESTORE_PLAN_COMMAND]);
   });
 
   test("publication remains host-owned when the settings view closes", async () => {
@@ -151,7 +129,7 @@ describe("public Poodle config pages", () => {
       await screen.findByRole("radiogroup", {
         name: "Restore choice for app.preferences",
       }),
-    ).getByRole("radio", { name: "Use archive" }) as HTMLInputElement;
+    ).getByRole<HTMLInputElement>("radio", { name: "Use archive" });
     await waitFor(() => expect(archiveChoice.disabled).toBe(false));
     await fireEvent.click(archiveChoice);
     for (const domainId of ["app.database", "app.future"]) {
@@ -163,15 +141,17 @@ describe("public Poodle config pages", () => {
         ).getByRole("radio", { name: "Keep current" }),
       );
     }
-    const review = screen.getByRole("button", {
+    const review = screen.getByRole<HTMLButtonElement>("button", {
       name: "Review exact plan",
-    }) as HTMLButtonElement;
+    });
     await waitFor(() => expect(review.disabled).toBe(false));
     await fireEvent.click(review);
     await fireEvent.click(await screen.findByRole("button", { name: "Restore selected domains…" }));
     await fireEvent.click(screen.getByRole("button", { name: "Publish restore" }));
     expect(
-      await screen.findByText("Closing this view does not cancel staging, safety backup, publication, rollback, or recovery."),
+      await screen.findByText(
+        "Closing this view does not cancel staging, safety backup, publication, rollback, or recovery.",
+      ),
     ).toBeTruthy();
     mounted.unmount();
     transport.release(CONFIG_RESTORE_EXECUTE_COMMAND);
@@ -208,12 +188,8 @@ describe("public Poodle config pages", () => {
     });
 
     await fireEvent.click(screen.getByRole("button", { name: "Inspect archive" }));
-    await fireEvent.click(
-      await screen.findByRole("button", { name: "Restore with adapter…" }),
-    );
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Run adapter restore" }),
-    );
+    await fireEvent.click(await screen.findByRole("button", { name: "Restore with adapter…" }));
+    await fireEvent.click(screen.getByRole("button", { name: "Run adapter restore" }));
 
     expect(await screen.findByText("Adapter restore receipt")).toBeTruthy();
     expect(transport.calls).toEqual([
@@ -224,10 +200,7 @@ describe("public Poodle config pages", () => {
 
   test("stale restore planning returns to inspected choices without publication", async () => {
     const { client, snapshot, transport } = pageFixture();
-    transport.responses.set(
-      CONFIG_RESTORE_PLAN_COMMAND,
-      fixture.restorePlanStates[1],
-    );
+    transport.responses.set(CONFIG_RESTORE_PLAN_COMMAND, fixture.restorePlanStates[1]);
     render(RestoreSettingsPage, {
       client,
       initialSnapshot: snapshot,
@@ -235,39 +208,32 @@ describe("public Poodle config pages", () => {
     });
 
     await inspectAndChooseFixtureDomains();
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Review exact plan" }),
-    );
+    await fireEvent.click(screen.getByRole("button", { name: "Review exact plan" }));
 
     expect(await screen.findByText(/fixture refusal/)).toBeTruthy();
     expect(screen.queryByText(/restorePlanStale/)).toBeNull();
-    expect(
-      screen.queryByRole("region", { name: "Exact restore plan" }),
-    ).toBeNull();
-    expect(transport.calls).toEqual([
-      CONFIG_RESTORE_INSPECT_COMMAND,
-      CONFIG_RESTORE_PLAN_COMMAND,
-    ]);
+    expect(screen.queryByRole("region", { name: "Exact restore plan" })).toBeNull();
+    expect(transport.calls).toEqual([CONFIG_RESTORE_INSPECT_COMMAND, CONFIG_RESTORE_PLAN_COMMAND]);
   });
 
   test("recovery-required snapshot gates ordinary settings work", async () => {
     const { client, transport } = pageFixture();
     const recovery = fixture.restoreExecutionStates[2];
-    if (recovery.status !== "recoveryRequired") throw new Error("fixture drift");
+    if (recovery?.status !== "recoveryRequired") {
+      throw new Error("fixture drift");
+    }
+    const snapshot: unknown = structuredClone(recovery.snapshot);
+    assertValidConfigOperationsSnapshot(snapshot);
     render(RestoreSettingsPage, {
       client,
-      initialSnapshot: structuredClone(
-        recovery.snapshot,
-      ) as unknown as ConfigOperationsSnapshot,
+      initialSnapshot: snapshot,
       nextRequestId: () => "request:recovery-gate",
     });
 
     expect(screen.getByText("Recovery required")).toBeTruthy();
     expect(screen.queryByLabelText("Backup archive")).toBeNull();
     await fireEvent.click(screen.getByRole("button", { name: "Run recovery" }));
-    await fireEvent.click(
-      screen.getByRole("button", { name: "Confirm recovery" }),
-    );
+    await fireEvent.click(screen.getByRole("button", { name: "Confirm recovery" }));
 
     expect(await screen.findByText("Recovery receipt")).toBeTruthy();
     expect(transport.calls).toEqual([CONFIG_RESTORE_RECOVER_COMMAND]);
@@ -280,7 +246,7 @@ async function inspectAndChooseFixtureDomains(): Promise<void> {
     await screen.findByRole("radiogroup", {
       name: "Restore choice for app.preferences",
     }),
-  ).getByRole("radio", { name: "Use archive" }) as HTMLInputElement;
+  ).getByRole<HTMLInputElement>("radio", { name: "Use archive" });
   await waitFor(() => expect(archiveChoice.disabled).toBe(false));
   await fireEvent.click(archiveChoice);
   for (const domainId of ["app.database", "app.future"]) {
@@ -292,8 +258,8 @@ async function inspectAndChooseFixtureDomains(): Promise<void> {
       ).getByRole("radio", { name: "Keep current" }),
     );
   }
-  const review = screen.getByRole("button", {
+  const review = screen.getByRole<HTMLButtonElement>("button", {
     name: "Review exact plan",
-  }) as HTMLButtonElement;
+  });
   await waitFor(() => expect(review.disabled).toBe(false));
 }

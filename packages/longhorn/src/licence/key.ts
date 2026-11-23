@@ -68,7 +68,9 @@ export function isProbablyATypo(problem: LicenceKeyProblem): boolean {
  */
 export function parseLicenceKey(input: string): LicenceKeyResult {
   const normalized = normalize(input);
-  if (!normalized.ok) return normalized;
+  if (!normalized.ok) {
+    return normalized;
+  }
 
   const value = normalized.value;
   if (value.length < MINIMUM_KEY_SYMBOLS) {
@@ -87,8 +89,10 @@ export function parseLicenceKey(input: string): LicenceKeyResult {
 
 /** Renders a normalized key as `XXXXX-XXXXX-…`. */
 export function group(key: string): string {
-  const groups: string[] = [];
-  for (let at = 0; at < key.length; at += GROUP) groups.push(key.slice(at, at + GROUP));
+  const groups: Array<string> = [];
+  for (let at = 0; at < key.length; at += GROUP) {
+    groups.push(key.slice(at, at + GROUP));
+  }
   return groups.join("-");
 }
 
@@ -97,7 +101,7 @@ const UNICODE_WHITESPACE = /\p{White_Space}/u;
 
 /** Matches Rust's `char::to_ascii_uppercase` so non-ASCII letters like U+017F never fold into ASCII. */
 function toAsciiUpper(character: string): string {
-  const code = character.codePointAt(0)!;
+  const code = character.charCodeAt(0);
   if (code >= 0x61 && code <= 0x7a) {
     return String.fromCharCode(code - 0x20);
   }
@@ -106,18 +110,21 @@ function toAsciiUpper(character: string): string {
 
 function normalize(
   input: string,
-): { readonly ok: true; readonly value: string } | { readonly ok: false; readonly problem: LicenceKeyProblem } {
+):
+  | { readonly ok: true; readonly value: string }
+  | { readonly ok: false; readonly problem: LicenceKeyProblem } {
   const symbols: Array<{ readonly original: string; readonly mapped: string }> = [];
   for (const character of input) {
-    if (character === "-" || UNICODE_WHITESPACE.test(character)) continue;
+    if (character === "-" || UNICODE_WHITESPACE.test(character)) {
+      continue;
+    }
     const upper = toAsciiUpper(character);
     // The confusions Crockford excluded the symbols to avoid.
     const mapped = upper === "I" || upper === "L" ? "1" : upper === "O" ? "0" : upper;
     symbols.push({ original: character, mapped });
   }
   let output = "";
-  for (let index = 0; index < symbols.length; index += 1) {
-    const { original, mapped } = symbols[index]!;
+  for (const [index, { original, mapped }] of symbols.entries()) {
     const alphabet = index + 1 < symbols.length ? ALPHABET : CHECK_ALPHABET;
     if (mapped.length !== 1 || !alphabet.includes(mapped)) {
       return { ok: false, problem: { kind: "unexpectedSymbol", symbol: original } };
@@ -136,11 +143,11 @@ function normalize(
 function checkSymbol(body: string): string {
   let sum = 0;
   for (let index = 0; index < body.length; index += 1) {
-    const value = ALPHABET.indexOf(body[index]!);
+    const value = ALPHABET.indexOf(body.charAt(index));
     if (value === -1) {
       throw new Error(`normalized key body contains unexpected symbol: ${body[index]}`);
     }
     sum += value * (index + 1);
   }
-  return CHECK_ALPHABET[sum % 37]!;
+  return CHECK_ALPHABET.charAt(sum % 37);
 }

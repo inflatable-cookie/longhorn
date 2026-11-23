@@ -29,7 +29,7 @@ type Timing = {
   result: Result;
 };
 
-const timings: Timing[] = [];
+const timings: Array<Timing> = [];
 let failed = false;
 // Every member resolves its own storage now: checkout-level routes run through
 // the switch point and pool, and each member's staged workspaces lease their own
@@ -68,7 +68,9 @@ for (const member of members) {
   if (exitCode !== 0) {
     if (stdout.trim().length > 0) {
       process.stderr.write(stdout);
-      if (!stdout.endsWith("\n")) process.stderr.write("\n");
+      if (!stdout.endsWith("\n")) {
+        process.stderr.write("\n");
+      }
     }
     reportTimings();
     process.exitCode = 1;
@@ -77,7 +79,9 @@ for (const member of members) {
   }
 }
 
-if (!failed) reportTimings();
+if (!failed) {
+  reportTimings();
+}
 
 function reportTimings(): void {
   console.error("proof:artifacts timings (seconds)");

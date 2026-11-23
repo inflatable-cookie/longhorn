@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Fails when scripts invoke tools a clean GitHub runner does not have, when a
 // release gate needs a tool `release.yml` does not install, or when the Rust
 // CI jobs lack the pinned Bun their tests require.
@@ -108,8 +109,8 @@ const CARGO_INSTALL_FLAGS_WITH_VALUE = new Set([
   "-Z",
 ]);
 
-function tokenize(input: string): string[] {
-  const tokens: string[] = [];
+function tokenize(input: string): Array<string> {
+  const tokens: Array<string> = [];
   const pattern = /(?:'[^']*'|"[^"]*"|\S+)/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(input))) {
@@ -125,7 +126,7 @@ function tokenize(input: string): string[] {
   return tokens;
 }
 
-export function toolsNeededByCommand(command: string): string[] {
+export function toolsNeededByCommand(command: string): Array<string> {
   const trimmed = command.trim();
   if (trimmed.length === 0) {
     throw new Error("cannot map an empty gate command to a runner tool");
@@ -134,7 +135,9 @@ export function toolsNeededByCommand(command: string): string[] {
 
   for (const subcommand of cargoSubcommands(trimmed)) {
     needs.add("cargo");
-    if (!STOCK_CARGO_SUBCOMMANDS.has(subcommand)) needs.add(`cargo-${subcommand}`);
+    if (!STOCK_CARGO_SUBCOMMANDS.has(subcommand)) {
+      needs.add(`cargo-${subcommand}`);
+    }
   }
 
   const argv = leadingCommand(tokenize(trimmed));
@@ -142,7 +145,11 @@ export function toolsNeededByCommand(command: string): string[] {
   if (!program) {
     throw new Error(`cannot map gate command to a tool without executing it: ${trimmed}`);
   }
-  if ((program === "sh" || program === "bash" || program === "zsh") && argv[1] === "-c" && needs.size === 0) {
+  if (
+    (program === "sh" || program === "bash" || program === "zsh") &&
+    argv[1] === "-c" &&
+    needs.size === 0
+  ) {
     throw new Error(`cannot map gate command to a tool without executing it: ${trimmed}`);
   }
   if (program !== "cargo" && (!STOCK_RUNNER_COMMANDS.has(program) || needs.size === 0)) {
@@ -154,15 +161,17 @@ export function toolsNeededByCommand(command: string): string[] {
   return [...needs];
 }
 
-export function cargoInstallCrates(script: string): string[] {
-  const crates: string[] = [];
+export function cargoInstallCrates(script: string): Array<string> {
+  const crates: Array<string> = [];
   for (const line of commandLines(script)) {
     const argv = leadingCommand(tokenize(line));
-    if (argv[0] !== "cargo" || argv[1] !== "install") continue;
-    for (let index = 2; index < argv.length; ) {
-      const token = argv[index]!;
+    if (argv[0] !== "cargo" || argv[1] !== "install") {
+      continue;
+    }
+    for (let index = 2; index < argv.length;) {
+      const token = requireValue(argv[index], "argv[index]");
       if (token.startsWith("-")) {
-        const flag = token.split("=")[0]!;
+        const flag = requireValue(token.split("=")[0], 'token.split("=")[0]');
         if (token.includes("=") || !CARGO_INSTALL_FLAGS_WITH_VALUE.has(flag)) {
           index += 1;
         } else {
@@ -177,16 +186,22 @@ export function cargoInstallCrates(script: string): string[] {
   return crates;
 }
 
-function toolsProvidedByAction(uses: string): string[] {
+function toolsProvidedByAction(uses: string): Array<string> {
   const action = (uses.split("@")[0] ?? uses).split("/")[1] ?? uses;
-  if (action === "rust-toolchain") return ["cargo", "rustc", "rustup"];
-  if (action === "setup-node") return ["node", "npm", "npx"];
-  if (action.startsWith("setup-")) return [action.slice("setup-".length)];
+  if (action === "rust-toolchain") {
+    return ["cargo", "rustc", "rustup"];
+  }
+  if (action === "setup-node") {
+    return ["node", "npm", "npx"];
+  }
+  if (action.startsWith("setup-")) {
+    return [action.slice("setup-".length)];
+  }
   return [];
 }
 
-function cargoSubcommands(command: string): string[] {
-  const subcommands: string[] = [];
+function cargoSubcommands(command: string): Array<string> {
+  const subcommands: Array<string> = [];
   // A gate that launches Cargo through `scripts/rust-command.sh` runs `cargo`
   // on a CI runner and `oxide` on a developer machine, so the word `cargo` may
   // not appear at all. The runner tool is the same either way, so read the
@@ -197,14 +212,19 @@ function cargoSubcommands(command: string): string[] {
     const rest = command.slice(match.index + match[0].length);
     const tokens = tokenize(rest);
     const subcommand = tokens.find((token) => !token.startsWith("+") && !token.startsWith("-"));
-    if (subcommand) subcommands.push(subcommand);
+    if (subcommand) {
+      subcommands.push(subcommand);
+    }
   }
   return subcommands;
 }
 
-function leadingCommand(argv: string[]): string[] {
+function leadingCommand(argv: Array<string>): Array<string> {
   let index = 0;
-  while (index < argv.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[index]!)) {
+  while (
+    index < argv.length &&
+    /^[A-Za-z_][A-Za-z0-9_]*=/.test(requireValue(argv[index], "argv[index]"))
+  ) {
     index += 1;
   }
   return argv.slice(index);
@@ -221,48 +241,65 @@ function isMapping(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function workflowJobs(source: string): Map<string, WorkflowStep[]> {
+function workflowJobs(source: string): Map<string, Array<WorkflowStep>> {
   const workflow = Bun.YAML.parse(source);
   if (!isMapping(workflow) || !isMapping(workflow.jobs)) {
     throw new Error("workflow must declare a jobs mapping");
   }
 
-  const jobs = new Map<string, WorkflowStep[]>();
+  const jobs = new Map<string, Array<WorkflowStep>>();
   for (const [job, config] of Object.entries(workflow.jobs)) {
-    if (!isMapping(config)) throw new Error(`invalid workflow job ${job}`);
-    if ("uses" in config) continue; // Reusable workflow, no local steps.
+    if (!isMapping(config)) {
+      throw new Error(`invalid workflow job ${job}`);
+    }
+    if ("uses" in config) {
+      continue;
+    } // Reusable workflow, no local steps.
     const steps = config.steps;
-    if (!Array.isArray(steps)) throw new Error(`workflow job ${job} must declare steps`);
-    jobs.set(job, steps.map((step: unknown) => {
-      if (!isMapping(step)) throw new Error(`invalid step in workflow job ${job}`);
-      const version = isMapping(step.with) ? step.with["bun-version"] : null;
-      return {
-        conditional: "if" in step,
-        uses: typeof step.uses === "string" ? step.uses : null,
-        run: typeof step.run === "string" ? step.run : null,
-        bunVersion: typeof version === "string" ? version : null,
-      };
-    }));
+    if (!Array.isArray(steps)) {
+      throw new Error(`workflow job ${job} must declare steps`);
+    }
+    jobs.set(
+      job,
+      steps.map((step: unknown) => {
+        if (!isMapping(step)) {
+          throw new Error(`invalid step in workflow job ${job}`);
+        }
+        const version = isMapping(step.with) ? step.with["bun-version"] : null;
+        return {
+          conditional: "if" in step,
+          uses: typeof step.uses === "string" ? step.uses : null,
+          run: typeof step.run === "string" ? step.run : null,
+          bunVersion: typeof version === "string" ? version : null,
+        };
+      }),
+    );
   }
   return jobs;
 }
 
 function stripShellComment(line: string): string {
   // A shell comment starts at a token boundary outside single or double quotes.
-  return line.replace(/(?:'[^']*'|"[^"]*"|\\.|[^\s#][^\s]*)|(^|\s)#.*$/g, (match, space) => space ?? match);
+  return line.replaceAll(
+    /(?:'[^']*'|"[^"]*"|\\.|[^\s#][^\s]*)|(^|\s)#.*$/g,
+    (match, space: string | undefined) => space ?? match,
+  );
 }
 
-function commandLines(script: string): string[] {
-  return script.replace(/\\\r?\n/g, " ").split("\n").map((line) => stripShellComment(line).trim());
+function commandLines(script: string): Array<string> {
+  return script
+    .replaceAll(/\\\r?\n/g, " ")
+    .split("\n")
+    .map((line) => stripShellComment(line).trim());
 }
 
 export function releaseWorkflowInstalls(workflow: string): Map<string, string> {
-  const gateJobs: Map<string, string>[] = [];
+  const gateJobs: Array<Map<string, string>> = [];
   for (const steps of workflowJobs(workflow).values()) {
     const installs = new Map<string, string>();
     scan: for (const step of steps) {
       if (!step.conditional && step.uses) {
-        const action = step.uses.split("@")[0];
+        const action = step.uses.split("@", 1).join("");
         for (const tool of toolsProvidedByAction(step.uses)) {
           installs.set(tool, action);
         }
@@ -273,7 +310,9 @@ export function releaseWorkflowInstalls(workflow: string): Map<string, string> {
           gateJobs.push(installs);
           break scan;
         }
-        if (step.conditional) continue;
+        if (step.conditional) {
+          continue;
+        }
         for (const crate of cargoInstallCrates(line)) {
           installs.set(crate, `cargo install ${crate}`);
         }
@@ -282,28 +321,34 @@ export function releaseWorkflowInstalls(workflow: string): Map<string, string> {
   }
 
   const [first, ...remaining] = gateJobs;
-  if (!first) throw new Error(`${RELEASE_WORKFLOW} has no step that runs effigy release:gates`);
+  if (!first) {
+    throw new Error(`${RELEASE_WORKFLOW} has no step that runs effigy release:gates`);
+  }
   return new Map([...first].filter(([tool]) => remaining.every((job) => job.has(tool))));
 }
 
 export function checkReleaseRunnerTools(root = repoRoot) {
   const gates = parseReleaseGates(readFileSync(join(root, "config/release.toml"), "utf8"));
   const installs = releaseWorkflowInstalls(readFileSync(join(root, RELEASE_WORKFLOW), "utf8"));
-  const requirements = gates.filter(({ name }) => name !== "workspace").flatMap(({ name, command }) =>
-    toolsNeededByCommand(command).map((tool) => ({
-      gate: name,
-      command,
-      tool,
-      via: STOCK_RUNNER_COMMANDS.has(tool) ? "stock runner" : installs.get(tool) ?? null,
-    })),
-  );
+  const requirements = gates
+    .filter(({ name }) => name !== "workspace")
+    .flatMap(({ name, command }) =>
+      toolsNeededByCommand(command).map((tool) => ({
+        gate: name,
+        command,
+        tool,
+        via: STOCK_RUNNER_COMMANDS.has(tool) ? "stock runner" : (installs.get(tool) ?? null),
+      })),
+    );
   return { requirements, failures: requirements.filter(({ via }) => via === null) };
 }
 
 type ReleaseRunnerToolsResult = ReturnType<typeof checkReleaseRunnerTools>;
 
 export function formatReleaseRunnerToolsFailure({ failures }: ReleaseRunnerToolsResult): string {
-  const lines = failures.map(({ gate, tool, command }) => `  ${gate}: ${tool}  (from \`${command}\`)`);
+  const lines = failures.map(
+    ({ gate, tool, command }) => `  ${gate}: ${tool}  (from \`${command}\`)`,
+  );
   return [
     "Release gates need tools the release runner does not install:",
     ...lines,
@@ -314,14 +359,14 @@ export function formatReleaseRunnerToolsFailure({ failures }: ReleaseRunnerTools
 const BUN_ACTION = "oven-sh/setup-bun@";
 const PINNED_BUN_ACTION = /^oven-sh\/setup-bun@[0-9a-f]{40}$/;
 
-export function checkCiRunnerTools(workflow: string): string[] {
+export function checkCiRunnerTools(workflow: string): Array<string> {
   const jobs = workflowJobs(workflow);
   const bunBeforeEffigy = (job: string) => {
     const steps = jobs.get(job) ?? [];
     const bun = steps.findIndex(({ uses }) => uses?.startsWith(BUN_ACTION));
-    const effigy = steps.findIndex(({ run }) => commandLines(run ?? "").some((line) =>
-      leadingCommand(tokenize(line))[0] === "effigy",
-    ));
+    const effigy = steps.findIndex(({ run }) =>
+      commandLines(run ?? "").some((line) => leadingCommand(tokenize(line))[0] === "effigy"),
+    );
     const step = steps[bun];
     return step && !step.conditional && bun < effigy ? step : undefined;
   };
@@ -331,7 +376,7 @@ export function checkCiRunnerTools(workflow: string): string[] {
     return ["clients must install SHA-pinned Bun before its first Effigy step"];
   }
 
-  const failures: string[] = [];
+  const failures: Array<string> = [];
   for (const job of ["rust", "rust-floor"]) {
     const setup = bunBeforeEffigy(job);
     if (!setup) {
@@ -345,26 +390,30 @@ export function checkCiRunnerTools(workflow: string): string[] {
 
 type Finding = { file: string; line: number; tool: string; text: string };
 
-export function findForbiddenTools(file: string, source: string): Finding[] {
-  const findings: Finding[] = [];
+export function findForbiddenTools(file: string, source: string): Array<Finding> {
+  const findings: Array<Finding> = [];
   for (const [index, line] of source.split("\n").entries()) {
     const code = /\.(?:sh|ya?ml|toml)$/.test(file)
       ? stripShellComment(line)
-      : line.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
+      : line.replace(/\/\/.*$/, "").replaceAll(/\/\*.*?\*\//g, "");
     for (const { tool, pattern } of FORBIDDEN) {
-      if (pattern.test(code)) findings.push({ file, line: index + 1, tool, text: line.trim() });
+      if (pattern.test(code)) {
+        findings.push({ file, line: index + 1, tool, text: line.trim() });
+      }
     }
   }
   return findings;
 }
 
-async function scan(root: string, directory: string): Promise<Finding[]> {
-  const findings: Finding[] = [];
+async function scan(root: string, directory: string): Promise<Array<Finding>> {
+  const findings: Array<Finding> = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (SKIPPED.has(entry.name)) continue;
+    if (SKIPPED.has(entry.name)) {
+      continue;
+    }
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
-      findings.push(...await scan(root, path));
+      findings.push(...(await scan(root, path)));
     } else if (path !== import.meta.path && EXTENSIONS.has(extname(path))) {
       findings.push(...findForbiddenTools(relative(root, path), await readFile(path, "utf8")));
     }
@@ -373,24 +422,44 @@ async function scan(root: string, directory: string): Promise<Finding[]> {
 }
 
 if (import.meta.main) {
-  const findings = (await Promise.all(ROOTS.map((root) => scan(repoRoot, join(repoRoot, root))))).flat();
-  findings.push(...findForbiddenTools("effigy.toml", await readFile(join(repoRoot, "effigy.toml"), "utf8")));
+  const findings = (
+    await Promise.all(ROOTS.map((root) => scan(repoRoot, join(repoRoot, root))))
+  ).flat();
+  findings.push(
+    ...findForbiddenTools("effigy.toml", await readFile(join(repoRoot, "effigy.toml"), "utf8")),
+  );
   const release = checkReleaseRunnerTools();
   const ciFailures = checkCiRunnerTools(await readFile(join(repoRoot, CI_WORKFLOW), "utf8"));
 
   if (findings.length > 0 || release.failures.length > 0 || ciFailures.length > 0) {
     for (const { file, line, tool, text } of findings) {
-      console.error(`${file}:${line} invokes '${tool}', which clean runners lack. Use grep or scan in-process.\n  ${text}`);
+      console.error(
+        `${file}:${line} invokes '${tool}', which clean runners lack. Use grep or scan in-process.\n  ${text}`,
+      );
     }
-    if (release.failures.length > 0) console.error(formatReleaseRunnerToolsFailure(release));
-    for (const failure of ciFailures) console.error(`${CI_WORKFLOW}: ${failure}`);
+    if (release.failures.length > 0) {
+      console.error(formatReleaseRunnerToolsFailure(release));
+    }
+    for (const failure of ciFailures) {
+      console.error(`${CI_WORKFLOW}: ${failure}`);
+    }
     process.exitCode = 1;
   } else {
-    console.log(JSON.stringify({
-      schema: "longhorn.runner-tools.v1",
-      outcome: "pass",
-      forbidden: FORBIDDEN.map(({ tool }) => tool),
-      releaseGateTools: release.requirements.map(({ gate, tool, via }) => ({ gate, tool, via })),
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          schema: "longhorn.runner-tools.v1",
+          outcome: "pass",
+          forbidden: FORBIDDEN.map(({ tool }) => tool),
+          releaseGateTools: release.requirements.map(({ gate, tool, via }) => ({
+            gate,
+            tool,
+            via,
+          })),
+        },
+        null,
+        2,
+      ),
+    );
   }
 }

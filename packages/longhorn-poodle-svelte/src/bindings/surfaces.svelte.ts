@@ -1,17 +1,16 @@
-import {
-  SurfaceClient,
-  type SurfaceMutationRequest,
-  type SurfaceMutationResponse,
-  type SurfaceSnapshot,
+import type { SurfaceClient } from "@inflatable-cookie/longhorn/surfaces";
+import type {
+  SurfaceMutationRequest,
+  SurfaceMutationResponse,
+  SurfaceSnapshot,
 } from "@inflatable-cookie/longhorn/surfaces";
 
 import {
   OptimisticProjectionState,
   ReactiveClientState,
   UnsupportedCapabilityError,
-  type ClientStatus,
-  type OptimisticProjector,
 } from "./index.ts";
+import type { ClientStatus, OptimisticProjector } from "./index.ts";
 
 export type SurfaceMutationOperation =
   | { readonly requestId: string; readonly status: "pending" }
@@ -34,10 +33,10 @@ export interface SurfaceStateOptions {
 export class SurfaceState {
   readonly #client: SurfaceClient | undefined;
   readonly #lifecycle: ReactiveClientState<SurfaceSnapshot>;
-  readonly #projection = new OptimisticProjectionState<
-    SurfaceSnapshot["document"]
-  >((document) => document.revision);
-  #operations = $state.raw<readonly SurfaceMutationOperation[]>([]);
+  readonly #projection = new OptimisticProjectionState<SurfaceSnapshot["document"]>(
+    (document) => document.revision,
+  );
+  #operations = $state.raw<ReadonlyArray<SurfaceMutationOperation>>([]);
   #epoch: number | undefined;
 
   constructor(options: SurfaceStateOptions) {
@@ -48,14 +47,11 @@ export class SurfaceState {
         client === undefined
           ? {
               kind: "unsupported",
-              reason:
-                options.unsupportedReason ??
-                "Surface capability is unavailable",
+              reason: options.unsupportedReason ?? "Surface capability is unavailable",
             }
           : {
               kind: "supported",
-              connect: (listener, onFailure) =>
-                client.subscribe(listener, onFailure),
+              connect: (listener, onFailure) => client.subscribe(listener, onFailure),
             },
       onSnapshot: (snapshot) => this.#acceptSnapshot(snapshot),
     });
@@ -82,11 +78,11 @@ export class SurfaceState {
     return this.#projection.projected;
   }
 
-  get pendingRequestIds(): readonly string[] {
+  get pendingRequestIds(): ReadonlyArray<string> {
     return this.#projection.pendingRequestIds;
   }
 
-  get operations(): readonly SurfaceMutationOperation[] {
+  get operations(): ReadonlyArray<SurfaceMutationOperation> {
     return this.#operations;
   }
 
@@ -170,9 +166,7 @@ export class SurfaceState {
 
   #setOperation(operation: SurfaceMutationOperation): void {
     this.#operations = [
-      ...this.#operations.filter(
-        ({ requestId }) => requestId !== operation.requestId,
-      ),
+      ...this.#operations.filter(({ requestId }) => requestId !== operation.requestId),
       operation,
     ];
   }

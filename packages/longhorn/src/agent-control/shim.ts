@@ -29,26 +29,9 @@ const SKIP_TAGS = new Set([
   "IFRAME",
 ]);
 
-type FormControl = Element & {
-  value: string;
-  disabled?: boolean;
-  checked?: boolean;
-  readOnly?: boolean;
-  type?: string;
-  selectionStart?: number | null;
-  selectionEnd?: number | null;
-  setSelectionRange?: (start: number, end: number) => void;
-  selectedOptions?: ArrayLike<Element>;
-  selected?: boolean;
-};
-
-function isFormControl(element: Element): element is FormControl {
-  const tag = element.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "OPTION";
-}
-
 function prop<T>(element: Element, name: string): T | undefined {
-  // The caller names the property type; the page object carries no type of its own.
+  // DOM access is structural across webviews and test windows. Callers select each property by element role.
+  // oxlint-disable-next-line quality/no-reflect-get,typescript/no-unsafe-type-assertion -- The selected DOM interface is the contract for the property.
   return Reflect.get(element, name) as T | undefined;
 }
 
@@ -66,8 +49,8 @@ export type SemanticNode = {
   role: string;
   name?: string;
   value?: string;
-  states: string[];
-  children: SemanticNode[];
+  states: Array<string>;
+  children: Array<SemanticNode>;
 };
 
 export type PageState = { url: string; title: string };
@@ -95,7 +78,7 @@ export type AgentControlApi = {
   type: (element: string, text: string) => ShimResult<Record<string, never>>;
   press: (
     key: string,
-    modifiers?: string[],
+    modifiers?: Array<string>,
     element?: string | null,
   ) => ShimResult<Record<string, never>>;
   scroll: (
@@ -104,7 +87,7 @@ export type AgentControlApi = {
     element?: string | null,
   ) => ShimResult<Record<string, never>>;
   drag: (source: string, target: string) => ShimResult<Record<string, never>>;
-  setFileInput: (element: string, files: FileInputFile[]) => ShimResult<Record<string, never>>;
+  setFileInput: (element: string, files: Array<FileInputFile>) => ShimResult<Record<string, never>>;
   waitFor: (predicate: WaitPredicate) => ShimResult<{ holds: boolean }>;
   markAgentOrigin: () => void;
   isAgentOriginated: () => boolean;
@@ -113,13 +96,14 @@ export type AgentControlApi = {
     sinceEpoch?: string | null,
   ) => {
     epoch: string;
-    events: PageEvent[];
+    events: Array<PageEvent>;
     nextSeq: number;
     dropped: number;
   };
 };
 
 export type ShimWorld = {
+  [SHIM_GLOBAL]?: AgentControlApi;
   document: Document;
   location: { href: string };
   console: Pick<Console, "log" | "info" | "warn" | "error" | "debug">;
@@ -149,16 +133,20 @@ function unsupported(message: string): ShimResult<never> {
 }
 
 function ok(): ActionOk {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The wire success marker has no payload; the public ActionOk type represents that as Record<string, never>.
   return { ok: true } as ActionOk;
 }
 
 function resolveRef(document: Document, element: string): Element | null {
-  if (element === TRUNCATED_REF || element.length === 0) return null;
+  if (element === TRUNCATED_REF || element.length === 0) {
+    return null;
+  }
   return document.querySelector(`[${REF_ATTR}="${element}"]`);
 }
 
 function refPrefix(document: Document): string {
   const view = document.defaultView;
+  // oxlint-disable-next-line quality/no-reflect-get -- The prefix is stamped on this window by the Rust host.
   const value: unknown = view ? Reflect.get(view, REF_PREFIX_GLOBAL) : undefined;
   return typeof value === "string" ? value : "";
 }
@@ -175,7 +163,9 @@ function allocRef(document: Document): string {
 
 function stamp(element: Element, document: Document): string {
   const existing = element.getAttribute(REF_ATTR);
-  if (existing) return existing;
+  if (existing) {
+    return existing;
+  }
   const id = allocRef(document);
   element.setAttribute(REF_ATTR, id);
   return id;
@@ -187,67 +177,132 @@ function computedStyle(element: Element): CSSStyleDeclaration | null {
 }
 
 function isVisible(element: Element): boolean {
-  if (element.hasAttribute("hidden")) return false;
-  if (element.getAttribute("aria-hidden") === "true") return false;
+  if (element.hasAttribute("hidden")) {
+    return false;
+  }
+  if (element.getAttribute("aria-hidden") === "true") {
+    return false;
+  }
   const style = computedStyle(element);
-  if (!style) return true;
+  if (!style) {
+    return true;
+  }
   return style.display !== "none" && style.visibility !== "hidden";
 }
 
 function implicitRole(element: Element): string | null {
   const tag = element.tagName;
-  if (tag === "A") return element.hasAttribute("href") ? "link" : null;
-  if (tag === "BUTTON") return "button";
-  if (tag === "TEXTAREA") return "textbox";
-  if (tag === "SELECT") return "combobox";
-  if (tag === "OPTION") return "option";
-  if (tag === "SUMMARY") return "button";
-  if (tag === "DETAILS") return "group";
-  if (tag === "NAV") return "navigation";
-  if (tag === "MAIN") return "main";
-  if (tag === "HEADER") return "banner";
-  if (tag === "FOOTER") return "contentinfo";
-  if (tag === "FORM") return "form";
-  if (tag === "UL" || tag === "OL") return "list";
-  if (tag === "LI") return "listitem";
-  if (tag === "TABLE") return "table";
-  if (tag === "DIALOG") return "dialog";
-  if (tag === "IMG") return "image";
-  if (tag === "H1" || tag === "H2" || tag === "H3" || tag === "H4" || tag === "H5" || tag === "H6") {
+  if (tag === "A") {
+    return element.hasAttribute("href") ? "link" : null;
+  }
+  if (tag === "BUTTON") {
+    return "button";
+  }
+  if (tag === "TEXTAREA") {
+    return "textbox";
+  }
+  if (tag === "SELECT") {
+    return "combobox";
+  }
+  if (tag === "OPTION") {
+    return "option";
+  }
+  if (tag === "SUMMARY") {
+    return "button";
+  }
+  if (tag === "DETAILS") {
+    return "group";
+  }
+  if (tag === "NAV") {
+    return "navigation";
+  }
+  if (tag === "MAIN") {
+    return "main";
+  }
+  if (tag === "HEADER") {
+    return "banner";
+  }
+  if (tag === "FOOTER") {
+    return "contentinfo";
+  }
+  if (tag === "FORM") {
+    return "form";
+  }
+  if (tag === "UL" || tag === "OL") {
+    return "list";
+  }
+  if (tag === "LI") {
+    return "listitem";
+  }
+  if (tag === "TABLE") {
+    return "table";
+  }
+  if (tag === "DIALOG") {
+    return "dialog";
+  }
+  if (tag === "IMG") {
+    return "image";
+  }
+  if (
+    tag === "H1" ||
+    tag === "H2" ||
+    tag === "H3" ||
+    tag === "H4" ||
+    tag === "H5" ||
+    tag === "H6"
+  ) {
     return "heading";
   }
   if (tag === "INPUT") {
     const type = (element.getAttribute("type") ?? "text").toLowerCase();
-    if (type === "checkbox") return "checkbox";
-    if (type === "radio") return "radio";
-    if (type === "number") return "spinbutton";
-    if (type === "range") return "slider";
+    if (type === "checkbox") {
+      return "checkbox";
+    }
+    if (type === "radio") {
+      return "radio";
+    }
+    if (type === "number") {
+      return "spinbutton";
+    }
+    if (type === "range") {
+      return "slider";
+    }
     if (type === "button" || type === "submit" || type === "reset" || type === "file") {
       return "button";
     }
-    if (type === "hidden") return null;
+    if (type === "hidden") {
+      return null;
+    }
     return "textbox";
   }
-  if (element.hasAttribute("contenteditable")) return "textbox";
+  if (element.hasAttribute("contenteditable")) {
+    return "textbox";
+  }
   return null;
 }
 
 function roleOf(element: Element): string | null {
   const explicit = element.getAttribute("role");
-  if (explicit === "none" || explicit === "presentation") return null;
-  if (explicit) return explicit;
+  if (explicit === "none" || explicit === "presentation") {
+    return null;
+  }
+  if (explicit) {
+    return explicit;
+  }
   return implicitRole(element);
 }
 
 function labelledByText(element: Element): string | undefined {
   const ids = element.getAttribute("aria-labelledby");
-  if (!ids) return undefined;
+  if (!ids) {
+    return undefined;
+  }
   const document = element.ownerDocument;
   const text = ids
     .split(/\s+/)
     .map((id) => document.getElementById(id)?.textContent ?? "")
     .join(" ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
   return text.length > 0 ? text : undefined;
 }
@@ -257,27 +312,39 @@ function associatedLabel(element: Element): string | undefined {
   const document = element.ownerDocument;
   if (id) {
     const label = document.querySelector(`label[for="${id}"]`);
-    const text = label?.textContent?.replace(/\s+/g, " ").trim();
-    if (text) return text;
+    const text = label?.textContent?.replaceAll(/\s+/g, " ").trim();
+    if (text) {
+      return text;
+    }
   }
   const parent = element.closest("label");
   if (parent) {
-    const text = parent.textContent?.replace(/\s+/g, " ").trim();
-    if (text) return text;
+    const text = parent.textContent?.replaceAll(/\s+/g, " ").trim();
+    if (text) {
+      return text;
+    }
   }
   return undefined;
 }
 
 function accessibleName(element: Element): string | undefined {
   const labelled = labelledByText(element);
-  if (labelled) return labelled;
+  if (labelled) {
+    return labelled;
+  }
   const aria = element.getAttribute("aria-label")?.trim();
-  if (aria) return aria;
+  if (aria) {
+    return aria;
+  }
   const label = associatedLabel(element);
-  if (label) return label;
+  if (label) {
+    return label;
+  }
   if (element.tagName === "IMG") {
     const alt = element.getAttribute("alt")?.trim();
-    if (alt) return alt;
+    if (alt) {
+      return alt;
+    }
   }
   const role = roleOf(element);
   if (
@@ -288,25 +355,37 @@ function accessibleName(element: Element): string | undefined {
     role === "tab" ||
     role === "listitem"
   ) {
-    const text = element.textContent?.replace(/\s+/g, " ").trim();
-    if (text) return text;
+    const text = element.textContent?.replaceAll(/\s+/g, " ").trim();
+    if (text) {
+      return text;
+    }
   }
   const title = element.getAttribute("title")?.trim();
-  if (title) return title;
+  if (title) {
+    return title;
+  }
   const placeholder = element.getAttribute("placeholder")?.trim();
-  if (placeholder) return placeholder;
+  if (placeholder) {
+    return placeholder;
+  }
   return undefined;
 }
 
 function valueOf(element: Element): string | undefined {
   const now = element.getAttribute("aria-valuenow");
-  if (now) return now;
+  if (now) {
+    return now;
+  }
   if (element.tagName === "INPUT") {
     const type = (prop<string>(element, "type") ?? "text").toLowerCase();
-    if (type === "checkbox" || type === "radio") return undefined;
+    if (type === "checkbox" || type === "radio") {
+      return undefined;
+    }
     return prop<string>(element, "value");
   }
-  if (element.tagName === "TEXTAREA") return prop<string>(element, "value");
+  if (element.tagName === "TEXTAREA") {
+    return prop<string>(element, "value");
+  }
   if (element.tagName === "SELECT") {
     const selected = prop<ArrayLike<Element>>(element, "selectedOptions");
     const first = selected && selected.length > 0 ? selected[0] : undefined;
@@ -318,9 +397,11 @@ function valueOf(element: Element): string | undefined {
   return undefined;
 }
 
-function statesOf(element: Element, document: Document): string[] {
-  const states: string[] = [];
-  if (isVisible(element)) states.push("visible");
+function statesOf(element: Element, document: Document): Array<string> {
+  const states: Array<string> = [];
+  if (isVisible(element)) {
+    states.push("visible");
+  }
   if (
     element.hasAttribute("disabled") ||
     element.getAttribute("aria-disabled") === "true" ||
@@ -328,12 +409,21 @@ function statesOf(element: Element, document: Document): string[] {
   ) {
     states.push("disabled");
   }
-  if (prop<boolean>(element, "checked") === true || element.getAttribute("aria-checked") === "true") {
+  if (
+    prop<boolean>(element, "checked") === true ||
+    element.getAttribute("aria-checked") === "true"
+  ) {
     states.push("checked");
   }
-  if (document.activeElement === element) states.push("focused");
-  if (element.getAttribute("aria-expanded") === "true") states.push("expanded");
-  if (element.getAttribute("aria-pressed") === "true") states.push("pressed");
+  if (document.activeElement === element) {
+    states.push("focused");
+  }
+  if (element.getAttribute("aria-expanded") === "true") {
+    states.push("expanded");
+  }
+  if (element.getAttribute("aria-pressed") === "true") {
+    states.push("pressed");
+  }
   if (
     element.getAttribute("aria-selected") === "true" ||
     prop<boolean>(element, "selected") === true
@@ -350,13 +440,25 @@ function statesOf(element: Element, document: Document): string[] {
 }
 
 function isInteresting(element: Element): boolean {
-  if (SKIP_TAGS.has(element.tagName)) return false;
+  if (SKIP_TAGS.has(element.tagName)) {
+    return false;
+  }
   // Labels contribute their text to the control's name; they are not nodes.
-  if (element.tagName === "LABEL") return false;
-  if (roleOf(element)) return true;
-  if (accessibleName(element)) return true;
-  if (element.tagName === "INPUT") return true;
-  if (element.hasAttribute("tabindex")) return true;
+  if (element.tagName === "LABEL") {
+    return false;
+  }
+  if (roleOf(element)) {
+    return true;
+  }
+  if (accessibleName(element)) {
+    return true;
+  }
+  if (element.tagName === "INPUT") {
+    return true;
+  }
+  if (element.hasAttribute("tabindex")) {
+    return true;
+  }
   return false;
 }
 
@@ -374,14 +476,18 @@ function walk(
   document: Document,
   depth: number,
   budget: Budget,
-): SemanticNode[] {
-  if (SKIP_TAGS.has(element.tagName) || !isVisible(element)) return [];
+): Array<SemanticNode> {
+  if (SKIP_TAGS.has(element.tagName) || !isVisible(element)) {
+    return [];
+  }
   const interesting = isInteresting(element) || depth === 0;
   if (!interesting) {
-    const promoted: SemanticNode[] = [];
+    const promoted: Array<SemanticNode> = [];
     for (const child of Array.from(element.children)) {
       promoted.push(...walk(child, document, depth, budget));
-      if (budget.truncated) break;
+      if (budget.truncated) {
+        break;
+      }
     }
     return promoted;
   }
@@ -397,9 +503,13 @@ function walk(
     children: [],
   };
   const name = accessibleName(element);
-  if (name) node.name = name;
+  if (name) {
+    node.name = name;
+  }
   const value = valueOf(element);
-  if (value !== undefined && value.length > 0) node.value = value;
+  if (value !== undefined && value.length > 0) {
+    node.value = value;
+  }
   if (depth >= MAX_DEPTH) {
     if (element.children.length > 0) {
       budget.truncated = true;
@@ -430,7 +540,7 @@ function snapshot(world: ShimWorld): ShimResult<{ page: PageState; root: Semanti
   };
 }
 
-function centerOf(element: Element): { x: number; y: number } {
+function centerOf(element: Element) {
   const rect = element.getBoundingClientRect();
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
@@ -461,7 +571,7 @@ function dispatchKey(
   element: Element,
   type: string,
   key: string,
-  modifiers: string[],
+  modifiers: Array<string>,
 ): boolean {
   const event = new world.KeyboardEvent(type, {
     bubbles: true,
@@ -499,7 +609,9 @@ function focus(element: Element): void {
 
 function click(world: ShimWorld, element: string): ShimResult<Record<string, never>> {
   const node = resolveRef(world.document, element);
-  if (!node) return unresolved(element);
+  if (!node) {
+    return unresolved(element);
+  }
   focus(node);
   dispatchMouse(world, node, "pointerdown");
   dispatchMouse(world, node, "mousedown");
@@ -509,8 +621,11 @@ function click(world: ShimWorld, element: string): ShimResult<Record<string, nev
   // (submit, checkbox toggle, link navigation) that a synthetic MouseEvent
   // does not. isTrusted stays false.
   const nativeClick = prop<(this: Element) => void>(node, "click");
-  if (nativeClick) nativeClick.call(node);
-  else dispatchMouse(world, node, "click");
+  if (nativeClick) {
+    nativeClick.call(node);
+  } else {
+    dispatchMouse(world, node, "click");
+  }
   return ok();
 }
 
@@ -520,12 +635,13 @@ function insertText(element: Element, text: string): void {
     const start = prop<number | null>(element, "selectionStart") ?? current.length;
     const end = prop<number | null>(element, "selectionEnd") ?? start;
     const next = `${current.slice(0, start)}${text}${current.slice(end)}`;
-    (element as FormControl).value = next;
+    Object.assign(element, { value: next });
     const cursor = start + text.length;
-    prop<(this: Element, start: number, end: number) => void>(
+    prop<(this: Element, start: number, end: number) => void>(element, "setSelectionRange")?.call(
       element,
-      "setSelectionRange",
-    )?.call(element, cursor, cursor);
+      cursor,
+      cursor,
+    );
     return;
   }
   if (element.hasAttribute("contenteditable") || prop<boolean>(element, "isContentEditable")) {
@@ -539,7 +655,9 @@ function typeInto(
   text: string,
 ): ShimResult<Record<string, never>> {
   const node = resolveRef(world.document, element);
-  if (!node) return unresolved(element);
+  if (!node) {
+    return unresolved(element);
+  }
   focus(node);
   for (const char of text) {
     dispatchKey(world, node, "keydown", char, []);
@@ -554,13 +672,15 @@ function typeInto(
 function press(
   world: ShimWorld,
   key: string,
-  modifiers: string[] = [],
+  modifiers: Array<string> = [],
   element?: string | null,
 ): ShimResult<Record<string, never>> {
   let node: Element | null;
   if (element) {
     node = resolveRef(world.document, element);
-    if (!node) return unresolved(element);
+    if (!node) {
+      return unresolved(element);
+    }
   } else {
     node = world.document.activeElement ?? world.document.body ?? world.document.documentElement;
   }
@@ -578,7 +698,9 @@ function scroll(
 ): ShimResult<Record<string, never>> {
   if (element) {
     const node = resolveRef(world.document, element);
-    if (!node) return unresolved(element);
+    if (!node) {
+      return unresolved(element);
+    }
     node.scrollTop += deltaY;
     node.scrollLeft += deltaX;
     node.dispatchEvent(new world.Event("scroll", { bubbles: true }));
@@ -597,9 +719,13 @@ function drag(
   targetRef: string,
 ): ShimResult<Record<string, never>> {
   const source = resolveRef(world.document, sourceRef);
-  if (!source) return unresolved(sourceRef);
+  if (!source) {
+    return unresolved(sourceRef);
+  }
   const target = resolveRef(world.document, targetRef);
-  if (!target) return unresolved(targetRef);
+  if (!target) {
+    return unresolved(targetRef);
+  }
   const from = centerOf(source);
   const to = centerOf(target);
   // Two-point untrusted path: pointer/mouse at the source center, then the
@@ -610,9 +736,7 @@ function drag(
   dispatchMouse(world, target, "mousemove", to);
   // Only the two methods are read, so a page without DataTransfer gets a stand-in with just those.
   const transfer: Pick<DataTransfer, "setData" | "getData"> =
-    typeof DataTransfer === "function"
-      ? new DataTransfer()
-      : { setData() {}, getData: () => "" };
+    typeof DataTransfer === "function" ? new DataTransfer() : { setData() {}, getData: () => "" };
   const dragEvent = (type: string, current: Element, point: { x: number; y: number }) => {
     const event = new world.MouseEvent(type, {
       bubbles: true,
@@ -638,7 +762,9 @@ function decodeBase64(content: string): Uint8Array<ArrayBuffer> | null {
   try {
     const binary = atob(content);
     const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
     return bytes;
   } catch {
     return null;
@@ -650,13 +776,19 @@ function acceptMatches(fileName: string, mediaType: string, accept: string): boo
     .split(",")
     .map((token) => token.trim())
     .filter((token) => token.length > 0);
-  if (tokens.length === 0) return true;
+  if (tokens.length === 0) {
+    return true;
+  }
   const name = fileName.toLowerCase();
   const type = mediaType.toLowerCase();
   return tokens.some((token) => {
     const needle = token.toLowerCase();
-    if (needle.startsWith(".")) return name.endsWith(needle);
-    if (needle.endsWith("/*")) return type.startsWith(needle.slice(0, -1));
+    if (needle.startsWith(".")) {
+      return name.endsWith(needle);
+    }
+    if (needle.endsWith("/*")) {
+      return type.startsWith(needle.slice(0, -1));
+    }
     return type === needle;
   });
 }
@@ -664,10 +796,12 @@ function acceptMatches(fileName: string, mediaType: string, accept: string): boo
 function setFileInput(
   world: ShimWorld,
   element: string,
-  files: FileInputFile[],
+  files: Array<FileInputFile>,
 ): ShimResult<Record<string, never>> {
   const node = resolveRef(world.document, element);
-  if (!node) return unresolved(element);
+  if (!node) {
+    return unresolved(element);
+  }
   const inputType = (prop<string>(node, "type") ?? node.getAttribute("type") ?? "").toLowerCase();
   if (node.tagName !== "INPUT" || inputType !== "file") {
     return unsupported("set_file_input requires an input type=file");
@@ -688,7 +822,9 @@ function setFileInput(
   const accept = node.getAttribute("accept") ?? "";
   const transfer = new DataTransferCtor();
   for (const file of files) {
-    if (!file.name) return unsupported("set_file_input file name must be non-empty");
+    if (!file.name) {
+      return unsupported("set_file_input file name must be non-empty");
+    }
     const bytes = decodeBase64(file.contentBase64);
     if (!bytes) {
       return unsupported(`set_file_input file ${JSON.stringify(file.name)} is not valid base64`);
@@ -697,10 +833,12 @@ function setFileInput(
     if (!acceptMatches(file.name, mediaType, accept)) {
       return unsupported(`set_file_input file ${JSON.stringify(file.name)} does not match accept`);
     }
-    transfer.items.add(new FileCtor([bytes], file.name, mediaType ? { type: mediaType } : undefined));
+    transfer.items.add(
+      new FileCtor([bytes], file.name, mediaType ? { type: mediaType } : undefined),
+    );
   }
   try {
-    (node as HTMLInputElement).files = transfer.files;
+    Object.assign(node, { files: transfer.files });
   } catch (error) {
     return unsupported(
       `the page refused FileList assignment from a constructed DataTransfer: ${String(error)}`,
@@ -737,14 +875,16 @@ function waitFor(world: ShimWorld, predicate: WaitPredicate): ShimResult<{ holds
 }
 
 function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
-  const existing = world[SHIM_GLOBAL] as AgentControlApi | undefined;
-  if (existing) return existing.readEvents.bind(existing);
+  const existing = world[SHIM_GLOBAL];
+  if (existing) {
+    return existing.readEvents.bind(existing);
+  }
 
   const epoch =
     typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  const ring: PageEvent[] = [];
+  const ring: Array<PageEvent> = [];
   let nextSeq = 1;
   let dropped = 0;
 
@@ -760,12 +900,12 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
 
   const wrap = (level: "log" | "info" | "warn" | "error" | "debug") => {
     const original = world.console[level]?.bind(world.console);
-    world.console[level] = (...args: unknown[]) => {
+    world.console[level] = (...args: Array<unknown>) => {
       push({
         seq: nextSeq,
         kind: "console",
         level,
-        text: args.map((value) => String(value)).join(" "),
+        text: args.map(String).join(" "),
       });
       original?.(...args);
     };
@@ -778,14 +918,11 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
 
   world.addEventListener("error", (event) => {
     const message =
-      "message" in event && typeof event.message === "string"
-        ? event.message
-        : String(event);
+      "message" in event && typeof event.message === "string" ? event.message : String(event);
     push({ seq: nextSeq, kind: "error", message });
   });
   world.addEventListener("unhandledrejection", (event) => {
-    const reason =
-      "reason" in event ? String((event as PromiseRejectionEvent).reason) : "unhandledrejection";
+    const reason = "reason" in event ? String(event.reason) : "unhandledrejection";
     push({ seq: nextSeq, kind: "error", message: reason });
   });
 
@@ -821,14 +958,15 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
   };
 }
 
-function installOriginTracking(world: ShimWorld): Pick<
-  AgentControlApi,
-  "markAgentOrigin" | "isAgentOriginated"
-> {
+function installOriginTracking(
+  world: ShimWorld,
+): Pick<AgentControlApi, "markAgentOrigin" | "isAgentOriginated"> {
   let agentOriginSeq = 0;
   let humanOriginSeq = 0;
   const markHuman = (event: Event) => {
-    if (event.isTrusted) humanOriginSeq = agentOriginSeq + 1;
+    if (event.isTrusted) {
+      humanOriginSeq = agentOriginSeq + 1;
+    }
   };
   world.addEventListener("pointerdown", markHuman, true);
   world.addEventListener("keydown", markHuman, true);
@@ -842,8 +980,10 @@ function installOriginTracking(world: ShimWorld): Pick<
 }
 
 export function installAgentControlShim(world: ShimWorld): AgentControlApi {
-  const existing = world[SHIM_GLOBAL] as AgentControlApi | undefined;
-  if (existing) return existing;
+  const existing = world[SHIM_GLOBAL];
+  if (existing) {
+    return existing;
+  }
   const readEvents = installEventRing(world);
   const origin = installOriginTracking(world);
   const api: AgentControlApi = {

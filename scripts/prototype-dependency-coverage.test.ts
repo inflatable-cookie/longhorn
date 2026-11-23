@@ -24,5 +24,7 @@ test("prototype QA package coverage matches the resolved manifests and detects a
   expect(prototypeCoverageFailures(expected, rustdocCoverage)).toEqual([]);
 
   const drifted = prototypeCheckCoverage.filter((name) => name !== expected[0]);
-  expect(prototypeCoverageFailures(expected, drifted)).toContain(`missing cargo-package:${expected[0]}`);
+  expect(prototypeCoverageFailures(expected, drifted)).toContain(
+    `missing cargo-package:${expected[0]}`,
+  );
 });

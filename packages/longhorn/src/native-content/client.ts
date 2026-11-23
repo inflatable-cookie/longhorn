@@ -1,8 +1,8 @@
-import {
-  CheckedSnapshotConnection,
-  type ConnectionFailure,
-  type ConnectionFailureReporter,
-  type SnapshotEventAction,
+import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import type {
+  ConnectionFailure,
+  ConnectionFailureReporter,
+  SnapshotEventAction,
 } from "@inflatable-cookie/longhorn/core";
 
 import {
@@ -17,16 +17,16 @@ import {
   assertValidNativeContentSnapshotRequest,
   assertValidNativeContentSnapshotResult,
 } from "./validation.ts";
-import {
-  NATIVE_CONTENT_PROTOCOL_VERSION,
-  type ContentSizeDecision,
-  type ContentSizeProposal,
-  type DesiredUpdate,
-  type NativeContentContentSizeDecisionResult,
-  type NativeContentDesiredUpdateResult,
-  type NativeContentIslandId,
-  type NativeContentProtocolRejection,
-  type NativeContentSnapshot,
+import { NATIVE_CONTENT_PROTOCOL_VERSION } from "./generated/protocol.ts";
+import type {
+  ContentSizeDecision,
+  ContentSizeProposal,
+  DesiredUpdate,
+  NativeContentContentSizeDecisionResult,
+  NativeContentDesiredUpdateResult,
+  NativeContentIslandId,
+  NativeContentProtocolRejection,
+  NativeContentSnapshot,
 } from "./generated/protocol.ts";
 import type { NativeContentPort } from "./ports.ts";
 
@@ -39,7 +39,7 @@ export interface NativeContentClientOptions {
 export interface NativeContentConnection {
   readonly ready: Promise<NativeContentSnapshot>;
   current(): NativeContentSnapshot | undefined;
-  failures(): readonly ConnectionFailure[];
+  failures(): ReadonlyArray<ConnectionFailure>;
   updateDesired(update: DesiredUpdate): Promise<NativeContentDesiredUpdateResult>;
   decideContentSize(
     proposal: ContentSizeProposal,
@@ -58,8 +58,7 @@ export class NativeContentClient {
     islandId: NativeContentIslandId,
     options: NativeContentClientOptions = {},
   ) {
-    const maximum =
-      options.maximumPendingRequests ?? DEFAULT_MAXIMUM_PENDING_REQUESTS;
+    const maximum = options.maximumPendingRequests ?? DEFAULT_MAXIMUM_PENDING_REQUESTS;
     if (!Number.isSafeInteger(maximum) || maximum < 1) {
       throw new RangeError("maximumPendingRequests must be a positive integer");
     }
@@ -108,16 +107,14 @@ class CheckedNativeContentConnection implements NativeContentConnection {
     this.#islandId = islandId;
     this.#maximumPendingRequests = maximumPendingRequests;
     this.#connection = new CheckedSnapshotConnection<NativeContentSnapshot>({
-      listen: async (receive) =>
-        port.listen === undefined ? () => {} : port.listen(receive),
+      listen: async (receive) => (port.listen === undefined ? () => {} : port.listen(receive)),
       loadSnapshot: () => this.#loadSnapshot(),
       validateSnapshot: parseSnapshot,
       handleEvent: (payload, current) => eventAction(payload, current, islandId),
       isNewer: isNewerSessionSnapshot,
       onSnapshot: listener,
       onFailure,
-      disposedBeforeReadyError: () =>
-        new NativeContentConnectionDisposedError(),
+      disposedBeforeReadyError: () => new NativeContentConnectionDisposedError(),
     });
     this.ready = this.#connection.ready.then((snapshot) => {
       if (snapshot === undefined) {
@@ -131,13 +128,11 @@ class CheckedNativeContentConnection implements NativeContentConnection {
     return this.#connection.current();
   }
 
-  failures(): readonly ConnectionFailure[] {
+  failures(): ReadonlyArray<ConnectionFailure> {
     return this.#connection.failures();
   }
 
-  async updateDesired(
-    update: DesiredUpdate,
-  ): Promise<NativeContentDesiredUpdateResult> {
+  async updateDesired(update: DesiredUpdate): Promise<NativeContentDesiredUpdateResult> {
     const current = await this.#requireCurrent();
     const requestId = this.#beginRequest();
     try {
@@ -153,7 +148,9 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       const value = await this.#port.updateDesired(request);
       assertValidNativeContentDesiredUpdateResult(value);
       assertCorrelation(value.request_id, requestId);
-      if (value.status === "committed") this.#connection.offer(value.snapshot);
+      if (value.status === "committed") {
+        this.#connection.offer(value.snapshot);
+      }
       return value;
     } finally {
       this.#pending.delete(requestId);
@@ -179,7 +176,9 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       const value = await this.#port.decideContentSize(request);
       assertValidNativeContentDecisionResult(value);
       assertCorrelation(value.request_id, requestId);
-      if (value.status === "decided") this.#connection.offer(value.snapshot);
+      if (value.status === "decided") {
+        this.#connection.offer(value.snapshot);
+      }
       return value;
     } finally {
       this.#pending.delete(requestId);
@@ -197,7 +196,9 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       const reported = this.#connection
         .failures()
         .some((failure) => failure.phase !== "unlisten" && failure.error === error);
-      if (!reported) throw error;
+      if (!reported) {
+        throw error;
+      }
     }
   }
 
@@ -243,17 +244,19 @@ class CheckedNativeContentConnection implements NativeContentConnection {
 
   async #requireCurrent(): Promise<NativeContentSnapshot> {
     await this.ready;
-    if (this.#disposed) throw new NativeContentConnectionDisposedError();
+    if (this.#disposed) {
+      throw new NativeContentConnectionDisposedError();
+    }
     const current = this.#connection.current();
-    if (current === undefined) throw new NativeContentConnectionUnavailableError();
+    if (current === undefined) {
+      throw new NativeContentConnectionUnavailableError();
+    }
     return current;
   }
 
   #beginRequest(): string {
     if (this.#pending.size >= this.#maximumPendingRequests) {
-      throw new NativeContentPendingRequestLimitError(
-        this.#maximumPendingRequests,
-      );
+      throw new NativeContentPendingRequestLimitError(this.#maximumPendingRequests);
     }
     const requestId = this.#port.nextRequestId();
     if (this.#pending.has(requestId)) {
@@ -276,8 +279,12 @@ function eventAction(
 ): SnapshotEventAction {
   assertValidNativeContentChangedEvent(payload);
   const event = payload.cursor;
-  if (event.island_id !== islandId) return { kind: "ignore" };
-  if (current === undefined) return { kind: "refresh" };
+  if (event.island_id !== islandId) {
+    return { kind: "ignore" };
+  }
+  if (current === undefined) {
+    return { kind: "refresh" };
+  }
 
   const currentCursor = current.cursor;
   if (event.authority_epoch < currentCursor.authority_epoch) {
@@ -311,7 +318,9 @@ function isNewerSessionSnapshot(
   candidate: NativeContentSnapshot,
   current: NativeContentSnapshot | undefined,
 ): boolean {
-  if (current === undefined) return true;
+  if (current === undefined) {
+    return true;
+  }
   if (
     candidate.cursor.authority_epoch !== current.cursor.authority_epoch ||
     candidate.cursor.client_epoch !== current.cursor.client_epoch
@@ -325,11 +334,15 @@ export function isNewerNativeContentSnapshot(
   candidate: NativeContentSnapshot,
   current: NativeContentSnapshot | undefined,
 ): boolean {
-  if (current === undefined) return true;
+  if (current === undefined) {
+    return true;
+  }
   if (candidate.cursor.authority_epoch !== current.cursor.authority_epoch) {
     return candidate.cursor.authority_epoch > current.cursor.authority_epoch;
   }
-  if (candidate.cursor.client_epoch !== current.cursor.client_epoch) return false;
+  if (candidate.cursor.client_epoch !== current.cursor.client_epoch) {
+    return false;
+  }
   if (
     candidate.cursor.desired_revision < current.cursor.desired_revision ||
     candidate.cursor.observed_revision < current.cursor.observed_revision

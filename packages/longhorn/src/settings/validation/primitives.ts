@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import {
   SETTINGS_VARIANT_FIELDS,
   SETTINGS_VARIANT_FIELDS_DISCRIMINANTS,
@@ -6,20 +7,17 @@ import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
   SETTINGS_PROTOCOL_VERSION,
-  type SettingsOpaqueValue,
 } from "../generated/protocol.ts";
-import {
-  incompatible,
-  type SettingsProtocolValidationCode,
-} from "./error.ts";
+import type { SettingsOpaqueValue } from "../generated/protocol.ts";
+import { incompatible } from "./error.ts";
+import type { SettingsProtocolValidationCode } from "./error.ts";
 
 /**
  * Kept under its original name so the twenty call sites do not churn, but the
  * value is now the Rust `SettingsLimits::HARD_MAXIMUM_OPAQUE_VALUE_BYTES`
  * rather than a literal that happened to match it.
  */
-export const HARD_MAXIMUM_OPAQUE_VALUE_BYTES: number =
-  SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES;
+export const HARD_MAXIMUM_OPAQUE_VALUE_BYTES: number = SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES;
 const OPAQUE_ID = /^[a-z0-9][a-z0-9._:/-]{0,254}$/;
 
 export function authority(value: unknown): void {
@@ -35,10 +33,7 @@ export function optionalOpaque(value: unknown, maximum: number): void {
   }
 }
 
-export function opaque(
-  value: unknown,
-  maximum: number,
-): asserts value is SettingsOpaqueValue {
+export function opaque(value: unknown, maximum: number): asserts value is SettingsOpaqueValue {
   const envelope = record(value, SETTINGS_FIELDS.SettingsOpaqueValue);
   positive(envelope.codecVersion, "invalid_opaque_value");
   let encoded: string | undefined;
@@ -62,7 +57,7 @@ export function definition(value: unknown): void {
   identity(valueRecord.moduleId);
 }
 
-export function arraysOfIdentities(...values: unknown[]): void {
+export function arraysOfIdentities(...values: Array<unknown>): void {
   values.forEach((value) => array(value).forEach(identity));
 }
 
@@ -78,7 +73,7 @@ export function protocolVersion(value: unknown): void {
   }
 }
 
-export function known(value: unknown, choices: readonly string[]): void {
+export function known(value: unknown, choices: ReadonlyArray<string>): void {
   if (typeof value !== "string" || !choices.includes(value)) {
     incompatible("unknown_discriminant", value);
   }
@@ -106,25 +101,15 @@ export function integer(value: unknown): void {
   }
 }
 
-export function positive(
-  value: unknown,
-  code: SettingsProtocolValidationCode,
-): void {
+export function positive(value: unknown, code: SettingsProtocolValidationCode): void {
   unsigned(value, code);
   if (value === 0) {
     incompatible(code, value);
   }
 }
 
-export function unsigned(
-  value: unknown,
-  code: SettingsProtocolValidationCode,
-): void {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 0
-  ) {
+export function unsigned(value: unknown, code: SettingsProtocolValidationCode): void {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     incompatible(code, value);
   }
 }
@@ -133,7 +118,7 @@ export function boundedArray(
   value: unknown,
   maximum: number,
   code: SettingsProtocolValidationCode,
-): unknown[] {
+): Array<unknown> {
   const values = array(value);
   if (values.length > maximum) {
     incompatible(code, values.length);
@@ -141,7 +126,7 @@ export function boundedArray(
   return values;
 }
 
-export function array(value: unknown): unknown[] {
+export function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     incompatible("invalid_shape", value);
   }
@@ -156,15 +141,14 @@ export function array(value: unknown): unknown[] {
  * Called without a list, this keeps shape-only behaviour, which is correct
  * for a tagged union and a gap anywhere else.
  */
-export function record(
-  value: unknown,
-  allowed?: readonly string[],
-): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+export function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
+  if (!isRecord(value)) {
     incompatible("invalid_shape", value);
   }
-  const result = value as Record<string, unknown>;
-  if (allowed === undefined) return result;
+  const result = value;
+  if (allowed === undefined) {
+    return result;
+  }
 
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {
@@ -192,12 +176,12 @@ export function record(
  * caller sent something odd — every caller checks the discriminant with
  * `known()` above this call.
  */
-export function variantKeys(
-  type: string,
-  value: Record<string, unknown>,
-): readonly string[] {
+export function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[SETTINGS_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = SETTINGS_VARIANT_FIELDS[type]?.[discriminant as string];
-  if (keys === undefined) incompatible("unknown_field", { type, discriminant });
+  const keys =
+    typeof discriminant === "string" ? SETTINGS_VARIANT_FIELDS[type]?.[discriminant] : undefined;
+  if (keys === undefined) {
+    incompatible("unknown_field", { type, discriminant });
+  }
   return keys;
 }

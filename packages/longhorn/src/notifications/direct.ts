@@ -7,6 +7,8 @@ export interface DirectNotificationHandlers {
   readonly nextRequestId: NotificationPort["nextRequestId"];
 }
 
-export function createDirectNotificationPort(handlers: DirectNotificationHandlers): NotificationPort {
+export function createDirectNotificationPort(
+  handlers: DirectNotificationHandlers,
+): NotificationPort {
   return { ...handlers };
 }

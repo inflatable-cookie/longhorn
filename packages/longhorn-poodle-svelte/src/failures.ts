@@ -9,5 +9,6 @@ export function errorMessage(error: unknown): string {
  * to the operator's console without an unhandled rejection.
  */
 export function reportFailure(error: unknown): void {
+  // oxlint-disable-next-line no-console -- Host cleanup failures have no session to report them.
   console.error(error);
 }

@@ -1,0 +1,1 @@
+TypeScript and Svelte QA now checks strict package and script types, Svelte warnings, type-aware lint, TypeScript and Svelte formatting, and unused code. The published adapter no longer carries a wildcard Svelte declaration. Rust QA adds a local unused-dependency check and the release flow checks dependency licenses, sources and bans alongside advisories.

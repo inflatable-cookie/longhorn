@@ -16,25 +16,22 @@ export interface LicenceFixture {
   readonly snapshot: LicenceSnapshot;
   readonly graceSnapshot: LicenceSnapshot;
   readonly unlicensedSnapshot: LicenceSnapshot;
-  readonly activateCommands: readonly LicenceActivateCommand[];
+  readonly activateCommands: ReadonlyArray<LicenceActivateCommand>;
   readonly deactivateCommand: LicenceDeactivateCommand;
   readonly refreshCommand: LicenceRefreshCommand;
   readonly releaseSeatCommand: LicenceReleaseSeatCommand;
   readonly renameSeatCommand: LicenceRenameSeatCommand;
-  readonly outcomes: readonly LicenceOutcomeProjection[];
+  readonly outcomes: ReadonlyArray<LicenceOutcomeProjection>;
   readonly changedEvent: LicenceChangedEvent;
   readonly incompatibility: Record<string, unknown>;
 }
 
 export function fixture(): LicenceFixture {
   return JSON.parse(
-    readFileSync(
-      new URL("../../../../fixtures/licence/protocol-v1.json", import.meta.url),
-      "utf8",
-    ),
+    readFileSync(new URL("../../../../fixtures/licence/protocol-v1.json", import.meta.url), "utf8"),
   ) as LicenceFixture;
 }
 
 export function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

@@ -14,23 +14,13 @@ import {
   assertSurfaceProtocolVersion,
 } from "@inflatable-cookie/longhorn/surfaces";
 
-const fixturePath = new URL(
-  "../../../../fixtures/surfaces/protocol-v1.json",
-  import.meta.url,
-);
+const fixturePath = new URL("../../../../fixtures/surfaces/protocol-v1.json", import.meta.url);
 const fixture = record(JSON.parse(readFileSync(fixturePath, "utf8")));
 
 describe("Rust Surface protocol fixture", () => {
   test("round-trips every generated category without changing JSON", () => {
     assertSurfaceProtocolVersion(fixture.protocol_version);
-    for (const category of [
-      "snapshots",
-      "commands",
-      "receipts",
-      "errors",
-      "responses",
-      "events",
-    ]) {
+    for (const category of ["snapshots", "commands", "receipts", "errors", "responses", "events"]) {
       expect(roundTrip(fixture[category])).toEqual(fixture[category]);
     }
   });
@@ -52,15 +42,9 @@ describe("Rust Surface protocol fixture", () => {
       return code;
     });
 
-    expect(new Set(commands)).toEqual(
-      new Set(SURFACE_MUTATION_COMMAND_KINDS),
-    );
-    expect(new Set(outcomes)).toEqual(
-      new Set(SURFACE_MUTATION_OUTCOME_KINDS),
-    );
-    expect(new Set(codes)).toEqual(
-      new Set(SURFACE_MUTATION_REJECTION_CODES),
-    );
+    expect(new Set(commands)).toEqual(new Set(SURFACE_MUTATION_COMMAND_KINDS));
+    expect(new Set(outcomes)).toEqual(new Set(SURFACE_MUTATION_OUTCOME_KINDS));
+    expect(new Set(codes)).toEqual(new Set(SURFACE_MUTATION_REJECTION_CODES));
     for (const response of array(fixture.responses)) {
       assertValidSurfaceMutationResponse(response);
     }
@@ -75,22 +59,10 @@ describe("Surface protocol incompatibility", () => {
 
   test("rejects future versions and unknown variants", () => {
     for (const check of [
-      () =>
-        assertSurfaceProtocolVersion(
-          incompatibility.future_protocol_version,
-        ),
-      () =>
-        assertValidSurfaceMutationCommand(
-          incompatibility.unknown_command,
-        ),
-      () =>
-        assertValidSurfaceMutationOutcome(
-          incompatibility.unknown_outcome,
-        ),
-      () =>
-        assertValidSurfaceMutationRejectionCode(
-          incompatibility.unknown_rejection_code,
-        ),
+      () => assertSurfaceProtocolVersion(incompatibility.future_protocol_version),
+      () => assertValidSurfaceMutationCommand(incompatibility.unknown_command),
+      () => assertValidSurfaceMutationOutcome(incompatibility.unknown_outcome),
+      () => assertValidSurfaceMutationRejectionCode(incompatibility.unknown_rejection_code),
       () =>
         assertValidSurfaceMutationResponse({
           status: "future_surface_response",
@@ -102,7 +74,7 @@ describe("Surface protocol incompatibility", () => {
 });
 
 function roundTrip(value: unknown): unknown {
-  return JSON.parse(JSON.stringify(value));
+  return structuredClone(value);
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -112,7 +84,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function array(value: unknown): unknown[] {
+function array(value: unknown): Array<unknown> {
   if (!Array.isArray(value)) {
     throw new TypeError("expected JSON array");
   }

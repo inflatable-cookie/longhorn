@@ -15,16 +15,17 @@ describe("agent-control packaging", () => {
       minify: false,
     });
     expect(result.success).toBe(true);
-    const joined = (await Promise.all(result.outputs.map((artifact) => artifact.text()))).join(
-      "",
-    );
+    const joined = (await Promise.all(result.outputs.map((artifact) => artifact.text()))).join("");
     expect(joined.length).toBeGreaterThan(0);
     expect(joined).toContain(SHIM_GLOBAL);
     expect(joined).toContain("data-longhorn-agent-ref");
     expect(joined).not.toMatch(/\bfrom\s+["']/);
     expect(joined).not.toMatch(/\bimport\s+/);
     const committed = readFileSync(
-      join(import.meta.dir, "../../../../crates/longhorn-tauri-agent-control/src/agent_control_shim.js"),
+      join(
+        import.meta.dir,
+        "../../../../crates/longhorn-tauri-agent-control/src/agent_control_shim.js",
+      ),
       "utf8",
     );
     expect(committed).toBe(joined);

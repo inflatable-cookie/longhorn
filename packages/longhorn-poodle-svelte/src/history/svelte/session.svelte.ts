@@ -1,7 +1,7 @@
-import {
-  HistoryController,
-  type HistoryControllerOptions,
-  type HistoryControllerStatus,
+import { HistoryController } from "@inflatable-cookie/longhorn/history";
+import type {
+  HistoryControllerOptions,
+  HistoryControllerStatus,
 } from "@inflatable-cookie/longhorn/history";
 import type {
   HistoryEntryId,
@@ -18,7 +18,7 @@ export class HistorySession {
   status = $state<HistoryControllerStatus>({ kind: "idle" });
   snapshot = $state<HistorySnapshot | undefined>();
   pageSnapshot = $state<HistoryPageSnapshot | undefined>();
-  entries = $state<HistoryEntryRecord[]>([]);
+  entries = $state<Array<HistoryEntryRecord>>([]);
   rejection = $state<HistoryNavigationRejectionProjection | undefined>();
   filter = $state("");
   page = $state(1);

@@ -19,7 +19,7 @@
 // bring the bug back silently.
 
 // eslint-disable-next-line no-control-regex
-const ANSI = /\x1b\[[0-9;]*m/g;
+const ANSI = /\u001b\[[0-9;]*m/g;
 
 /**
  * Returns the number of passing tests in vitest summary output, or 0 when the
@@ -31,6 +31,6 @@ const ANSI = /\x1b\[[0-9;]*m/g;
  * it claims to.
  */
 export function testCount(output: string): number {
-  const match = output.replace(ANSI, "").match(/Tests\s+(\d+) passed/);
+  const match = output.replaceAll(ANSI, "").match(/Tests\s+(\d+) passed/);
   return match ? Number(match[1]) : 0;
 }

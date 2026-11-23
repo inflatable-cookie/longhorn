@@ -10,22 +10,16 @@ import { fixture } from "./support.ts";
 describe("Rust and TypeScript command semantics", () => {
   test("share canonical search ranking", () => {
     for (const semantic of fixture.semantics.search) {
-      expect(
-        searchCommands(fixture.catalogue.commands, semantic.query),
-      ).toEqual(semantic.hits);
+      expect(searchCommands(fixture.catalogue.commands, semantic.query)).toEqual(semantic.hits);
     }
   });
 
   test("share platform shortcut labels and sources", () => {
     const keymap = fixture.snapshots[0]!;
     for (const semantic of fixture.semantics.shortcuts) {
-      expect(
-        shortcutsForCommand(
-          keymap,
-          semantic.commandId,
-          semantic.platform,
-        ),
-      ).toEqual(semantic.shortcuts);
+      expect(shortcutsForCommand(keymap, semantic.commandId, semantic.platform)).toEqual(
+        semantic.shortcuts,
+      );
     }
   });
 
@@ -39,15 +33,14 @@ describe("Rust and TypeScript command semantics", () => {
         bindings: semantic.bindings,
         commands: fixture.catalogue.commands,
         reserved:
-          semantic.resolution.kind === "gated" &&
-          semantic.resolution.gate === "reserved"
+          semantic.resolution.kind === "gated" && semantic.resolution.gate === "reserved"
             ? () => true
             : undefined,
       });
       expect(resolution).toEqual(semantic.resolution);
-      expect(
-        resolution.kind === "captured" || resolution.kind === "resolved",
-      ).toBe(semantic.consumed);
+      expect(resolution.kind === "captured" || resolution.kind === "resolved").toBe(
+        semantic.consumed,
+      );
     }
   });
 });

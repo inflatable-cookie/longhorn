@@ -17,7 +17,7 @@ export function parseWorkspacePackageVersion(manifest: string): string {
   return match[1];
 }
 
-export function readWorkspacePackageVersion(repoRoot = defaultRepoRoot): string {
+function readWorkspacePackageVersion(repoRoot = defaultRepoRoot): string {
   return parseWorkspacePackageVersion(readFileSync(join(repoRoot, "Cargo.toml"), "utf8"));
 }
 
@@ -27,7 +27,7 @@ export function longhornVersion(repoRoot = defaultRepoRoot): string {
 
 export function parseSemver(version: string): [number, number, number] {
   const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
-  if (!match) {
+  if (!match?.[1] || !match[2] || !match[3]) {
     throw new Error(`expected X.Y.Z semver, got ${version}`);
   }
   return [
@@ -40,9 +40,7 @@ export function parseSemver(version: string): [number, number, number] {
 export function compareSemver(left: string, right: string): number {
   const leftParts = parseSemver(left);
   const rightParts = parseSemver(right);
-  for (let index = 0; index < 3; index += 1) {
-    const delta = leftParts[index]! - rightParts[index]!;
-    if (delta !== 0) return delta < 0 ? -1 : 1;
-  }
-  return 0;
+  const delta =
+    leftParts[0] - rightParts[0] || leftParts[1] - rightParts[1] || leftParts[2] - rightParts[2];
+  return Math.sign(delta);
 }

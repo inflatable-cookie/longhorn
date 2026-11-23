@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   SURFACE_VARIANT_FIELDS,
   SURFACE_VARIANT_FIELDS_DISCRIMINANTS,
@@ -7,12 +8,14 @@ import {
   SURFACE_MUTATION_OUTCOME_KINDS,
   SURFACE_MUTATION_REJECTION_CODES,
   SURFACE_PROTOCOL_VERSION,
-  type SurfaceChangedEvent,
-  type SurfaceMutationCommand,
-  type SurfaceMutationOutcome,
-  type SurfaceMutationRejectionCode,
-  type SurfaceMutationResponse,
-  type SurfaceSnapshot,
+} from "./generated/protocol.ts";
+import type {
+  SurfaceChangedEvent,
+  SurfaceMutationCommand,
+  SurfaceMutationOutcome,
+  SurfaceMutationRejectionCode,
+  SurfaceMutationResponse,
+  SurfaceSnapshot,
 } from "./generated/protocol.ts";
 import { SURFACE_FIELDS } from "./generated/fields.ts";
 
@@ -42,23 +45,30 @@ export function assertSurfaceProtocolVersion(
   version: unknown,
 ): asserts version is typeof SURFACE_PROTOCOL_VERSION {
   if (version !== SURFACE_PROTOCOL_VERSION) {
-    throw new SurfaceProtocolValidationError(
-      "unsupported_protocol_version",
-      version,
-    );
+    throw new SurfaceProtocolValidationError("unsupported_protocol_version", version);
   }
 }
 
 export function assertValidSurfaceMutationCommand(
   value: unknown,
 ): asserts value is SurfaceMutationCommand {
-  assertKnownKind(value, SURFACE_MUTATION_COMMAND_KINDS, "unknown_command", "SurfaceMutationCommand");
+  assertKnownKind(
+    value,
+    SURFACE_MUTATION_COMMAND_KINDS,
+    "unknown_command",
+    "SurfaceMutationCommand",
+  );
 }
 
 export function assertValidSurfaceMutationOutcome(
   value: unknown,
 ): asserts value is SurfaceMutationOutcome {
-  assertKnownKind(value, SURFACE_MUTATION_OUTCOME_KINDS, "unknown_outcome", "SurfaceMutationOutcome");
+  assertKnownKind(
+    value,
+    SURFACE_MUTATION_OUTCOME_KINDS,
+    "unknown_outcome",
+    "SurfaceMutationOutcome",
+  );
 }
 
 export function assertValidSurfaceMutationRejectionCode(
@@ -66,14 +76,9 @@ export function assertValidSurfaceMutationRejectionCode(
 ): asserts value is SurfaceMutationRejectionCode {
   if (
     typeof value !== "string" ||
-    !SURFACE_MUTATION_REJECTION_CODES.includes(
-      value as (typeof SURFACE_MUTATION_REJECTION_CODES)[number],
-    )
+    !SURFACE_MUTATION_REJECTION_CODES.some((code) => code === value)
   ) {
-    throw new SurfaceProtocolValidationError(
-      "unknown_rejection_code",
-      value,
-    );
+    throw new SurfaceProtocolValidationError("unknown_rejection_code", value);
   }
 }
 
@@ -88,6 +93,7 @@ export function assertValidSurfaceMutationResponse(
     case "committed": {
       record(response, variantKeys("SurfaceMutationResponse", response));
       const receipt = record(response.receipt, SURFACE_FIELDS.SurfaceMutationReceipt);
+      // oxlint-disable-next-line quality/no-known-value-widening -- Runtime validation also covers structurally typed callers and untrusted wire values.
       assertValidSurfaceMutationOutcome(record(receipt.outcome));
       return;
     }
@@ -98,40 +104,28 @@ export function assertValidSurfaceMutationResponse(
       return;
     }
     default:
-      throw new SurfaceProtocolValidationError(
-        "unknown_response_status",
-        response.status,
-      );
+      throw new SurfaceProtocolValidationError("unknown_response_status", response.status);
   }
 }
 
-export function assertValidSurfaceSnapshot(
-  value: unknown,
-): asserts value is SurfaceSnapshot {
-  assertSurfaceProtocolVersion(
-    record(value, SURFACE_FIELDS.SurfaceSnapshot).protocol_version,
-  );
+export function assertValidSurfaceSnapshot(value: unknown): asserts value is SurfaceSnapshot {
+  assertSurfaceProtocolVersion(record(value, SURFACE_FIELDS.SurfaceSnapshot).protocol_version);
 }
 
 export function assertValidSurfaceChangedEvent(
   value: unknown,
 ): asserts value is SurfaceChangedEvent {
-  assertSurfaceProtocolVersion(
-    record(value, SURFACE_FIELDS.SurfaceChangedEvent).protocol_version,
-  );
+  assertSurfaceProtocolVersion(record(value, SURFACE_FIELDS.SurfaceChangedEvent).protocol_version);
 }
 
 function assertKnownKind(
   value: unknown,
-  known: readonly string[],
+  known: ReadonlyArray<string>,
   code: "unknown_command" | "unknown_outcome",
   type: string,
 ): asserts value is Record<"kind", string> {
   const candidate = record(value);
-  if (
-    typeof candidate.kind !== "string" ||
-    !known.includes(candidate.kind)
-  ) {
+  if (typeof candidate.kind !== "string" || !known.includes(candidate.kind)) {
     throw new SurfaceProtocolValidationError(code, value);
   }
   // The discriminant is checked above, so a missing map entry here means the
@@ -143,12 +137,10 @@ function assertKnownKind(
  * Allowed keys for one tagged-union variant, from the generated map, with the
  * discriminant's name read from the map too.
  */
-function variantKeys(
-  type: string,
-  value: Record<string, unknown>,
-): readonly string[] {
+function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[SURFACE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = SURFACE_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string" ? SURFACE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (keys === undefined) {
     throw new SurfaceProtocolValidationError("unknown_outcome", { type, discriminant });
   }
@@ -168,15 +160,14 @@ function variantKeys(
  * incompatibility union had no code for it. It reported the wrong thing for
  * every caller but one.
  */
-function record(
-  value: unknown,
-  allowed?: readonly string[],
-): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
+  if (!isRecord(value)) {
     throw new SurfaceProtocolValidationError("invalid_object", value);
   }
-  const result = value as Record<string, unknown>;
-  if (allowed === undefined) return result;
+  const result = value;
+  if (allowed === undefined) {
+    return result;
+  }
 
   const permitted = new Set(allowed);
   for (const key of Object.keys(result)) {

@@ -1,11 +1,7 @@
 import { Window } from "happy-dom";
 
-import {
-  installAgentControlShim,
-  type AgentControlApi,
-  type SemanticNode,
-  type ShimWorld,
-} from "../../src/agent-control/index.ts";
+import { installAgentControlShim } from "../../src/agent-control/index.ts";
+import type { AgentControlApi, SemanticNode, ShimWorld } from "../../src/agent-control/index.ts";
 
 export function openPage(html: string, url = "https://app.example/test"): Window {
   const window = new Window({ url });
@@ -20,23 +16,31 @@ export function install(window: Window): AgentControlApi {
 }
 
 export function findByName(node: SemanticNode, name: string): SemanticNode | undefined {
-  if (node.name === name) return node;
+  if (node.name === name) {
+    return node;
+  }
   for (const child of node.children) {
     const match = findByName(child, name);
-    if (match) return match;
+    if (match) {
+      return match;
+    }
   }
   return undefined;
 }
 
 export function findByRole(node: SemanticNode, role: string): SemanticNode | undefined {
-  if (node.role === role) return node;
+  if (node.role === role) {
+    return node;
+  }
   for (const child of node.children) {
     const match = findByRole(child, role);
-    if (match) return match;
+    if (match) {
+      return match;
+    }
   }
   return undefined;
 }
 
-export function collectRoles(node: SemanticNode): string[] {
+export function collectRoles(node: SemanticNode): Array<string> {
   return [node.role, ...node.children.flatMap(collectRoles)];
 }

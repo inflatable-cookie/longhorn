@@ -9,7 +9,7 @@ describe("msrv", () => {
 
   test("parses [workspace.package].rust-version instead of matching comments or other tables", () => {
     const manifest = [
-      "# rust-version = \"1.97.1\"",
+      '# rust-version = "1.97.1"',
       "[workspace]",
       "members = []",
       "",
@@ -21,7 +21,7 @@ describe("msrv", () => {
     ].join("\n");
     expect(parseWorkspaceRustVersion(manifest)).toBe("1.85.0");
 
-    const missing = ["[workspace]", "members = []", "# rust-version = \"1.97.1\""].join("\n");
+    const missing = ["[workspace]", "members = []", '# rust-version = "1.97.1"'].join("\n");
     expect(parseWorkspaceRustVersion(missing)).toBeUndefined();
   });
 });

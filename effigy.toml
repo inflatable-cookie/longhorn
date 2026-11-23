@@ -8,6 +8,7 @@ setup = ["bootstrap:deps"]
 include = ["config/release.toml"]
 
 [tasks]
+# Temporary diagnostic routes used during revision.
 "bootstrap:deps" = "bun install --frozen-lockfile"
 
 # Aggregates stay one task per job. Keep package-level variants only where
@@ -41,7 +42,12 @@ include = ["config/release.toml"]
 # Second pass: default features leave bindings/supervision/operation and the
 # proof examples' surface-mode code uncompiled, so `lint:rust` cannot see them.
 "lint:rust:features" = "bash scripts/rust-command.sh clippy --workspace --all-targets --all-features --locked -- -D warnings"
+# Keep libtest's shared-process coverage (including the PTY sessions suite)
+# and Cargo's doctests in the same workspace run. Targeted nextest routes
+# provide process isolation and timeouts for PTY and Git workspace checks.
 "test:rust" = "bash scripts/rust-command.sh test --workspace --locked"
+# Local QA: hosted runners do not install cargo-machete.
+"check:machete" = "bun scripts/check-rust-dependency-use.ts"
 # The agent-control test lane with the stdio carrier enabled (contract 022,
 # g02.044): the package's unit tests plus every integration target, including
 # the whole carrier end-to-end suite (HTTP parity, listen/resource
@@ -83,9 +89,6 @@ include = ["config/release.toml"]
 # first failure keep a hung Git child from holding the run.
 "test:git-workspace" = "bash scripts/rust-command.sh nextest run -p longhorn-git-workspace --locked --features longhorn-git-workspace/fixture-server --config-file crates/longhorn-git-workspace/nextest.toml --max-fail 1:immediate"
 "test:tool-provision" = "bash scripts/rust-command.sh test -p longhorn-tool-provision -p longhorn-archive-path --locked --features longhorn-tool-provision/fixture-server"
-# `effigy test` (the built-in) plans `cargo nextest run`, which skips doc
-# tests. The gate runner is this selector because doc tests are part of the
-# claim. The built-in remains a convenience for iteration.
 "docs:rust" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc --workspace --no-deps --locked"
 "docs:agent-tool-dispatch" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-agent-tool-dispatch --no-deps --locked"
 "docs:redact" = "RUSTDOCFLAGS=\"-D warnings\" bash scripts/rust-command.sh doc -p longhorn-redact --no-deps --locked"
@@ -115,7 +118,7 @@ include = ["config/release.toml"]
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
 "check:ts" = [
   { task = "check:bun-deps" },
-  "sh -c 'for c in packages/*/tsconfig.json; do bun x tsc -p \"$c\" || exit 1; done'",
+  "sh -c 'for c in packages/longhorn/tsconfig.json packages/longhorn-tauri/tsconfig.json packages/longhorn-poodle-svelte/tsconfig.tsc.json tsconfig.json; do bun x tsc -p \"$c\" || result=1; done; exit \"${result:-0}\"'",
 ]
 # Package selectors are the bounded building blocks. Keep check:ts as the
 # workspace aggregate used by qa.
@@ -129,11 +132,25 @@ include = ["config/release.toml"]
 ]
 "check:ts:longhorn-poodle-svelte" = [
   { task = "check:bun-deps" },
-  "bun x tsc -p packages/longhorn-poodle-svelte/tsconfig.json",
+  "bun x tsc -p packages/longhorn-poodle-svelte/tsconfig.tsc.json",
 ]
 "check:svelte" = [
   { task = "check:bun-deps" },
-  "bun x svelte-check --tsconfig packages/longhorn-poodle-svelte/tsconfig.json",
+  "bun x svelte-check --fail-on-warnings --tsconfig packages/longhorn-poodle-svelte/tsconfig.json",
+]
+"lint:ts" = [
+  { task = "check:bun-deps" },
+  "OXLINT_TSGOLINT_PATH=./node_modules/.bin/tsgolint bun x --bun oxlint --type-aware --deny-warnings packages scripts examples/agent-control-proof oxlint.config.ts knip.ts",
+]
+"fmt:ts" = [
+  { task = "check:bun-deps" },
+  "node node_modules/.bin/oxfmt --check 'packages/**/*.ts' 'scripts/**/*.ts' 'examples/agent-control-proof/*.ts' oxlint.config.ts knip.ts svelte.config.mjs",
+  # Keep Svelte separate so its measured coverage stays visible.
+  "node node_modules/.bin/oxfmt --check 'packages/**/*.svelte'",
+]
+"check:knip" = [
+  { task = "check:bun-deps" },
+  "bun x knip",
 ]
 "check:packages" = "sh -c 'for d in packages/*/; do (cd \"$d\" && bun pm pack --dry-run --ignore-scripts >/dev/null) || exit 1; done'"
 # Contract 017 bundled local child-view source: the staged disposable native
@@ -271,11 +288,9 @@ include = ["config/release.toml"]
 # `ci:rehearse`: heavy task table below ([tasks."ci:rehearse"]).
 
 # --- Release ------------------------------------------------------------
-# The release `advisories` gate command, exposed as a task selector so a
-# dependency-security repair can run the exact configured gate without the
-# full release:gates list. Alignment is unaffected: `release:gates` keeps
-# its own declaration order and `check:release-gates` still compares that
-# list to config/release.toml.
+# The release dependency policy can be checked separately from the live
+# advisory database for targeted work.
+"check:rust-dependencies" = "bash scripts/rust-command.sh deny check bans licenses sources"
 "check:advisories" = "bash scripts/rust-command.sh deny check advisories"
 # `release:floor`: heavy task table below ([tasks."release:floor"]).
 "release:source-consumer" = "bash scripts/verify-source-consumer.sh"
@@ -283,7 +298,7 @@ include = ["config/release.toml"]
 # fails if this list drifts. The runner still runs `effigy qa` separately.
 "release:gates" = [
   "bun scripts/verify-private-candidate-docs.ts",
-  "bash scripts/rust-command.sh deny check advisories",
+  "bash scripts/rust-command.sh deny check",
   { task = "docs:rust" },
   { task = "check:prototypes" },
   { task = "release:floor" },
@@ -343,6 +358,9 @@ qa = [
   { task = "test:config-toml" },
   { task = "check:ts" },
   { task = "check:svelte" },
+  { task = "lint:ts" },
+  { task = "fmt:ts" },
+  { task = "check:knip" },
   { task = "check:packages" },
   { task = "test:ts" },
   { task = "test:vitest" },
@@ -633,6 +651,7 @@ members = [
     targets = [
       "path:scripts/verify-pack-typecheck.ts",
       "path:scripts/proof-install.ts",
+      "path:scripts/proof-json.ts",
       "path:scripts/poodle-release.ts",
       "bun-package:@inflatable-cookie/longhorn",
       "path:packages/longhorn/**",
@@ -646,6 +665,7 @@ members = [
     covers = [
       "path:scripts/verify-pack-typecheck.ts",
       "path:scripts/proof-install.ts",
+      "path:scripts/proof-json.ts",
       "path:scripts/poodle-release.ts",
       "bun-package:@inflatable-cookie/longhorn",
       "path:packages/longhorn/**",
@@ -1170,6 +1190,124 @@ members = [
       "path:crates/longhorn-core/**",
     ],
     limits = ["Stages all eight crates, so a change to one rebuilds every unit's stage"],
+  },
+]
+
+[qa.groups.typescript-static]
+lifecycle = "maintained"
+purpose = "Check authored TypeScript and Svelte across the packages and repository scripts"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = ["Generated bindings and packaged or staged consumers have independent proofs"]
+members = [
+  {
+    id = "tsc",
+    kind = "compile",
+    surface = "published",
+    task = "check:ts",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:tsconfig.base.json", "path:tsconfig.json", "path:package.json", "path:bun.lock"],
+    limits = ["Typechecks the three packages, scripts and agent-control proof drivers"],
+  },
+  {
+    id = "svelte",
+    kind = "compile",
+    surface = "published",
+    task = "check:svelte",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:packages/longhorn-poodle-svelte/**", "path:svelte.config.mjs"],
+    limits = ["Checks Svelte template and prop types and denies warnings"],
+  },
+  {
+    id = "lint",
+    kind = "proof",
+    surface = "published",
+    task = "lint:ts",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:oxlint.config.ts"],
+    limits = ["Requires zero lint diagnostics in authored TypeScript and Svelte script blocks"],
+  },
+  {
+    id = "format",
+    kind = "proof",
+    surface = "published",
+    task = "fmt:ts",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:.oxfmtrc.jsonc"],
+    limits = ["Checks authored TypeScript and Svelte formatting"],
+  },
+  {
+    id = "knip",
+    kind = "proof",
+    surface = "published",
+    task = "check:knip",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:knip.ts"],
+    limits = ["Checks the workspace graph with published entry points retained"],
+  },
+  {
+    id = "bun-tests",
+    kind = "test",
+    surface = "published",
+    task = "test:ts",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**"],
+    limits = ["Runs the workspace Bun package tests"],
+  },
+  {
+    id = "svelte-tests",
+    kind = "test",
+    surface = "published",
+    task = "test:vitest",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:packages/longhorn-poodle-svelte/**"],
+    limits = ["Runs the workspace Svelte Vitest tests"],
+  },
+  {
+    id = "release-tooling",
+    kind = "test",
+    surface = "published",
+    task = "test:release-tooling",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:scripts/**"],
+    limits = ["Runs script unit and routing tests"],
+  },
+]
+
+[qa.groups.rust-dependencies]
+lifecycle = "maintained"
+purpose = "Check root Rust workspace dependency use and release policy locally"
+scope_policy = "required"
+coverage_gaps = []
+proof_limits = ["Requires local cargo-machete and cargo-deny", "Staged templates, standalone prototypes and live advisory data have separate coverage"]
+members = [
+  {
+    id = "machete",
+    kind = "proof",
+    surface = "published",
+    task = "check:machete",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:crates/*/Cargo.toml", "path:examples/**/Cargo.toml", "path:scripts/check-rust-dependency-use.ts", "path:scripts/cargo-metadata.ts", "path:scripts/proof-json.ts"],
+    limits = ["Scans actual root workspace members reported by Cargo metadata"],
+  },
+  {
+    id = "deny",
+    kind = "proof",
+    surface = "published",
+    task = "check:rust-dependencies",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:deny.toml", "path:config/release.toml"],
+    limits = ["Checks bans, licenses and sources for the root dependency graph"],
   },
 ]
 

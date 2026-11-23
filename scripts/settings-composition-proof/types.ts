@@ -1,12 +1,12 @@
-export interface PoodlePackage {
+interface PoodlePackage {
   readonly name: string;
   readonly version: string;
   readonly integrity: string;
 }
 
-export interface PoodleRelease {
+interface PoodleRelease {
   readonly version: string;
-  readonly packages: readonly PoodlePackage[];
+  readonly packages: ReadonlyArray<PoodlePackage>;
 }
 
 export interface ArtifactIdentity {
@@ -15,20 +15,11 @@ export interface ArtifactIdentity {
   readonly sha256: string;
 }
 
-export interface PackageManifest {
-  readonly name: string;
-  readonly version?: string;
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-}
-
 export interface ShapePolicy {
-  readonly longhorn: readonly string[];
-  readonly forbiddenImports: readonly string[];
-  readonly permissions: readonly string[];
-  readonly pages: readonly string[];
+  readonly longhorn: ReadonlyArray<string>;
+  readonly forbiddenImports: ReadonlyArray<string>;
+  readonly permissions: ReadonlyArray<string>;
+  readonly pages: ReadonlyArray<string>;
 }
 
 export interface ProofContext {

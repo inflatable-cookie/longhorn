@@ -16,12 +16,14 @@ import {
   NATIVE_CONTENT_OPERATION_OUTCOME_KINDS,
   NATIVE_CONTENT_READINESS_STATES,
   NATIVE_CONTENT_SIZE_DECISION_KINDS,
-  type ContentSizeDecision,
-  type ContentSizeProposal,
-  type DesiredUpdate,
-  type NativeContentChangedEvent,
-  type NativeContentCursor,
-  type NativeContentSnapshot,
+} from "../generated/protocol.ts";
+import type {
+  ContentSizeDecision,
+  ContentSizeProposal,
+  DesiredUpdate,
+  NativeContentChangedEvent,
+  NativeContentCursor,
+  NativeContentSnapshot,
 } from "../generated/protocol.ts";
 import {
   array,
@@ -48,12 +50,10 @@ export function assertValidNativeContentSnapshot(
   const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentSnapshot);
   assertNativeContentProtocolVersion(object.protocol_version);
   cursor(object.cursor, "$.cursor");
-  desiredState(object.desired, "$.desired");
-  observedState(object.observed, "$.observed");
+  const desired = desiredUpdate(object.desired, "$.desired", true);
+  const observed = observedState(object.observed, "$.observed");
   nullable(object.invalidated_generation, "$.invalidated_generation", positive);
-  const desired = object.desired as Record<string, unknown>;
-  const observed = object.observed as Record<string, unknown>;
-  const valueCursor = object.cursor as Record<string, unknown>;
+  const valueCursor = object.cursor;
   if (
     desired.island_id !== valueCursor.island_id ||
     desired.generation !== valueCursor.attach_generation ||
@@ -74,9 +74,7 @@ export function assertValidNativeContentChangedEvent(
   change(object.change, "$.change");
 }
 
-export function assertValidDesiredUpdate(
-  value: unknown,
-): asserts value is DesiredUpdate {
+export function assertValidDesiredUpdate(value: unknown): asserts value is DesiredUpdate {
   desiredUpdate(value, "$", false);
 }
 
@@ -102,20 +100,14 @@ export function cursor(value: unknown, path: string): asserts value is NativeCon
   natural(object.observed_revision, `${path}.observed_revision`);
 }
 
-export function proposal(
-  value: unknown,
-  path: string,
-): asserts value is ContentSizeProposal {
+export function proposal(value: unknown, path: string): asserts value is ContentSizeProposal {
   const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ContentSizeProposal);
   positive(object.generation, `${path}.generation`);
   natural(object.desired_revision, `${path}.desired_revision`);
   clientSize(object.size, `${path}.size`);
 }
 
-export function decision(
-  value: unknown,
-  path: string,
-): asserts value is ContentSizeDecision {
+export function decision(value: unknown, path: string): asserts value is ContentSizeDecision {
   const object = record(value, path);
   member(object.kind, NATIVE_CONTENT_SIZE_DECISION_KINDS, `${path}.kind`);
   if (object.kind === "accepted") {
@@ -133,7 +125,7 @@ export function desiredUpdate(
   value: unknown,
   path: string,
   includeIdentity: boolean,
-): void {
+): Record<string, unknown> {
   const keys = [
     "generation",
     "host_window_id",
@@ -145,7 +137,9 @@ export function desiredUpdate(
     "focus",
     "input_routing",
   ];
-  if (includeIdentity) keys.unshift("island_id", "kind_id", "capabilities", "revision");
+  if (includeIdentity) {
+    keys.unshift("island_id", "kind_id", "capabilities", "revision");
+  }
   const object = exactObject(value, path, keys);
   if (includeIdentity) {
     opaqueId(object.island_id, `${path}.island_id`);
@@ -162,16 +156,17 @@ export function desiredUpdate(
   desiredVisibility(object.visibility, `${path}.visibility`);
   member(object.focus, NATIVE_CONTENT_FOCUS_INTENTS, `${path}.focus`);
   member(object.input_routing, NATIVE_CONTENT_INPUT_ROUTING_MODES, `${path}.input_routing`);
-}
-
-function desiredState(value: unknown, path: string): void {
-  desiredUpdate(value, path, true);
+  return object;
 }
 
 function capabilities(value: unknown, path: string): void {
   const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.MechanismCapabilities);
   member(object.mechanism, NATIVE_CONTENT_MECHANISMS, `${path}.mechanism`);
-  member(object.active_input_routing, NATIVE_CONTENT_INPUT_ROUTING_MODES, `${path}.active_input_routing`);
+  member(
+    object.active_input_routing,
+    NATIVE_CONTENT_INPUT_ROUTING_MODES,
+    `${path}.active_input_routing`,
+  );
   boolean(object.accepts_content_size_requests, `${path}.accepts_content_size_requests`);
   member(object.detach_policy, NATIVE_CONTENT_DETACH_POLICIES, `${path}.detach_policy`);
   boolean(object.observes_visibility, `${path}.observes_visibility`);
@@ -189,7 +184,7 @@ function desiredVisibility(value: unknown, path: string): void {
   }
 }
 
-function observedState(value: unknown, path: string): void {
+function observedState(value: unknown, path: string): Record<string, unknown> {
   const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ObservedState);
   natural(object.revision, `${path}.revision`);
   positive(object.generation, `${path}.generation`);
@@ -199,8 +194,9 @@ function observedState(value: unknown, path: string): void {
   member(object.focus, NATIVE_CONTENT_EFFECTIVE_FOCUS_STATES, `${path}.focus`);
   observedGeometry(object.geometry, `${path}.geometry`);
   nullable(object.input_routing, `${path}.input_routing`, (candidate, candidatePath) =>
-    member(candidate, NATIVE_CONTENT_INPUT_ROUTING_MODES, candidatePath)
+    member(candidate, NATIVE_CONTENT_INPUT_ROUTING_MODES, candidatePath),
   );
+  return object;
 }
 
 function observedGeometry(value: unknown, path: string): void {
@@ -300,7 +296,9 @@ function applyReceipt(value: unknown, path: string): void {
   natural(object.observed_revision, `${path}.observed_revision`);
   positive(object.generation, `${path}.generation`);
   const steps = array(object.steps, `${path}.steps`);
-  if (steps.length > 5) fail(`${path}.steps`, "apply receipt exceeds five steps");
+  if (steps.length > 5) {
+    fail(`${path}.steps`, "apply receipt exceeds five steps");
+  }
   steps.forEach((step, index) => stepReceipt(step, `${path}.steps[${index}]`));
 }
 
@@ -378,7 +376,7 @@ function clientSize(value: unknown, path: string): void {
   const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ClientSize);
   finite(object.width, `${path}.width`);
   finite(object.height, `${path}.height`);
-  if ((object.width as number) < 0 || (object.height as number) < 0) {
+  if (object.width < 0 || object.height < 0) {
     fail(path, "contains negative extent");
   }
 }

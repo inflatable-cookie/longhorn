@@ -28,24 +28,24 @@ export const fixture = fixtureValue as unknown as {
     catalogueChanged: unknown;
     keymapChanged: unknown;
   };
-  snapshots: CommandKeymapSnapshot[];
-  previewResults: CommandKeymapPreviewResult[];
-  loadOutcomes: CommandKeymapLoadOutcome[];
-  mutationResults: CommandKeymapMutationResult[];
+  snapshots: Array<CommandKeymapSnapshot>;
+  previewResults: Array<CommandKeymapPreviewResult>;
+  loadOutcomes: Array<CommandKeymapLoadOutcome>;
+  mutationResults: Array<CommandKeymapMutationResult>;
   semantics: {
-    context: { revision: number; path: CommandContextId[] };
-    search: Array<{ query: string; hits: CommandSearchHit[] }>;
+    context: { revision: number; path: Array<CommandContextId> };
+    search: Array<{ query: string; hits: Array<CommandSearchHit> }>;
     shortcuts: Array<{
       platform: CommandPlatform;
       commandId: string;
-      shortcuts: CommandShortcutRecord[];
+      shortcuts: Array<CommandShortcutRecord>;
     }>;
     keyboard: Array<{
       platform: CommandPlatform;
       input: CommandKeyboardInput;
-      contextPath: CommandContextId[];
+      contextPath: Array<CommandContextId>;
       mode: CommandKeyboardMode;
-      bindings: CommandEffectiveBinding[];
+      bindings: Array<CommandEffectiveBinding>;
       consumed: boolean;
       resolution: CommandKeyResolution;
     }>;

@@ -1,19 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { SettingsSession } from "../../src/settings/svelte.ts";
-import {
-  deferred,
-  FakeSettingsTransport,
-  registry,
-  renderer,
-  requestIds,
-} from "./support.ts";
+import { deferred, FakeSettingsTransport, registry, renderer, requestIds } from "./support.ts";
 
 /** Waits for a condition across microtasks and timers, without a DOM. */
 async function until(predicate: () => boolean): Promise<void> {
   for (let attempt = 0; attempt < 200; attempt += 1) {
-    if (predicate()) return;
-    await new Promise((resolve) => setTimeout(resolve, 1));
+    if (predicate()) {
+      return;
+    }
+    await new Promise((resolve) => {
+      setTimeout(resolve, 1);
+    });
   }
   throw new Error("condition was never met");
 }
@@ -36,8 +34,8 @@ describe("renderer-only settings pages", () => {
     const transport = new FakeSettingsTransport();
     const value = registry();
     for (const page of value.pages) {
-      (page as { readableScopeIds: string[] }).readableScopeIds = [];
-      (page as { writableApplyUnitIds: string[] }).writableApplyUnitIds = [];
+      (page as { readableScopeIds: Array<string> }).readableScopeIds = [];
+      (page as { writableApplyUnitIds: Array<string> }).writableApplyUnitIds = [];
     }
     transport.registryValue = value;
 
@@ -84,7 +82,9 @@ describe("renderer-only settings pages", () => {
     // Releasing the first route's scope must not undo the navigation.
     gate.resolve();
     await until(() => transport.activeListenerCount() >= 0);
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 5);
+    });
     expect(session.currentPage?.id).toBe("app:renderer-only");
     expect(session.currentContext).toBeDefined();
 

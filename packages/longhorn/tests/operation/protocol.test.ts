@@ -26,21 +26,32 @@ describe("generated operation protocol", () => {
   test("rejects future versions, unknown variants, unsafe integers, and product payloads", () => {
     const future = cloned(fixture.snapshotResponse);
     future.snapshot.protocolVersion = fixture.incompatibility.futureProtocolVersion as number;
-    expect(() => assertValidOperationSnapshotResponse(future)).toThrow(OperationProtocolValidationError);
+    expect(() => assertValidOperationSnapshotResponse(future)).toThrow(
+      OperationProtocolValidationError,
+    );
 
     const unknown = cloned(fixture.mutationCommands[0]! as unknown as Record<string, unknown>);
     unknown.kind = fixture.incompatibility.unknownMutationKind;
-    expect(() => assertValidOperationMutationCommand(unknown)).toThrow(OperationProtocolValidationError);
+    expect(() => assertValidOperationMutationCommand(unknown)).toThrow(
+      OperationProtocolValidationError,
+    );
 
     const unsafe = cloned(fixture.snapshotResponse);
     unsafe.snapshot.catalogueRevision = Number.MAX_SAFE_INTEGER + 1;
-    expect(() => assertValidOperationSnapshotResponse(unsafe)).toThrow(OperationProtocolValidationError);
+    expect(() => assertValidOperationSnapshotResponse(unsafe)).toThrow(
+      OperationProtocolValidationError,
+    );
 
     const payload = cloned(fixture.snapshotResponse) as unknown as Record<string, unknown>;
     (payload.snapshot as Record<string, unknown>).payload = { secret: true };
-    expect(() => assertValidOperationSnapshotResponse(payload)).toThrow(/product payload field is forbidden/);
+    expect(() => assertValidOperationSnapshotResponse(payload)).toThrow(
+      /product payload field is forbidden/,
+    );
 
-    const malformedReceipt = cloned(fixture.mutationResults[0]!) as unknown as Record<string, unknown>;
+    const malformedReceipt = cloned(fixture.mutationResults[0]!) as unknown as Record<
+      string,
+      unknown
+    >;
     (malformedReceipt.receipt as Record<string, unknown>).unexpected = true;
     expect(() => assertValidOperationMutationResult(malformedReceipt)).toThrow(/expected keys/);
   });

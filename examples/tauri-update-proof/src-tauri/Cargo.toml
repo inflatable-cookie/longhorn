@@ -16,10 +16,7 @@ longhorn-core.workspace = true
 longhorn-licence.workspace = true
 longhorn-transfer.workspace = true
 longhorn-update.workspace = true
-longhorn-update-install.workspace = true
-longhorn-tauri-update.workspace = true
 semver.workspace = true
-serde.workspace = true
 serde_json.workspace = true
 tauri = { workspace = true, features = ["wry"] }
 

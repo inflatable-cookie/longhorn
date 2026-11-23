@@ -1,3 +1,5 @@
+import { readPackageIdentity, readPackageManifest, readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { digest, fileDependency, runWithDiagnostics as run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
@@ -37,7 +39,12 @@ const longhornPackages = [
 const shapes = {
   "minimal-shell": {
     longhorn: ["@inflatable-cookie/longhorn", "@inflatable-cookie/longhorn-poodle-svelte"],
-    forbidden: ["@inflatable-cookie/longhorn/layout", "@inflatable-cookie/longhorn-poodle-svelte/poodle", "@inflatable-cookie/longhorn/transfer", "@inflatable-cookie/longhorn/surface-transfer"],
+    forbidden: [
+      "@inflatable-cookie/longhorn/layout",
+      "@inflatable-cookie/longhorn-poodle-svelte/poodle",
+      "@inflatable-cookie/longhorn/transfer",
+      "@inflatable-cookie/longhorn/surface-transfer",
+    ],
     regions: 0,
   },
   nucleus: {
@@ -61,21 +68,13 @@ await mkdir(artifactRoot);
 
 try {
   const artifactPaths = new Map<string, string>();
-  const artifactIdentities: ArtifactIdentity[] = [];
+  const artifactIdentities: Array<ArtifactIdentity> = [];
 
   for (const [name, directory] of longhornPackages) {
     const filename = `${name.replace("@", "").replace("/", "-")}-${LONGHORN_VERSION}.tgz`;
     const path = join(artifactRoot, filename);
     await run(
-      [
-        "bun",
-        "pm",
-        "pack",
-        "--destination",
-        artifactRoot,
-        "--ignore-scripts",
-        "--quiet",
-      ],
+      ["bun", "pm", "pack", "--destination", artifactRoot, "--ignore-scripts", "--quiet"],
       join(repoRoot, "packages", directory),
     );
     artifactPaths.set(name, path);
@@ -93,26 +92,15 @@ try {
       await cp(join(proofRoot, "common", filename), join(stage, filename));
     }
 
-    const manifest = JSON.parse(
-      await readFile(join(source, "package.json"), "utf8"),
-    ) as PackageManifest;
-    manifest.dependencies = rewriteDependencies(
-      manifest.dependencies,
-      artifactPaths,
-    );
+    const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
+    manifest.dependencies = rewriteDependencies(manifest.dependencies ?? {}, artifactPaths);
     manifest.overrides = Object.fromEntries(
       [...artifactPaths].map(([name, path]) => [name, fileDependency(path)]),
     );
-    await writeFile(
-      join(stage, "package.json"),
-      `${JSON.stringify(manifest, null, 2)}\n`,
-    );
+    await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
     await installProofStage(stage);
-    await run(
-      ["bun", "x", "svelte-check", "--tsconfig", "./tsconfig.json"],
-      stage,
-    );
+    await run(["bun", "x", "svelte-check", "--tsconfig", "./tsconfig.json"], stage);
     const testOutput = await run(
       ["bun", "x", "vitest", "run", "--config", "./vitest.config.ts"],
       stage,
@@ -120,9 +108,7 @@ try {
 
     const resolved = [];
     for (const name of policy.longhorn) {
-      resolved.push(
-        await assertArtifactInstall(stage, name, repoRoot, LONGHORN_VERSION),
-      );
+      resolved.push(await assertArtifactInstall(stage, name, repoRoot, LONGHORN_VERSION));
     }
     const poodleResolved = [];
     for (const artifact of poodle.packages) {
@@ -140,16 +126,10 @@ try {
     await assertImportsAbsent(stage, forbidden.imports);
     const svelte = await installedPackage(stage, "svelte");
     if (svelte.manifest.version !== "5.56.8") {
-      throw new Error(
-        `${shape} installed unexpected Svelte ${svelte.manifest.version}`,
-      );
+      throw new Error(`${shape} installed unexpected Svelte ${svelte.manifest.version}`);
     }
     await assertSingleSvelteRuntime(stage);
-    const capability = JSON.parse(
-      await readFile(join(stage, "capability.json"), "utf8"),
-    ) as {
-      readonly permissions: readonly string[];
-    };
+    const capability = readPermissions(await readFile(join(stage, "capability.json"), "utf8"));
     assertCapabilityPolicy(shape, capability.permissions);
     const lock = await readFile(join(stage, "bun.lock"), "utf8");
     if (
@@ -198,11 +178,7 @@ try {
   }
 }
 
-
-async function inspectArtifact(
-  name: string,
-  path: string,
-): Promise<ArtifactIdentity> {
+async function inspectArtifact(name: string, path: string): Promise<ArtifactIdentity> {
   const listing = await run(["tar", "-tzf", path], repoRoot);
   if (
     listing.includes("node_modules/") ||
@@ -211,14 +187,8 @@ async function inspectArtifact(
   ) {
     throw new Error(`${name} artifact contains non-package proof material`);
   }
-  const packedManifest = await run(
-    ["tar", "-xOzf", path, "package/package.json"],
-    repoRoot,
-  );
-  if (
-    packedManifest.includes("workspace:") ||
-    packedManifest.includes("link:")
-  ) {
+  const packedManifest = await run(["tar", "-xOzf", path, "package/package.json"], repoRoot);
+  if (packedManifest.includes("workspace:") || packedManifest.includes("link:")) {
     throw new Error(`${name} artifact contains workspace dependency aliases`);
   }
   return {
@@ -235,7 +205,9 @@ function rewriteDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
@@ -258,9 +230,7 @@ async function assertArtifactInstall(
   // caller's: LONGHORN_VERSION for a Longhorn package, the pinned Poodle
   // release for a Poodle one.
   if (installed.manifest.version !== expected) {
-    throw new Error(
-      `${name} installed ${installed.manifest.version}, expected ${expected}`,
-    );
+    throw new Error(`${name} installed ${installed.manifest.version}, expected ${expected}`);
   }
   const entry = await lstat(installed.path);
   if (!entry.isDirectory() && !entry.isSymbolicLink()) {
@@ -271,12 +241,9 @@ async function assertArtifactInstall(
 
 async function assertSingleSvelteRuntime(stage: string): Promise<void> {
   const nodeModules = join(stage, "node_modules");
-  const manifests = (await readdir(nodeModules, { recursive: true }))
-    .filter(
-      (path) =>
-        path === "svelte/package.json" ||
-        path.endsWith("/node_modules/svelte/package.json"),
-    );
+  const manifests = (await readdir(nodeModules, { recursive: true })).filter(
+    (path) => path === "svelte/package.json" || path.endsWith("/node_modules/svelte/package.json"),
+  );
   if (manifests.length !== 1) {
     throw new Error(
       `expected one Svelte runtime, found ${manifests.length}: ${manifests.join(", ")}`,
@@ -286,9 +253,7 @@ async function assertSingleSvelteRuntime(stage: string): Promise<void> {
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(
-    await readFile(join(path, "package.json"), "utf8"),
-  ) as { readonly name: string; readonly version: string };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -299,11 +264,7 @@ async function installedPackage(stage: string, name: string) {
   };
 }
 
-
-function assertCapabilityPolicy(
-  shape: string,
-  permissions: readonly string[],
-): void {
+function assertCapabilityPolicy(shape: string, permissions: ReadonlyArray<string>): void {
   const permissionSet = new Set(permissions);
   const base = permissionSet.has("allow-longhorn-transfer-base");
   const surfaces = permissionSet.has("allow-longhorn-transfer-surface");
@@ -316,12 +277,6 @@ function assertCapabilityPolicy(
   if (shape === "loophole" && (!base || !surfaces)) {
     throw new Error("Loophole capability omits full transfer authority");
   }
-}
-
-
-interface PackageManifest {
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
 }
 
 interface ArtifactIdentity {

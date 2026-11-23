@@ -6,8 +6,8 @@ import {
   SETTINGS_HARD_MAXIMUM_TEXT_BYTES,
   SETTINGS_POLICY_EFFECTS,
   SETTINGS_RECOVERY_CODES,
-  type SettingsScopeSnapshot,
 } from "../generated/protocol.ts";
+import type { SettingsScopeSnapshot } from "../generated/protocol.ts";
 import { incompatible } from "./error.ts";
 import { activation, hasPolicyOverride, recovery } from "./projection.ts";
 import {
@@ -44,12 +44,9 @@ export function assertValidSettingsScopeSnapshot(
     opaque(projection.compiledDefault, maximumOpaqueValueBytes);
     known(projection.effectiveSource, SETTINGS_EFFECTIVE_SOURCES);
     known(projection.editability, SETTINGS_EDITABILITIES);
-    const hasOverride = projection.policy !== null &&
-      hasPolicyOverride(
-        projection.policy,
-        maximumOpaqueValueBytes,
-        SETTINGS_POLICY_EFFECTS,
-      );
+    const hasOverride =
+      projection.policy !== null &&
+      hasPolicyOverride(projection.policy, maximumOpaqueValueBytes, SETTINGS_POLICY_EFFECTS);
     const managed = projection.effectiveSource === "managedPolicy";
     if (
       hasOverride !== managed ||
@@ -65,11 +62,7 @@ export function assertValidSettingsScopeSnapshot(
     });
   });
   if (snapshot.recovery !== null) {
-    recovery(
-      snapshot.recovery,
-      maximumOpaqueValueBytes,
-      SETTINGS_RECOVERY_CODES,
-    );
+    recovery(snapshot.recovery, maximumOpaqueValueBytes, SETTINGS_RECOVERY_CODES);
   }
   activation(snapshot.activationRequirements, SETTINGS_ACTIVATION_STATES);
 }

@@ -1,7 +1,7 @@
 # cargo deny configuration.
 #
-# Advisories are gated in the release flow (`advisories` gate in
-# effigy.toml's [release.gates]). Vulnerability-class advisories stay denied.
+# Advisories are gated in the release flow (`dependencies` gate in
+# config/release.toml). Vulnerability-class advisories stay denied.
 # The 0.3.0 dependency sweep (2026-09-27) removed the 13 stale allowances:
 # the gtk3-rs `unmaintained` advisories were withdrawn upstream on
 # 2026-08-14, and the `unic-*` ones no longer match anything the refreshed
@@ -40,3 +40,29 @@ ignore = [
 # alongside the other three copies through the dashmap i18n-embed-fl 0.9.1
 # uses) and none are ours to chase.
 multiple-versions = "warn"
+
+[licenses]
+allow = [
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-3-Clause",
+  "ISC",
+  "MIT",
+  "Unicode-3.0",
+  "Zlib",
+]
+# Existing file-level copyleft dependencies reached through Tauri and dirs.
+exceptions = [
+  { crate = "cssparser", allow = ["MPL-2.0"] },
+  { crate = "cssparser-macros", allow = ["MPL-2.0"] },
+  { crate = "dtoa-short", allow = ["MPL-2.0"] },
+  { crate = "option-ext", allow = ["MPL-2.0"] },
+  { crate = "selectors", allow = ["MPL-2.0"] },
+  # Trust anchors distributed as data, not a general software license.
+  { crate = "webpki-root-certs", allow = ["CDLA-Permissive-2.0"] },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = ["https://github.com/inflatable-cookie/poodle.git"]

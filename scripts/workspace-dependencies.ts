@@ -39,7 +39,9 @@ function workspaceDependencyTable(): Map<string, string> {
   const entries = new Map<string, string>();
   for (const line of table.split("\n")) {
     const match = /^([A-Za-z0-9_-]+) = (.+)$/.exec(line.trim());
-    if (match) entries.set(match[1], line.trim());
+    if (match?.[1]) {
+      entries.set(match[1], line.trim());
+    }
   }
   return entries;
 }
@@ -52,7 +54,7 @@ function workspaceDependencyTable(): Map<string, string> {
  * that has been renamed or dropped should fail loudly here rather than emit a
  * manifest missing it and fail later as a confusing resolution error.
  */
-export function workspaceDependencies(names: readonly string[]): string {
+export function workspaceDependencies(names: ReadonlyArray<string>): string {
   const table = workspaceDependencyTable();
   return names
     .map((name) => {

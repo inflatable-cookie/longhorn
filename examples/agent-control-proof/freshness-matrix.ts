@@ -1,3 +1,6 @@
+import { parseDiscovery, readToolResult, requireNumber } from "./reply.ts";
+import { parseJsonRecord } from "../../scripts/proof-json.ts";
+import { requireValue } from "../../scripts/proof-support.ts";
 // Drives the Card 231 packaged freshness matrix against the bundled
 // agent-control proof app (contract 022 evidence: unfocused, occluded, and
 // minimized screenshots are fresh, judged DOM-relative — never wall-clock).
@@ -61,7 +64,7 @@ const discoveryDir = join(
 );
 const appId = "dev.example.longhorn-agent-control-proof";
 
-type Discovery = { appId: string; pid: number; port: number; token: string };
+type Discovery = ReturnType<typeof parseDiscovery>;
 
 type MatrixRow = {
   state: string;
@@ -74,8 +77,8 @@ type MatrixRow = {
   fresh: boolean;
 };
 
-async function run(command: readonly string[]): Promise<string> {
-  const subprocess = Bun.spawn(command, { stdout: "pipe", stderr: "pipe" });
+async function run(command: ReadonlyArray<string>): Promise<string> {
+  const subprocess = Bun.spawn([...command], { stdout: "pipe", stderr: "pipe" });
   const [exitCode, stdout, stderr] = await Promise.all([
     subprocess.exited,
     new Response(subprocess.stdout).text(),
@@ -88,20 +91,24 @@ async function run(command: readonly string[]): Promise<string> {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
+  return new Promise((resolveSleep) => {
+    setTimeout(resolveSleep, ms);
+  });
 }
 
 async function waitForDiscovery(): Promise<{ discovery: Discovery; path: string }> {
   const deadline = Date.now() + 30_000;
   for (;;) {
-    const entries = await readdir(discoveryDir).catch(() => [] as string[]);
+    const entries = await readdir(discoveryDir).catch(() => [] as Array<string>);
     const match = entries.find((entry) => entry.startsWith(`${appId}-`));
     if (match) {
       const path = join(discoveryDir, match);
-      const discovery = JSON.parse(await readFile(path, "utf8")) as Discovery;
+      const discovery = parseDiscovery(await readFile(path, "utf8"));
       return { discovery, path };
     }
-    if (Date.now() > deadline) throw new Error("discovery file never appeared");
+    if (Date.now() > deadline) {
+      throw new Error("discovery file never appeared");
+    }
     await sleep(200);
   }
 }
@@ -112,15 +119,17 @@ async function mcp(
   method: string,
   params: Record<string, unknown>,
   name?: string,
-): Promise<unknown> {
-  const headers: Record<string, string> = {
+) {
+  const headers = new Headers({
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
     "mcp-protocol-version": "2026-07-28",
     "mcp-method": method,
     authorization: `Bearer ${discovery.token}`,
-  };
-  if (name) headers["mcp-name"] = name;
+  });
+  if (name) {
+    headers.set("mcp-name", name);
+  }
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
     headers,
@@ -134,8 +143,10 @@ async function mcp(
     .split("\n")
     .find((line) => line.startsWith("data: "))
     ?.slice("data: ".length);
-  if (!data) throw new Error(`MCP ${method} returned no SSE data: ${body}`);
-  return JSON.parse(data);
+  if (!data) {
+    throw new Error(`MCP ${method} returned no SSE data: ${body}`);
+  }
+  return parseJsonRecord(data);
 }
 
 function meta() {
@@ -151,17 +162,16 @@ async function callTool(
   tool: string,
   args: Record<string, unknown>,
 ): Promise<{ isError: boolean; result: Record<string, unknown> }> {
-  const payload = (await mcp(
+  const payload = await mcp(
     discovery,
     "tools/call",
     { name: tool, arguments: args, _meta: meta() },
     tool,
-  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  const result = payload.result;
+  );
+  const result = readToolResult(payload.result);
   const isError = result.isError === true;
   const first = result.content[0] ?? {};
-  const parsed =
-    first.type === "text" ? (JSON.parse(String(first.text)) as Record<string, unknown>) : first;
+  const parsed = first.type === "text" ? parseJsonRecord(String(first.text)) : first;
   return { isError, result: parsed };
 }
 
@@ -169,29 +179,34 @@ async function evaluateCounter(discovery: Discovery): Promise<number> {
   const { isError, result } = await callTool(discovery, "evaluate", {
     js: "document.getElementById('counter').textContent",
   });
-  if (isError) throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  if (isError) {
+    throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  }
   return Number.parseInt(String(result.value), 10);
 }
 
-async function evaluateJson<T>(discovery: Discovery, js: string): Promise<T> {
+async function evaluateJson(discovery: Discovery, js: string) {
   const { isError, result } = await callTool(discovery, "evaluate", { js });
-  if (isError) throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
-  return JSON.parse(String(result.value)) as T;
+  if (isError) {
+    throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
+  }
+  return parseJsonRecord(String(result.value));
 }
 
 async function screenshot(discovery: Discovery, path: string): Promise<void> {
-  const payload = (await mcp(
+  const payload = await mcp(
     discovery,
     "tools/call",
     { name: "screenshot", arguments: {}, _meta: meta() },
     "screenshot",
-  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  if (payload.result.isError) {
-    throw new Error(`screenshot failed: ${JSON.stringify(payload.result.content)}`);
+  );
+  const payloadResult = readToolResult(payload.result);
+  if (payloadResult.isError) {
+    throw new Error(`screenshot failed: ${JSON.stringify(payloadResult.content)}`);
   }
-  const image = payload.result.content[0];
+  const image = payloadResult.content[0];
   if (!image || image.type !== "image") {
-    throw new Error(`screenshot returned no image content: ${JSON.stringify(payload.result)}`);
+    throw new Error(`screenshot returned no image content: ${JSON.stringify(payloadResult)}`);
   }
   await writeFile(path, Buffer.from(String(image.data), "base64"));
 }
@@ -202,18 +217,20 @@ function hslToRgb(hue: number, saturation: number, lightness: number): [number, 
   const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
   const x = c * (1 - Math.abs((h % 2) - 1));
   const [r, g, b] =
-    h < 1 ? [c, x, 0]
-    : h < 2 ? [x, c, 0]
-    : h < 3 ? [0, c, x]
-    : h < 4 ? [0, x, c]
-    : h < 5 ? [x, 0, c]
-    : [c, 0, x];
+    h < 1
+      ? [c, x, 0]
+      : h < 2
+        ? [x, c, 0]
+        : h < 3
+          ? [0, c, x]
+          : h < 4
+            ? [0, x, c]
+            : h < 5
+              ? [x, 0, c]
+              : [c, 0, x];
   const m = lightness - c / 2;
-  return [r, g, b].map((channel) => Math.round((channel + m) * 255)) as [
-    number,
-    number,
-    number,
-  ];
+  const channel = (value: number) => Math.round((value + m) * 255);
+  return [channel(r), channel(g), channel(b)];
 }
 
 function expectedPixel(counter: number): [number, number, number] {
@@ -239,7 +256,11 @@ async function pngSize(pngPath: string): Promise<{ width: number; height: number
 }
 
 // Reads one pixel out of a PNG via sips → BMP (macOS built-ins only).
-async function pixelAt(pngPath: string, fractionX: number, fractionY: number): Promise<[number, number, number]> {
+async function pixelAt(
+  pngPath: string,
+  fractionX: number,
+  fractionY: number,
+): Promise<[number, number, number]> {
   const bmpPath = pngPath.replace(/\.png$/, ".bmp");
   await run(["sips", "-s", "format", "bmp", pngPath, "--out", bmpPath]);
   const bmp = await readFile(bmpPath);
@@ -258,7 +279,11 @@ async function pixelAt(pngPath: string, fractionX: number, fractionY: number): P
   const y = Math.floor(height * fractionY);
   const row = rawHeight < 0 ? y : height - 1 - y;
   const offset = dataOffset + row * rowSize + x * bytesPerPixel;
-  const pixel: [number, number, number] = [bmp[offset + 2]!, bmp[offset + 1]!, bmp[offset]!];
+  const pixel: [number, number, number] = [
+    requireValue(bmp[offset + 2], "bmp[offset + 2]"),
+    requireValue(bmp[offset + 1], "bmp[offset + 1]"),
+    requireValue(bmp[offset], "bmp[offset]"),
+  ];
   await rm(bmpPath);
   return pixel;
 }
@@ -268,7 +293,10 @@ function colorNear(
   expected: [number, number, number],
   tolerance: number,
 ): boolean {
-  return actual.every((channel, index) => Math.abs(channel - expected[index]!) <= tolerance);
+  return actual.every(
+    (channel, index) =>
+      Math.abs(channel - requireValue(expected[index], "expected[index]")) <= tolerance,
+  );
 }
 
 async function activateApp(): Promise<void> {
@@ -280,7 +308,7 @@ async function activateTerminal(): Promise<void> {
 }
 
 async function coverWithTerminal(discovery: Discovery): Promise<void> {
-  const bounds = await evaluateJson<{ x: number; y: number; w: number; h: number }>(
+  const bounds = await evaluateJson(
     discovery,
     "JSON.stringify({x: window.screenX, y: window.screenY, w: window.outerWidth, h: window.outerHeight})",
   );
@@ -289,7 +317,7 @@ async function coverWithTerminal(discovery: Discovery): Promise<void> {
     "-e",
     'tell application "Terminal" to do script ""',
     "-e",
-    `tell application "Terminal" to set bounds of front window to {${bounds.x - 20}, ${bounds.y - 20}, ${bounds.x + bounds.w + 20}, ${bounds.y + bounds.h + 20}}`,
+    `tell application "Terminal" to set bounds of front window to {${requireNumber(bounds.x, "window x") - 20}, ${requireNumber(bounds.y, "window y") - 20}, ${requireNumber(bounds.x, "window x") + requireNumber(bounds.w, "window w") + 20}, ${requireNumber(bounds.y, "window y") + requireNumber(bounds.h, "window h") + 20}}`,
     "-e",
     'tell application "Terminal" to activate',
   ]);
@@ -305,7 +333,9 @@ async function closeCoveringTerminal(): Promise<void> {
 
 async function command(discovery: Discovery, id: string): Promise<void> {
   const { isError, result } = await callTool(discovery, "command", { command: id });
-  if (isError) throw new Error(`command ${id} failed: ${JSON.stringify(result)}`);
+  if (isError) {
+    throw new Error(`command ${id} failed: ${JSON.stringify(result)}`);
+  }
 }
 
 async function main(): Promise<void> {
@@ -318,7 +348,7 @@ async function main(): Promise<void> {
   await run(["open", "-a", appPath]);
   const { discovery } = await waitForDiscovery();
 
-  const rows: MatrixRow[] = [];
+  const rows: Array<MatrixRow> = [];
   async function probe(state: string, apply: () => Promise<void>): Promise<void> {
     await apply();
     await sleep(1600);
@@ -329,7 +359,9 @@ async function main(): Promise<void> {
     const pixel = await pixelAt(pngPath, 0.25, 0.25);
     let matched: number | null = null;
     for (let counter = before; counter <= after; counter += 1) {
-      if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
+      if (colorNear(pixel, expectedPixel(counter), 12)) {
+        matched = counter;
+      }
     }
     // The island cannot be bracketed by `evaluate` (not a semantic target);
     // both tickers start at page load and tick at 1 Hz, so its counter sits
@@ -340,7 +372,9 @@ async function main(): Promise<void> {
     const childPixel = await pixelAt(pngPath, 0.569, 0.9375);
     let childMatched: number | null = null;
     for (let counter = before - 2; counter <= after + 2; counter += 1) {
-      if (colorNear(childPixel, expectedChildPixel(counter), 12)) childMatched = counter;
+      if (colorNear(childPixel, expectedChildPixel(counter), 12)) {
+        childMatched = counter;
+      }
     }
     rows.push({
       state,
@@ -375,21 +409,39 @@ async function main(): Promise<void> {
     async function judge(
       fractionX: number,
       fractionY: number,
-    ): Promise<{ pixel: [number, number, number]; surface: string; matchedCounter: number | null }> {
+    ): Promise<{
+      pixel: [number, number, number];
+      surface: string;
+      matchedCounter: number | null;
+    }> {
       const pixel = await pixelAt(pngPath, fractionX, fractionY);
       let matched: number | null = null;
       for (let counter = before; counter <= after; counter += 1) {
-        if (colorNear(pixel, expectedPixel(counter), 12)) matched = counter;
+        if (colorNear(pixel, expectedPixel(counter), 12)) {
+          matched = counter;
+        }
       }
-      if (matched !== null) return { pixel, surface: "parent", matchedCounter: matched };
+      if (matched !== null) {
+        return { pixel, surface: "parent", matchedCounter: matched };
+      }
       for (let counter = before - 2; counter <= after + 2; counter += 1) {
-        if (colorNear(pixel, expectedChildPixel(counter), 12)) matched = counter;
+        if (colorNear(pixel, expectedChildPixel(counter), 12)) {
+          matched = counter;
+        }
       }
-      if (matched !== null) return { pixel, surface: "island", matchedCounter: matched };
+      if (matched !== null) {
+        return { pixel, surface: "island", matchedCounter: matched };
+      }
       for (let counter = before - 2; counter <= after + 2; counter += 1) {
-        if (colorNear(pixel, expectedChildTopPixel(counter), 12)) matched = counter;
+        if (colorNear(pixel, expectedChildTopPixel(counter), 12)) {
+          matched = counter;
+        }
       }
-      return { pixel, surface: matched === null ? "neither" : "island-top", matchedCounter: matched };
+      return {
+        pixel,
+        surface: matched === null ? "neither" : "island-top",
+        matchedCounter: matched,
+      };
     }
     const leftOfEdge = await judge(359.5 / 720, 240.5 / 480);
     const rightOfEdge = await judge(360.5 / 720, 240.5 / 480);
@@ -437,7 +489,7 @@ async function main(): Promise<void> {
   await run(["osascript", "-e", `tell application id "${appId}" to quit`]);
   let discoveryRemoved = false;
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const entries = await readdir(discoveryDir).catch(() => [] as string[]);
+    const entries = await readdir(discoveryDir).catch(() => [] as Array<string>);
     if (!entries.some((entry) => entry.startsWith(`${appId}-`))) {
       discoveryRemoved = true;
       break;
@@ -452,7 +504,7 @@ async function main(): Promise<void> {
     rows,
     geometry,
     discoveryRemovedOnQuit: discoveryRemoved,
-    fresh: rows.every((row) => row.fresh) && (geometry.pass as boolean),
+    fresh: rows.every((row) => row.fresh) && geometry.pass === true,
   };
   await writeFile(join(outDir, "matrix.json"), `${JSON.stringify(receipt, null, 2)}\n`);
   console.log(JSON.stringify(receipt, null, 2));

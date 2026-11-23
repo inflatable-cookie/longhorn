@@ -4,33 +4,28 @@ import {
   NativeContentClient,
   SerializedNativeContentPort,
 } from "../../src/native-content/index.ts";
-import {
-  MemoryNativeContentHost,
-  baseSnapshot,
-  flush,
-  nextUpdate,
-} from "./support.ts";
+import { MemoryNativeContentHost, baseSnapshot, flush, nextUpdate } from "./support.ts";
 
 async function trace(serialized: boolean) {
   const host = new MemoryNativeContentHost();
   const direct = host.port();
   const port = serialized ? new SerializedNativeContentPort(direct) : direct;
   const snapshots: Array<[number, number, number]> = [];
-  const connection = new NativeContentClient(port, "island:fixture").connect(
-    (snapshot) => {
-      snapshots.push([
-        snapshot.cursor.client_epoch,
-        snapshot.cursor.desired_revision,
-        snapshot.cursor.observed_revision,
-      ]);
-    },
-  );
+  const connection = new NativeContentClient(port, "island:fixture").connect((snapshot) => {
+    snapshots.push([
+      snapshot.cursor.client_epoch,
+      snapshot.cursor.desired_revision,
+      snapshot.cursor.observed_revision,
+    ]);
+  });
   const initial = await connection.ready;
   const updated = await connection.updateDesired(nextUpdate(initial, 32));
   host.admitObservation();
   await flush();
   const current = connection.current();
-  if (current === undefined) throw new Error("missing current snapshot");
+  if (current === undefined) {
+    throw new Error("missing current snapshot");
+  }
   const decision = await connection.decideContentSize(
     {
       generation: current.cursor.attach_generation,
@@ -65,6 +60,6 @@ describe("transport conformance", () => {
 
   test("root package state stays JSON-safe", () => {
     const snapshot = baseSnapshot();
-    expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot);
+    expect(structuredClone(snapshot)).toEqual(snapshot);
   });
 });

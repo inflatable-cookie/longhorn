@@ -19,26 +19,24 @@ describe("settings boundary strictness", () => {
   };
 
   test("the field map matches the fixture's keys", () => {
-    expect([...SETTINGS_FIELDS.SettingsLoadCommand!].sort()).toEqual(
+    expect<Array<string>>([...SETTINGS_FIELDS.SettingsLoadCommand].sort()).toEqual(
       Object.keys(valid).sort(),
     );
   });
 
   test("rejects an unknown field", () => {
-    expect(() =>
-      assertValidSettingsLoadCommand({ ...valid, extra: 1 }),
-    ).toThrow(/unknown_field|incompatible/);
+    expect(() => assertValidSettingsLoadCommand({ ...valid, extra: 1 })).toThrow(
+      /unknown_field|incompatible/,
+    );
   });
 
   test("rejects a missing field", () => {
     const { pageId: _dropped, ...missing } = valid;
-    expect(() => assertValidSettingsLoadCommand(missing)).toThrow(
-      /missing_field|incompatible/,
-    );
+    expect(() => assertValidSettingsLoadCommand(missing)).toThrow(/missing_field|incompatible/);
   });
 
   test("omits tagged unions rather than guessing their keys", () => {
-    expect(SETTINGS_FIELDS.SettingsLoadOutcome).toBeUndefined();
+    expect("SettingsLoadOutcome" in SETTINGS_FIELDS).toBe(false);
   });
 
   /**
@@ -52,10 +50,7 @@ describe("settings boundary strictness", () => {
    * generator. Three fixture categories broke at once.
    */
   test("keeps both fields of an inline-rendered type", () => {
-    expect(SETTINGS_FIELDS.SettingsOpaqueValue).toEqual([
-      "codecVersion",
-      "value",
-    ]);
+    expect(SETTINGS_FIELDS.SettingsOpaqueValue).toEqual(["codecVersion", "value"]);
     expect(Object.keys(fixture.recoveryStates[0]!.diagnostic).sort()).toEqual([
       "codecVersion",
       "value",

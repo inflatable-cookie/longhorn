@@ -108,9 +108,7 @@ export class ConfigOperationsClient {
     return value;
   }
 
-  async recoverStorage(
-    command: StorageRecoveryCommand,
-  ): Promise<StorageRecoveryOutcome> {
+  async recoverStorage(command: StorageRecoveryCommand): Promise<StorageRecoveryOutcome> {
     assertValidStorageRecoveryCommand(command);
     const value = await this.#transport.invoke(CONFIG_STORAGE_RECOVER_COMMAND, {
       command,
@@ -119,9 +117,7 @@ export class ConfigOperationsClient {
     return value;
   }
 
-  async cleanupStorage(
-    command: StorageCleanupCommand,
-  ): Promise<StorageCleanupOutcome> {
+  async cleanupStorage(command: StorageCleanupCommand): Promise<StorageCleanupOutcome> {
     assertValidStorageCleanupCommand(command);
     const value = await this.#transport.invoke(CONFIG_STORAGE_CLEANUP_COMMAND, {
       command,
@@ -159,9 +155,7 @@ export class ConfigOperationsClient {
     return value;
   }
 
-  async inspectRestore(
-    command: RestoreInspectCommand,
-  ): Promise<RestoreInspectOutcome> {
+  async inspectRestore(command: RestoreInspectCommand): Promise<RestoreInspectOutcome> {
     assertValidRestoreInspectCommand(command);
     const value = await this.#transport.invoke(CONFIG_RESTORE_INSPECT_COMMAND, {
       command,
@@ -179,9 +173,7 @@ export class ConfigOperationsClient {
     return value;
   }
 
-  async executeRestore(
-    command: RestoreExecuteCommand,
-  ): Promise<RestoreExecuteOutcome> {
+  async executeRestore(command: RestoreExecuteCommand): Promise<RestoreExecuteOutcome> {
     assertValidRestoreExecuteCommand(command);
     const value = await this.#transport.invoke(CONFIG_RESTORE_EXECUTE_COMMAND, {
       command,
@@ -194,17 +186,12 @@ export class ConfigOperationsClient {
     command: RestoreAdapterExecuteCommand,
   ): Promise<RestoreAdapterExecuteOutcome> {
     assertValidRestoreAdapterExecuteCommand(command);
-    const value = await this.#transport.invoke(
-      CONFIG_RESTORE_ADAPTER_EXECUTE_COMMAND,
-      { command },
-    );
+    const value = await this.#transport.invoke(CONFIG_RESTORE_ADAPTER_EXECUTE_COMMAND, { command });
     assertValidRestoreAdapterExecuteOutcome(value);
     return value;
   }
 
-  async recoverRestore(
-    command: RestoreRecoveryCommand,
-  ): Promise<RestoreRecoveryOutcomeProjection> {
+  async recoverRestore(command: RestoreRecoveryCommand): Promise<RestoreRecoveryOutcomeProjection> {
     assertValidRestoreRecoveryCommand(command);
     const value = await this.#transport.invoke(CONFIG_RESTORE_RECOVER_COMMAND, {
       command,

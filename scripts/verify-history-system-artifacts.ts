@@ -1,21 +1,20 @@
-import { digest, fileDependency, assertExactSet, parseTrace, runArtifactCommand as run } from "./proof-support.ts";
+import { errorCode } from "./proof-support.ts";
+import { readPackageIdentity, readPackageManifest, readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
+import {
+  digest,
+  fileDependency,
+  assertExactSet,
+  parseTrace,
+  runArtifactCommand as run,
+} from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
 import { testCount } from "./test-count.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { randomUUID } from "node:crypto";
-import {
-  cp,
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  realpath,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
@@ -36,9 +35,7 @@ const POODLE_RELEASE = poodleRelease();
 const LONGHORN_VERSION = longhornVersion();
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-system-proof");
-const temporaryRoot = await mkdtemp(
-  join(tmpdir(), "longhorn-history-system-proof-"),
-);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-history-system-proof-"));
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(typescriptArtifactRoot);
 // Private final Cargo outputs for the staged workspace, on external build
@@ -53,25 +50,31 @@ interface ArtifactIdentity {
   readonly sha256: string;
 }
 
-interface PackageManifest {
-  readonly name: string;
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
-}
-
 const policies = {
   minimal: {
     rust: ["longhorn-core", "longhorn-history"],
     longhorn: ["@inflatable-cookie/longhorn"],
     imports: ["@inflatable-cookie/longhorn/history"],
     permissions: [],
-    forbidden: ["@inflatable-cookie/longhorn/bridge", "@inflatable-cookie/longhorn/config", "@inflatable-cookie/longhorn-tauri"],
+    forbidden: [
+      "@inflatable-cookie/longhorn/bridge",
+      "@inflatable-cookie/longhorn/config",
+      "@inflatable-cookie/longhorn-tauri",
+    ],
     mountedTests: 0,
   },
   loophole: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-tauri-history"],
-    longhorn: ["@inflatable-cookie/longhorn-poodle-svelte", "@inflatable-cookie/longhorn-tauri", "@inflatable-cookie/longhorn"],
-    imports: ["@inflatable-cookie/longhorn-poodle-svelte/history/svelte", "@inflatable-cookie/longhorn-tauri/history", "@inflatable-cookie/longhorn/history"],
+    longhorn: [
+      "@inflatable-cookie/longhorn-poodle-svelte",
+      "@inflatable-cookie/longhorn-tauri",
+      "@inflatable-cookie/longhorn",
+    ],
+    imports: [
+      "@inflatable-cookie/longhorn-poodle-svelte/history/svelte",
+      "@inflatable-cookie/longhorn-tauri/history",
+      "@inflatable-cookie/longhorn/history",
+    ],
     permissions: [
       "allow-longhorn-history-read",
       "allow-longhorn-history-mutate",
@@ -87,19 +90,12 @@ try {
   // Checkout-level and non-building: the bindings check runs through the switch
   // point and pools. Only the staged-workspace builds below keep private
   // outputs.
-  await run(
-    rustCommand(["run", "-p", "longhorn-bindings", "--", "history", "check"]),
-    repoRoot,
-  );
+  await run(rustCommand(["run", "-p", "longhorn-bindings", "--", "history", "check"]), repoRoot);
   const typescript = await packTypescriptArtifacts();
   const rust = await packAndRunRustArtifacts();
   const consumers = await Promise.all(
     (["minimal", "loophole"] as const).map((shape) =>
-      verifyTypescriptConsumer(
-        shape,
-        typescript.paths,
-        rust.traces[shape],
-      ),
+      verifyTypescriptConsumer(shape, typescript.paths, rust.traces[shape]),
     ),
   );
   for (const consumer of consumers) {
@@ -158,7 +154,7 @@ try {
 }
 
 async function packTypescriptArtifacts(): Promise<{
-  readonly identities: readonly ArtifactIdentity[];
+  readonly identities: ReadonlyArray<ArtifactIdentity>;
   readonly paths: ReadonlyMap<string, string>;
 }> {
   const packages = [
@@ -170,15 +166,7 @@ async function packTypescriptArtifacts(): Promise<{
   const paths = new Map<string, string>();
   for (const [name, directory] of packages) {
     await run(
-      [
-        "bun",
-        "pm",
-        "pack",
-        "--destination",
-        typescriptArtifactRoot,
-        "--ignore-scripts",
-        "--quiet",
-      ],
+      ["bun", "pm", "pack", "--destination", typescriptArtifactRoot, "--ignore-scripts", "--quiet"],
       join(repoRoot, "packages", directory),
     );
     const path = join(
@@ -205,19 +193,9 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   ) {
     throw new Error(`${name} artifact contains proof or workspace material`);
   }
-  const manifest = JSON.parse(
-    await run(
-      ["tar", "-xOzf", path, "package/package.json"],
-      typescriptArtifactRoot,
-    ),
-  ) as {
-    readonly name: string;
-    readonly version: string;
-    readonly dependencies?: Record<string, string>;
-    readonly peerDependencies?: Record<string, string>;
-    readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-    readonly exports?: Record<string, unknown>;
-  };
+  const manifest = readPackageManifest(
+    await run(["tar", "-xOzf", path, "package/package.json"], typescriptArtifactRoot),
+  );
   if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
@@ -227,11 +205,14 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
     name === "@inflatable-cookie/longhorn-history" ? ["@inflatable-cookie/longhorn-core"] : [],
   );
   if (name === "@inflatable-cookie/longhorn-history") {
-    assertExactSet(
-      "history package exports",
-      Object.keys(manifest.exports ?? {}),
-      [".", "./package.json", "./poodle", "./protocol", "./svelte", "./tauri"],
-    );
+    assertExactSet("history package exports", Object.keys(manifest.exports ?? {}), [
+      ".",
+      "./package.json",
+      "./poodle",
+      "./protocol",
+      "./svelte",
+      "./tauri",
+    ]);
     for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) {
       if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) {
         throw new Error(`${peer} is not an optional history peer`);
@@ -245,65 +226,43 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   await mkdir(extractRoot);
   await run(["tar", "-xzf", path, "-C", extractRoot], typescriptArtifactRoot);
   const source = await readSourceTree(join(extractRoot, "package", "src"));
-  for (const marker of [
-    "PulseMutation",
-    "PulseHistoryMutation",
-    "loophole.pulse-proof",
-  ]) {
+  for (const marker of ["PulseMutation", "PulseHistoryMutation", "loophole.pulse-proof"]) {
     if (source.includes(marker)) {
-      throw new Error(
-        `${name} artifact contains donor payload marker ${marker}`,
-      );
+      throw new Error(`${name} artifact contains donor payload marker ${marker}`);
     }
   }
 }
 
 async function packAndRunRustArtifacts(): Promise<{
-  readonly identities: readonly ArtifactIdentity[];
+  readonly identities: ReadonlyArray<ArtifactIdentity>;
   readonly packaging: {
     readonly privateSourceInventories: true;
     readonly registryNormalizedCrates: false;
     readonly cargoPackageListPassed: true;
   };
-  readonly graphs: Record<Shape, readonly string[]>;
+  readonly graphs: Record<Shape, ReadonlyArray<string>>;
   readonly traces: Record<Shape, Record<string, unknown>>;
 }> {
   const rustArtifactRoot = join(temporaryRoot, "rust-archives");
   const workspace = join(temporaryRoot, "rust-workspace");
   await mkdir(rustArtifactRoot);
   await mkdir(workspace);
-  const crates = [
-    "longhorn-core",
-    "longhorn-history",
-    "longhorn-tauri-history",
-  ] as const;
+  const crates = ["longhorn-core", "longhorn-history", "longhorn-tauri-history"] as const;
   const identities = [];
   for (const name of crates) {
     // Checkout-level and non-building: `package --list` runs through the switch
     // point at the MSRV pin. The `run`/`tree` calls below lease the staged
     // workspace instead.
     const inventory = await run(
-      rustCommand(
-        ["package", "-p", name, "--list", "--allow-dirty"],
-        MSRV_TOOLCHAIN,
-      ),
+      rustCommand(["package", "-p", name, "--list", "--allow-dirty"], MSRV_TOOLCHAIN),
       repoRoot,
     );
-    if (
-      !inventory.includes("Cargo.toml") ||
-      !inventory.includes("src/lib.rs")
-    ) {
+    if (!inventory.includes("Cargo.toml") || !inventory.includes("src/lib.rs")) {
       throw new Error(`${name} package inventory is incomplete`);
     }
-    const tarArchive = join(
-      rustArtifactRoot,
-      `${name}-${LONGHORN_VERSION}.private.tar`,
-    );
+    const tarArchive = join(rustArtifactRoot, `${name}-${LONGHORN_VERSION}.private.tar`);
     const archive = `${tarArchive}.gz`;
-    await run(
-      ["tar", "-cf", tarArchive, "-C", repoRoot, `crates/${name}`],
-      repoRoot,
-    );
+    await run(["tar", "-cf", tarArchive, "-C", repoRoot, `crates/${name}`], repoRoot);
     await run(["gzip", "-n", tarArchive], repoRoot);
     await run(["tar", "-xzf", archive, "-C", workspace], repoRoot);
     identities.push({
@@ -314,15 +273,9 @@ async function packAndRunRustArtifacts(): Promise<{
   }
   const sharedSource = [
     await readSourceTree(join(workspace, "crates", "longhorn-history", "src")),
-    await readSourceTree(
-      join(workspace, "crates", "longhorn-tauri-history", "src"),
-    ),
+    await readSourceTree(join(workspace, "crates", "longhorn-tauri-history", "src")),
   ].join("\n");
-  for (const marker of [
-    "PulseMutation",
-    "PulseHistoryMutation",
-    "loophole.pulse-proof",
-  ]) {
+  for (const marker of ["PulseMutation", "PulseHistoryMutation", "loophole.pulse-proof"]) {
     if (sharedSource.includes(marker)) {
       throw new Error(`Rust artifacts contain donor payload marker ${marker}`);
     }
@@ -348,13 +301,13 @@ async function packAndRunRustArtifacts(): Promise<{
   // `target/` directory keeps the lease adoption-free; see
   // `prepareStagedWorkspace`.
   await prepareStagedWorkspace(workspace);
-  const staged = (args: readonly string[]) =>
+  const staged = (args: ReadonlyArray<string>) =>
     rustExec(privateCargoCommand(buildScratch.root, args), {
       manifestPath: join(workspace, "Cargo.toml"),
       toolchain: MSRV_TOOLCHAIN,
     });
-  const traces = {} as Record<Shape, Record<string, unknown>>;
-  const graphs = {} as Record<Shape, readonly string[]>;
+  const traces: Record<Shape, Record<string, unknown>> = { minimal: {}, loophole: {} };
+  const graphs: Record<Shape, ReadonlyArray<string>> = { minimal: [], loophole: [] };
   for (const shape of ["minimal", "loophole"] as const) {
     traces[shape] = parseTrace(
       await run(
@@ -419,13 +372,13 @@ async function verifyTypescriptConsumer(
     `${JSON.stringify(nativeTrace.rendererFixture, null, 2)}\n`,
   );
 
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
   manifest.dependencies = Object.fromEntries(
-    Object.entries(manifest.dependencies).map(([name, version]) => [
+    Object.entries(manifest.dependencies ?? {}).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
   // Only Longhorn's own packs are overridden onto paths. Poodle is published,
@@ -434,32 +387,21 @@ async function verifyTypescriptConsumer(
   manifest.overrides = Object.fromEntries(
     [...artifacts].map(([name, path]) => [name, fileDependency(path)]),
   );
-  await writeFile(
-    join(stage, "package.json"),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  );
+  await writeFile(join(stage, "package.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 
   await installProofStage(stage);
   await run(["bun", "x", "tsc", "-p", "consumer-tsconfig.json"], stage);
   let mountedTests = 0;
   if (shape === "loophole") {
-    await run(
-      ["bun", "x", "svelte-check", "--tsconfig", "./consumer-tsconfig.json"],
-      stage,
-    );
+    await run(["bun", "x", "svelte-check", "--tsconfig", "./consumer-tsconfig.json"], stage);
     mountedTests = testCount(
-      await run(
-        ["bun", "x", "vitest", "run", "--config", "./vitest.config.ts"],
-        stage,
-      ),
+      await run(["bun", "x", "vitest", "run", "--config", "./vitest.config.ts"], stage),
     );
   }
   if (mountedTests !== policy.mountedTests) {
     throw new Error(`${shape} mounted test count mismatch: ${mountedTests}`);
   }
-  const trace = parseTrace(
-    await run(["bun", `consumers/${shape}/proof.ts`], stage),
-  );
+  const trace = parseTrace(await run(["bun", `consumers/${shape}/proof.ts`], stage));
 
   assertExactSet(
     `${shape} installed Longhorn packages`,
@@ -470,9 +412,7 @@ async function verifyTypescriptConsumer(
   );
   const artifactResolution = [];
   for (const name of policy.longhorn) {
-    artifactResolution.push(
-      await assertArtifactInstall(stage, name, LONGHORN_VERSION),
-    );
+    artifactResolution.push(await assertArtifactInstall(stage, name, LONGHORN_VERSION));
   }
   // Card 164: a domain is a subpath now, so install-absence for it would
   // pass vacuously. Packages keep install-absence; subpaths become
@@ -491,27 +431,19 @@ async function verifyTypescriptConsumer(
       throw new Error("Loophole installed unexpected Svelte version");
     }
     await assertSingleSvelteRuntime(stage);
-  } else if ((await installedScope(stage, "@inflatable-cookie")).some((name) => name.startsWith("poodle-"))) {
+  } else if (
+    (await installedScope(stage, "@inflatable-cookie")).some((name) => name.startsWith("poodle-"))
+  ) {
     throw new Error("minimal consumer acquired Poodle packages");
   }
 
   const permissions =
     shape === "loophole"
-      ? (
-          JSON.parse(
-            await readFile(
-              join(stage, "consumers", shape, "capability.json"),
-              "utf8",
-            ),
-          ) as { readonly permissions: readonly string[] }
-        ).permissions
+      ? readPermissions(await readFile(join(stage, "consumers", shape, "capability.json"), "utf8"))
+          .permissions
       : [];
   assertExactSet(`${shape} permissions`, permissions, policy.permissions);
-  assertExactSet(
-    `${shape} imports`,
-    await longhornImports(stage),
-    policy.imports,
-  );
+  assertExactSet(`${shape} imports`, await longhornImports(stage), policy.imports);
   const lock = await readFile(join(stage, "bun.lock"), "utf8");
   if (
     lock.includes("workspace:") ||
@@ -559,13 +491,7 @@ repository = "https://github.com/inflatable-cookie/longhorn"
 longhorn-core = { path = "crates/longhorn-core", version = "${LONGHORN_VERSION}" }
 longhorn-history = { path = "crates/longhorn-history", version = "${LONGHORN_VERSION}" }
 longhorn-tauri-history = { path = "crates/longhorn-tauri-history", version = "${LONGHORN_VERSION}" }
-${workspaceDependencies([
-  "proptest",
-  "serde",
-  "serde_json",
-  "tauri",
-  "ts-rs",
-])}
+${workspaceDependencies(["proptest", "serde", "serde_json", "tauri", "ts-rs"])}
 
 [workspace.lints.rust]
 missing_docs = "deny"
@@ -575,7 +501,6 @@ unsafe_code = "forbid"
 all = "deny"
 `;
 }
-
 
 function containsKey(value: unknown, key: string): boolean {
   if (Array.isArray(value)) {
@@ -593,8 +518,11 @@ function equalJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
+// oxlint-disable-next-line quality/no-unknown-returns -- Canonicalize arbitrary JSON for comparison without assuming its shape.
 function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
+  if (Array.isArray(value)) {
+    return value.map(canonical);
+  }
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
@@ -609,12 +537,10 @@ async function readSourceTree(root: string): Promise<string> {
   const files = (await readdir(root, { recursive: true }))
     .filter((path) => /\.(rs|ts|svelte)$/.test(path))
     .sort();
-  return (
-    await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))
-  ).join("\n");
+  return (await Promise.all(files.map((path) => readFile(join(root, path), "utf8")))).join("\n");
 }
 
-function longhornPackages(tree: string): readonly string[] {
+function longhornPackages(tree: string): ReadonlyArray<string> {
   return [
     ...new Set(
       tree
@@ -626,56 +552,41 @@ function longhornPackages(tree: string): readonly string[] {
   ].sort();
 }
 
-async function installedScope(
-  stage: string,
-  scope: string,
-): Promise<readonly string[]> {
+async function installedScope(stage: string, scope: string): Promise<ReadonlyArray<string>> {
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    if (errorCode(error) === "ENOENT") {
+      return [];
+    }
     throw error;
   }
 }
 
-async function assertArtifactInstall(
-  stage: string,
-  name: string,
-  expected: string,
-) {
+async function assertArtifactInstall(stage: string, name: string, expected: string) {
   const installed = await installedPackage(stage, name);
-  for (const root of [
-    "/Dev/projects/longhorn/packages/",
-    "/Dev/projects/poodle/packages/",
-  ]) {
+  for (const root of ["/Dev/projects/longhorn/packages/", "/Dev/projects/poodle/packages/"]) {
     if (installed.realPath.includes(root)) {
-      throw new Error(
-        `${name} resolved to sibling source: ${installed.realPath}`,
-      );
+      throw new Error(`${name} resolved to sibling source: ${installed.realPath}`);
     }
   }
   // Longhorn and Poodle no longer share a version, so the expectation is the
   // caller's: LONGHORN_VERSION for a Longhorn package, the pinned Poodle
   // release for a Poodle one.
   if (installed.manifest.version !== expected) {
-    throw new Error(
-      `${name} installed ${installed.manifest.version}, expected ${expected}`,
-    );
+    throw new Error(`${name} installed ${installed.manifest.version}, expected ${expected}`);
   }
   return { name, version: installed.manifest.version };
 }
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(
-    await readFile(join(path, "package.json"), "utf8"),
-  ) as { readonly name: string; readonly version: string };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
   return { realPath: await realpath(path), manifest };
 }
-
 
 async function assertSingleSvelteRuntime(stage: string): Promise<void> {
   const manifests = (
@@ -683,16 +594,14 @@ async function assertSingleSvelteRuntime(stage: string): Promise<void> {
       recursive: true,
     })
   ).filter(
-    (path) =>
-      path === "svelte/package.json" ||
-      path.endsWith("/node_modules/svelte/package.json"),
+    (path) => path === "svelte/package.json" || path.endsWith("/node_modules/svelte/package.json"),
   );
   if (manifests.length !== 1) {
     throw new Error(`expected one Svelte runtime, found ${manifests.length}`);
   }
 }
 
-async function longhornImports(stage: string): Promise<readonly string[]> {
+async function longhornImports(stage: string): Promise<ReadonlyArray<string>> {
   const files = (await readdir(stage, { recursive: true })).filter(
     (path) => /\.(ts|svelte)$/.test(path) && !path.startsWith("node_modules/"),
   );
@@ -702,7 +611,7 @@ async function longhornImports(stage: string): Promise<readonly string[]> {
     for (const match of source.matchAll(
       /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
-      imports.add(match[1]!);
+      imports.add(requireValue(match[1], "match[1]"));
     }
   }
   return [...imports].sort();

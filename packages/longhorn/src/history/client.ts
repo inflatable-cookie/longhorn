@@ -14,11 +14,7 @@ import type {
   HistoryPageSnapshot,
   HistorySnapshot,
 } from "./generated/protocol.ts";
-import type {
-  CheckedHistoryPort,
-  HistoryPort,
-  HistoryUnlisten,
-} from "./ports.ts";
+import type { CheckedHistoryPort, HistoryPort, HistoryUnlisten } from "./ports.ts";
 
 export class HistoryClient implements CheckedHistoryPort {
   readonly #port: HistoryPort;
@@ -44,19 +40,17 @@ export class HistoryClient implements CheckedHistoryPort {
     return value;
   }
 
-  async navigate(
-    command: HistoryNavigationCommand,
-  ): Promise<HistoryNavigationResult> {
+  async navigate(command: HistoryNavigationCommand): Promise<HistoryNavigationResult> {
     assertValidHistoryNavigationCommand(command);
     const value = await this.#port.navigate(command);
     assertValidHistoryNavigationResult(value);
     return value;
   }
 
-  async listen(
-    listener: (event: HistoryChangedEvent) => void,
-  ): Promise<HistoryUnlisten> {
-    if (this.#port.listen === undefined) return () => {};
+  async listen(listener: (event: HistoryChangedEvent) => void): Promise<HistoryUnlisten> {
+    if (this.#port.listen === undefined) {
+      return () => {};
+    }
     return this.#port.listen((value) => {
       assertValidHistoryChangedEvent(value);
       listener(value);

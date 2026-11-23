@@ -21,8 +21,8 @@ import { join, relative, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dir, "..");
 
 /** Scopes and top-level names whose resolution must not ride a machine link. */
-const SCOPES = ["@inflatable-cookie"];
-const TOP_LEVEL = ["svelte"];
+const SCOPES = new Set(["@inflatable-cookie"]);
+const TOP_LEVEL = new Set(["svelte"]);
 
 /** Where `bun link` registers packages; overridable the way bun allows. */
 function globalLinkRoot(): string {
@@ -31,8 +31,8 @@ function globalLinkRoot(): string {
 }
 
 type Link = { name: string; target: string };
-const globalLinks: Link[] = [];
-const findings: string[] = [];
+const globalLinks: Array<Link> = [];
+const findings: Array<string> = [];
 let resolutionsChecked = 0;
 
 // The global link registry: whatever is registered machine-wide. Bun installs
@@ -40,16 +40,18 @@ let resolutionsChecked = 0;
 // Names the workspace never depends on are still listed -- the rehearsal is
 // where the operator sees the state, and a stale Poodle link reads as harmless
 // right up until something resolves through it.
-for (const entry of await readdir(globalLinkRoot(), { withFileTypes: true }).catch(
-  () => [],
-)) {
-  if (entry.name.startsWith(".")) continue;
+for (const entry of await readdir(globalLinkRoot(), { withFileTypes: true }).catch(() => [])) {
+  if (entry.name.startsWith(".")) {
+    continue;
+  }
   const path = join(globalLinkRoot(), entry.name);
   if (entry.isSymbolicLink()) {
     await recordGlobalLink(path, entry.name);
     continue;
   }
-  if (!entry.isDirectory() || !SCOPES.includes(entry.name)) continue;
+  if (!entry.isDirectory() || !SCOPES.has(entry.name)) {
+    continue;
+  }
   const scoped = await readdir(path, { withFileTypes: true }).catch(() => []);
   for (const nested of scoped) {
     if (nested.isSymbolicLink()) {
@@ -99,19 +101,27 @@ async function recordGlobalLink(path: string, name: string): Promise<void> {
 
 async function workspaceScan(nodeModules: string): Promise<void> {
   const entries = await readdir(nodeModules).catch(() => null);
-  if (entries === null) return;
+  if (entries === null) {
+    return;
+  }
   for (const entry of entries) {
-    if (entry === ".bin" || entry.startsWith(".")) continue;
+    if (entry === ".bin" || entry.startsWith(".")) {
+      continue;
+    }
     if (entry.startsWith("@")) {
-      if (!SCOPES.includes(entry)) continue;
+      if (!SCOPES.has(entry)) {
+        continue;
+      }
       const scoped = await readdir(join(nodeModules, entry)).catch(() => null);
-      if (scoped === null) continue;
+      if (scoped === null) {
+        continue;
+      }
       for (const name of scoped) {
         await inspectResolution(nodeModules, join(entry, name));
       }
       continue;
     }
-    if (TOP_LEVEL.includes(entry)) {
+    if (TOP_LEVEL.has(entry)) {
       await inspectResolution(nodeModules, entry);
     }
   }
@@ -120,7 +130,9 @@ async function workspaceScan(nodeModules: string): Promise<void> {
 async function inspectResolution(nodeModules: string, name: string): Promise<void> {
   const path = join(nodeModules, name);
   const stat = await lstat(path).catch(() => null);
-  if (stat === null) return;
+  if (stat === null) {
+    return;
+  }
   const target = await realpath(path).catch(() => null);
   if (target === null) {
     findings.push(`${display(nodeModules, name)} does not resolve`);
@@ -131,9 +143,7 @@ async function inspectResolution(nodeModules: string, name: string): Promise<voi
     resolutionsChecked += 1;
     return;
   }
-  findings.push(
-    `${display(nodeModules, name)} resolves outside the repository: ${target}`,
-  );
+  findings.push(`${display(nodeModules, name)} resolves outside the repository: ${target}`);
 }
 
 /** The node_modules path relative to the repository, for readable findings. */

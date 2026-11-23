@@ -16,8 +16,12 @@ describe("Tauri operation composition", () => {
     const transport = {
       async invoke(command: string, args?: Record<string, unknown>) {
         calls.push([command, args]);
-        if (command === OPERATION_SNAPSHOT_COMMAND) return fixture.snapshotResponse;
-        if (command === OPERATION_MUTATE_COMMAND) return fixture.mutationResults[0];
+        if (command === OPERATION_SNAPSHOT_COMMAND) {
+          return fixture.snapshotResponse;
+        }
+        if (command === OPERATION_MUTATE_COMMAND) {
+          return fixture.mutationResults[0];
+        }
         return fixture.cancellationResult;
       },
       async listen(name: string) {

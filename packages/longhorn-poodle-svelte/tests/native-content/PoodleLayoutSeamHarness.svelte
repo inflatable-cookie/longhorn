@@ -4,8 +4,8 @@
   import {
     nativeContentViewport,
     useNativeContentSession,
-    type NativeContentSession,
   } from "../../src/native-content/index.ts";
+  import type { NativeContentSession } from "../../src/native-content/index.ts";
 
   let {
     session,

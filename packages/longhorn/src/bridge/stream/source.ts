@@ -1,9 +1,6 @@
 import type { Unlisten } from "@inflatable-cookie/longhorn/core";
 
-import {
-  deserialize,
-  serialize,
-} from "../loopback.ts";
+import { deserialize, serialize } from "../loopback.ts";
 
 export interface BridgeStreamSource {
   listen(listener: (value: unknown) => void): Promise<Unlisten>;
@@ -40,8 +37,7 @@ export class DirectBridgeStreamSource implements BridgeStreamSource {
   }
 }
 
-export class SerializedLoopbackBridgeStreamSource
-  implements BridgeStreamSource {
+export class SerializedLoopbackBridgeStreamSource implements BridgeStreamSource {
   readonly #source: BridgeStreamSource;
 
   constructor(source: BridgeStreamSource) {

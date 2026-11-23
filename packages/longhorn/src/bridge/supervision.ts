@@ -12,9 +12,7 @@ import { BRIDGE_SERVICE_OWNERSHIPS } from "./generated/protocol.ts";
 import { opaqueId } from "./validation/base.ts";
 
 export interface BridgeServiceSupervisorPort {
-  perform(
-    request: BridgeServiceRequest,
-  ): Promise<unknown> | unknown;
+  perform(request: BridgeServiceRequest): Promise<unknown> | unknown;
 }
 
 export class BridgeSupervisionError extends Error {
@@ -55,9 +53,7 @@ export class BridgeServiceRuntime {
     this.#admit(action);
     const request: BridgeServiceRequest = {
       action,
-      credentialRef: credentialRef === undefined
-        ? null
-        : opaqueId(credentialRef),
+      credentialRef: credentialRef === undefined ? null : opaqueId(credentialRef),
     };
     let rawOutcome: unknown;
     try {
@@ -68,10 +64,7 @@ export class BridgeServiceRuntime {
     return this.observe(action, rawOutcome);
   }
 
-  observe(
-    action: BridgeServiceAction,
-    value: unknown,
-  ): BridgeServiceTransitionReceipt {
+  observe(action: BridgeServiceAction, value: unknown): BridgeServiceTransitionReceipt {
     this.#admit(action);
     const outcome = parseOutcome(value);
     const current = transitionState(action, outcome);
@@ -97,12 +90,10 @@ export class BridgeServiceRuntime {
     let admitted = false;
     switch (action) {
       case "spawn":
-        admitted = owned &&
-          ["absent", "stopped", "failed"].includes(this.#state);
+        admitted = owned && ["absent", "stopped", "failed"].includes(this.#state);
         break;
       case "attach":
-        admitted = !owned &&
-          ["absent", "stopped", "failed"].includes(this.#state);
+        admitted = !owned && ["absent", "stopped", "failed"].includes(this.#state);
         break;
       case "checkReadiness":
         admitted = [
@@ -127,10 +118,7 @@ export class BridgeServiceRuntime {
     if (admitted) {
       return;
     }
-    if (
-      !owned &&
-      ["spawn", "restart", "shutdown"].includes(action)
-    ) {
+    if (!owned && ["spawn", "restart", "shutdown"].includes(action)) {
       throw new BridgeSupervisionError("lifecycle_not_owned");
     }
     throw new BridgeSupervisionError("invalid_transition");
@@ -169,12 +157,7 @@ function transitionState(
 }
 
 function parseOutcome(value: unknown): BridgeServiceOutcome {
-  if (
-    value === "accepted" ||
-    value === "ready" ||
-    value === "notReady" ||
-    value === "stopped"
-  ) {
+  if (value === "accepted" || value === "ready" || value === "notReady" || value === "stopped") {
     return value;
   }
   if (
@@ -191,7 +174,8 @@ function parseOutcome(value: unknown): BridgeServiceOutcome {
 }
 
 function isFailureCode(value: unknown): value is BridgeServiceFailureCode {
-  return typeof value === "string" &&
+  return (
+    typeof value === "string" &&
     [
       "spawnFailed",
       "attachFailed",
@@ -200,5 +184,6 @@ function isFailureCode(value: unknown): value is BridgeServiceFailureCode {
       "restartFailed",
       "reconnectFailed",
       "shutdownFailed",
-    ].includes(value);
+    ].includes(value)
+  );
 }

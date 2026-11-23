@@ -41,7 +41,9 @@ describe("Rust fixture parity", () => {
 
   test("client epoch is distinct from attach generation", () => {
     assertValidNativeContentConnectResult(fixture.remount);
-    if (fixture.remount.status !== "connected") throw new Error("fixture rejected");
+    if (fixture.remount.status !== "connected") {
+      throw new Error("fixture rejected");
+    }
     expect(fixture.remount.snapshot.cursor.client_epoch).toBe(2);
     expect(fixture.remount.snapshot.cursor.attach_generation).toBe(1);
   });
@@ -56,9 +58,7 @@ describe("Rust fixture parity", () => {
 
     const product = clone(fixture.connect) as Record<string, unknown>;
     (product.snapshot as Record<string, unknown>).plugin = { id: "synth" };
-    expect(() => assertProductPayloadFree(product)).toThrow(
-      NativeContentProtocolValidationError,
-    );
+    expect(() => assertProductPayloadFree(product)).toThrow(NativeContentProtocolValidationError);
 
     const unknown = clone(fixture.proposalEvent) as Record<string, unknown>;
     (unknown.change as Record<string, unknown>).kind = "product_payload";

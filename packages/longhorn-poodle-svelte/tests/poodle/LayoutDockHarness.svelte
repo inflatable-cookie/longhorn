@@ -1,11 +1,8 @@
 <script lang="ts">
   import { DragDropProvider } from "@inflatable-cookie/poodle-svelte";
   import type { CrossWindowDragSourceBridge } from "@inflatable-cookie/poodle-core";
-  import {
-    LayoutDockRegion,
-    type PanelPresentationResolver,
-    type PoodleLayoutBinding,
-  } from "../../src/poodle/index.ts";
+  import { LayoutDockRegion } from "../../src/poodle/index.ts";
+  import type { PanelPresentationResolver, PoodleLayoutBinding } from "../../src/poodle/index.ts";
 
   interface Props {
     binding: PoodleLayoutBinding;

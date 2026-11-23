@@ -1,3 +1,5 @@
+import { parseJsonRecord, requireRecord } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { join, resolve } from "node:path";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -7,15 +9,12 @@ import {
   packTypescriptArtifacts,
 } from "./bridge-topology-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./bridge-topology-artifact-proof/consumers.ts";
-import type { TopologyDeclarations } from "./bridge-topology-artifact-proof/types.ts";
 import { runWithDiagnostics as run } from "./proof-support.ts";
 import { rustCommand, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "bridge-topology-proof");
-const temporaryRoot = await mkdtemp(
-  join(tmpdir(), "longhorn-bridge-artifact-proof-"),
-);
+const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-bridge-artifact-proof-"));
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-bridge-topology-rust");
@@ -23,28 +22,27 @@ const buildScratch = await taskScratch("longhorn-bridge-topology-rust");
 try {
   // Checkout-level and non-building: the bindings check runs through the switch
   // point and pools. Only the staged-workspace builds keep private outputs.
-  await run(
-    rustCommand(["run", "-p", "longhorn-bindings", "--", "bridge", "check"]),
-    repoRoot,
-  );
-  const declarations = JSON.parse(
+  await run(rustCommand(["run", "-p", "longhorn-bindings", "--", "bridge", "check"]), repoRoot);
+  const declarations = parseJsonRecord(
     await readFile(join(proofRoot, "declarations.json"), "utf8"),
-  ) as TopologyDeclarations;
-  const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
-  const rust = await packAndCheckRustArtifacts(
-    repoRoot,
-    temporaryRoot,
-    buildScratch.root,
   );
+  const typescript = await packTypescriptArtifacts(repoRoot, artifactRoot);
+  const rust = await packAndCheckRustArtifacts(repoRoot, temporaryRoot, buildScratch.root);
   const consumers = await verifyConsumers({
     repoRoot,
     proofRoot,
     temporaryRoot,
     artifacts: typescript.paths,
-    declarations,
+    declarations: requireRecord(declarations.shapes, "topology shapes"),
   });
-  const minimalShell = consumers.find(({ shape }) => shape === "minimal-shell")!;
-  const reconnectingLifecycle = consumers.find(({ shape }) => shape === "reconnecting-lifecycle")!;
+  const minimalShell = requireValue(
+    consumers.find(({ shape }) => shape === "minimal-shell"),
+    'consumers.find(({ shape }) => shape === "minimal-shell")',
+  );
+  const reconnectingLifecycle = requireValue(
+    consumers.find(({ shape }) => shape === "reconnecting-lifecycle"),
+    'consumers.find(({ shape }) => shape === "reconnecting-lifecycle")',
+  );
   console.log(
     JSON.stringify(
       {

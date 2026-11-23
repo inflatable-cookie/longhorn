@@ -16,8 +16,8 @@ export function fileDependency(path: string): string {
 
 export function assertExactSet(
   label: string,
-  actual: readonly string[],
-  expected: readonly string[],
+  actual: ReadonlyArray<string>,
+  expected: ReadonlyArray<string>,
 ): void {
   const left = [...actual].sort();
   const right = [...expected].sort();
@@ -32,11 +32,11 @@ type RunOptions = {
 };
 
 export async function run(
-  command: readonly string[],
+  command: ReadonlyArray<string>,
   cwd: string,
   { env, includeStderr = false }: RunOptions = {},
 ): Promise<string> {
-  const child = Bun.spawn(command, {
+  const child = Bun.spawn([...command], {
     cwd,
     env: { ...process.env, ...env },
     stdout: "pipe",
@@ -48,28 +48,34 @@ export async function run(
     new Response(child.stderr).text(),
   ]);
   if (exitCode !== 0) {
-    throw new Error(`${command.join(" ")} failed in ${cwd} (exit ${exitCode})\n${stdout}\n${stderr}`);
+    throw new Error(
+      `${command.join(" ")} failed in ${cwd} (exit ${exitCode})\n${stdout}\n${stderr}`,
+    );
   }
   return includeStderr ? `${stdout}\n${stderr}` : stdout;
 }
 
-export function runWithDiagnostics(command: readonly string[], cwd: string): Promise<string> {
+export function runWithDiagnostics(command: ReadonlyArray<string>, cwd: string): Promise<string> {
   return run(command, cwd, { includeStderr: true });
 }
 
-export function runArtifactCommand(command: readonly string[], cwd: string): Promise<string> {
+export function runArtifactCommand(command: ReadonlyArray<string>, cwd: string): Promise<string> {
   return run(command, cwd, { includeStderr: true, env: { COPYFILE_DISABLE: "1" } });
 }
 
-export function runSync(command: readonly string[], cwd: string): string {
+export function runSync(command: ReadonlyArray<string>, cwd: string): string {
   const [program, ...args] = command;
-  if (!program) throw new Error("proof command is empty");
+  if (!program) {
+    throw new Error("proof command is empty");
+  }
   const result = spawnSync(program, args, {
     cwd,
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });
-  if (result.error) throw result.error;
+  if (result.error) {
+    throw result.error;
+  }
   if (result.status !== 0) {
     throw new Error(
       `${command.join(" ")} failed in ${cwd} (exit ${result.status})\n${result.stdout}\n${result.stderr}`,
@@ -80,10 +86,32 @@ export function runSync(command: readonly string[], cwd: string): string {
 
 export function parseTrace(output: string): Record<string, unknown> {
   const line = output.split("\n").find((candidate) => candidate.trim().startsWith("{"));
-  if (line === undefined) throw new Error("proof emitted no JSON trace");
+  if (line === undefined) {
+    throw new Error("proof emitted no JSON trace");
+  }
   const trace: unknown = JSON.parse(line);
   if (trace === null || typeof trace !== "object" || Array.isArray(trace)) {
     throw new Error("proof trace must be a JSON object");
   }
   return Object.fromEntries(Object.entries(trace));
+}
+
+// Use when a fixture, command argument, or inventory entry is required.
+export function requireValue<T>(value: T, label: string): NonNullable<T> {
+  if (value === null || value === undefined) {
+    throw new Error(`missing ${label}`);
+  }
+  return value;
+}
+
+export function errorCode(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+  return undefined;
 }
