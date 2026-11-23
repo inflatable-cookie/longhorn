@@ -179,3 +179,45 @@ pub enum TauriWindowLifecycleError {
         detail: String,
     },
 }
+
+impl std::fmt::Display for TauriWindowLifecycleError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InactiveHost => formatter.write_str("window lifecycle host is inactive"),
+            Self::UnknownWindow { window_id } => {
+                write!(formatter, "unknown lifecycle window {window_id}")
+            }
+            Self::UnknownWindowHandle { transport_handle } => {
+                write!(
+                    formatter,
+                    "unknown lifecycle window handle {transport_handle}"
+                )
+            }
+            Self::DuplicateWindow { window_id } => {
+                write!(formatter, "duplicate lifecycle window {window_id}")
+            }
+            Self::InvalidWindowLabel { detail } => {
+                write!(formatter, "invalid window label: {detail}")
+            }
+            Self::StateUnavailable { state } => {
+                write!(formatter, "lifecycle state is unavailable: {state}")
+            }
+            Self::SchedulerBinding { detail } => {
+                write!(formatter, "scheduler binding failed: {detail}")
+            }
+            Self::EventTranslation { detail } => {
+                write!(formatter, "event translation failed: {detail}")
+            }
+            Self::Coordination { detail } => {
+                write!(formatter, "lifecycle coordination failed: {detail}")
+            }
+            Self::ApplyRegistration { generation, detail } => write!(
+                formatter,
+                "apply registration failed for generation {}: {detail}",
+                generation.get()
+            ),
+        }
+    }
+}
+
+impl std::error::Error for TauriWindowLifecycleError {}

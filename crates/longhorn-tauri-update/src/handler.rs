@@ -6,7 +6,7 @@ use longhorn_update::{
     UpdateProgressEvent, UpdateProtocolVersion, UpdateSelectChannelCommand, UpdateSnapshot,
 };
 
-use crate::{UpdateHostAuthority, UpdateHostError, UpdateHostService};
+use crate::{UpdateHostAuthority, UpdateHostError};
 
 /// Shared injected assembly used by Tauri and conformance tests.
 ///
@@ -17,9 +17,9 @@ use crate::{UpdateHostAuthority, UpdateHostError, UpdateHostService};
 /// The port is an `Arc` rather than a borrow because Tauri managed state has to
 /// be `'static`. A consumer builds one fetch, hands a clone here, and lends the
 /// same instance to the `UpdateController` it injects as authority.
-pub struct UpdateHandlerAssembly<A> {
-    authority: Mutex<A>,
+pub struct UpdateHandlerAssembly<A: ?Sized> {
     fetch: Arc<dyn ArtifactFetch + Send + Sync>,
+    authority: Mutex<A>,
 }
 
 impl<A> UpdateHandlerAssembly<A> {
@@ -28,11 +28,13 @@ impl<A> UpdateHandlerAssembly<A> {
     #[must_use]
     pub fn new(authority: A, fetch: Arc<dyn ArtifactFetch + Send + Sync>) -> Self {
         Self {
-            authority: Mutex::new(authority),
             fetch,
+            authority: Mutex::new(authority),
         }
     }
+}
 
+impl<A: ?Sized> UpdateHandlerAssembly<A> {
     /// Runs trusted host work against injected authority.
     pub fn with_authority<Output>(
         &self,
@@ -45,15 +47,17 @@ impl<A> UpdateHandlerAssembly<A> {
     }
 }
 
-impl<A> UpdateHostService for UpdateHandlerAssembly<A>
+impl<A> UpdateHandlerAssembly<A>
 where
-    A: UpdateHostAuthority,
+    A: UpdateHostAuthority + ?Sized,
 {
-    fn snapshot(&self, caller: &str) -> Result<UpdateSnapshot, UpdateHostError> {
+    /// Returns the caller-authorized update state.
+    pub fn snapshot(&self, caller: &str) -> Result<UpdateSnapshot, UpdateHostError> {
         self.with_authority(|authority| authority.snapshot(caller))?
     }
 
-    fn check(
+    /// Asks the source for the channel's current manifest and records it.
+    pub fn check(
         &self,
         caller: &str,
         command: UpdateCheckCommand,
@@ -61,7 +65,8 @@ where
         self.with_authority(|authority| authority.check(caller, command))?
     }
 
-    fn select_channel(
+    /// Follows a different channel from now on.
+    pub fn select_channel(
         &self,
         caller: &str,
         command: UpdateSelectChannelCommand,
@@ -69,7 +74,8 @@ where
         self.with_authority(|authority| authority.select_channel(caller, command))?
     }
 
-    fn defer(
+    /// Declines a version for now.
+    pub fn defer(
         &self,
         caller: &str,
         command: UpdateDeferCommand,
@@ -77,7 +83,11 @@ where
         self.with_authority(|authority| authority.defer(caller, command))?
     }
 
-    fn prepare(
+    /// Fetches, verifies and retains, reporting progress as bytes arrive.
+    ///
+    /// The authority lock is not held across the transfer; the report is the
+    /// only thing the transfer touches.
+    pub fn prepare(
         &self,
         caller: &str,
         command: UpdatePrepareCommand,
@@ -106,7 +116,8 @@ where
         self.with_authority(|authority| authority.complete_prepare(caller, transfer, delivered))?
     }
 
-    fn apply(
+    /// Applies the retained staged artifact.
+    pub fn apply(
         &self,
         caller: &str,
         command: UpdateApplyCommand,
@@ -114,7 +125,8 @@ where
         self.with_authority(|authority| authority.apply(caller, command))?
     }
 
-    fn cancel(
+    /// Discards the retained staged artifact.
+    pub fn cancel(
         &self,
         caller: &str,
         command: UpdateCancelCommand,

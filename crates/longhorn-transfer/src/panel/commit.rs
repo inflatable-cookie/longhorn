@@ -5,7 +5,7 @@ use longhorn_surfaces_config::{
     RegisteredSurfaceDomain, SurfaceMigration, publish_layout_mutation,
 };
 
-use crate::{MonotonicClock, TransferCoordinator};
+use crate::{MonotonicClock, TerminalTransferAttempt, TransferCoordinator};
 
 use super::{
     PanelHostBindings, PanelTransferCommitReceipt, PanelTransferCommitRequest, PanelTransferError,
@@ -42,7 +42,30 @@ where
             request.live_windows(),
         )
         .map_err(PanelTransferError::from_transfer)?;
-    if request.operation() == PanelTransferOperation::Copy {
+    commit_resolved_panel_transfer(
+        store,
+        domain,
+        bindings,
+        options,
+        request.operation(),
+        attempt,
+    )
+}
+
+/// Publishes one authoritative same-document move for an already-resolved
+/// terminal attempt without holding a coordinator lock.
+pub fn commit_resolved_panel_transfer<M>(
+    store: &ConfigStore,
+    domain: &RegisteredSurfaceDomain<M>,
+    bindings: &PanelHostBindings,
+    options: MutationOptions,
+    operation: PanelTransferOperation,
+    attempt: TerminalTransferAttempt,
+) -> Result<PanelTransferCommitReceipt, PanelTransferError>
+where
+    M: SurfaceMigration,
+{
+    if operation == PanelTransferOperation::Copy {
         return Err(consumed(
             PanelTransferErrorCode::CopyUnsupported,
             "panel copy is unsupported by the first transfer line",

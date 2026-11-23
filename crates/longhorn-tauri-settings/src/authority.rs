@@ -1,3 +1,4 @@
+use longhorn_core::SettingsApplyUnitId;
 use longhorn_settings::{
     SettingsApplyCommand, SettingsLoadCommand, SettingsLoadOutcome, SettingsMutationResult,
     SettingsRegistrySnapshot, SettingsResetCommand,
@@ -6,7 +7,7 @@ use longhorn_settings::{
 use crate::SettingsHostError;
 
 /// Consumer-injected registry, authorization, and mutation authority.
-pub trait SettingsAuthority: Send {
+pub trait SettingsHostAuthority: Send {
     /// Returns the caller-authorized sealed registry projection.
     fn registry(&mut self, caller: &str) -> Result<SettingsRegistrySnapshot, SettingsHostError>;
 
@@ -30,4 +31,17 @@ pub trait SettingsAuthority: Send {
         caller: &str,
         command: SettingsResetCommand,
     ) -> Result<SettingsMutationResult, SettingsHostError>;
+
+    /// Authorizes one caller before routing to an injected
+    /// `ConsumerSettingsTransactionAuthority`.
+    fn authorize_transaction(
+        &mut self,
+        _caller: &str,
+        _apply_unit_id: &SettingsApplyUnitId,
+    ) -> Result<(), SettingsHostError> {
+        Err(SettingsHostError::authority(
+            "caller is not authorized for settings transaction",
+            false,
+        ))
+    }
 }

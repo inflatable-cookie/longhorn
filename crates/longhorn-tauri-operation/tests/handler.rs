@@ -10,8 +10,8 @@ use longhorn_operation::{
 };
 use longhorn_tauri_operation::{
     OperationExecutorError, OperationExecutorPort, OperationHandlerAssembly,
-    OperationHostAuthority, OperationHostError, OperationHostService,
-    operation_cancellation_changed_event, operation_mutation_changed_event,
+    OperationHostAuthority, OperationHostError, operation_cancellation_changed_event,
+    operation_mutation_changed_event,
 };
 use serde_json::Value;
 

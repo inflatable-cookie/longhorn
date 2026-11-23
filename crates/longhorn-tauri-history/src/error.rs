@@ -47,7 +47,7 @@ impl HistoryHostError {
         Self {
             code: HistoryHostErrorCode::StateUnavailable,
             message: "history handler state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

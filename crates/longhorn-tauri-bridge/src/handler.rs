@@ -33,11 +33,11 @@ struct SessionRecord {
 }
 
 /// Shared registered-domain assembly used by direct and Tauri mock/real hosts.
-pub struct BridgeHandlerAssembly<A> {
-    authority: Mutex<A>,
+pub struct BridgeHandlerAssembly<A: ?Sized> {
     registry: BridgeDomainRegistry,
     sessions: Mutex<BTreeMap<BridgeSessionId, SessionRecord>>,
     event_sink: Option<Arc<dyn BridgeEventSink>>,
+    authority: Mutex<A>,
 }
 
 impl<A> BridgeHandlerAssembly<A>
@@ -48,10 +48,10 @@ where
     #[must_use]
     pub const fn new(authority: A, registry: BridgeDomainRegistry) -> Self {
         Self {
-            authority: Mutex::new(authority),
             registry,
             sessions: Mutex::new(BTreeMap::new()),
             event_sink: None,
+            authority: Mutex::new(authority),
         }
     }
 
@@ -63,13 +63,18 @@ where
         event_sink: Arc<dyn BridgeEventSink>,
     ) -> Self {
         Self {
-            authority: Mutex::new(authority),
             registry,
             sessions: Mutex::new(BTreeMap::new()),
             event_sink: Some(event_sink),
+            authority: Mutex::new(authority),
         }
     }
+}
 
+impl<A> BridgeHandlerAssembly<A>
+where
+    A: BridgeAuthorityProvider + ?Sized,
+{
     /// Negotiates and records one caller-owned current session.
     pub fn hello(
         &self,
@@ -110,16 +115,19 @@ where
 
     /// Drops every session a caller owns.
     ///
-    /// Sessions end with their window: the host calls this from its
-    /// window-destroyed hook. Without it a destroyed window's session stays
-    /// valid indefinitely, and each distinct caller label grows the map
-    /// forever. Idempotent — tearing down a caller with no sessions is not
-    /// an error, because destroy ordering against in-flight hellos is the
+    /// Sessions end with their window: `bridge_plugin` wires this from Tauri's
+    /// window-destroyed hook by default. Without it a destroyed window's
+    /// session stays valid indefinitely, and each distinct caller label grows
+    /// the map forever. Idempotent — tearing down a caller with no sessions is
+    /// not an error, because destroy ordering against in-flight hellos is the
     /// host's to race.
-    pub fn teardown(&self, caller: &str) {
-        if let Ok(mut sessions) = self.sessions.lock() {
-            sessions.retain(|_, record| record.caller != caller);
-        }
+    pub fn teardown(&self, caller: &str) -> Result<(), BridgeHostError> {
+        let mut sessions = self
+            .sessions
+            .lock()
+            .map_err(|_| BridgeHostError::state_unavailable())?;
+        sessions.retain(|_, record| record.caller != caller);
+        Ok(())
     }
 
     /// Refreshes current capability and authority facts for one caller session.
@@ -163,7 +171,7 @@ where
         request: BridgeQueryEnvelope<Value>,
     ) -> Result<BridgeQueryReply<Value, Value>, BridgeHostError> {
         let registration = self.route(route, request.context(), RouteKind::Query)?;
-        self.authorize_read(caller, request.context(), registration)?;
+        self.authorize_route(caller, request.context(), registration, AuthorityNeed::Read)?;
         let crate::registration::RegisteredHandler::Query(handler) = &registration.handler else {
             return Err(unknown_route(route));
         };
@@ -185,7 +193,12 @@ where
         request: BridgeCommandEnvelope<Value>,
     ) -> Result<BridgeCommandReply<Value, Value>, BridgeHostError> {
         let registration = self.route(route, request.context(), RouteKind::Command)?;
-        let authority = self.authorize_write(caller, &request, registration)?;
+        let authority = self.authorize_route(
+            caller,
+            request.context(),
+            registration,
+            AuthorityNeed::Write,
+        )?;
         if request.authority_epoch() != authority.authority_epoch() {
             return Err(BridgeHostError::new(
                 BridgeHostErrorCode::StaleAuthority,
@@ -214,7 +227,12 @@ where
         request: BridgeCancellationRequest,
     ) -> Result<BridgeCancellationReceipt<Value>, BridgeHostError> {
         let registration = self.route(route, request.context(), RouteKind::Cancellation)?;
-        self.authorize_execution(caller, request.context(), registration)?;
+        self.authorize_route(
+            caller,
+            request.context(),
+            registration,
+            AuthorityNeed::Execution,
+        )?;
         let crate::registration::RegisteredHandler::Cancellation(handler) = &registration.handler
         else {
             return Err(unknown_route(route));
@@ -286,49 +304,19 @@ where
         Ok(registration)
     }
 
-    fn authorize_read(
+    fn authorize_route(
         &self,
         caller: &str,
         context: &BridgeRequestContext,
         route: &RegisteredRoute,
+        need: AuthorityNeed,
     ) -> Result<DomainAuthorityDescriptor, BridgeHostError> {
         let receipt = self.session(caller, context.session_id())?.receipt;
         authorize(
             &receipt,
             context.domain_id(),
             &route.required_capability,
-            AuthorityNeed::Read,
-        )
-    }
-
-    fn authorize_write(
-        &self,
-        caller: &str,
-        request: &BridgeCommandEnvelope<Value>,
-        route: &RegisteredRoute,
-    ) -> Result<DomainAuthorityDescriptor, BridgeHostError> {
-        let context = request.context();
-        let receipt = self.session(caller, context.session_id())?.receipt;
-        authorize(
-            &receipt,
-            context.domain_id(),
-            &route.required_capability,
-            AuthorityNeed::Write,
-        )
-    }
-
-    fn authorize_execution(
-        &self,
-        caller: &str,
-        context: &BridgeRequestContext,
-        route: &RegisteredRoute,
-    ) -> Result<DomainAuthorityDescriptor, BridgeHostError> {
-        let receipt = self.session(caller, context.session_id())?.receipt;
-        authorize(
-            &receipt,
-            context.domain_id(),
-            &route.required_capability,
-            AuthorityNeed::Execution,
+            need,
         )
     }
 

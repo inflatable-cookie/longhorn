@@ -10,11 +10,10 @@ use longhorn_history_tree::{
 };
 use longhorn_tauri_history_tree::{
     ForkHistoryHandlerAssembly, ForkHistoryHostAuthority, ForkHistoryHostError,
-    ForkHistoryHostService, TauriForkHistoryState, fork_history_changed_event,
-    fork_retention_changed_event, longhorn_history_tree_branches,
-    longhorn_history_tree_continuations, longhorn_history_tree_delete_continuation,
-    longhorn_history_tree_navigate, longhorn_history_tree_path, longhorn_history_tree_prune,
-    longhorn_history_tree_snapshot,
+    TauriForkHistoryState, fork_history_changed_event, fork_retention_changed_event,
+    longhorn_history_tree_branches, longhorn_history_tree_continuations,
+    longhorn_history_tree_delete_continuation, longhorn_history_tree_navigate,
+    longhorn_history_tree_path, longhorn_history_tree_prune, longhorn_history_tree_snapshot,
 };
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -109,33 +108,62 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
         .build()
         .unwrap();
     assert_eq!(
-        longhorn_history_tree_snapshot(window.clone(), app.state()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_history_tree_snapshot(window.clone(), app.state()))
+            .unwrap(),
         snapshot()
     );
     assert_eq!(
-        longhorn_history_tree_path(window.clone(), app.state(), path_command()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_history_tree_path(
+            window.clone(),
+            app.state(),
+            path_command()
+        ))
+        .unwrap(),
         path()
     );
     assert_eq!(
-        longhorn_history_tree_branches(window.clone(), app.state(), branch_command()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_history_tree_branches(
+            window.clone(),
+            app.state(),
+            branch_command()
+        ))
+        .unwrap(),
         branches()
     );
     assert_eq!(
-        longhorn_history_tree_continuations(window.clone(), app.state(), continuation_command())
-            .unwrap(),
+        tauri::async_runtime::block_on(longhorn_history_tree_continuations(
+            window.clone(),
+            app.state(),
+            continuation_command()
+        ))
+        .unwrap(),
         continuations()
     );
     assert_eq!(
-        longhorn_history_tree_delete_continuation(window.clone(), app.state(), delete_command())
-            .unwrap(),
+        tauri::async_runtime::block_on(longhorn_history_tree_delete_continuation(
+            window.clone(),
+            app.state(),
+            delete_command()
+        ))
+        .unwrap(),
         removal()
     );
     assert_eq!(
-        longhorn_history_tree_prune(window.clone(), app.state(), prune_command()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_history_tree_prune(
+            window.clone(),
+            app.state(),
+            prune_command()
+        ))
+        .unwrap(),
         ForkPruneResult::Unchanged
     );
     assert_eq!(
-        longhorn_history_tree_navigate(window, app.state(), navigation_command()).unwrap(),
+        tauri::async_runtime::block_on(longhorn_history_tree_navigate(
+            window,
+            app.state(),
+            navigation_command()
+        ))
+        .unwrap(),
         committed()
     );
     assert_eq!(
@@ -174,8 +202,18 @@ fn serialized_service_and_committed_event_remain_payload_free() {
     assert_eq!(retention.committed_revision.get(), 5);
     assert_eq!(retention.history_id.as_str(), "history:tree");
 
-    let text = serde_json::to_string(&(snapshot(), path(), branches(), committed())).unwrap();
-    assert!(!text.to_ascii_lowercase().contains("payload"));
+    let value = serde_json::to_value(&(snapshot(), path(), branches(), committed())).unwrap();
+    assert!(!contains_key(&value, "payload"));
+}
+
+fn contains_key(value: &serde_json::Value, key: &str) -> bool {
+    match value {
+        serde_json::Value::Object(entries) => {
+            entries.contains_key(key) || entries.values().any(|entry| contains_key(entry, key))
+        }
+        serde_json::Value::Array(items) => items.iter().any(|item| contains_key(item, key)),
+        _ => false,
+    }
 }
 
 fn snapshot() -> ForkSnapshot {

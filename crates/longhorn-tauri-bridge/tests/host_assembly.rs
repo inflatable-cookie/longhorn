@@ -21,7 +21,7 @@ use longhorn_core::{
 };
 use longhorn_tauri_bridge::{
     BRIDGE_DOMAIN_EVENT, BridgeAuthorityProvider, BridgeDomainRegistry, BridgeHandlerAssembly,
-    BridgeHostError, BridgeHostErrorCode, TauriBridgeState,
+    BridgeHostError, BridgeHostErrorCode, TauriBridgeState, bridge_plugin,
 };
 use serde_json::{Value, json};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
@@ -184,7 +184,7 @@ fn a_torn_down_callers_sessions_stop_validating() {
         )
         .unwrap();
 
-    assembly.teardown("main");
+    assembly.teardown("main").unwrap();
     assert_eq!(
         assembly
             .query(
@@ -202,7 +202,7 @@ fn a_torn_down_callers_sessions_stop_validating() {
         "the stale query did not dispatch"
     );
 
-    assembly.teardown("main");
+    assembly.teardown("main").unwrap();
     let renegotiated = assembly.hello("main", hello()).unwrap();
     assembly
         .query(
@@ -377,7 +377,7 @@ fn direct_and_tauri_mock_hosts_use_the_same_assembly() {
 
     let mock = query_only_assembly(Arc::new(AtomicUsize::new(0)), WriteAuthority::None);
     let app = tauri::test::mock_builder()
-        .manage(TauriBridgeState::new(mock))
+        .plugin(bridge_plugin(mock))
         .invoke_handler(tauri::generate_handler![
             longhorn_tauri_bridge::longhorn_bridge_hello,
             longhorn_tauri_bridge::longhorn_bridge_query
@@ -608,4 +608,260 @@ fn cursor(sequence: u64) -> BridgeStreamCursor {
         AuthorityEpoch::new(1).unwrap(),
         BridgeStreamSequence::new(sequence),
     )
+}
+
+#[test]
+fn authority_refresh_refuses_session_or_host_identity_change() {
+    struct DriftingRefreshAuthority {
+        initial: BridgeNegotiationReceipt,
+        refreshed: BridgeNegotiationReceipt,
+    }
+
+    impl BridgeAuthorityProvider for DriftingRefreshAuthority {
+        fn negotiate(
+            &mut self,
+            _caller: &str,
+            _request: &BridgeHelloRequest,
+            _registered_domains: &[DomainCapabilityDescriptor],
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            Ok(self.initial.clone())
+        }
+
+        fn refresh(
+            &mut self,
+            _caller: &str,
+            _current: &BridgeNegotiationReceipt,
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            Ok(self.refreshed.clone())
+        }
+    }
+
+    // Session identity change is refused.
+    let initial = authority_receipt(capabilities(), WriteAuthority::None);
+    let changed_session = authority_receipt_for(
+        "session:different",
+        capabilities(),
+        ReadAuthority::Authoritative,
+        WriteAuthority::None,
+    );
+    let session_drift = BridgeHandlerAssembly::new(
+        DriftingRefreshAuthority {
+            initial: initial.clone(),
+            refreshed: changed_session,
+        },
+        registered_domains(Arc::new(AtomicUsize::new(0))),
+    );
+    let receipt = session_drift.hello("main", hello()).unwrap();
+    let error = session_drift
+        .authority("main", receipt.session_id())
+        .unwrap_err();
+    assert_eq!(error.code, BridgeHostErrorCode::InvalidAuthority);
+
+    // Host identity change is refused.
+    let changed_host = BridgeNegotiationReceipt::new(
+        BridgeHostDescriptor {
+            host_instance_id: HostInstanceId::new("host:other-instance").unwrap(),
+            form: BridgeHostForm::TauriLocal,
+        },
+        receipt.session_id().clone(),
+        BridgeConnectionStatus::new(
+            BridgeConnectionState::Ready,
+            Some(BridgeConnectionReason::NegotiationAccepted),
+        )
+        .unwrap(),
+        AuthenticationPosture::NotRequired,
+        Vec::new(),
+        vec![capabilities()],
+        vec![
+            DomainAuthorityDescriptor::new(
+                domain(),
+                AuthorityScopeId::new("scope:workspace").unwrap(),
+                DomainAvailability::Available,
+                ReadAuthority::Authoritative,
+                WriteAuthority::None,
+                ExecutionAuthority::Executor,
+                AuthorityEpoch::new(1).unwrap(),
+                Some(AuthorityRevision::new(1)),
+            )
+            .unwrap(),
+        ],
+        Vec::new(),
+    )
+    .unwrap();
+    let host_drift = BridgeHandlerAssembly::new(
+        DriftingRefreshAuthority {
+            initial,
+            refreshed: changed_host,
+        },
+        registered_domains(Arc::new(AtomicUsize::new(0))),
+    );
+    let receipt = host_drift.hello("main", hello()).unwrap();
+    let error = host_drift
+        .authority("main", receipt.session_id())
+        .unwrap_err();
+    assert_eq!(error.code, BridgeHostErrorCode::InvalidAuthority);
+}
+
+#[test]
+fn command_rejects_stale_authority_epoch_before_dispatch() {
+    let dispatches = Arc::new(AtomicUsize::new(0));
+    let assembly = query_only_assembly(Arc::clone(&dispatches), WriteAuthority::Authoritative);
+    let receipt = assembly.hello("main", hello()).unwrap();
+
+    let stale = BridgeCommandEnvelope::new(
+        context("request:stale-epoch", receipt.session_id().as_str(), DOMAIN),
+        AuthorityEpoch::new(99).unwrap(),
+        None,
+        None,
+        json!({ "delta": 1 }),
+    );
+    let error = assembly
+        .command("main", "workspace.write", stale)
+        .unwrap_err();
+    assert_eq!(error.code, BridgeHostErrorCode::StaleAuthority);
+    assert!(error.retryable);
+    assert_eq!(dispatches.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn rejects_mismatched_reply_request_id_and_cancellation_correlation() {
+    let mut registry = BridgeDomainRegistry::new();
+    registry.register_domain(capabilities()).unwrap();
+    registry
+        .register_query::<Value, Value, Value, _>(
+            domain(),
+            "workspace.read",
+            capability(READ),
+            |_request: BridgeQueryEnvelope<Value>| {
+                Ok(BridgeQueryReply::new(
+                    BridgeRequestId::new("request:wrong-query-reply").unwrap(),
+                    BridgeQueryOutcome::Success(json!({})),
+                ))
+            },
+        )
+        .unwrap();
+    registry
+        .register_command::<Value, Value, Value, _>(
+            domain(),
+            "workspace.write",
+            capability(WRITE),
+            |_request: BridgeCommandEnvelope<Value>| {
+                Ok(BridgeCommandReply::new(
+                    BridgeRequestId::new("request:wrong-command-reply").unwrap(),
+                    Some(AuthorityRevision::new(2)),
+                    BridgeCommandOutcome::Applied(json!({})),
+                ))
+            },
+        )
+        .unwrap();
+    registry
+        .register_cancellation::<Value, _>(
+            domain(),
+            "workspace.cancel",
+            capability(CANCEL),
+            |request: longhorn_bridge::BridgeCancellationRequest| {
+                Ok(BridgeCancellationReceipt::new(
+                    request.context().request_id().clone(),
+                    BridgeRequestId::new("request:wrong-target").unwrap(),
+                    request.job_id().clone(),
+                    BridgeCancellationOutcome::Accepted,
+                ))
+            },
+        )
+        .unwrap();
+
+    let assembly = BridgeHandlerAssembly::new(
+        FixedAuthority {
+            receipt: authority_receipt(capabilities(), WriteAuthority::Authoritative),
+        },
+        registry,
+    );
+    let receipt = assembly.hello("main", hello()).unwrap();
+    let session = receipt.session_id().as_str();
+
+    let query_err = assembly
+        .query(
+            "main",
+            "workspace.read",
+            query_request("request:q1", session, DOMAIN),
+        )
+        .unwrap_err();
+    assert_eq!(query_err.code, BridgeHostErrorCode::InvalidReply);
+
+    let cmd_err = assembly
+        .command(
+            "main",
+            "workspace.write",
+            BridgeCommandEnvelope::new(
+                context("request:c1", session, DOMAIN),
+                AuthorityEpoch::new(1).unwrap(),
+                None,
+                None,
+                json!({}),
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(cmd_err.code, BridgeHostErrorCode::InvalidReply);
+
+    let cancel_err = assembly
+        .cancel(
+            "main",
+            "workspace.cancel",
+            longhorn_bridge::BridgeCancellationRequest::new(
+                context("request:cancel-1", session, DOMAIN),
+                BridgeRequestId::new("request:target-1").unwrap(),
+                longhorn_core::BridgeJobId::new("job:cancel-1").unwrap(),
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(cancel_err.code, BridgeHostErrorCode::InvalidReply);
+}
+
+#[test]
+fn handler_panic_poisons_route_and_reports_non_retryable_state_unavailable() {
+    let mut registry = BridgeDomainRegistry::new();
+    registry.register_domain(capabilities()).unwrap();
+    registry
+        .register_query::<Value, Value, Value, _>(
+            domain(),
+            "workspace.read",
+            capability(READ),
+            |_request: BridgeQueryEnvelope<Value>| -> Result<BridgeQueryReply<Value, Value>, BridgeHostError> {
+                panic!("boom inside bridge query handler");
+            },
+        )
+        .unwrap();
+
+    let assembly = Arc::new(BridgeHandlerAssembly::new(
+        FixedAuthority {
+            receipt: authority_receipt(capabilities(), WriteAuthority::None),
+        },
+        registry,
+    ));
+    let receipt = assembly.hello("main", hello()).unwrap();
+    let session = receipt.session_id().as_str().to_owned();
+
+    let panicking = Arc::clone(&assembly);
+    let panicking_session = session.clone();
+    assert!(
+        std::thread::spawn(move || {
+            let _ = panicking.query(
+                "main",
+                "workspace.read",
+                query_request("request:panic", &panicking_session, DOMAIN),
+            );
+        })
+        .join()
+        .is_err()
+    );
+
+    let error = assembly
+        .query(
+            "main",
+            "workspace.read",
+            query_request("request:after-panic", &session, DOMAIN),
+        )
+        .unwrap_err();
+    assert_eq!(error.code, BridgeHostErrorCode::StateUnavailable);
+    assert!(!error.retryable);
 }

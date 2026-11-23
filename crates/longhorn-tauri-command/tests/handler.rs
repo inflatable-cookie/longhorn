@@ -9,7 +9,7 @@ use longhorn_command_config::{
 };
 use longhorn_tauri_command::{
     CommandHandlerAssembly, CommandHostAuthority, CommandHostError, CommandHostErrorCode,
-    CommandHostService, keymap_changed_event,
+    keymap_changed_event,
 };
 use serde::Deserialize;
 
@@ -162,7 +162,7 @@ fn only_changed_applied_receipts_project_keymap_hints() {
 }
 
 #[test]
-fn poisoned_handler_state_is_a_typed_retryable_failure() {
+fn poisoned_handler_state_is_a_typed_non_retryable_failure() {
     let service = Arc::new(CommandHandlerAssembly::new(FixtureAuthority {
         fixture: fixture(),
         calls: Arc::new(Mutex::new(Vec::new())),
@@ -175,7 +175,7 @@ fn poisoned_handler_state_is_a_typed_retryable_failure() {
     );
     let error = service.catalogue("settings").unwrap_err();
     assert_eq!(error.code, CommandHostErrorCode::StateUnavailable);
-    assert!(error.retryable);
+    assert!(!error.retryable);
 }
 
 fn fixture() -> Fixture {

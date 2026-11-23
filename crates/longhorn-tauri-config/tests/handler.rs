@@ -15,8 +15,8 @@ use longhorn_config::{
 };
 use longhorn_core::ConfigRequestId;
 use longhorn_tauri_config::{
-    ConfigOperationsAuthority, ConfigOperationsCommandService, ConfigOperationsHandlerAssembly,
-    ConfigOperationsHostError, ConfigOperationsHostErrorCode,
+    ConfigOperationsHandlerAssembly, ConfigOperationsHostAuthority, ConfigOperationsHostError,
+    ConfigOperationsHostErrorCode,
 };
 use serde::Deserialize;
 
@@ -68,7 +68,7 @@ struct FixtureAuthority {
     calls: Arc<Mutex<Vec<String>>>,
 }
 
-impl ConfigOperationsAuthority for FixtureAuthority {
+impl ConfigOperationsHostAuthority for FixtureAuthority {
     fn snapshot(
         &mut self,
         caller: &str,
@@ -339,7 +339,7 @@ fn caller_authorization_is_not_delegated_to_tauri_capabilities() {
 }
 
 #[test]
-fn poisoned_handler_state_is_a_typed_retryable_failure() {
+fn poisoned_handler_state_is_a_typed_non_retryable_failure() {
     let fixture = fixture();
     let service = Arc::new(ConfigOperationsHandlerAssembly::new(FixtureAuthority {
         fixture,
@@ -357,7 +357,7 @@ fn poisoned_handler_state_is_a_typed_retryable_failure() {
     };
     let error = service.snapshot("settings", command).unwrap_err();
     assert_eq!(error.code, ConfigOperationsHostErrorCode::StateUnavailable);
-    assert!(error.retryable);
+    assert!(!error.retryable);
 }
 
 fn fixture() -> Fixture {

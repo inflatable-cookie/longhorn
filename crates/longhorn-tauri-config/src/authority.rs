@@ -17,7 +17,7 @@ use crate::ConfigOperationsHostError;
 /// Implementations must re-resolve current filesystem evidence before
 /// confirmed transition, cleanup, export, or retention work. They also own
 /// idempotency storage for request ids and committed receipts.
-pub trait ConfigOperationsAuthority: Send {
+pub trait ConfigOperationsHostAuthority: Send {
     /// Returns one caller-authorized exact snapshot.
     fn snapshot(
         &mut self,

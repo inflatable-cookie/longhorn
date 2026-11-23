@@ -9,14 +9,14 @@ mod directory;
 mod error;
 mod handler;
 
-pub use authority::ConfigOperationsAuthority;
+pub use authority::ConfigOperationsHostAuthority;
 pub use commands::{
-    ConfigOperationsCommandService, TauriConfigOperationsState, longhorn_config_backup_create,
-    longhorn_config_backup_export, longhorn_config_backup_retention,
-    longhorn_config_restore_adapter_execute, longhorn_config_restore_execute,
-    longhorn_config_restore_inspect, longhorn_config_restore_plan, longhorn_config_restore_recover,
-    longhorn_config_snapshot, longhorn_config_storage_cleanup, longhorn_config_storage_execute,
-    longhorn_config_storage_inspect, longhorn_config_storage_recover,
+    TauriConfigOperationsState, longhorn_config_backup_create, longhorn_config_backup_export,
+    longhorn_config_backup_retention, longhorn_config_restore_adapter_execute,
+    longhorn_config_restore_execute, longhorn_config_restore_inspect, longhorn_config_restore_plan,
+    longhorn_config_restore_recover, longhorn_config_snapshot, longhorn_config_storage_cleanup,
+    longhorn_config_storage_execute, longhorn_config_storage_inspect,
+    longhorn_config_storage_recover,
 };
 pub use directory::{TauriDirectorySnapshot, platform_directory_facts};
 pub use error::{ConfigOperationsHostError, ConfigOperationsHostErrorCode};

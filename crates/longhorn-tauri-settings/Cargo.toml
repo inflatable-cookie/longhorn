@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 longhorn-core.workspace = true
 longhorn-settings.workspace = true
+longhorn-settings-config.workspace = true
 serde.workspace = true
 tauri.workspace = true
 

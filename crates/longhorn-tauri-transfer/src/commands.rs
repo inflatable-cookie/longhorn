@@ -10,6 +10,7 @@ use tauri::{Emitter, Runtime, State, WebviewWindow};
 
 use crate::{
     ManagedTransferRuntime, PanelTransferAdapter, TransferHandlerAssembly, TransferHandlerError,
+    TransferHostError,
 };
 
 /// Window-local event carrying newly issued renderer transfer authority.
@@ -20,40 +21,34 @@ mod surface;
 
 #[cfg(feature = "surface-transfer")]
 pub use surface::{
-    AssembledSurfaceTransferCommands, SurfaceTransferCommandService, TauriSurfaceTransferState,
-    longhorn_transfer_commit_surface, longhorn_transfer_start_surface,
+    AssembledSurfaceTransferCommands, TauriSurfaceTransferState, longhorn_transfer_commit_surface,
+    longhorn_transfer_start_surface,
 };
 
-/// Object-safe command surface retained in Tauri managed state.
-pub trait TransferCommandService: Send + Sync {
-    /// Registers one fresh caller renderer epoch.
+trait ErasedTransferCommands: Send + Sync {
     fn snapshot(
         &self,
         caller: &HostWindowHandle,
     ) -> Result<TransferClientSnapshot, TransferHandlerError>;
 
-    /// Admits one current panel transfer session.
     fn start_panel(
         &self,
         caller: &HostWindowHandle,
         request: PanelSessionStartRequest,
     ) -> Result<TransferSessionResponse, TransferHandlerError>;
 
-    /// Publishes one complete caller-window zone replacement.
     fn publish_lease(
         &self,
         caller: &HostWindowHandle,
         request: TransferLeaseRequest,
     ) -> Result<TransferLeaseResponse, TransferHandlerError>;
 
-    /// Commits one terminal panel transfer.
     fn commit_panel(
         &self,
         caller: &HostWindowHandle,
         request: PanelTransferCommand,
     ) -> Result<PanelTransferResponse, TransferHandlerError>;
 
-    /// Cancels one bounded transfer session.
     fn cancel(
         &self,
         caller: &HostWindowHandle,
@@ -61,7 +56,7 @@ pub trait TransferCommandService: Send + Sync {
     ) -> Result<TransferCancelResponse, TransferHandlerError>;
 }
 
-/// One command service combining shared handler state and one panel adapter.
+/// One command assembly combining shared handler state and one panel adapter.
 pub struct AssembledTransferCommands<R, C, P> {
     handler: Arc<TransferHandlerAssembly<R, C>>,
     panel: Mutex<P>,
@@ -99,20 +94,22 @@ impl<R, C, P> AssembledTransferCommands<R, C, P> {
     }
 }
 
-impl<R, C, P> TransferCommandService for AssembledTransferCommands<R, C, P>
+impl<R, C, P> AssembledTransferCommands<R, C, P>
 where
-    R: ManagedTransferRuntime + 'static,
-    C: MonotonicClock + Send + Sync + 'static,
-    P: PanelTransferAdapter + Send + 'static,
+    R: ManagedTransferRuntime,
+    C: MonotonicClock,
+    P: PanelTransferAdapter,
 {
-    fn snapshot(
+    /// Registers one fresh caller renderer epoch.
+    pub fn snapshot(
         &self,
         caller: &HostWindowHandle,
     ) -> Result<TransferClientSnapshot, TransferHandlerError> {
         self.handler.snapshot(caller)
     }
 
-    fn start_panel(
+    /// Admits one current panel transfer session.
+    pub fn start_panel(
         &self,
         caller: &HostWindowHandle,
         request: PanelSessionStartRequest,
@@ -124,7 +121,8 @@ where
         self.handler.start_panel(caller, request, &mut *panel)
     }
 
-    fn publish_lease(
+    /// Publishes one complete caller-window zone replacement.
+    pub fn publish_lease(
         &self,
         caller: &HostWindowHandle,
         request: TransferLeaseRequest,
@@ -132,7 +130,8 @@ where
         self.handler.publish_lease(caller, request)
     }
 
-    fn commit_panel(
+    /// Commits one terminal panel transfer.
+    pub fn commit_panel(
         &self,
         caller: &HostWindowHandle,
         request: PanelTransferCommand,
@@ -144,7 +143,8 @@ where
         self.handler.commit_panel(caller, request, &mut *panel)
     }
 
-    fn cancel(
+    /// Cancels one bounded transfer session.
+    pub fn cancel(
         &self,
         caller: &HostWindowHandle,
         request: TransferCancelRequest,
@@ -153,100 +153,178 @@ where
     }
 }
 
+impl<R, C, P> ErasedTransferCommands for AssembledTransferCommands<R, C, P>
+where
+    R: ManagedTransferRuntime + 'static,
+    C: MonotonicClock + Send + Sync + 'static,
+    P: PanelTransferAdapter + Send + 'static,
+{
+    fn snapshot(
+        &self,
+        caller: &HostWindowHandle,
+    ) -> Result<TransferClientSnapshot, TransferHandlerError> {
+        Self::snapshot(self, caller)
+    }
+
+    fn start_panel(
+        &self,
+        caller: &HostWindowHandle,
+        request: PanelSessionStartRequest,
+    ) -> Result<TransferSessionResponse, TransferHandlerError> {
+        Self::start_panel(self, caller, request)
+    }
+
+    fn publish_lease(
+        &self,
+        caller: &HostWindowHandle,
+        request: TransferLeaseRequest,
+    ) -> Result<TransferLeaseResponse, TransferHandlerError> {
+        Self::publish_lease(self, caller, request)
+    }
+
+    fn commit_panel(
+        &self,
+        caller: &HostWindowHandle,
+        request: PanelTransferCommand,
+    ) -> Result<PanelTransferResponse, TransferHandlerError> {
+        Self::commit_panel(self, caller, request)
+    }
+
+    fn cancel(
+        &self,
+        caller: &HostWindowHandle,
+        request: TransferCancelRequest,
+    ) -> Result<TransferCancelResponse, TransferHandlerError> {
+        Self::cancel(self, caller, request)
+    }
+}
+
 /// Type-erased transfer commands installed once in Tauri managed state.
 pub struct TauriTransferState {
-    service: Arc<dyn TransferCommandService>,
+    commands: Arc<dyn ErasedTransferCommands>,
     // Serializes snapshot acquisition with client-changed emission so two
     // concurrent snapshots cannot deliver their events out of epoch order.
-    snapshot_emit: std::sync::Mutex<()>,
+    snapshot_emit: Arc<Mutex<()>>,
 }
 
 impl TauriTransferState {
     /// Wraps one real or mock-runtime command assembly.
     #[must_use]
-    pub fn new(service: Arc<dyn TransferCommandService>) -> Self {
+    pub fn new<R, C, P>(commands: Arc<AssembledTransferCommands<R, C, P>>) -> Self
+    where
+        R: ManagedTransferRuntime + 'static,
+        C: MonotonicClock + Send + Sync + 'static,
+        P: PanelTransferAdapter + Send + 'static,
+    {
         Self {
-            service,
-            snapshot_emit: std::sync::Mutex::new(()),
+            commands,
+            snapshot_emit: Arc::new(Mutex::new(())),
         }
     }
 }
 
+async fn run_blocking<R: Runtime, T: Send + 'static>(
+    state: State<'_, TauriTransferState>,
+    window: &WebviewWindow<R>,
+    action: impl FnOnce(
+        &dyn ErasedTransferCommands,
+        &HostWindowHandle,
+    ) -> Result<T, TransferHandlerError>
+    + Send
+    + 'static,
+) -> Result<T, TransferHostError> {
+    let caller = caller_handle(window)?;
+    let commands = Arc::clone(&state.commands);
+    tauri::async_runtime::spawn_blocking(move || action(commands.as_ref(), &caller))
+        .await
+        .map_err(|_| TransferHostError::state_unavailable())?
+        .map_err(TransferHostError::from)
+}
+
 /// Returns one fresh caller transfer-client snapshot.
 #[tauri::command]
-pub fn longhorn_transfer_snapshot<R: Runtime>(
+pub async fn longhorn_transfer_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriTransferState>,
-) -> Result<TransferClientSnapshot, String> {
-    let _ordered = state
-        .snapshot_emit
-        .lock()
-        .map_err(|_| "transfer snapshot ordering lock is poisoned".to_string())?;
-    let snapshot = state
-        .service
-        .snapshot(&caller_handle(&window)?)
-        .map_err(|error| error.to_string())?;
-    // The invoke result is the authoritative delivery; the event is advisory
-    // to other listeners. The epoch has already advanced, so an emit failure
-    // must not hide the new authority behind an error.
-    if let Err(error) = window.emit(TRANSFER_CLIENT_CHANGED_EVENT, &snapshot) {
-        longhorn_core::report_best_effort_failure("transfer.client-changed-emit", error);
-    }
-    Ok(snapshot)
+) -> Result<TransferClientSnapshot, TransferHostError> {
+    let caller = caller_handle(&window)?;
+    let commands = Arc::clone(&state.commands);
+    let snapshot_emit = Arc::clone(&state.snapshot_emit);
+    let emit_window = window.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let _ordered = snapshot_emit
+            .lock()
+            .map_err(|_| TransferHostError::state_unavailable())?;
+        let snapshot = commands
+            .snapshot(&caller)
+            .map_err(TransferHostError::from)?;
+        // The invoke result is the authoritative delivery; the event is advisory
+        // to other listeners. The epoch has already advanced, so an emit failure
+        // must not hide the new authority behind an error.
+        if let Err(error) = emit_window.emit(TRANSFER_CLIENT_CHANGED_EVENT, &snapshot) {
+            longhorn_core::report_best_effort_failure("transfer.client-changed-emit", error);
+        }
+        Ok(snapshot)
+    })
+    .await
+    .map_err(|_| TransferHostError::state_unavailable())?
 }
 
 /// Admits one current panel transfer session.
 #[tauri::command]
-pub fn longhorn_transfer_start_panel<R: Runtime>(
+pub async fn longhorn_transfer_start_panel<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriTransferState>,
     request: PanelSessionStartRequest,
-) -> Result<TransferSessionResponse, String> {
-    state
-        .service
-        .start_panel(&caller_handle(&window)?, request)
-        .map_err(|error| error.to_string())
+) -> Result<TransferSessionResponse, TransferHostError> {
+    run_blocking(state, &window, move |commands, caller| {
+        commands.start_panel(caller, request)
+    })
+    .await
 }
 
 /// Publishes one complete caller-window drop-zone lease.
 #[tauri::command]
-pub fn longhorn_transfer_publish_lease<R: Runtime>(
+pub async fn longhorn_transfer_publish_lease<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriTransferState>,
     request: TransferLeaseRequest,
-) -> Result<TransferLeaseResponse, String> {
-    state
-        .service
-        .publish_lease(&caller_handle(&window)?, request)
-        .map_err(|error| error.to_string())
+) -> Result<TransferLeaseResponse, TransferHostError> {
+    run_blocking(state, &window, move |commands, caller| {
+        commands.publish_lease(caller, request)
+    })
+    .await
 }
 
 /// Commits one terminal panel transfer.
 #[tauri::command]
-pub fn longhorn_transfer_commit_panel<R: Runtime>(
+pub async fn longhorn_transfer_commit_panel<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriTransferState>,
     request: PanelTransferCommand,
-) -> Result<PanelTransferResponse, String> {
-    state
-        .service
-        .commit_panel(&caller_handle(&window)?, request)
-        .map_err(|error| error.to_string())
+) -> Result<PanelTransferResponse, TransferHostError> {
+    run_blocking(state, &window, move |commands, caller| {
+        commands.commit_panel(caller, request)
+    })
+    .await
 }
 
 /// Cancels one bounded transfer session.
 #[tauri::command]
-pub fn longhorn_transfer_cancel<R: Runtime>(
+pub async fn longhorn_transfer_cancel<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriTransferState>,
     request: TransferCancelRequest,
-) -> Result<TransferCancelResponse, String> {
-    state
-        .service
-        .cancel(&caller_handle(&window)?, request)
-        .map_err(|error| error.to_string())
+) -> Result<TransferCancelResponse, TransferHostError> {
+    run_blocking(state, &window, move |commands, caller| {
+        commands.cancel(caller, request)
+    })
+    .await
 }
 
-fn caller_handle<R: Runtime>(window: &WebviewWindow<R>) -> Result<HostWindowHandle, String> {
-    HostWindowHandle::new(window.label()).map_err(|error| error.to_string())
+pub(super) fn caller_handle<R: Runtime>(
+    window: &WebviewWindow<R>,
+) -> Result<HostWindowHandle, TransferHostError> {
+    HostWindowHandle::new(window.label())
+        .map_err(|error| TransferHostError::invalid_caller(error.to_string()))
 }

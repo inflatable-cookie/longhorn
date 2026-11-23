@@ -3359,6 +3359,7 @@ version = "0.5.0"
 dependencies = [
  "longhorn-core",
  "longhorn-settings",
+ "longhorn-settings-config",
  "serde",
  "serde_json",
  "tauri",
@@ -3368,13 +3369,19 @@ dependencies = [
 name = "longhorn-tauri-transfer"
 version = "0.5.0"
 dependencies = [
+ "longhorn-config",
  "longhorn-core",
+ "longhorn-storage-layout",
  "longhorn-surface-transfer",
+ "longhorn-surfaces",
+ "longhorn-surfaces-config",
  "longhorn-tauri-windowing",
  "longhorn-transfer",
  "longhorn-windowing",
+ "serde",
  "serde_json",
  "tauri",
+ "tempfile",
 ]
 
 [[package]]

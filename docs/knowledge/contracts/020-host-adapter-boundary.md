@@ -71,7 +71,12 @@ contract.
   window access to one. Host seams are not required to be `Send + Sync`, and
   Longhorn does not require a host to make them so. This is why the pure port
   types identified in Card 161 stay where they are: their thread-safety
-  bounds are host policy, not shared contract.
+  bounds are host policy, not shared contract. On Tauri, every command adapter
+  offloads blocking and consumer work via `tauri::async_runtime::spawn_blocking`
+  so UI threads never block behind adapter mutexes, exposes one authority trait
+  per adapter (no mirroring `*Service` trait), reports poisoned mutexes as
+  permanently unavailable (`retryable: false`), and returns stable typed wire
+  error codes (see [contract 010](010-rust-typescript-ipc-and-events.md)).
 - **When state can be applied.** Creation-time-only state is a legitimate
   host shape, not a deficiency to work around.
 - **Whether a window has a visibility state at all.**

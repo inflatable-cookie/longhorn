@@ -9,103 +9,87 @@ use longhorn_history_tree::{
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
-use crate::ForkHistoryHostError;
+use crate::{ForkHistoryHandlerAssembly, ForkHistoryHostAuthority, ForkHistoryHostError};
 
 /// Non-durable committed graph invalidation hint.
 pub const FORK_HISTORY_CHANGED_EVENT: &str = "longhorn://history-tree/changed";
 
-/// Object-safe fork-history surface retained in Tauri managed state.
-pub trait ForkHistoryHostService: Send + Sync {
-    /// Returns one caller-authorized linear-default summary.
-    fn snapshot(&self, caller: &str) -> Result<ForkSnapshot, ForkHistoryHostError>;
-    /// Returns one caller-authorized bounded path page.
-    fn path(
-        &self,
-        caller: &str,
-        command: ForkPathPageCommand,
-    ) -> Result<ForkPathPageSnapshot, ForkHistoryHostError>;
-    /// Returns one caller-authorized bounded branch page.
-    fn branches(
-        &self,
-        caller: &str,
-        command: ForkBranchPageCommand,
-    ) -> Result<ForkBranchPageSnapshot, ForkHistoryHostError>;
-    /// Returns one caller-authorized bounded continuation page.
-    fn continuations(
-        &self,
-        caller: &str,
-        command: ForkContinuationPageCommand,
-    ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError>;
-    /// Deletes one continuation and everything below it. Irreversible.
-    fn delete_continuation(
-        &self,
-        caller: &str,
-        command: ForkDeleteContinuationCommand,
-    ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError>;
-    /// Prunes the unprotected share of the graph to a budget.
-    fn prune(
-        &self,
-        caller: &str,
-        command: ForkPruneCommand,
-    ) -> Result<ForkPruneResult, ForkHistoryHostError>;
-    /// Applies and commits one caller-authorized graph navigation.
-    fn navigate(
-        &self,
-        caller: &str,
-        command: ForkNavigationCommand,
-    ) -> Result<ForkNavigationResult, ForkHistoryHostError>;
-}
-
 /// Type-erased graph host installed once in Tauri managed state.
 pub struct TauriForkHistoryState {
-    service: Arc<dyn ForkHistoryHostService>,
+    assembly: Arc<ForkHistoryHandlerAssembly<dyn ForkHistoryHostAuthority>>,
 }
 
 impl TauriForkHistoryState {
     /// Wraps one explicitly injected graph assembly.
     #[must_use]
-    pub fn new(service: Arc<dyn ForkHistoryHostService>) -> Self {
-        Self { service }
+    pub fn new(assembly: Arc<ForkHistoryHandlerAssembly<dyn ForkHistoryHostAuthority>>) -> Self {
+        Self { assembly }
     }
+}
+
+async fn run_blocking<R: Runtime, T: Send + 'static>(
+    state: State<'_, TauriForkHistoryState>,
+    window: &WebviewWindow<R>,
+    action: impl FnOnce(
+        &ForkHistoryHandlerAssembly<dyn ForkHistoryHostAuthority>,
+        &str,
+    ) -> Result<T, ForkHistoryHostError>
+    + Send
+    + 'static,
+) -> Result<T, ForkHistoryHostError> {
+    let assembly = Arc::clone(&state.assembly);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || action(&assembly, &label))
+        .await
+        .map_err(|_| ForkHistoryHostError::state_unavailable())?
 }
 
 /// Returns caller-authorized linear-default graph metadata.
 #[tauri::command]
-pub fn longhorn_history_tree_snapshot<R: Runtime>(
+pub async fn longhorn_history_tree_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
 ) -> Result<ForkSnapshot, ForkHistoryHostError> {
-    state.service.snapshot(window.label())
+    run_blocking(state, &window, |assembly, label| assembly.snapshot(label)).await
 }
 
 /// Returns one caller-authorized bounded path page.
 #[tauri::command]
-pub fn longhorn_history_tree_path<R: Runtime>(
+pub async fn longhorn_history_tree_path<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
     command: ForkPathPageCommand,
 ) -> Result<ForkPathPageSnapshot, ForkHistoryHostError> {
-    state.service.path(window.label(), command)
+    run_blocking(state, &window, move |assembly, label| {
+        assembly.path(label, command)
+    })
+    .await
 }
 
 /// Returns one caller-authorized bounded branch page.
 #[tauri::command]
-pub fn longhorn_history_tree_branches<R: Runtime>(
+pub async fn longhorn_history_tree_branches<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
     command: ForkBranchPageCommand,
 ) -> Result<ForkBranchPageSnapshot, ForkHistoryHostError> {
-    state.service.branches(window.label(), command)
+    run_blocking(state, &window, move |assembly, label| {
+        assembly.branches(label, command)
+    })
+    .await
 }
 
 /// Returns one caller-authorized bounded continuation page.
 #[tauri::command]
-pub fn longhorn_history_tree_continuations<R: Runtime>(
+pub async fn longhorn_history_tree_continuations<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
     command: ForkContinuationPageCommand,
 ) -> Result<ForkContinuationPageSnapshot, ForkHistoryHostError> {
-    state.service.continuations(window.label(), command)
+    run_blocking(state, &window, move |assembly, label| {
+        assembly.continuations(label, command)
+    })
+    .await
 }
 
 /// Deletes one continuation and everything below it. Irreversible.
@@ -113,12 +97,15 @@ pub fn longhorn_history_tree_continuations<R: Runtime>(
 /// Publishes `ForkChangedKind::Retention`: every page a consumer holds names
 /// entries that may no longer exist, so the invalidation is not optional.
 #[tauri::command]
-pub fn longhorn_history_tree_delete_continuation<R: Runtime>(
+pub async fn longhorn_history_tree_delete_continuation<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
     command: ForkDeleteContinuationCommand,
 ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
-    let receipt = state.service.delete_continuation(window.label(), command)?;
+    let receipt = run_blocking(state, &window, move |assembly, label| {
+        assembly.delete_continuation(label, command)
+    })
+    .await?;
     if let Err(error) = window.emit(
         FORK_HISTORY_CHANGED_EVENT,
         fork_retention_changed_event(&receipt),
@@ -133,12 +120,15 @@ pub fn longhorn_history_tree_delete_continuation<R: Runtime>(
 /// Under the destructive capability, not the mutate one: pruning removes
 /// entries. Publishes `ForkChangedKind::Retention` only when something went.
 #[tauri::command]
-pub fn longhorn_history_tree_prune<R: Runtime>(
+pub async fn longhorn_history_tree_prune<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
     command: ForkPruneCommand,
 ) -> Result<ForkPruneResult, ForkHistoryHostError> {
-    let result = state.service.prune(window.label(), command)?;
+    let result = run_blocking(state, &window, move |assembly, label| {
+        assembly.prune(label, command)
+    })
+    .await?;
     if let ForkPruneResult::Pruned { receipt } = &result
         && let Err(error) = window.emit(
             FORK_HISTORY_CHANGED_EVENT,
@@ -152,12 +142,15 @@ pub fn longhorn_history_tree_prune<R: Runtime>(
 
 /// Applies and commits one caller-authorized graph navigation.
 #[tauri::command]
-pub fn longhorn_history_tree_navigate<R: Runtime>(
+pub async fn longhorn_history_tree_navigate<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
     command: ForkNavigationCommand,
 ) -> Result<ForkNavigationResult, ForkHistoryHostError> {
-    let result = state.service.navigate(window.label(), command)?;
+    let result = run_blocking(state, &window, move |assembly, label| {
+        assembly.navigate(label, command)
+    })
+    .await?;
     if let Some(event) = fork_history_changed_event(&result)
         && let Err(error) = window.emit(FORK_HISTORY_CHANGED_EVENT, event)
     {

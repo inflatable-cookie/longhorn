@@ -7,10 +7,10 @@ use longhorn_history_tree::{
     ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
 };
 
-use crate::{ForkHistoryHostAuthority, ForkHistoryHostError, ForkHistoryHostService};
+use crate::{ForkHistoryHostAuthority, ForkHistoryHostError};
 
 /// Shared injected assembly used by Tauri and conformance tests.
-pub struct ForkHistoryHandlerAssembly<A> {
+pub struct ForkHistoryHandlerAssembly<A: ?Sized> {
     authority: Mutex<A>,
 }
 
@@ -22,7 +22,9 @@ impl<A> ForkHistoryHandlerAssembly<A> {
             authority: Mutex::new(authority),
         }
     }
+}
 
+impl<A: ?Sized> ForkHistoryHandlerAssembly<A> {
     /// Runs trusted host work against injected authority.
     pub fn with_authority<Output>(
         &self,
@@ -35,15 +37,17 @@ impl<A> ForkHistoryHandlerAssembly<A> {
     }
 }
 
-impl<A> ForkHistoryHostService for ForkHistoryHandlerAssembly<A>
+impl<A> ForkHistoryHandlerAssembly<A>
 where
-    A: ForkHistoryHostAuthority,
+    A: ForkHistoryHostAuthority + ?Sized,
 {
-    fn snapshot(&self, caller: &str) -> Result<ForkSnapshot, ForkHistoryHostError> {
+    /// Returns one caller-authorized linear-default summary.
+    pub fn snapshot(&self, caller: &str) -> Result<ForkSnapshot, ForkHistoryHostError> {
         self.with_authority(|authority| authority.snapshot(caller))?
     }
 
-    fn path(
+    /// Returns one caller-authorized bounded path page.
+    pub fn path(
         &self,
         caller: &str,
         command: ForkPathPageCommand,
@@ -51,7 +55,8 @@ where
         self.with_authority(|authority| authority.path(caller, command))?
     }
 
-    fn branches(
+    /// Returns one caller-authorized bounded branch page.
+    pub fn branches(
         &self,
         caller: &str,
         command: ForkBranchPageCommand,
@@ -59,7 +64,8 @@ where
         self.with_authority(|authority| authority.branches(caller, command))?
     }
 
-    fn continuations(
+    /// Returns one caller-authorized bounded continuation page.
+    pub fn continuations(
         &self,
         caller: &str,
         command: ForkContinuationPageCommand,
@@ -67,7 +73,8 @@ where
         self.with_authority(|authority| authority.continuations(caller, command))?
     }
 
-    fn delete_continuation(
+    /// Deletes one continuation and everything below it. Irreversible.
+    pub fn delete_continuation(
         &self,
         caller: &str,
         command: ForkDeleteContinuationCommand,
@@ -75,7 +82,8 @@ where
         self.with_authority(|authority| authority.delete_continuation(caller, command))?
     }
 
-    fn prune(
+    /// Prunes the unprotected share of the graph to a budget.
+    pub fn prune(
         &self,
         caller: &str,
         command: ForkPruneCommand,
@@ -83,7 +91,8 @@ where
         self.with_authority(|authority| authority.prune(caller, command))?
     }
 
-    fn navigate(
+    /// Applies and commits one caller-authorized graph navigation.
+    pub fn navigate(
         &self,
         caller: &str,
         command: ForkNavigationCommand,

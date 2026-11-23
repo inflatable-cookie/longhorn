@@ -273,7 +273,9 @@ impl CredentialStore for MemoryCredentialStore {
     fn store(&self, slot: &CredentialSlot, secret: &str) -> Result<(), CredentialError> {
         self.secrets
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .map_err(|_| CredentialError::Unavailable {
+                detail: "memory credential store state is unavailable".into(),
+            })?
             .insert(slot.clone(), secret.to_owned());
         Ok(())
     }
@@ -282,7 +284,9 @@ impl CredentialStore for MemoryCredentialStore {
         Ok(self
             .secrets
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .map_err(|_| CredentialError::Unavailable {
+                detail: "memory credential store state is unavailable".into(),
+            })?
             .get(slot)
             .cloned())
     }
@@ -290,7 +294,9 @@ impl CredentialStore for MemoryCredentialStore {
     fn remove(&self, slot: &CredentialSlot) -> Result<(), CredentialError> {
         self.secrets
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .map_err(|_| CredentialError::Unavailable {
+                detail: "memory credential store state is unavailable".into(),
+            })?
             .remove(slot);
         Ok(())
     }
@@ -308,6 +314,33 @@ mod tests {
             CredentialSlot::backup_identity().as_str(),
             "backup-identity"
         );
+    }
+
+    #[test]
+    fn memory_credential_store_reports_poisoned_lock_as_unavailable() {
+        let store = std::sync::Arc::new(MemoryCredentialStore::new());
+        let slot = CredentialSlot::licence_key();
+        let poisoned = std::sync::Arc::clone(&store);
+        assert!(
+            std::thread::spawn(move || {
+                let _guard = poisoned.secrets.lock().unwrap();
+                panic!("poison memory credential store");
+            })
+            .join()
+            .is_err()
+        );
+        assert!(matches!(
+            store.store(&slot, "secret"),
+            Err(CredentialError::Unavailable { .. })
+        ));
+        assert!(matches!(
+            store.retrieve(&slot),
+            Err(CredentialError::Unavailable { .. })
+        ));
+        assert!(matches!(
+            store.remove(&slot),
+            Err(CredentialError::Unavailable { .. })
+        ));
     }
 
     #[test]

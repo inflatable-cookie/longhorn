@@ -3,13 +3,14 @@
 Narrow Tauri command and event assembly for the generic Longhorn bridge.
 Consumers inject domain registrations, typed handlers, and authority.
 
-Build a `BridgeDomainRegistry`, register domain-owned typed routes, then wrap
-`BridgeHandlerAssembly` in `TauriBridgeState`. Register exported commands by
-their full crate paths:
+Build a `BridgeDomainRegistry`, register domain-owned typed routes, then install
+`BridgeHandlerAssembly` through `bridge_plugin` (which wires window-destroyed
+session teardown by default). Register exported commands by their full crate
+paths:
 
 ```rust,ignore
 builder
-    .manage(TauriBridgeState::new(assembly))
+    .plugin(longhorn_tauri_bridge::bridge_plugin(assembly))
     .invoke_handler(tauri::generate_handler![
         longhorn_tauri_bridge::longhorn_bridge_hello,
         longhorn_tauri_bridge::longhorn_bridge_authority,

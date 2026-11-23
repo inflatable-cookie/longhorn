@@ -5,10 +5,10 @@ use longhorn_licence::{
     LicenceRefreshCommand, LicenceReleaseSeatCommand, LicenceRenameSeatCommand, LicenceSnapshot,
 };
 
-use crate::{LicenceHostAuthority, LicenceHostError, LicenceHostService};
+use crate::{LicenceHostAuthority, LicenceHostError};
 
 /// Shared injected assembly used by Tauri and conformance tests.
-pub struct LicenceHandlerAssembly<A> {
+pub struct LicenceHandlerAssembly<A: ?Sized> {
     authority: Mutex<A>,
 }
 
@@ -20,7 +20,9 @@ impl<A> LicenceHandlerAssembly<A> {
             authority: Mutex::new(authority),
         }
     }
+}
 
+impl<A: ?Sized> LicenceHandlerAssembly<A> {
     /// Runs trusted host work against injected authority.
     pub fn with_authority<Output>(
         &self,
@@ -33,15 +35,17 @@ impl<A> LicenceHandlerAssembly<A> {
     }
 }
 
-impl<A> LicenceHostService for LicenceHandlerAssembly<A>
+impl<A> LicenceHandlerAssembly<A>
 where
-    A: LicenceHostAuthority,
+    A: LicenceHostAuthority + ?Sized,
 {
-    fn snapshot(&self, caller: &str) -> Result<LicenceSnapshot, LicenceHostError> {
+    /// Returns the caller-authorized licence state.
+    pub fn snapshot(&self, caller: &str) -> Result<LicenceSnapshot, LicenceHostError> {
         self.with_authority(|authority| authority.snapshot(caller))?
     }
 
-    fn activate(
+    /// Presents a credential and asks for a licence.
+    pub fn activate(
         &self,
         caller: &str,
         command: LicenceActivateCommand,
@@ -49,7 +53,8 @@ where
         self.with_authority(|authority| authority.activate(caller, command))?
     }
 
-    fn deactivate(
+    /// Releases this machine's seat.
+    pub fn deactivate(
         &self,
         caller: &str,
         command: LicenceDeactivateCommand,
@@ -57,7 +62,8 @@ where
         self.with_authority(|authority| authority.deactivate(caller, command))?
     }
 
-    fn refresh(
+    /// Re-checks the lease now.
+    pub fn refresh(
         &self,
         caller: &str,
         command: LicenceRefreshCommand,
@@ -65,7 +71,8 @@ where
         self.with_authority(|authority| authority.refresh(caller, command))?
     }
 
-    fn release_seat(
+    /// Releases a named machine's seat.
+    pub fn release_seat(
         &self,
         caller: &str,
         command: LicenceReleaseSeatCommand,
@@ -73,7 +80,8 @@ where
         self.with_authority(|authority| authority.release_seat(caller, command))?
     }
 
-    fn rename_seat(
+    /// Renames a machine's seat.
+    pub fn rename_seat(
         &self,
         caller: &str,
         command: LicenceRenameSeatCommand,

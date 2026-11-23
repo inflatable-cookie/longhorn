@@ -50,7 +50,7 @@ impl UpdateHostError {
         Self {
             code: UpdateHostErrorCode::StateUnavailable,
             message: "update handler state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

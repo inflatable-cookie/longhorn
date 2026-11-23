@@ -12,10 +12,10 @@ use longhorn_config::{
     StorageTransitionInspectOutcome,
 };
 
-use crate::{ConfigOperationsAuthority, ConfigOperationsCommandService, ConfigOperationsHostError};
+use crate::{ConfigOperationsHostAuthority, ConfigOperationsHostError};
 
 /// Shared command assembly used by Tauri and direct/serialized tests.
-pub struct ConfigOperationsHandlerAssembly<A> {
+pub struct ConfigOperationsHandlerAssembly<A: ?Sized> {
     authority: Mutex<A>,
 }
 
@@ -27,7 +27,9 @@ impl<A> ConfigOperationsHandlerAssembly<A> {
             authority: Mutex::new(authority),
         }
     }
+}
 
+impl<A: ?Sized> ConfigOperationsHandlerAssembly<A> {
     /// Runs trusted host work against the injected authority.
     pub fn with_authority<Output>(
         &self,
@@ -40,11 +42,12 @@ impl<A> ConfigOperationsHandlerAssembly<A> {
     }
 }
 
-impl<A> ConfigOperationsCommandService for ConfigOperationsHandlerAssembly<A>
+impl<A> ConfigOperationsHandlerAssembly<A>
 where
-    A: ConfigOperationsAuthority,
+    A: ConfigOperationsHostAuthority + ?Sized,
 {
-    fn snapshot(
+    /// Returns one caller-authorized snapshot.
+    pub fn snapshot(
         &self,
         caller: &str,
         command: ConfigSnapshotCommand,
@@ -52,7 +55,8 @@ where
         self.with_authority(|authority| authority.snapshot(caller, command))?
     }
 
-    fn inspect_storage_transition(
+    /// Inspects one target profile.
+    pub fn inspect_storage_transition(
         &self,
         caller: &str,
         command: StorageTransitionInspectCommand,
@@ -60,7 +64,8 @@ where
         self.with_authority(|authority| authority.inspect_storage_transition(caller, command))?
     }
 
-    fn execute_storage_transition(
+    /// Executes one matching confirmed transition.
+    pub fn execute_storage_transition(
         &self,
         caller: &str,
         command: StorageTransitionExecuteCommand,
@@ -68,7 +73,8 @@ where
         self.with_authority(|authority| authority.execute_storage_transition(caller, command))?
     }
 
-    fn recover_storage(
+    /// Recovers interrupted transition state.
+    pub fn recover_storage(
         &self,
         caller: &str,
         command: StorageRecoveryCommand,
@@ -76,7 +82,8 @@ where
         self.with_authority(|authority| authority.recover_storage(caller, command))?
     }
 
-    fn cleanup_storage(
+    /// Applies receipt-bound source cleanup.
+    pub fn cleanup_storage(
         &self,
         caller: &str,
         command: StorageCleanupCommand,
@@ -84,7 +91,8 @@ where
         self.with_authority(|authority| authority.cleanup_storage(caller, command))?
     }
 
-    fn create_backup(
+    /// Creates and operationally publishes a backup.
+    pub fn create_backup(
         &self,
         caller: &str,
         command: BackupCreateCommand,
@@ -92,7 +100,8 @@ where
         self.with_authority(|authority| authority.create_backup(caller, command))?
     }
 
-    fn export_backup(
+    /// Exports a proven archive through host selection.
+    pub fn export_backup(
         &self,
         caller: &str,
         command: BackupExportCommand,
@@ -100,7 +109,8 @@ where
         self.with_authority(|authority| authority.export_backup(caller, command))?
     }
 
-    fn apply_backup_retention(
+    /// Applies one matching host-owned retention plan.
+    pub fn apply_backup_retention(
         &self,
         caller: &str,
         command: BackupRetentionApplyCommand,
@@ -108,7 +118,8 @@ where
         self.with_authority(|authority| authority.apply_backup_retention(caller, command))?
     }
 
-    fn inspect_restore(
+    /// Selects, unlocks, and inspects one restore archive.
+    pub fn inspect_restore(
         &self,
         caller: &str,
         command: RestoreInspectCommand,
@@ -116,7 +127,8 @@ where
         self.with_authority(|authority| authority.inspect_restore(caller, command))?
     }
 
-    fn plan_restore(
+    /// Plans explicit choices against fresh current evidence.
+    pub fn plan_restore(
         &self,
         caller: &str,
         command: RestorePlanCommand,
@@ -124,7 +136,8 @@ where
         self.with_authority(|authority| authority.plan_restore(caller, command))?
     }
 
-    fn execute_restore(
+    /// Executes one matching ordinary restore plan.
+    pub fn execute_restore(
         &self,
         caller: &str,
         command: RestoreExecuteCommand,
@@ -132,7 +145,8 @@ where
         self.with_authority(|authority| authority.execute_restore(caller, command))?
     }
 
-    fn execute_adapter_restore(
+    /// Executes one matching custom-adapter restore.
+    pub fn execute_adapter_restore(
         &self,
         caller: &str,
         command: RestoreAdapterExecuteCommand,
@@ -140,7 +154,8 @@ where
         self.with_authority(|authority| authority.execute_adapter_restore(caller, command))?
     }
 
-    fn recover_restore(
+    /// Recovers or cleans one restore journal.
+    pub fn recover_restore(
         &self,
         caller: &str,
         command: RestoreRecoveryCommand,

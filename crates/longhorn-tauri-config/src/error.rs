@@ -57,7 +57,7 @@ impl ConfigOperationsHostError {
         Self {
             code: ConfigOperationsHostErrorCode::StateUnavailable,
             message: "config operations handler state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 }

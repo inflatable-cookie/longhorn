@@ -8,7 +8,7 @@ use longhorn_notifications::{
 };
 use longhorn_tauri_notifications::{
     NotificationHandlerAssembly, NotificationHostAuthority, NotificationHostError,
-    NotificationHostService, notification_mutation_changed_event,
+    notification_mutation_changed_event,
 };
 
 struct Authority {

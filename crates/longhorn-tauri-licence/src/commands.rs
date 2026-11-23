@@ -7,137 +7,118 @@ use longhorn_licence::{
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
-use crate::LicenceHostError;
+use crate::{LicenceHandlerAssembly, LicenceHostAuthority, LicenceHostError};
 
 /// Non-durable committed licence invalidation hint.
 pub const LICENCE_CHANGED_EVENT: &str = "longhorn://licence/changed";
 
-/// Object-safe licence surface retained in Tauri managed state.
-pub trait LicenceHostService: Send + Sync {
-    /// Returns the caller-authorized licence state.
-    fn snapshot(&self, caller: &str) -> Result<LicenceSnapshot, LicenceHostError>;
-    /// Presents a credential and asks for a licence.
-    fn activate(
-        &self,
-        caller: &str,
-        command: LicenceActivateCommand,
-    ) -> Result<LicenceOutcomeProjection, LicenceHostError>;
-    /// Releases this machine's seat.
-    fn deactivate(
-        &self,
-        caller: &str,
-        command: LicenceDeactivateCommand,
-    ) -> Result<LicenceOutcomeProjection, LicenceHostError>;
-    /// Re-checks the lease now.
-    fn refresh(
-        &self,
-        caller: &str,
-        command: LicenceRefreshCommand,
-    ) -> Result<LicenceOutcomeProjection, LicenceHostError>;
-    /// Releases a named machine's seat.
-    fn release_seat(
-        &self,
-        caller: &str,
-        command: LicenceReleaseSeatCommand,
-    ) -> Result<LicenceOutcomeProjection, LicenceHostError>;
-    /// Renames a machine's seat.
-    fn rename_seat(
-        &self,
-        caller: &str,
-        command: LicenceRenameSeatCommand,
-    ) -> Result<LicenceOutcomeProjection, LicenceHostError>;
-}
-
 /// Type-erased licence host installed once in Tauri managed state.
 pub struct TauriLicenceState {
-    service: Arc<dyn LicenceHostService>,
+    assembly: Arc<LicenceHandlerAssembly<dyn LicenceHostAuthority>>,
 }
 
 impl TauriLicenceState {
     /// Wraps one explicitly injected licence assembly.
     #[must_use]
-    pub fn new(service: Arc<dyn LicenceHostService>) -> Self {
-        Self { service }
+    pub fn new(assembly: Arc<LicenceHandlerAssembly<dyn LicenceHostAuthority>>) -> Self {
+        Self { assembly }
     }
+}
+
+async fn run_blocking<R: Runtime, T: Send + 'static>(
+    state: State<'_, TauriLicenceState>,
+    window: &WebviewWindow<R>,
+    action: impl FnOnce(
+        &LicenceHandlerAssembly<dyn LicenceHostAuthority>,
+        &str,
+    ) -> Result<T, LicenceHostError>
+    + Send
+    + 'static,
+) -> Result<T, LicenceHostError> {
+    let assembly = Arc::clone(&state.assembly);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || action(&assembly, &label))
+        .await
+        .map_err(|_| LicenceHostError::state_unavailable())?
 }
 
 /// Returns caller-authorized licence state.
 #[tauri::command]
-pub fn longhorn_licence_snapshot<R: Runtime>(
+pub async fn longhorn_licence_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriLicenceState>,
 ) -> Result<LicenceSnapshot, LicenceHostError> {
-    state.service.snapshot(window.label())
+    run_blocking(state, &window, |assembly, label| assembly.snapshot(label)).await
 }
 
 /// Presents a credential and asks for a licence.
 #[tauri::command]
-pub fn longhorn_licence_activate<R: Runtime>(
+pub async fn longhorn_licence_activate<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriLicenceState>,
     command: LicenceActivateCommand,
 ) -> Result<LicenceOutcomeProjection, LicenceHostError> {
-    emitting(
-        &window,
-        state.service.activate(window.label(), command)?,
-        LicenceChangedKind::Activated,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.activate(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, LicenceChangedKind::Activated)
 }
 
 /// Releases this machine's seat.
 #[tauri::command]
-pub fn longhorn_licence_deactivate<R: Runtime>(
+pub async fn longhorn_licence_deactivate<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriLicenceState>,
     command: LicenceDeactivateCommand,
 ) -> Result<LicenceOutcomeProjection, LicenceHostError> {
-    emitting(
-        &window,
-        state.service.deactivate(window.label(), command)?,
-        LicenceChangedKind::Deactivated,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.deactivate(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, LicenceChangedKind::Deactivated)
 }
 
 /// Re-checks the lease now.
 #[tauri::command]
-pub fn longhorn_licence_refresh<R: Runtime>(
+pub async fn longhorn_licence_refresh<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriLicenceState>,
     command: LicenceRefreshCommand,
 ) -> Result<LicenceOutcomeProjection, LicenceHostError> {
-    emitting(
-        &window,
-        state.service.refresh(window.label(), command)?,
-        LicenceChangedKind::Refreshed,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.refresh(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, LicenceChangedKind::Refreshed)
 }
 
 /// Releases a named machine's seat.
 #[tauri::command]
-pub fn longhorn_licence_release_seat<R: Runtime>(
+pub async fn longhorn_licence_release_seat<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriLicenceState>,
     command: LicenceReleaseSeatCommand,
 ) -> Result<LicenceOutcomeProjection, LicenceHostError> {
-    emitting(
-        &window,
-        state.service.release_seat(window.label(), command)?,
-        LicenceChangedKind::Deactivated,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.release_seat(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, LicenceChangedKind::Deactivated)
 }
 
 /// Renames a machine's seat.
 #[tauri::command]
-pub fn longhorn_licence_rename_seat<R: Runtime>(
+pub async fn longhorn_licence_rename_seat<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriLicenceState>,
     command: LicenceRenameSeatCommand,
 ) -> Result<LicenceOutcomeProjection, LicenceHostError> {
-    emitting(
-        &window,
-        state.service.rename_seat(window.label(), command)?,
-        LicenceChangedKind::SeatRelabelled,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.rename_seat(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, LicenceChangedKind::SeatRelabelled)
 }
 
 /// Publishes a trusted licence invalidation hint after an external commit.

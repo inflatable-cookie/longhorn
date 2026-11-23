@@ -6,10 +6,10 @@ use longhorn_command_config::{
     CommandKeymapReset,
 };
 
-use crate::{CommandHostAuthority, CommandHostError, CommandHostService};
+use crate::{CommandHostAuthority, CommandHostError};
 
 /// Shared command assembly used by Tauri and direct/serialized tests.
-pub struct CommandHandlerAssembly<A> {
+pub struct CommandHandlerAssembly<A: ?Sized> {
     authority: Mutex<A>,
 }
 
@@ -21,7 +21,9 @@ impl<A> CommandHandlerAssembly<A> {
             authority: Mutex::new(authority),
         }
     }
+}
 
+impl<A: ?Sized> CommandHandlerAssembly<A> {
     /// Runs trusted host work against the injected authority.
     pub fn with_authority<Output>(
         &self,
@@ -34,19 +36,22 @@ impl<A> CommandHandlerAssembly<A> {
     }
 }
 
-impl<A> CommandHostService for CommandHandlerAssembly<A>
+impl<A> CommandHandlerAssembly<A>
 where
-    A: CommandHostAuthority,
+    A: CommandHostAuthority + ?Sized,
 {
-    fn catalogue(&self, caller: &str) -> Result<CommandCatalogueSnapshot, CommandHostError> {
+    /// Returns one caller-authorized sealed catalogue.
+    pub fn catalogue(&self, caller: &str) -> Result<CommandCatalogueSnapshot, CommandHostError> {
         self.with_authority(|authority| authority.catalogue(caller))?
     }
 
-    fn keymap(&self, caller: &str) -> Result<CommandKeymapLoadOutcome, CommandHostError> {
+    /// Loads one caller-authorized effective keymap.
+    pub fn keymap(&self, caller: &str) -> Result<CommandKeymapLoadOutcome, CommandHostError> {
         self.with_authority(|authority| authority.keymap(caller))?
     }
 
-    fn preview(
+    /// Previews one checked keymap patch.
+    pub fn preview(
         &self,
         caller: &str,
         request: CommandKeymapPreview,
@@ -54,7 +59,8 @@ where
         self.with_authority(|authority| authority.preview(caller, request))?
     }
 
-    fn commit(
+    /// Commits one digest-bound keymap patch.
+    pub fn commit(
         &self,
         caller: &str,
         request: CommandKeymapCommit,
@@ -62,7 +68,8 @@ where
         self.with_authority(|authority| authority.commit(caller, request))?
     }
 
-    fn reset(
+    /// Resets caller-authorized keymap state.
+    pub fn reset(
         &self,
         caller: &str,
         request: CommandKeymapReset,

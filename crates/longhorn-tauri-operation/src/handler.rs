@@ -6,33 +6,29 @@ use longhorn_operation::{
     OperationSnapshotResponse,
 };
 
-use crate::{
-    OperationExecutorPort, OperationHostAuthority, OperationHostError, OperationHostService,
-};
+use crate::{OperationExecutorPort, OperationHostAuthority, OperationHostError};
 
 /// Shared operation assembly used by Tauri and conformance tests.
-pub struct OperationHandlerAssembly<A, E> {
-    authority: Mutex<A>,
-    executor: Mutex<E>,
+pub struct OperationHandlerAssembly {
+    authority: Mutex<Box<dyn OperationHostAuthority>>,
+    executor: Mutex<Box<dyn OperationExecutorPort>>,
 }
 
-impl<A, E> OperationHandlerAssembly<A, E> {
+impl OperationHandlerAssembly {
     /// Binds explicitly injected authority and executor ports.
     #[must_use]
-    pub const fn new(authority: A, executor: E) -> Self {
+    pub fn new(
+        authority: impl OperationHostAuthority + 'static,
+        executor: impl OperationExecutorPort + 'static,
+    ) -> Self {
         Self {
-            authority: Mutex::new(authority),
-            executor: Mutex::new(executor),
+            authority: Mutex::new(Box::new(authority)),
+            executor: Mutex::new(Box::new(executor)),
         }
     }
-}
 
-impl<A, E> OperationHostService for OperationHandlerAssembly<A, E>
-where
-    A: OperationHostAuthority,
-    E: OperationExecutorPort,
-{
-    fn snapshot(
+    /// Returns a caller-authorized snapshot.
+    pub fn snapshot(
         &self,
         caller: &str,
         query: OperationSnapshotQuery,
@@ -43,7 +39,8 @@ where
             .snapshot(caller, query)
     }
 
-    fn mutate(
+    /// Applies a caller-authorized management mutation.
+    pub fn mutate(
         &self,
         caller: &str,
         command: OperationMutationCommand,
@@ -54,7 +51,8 @@ where
             .mutate(caller, command)
     }
 
-    fn cancel(
+    /// Admits cancellation and dispatches through the injected executor.
+    pub fn cancel(
         &self,
         caller: &str,
         command: OperationCancellationCommand,
@@ -76,11 +74,14 @@ where
                     retryable: error.retryable,
                 },
             },
-            Err(_) => OperationExecutorDispatchProjection::Failed {
-                code: "executorStateUnavailable".into(),
-                message: OperationHostError::executor_state_unavailable().message,
-                retryable: true,
-            },
+            Err(_) => {
+                let error = OperationHostError::executor_state_unavailable();
+                OperationExecutorDispatchProjection::Failed {
+                    code: error.code.as_str().to_owned(),
+                    message: error.message,
+                    retryable: error.retryable,
+                }
+            }
         };
         Ok(result.with_executor_dispatch(dispatch))
     }

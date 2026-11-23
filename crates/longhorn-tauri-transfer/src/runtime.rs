@@ -60,7 +60,7 @@ where
         let managed = self
             .window_host
             .managed_windows()
-            .map_err(|error| TransferRuntimeError::WindowHost(format!("{error:?}")))?;
+            .map_err(|error| TransferRuntimeError::WindowHost(error.to_string()))?;
         let inner_positions = probe_inner_positions(&managed)?;
         let physical = probe_managed_windows(&managed)
             .map_err(|error| TransferRuntimeError::Probe(error.to_string()))?;

@@ -7,7 +7,7 @@ use longhorn_update::{
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
-use crate::UpdateHostError;
+use crate::{UpdateHandlerAssembly, UpdateHostAuthority, UpdateHostError};
 
 /// Non-durable committed update invalidation hint.
 pub const UPDATE_CHANGED_EVENT: &str = "longhorn://update/changed";
@@ -20,118 +20,85 @@ pub const UPDATE_CHANGED_EVENT: &str = "longhorn://update/changed";
 /// arrive.
 pub const UPDATE_PROGRESS_EVENT: &str = "longhorn://update/progress";
 
-/// Object-safe update surface retained in Tauri managed state.
-pub trait UpdateHostService: Send + Sync {
-    /// Returns the caller-authorized update state.
-    fn snapshot(&self, caller: &str) -> Result<UpdateSnapshot, UpdateHostError>;
-    /// Asks the source for the channel's current manifest and records it.
-    fn check(
-        &self,
-        caller: &str,
-        command: UpdateCheckCommand,
-    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
-    /// Follows a different channel from now on.
-    fn select_channel(
-        &self,
-        caller: &str,
-        command: UpdateSelectChannelCommand,
-    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
-    /// Declines a version for now.
-    fn defer(
-        &self,
-        caller: &str,
-        command: UpdateDeferCommand,
-    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
-    /// Fetches, verifies and retains, reporting progress as bytes arrive.
-    ///
-    /// The authority lock is not held across the transfer; the report is the
-    /// only thing the transfer touches.
-    fn prepare(
-        &self,
-        caller: &str,
-        command: UpdatePrepareCommand,
-        progress: &mut dyn FnMut(UpdateProgressEvent),
-    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
-    /// Applies the retained staged artifact.
-    ///
-    /// The authority holds the exclusive admission lease across this call and
-    /// answers with a deferral (carrying its cause) when the host will not
-    /// grant one. A deferral is an outcome, not a host error.
-    fn apply(
-        &self,
-        caller: &str,
-        command: UpdateApplyCommand,
-    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
-    /// Discards the retained staged artifact.
-    fn cancel(
-        &self,
-        caller: &str,
-        command: UpdateCancelCommand,
-    ) -> Result<UpdateOutcomeProjection, UpdateHostError>;
-}
-
 /// Type-erased update host installed once in Tauri managed state.
 pub struct TauriUpdateState {
-    service: Arc<dyn UpdateHostService>,
+    assembly: Arc<UpdateHandlerAssembly<dyn UpdateHostAuthority>>,
 }
 
 impl TauriUpdateState {
     /// Wraps one explicitly injected update assembly.
     #[must_use]
-    pub fn new(service: Arc<dyn UpdateHostService>) -> Self {
-        Self { service }
+    pub fn new(assembly: Arc<UpdateHandlerAssembly<dyn UpdateHostAuthority>>) -> Self {
+        Self { assembly }
     }
+}
+
+async fn run_blocking<R: Runtime, T: Send + 'static>(
+    state: State<'_, TauriUpdateState>,
+    window: &WebviewWindow<R>,
+    action: impl FnOnce(
+        &UpdateHandlerAssembly<dyn UpdateHostAuthority>,
+        &str,
+    ) -> Result<T, UpdateHostError>
+    + Send
+    + 'static,
+) -> Result<T, UpdateHostError> {
+    let assembly = Arc::clone(&state.assembly);
+    let label = window.label().to_owned();
+    tauri::async_runtime::spawn_blocking(move || action(&assembly, &label))
+        .await
+        .map_err(|_| UpdateHostError::state_unavailable())?
 }
 
 /// Returns caller-authorized update state.
 #[tauri::command]
-pub fn longhorn_update_snapshot<R: Runtime>(
+pub async fn longhorn_update_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
 ) -> Result<UpdateSnapshot, UpdateHostError> {
-    state.service.snapshot(window.label())
+    run_blocking(state, &window, |assembly, label| assembly.snapshot(label)).await
 }
 
 /// Asks the source for the channel's current manifest.
 #[tauri::command]
-pub fn longhorn_update_check<R: Runtime>(
+pub async fn longhorn_update_check<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
     command: UpdateCheckCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(
-        &window,
-        state.service.check(window.label(), command)?,
-        UpdateChangedKind::Checked,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.check(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, UpdateChangedKind::Checked)
 }
 
 /// Follows a different channel from now on.
 #[tauri::command]
-pub fn longhorn_update_select_channel<R: Runtime>(
+pub async fn longhorn_update_select_channel<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
     command: UpdateSelectChannelCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(
-        &window,
-        state.service.select_channel(window.label(), command)?,
-        UpdateChangedKind::ChannelSelected,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.select_channel(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, UpdateChangedKind::ChannelSelected)
 }
 
 /// Declines a version for now.
 #[tauri::command]
-pub fn longhorn_update_defer<R: Runtime>(
+pub async fn longhorn_update_defer<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
     command: UpdateDeferCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(
-        &window,
-        state.service.defer(window.label(), command)?,
-        UpdateChangedKind::Deferred,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.defer(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, UpdateChangedKind::Deferred)
 }
 
 /// Fetches, verifies and retains an update for a later apply.
@@ -144,16 +111,17 @@ pub async fn longhorn_update_prepare<R: Runtime>(
     state: State<'_, TauriUpdateState>,
     command: UpdatePrepareCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    let service = Arc::clone(&state.service);
+    let assembly = Arc::clone(&state.assembly);
     let label = window.label().to_owned();
-    tauri::async_runtime::spawn_blocking(move || {
-        let outcome = service.prepare(&label, command, &mut |event| {
-            emitting_progress(&window, event);
-        })?;
-        emitting(&window, outcome, UpdateChangedKind::Progressed)
+    let emit_window = window.clone();
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        assembly.prepare(&label, command, &mut |event| {
+            emitting_progress(&emit_window, event);
+        })
     })
     .await
-    .map_err(|_| UpdateHostError::state_unavailable())?
+    .map_err(|_| UpdateHostError::state_unavailable())??;
+    emitting(&window, outcome, UpdateChangedKind::Progressed)
 }
 
 /// Applies the retained staged artifact, replacing the application.
@@ -161,12 +129,15 @@ pub async fn longhorn_update_prepare<R: Runtime>(
 /// The whole call runs under the consumer's exclusive admission lease; a
 /// refused lease returns a deferred outcome rather than an adapter error.
 #[tauri::command]
-pub fn longhorn_update_apply<R: Runtime>(
+pub async fn longhorn_update_apply<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
     command: UpdateApplyCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    let outcome = state.service.apply(window.label(), command)?;
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.apply(label, command)
+    })
+    .await?;
     let kind = if matches!(&outcome, UpdateOutcomeProjection::Committed { snapshot } if snapshot.deferral.is_some())
     {
         UpdateChangedKind::Deferred
@@ -178,16 +149,16 @@ pub fn longhorn_update_apply<R: Runtime>(
 
 /// Discards the retained staged artifact.
 #[tauri::command]
-pub fn longhorn_update_cancel<R: Runtime>(
+pub async fn longhorn_update_cancel<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
     command: UpdateCancelCommand,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-    emitting(
-        &window,
-        state.service.cancel(window.label(), command)?,
-        UpdateChangedKind::Progressed,
-    )
+    let outcome = run_blocking(state, &window, move |assembly, label| {
+        assembly.cancel(label, command)
+    })
+    .await?;
+    emitting(&window, outcome, UpdateChangedKind::Progressed)
 }
 
 /// Publishes a trusted update invalidation hint after an external commit.

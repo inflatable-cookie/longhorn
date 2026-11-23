@@ -2,10 +2,11 @@ use std::{collections::BTreeMap, sync::Mutex};
 
 use longhorn_core::{TransferClientId, WindowId};
 use longhorn_transfer::{
-    ClientEpoch, DropZone, LeasePublication, MonotonicClock, TargetSelector, TransferAbort,
-    TransferCancelReceipt, TransferCancelRequest, TransferCancelResponse, TransferClientSnapshot,
-    TransferCommitSelector, TransferCoordinator, TransferDuration, TransferLeaseReceipt,
-    TransferLeaseRequest, TransferLeaseResponse, TransferLimits,
+    ClientEpoch, DragSessionIdAllocator, DropZone, LeasePublication, MonotonicClock,
+    SessionCreationReceipt, TargetSelector, TransferAbort, TransferCancelReceipt,
+    TransferCancelRequest, TransferCancelResponse, TransferClientSnapshot, TransferCommitSelector,
+    TransferCoordinator, TransferDuration, TransferError, TransferLeaseReceipt,
+    TransferLeaseRequest, TransferLeaseResponse, TransferLimits, TransferSessionRequest,
 };
 use longhorn_windowing::HostWindowHandle;
 
@@ -34,10 +35,45 @@ struct CurrentClient {
 #[derive(Debug)]
 struct HandlerState {
     coordinator: TransferCoordinator,
-    clients: BTreeMap<WindowId, CurrentClient>,
     epoch_high_water: BTreeMap<WindowId, ClientEpoch>,
     next_client: u64,
     active: bool,
+}
+
+type CreateSessionFn<'a> = dyn FnMut(
+        &mut dyn DragSessionIdAllocator,
+        TransferSessionRequest,
+    ) -> Result<Result<SessionCreationReceipt, TransferError>, TransferHandlerError>
+    + 'a;
+
+/// Narrow coordinator handle passed to domain admission adapters so they can
+/// register one bounded session without holding the handler lock across I/O
+/// or receiving raw `&mut TransferCoordinator` access.
+pub struct TransferSessionRegistrar<'a> {
+    create: &'a mut CreateSessionFn<'a>,
+}
+
+impl<'a> TransferSessionRegistrar<'a> {
+    pub(super) fn new(create: &'a mut CreateSessionFn<'a>) -> Self {
+        Self { create }
+    }
+
+    /// Registers one bounded transfer session under the handler's coordinator lock.
+    pub fn create_session(
+        &mut self,
+        allocator: &mut impl DragSessionIdAllocator,
+        request: TransferSessionRequest,
+    ) -> Result<Result<SessionCreationReceipt, TransferError>, TransferHandlerError> {
+        (self.create)(allocator, request)
+    }
+}
+
+struct DynAllocator<'a>(&'a mut dyn DragSessionIdAllocator);
+
+impl DragSessionIdAllocator for DynAllocator<'_> {
+    fn allocate(&mut self) -> Result<[u8; 16], longhorn_transfer::DragSessionIdAllocationError> {
+        self.0.allocate()
+    }
 }
 
 /// Shared transfer handler core used by real and mock managed-window runtimes.
@@ -64,7 +100,6 @@ where
             lease_lifetime: limits.maximum_lease_lifetime(),
             state: Mutex::new(HandlerState {
                 coordinator: TransferCoordinator::new(limits),
-                clients: BTreeMap::new(),
                 epoch_high_water: BTreeMap::new(),
                 next_client: 1,
                 active: true,
@@ -98,13 +133,6 @@ where
                 .map_err(|error| {
                     TransferHandlerError::ClientBinding(error.code(), error.detail().to_owned())
                 })?;
-            state.clients.insert(
-                window_id.clone(),
-                CurrentClient {
-                    client_id: client_id.clone(),
-                    epoch,
-                },
-            );
             state.epoch_high_water.insert(window_id.clone(), epoch);
             CurrentClient { client_id, epoch }
         };
@@ -116,11 +144,10 @@ where
         if let Err(error) = self.runtime.snapshot(caller_handle) {
             let mut state = self.lock_active()?;
             if state
-                .clients
-                .get(&window_id)
-                .is_some_and(|current| current.client_id == client_id.client_id)
+                .coordinator
+                .current_client(&window_id)
+                .is_some_and(|(current_id, _)| *current_id == client_id.client_id)
             {
-                state.clients.remove(&window_id);
                 state.coordinator.destroy_window(&window_id);
             }
             return Err(error.into());
@@ -196,7 +223,7 @@ where
     }
 
     /// Converts one renderer selector using fresh caller and live-window evidence.
-    pub fn project_selector(
+    pub(crate) fn project_selector(
         &self,
         caller_handle: &HostWindowHandle,
         selector: &TransferCommitSelector,
@@ -214,7 +241,6 @@ where
     /// Invalidates process-local authority after a trusted managed-window destroy.
     pub fn destroy_window(&self, window_id: &WindowId) -> Result<(), TransferHandlerError> {
         let mut state = self.lock_active()?;
-        state.clients.remove(window_id);
         state.coordinator.destroy_window(window_id);
         Ok(())
     }
@@ -234,7 +260,6 @@ where
             });
         }
         let discarded = state.coordinator.discard_all();
-        state.clients.clear();
         state.epoch_high_water.clear();
         state.active = false;
         Ok(TransferHandlerTeardownReceipt {
@@ -255,13 +280,31 @@ where
         }
         Ok(state)
     }
+
+    pub(super) fn create_session_dyn(
+        &self,
+        allocator: &mut dyn DragSessionIdAllocator,
+        request: TransferSessionRequest,
+    ) -> Result<Result<SessionCreationReceipt, TransferError>, TransferHandlerError> {
+        let mut state = self.lock_active()?;
+        let mut dyn_allocator = DynAllocator(allocator);
+        Ok(state
+            .coordinator
+            .create_session(&self.clock, &mut dyn_allocator, request))
+    }
 }
 
 fn current_caller(
     state: &HandlerState,
     runtime: &ManagedTransferSnapshot,
 ) -> Option<CurrentClient> {
-    state.clients.get(runtime.caller().window_id()).cloned()
+    state
+        .coordinator
+        .current_client(runtime.caller().window_id())
+        .map(|(client_id, epoch)| CurrentClient {
+            client_id: client_id.clone(),
+            epoch,
+        })
 }
 
 fn issue_client_id(state: &mut HandlerState) -> Result<TransferClientId, TransferHandlerError> {

@@ -47,7 +47,7 @@ impl ForkHistoryHostError {
         Self {
             code: ForkHistoryHostErrorCode::StateUnavailable,
             message: "fork-history handler state is unavailable".into(),
-            retryable: true,
+            retryable: false,
         }
     }
 

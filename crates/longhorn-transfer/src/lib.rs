@@ -32,6 +32,7 @@ pub use panel::{
     PanelHostBinding, PanelHostBindingKind, PanelHostBindings, PanelSessionAdmission,
     PanelTransferCommitReceipt, PanelTransferCommitRequest, PanelTransferError,
     PanelTransferErrorCode, PanelTransferOperation, admit_panel_session, commit_panel_transfer,
+    commit_resolved_panel_transfer, prepare_panel_session_source,
 };
 pub use policy::{TransferLimits, TransferLimitsError};
 pub use wire::{
