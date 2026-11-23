@@ -104,12 +104,9 @@ pub fn exported_declaration(declaration: String) -> String {
 /// drifts from the shape it claims to read stops here instead of emitting an
 /// empty map.
 pub fn tagged_variants(declaration: &str, tag: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let marker = format!("\"{tag}\": \"");
-    let values: Vec<_> = declaration
-        .split(&marker)
-        .skip(1)
-        .filter_map(|suffix| suffix.split('"').next())
-        .map(str::to_owned)
+    let values: Vec<String> = tagged_field_map(declaration, tag)
+        .into_iter()
+        .map(|(variant, _)| variant)
         .collect();
     if values.is_empty() {
         Err(io::Error::other(format!("generated declaration has no `{tag}` variants")).into())
@@ -122,60 +119,20 @@ pub fn tagged_variants(declaration: &str, tag: &str) -> Result<Vec<String>, Box<
 ///
 /// `ts-rs` quotes the tag key and its value and leaves every other key bare —
 /// `{ "kind": "branch", branchId: BranchId, }`. So a quoted key with a quoted
-/// value is the tag, and the tag is the one such key every arm shares.
+/// value at depth zero of the arm is the tag, and the tag is the one such key
+/// every arm shares.
 ///
 /// Detected rather than supplied. Fifteen domains do not agree on one key --
 /// `kind`, `status` and `state` are all in use -- and a caller that has to
 /// know which is another place the answer is written down twice.
 pub fn detect_discriminant(declaration: &str) -> Option<String> {
-    let declaration = strip_ts_comments(declaration);
-    let (_, body) = declaration
-        .trim()
-        .strip_prefix("export type ")?
-        .split_once(" = ")?;
-    let mut shared: Option<BTreeSet<String>> = None;
-    for arm in split_union_arms(body.trim().trim_end_matches(';')) {
-        let keys: BTreeSet<String> = quoted_pairs(&arm).into_iter().map(|(key, _)| key).collect();
-        shared = Some(match shared {
-            None => keys,
-            Some(previous) => previous.intersection(&keys).cloned().collect(),
-        });
-    }
-    let shared = shared?;
-    // Exactly one. Zero means no tag; more than one means two keys are quoted
-    // literals in every arm, and guessing between them would be worse than
-    // reporting the union as unreadable.
-    (shared.len() == 1)
-        .then(|| shared.into_iter().next())
-        .flatten()
-}
-
-/// Every `"key": "value"` pair in one arm.
-fn quoted_pairs(arm: &str) -> Vec<(String, String)> {
-    let mut pairs = Vec::new();
-    let mut rest = arm;
-    while let Some(start) = rest.find('"') {
-        let after = &rest[start + 1..];
-        let Some(key_end) = after.find('"') else {
-            break;
-        };
-        let key = &after[..key_end];
-        let tail = after[key_end + 1..].trim_start();
-        rest = &after[key_end + 1..];
-        let Some(value) = tail.strip_prefix(':') else {
-            continue;
-        };
-        let value = value.trim_start();
-        let Some(value) = value.strip_prefix('"') else {
-            continue;
-        };
-        let Some(value_end) = value.find('"') else {
-            break;
-        };
-        pairs.push((key.to_owned(), value[..value_end].to_owned()));
-        rest = &value[value_end + 1..];
-    }
-    pairs
+    let (_, body) = declaration_parts(declaration)?;
+    let arms = split_union_arms(&body);
+    let scanned_arms = arms
+        .iter()
+        .map(|arm| scan_object_arm(arm))
+        .collect::<Option<Vec<_>>>()?;
+    detect_discriminant_in_arms(&scanned_arms)
 }
 
 /// Splits a tagged union into each variant's discriminant value and the keys
@@ -190,39 +147,177 @@ fn quoted_pairs(arm: &str) -> Vec<(String, String)> {
 /// The discriminant is included because `exact()` compares every key. Leaving
 /// it out would reject every payload.
 pub fn tagged_field_map(declaration: &str, tag: &str) -> Vec<(String, Vec<String>)> {
-    let declaration = strip_ts_comments(declaration);
-    let Some((_, body)) = declaration
-        .trim()
-        .strip_prefix("export type ")
-        .and_then(|rest| rest.split_once(" = "))
-    else {
+    let Some((_, body)) = declaration_parts(declaration) else {
         return Vec::new();
     };
-    let marker = format!("\"{tag}\"");
-    split_union_arms(body.trim().trim_end_matches(';'))
+    split_union_arms(&body)
         .into_iter()
         .filter_map(|arm| {
-            let arm = arm.trim().strip_prefix('{')?.strip_suffix('}')?;
-            let fields = field_names(arm);
-            // The discriminant's value, read from the arm rather than assumed
-            // from position: `ts-rs` puts it first today and that is not a
-            // guarantee worth depending on.
-            let value = arm
-                .split_once(&marker)?
-                .1
-                .split_once(':')?
-                .1
-                .trim()
-                .trim_start_matches('"')
-                .split('"')
-                .next()?
-                .to_owned();
-            Some((value, fields))
+            let fields = scan_object_arm(&arm)?;
+            arm_variant_entry(&fields, tag)
         })
         .collect()
 }
 
-/// Splits a union body on `|` at brace depth zero.
+/// One top-level field scanned from an object declaration body.
+struct ScannedField {
+    name: String,
+    quoted_literal_value: Option<String>,
+}
+
+fn declaration_parts(declaration: &str) -> Option<(String, String)> {
+    let stripped = strip_ts_comments(declaration);
+    let trimmed = stripped.trim();
+    let rest = trimmed
+        .strip_prefix("export type ")
+        .or_else(|| trimmed.strip_prefix("type "))?;
+    let (name, body) = split_once_at_depth_zero(rest, '=')?;
+    Some((
+        name.trim().to_owned(),
+        body.trim().trim_end_matches(';').to_owned(),
+    ))
+}
+
+fn parse_double_quoted_literal(input: &str) -> Option<String> {
+    let trimmed = input.trim();
+    if !(trimmed.starts_with('"') && trimmed.ends_with('"')) {
+        return None;
+    }
+    serde_json::from_str::<String>(trimmed).ok()
+}
+
+fn scan_object_arm(arm: &str) -> Option<Vec<ScannedField>> {
+    let body = arm.trim().strip_prefix('{')?.strip_suffix('}')?;
+    Some(scan_object_fields(body))
+}
+
+fn scan_object_fields(body: &str) -> Vec<ScannedField> {
+    // `ts-rs` separates fields with a comma when it renders a type across
+    // lines and a semicolon when it renders one inline. Both appear in the
+    // same generated module, and splitting only outside nested delimiters and
+    // string literals keeps nested tagged objects from leaking inner fields.
+    split_at_depth_zero(body, |character| character == ',' || character == ';')
+        .into_iter()
+        .filter_map(|part| {
+            let trimmed = part.trim();
+            if trimmed.is_empty() {
+                return None;
+            }
+            let (raw_key, raw_value) = split_once_at_depth_zero(trimmed, ':')?;
+            let raw_key = raw_key.trim();
+            let raw_value = raw_value.trim();
+            let quoted_key = parse_double_quoted_literal(raw_key);
+            let name = match &quoted_key {
+                Some(key) => key.clone(),
+                None => raw_key.to_owned(),
+            };
+            let quoted_literal_value = if quoted_key.is_some() {
+                parse_double_quoted_literal(raw_value)
+            } else {
+                None
+            };
+            Some(ScannedField {
+                name,
+                quoted_literal_value,
+            })
+        })
+        .collect()
+}
+
+fn detect_discriminant_in_arms(arms: &[Vec<ScannedField>]) -> Option<String> {
+    let mut shared: Option<BTreeSet<String>> = None;
+    for fields in arms {
+        let keys: BTreeSet<String> = fields
+            .iter()
+            .filter(|field| field.quoted_literal_value.is_some())
+            .map(|field| field.name.clone())
+            .collect();
+        shared = Some(match shared {
+            None => keys,
+            Some(previous) => previous.intersection(&keys).cloned().collect(),
+        });
+    }
+    let shared = shared?;
+    // Exactly one. Zero means no tag; more than one means two keys are quoted
+    // literals in every arm, and guessing between them would be worse than
+    // reporting the union as unreadable.
+    (shared.len() == 1)
+        .then(|| shared.into_iter().next())
+        .flatten()
+}
+
+fn arm_variant_entry(fields: &[ScannedField], tag: &str) -> Option<(String, Vec<String>)> {
+    let value = fields
+        .iter()
+        .find(|field| field.name == tag)
+        .and_then(|field| field.quoted_literal_value.clone())?;
+    let names = fields.iter().map(|field| field.name.clone()).collect();
+    Some((value, names))
+}
+
+/// Visits every character at bracket depth zero outside string literals.
+///
+/// Returning `true` from `on_top_level` stops the scan early.
+fn visit_depth_zero(input: &str, mut on_top_level: impl FnMut(usize, char) -> bool) {
+    let mut depth = 0_usize;
+    let mut string_quote: Option<char> = None;
+    let mut escaped = false;
+    let mut prev_char: Option<char> = None;
+
+    for (index, character) in input.char_indices() {
+        if let Some(quote) = string_quote {
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == quote {
+                string_quote = None;
+            }
+            prev_char = Some(character);
+            continue;
+        }
+
+        match character {
+            '"' | '\'' => string_quote = Some(character),
+            '{' | '<' | '(' | '[' => depth += 1,
+            '}' | ')' | ']' => depth = depth.saturating_sub(1),
+            '>' if prev_char != Some('=') => depth = depth.saturating_sub(1),
+            _ if depth == 0 && on_top_level(index, character) => break,
+            _ => {}
+        }
+        prev_char = Some(character);
+    }
+}
+
+fn split_at_depth_zero(input: &str, is_delimiter: impl Fn(char) -> bool) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut start = 0;
+    visit_depth_zero(input, |index, character| {
+        if is_delimiter(character) {
+            parts.push(&input[start..index]);
+            start = index + character.len_utf8();
+        }
+        false
+    });
+    parts.push(&input[start..]);
+    parts
+}
+
+fn split_once_at_depth_zero(input: &str, delimiter: char) -> Option<(&str, &str)> {
+    let mut split_at = None;
+    visit_depth_zero(input, |index, character| {
+        if character == delimiter {
+            split_at = Some(index);
+            true
+        } else {
+            false
+        }
+    });
+    let index = split_at?;
+    Some((&input[..index], &input[index + delimiter.len_utf8()..]))
+}
+
+/// Splits a union body on `|` at brace depth zero outside string literals.
 ///
 /// An arm can hold a nested object or a generic carrying its own `|`, and a
 /// naive split cuts such an arm in half -- yielding a short key list, which
@@ -230,28 +325,10 @@ pub fn tagged_field_map(declaration: &str, tag: &str) -> Vec<(String, Vec<String
 /// `plain_object` refuses multi-brace bodies for exactly this reason; this is
 /// the case it was refusing.
 fn split_union_arms(body: &str) -> Vec<String> {
-    let mut arms = Vec::new();
-    let mut depth = 0_i32;
-    let mut current = String::new();
-    for character in body.chars() {
-        match character {
-            '{' | '<' | '(' | '[' => {
-                depth += 1;
-                current.push(character);
-            }
-            '}' | '>' | ')' | ']' => {
-                depth -= 1;
-                current.push(character);
-            }
-            '|' if depth == 0 => {
-                arms.push(current.clone());
-                current.clear();
-            }
-            _ => current.push(character),
-        }
-    }
-    arms.push(current);
-    arms
+    split_at_depth_zero(body, |character| character == '|')
+        .into_iter()
+        .map(str::to_owned)
+        .collect()
 }
 
 /// Returns every literal of a string-literal union.
@@ -259,18 +336,16 @@ fn split_union_arms(body: &str) -> Vec<String> {
 /// Fails when the declaration has no variants, for the same reason
 /// `tagged_variants` fails on an empty read.
 pub fn string_union_variants(declaration: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let body = declaration
-        .split_once('=')
+    let stripped = strip_ts_comments(declaration);
+    let body = split_once_at_depth_zero(&stripped, '=')
         .map(|(_, body)| body)
         .ok_or_else(|| io::Error::other("generated string union has no assignment"))?;
-    let values: Vec<_> = body
-        .trim()
-        .trim_end_matches(';')
-        .split('|')
-        .map(str::trim)
-        .filter_map(|value| value.strip_prefix('"')?.strip_suffix('"'))
-        .map(str::to_owned)
-        .collect();
+    let values: Vec<_> = split_at_depth_zero(body.trim().trim_end_matches(';'), |character| {
+        character == '|'
+    })
+    .into_iter()
+    .filter_map(parse_double_quoted_literal)
+    .collect();
     if values.is_empty() {
         Err(io::Error::other("generated string union has no variants").into())
     } else {
@@ -528,31 +603,33 @@ pub fn variant_field_map(
         format!("\nexport const {constant}_DISCRIMINANTS: Record<string, string> = {{\n");
     let mut unreadable = Vec::new();
     for declaration in declarations {
-        let parsed = strip_ts_comments(declaration);
-        let Some((name, body)) = parsed
-            .trim()
-            .strip_prefix("export type ")
-            .and_then(|value| value.split_once(" = "))
-        else {
+        let Some((name, body)) = declaration_parts(declaration) else {
             continue;
         };
-        let arms = split_union_arms(body.trim().trim_end_matches(';'));
+        let arms = split_union_arms(&body);
         if arms.len() < 2 || !arms.iter().any(|arm| arm.trim_start().starts_with('{')) {
             continue;
         }
-        let tag = detect_discriminant(declaration);
-        let variants = tag
-            .as_deref()
-            .map(|tag| tagged_field_map(declaration, tag))
-            .unwrap_or_default();
-        if variants.len() != arms.len() {
+        let variants = arms
+            .iter()
+            .map(|arm| scan_object_arm(arm))
+            .collect::<Option<Vec<_>>>()
+            .and_then(|scanned_arms| {
+                let tag = detect_discriminant_in_arms(&scanned_arms)?;
+                let variants: Vec<_> = scanned_arms
+                    .iter()
+                    .filter_map(|fields| arm_variant_entry(fields, &tag))
+                    .collect();
+                (variants.len() == scanned_arms.len()).then_some((tag, variants))
+            });
+        let Some((tag, variants)) = variants else {
             if !is_externally_tagged(&arms) {
-                unreadable.push(name.to_owned());
+                unreadable.push(name);
             }
             continue;
-        }
+        };
         rendered.push_str("  ");
-        rendered.push_str(&json_string(name));
+        rendered.push_str(&json_string(&name));
         rendered.push_str(": {\n");
         for (value, fields) in variants {
             let fields: Vec<String> = fields.iter().map(|field| json_string(field)).collect();
@@ -563,13 +640,11 @@ pub fn variant_field_map(
             rendered.push_str("],\n");
         }
         rendered.push_str("  },\n");
-        if let Some(tag) = tag {
-            discriminants.push_str("  ");
-            discriminants.push_str(&json_string(name));
-            discriminants.push_str(": ");
-            discriminants.push_str(&json_string(&tag));
-            discriminants.push_str(",\n");
-        }
+        discriminants.push_str("  ");
+        discriminants.push_str(&json_string(&name));
+        discriminants.push_str(": ");
+        discriminants.push_str(&json_string(&tag));
+        discriminants.push_str(",\n");
     }
     rendered.push_str("};\n");
     discriminants.push_str("};\n");
@@ -639,7 +714,7 @@ pub fn field_map(task: &str, constant: &str, declarations: &[String]) -> (String
 fn plain_object(declaration: &str) -> Option<(String, String)> {
     let declaration = strip_doc_comments(declaration);
     let rest = declaration.trim().strip_prefix("export type ")?;
-    let (name, remainder) = rest.split_once(" = ")?;
+    let (name, remainder) = split_once_at_depth_zero(rest, '=')?;
     let body = remainder
         .trim()
         .strip_suffix(';')?
@@ -667,12 +742,30 @@ fn strip_doc_comments(declaration: &str) -> String {
     strip_ts_comments(declaration)
 }
 
-/// Drop `//` line comments and `/* ... */` block comments so prose is not
-/// mistaken for type references.
+/// Drop `//` line comments and `/* ... */` block comments outside string
+/// literals so prose is not mistaken for type references or delimiters.
 fn strip_ts_comments(input: &str) -> String {
     let mut rendered = String::with_capacity(input.len());
     let mut chars = input.chars().peekable();
+    let mut string_quote: Option<char> = None;
+    let mut escaped = false;
     while let Some(character) = chars.next() {
+        if let Some(quote) = string_quote {
+            rendered.push(character);
+            if escaped {
+                escaped = false;
+            } else if character == '\\' {
+                escaped = true;
+            } else if character == quote {
+                string_quote = None;
+            }
+            continue;
+        }
+        if character == '"' || character == '\'' {
+            string_quote = Some(character);
+            rendered.push(character);
+            continue;
+        }
         if character == '/' && chars.peek() == Some(&'/') {
             let _ = chars.next();
             for inner in chars.by_ref() {
@@ -707,50 +800,13 @@ fn tagged_union_name(declaration: &str) -> Option<String> {
 
 /// Field names at brace depth zero, before the first colon of each.
 ///
-/// Depth-aware because a field's own type can be an inline object or a
-/// generic, and a comma inside either is not a field separator.
+/// Depth- and literal-aware because a field's own type can be an inline object,
+/// tuple, or generic, and delimiters inside them are not field separators.
 fn field_names(body: &str) -> Vec<String> {
-    let mut fields = Vec::new();
-    let mut depth = 0_i32;
-    let mut current = String::new();
-
-    for character in body.chars() {
-        match character {
-            '{' | '<' | '(' => {
-                depth += 1;
-                current.push(character);
-            }
-            '}' | '>' | ')' => {
-                depth -= 1;
-                current.push(character);
-            }
-            // `ts-rs` separates fields with a comma when it renders a type
-            // across lines and a semicolon when it renders one inline. Both
-            // appear in the same generated module, and splitting on only one
-            // silently yields a short field list — which then rejects valid
-            // payloads at the boundary rather than failing loudly here.
-            ',' | ';' if depth == 0 => {
-                if let Some(name) = leading_name(&current) {
-                    fields.push(name);
-                }
-                current.clear();
-            }
-            other => current.push(other),
-        }
-    }
-    if let Some(name) = leading_name(&current) {
-        fields.push(name);
-    }
-    fields
-}
-
-fn leading_name(part: &str) -> Option<String> {
-    let trimmed = part.trim();
-    if trimmed.is_empty() {
-        return None;
-    }
-    let name = trimmed.split_once(':')?.0.trim();
-    Some(name.trim_matches('"').to_owned())
+    scan_object_fields(body)
+        .into_iter()
+        .map(|field| field.name)
+        .collect()
 }
 
 fn strip_ts_string_literals(input: &str) -> String {
@@ -1078,5 +1134,156 @@ export type DomainAuthorityDescriptor = {\n\
 import type { SurfaceId, SurfaceDocument } from \"@inflatable-cookie/longhorn/surfaces\";\n\
 export type SurfaceSessionStartRequest = { surface_id: SurfaceId, document: SurfaceDocument, };\n";
         assert_protocol_references_resolve("surface-transfer", contents).unwrap();
+    }
+
+    #[test]
+    fn nested_tagged_fixture_keys_match_serialized_nested_variants() {
+        use std::collections::BTreeMap;
+
+        use serde::Serialize;
+        use ts_rs::TS;
+
+        #[derive(Serialize, TS)]
+        #[serde(tag = "status", rename_all = "camelCase")]
+        enum InnerStatus {
+            Ready { code: u32 },
+            Failed { reason: String },
+        }
+
+        #[derive(Serialize, TS)]
+        #[serde(tag = "kind", rename_all = "camelCase")]
+        enum OuterAction {
+            Run {
+                #[ts(inline)]
+                outcome: InnerStatus,
+            },
+            Retry {
+                #[ts(inline)]
+                outcome: InnerStatus,
+                attempt: u32,
+            },
+        }
+
+        let inner_decl = exported_declaration(InnerStatus::decl(config()));
+        let outer_decl = exported_declaration(OuterAction::decl(config()));
+
+        assert_eq!(detect_discriminant(&outer_decl).as_deref(), Some("kind"));
+        assert_eq!(
+            tagged_variants(&outer_decl, "kind").unwrap(),
+            vec!["run".to_owned(), "retry".to_owned()]
+        );
+
+        let rendered = variant_field_map(
+            "generate:test",
+            "TEST_VARIANT_FIELDS",
+            &[inner_decl.clone(), outer_decl.clone()],
+        )
+        .unwrap();
+        assert!(rendered.contains("\"OuterAction\": \"kind\""));
+        assert!(rendered.contains("\"InnerStatus\": \"status\""));
+
+        let outer_map: BTreeMap<String, BTreeSet<String>> = tagged_field_map(&outer_decl, "kind")
+            .into_iter()
+            .map(|(variant, fields)| (variant, fields.into_iter().collect()))
+            .collect();
+        let inner_map: BTreeMap<String, BTreeSet<String>> = tagged_field_map(&inner_decl, "status")
+            .into_iter()
+            .map(|(variant, fields)| (variant, fields.into_iter().collect()))
+            .collect();
+
+        let cases = [
+            OuterAction::Run {
+                outcome: InnerStatus::Ready { code: 200 },
+            },
+            OuterAction::Run {
+                outcome: InnerStatus::Failed {
+                    reason: "a | b, \"status\": \"fake\"; {x}".to_owned(),
+                },
+            },
+            OuterAction::Retry {
+                outcome: InnerStatus::Ready { code: 204 },
+                attempt: 2,
+            },
+            OuterAction::Retry {
+                outcome: InnerStatus::Failed {
+                    reason: "retry failed".to_owned(),
+                },
+                attempt: 3,
+            },
+        ];
+
+        for case in cases {
+            let serialized = serde_json::to_value(&case).unwrap();
+            let outer_obj = serialized.as_object().unwrap();
+            let outer_tag = outer_obj["kind"].as_str().unwrap();
+            let outer_keys: BTreeSet<String> = outer_obj.keys().cloned().collect();
+            assert_eq!(outer_map.get(outer_tag), Some(&outer_keys));
+
+            let inner_obj = outer_obj["outcome"].as_object().unwrap();
+            let inner_tag = inner_obj["status"].as_str().unwrap();
+            let inner_keys: BTreeSet<String> = inner_obj.keys().cloned().collect();
+            assert_eq!(inner_map.get(inner_tag), Some(&inner_keys));
+        }
+    }
+
+    #[test]
+    fn nested_same_discriminant_before_outer_tag_and_literals_do_not_misread_outer_tag() {
+        let declaration = "\
+export type OuterCommand = { \
+  nested: { \"kind\": \"inner_one\", count: number, } | { \"kind\": \"inner_two\", note: string, }, \
+  label: \"contains | pipe, comma; { brace } and \\\"kind\\\": \\\"fake\\\" // comment\", \
+  items: [{ \"kind\": \"tuple_item\" }], \
+  \"kind\": \"first\", \
+} | { \
+  nested: { \"kind\": \"inner_three\" }, \
+  \"kind\": \"second\", \
+};";
+
+        assert_eq!(detect_discriminant(declaration).as_deref(), Some("kind"));
+        assert_eq!(
+            tagged_variants(declaration, "kind").unwrap(),
+            vec!["first".to_owned(), "second".to_owned()]
+        );
+        assert_eq!(
+            tagged_field_map(declaration, "kind"),
+            vec![
+                (
+                    "first".to_owned(),
+                    vec![
+                        "nested".to_owned(),
+                        "label".to_owned(),
+                        "items".to_owned(),
+                        "kind".to_owned(),
+                    ]
+                ),
+                (
+                    "second".to_owned(),
+                    vec!["nested".to_owned(), "kind".to_owned()]
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn externally_tagged_union_with_nested_discriminant_is_not_misread_as_internally_tagged() {
+        let declaration = r#"export type Wrapper = { "ok": { "status": "done", value: number } } | { "err": { "status": "failed", reason: string } };"#;
+        assert_eq!(detect_discriminant(declaration), None);
+        let rendered =
+            variant_field_map("generate:test", "MAP", &[declaration.to_owned()]).unwrap();
+        assert!(!rendered.contains("Wrapper"));
+    }
+
+    #[test]
+    fn string_union_variants_preserves_delimiters_and_comment_markers_in_literals() {
+        let declaration =
+            r#"/** a = b */ export type Token<T = "x"> = "a|b" | "http://example.com" | "x=y";"#;
+        assert_eq!(
+            string_union_variants(declaration).unwrap(),
+            vec![
+                "a|b".to_owned(),
+                "http://example.com".to_owned(),
+                "x=y".to_owned(),
+            ]
+        );
     }
 }
