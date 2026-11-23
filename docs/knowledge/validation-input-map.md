@@ -57,3 +57,6 @@ ignored or lockfile inputs.
 - Registry resolution, advisory data, installed packages and Bun link state
   come from the environment that ran the check. Group declarations alone
   carry no evidence about their current state.
+- TypeScript and Svelte selectors that chain `check:bun-deps` run
+  `bun install --frozen-lockfile` when dependency markers are missing, then
+  recheck them. The install outcome is part of that run's environment evidence.
