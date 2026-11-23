@@ -84,7 +84,6 @@ pub struct DropZone {
     id: DropZoneId,
     bounds: ScreenRect,
     insertion_position: Option<InsertionPosition>,
-    accepted_capability: TransferCapability,
     target: TransferTargetBinding,
 }
 
@@ -95,14 +94,12 @@ impl DropZone {
         id: DropZoneId,
         bounds: ScreenRect,
         insertion_position: Option<InsertionPosition>,
-        accepted_capability: TransferCapability,
         target: TransferTargetBinding,
     ) -> Self {
         Self {
             id,
             bounds,
             insertion_position,
-            accepted_capability,
             target,
         }
     }
@@ -125,10 +122,10 @@ impl DropZone {
         self.insertion_position
     }
 
-    /// Returns the accepted capability.
+    /// Returns the accepted capability derived from the target binding.
     #[must_use]
     pub const fn accepted_capability(&self) -> TransferCapability {
-        self.accepted_capability
+        self.target.capability()
     }
 
     /// Returns the advertised target authority.

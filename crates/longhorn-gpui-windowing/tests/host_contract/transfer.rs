@@ -18,9 +18,9 @@ use longhorn_gpui_windowing::{
 use longhorn_transfer::{
     ClientEpoch, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone, DropZoneId,
     LeaseGeneration, LeasePublication, MonotonicClock, TargetSelector, TerminalTransferResolution,
-    TransferCapability, TransferClientId, TransferCoordinator, TransferDuration,
-    TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision,
-    TransferSessionRequest, TransferSourceAuthority, TransferSubjectId, TransferTargetBinding,
+    TransferClientId, TransferCoordinator, TransferDuration, TransferHostBindingId,
+    TransferInstant, TransferLimits, TransferRevision, TransferSessionRequest,
+    TransferSourceAuthority, TransferSubjectId, TransferTargetBinding,
 };
 
 use super::support::FakeGpuiHost;
@@ -152,7 +152,6 @@ fn a_point_in_another_window_resolves_to_that_window() {
                     DropZoneId::new("zone:main").expect("zone id"),
                     rect(520, 20, 200, 200),
                     None,
-                    TransferCapability::MovePanel,
                     TransferTargetBinding::PanelRegion {
                         host_binding_id: TransferHostBindingId::new("host:target")
                             .expect("binding"),

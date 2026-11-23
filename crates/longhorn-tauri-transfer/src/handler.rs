@@ -128,7 +128,6 @@ where
         Ok(TransferClientSnapshot::new(
             client_id.client_id,
             client_id.epoch,
-            None,
         ))
     }
 
@@ -286,7 +285,6 @@ fn project_zones(
                 zone.id().clone(),
                 project_client_rect(runtime.caller(), zone.bounds())?,
                 zone.insertion_position(),
-                zone.accepted_capability(),
                 zone.target().clone(),
             ))
         })

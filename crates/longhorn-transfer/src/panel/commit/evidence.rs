@@ -1,4 +1,6 @@
-use longhorn_core::{DomainId, RegionId, SurfaceId, TransferHostBindingId, WindowId};
+use longhorn_core::{
+    DomainId, RegionId, SurfaceId, TransferHostBindingId, TransferSubjectId, WindowId,
+};
 
 use crate::{TerminalTransferAttempt, TransferSourceAuthority, TransferTargetBinding};
 
@@ -6,7 +8,7 @@ use super::{PanelTransferError, PanelTransferErrorCode, consumed};
 
 pub(super) struct PanelSource<'a> {
     pub(super) window_id: &'a WindowId,
-    pub(super) subject_id: &'a str,
+    pub(super) subject_id: &'a TransferSubjectId,
     pub(super) host_binding_id: &'a TransferHostBindingId,
     pub(super) document_id: &'a DomainId,
     pub(super) revision: u64,
@@ -44,7 +46,7 @@ pub(super) fn panel_source(
     };
     Ok(PanelSource {
         window_id: source_window_id,
-        subject_id: subject_id.as_str(),
+        subject_id,
         host_binding_id,
         document_id,
         revision: revision.get(),

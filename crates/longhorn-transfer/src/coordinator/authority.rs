@@ -111,4 +111,8 @@ impl TransferCoordinator {
             self.sessions.remove(&session_id);
         }
     }
+
+    pub(super) fn reclaim_expired_leases(&mut self, now: TransferInstant) {
+        self.leases.retain(|_, lease| now < lease.expires_at);
+    }
 }

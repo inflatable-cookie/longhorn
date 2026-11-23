@@ -25,7 +25,6 @@ describe("DropZoneLeaseRegistry", () => {
       protocol_version: 1,
       client_id: "client:target",
       client_epoch: 4,
-      current_lease_generation: null,
     };
     const transport: EventTransport = {
       async listen(event, receive) {
@@ -80,7 +79,6 @@ describe("DropZoneLeaseRegistry", () => {
     const firstAction = registry.zone(first, {
       id: "zone:center",
       insertion_position: 1,
-      accepted_capability: "move_panel",
       target: {
         kind: "panel_region",
         host_binding_id: "binding:target",
@@ -93,7 +91,6 @@ describe("DropZoneLeaseRegistry", () => {
     const secondAction = registry.zone(second, {
       id: "zone:surface",
       insertion_position: null,
-      accepted_capability: "move_surface",
       target: {
         kind: "surface_window",
         host_binding_id: "binding:surface",
@@ -116,7 +113,6 @@ describe("DropZoneLeaseRegistry", () => {
           size: { width: 400, height: 260 },
         },
         insertion_position: 1,
-        accepted_capability: "move_panel",
         target: expect.objectContaining({ region_id: "center" }),
       },
       expect.objectContaining({ id: "zone:surface" }),

@@ -1,8 +1,8 @@
 use longhorn_core::ScreenPoint;
 use longhorn_surface_transfer::{
     EmptyDisplayProvisionPolicy, ProvisionCleanupOutcome, SurfaceProvisionFailureEvidence,
-    SurfaceTransferCommitRequest, SurfaceTransferErrorCode, SurfaceTransferPolicy,
-    commit_surface_transfer,
+    SurfaceTransferAbort, SurfaceTransferAbortSource, SurfaceTransferCommitRequest,
+    SurfaceTransferErrorCode, SurfaceTransferPolicy, commit_surface_transfer,
 };
 use longhorn_surfaces::EmptyWindowPolicy;
 use longhorn_transfer::{DropZoneId, TargetSelector, TransferErrorCode};
@@ -44,6 +44,18 @@ fn target_loss_and_current_policy_rejection_consume_without_publication() {
         Some(TransferErrorCode::TargetWindowMissing)
     );
     assert!(lost.session_consumed());
+    let lost_abort = SurfaceTransferAbort::from_domain(
+        longhorn_core::TransferRequestId::new("request:surface-lost").unwrap(),
+        &lost,
+    );
+    assert_eq!(
+        lost_abort.source(),
+        SurfaceTransferAbortSource::Transfer(TransferErrorCode::TargetWindowMissing)
+    );
+    assert_eq!(lost_abort.surface_code(), None);
+    assert!(!lost_abort.retryable());
+    assert!(lost_abort.session_consumed());
+    assert!(!lost_abort.reconciliation_required());
 
     let mut denied_runtime = RuntimeFixture::new();
     let denied_session = denied_runtime.admit(&fixture.store, &domain).unwrap();

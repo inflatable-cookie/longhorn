@@ -89,7 +89,7 @@ impl SurfaceTransferPolicy {
         empty_display_policy: EmptyDisplayProvisionPolicy,
     ) -> Result<Self, SurfaceTransferPolicyError> {
         let allowed_target_windows = allowed_target_windows.into_iter().collect();
-        validate_empty_targets(&empty_display_policy)?;
+        validate_empty_targets(&allowed_target_windows, &empty_display_policy)?;
         Ok(Self {
             allowed_target_windows,
             empty_window_policy,
@@ -166,6 +166,7 @@ impl fmt::Display for SurfaceTransferPolicyError {
 impl Error for SurfaceTransferPolicyError {}
 
 fn validate_empty_targets(
+    allowed_target_windows: &BTreeSet<WindowId>,
     policy: &EmptyDisplayProvisionPolicy,
 ) -> Result<(), SurfaceTransferPolicyError> {
     let EmptyDisplayProvisionPolicy::Enabled(targets) = policy else {
@@ -174,6 +175,12 @@ fn validate_empty_targets(
     let mut displays = BTreeSet::new();
     let mut windows = BTreeSet::new();
     for target in targets {
+        if !allowed_target_windows.contains(&target.window_id) {
+            return Err(invalid_policy(format!(
+                "empty-display target window {} is not in allowed_target_windows",
+                target.window_id
+            )));
+        }
         if target.display_bounds.size().is_empty() {
             return Err(invalid_policy(
                 "empty-display target bounds have zero extent",

@@ -1,10 +1,11 @@
-use longhorn_config::{ConfigStore, LoadOutcome};
+use longhorn_config::ConfigStore;
 use longhorn_core::TransferSubjectId;
 use longhorn_surfaces::SurfaceDocument;
 use longhorn_surfaces_config::{RegisteredSurfaceDomain, SurfaceMigration};
 use longhorn_transfer::{
-    DragSessionIdAllocator, MonotonicClock, SessionCreationReceipt, TransferCoordinator,
-    TransferRevision, TransferSessionRequest, TransferSourceAuthority,
+    DragSessionIdAllocator, MonotonicClock, SessionCreationReceipt, SurfaceDocumentLoadError,
+    TransferCoordinator, TransferRevision, TransferSessionRequest, TransferSourceAuthority,
+    load_registered_surface_document,
 };
 
 use crate::{
@@ -62,8 +63,7 @@ where
         ));
     }
 
-    let subject_id = TransferSubjectId::new(request.surface_id().as_str())
-        .expect("Surface and transfer subject ids share the same grammar");
+    let subject_id = TransferSubjectId::from(request.surface_id());
     let source = TransferSourceAuthority::Surface {
         client_id: request.client_id().clone(),
         client_epoch: request.client_epoch(),
@@ -89,22 +89,12 @@ pub(crate) fn load_surface<M>(
 where
     M: SurfaceMigration,
 {
-    match store.load(domain) {
-        Ok(LoadOutcome::Ready(loaded)) => Ok(loaded.value),
-        Ok(LoadOutcome::Recovery(state)) => Err(SurfaceTransferError::new(
-            SurfaceTransferErrorCode::SurfaceUnavailable,
-            format!(
-                "registered Surface domain requires recovery: {}",
-                state.detail
-            ),
-        )),
-        Ok(LoadOutcome::Unavailable(state)) => Err(SurfaceTransferError::new(
-            SurfaceTransferErrorCode::SurfaceUnavailable,
-            format!("registered Surface authority is unavailable: {state:?}"),
-        )),
-        Err(error) => Err(SurfaceTransferError::new(
-            SurfaceTransferErrorCode::SurfaceLoadFailed,
-            error.to_string(),
-        )),
-    }
+    load_registered_surface_document(store, domain, "Surface").map_err(|error| match error {
+        SurfaceDocumentLoadError::Unavailable(detail) => {
+            SurfaceTransferError::new(SurfaceTransferErrorCode::SurfaceUnavailable, detail)
+        }
+        SurfaceDocumentLoadError::Failed(detail) => {
+            SurfaceTransferError::new(SurfaceTransferErrorCode::SurfaceLoadFailed, detail)
+        }
+    })
 }

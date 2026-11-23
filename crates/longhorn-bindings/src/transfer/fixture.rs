@@ -8,8 +8,8 @@ use longhorn_transfer::{
     ClientDropZone, ClientEpoch, DragSessionId, InsertionPosition, LeaseGeneration,
     PanelSessionStartRequest, PanelTransferCommand, PanelTransferResponse,
     TRANSFER_PROTOCOL_VERSION, TransferAbort, TransferCancelRequest, TransferCancelResponse,
-    TransferCapability, TransferClientSnapshot, TransferCommitSelector, TransferLeaseRequest,
-    TransferLeaseResponse, TransferSessionResponse, TransferTargetBinding,
+    TransferClientSnapshot, TransferCommitSelector, TransferLeaseRequest, TransferLeaseResponse,
+    TransferSessionResponse, TransferTargetBinding,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -51,8 +51,7 @@ pub fn render(
     let generation = LeaseGeneration::new(3);
     let request_id = transfer_request_id("request:lease");
     let zones = [panel_zone(), surface_zone()];
-    let client_snapshot =
-        TransferClientSnapshot::new(client_id.clone(), epoch, Some(LeaseGeneration::new(2)));
+    let client_snapshot = TransferClientSnapshot::new(client_id.clone(), epoch);
     let session_requests = vec![PanelSessionStartRequest::new(
         transfer_request_id("request:start-panel"),
         PanelInstanceId::new("instance:inspector")?,
@@ -85,6 +84,10 @@ pub fn render(
         session_id,
     )];
     let aborts = aborts(transfer_error_codes, panel_error_codes)?;
+    let session_abort = find_transfer_abort(&aborts, "session_capacity");
+    let lease_abort = find_transfer_abort(&aborts, "invalid_lease");
+    let commit_abort = find_transfer_abort(&aborts, "no_target");
+    let cancel_abort = find_transfer_abort(&aborts, "unknown_session");
     let session_responses = vec![
         typed(json!({
             "status": "started",
@@ -97,7 +100,7 @@ pub fn render(
                 }
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[0]}))?,
+        typed(json!({"status": "aborted", "abort": session_abort}))?,
     ];
     let lease_responses = vec![
         typed(json!({
@@ -111,7 +114,7 @@ pub fn render(
                 "zone_count": 2,
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[1]}))?,
+        typed(json!({"status": "aborted", "abort": lease_abort}))?,
     ];
     let commit_responses = vec![
         typed(json!({
@@ -148,7 +151,7 @@ pub fn render(
                 }
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[2]}))?,
+        typed(json!({"status": "aborted", "abort": commit_abort}))?,
     ];
     let cancel_responses = vec![
         typed(json!({
@@ -160,7 +163,7 @@ pub fn render(
                 "status": "cancelled",
             }
         }))?,
-        typed(json!({"status": "aborted", "abort": aborts[3]}))?,
+        typed(json!({"status": "aborted", "abort": cancel_abort}))?,
     ];
     let fixture = GoldenFixture {
         protocol_version: TRANSFER_PROTOCOL_VERSION,
@@ -198,7 +201,6 @@ fn panel_zone() -> ClientDropZone {
             ClientSize::new(400.0, 260.0).expect("fixture size is valid"),
         ),
         Some(InsertionPosition::new(1)),
-        TransferCapability::MovePanel,
         TransferTargetBinding::PanelRegion {
             host_binding_id: TransferHostBindingId::new("binding:target")
                 .expect("fixture binding is valid"),
@@ -218,7 +220,6 @@ fn surface_zone() -> ClientDropZone {
             ClientSize::new(300.0, 260.0).expect("fixture size is valid"),
         ),
         None,
-        TransferCapability::MoveSurface,
         TransferTargetBinding::SurfaceWindow {
             host_binding_id: TransferHostBindingId::new("binding:surface")
                 .expect("fixture binding is valid"),
@@ -240,9 +241,10 @@ fn aborts(
                 "protocol_version": 1,
                 "request_id": format!("request:transfer-error-{index:02}"),
                 "source": {"domain": "transfer", "code": code},
+                "layout_code": null,
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
-                "session_consumed": index % 2 == 0,
+                "session_consumed": transfer_code_consumes_session(code),
             }))
         })
         .chain(panel_error_codes.iter().enumerate().map(|(index, code)| {
@@ -250,12 +252,68 @@ fn aborts(
                 "protocol_version": 1,
                 "request_id": format!("request:panel-error-{index:02}"),
                 "source": {"domain": "panel", "code": code},
+                "layout_code": panel_layout_code(code),
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
-                "session_consumed": index % 2 == 0,
+                "session_consumed": panel_code_consumes_session(code),
             }))
         }))
         .collect()
+}
+
+fn panel_layout_code(code: &str) -> Option<&'static str> {
+    match code {
+        "ineligible_target" => Some("panel_placement_not_allowed"),
+        "instance_policy_exceeded" => Some("instance_policy_exceeded"),
+        "invalid_insertion_position" => Some("invalid_insertion_index"),
+        "layout_mutation_rejected" => Some("move_target_unchanged"),
+        _ => None,
+    }
+}
+
+fn find_transfer_abort<'a>(aborts: &'a [TransferAbort], code: &str) -> &'a TransferAbort {
+    aborts
+        .iter()
+        .find(|abort| {
+            serde_json::to_value(abort.source())
+                .ok()
+                .is_some_and(|value| value["domain"] == "transfer" && value["code"] == code)
+        })
+        .unwrap_or_else(|| panic!("missing transfer abort fixture for {code}"))
+}
+
+fn transfer_code_consumes_session(code: &str) -> bool {
+    matches!(
+        code,
+        "lease_expired"
+            | "invalid_live_windows"
+            | "target_window_missing"
+            | "stale_window_geometry"
+            | "no_target"
+            | "ambiguous_window"
+            | "ambiguous_zone"
+            | "ineligible_capability"
+    )
+}
+
+// Codes that can occur during either admission or commit (such as
+// `unknown_host_binding` or `stale_host_binding`) are represented in their
+// unconsumed admission phase here; commit-only codes are always consumed.
+fn panel_code_consumes_session(code: &str) -> bool {
+    matches!(
+        code,
+        "unsupported_source"
+            | "unsupported_target"
+            | "cross_document"
+            | "copy_unsupported"
+            | "stale_surface_revision"
+            | "target_changed"
+            | "ineligible_target"
+            | "instance_policy_exceeded"
+            | "invalid_insertion_position"
+            | "layout_mutation_rejected"
+            | "publication_failed"
+    )
 }
 
 fn typed<T: serde::de::DeserializeOwned>(value: Value) -> Result<T, serde_json::Error> {

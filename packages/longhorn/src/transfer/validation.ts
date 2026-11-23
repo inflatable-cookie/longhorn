@@ -23,6 +23,7 @@ import {
   type TransferTargetBinding,
 } from "./generated/protocol.ts";
 import { TRANSFER_FIELDS } from "./generated/fields.ts";
+import { assertValidLayoutMutationRejectionCode } from "@inflatable-cookie/longhorn/layout";
 
 export type TransferProtocolValidationCode =
   | "unsupported_protocol_version"
@@ -79,9 +80,7 @@ export function assertValidTransferClientSnapshot(
   assertTransferProtocolVersion(snapshot.protocol_version);
   if (
     typeof snapshot.client_id !== "string" ||
-    !unsignedInteger(snapshot.client_epoch) ||
-    (snapshot.current_lease_generation !== null &&
-      !unsignedInteger(snapshot.current_lease_generation))
+    !unsignedInteger(snapshot.client_epoch)
   ) {
     throw new TransferProtocolValidationError(
       "invalid_client_snapshot",
@@ -126,6 +125,9 @@ export function assertValidTransferAbort(
       PANEL_TRANSFER_ERROR_CODES,
       "unknown_panel_error_code",
     );
+  }
+  if (abort.layout_code !== null) {
+    assertValidLayoutMutationRejectionCode(abort.layout_code);
   }
 }
 

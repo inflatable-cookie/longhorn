@@ -30,8 +30,8 @@ use longhorn_gpui_windowing::{GpuiWindowBackend, GpuiWindowKey, live_transfer_wi
 use longhorn_transfer::{
     ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone,
     DropZoneId, LeaseGeneration, LeasePublication, MonotonicClock, TargetSelector,
-    TerminalTransferResolution, TransferCapability, TransferClientId, TransferCoordinator,
-    TransferDuration, TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision,
+    TerminalTransferResolution, TransferClientId, TransferCoordinator, TransferDuration,
+    TransferHostBindingId, TransferInstant, TransferLimits, TransferRevision,
     TransferSessionRequest, TransferSourceAuthority, TransferSubjectId, TransferTargetBinding,
 };
 
@@ -395,7 +395,6 @@ fn whole_window_lease(window: &ManagedWindow, bounds: ScreenRect) -> LeasePublic
             DropZoneId::new(format!("{}:whole", window.window_id)).expect("zone id"),
             bounds,
             None,
-            TransferCapability::MovePanel,
             TransferTargetBinding::PanelRegion {
                 host_binding_id: TransferHostBindingId::new("host:example").expect("binding"),
                 document_id: DomainId::new("layout.workspace").expect("document"),

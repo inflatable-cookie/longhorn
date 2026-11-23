@@ -26,6 +26,8 @@ pub use model::{
     TerminalTransferAttempt, TerminalTransferResolution, TransferCapability, TransferPayload,
     TransferSessionRequest, TransferSourceAuthority, TransferSubjectKind, TransferTargetBinding,
 };
+#[doc(hidden)]
+pub use panel::{HostBindingIndex, SurfaceDocumentLoadError, load_registered_surface_document};
 pub use panel::{
     PanelHostBinding, PanelHostBindingKind, PanelHostBindings, PanelSessionAdmission,
     PanelTransferCommitReceipt, PanelTransferCommitRequest, PanelTransferError,

@@ -78,8 +78,7 @@ fn surface_source(
             "terminal attempt did not contain a Surface source",
         ));
     };
-    let surface_id = SurfaceId::new(subject_id.as_str())
-        .expect("Surface admission records a grammatical Surface identity");
+    let surface_id = SurfaceId::from(subject_id);
     Ok(SurfaceSource {
         window_id: source_window_id,
         surface_id,

@@ -56,7 +56,7 @@ where
     let document = load_surface(store, domain)
         .map_err(SurfaceTransferError::consumed)?
         .clone();
-    let surface_id = require_fresh_source(&document, &source)?;
+    require_fresh_source(&document, &source)?;
     require_target(&document, policy, &source.surface_id, target.window_id)?;
     let insertion = insertion_index(
         &document,
@@ -79,17 +79,16 @@ where
         &mutation,
     )
     .map_err(map_mutation_error)?;
-    let committed = publication
+    // The document is durably committed at this point; never panic post-commit.
+    if publication
         .surface()
         .authoritative_document()
         .surface(&source.surface_id)
-        .expect("successful move retains the Surface");
-    // The document is durably committed at this point; a binding drift is
-    // reconciliation evidence, never a release-profile abort.
-    if committed.id() != &surface_id {
+        .is_none()
+    {
         return Err(super::evidence::consumed(
             crate::SurfaceTransferErrorCode::HostReconciliationRequired,
-            "Surface moved but its retained external layout-container binding changed",
+            "Surface commit completed but the moved Surface is absent from the authoritative document",
         ));
     }
     Ok(SurfaceTransferCommitReceipt::new(

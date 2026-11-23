@@ -9,8 +9,8 @@ use longhorn_surface_transfer::{
 use longhorn_transfer::{
     ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone,
     DropZoneId, LeaseGeneration, LeasePublication, LiveTransferWindow, MonotonicClock,
-    TransferCapability, TransferCoordinator, TransferDuration, TransferInstant, TransferLimits,
-    TransferRevision, TransferTargetBinding,
+    TransferCoordinator, TransferDuration, TransferInstant, TransferLimits, TransferRevision,
+    TransferTargetBinding,
 };
 
 use super::{TestDomain, window_id};
@@ -82,7 +82,6 @@ impl RuntimeFixture {
                         DropZoneId::new("zone:surface-target").unwrap(),
                         ScreenRect::new(ScreenPoint::new(120, 120), ScreenSize::new(300, 200)),
                         None,
-                        TransferCapability::MoveSurface,
                         TransferTargetBinding::SurfaceWindow {
                             host_binding_id: binding_id("binding:target"),
                             document_id: domain_id(),

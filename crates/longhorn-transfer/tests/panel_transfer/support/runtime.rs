@@ -9,9 +9,9 @@ use longhorn_transfer::{
     ClientEpoch, DragSessionId, DragSessionIdAllocationError, DragSessionIdAllocator, DropZone,
     InsertionPosition, LeaseGeneration, LeasePublication, LiveTransferWindow, MonotonicClock,
     PanelHostBinding, PanelHostBindingKind, PanelHostBindings, PanelSessionAdmission,
-    PanelTransferCommitRequest, PanelTransferOperation, TargetSelector, TransferCapability,
-    TransferClientId, TransferCoordinator, TransferDuration, TransferInstant, TransferLimits,
-    TransferRevision, TransferTargetBinding, admit_panel_session,
+    PanelTransferCommitRequest, PanelTransferOperation, TargetSelector, TransferClientId,
+    TransferCoordinator, TransferDuration, TransferInstant, TransferLimits, TransferRevision,
+    TransferTargetBinding, admit_panel_session,
 };
 
 use super::{TestDomain, domain_id, main_region, source_container, target_container, tool_panel};
@@ -123,7 +123,6 @@ impl Runtime {
                         DropZoneId::new(TARGET_ZONE).unwrap(),
                         target_bounds(),
                         insertion.map(InsertionPosition::new),
-                        TransferCapability::MovePanel,
                         TransferTargetBinding::PanelRegion {
                             host_binding_id: binding_id(TARGET_BINDING),
                             document_id,

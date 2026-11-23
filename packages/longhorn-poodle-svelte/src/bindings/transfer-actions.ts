@@ -1,7 +1,6 @@
 import {
   TRANSFER_PROTOCOL_VERSION,
   type ClientDropZone,
-  type TransferClientSnapshot,
   type TransferLeaseRequest,
   type TransferLeaseResponse,
 } from "@inflatable-cookie/longhorn/transfer";
@@ -125,7 +124,7 @@ export class DropZoneLeaseRegistry {
     if (snapshot === undefined) {
       throw new DropZoneLeaseSnapshotUnavailableError();
     }
-    const generation = nextGeneration(snapshot, this.#lastGeneration);
+    const generation = nextGeneration(this.#lastGeneration);
     const request: TransferLeaseRequest = {
       protocol_version: TRANSFER_PROTOCOL_VERSION,
       request_id: this.#options.nextRequestId(),
@@ -215,12 +214,8 @@ function measureZone(registration: RegisteredZone): ClientDropZone {
   };
 }
 
-function nextGeneration(
-  snapshot: TransferClientSnapshot,
-  lastGeneration: number,
-): number {
-  const generation =
-    Math.max(snapshot.current_lease_generation ?? 0, lastGeneration) + 1;
+function nextGeneration(lastGeneration: number): number {
+  const generation = lastGeneration + 1;
   if (!Number.isSafeInteger(generation)) {
     throw new RangeError("drop-zone lease generation is exhausted");
   }

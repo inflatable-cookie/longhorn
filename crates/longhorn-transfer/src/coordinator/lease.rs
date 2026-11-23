@@ -29,26 +29,30 @@ impl TransferCoordinator {
             publication.client_epoch(),
         )?;
         validate_publication(self.limits, &publication)?;
-        if !self.leases.contains_key(publication.window_id())
-            && self.leases.len() >= self.limits.maximum_leases()
-        {
-            return Err(TransferError::new(
-                TransferErrorCode::LeaseCapacity,
-                "complete drop-zone lease registry is full",
-            ));
-        }
-
-        if let Some(current) = self.leases.get(publication.window_id())
-            && publication.generation() <= current.generation
+        if let Some(current_generation) = self
+            .clients
+            .get(publication.window_id())
+            .and_then(|binding| binding.last_lease_generation)
+            && publication.generation() <= current_generation
         {
             return Err(TransferError::new(
                 TransferErrorCode::StaleLeaseGeneration,
                 format!(
                     "lease generation {} does not advance current generation {} for {}",
                     publication.generation().get(),
-                    current.generation.get(),
+                    current_generation.get(),
                     publication.window_id()
                 ),
+            ));
+        }
+
+        self.reclaim_expired_leases(now);
+        if !self.leases.contains_key(publication.window_id())
+            && self.leases.len() >= self.limits.maximum_leases()
+        {
+            return Err(TransferError::new(
+                TransferErrorCode::LeaseCapacity,
+                "complete drop-zone lease registry is full",
             ));
         }
 
@@ -68,6 +72,9 @@ impl TransferCoordinator {
                 zones: publication.zones().to_vec(),
             },
         );
+        if let Some(binding) = self.clients.get_mut(publication.window_id()) {
+            binding.last_lease_generation = Some(publication.generation());
+        }
         Ok(receipt)
     }
 
@@ -117,12 +124,6 @@ fn validate_publication(
                 "drop zone {} insertion position exceeds {}",
                 zone.id(),
                 limits.maximum_insertion_position()
-            )));
-        }
-        if zone.accepted_capability() != zone.target().capability() {
-            return Err(invalid_lease(format!(
-                "drop zone {} capability does not match its target binding",
-                zone.id()
             )));
         }
     }

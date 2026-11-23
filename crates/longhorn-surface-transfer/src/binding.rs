@@ -1,6 +1,5 @@
-use std::collections::BTreeMap;
-
 use longhorn_core::{DomainId, TransferHostBindingId, WindowId};
+use longhorn_transfer::HostBindingIndex;
 
 use crate::{SurfaceTransferError, SurfaceTransferErrorCode};
 
@@ -49,7 +48,7 @@ impl SurfaceHostBinding {
 /// Complete fresh Surface host-binding snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SurfaceHostBindings {
-    bindings: BTreeMap<TransferHostBindingId, SurfaceHostBinding>,
+    index: HostBindingIndex<SurfaceHostBinding>,
 }
 
 impl SurfaceHostBindings {
@@ -57,24 +56,21 @@ impl SurfaceHostBindings {
     pub fn new(
         bindings: impl IntoIterator<Item = SurfaceHostBinding>,
     ) -> Result<Self, SurfaceTransferError> {
-        let mut indexed = BTreeMap::new();
-        for binding in bindings {
-            let id = binding.id.clone();
-            if indexed.insert(id.clone(), binding).is_some() {
-                return Err(SurfaceTransferError::new(
+        HostBindingIndex::new(bindings, SurfaceHostBinding::id)
+            .map(|index| Self { index })
+            .map_err(|id| {
+                SurfaceTransferError::new(
                     SurfaceTransferErrorCode::InvalidBindingSnapshot,
                     format!("duplicate Surface host binding {id}"),
-                ));
-            }
-        }
-        Ok(Self { bindings: indexed })
+                )
+            })
     }
 
     pub(crate) fn get(
         &self,
         id: &TransferHostBindingId,
     ) -> Result<&SurfaceHostBinding, SurfaceTransferError> {
-        self.bindings.get(id).ok_or_else(|| {
+        self.index.get(id).ok_or_else(|| {
             SurfaceTransferError::new(
                 SurfaceTransferErrorCode::UnknownHostBinding,
                 format!("Surface host binding {id} is not current"),

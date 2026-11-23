@@ -1,7 +1,7 @@
 use longhorn_core::{
     SurfaceRevision, TransferClientId, TransferHostBindingId, TransferRequestId, WindowId,
 };
-use longhorn_surfaces::SurfaceDocument;
+use longhorn_surfaces::{LayoutMutationRejectionCode, SurfaceDocument};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -21,22 +21,16 @@ pub struct TransferClientSnapshot {
     protocol_version: TransferProtocolVersion,
     client_id: TransferClientId,
     client_epoch: ClientEpoch,
-    current_lease_generation: Option<LeaseGeneration>,
 }
 
 impl TransferClientSnapshot {
     /// Constructs a current caller-window authority snapshot.
     #[must_use]
-    pub const fn new(
-        client_id: TransferClientId,
-        client_epoch: ClientEpoch,
-        current_lease_generation: Option<LeaseGeneration>,
-    ) -> Self {
+    pub const fn new(client_id: TransferClientId, client_epoch: ClientEpoch) -> Self {
         Self {
             protocol_version: TransferProtocolVersion::CURRENT,
             client_id,
             client_epoch,
-            current_lease_generation,
         }
     }
 
@@ -50,12 +44,6 @@ impl TransferClientSnapshot {
     #[must_use]
     pub const fn client_epoch(&self) -> ClientEpoch {
         self.client_epoch
-    }
-
-    /// Returns the current complete replacement generation.
-    #[must_use]
-    pub const fn current_lease_generation(&self) -> Option<LeaseGeneration> {
-        self.current_lease_generation
     }
 }
 
@@ -234,9 +222,20 @@ pub struct TransferAbort {
     protocol_version: TransferProtocolVersion,
     request_id: TransferRequestId,
     source: TransferAbortSource,
+    #[serde(deserialize_with = "deserialize_required_nullable_layout_code")]
+    layout_code: Option<LayoutMutationRejectionCode>,
     message: String,
     retryable: bool,
     session_consumed: bool,
+}
+
+fn deserialize_required_nullable_layout_code<'de, D>(
+    deserializer: D,
+) -> Result<Option<LayoutMutationRejectionCode>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Option::<LayoutMutationRejectionCode>::deserialize(deserializer)
 }
 
 impl TransferAbort {
@@ -251,6 +250,7 @@ impl TransferAbort {
             protocol_version: TransferProtocolVersion::CURRENT,
             request_id,
             source: TransferAbortSource::Transfer(code),
+            layout_code: None,
             message: message.into(),
             retryable: false,
             session_consumed: false,
@@ -270,6 +270,7 @@ impl TransferAbort {
             protocol_version: TransferProtocolVersion::CURRENT,
             request_id,
             source: TransferAbortSource::Transfer(error.code()),
+            layout_code: None,
             message: error.detail().to_owned(),
             retryable: false,
             session_consumed: error.session_consumed(),
@@ -279,14 +280,51 @@ impl TransferAbort {
     /// Projects a panel adapter failure conservatively as non-retryable.
     #[must_use]
     pub fn from_panel(request_id: TransferRequestId, error: &PanelTransferError) -> Self {
+        let source = error.transfer_code().map_or_else(
+            || TransferAbortSource::Panel(error.code()),
+            TransferAbortSource::Transfer,
+        );
         Self {
             protocol_version: TransferProtocolVersion::CURRENT,
             request_id,
-            source: TransferAbortSource::Panel(error.code()),
+            source,
+            layout_code: error.layout_code(),
             message: error.detail().to_owned(),
             retryable: false,
             session_consumed: error.session_consumed(),
         }
+    }
+
+    /// Returns the rejecting domain and stable error code.
+    #[must_use]
+    pub const fn source(&self) -> TransferAbortSource {
+        self.source
+    }
+
+    /// Returns the underlying layout mutation rejection code when applicable.
+    #[must_use]
+    pub const fn layout_code(&self) -> Option<LayoutMutationRejectionCode> {
+        self.layout_code
+    }
+
+    /// Returns the human-readable diagnostic message.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Returns whether the failed request may be retried without fresh authority.
+    ///
+    /// Transfer aborts are terminal for the request under contract 011.
+    #[must_use]
+    pub const fn retryable(&self) -> bool {
+        self.retryable
+    }
+
+    /// Returns whether the first terminal session attempt was consumed.
+    #[must_use]
+    pub const fn session_consumed(&self) -> bool {
+        self.session_consumed
     }
 }
 

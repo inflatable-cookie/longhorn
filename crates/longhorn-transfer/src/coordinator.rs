@@ -32,6 +32,7 @@ struct SessionRecord {
 struct ClientBinding {
     client_id: TransferClientId,
     epoch: ClientEpoch,
+    last_lease_generation: Option<LeaseGeneration>,
 }
 
 #[derive(Clone, Debug)]

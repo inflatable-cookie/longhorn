@@ -3,7 +3,8 @@ use longhorn_surfaces::{
 };
 use longhorn_surfaces_config::publish_layout_mutation;
 use longhorn_transfer::{
-    PanelHostBindingKind, PanelTransferErrorCode, PanelTransferOperation, commit_panel_transfer,
+    PanelHostBindingKind, PanelTransferErrorCode, PanelTransferOperation, TransferAbort,
+    TransferAbortSource, TransferErrorCode, commit_panel_transfer,
 };
 
 use crate::panel_transfer::support::{
@@ -56,7 +57,46 @@ fn missing_ineligible_and_invalid_insertion_targets_publish_nothing() {
         assert_eq!(error.layout_code(), layout_code);
         assert!(error.session_consumed());
         assert!(!fixture.path(&domain).exists());
+
+        let abort = TransferAbort::from_panel(
+            longhorn_core::TransferRequestId::new("request:panel-mutation").unwrap(),
+            &error,
+        );
+        assert_eq!(abort.source(), TransferAbortSource::Panel(expected));
+        assert_eq!(abort.layout_code(), layout_code);
+        assert!(!abort.retryable());
+        assert!(abort.session_consumed());
     }
+
+    // Transfer-domain rejection during commit promotes its real TransferErrorCode.
+    let fixture = Fixture::new();
+    let domain = domain();
+    let mut store = fixture.store();
+    store.register(&domain).unwrap();
+    let mut runtime = Runtime::admit(&store, &domain, PanelHostBindingKind::DirectWindow);
+    let request = runtime.commit_request(PanelTransferOperation::Move);
+    let error = commit_panel_transfer(
+        &store,
+        &domain,
+        &mut runtime.coordinator,
+        &runtime.clock,
+        &runtime.bindings,
+        options(),
+        request,
+    )
+    .unwrap_err();
+    assert_eq!(error.transfer_code(), Some(TransferErrorCode::NoTarget));
+    let promoted = TransferAbort::from_panel(
+        longhorn_core::TransferRequestId::new("request:panel-transfer-error").unwrap(),
+        &error,
+    );
+    assert_eq!(
+        promoted.source(),
+        TransferAbortSource::Transfer(TransferErrorCode::NoTarget)
+    );
+    assert_eq!(promoted.layout_code(), None);
+    assert!(!promoted.retryable());
+    assert!(promoted.session_consumed());
 }
 
 #[test]
