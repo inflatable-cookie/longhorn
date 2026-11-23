@@ -118,6 +118,42 @@ impl<'a> Git<'a> {
         Ok(self.run_captured(root, arguments, code, None)?.stdout)
     }
 
+    /// Runs one Git argument vector in `root` and returns its standard output
+    /// as exact bytes, dropping only Git's single trailing record terminator
+    /// (one `\n`).
+    ///
+    /// Unlike [`Git::run`], the bytes are never decoded, trimmed, or redacted:
+    /// callers use this only for machine identifiers (canonical paths) where
+    /// trimming or a lossy decode could collapse two distinct locations into
+    /// one. A refusal still reports through [`redact_git_detail`], like every
+    /// other failure detail.
+    pub(crate) fn run_git_bytes(
+        &self,
+        root: &Path,
+        arguments: &[&str],
+        code: GitFailureCode,
+    ) -> Result<Vec<u8>, GitFailure> {
+        let process = self.run_process(root, arguments, code, None)?;
+        if process.capture.success {
+            if process.capture.stdout_truncated {
+                return Err(too_large());
+            }
+            return Ok(strip_record_terminator(process.capture.stdout));
+        }
+        Err(GitFailure::Refused {
+            code,
+            detail: stderr_detail(
+                &self.redactor,
+                &process.capture.stderr,
+                process.capture.stderr_overflowed,
+                process
+                    .credential
+                    .as_ref()
+                    .map(|credential| credential.secret().expose_secret()),
+            ),
+        })
+    }
+
     /// The caller's redactor, for a module that formats its own detail.
     pub(crate) fn redactor(&self) -> &Redactor {
         &self.redactor
@@ -862,11 +898,47 @@ fn stdout(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).trim().to_owned()
 }
 
+/// Drops Git's single trailing record terminator (one `\n`) and nothing
+/// else: leading whitespace and trailing whitespace the value itself carries
+/// are preserved byte for byte.
+fn strip_record_terminator(mut bytes: Vec<u8>) -> Vec<u8> {
+    if bytes.last() == Some(&b'\n') {
+        bytes.pop();
+    }
+    bytes
+}
+
 fn too_large() -> GitFailure {
     GitFailure::Unavailable {
         code: GitFailureCode::OutputTooLarge,
         detail: format!(
             "Git produced more than {MAX_CAPTURED_OUTPUT_BYTES} bytes of standard output."
         ),
+    }
+}
+
+#[cfg(test)]
+mod record_terminator_tests {
+    use super::strip_record_terminator;
+
+    #[test]
+    fn drops_only_the_single_trailing_newline() {
+        assert_eq!(
+            strip_record_terminator(b"/repo/repository \n".to_vec()),
+            b"/repo/repository ".to_vec(),
+        );
+        assert_eq!(
+            strip_record_terminator(b"/repo/repository\n\n".to_vec()),
+            b"/repo/repository\n".to_vec(),
+        );
+        assert_eq!(
+            strip_record_terminator(b"  /repo/repository".to_vec()),
+            b"  /repo/repository".to_vec(),
+        );
+        assert_eq!(strip_record_terminator(Vec::new()), Vec::<u8>::new());
+        assert_eq!(
+            strip_record_terminator(b"/repo/repo\xff".to_vec()),
+            b"/repo/repo\xff".to_vec(),
+        );
     }
 }

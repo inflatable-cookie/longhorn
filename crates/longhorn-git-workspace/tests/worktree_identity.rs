@@ -115,6 +115,118 @@ fn linked_worktree_and_main_checkout_share_repository_but_not_worktree() {
     }
 }
 
+#[test]
+fn sibling_roots_with_trailing_space_keep_distinct_identities() {
+    let temp = tempfile::tempdir().expect("a test temp root");
+    let config = temp.path().join("gitconfig");
+    fs::write(&config, "# empty fixture config\n").expect("an empty config");
+
+    for name in ["repository", "repository "] {
+        let repo = temp.path().join(name);
+        fs::create_dir(&repo).expect("repo folder");
+        fs::write(repo.join("README.md"), "init\n").expect("seed file");
+        checked(&repo, &config, &["init", "-b", "main"]);
+        checked(&repo, &config, &["config", "user.name", "Longhorn Test"]);
+        checked(
+            &repo,
+            &config,
+            &["config", "user.email", "test@example.invalid"],
+        );
+        checked(&repo, &config, &["add", "."]);
+        checked(&repo, &config, &["commit", "-m", "Initial"]);
+    }
+
+    let policy = support::Policy::isolated(&config);
+    let git = handle(&policy);
+    let plain = temp.path().join("repository");
+    let spaced = temp.path().join("repository ");
+    let id_plain = git.worktree_identity(&plain).expect("plain identity");
+    let id_spaced = git.worktree_identity(&spaced).expect("spaced identity");
+
+    // Each identity reports its own exact root and common directory.
+    assert_eq!(
+        id_plain.root(),
+        &plain.canonicalize().expect("canonical plain root")
+    );
+    assert_eq!(
+        id_spaced.root(),
+        &spaced.canonicalize().expect("canonical spaced root")
+    );
+    assert!(
+        id_spaced.root().to_string_lossy().ends_with("repository "),
+        "spaced root keeps its trailing space: {}",
+        id_spaced.root().display()
+    );
+    assert_ne!(id_plain.root(), id_spaced.root());
+    assert_ne!(id_plain.common_dir(), id_spaced.common_dir());
+    assert!(!id_plain.same_repository(&id_spaced));
+    assert!(!id_spaced.same_repository(&id_plain));
+    assert!(!id_plain.same_worktree(&id_spaced));
+    assert_ne!(id_plain, id_spaced);
+}
+
+#[cfg(unix)]
+#[test]
+fn non_utf8_worktree_name_keeps_exact_bytes() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::{OsStrExt as _, OsStringExt as _};
+
+    let temp = tempfile::tempdir().expect("a test temp root");
+    let config = temp.path().join("gitconfig");
+    fs::write(&config, "# empty fixture config\n").expect("an empty config");
+
+    // `\xff` alone is not valid UTF-8; its lossy rendering is the replacement
+    // character, so the sibling below renders identically under a lossy decode.
+    let raw_name = b"repo\xff".to_vec();
+    let raw_dir = temp.path().join(OsStr::from_bytes(&raw_name));
+    if let Err(error) = fs::create_dir(&raw_dir) {
+        eprintln!(
+            "SKIP: the platform filesystem refuses non-UTF-8 names ({error}); \
+             the exact-bytes read is still covered by the unit tests and the \
+             trailing-space sibling test"
+        );
+        return;
+    }
+    let sibling = temp.path().join("repo\u{FFFD}");
+    fs::create_dir(&sibling).expect("sibling folder");
+
+    for repo in [&raw_dir, &sibling] {
+        fs::write(repo.join("README.md"), "init\n").expect("seed file");
+        checked(repo, &config, &["init", "-b", "main"]);
+        checked(repo, &config, &["config", "user.name", "Longhorn Test"]);
+        checked(
+            repo,
+            &config,
+            &["config", "user.email", "test@example.invalid"],
+        );
+        checked(repo, &config, &["add", "."]);
+        checked(repo, &config, &["commit", "-m", "Initial"]);
+    }
+
+    let policy = support::Policy::isolated(&config);
+    let git = handle(&policy);
+    let id_raw = git.worktree_identity(&raw_dir).expect("raw identity");
+    let id_sibling = git.worktree_identity(&sibling).expect("sibling identity");
+
+    let root_bytes = id_raw.root().as_os_str().as_bytes();
+    assert!(
+        root_bytes.ends_with(&raw_name),
+        "raw root keeps its exact bytes: {root_bytes:?}"
+    );
+    assert_eq!(
+        id_raw.root().as_os_str().to_os_string().into_vec(),
+        raw_dir
+            .canonicalize()
+            .expect("canonical raw root")
+            .into_os_string()
+            .into_vec(),
+    );
+    assert_ne!(id_raw.root(), id_sibling.root());
+    assert_ne!(id_raw.common_dir(), id_sibling.common_dir());
+    assert!(!id_raw.same_repository(&id_sibling));
+    assert!(!id_raw.same_worktree(&id_sibling));
+}
+
 #[cfg(unix)]
 #[test]
 fn symlinked_path_and_subdirectory_resolve_to_the_same_worktree_identity() {
