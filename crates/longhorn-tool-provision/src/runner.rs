@@ -178,6 +178,9 @@ type StreamResult = io::Result<(Vec<u8>, bool)>;
 
 impl ProcessRunner for CommandRunner {
     fn run(&self, program: &Path, arguments: &[OsString]) -> Result<ProcessOutput, RunnerError> {
+        let deadline = Instant::now().checked_add(self.timeout).ok_or_else(|| {
+            RunnerError::new("the process timeout exceeds the supported deadline range")
+        })?;
         let mut child = Command::new(program)
             .args(arguments)
             .stdin(Stdio::null())
@@ -199,7 +202,6 @@ impl ProcessRunner for CommandRunner {
             }
         };
 
-        let deadline = Instant::now() + self.timeout;
         let status = match wait_until(&mut child, deadline) {
             Ok(Some(status)) => status,
             Ok(None) => {

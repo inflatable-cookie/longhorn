@@ -124,7 +124,9 @@ impl LoopbackRedirect {
     /// to any other path — is answered and ignored, not fatal. Only the
     /// callback path fails closed.
     pub fn receive(self, timeout: Duration) -> Result<Callback, LoopbackError> {
-        let deadline = Instant::now() + timeout;
+        let Some(deadline) = Instant::now().checked_add(timeout) else {
+            return Err(LoopbackError::TimedOut);
+        };
         loop {
             match self.listener.accept() {
                 Ok((stream, _)) => match answer(stream, deadline)? {
@@ -207,16 +209,22 @@ fn answer(mut stream: TcpStream, deadline: Instant) -> Result<Answer, LoopbackEr
                 return Ok(Answer::Probe);
             }
         }
-        if head.windows(4).any(|window| window == b"\r\n\r\n") {
-            break;
-        }
-        if head.len() > MAXIMUM_HEAD_BYTES {
+        let terminator_end = head
+            .windows(4)
+            .position(|window| window == b"\r\n\r\n")
+            .map(|offset| offset + 4);
+        if terminator_end.is_some_and(|end| end > MAXIMUM_HEAD_BYTES)
+            || (terminator_end.is_none() && head.len() > MAXIMUM_HEAD_BYTES)
+        {
             // An oversized head that was never a callback is a probe. One
             // addressed at the callback fails closed.
             if head.starts_with(b"GET /callback") {
                 return Err(LoopbackError::MalformedCallback);
             }
             return Ok(Answer::Probe);
+        }
+        if terminator_end.is_some() {
+            break;
         }
     }
 
@@ -524,6 +532,34 @@ mod tests {
         assert_eq!(
             listener.receive(Duration::from_millis(50)),
             Err(LoopbackError::TimedOut)
+        );
+    }
+
+    #[test]
+    fn an_unrepresentable_timeout_returns_an_error() {
+        let listener = LoopbackRedirect::bind().expect("bind");
+        assert_eq!(
+            listener.receive(Duration::MAX),
+            Err(LoopbackError::TimedOut)
+        );
+    }
+
+    #[test]
+    fn a_callback_request_head_past_the_limit_is_rejected() {
+        let listener = LoopbackRedirect::bind().expect("bind");
+        let port = listener.port();
+        let handle = receive_in_background(listener);
+
+        let mut stream = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+        let request = format!(
+            "GET /callback?state=s&code={} HTTP/1.1\r\n\r\n",
+            "x".repeat(MAXIMUM_HEAD_BYTES)
+        );
+        stream.write_all(request.as_bytes()).expect("send");
+
+        assert_eq!(
+            handle.join().expect("join"),
+            Err(LoopbackError::MalformedCallback)
         );
     }
 }

@@ -673,9 +673,10 @@ concurrently, retains at most 64 KiB from each and drains the rest. It does
 not invoke a shell for version probes. It gives the process no standard input,
 and it stops a process that runs past its time limit: 30 seconds by default,
 or the limit given to `with_timeout`. A stopped process is a `RunnerError`, as
-is output still open five seconds after the process exits, so a grandchild that
-holds the pipes cannot hold the caller. The pipeline decodes no more than that
-bound, runs the caller's `Redactor`, then uses
+is a timeout outside the representable `Instant` range, which is rejected
+before the process starts, or output still open five seconds after the process
+exits, so a grandchild that holds the pipes cannot hold the caller. The
+pipeline decodes no more than that bound, runs the caller's `Redactor`, then uses
 `longhorn-support-log::bound_field` to retain no more than 4 KiB for each
 failure field. Debug output from `ProcessOutput` reports sizes and status,
 never raw streams. The host runs this synchronous operation on its blocking

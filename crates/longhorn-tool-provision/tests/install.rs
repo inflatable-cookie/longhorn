@@ -819,6 +819,14 @@ fn production_runner_stops_a_process_that_outlives_its_limit() {
     assert!(started.elapsed() < Duration::from_secs(10));
 }
 
+#[test]
+fn production_runner_rejects_an_unrepresentable_timeout_before_starting() {
+    let error = CommandRunner::with_timeout(Duration::MAX)
+        .run(Path::new("/path/that/must/not/be/started"), &[])
+        .expect_err("an unrepresentable timeout is rejected before spawn");
+    assert!(error.detail().contains("deadline range"), "{error}");
+}
+
 #[cfg(unix)]
 #[test]
 fn production_runner_gives_the_process_no_standard_input() {
