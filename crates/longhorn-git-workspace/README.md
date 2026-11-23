@@ -28,11 +28,13 @@ One `Git` handle carries the caller's `GitPolicy` and the caller's
   processes and their output; the synchronous policy hooks run outside it.
 
 Staging helpers are free functions: `target_already_present`, `staging_parent`,
-`create_owned_staging`, `rename_exclusive` and `remove_owned_staging`. The
-composition rule for a new workspace is the caller's: create the staging folder
-beside the target, clone into it, remove it on every failure, and move it into
-place only with `rename_exclusive`, which fails instead of replacing an existing
-target.
+`create_owned_staging` and `rename_exclusive`. `create_owned_staging` returns
+an `OwnedStaging` handle for the one folder it made: it exposes `path`, and
+`remove` consumes the handle and reports a removal failure instead of dropping
+it, so cleanup can name no other path. The composition rule for a new workspace
+is the caller's: create the staging folder beside the target, clone into it,
+remove it on every failure, and move it into place only with
+`rename_exclusive`, which fails instead of replacing an existing target.
 
 Process execution is always the fixed program `git` with an argument vector, in
 one explicit folder. The executor disables ambient credential helpers and
@@ -63,9 +65,9 @@ Part 5b is GitHub sign-in in the same crate:
 
 - `run_device_flow` runs GitHub's device and poll protocol — a one-time code,
   GitHub's pinned verification page, a five-second floor on the interval, a
-  `slow_down` increase, a wait bounded by the shorter of the declared expiry and
-  fifteen minutes, and the caller's cancellation flag. The mechanism opens no
-  browser and authors no sentence.
+  `slow_down` that only ever lengthens it, a wait bounded by the shorter of the
+  declared expiry and fifteen minutes, and the caller's cancellation flag. The
+  mechanism opens no browser and authors no sentence.
 - `TokenGrant`, `read_grant`, `write_grant`, `read_credential_presence` and
   `sign_out` store one grant in the caller's `longhorn-core` credential slot, in
   the version 1 JSON document contract 029 defines. Unreadable or unsupported

@@ -402,6 +402,58 @@ fn a_slow_down_answer_lengthens_the_poll_instead_of_polling_again_immediately() 
 }
 
 #[test]
+fn a_slow_down_suggestion_shorter_than_the_interval_never_shortens_it() {
+    struct DeviceClient;
+    impl DeviceCodeClient for DeviceClient {
+        fn request_code(&self, _client_id: &str) -> Result<DeviceCodeResponse, GithubAuthFailure> {
+            Ok(DeviceCodeResponse {
+                device_code: "injected-device-code".to_owned(),
+                user_code: "SLOW-0002".to_owned(),
+                expires_in: 900,
+                interval: Some(DEFAULT_POLL_INTERVAL.as_secs()),
+                verification_uri: None,
+            })
+        }
+    }
+    // The first poll answers `slow_down` suggesting one second, which is less
+    // than the five seconds in force. A flow that adopted the suggestion would
+    // shorten its own wait and poll again at ten seconds; the interval must
+    // lengthen to fifteen instead.
+    let mut shorter = token_error("slow_down");
+    shorter.interval = Some(1);
+    let token_client = FakeTokenClient::new(vec![
+        Ok(shorter),
+        Ok(token_response("access", "refresh", 3600)),
+    ]);
+    let server = FixtureServer::spawn(Vec::new()).expect("a loopback listener");
+    let device_url = server.url(DEVICE_CODE_PATH);
+    let token_url = server.url(ACCESS_TOKEN_PATH);
+    let endpoints = DeviceFlowEndpoints::loopback_for_tests(&device_url, &token_url)
+        .expect("the loopback endpoints")
+        .with_clients(&DeviceClient, &token_client);
+    let cancel = AtomicBool::new(false);
+
+    let result = thread::scope(|threads| {
+        threads.spawn(|| {
+            thread::sleep(Duration::from_secs(11));
+            cancel.store(true, Ordering::SeqCst);
+        });
+        run_device_flow(CLIENT_ID, &endpoints, &cancel, &mut |_| {})
+    });
+
+    assert_eq!(
+        result.expect_err("the test cancelled the flow"),
+        GithubAuthFailure::Cancelled
+    );
+    assert_eq!(
+        token_client.request_count(),
+        1,
+        "the smaller suggestion shortened the poll interval"
+    );
+    assert!(server.requests().is_empty(), "the injected client answered");
+}
+
+#[test]
 fn a_cancelled_flow_asks_github_nothing() {
     let server = auth_server(
         vec![(200, device_body("CANC-0001", 900, Some(5)))],

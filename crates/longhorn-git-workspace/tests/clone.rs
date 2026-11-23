@@ -16,8 +16,8 @@ use std::{
 };
 
 use longhorn_git_workspace::{
-    CloneFailure, GitCredential, create_owned_staging, remove_owned_staging, rename_exclusive,
-    staging_parent, target_already_present,
+    CloneFailure, GitCredential, create_owned_staging, rename_exclusive, staging_parent,
+    target_already_present,
 };
 use support::{Fixture, handle, staging_leftovers};
 
@@ -32,15 +32,16 @@ fn staging_is_named_beside_its_target_and_never_repeats() {
     let second = create_owned_staging(&parent, std::ffi::OsStr::new("workspace"))
         .expect("a second staging folder");
 
-    assert_ne!(first, second);
-    assert!(first.is_dir());
+    assert_ne!(first.path(), second.path());
+    assert!(first.path().is_dir());
     assert!(
         first
+            .path()
             .file_name()
             .and_then(|name| name.to_str())
             .is_some_and(|name| name.starts_with("workspace.creating-"))
     );
-    assert_eq!(staging_parent(&first), Some(parent.as_path()));
+    assert_eq!(staging_parent(first.path()), Some(parent.as_path()));
     assert_eq!(staging_parent(Path::new("workspace")), Some(Path::new(".")));
 }
 
@@ -58,15 +59,15 @@ fn clones_into_staging_and_moves_the_workspace_into_place() {
 
     git.clone_into(
         fixture.remote.to_str().expect("a remote path"),
-        &staging,
+        staging.path(),
         &AtomicBool::new(false),
         None,
     )
     .expect("the local bare remote clones");
-    rename_exclusive(&staging, &target).expect("the target is absent");
+    rename_exclusive(staging.path(), &target).expect("the target is absent");
 
     assert!(target.join("content.md").is_file());
-    assert!(!staging.exists());
+    assert!(!staging.path().exists());
     assert!(staging_leftovers(&parent).is_empty());
 }
 
@@ -85,21 +86,24 @@ fn an_existing_target_is_refused_and_left_untouched() {
         create_owned_staging(&parent, std::ffi::OsStr::new("workspace")).expect("staging");
     git.clone_into(
         fixture.remote.to_str().expect("a remote path"),
-        &staging,
+        staging.path(),
         &AtomicBool::new(false),
         None,
     )
     .expect("the local bare remote clones");
 
-    let error = rename_exclusive(&staging, &target).expect_err("the target already exists");
+    let error = rename_exclusive(staging.path(), &target).expect_err("the target already exists");
 
     assert_eq!(error.kind(), std::io::ErrorKind::AlreadyExists);
     assert_eq!(
         fs::read_to_string(target.join("keep.md")).expect("the planted path"),
         "keep\n"
     );
-    remove_owned_staging(&staging);
-    assert!(!staging.exists());
+    let staging_path = staging.path().to_path_buf();
+    staging
+        .remove()
+        .expect("the invocation removes its own staging");
+    assert!(!staging_path.exists());
     assert!(staging_leftovers(&parent).is_empty());
 }
 
@@ -118,19 +122,22 @@ fn a_refused_clone_leaves_no_partial_target() {
     let failure = git
         .clone_into(
             absent_remote.to_str().expect("a fixture path"),
-            &staging,
+            staging.path(),
             &AtomicBool::new(false),
             None,
         )
         .expect_err("the remote does not exist");
-    remove_owned_staging(&staging);
+    let staging_path = staging.path().to_path_buf();
+    staging
+        .remove()
+        .expect("the invocation removes its own staging");
 
     let CloneFailure::Refused { detail } = failure else {
         panic!("expected a refusal, got {failure:?}");
     };
     assert!(detail.contains("does not exist"), "{detail}");
     assert!(!target.exists());
-    assert!(!staging.exists());
+    assert!(!staging_path.exists());
     assert!(staging_leftovers(&parent).is_empty());
 }
 
@@ -149,18 +156,22 @@ fn a_refused_clone_redacts_the_supplied_secret() {
     let failure = git
         .clone_into(
             absent_remote.to_str().expect("a fixture path"),
-            &staging,
+            staging.path(),
             &AtomicBool::new(false),
             Some(&credential),
         )
         .expect_err("the remote does not exist");
-    remove_owned_staging(&staging);
+    let staging_path = staging.path().to_path_buf();
+    staging
+        .remove()
+        .expect("the invocation removes its own staging");
 
     let CloneFailure::Refused { detail } = failure else {
         panic!("expected a refusal, got {failure:?}");
     };
     assert!(!detail.contains("controlled-secret"), "{detail}");
     assert!(detail.contains("[redacted]"), "{detail}");
+    assert!(!staging_path.exists());
 }
 
 #[test]
@@ -177,15 +188,19 @@ fn a_cancelled_clone_starts_nothing_and_keeps_no_staging() {
     let failure = git
         .clone_into(
             fixture.remote.to_str().expect("a remote path"),
-            &staging,
+            staging.path(),
             &AtomicBool::new(true),
             None,
         )
         .expect_err("the caller cancelled before the clone");
-    remove_owned_staging(&staging);
+    let staging_path = staging.path().to_path_buf();
+    staging
+        .remove()
+        .expect("the invocation removes its own staging");
 
     assert!(matches!(failure, CloneFailure::Cancelled));
     assert!(!target.exists());
+    assert!(!staging_path.exists());
     assert!(staging_leftovers(&parent).is_empty());
 }
 
@@ -217,11 +232,13 @@ fn a_cancelled_clone_returns_at_the_cancel_even_when_the_remote_hangs() {
 
     let started = Instant::now();
     let failure = git
-        .clone_into("ext::sleep 2", &staging, &cancel, None)
+        .clone_into("ext::sleep 2", staging.path(), &cancel, None)
         .expect_err("the caller cancelled");
     let elapsed = started.elapsed();
     setter.join().expect("the cancelling thread");
-    remove_owned_staging(&staging);
+    staging
+        .remove()
+        .expect("the invocation removes its own staging");
 
     assert!(matches!(failure, CloneFailure::Cancelled), "{failure:?}");
     assert!(
@@ -265,16 +282,77 @@ fn a_cancel_during_the_stderr_drain_returns_at_the_cancel() {
     let started = Instant::now();
     let remote = format!("ext::{}", program.display());
     let failure = git
-        .clone_into(&remote, &staging, &cancel, None)
+        .clone_into(&remote, staging.path(), &cancel, None)
         .expect_err("the caller cancelled");
     let elapsed = started.elapsed();
     setter.join().expect("the cancelling thread");
-    remove_owned_staging(&staging);
+    staging
+        .remove()
+        .expect("the invocation removes its own staging");
 
     assert!(matches!(failure, CloneFailure::Cancelled), "{failure:?}");
     assert!(
         elapsed < Duration::from_millis(1500),
         "cancellation returned after {elapsed:?}"
     );
+    assert!(staging_leftovers(&parent).is_empty());
+}
+
+#[test]
+fn cleanup_removes_only_the_folder_the_creator_made() {
+    let fixture = Fixture::worktree();
+    let parent = fixture.temp.path().join("destination");
+    fs::create_dir(&parent).expect("a destination parent");
+    let target = parent.join("workspace");
+    fs::create_dir(&target).expect("a planted destination");
+    fs::write(target.join("keep.md"), "keep\n").expect("planted content");
+    let staging =
+        create_owned_staging(&parent, std::ffi::OsStr::new("workspace")).expect("staging");
+    let staging_path = staging.path().to_path_buf();
+    fs::write(staging.path().join("partial.md"), "partial\n").expect("partial content");
+
+    staging
+        .remove()
+        .expect("the invocation removes its own staging");
+
+    assert!(!staging_path.exists());
+    assert_eq!(
+        fs::read_to_string(target.join("keep.md")).expect("the planted path"),
+        "keep\n"
+    );
+    assert!(staging_leftovers(&parent).is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn a_failed_cleanup_reports_the_error_and_leaves_the_folder() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let fixture = Fixture::worktree();
+    let parent = fixture.temp.path().join("destination");
+    fs::create_dir(&parent).expect("a destination parent");
+    let staging =
+        create_owned_staging(&parent, std::ffi::OsStr::new("workspace")).expect("staging");
+    let staging_path = staging.path().to_path_buf();
+    let original = fs::metadata(&parent)
+        .expect("the destination parent")
+        .permissions();
+    // A parent that refuses the unlink: the recursive removal cannot empty the
+    // folder's entry out of it.
+    fs::set_permissions(&parent, fs::Permissions::from_mode(0o555))
+        .expect("a read-only destination parent");
+
+    let error = staging
+        .remove()
+        .expect_err("the read-only parent refuses the removal");
+
+    fs::set_permissions(&parent, original).expect("the destination parent is writable again");
+    assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
+    assert!(
+        error.to_string().contains("workspace.creating-"),
+        "the failure names the staging folder: {error}"
+    );
+    assert!(staging_path.is_dir(), "the staging folder is still there");
+    fs::remove_dir_all(&staging_path).expect("the fixture removes its own staging");
     assert!(staging_leftovers(&parent).is_empty());
 }

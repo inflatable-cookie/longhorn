@@ -30,9 +30,8 @@ use longhorn_git_workspace::{
     GitCredential, GitCredentialBridge, GitFailure, GitFailureCode, GitPolicy, GithubAuthProgress,
     GithubTokenClient, RemoteAccessFailure, SwitchReading, SyncReading, SyncStop,
     classify_remote_failure, create_owned_staging, fresh_access_token, has_switch_blocking_dirt,
-    read_credential_presence, remote_for_display, remote_identity, remotes_match,
-    remove_owned_staging, rename_exclusive, run_device_flow, staging_parent,
-    target_already_present, write_grant,
+    read_credential_presence, remote_for_display, remote_identity, remotes_match, rename_exclusive,
+    run_device_flow, staging_parent, target_already_present, write_grant,
 };
 use longhorn_redact::{RedactionRules, Redactor};
 use secrecy::{ExposeSecret as _, SecretString};
@@ -357,10 +356,13 @@ pub(crate) fn run() -> String {
     let staging = create_owned_staging(fixture.temp.path(), OsStr::new("workspace"))
         .expect("one owned staging folder");
     let cancel = AtomicBool::new(false);
-    git.clone_into(&fixture.remote_url(), &staging, &cancel, None)
+    git.clone_into(&fixture.remote_url(), staging.path(), &cancel, None)
         .expect("the local remote clones into the staging folder");
-    rename_exclusive(&staging, &target).expect("the exclusive rename places the clone");
-    assert!(!staging.exists(), "the staging folder became the target");
+    rename_exclusive(staging.path(), &target).expect("the exclusive rename places the clone");
+    assert!(
+        !staging.path().exists(),
+        "the staging folder became the target"
+    );
 
     // A worktree reading: the canonical root, the current branch, the upstream,
     // both branch kinds, and one computed cleanliness.
@@ -406,13 +408,19 @@ pub(crate) fn run() -> String {
     let head_before = checked(&target, &fixture.config, &["rev-parse", "HEAD"]);
     let second = create_owned_staging(fixture.temp.path(), OsStr::new("workspace"))
         .expect("one owned staging folder for the second attempt");
-    git.clone_into(&fixture.remote_url(), &second, &cancel, None)
+    git.clone_into(&fixture.remote_url(), second.path(), &cancel, None)
         .expect("the second clone fills its own staging folder");
-    let refused = rename_exclusive(&second, &target)
+    let refused = rename_exclusive(second.path(), &target)
         .expect_err("the exclusive rename never replaces an existing target");
     assert_eq!(refused.kind(), std::io::ErrorKind::AlreadyExists);
-    remove_owned_staging(&second);
-    assert!(!second.exists(), "the refused staging folder is removed");
+    let second_path = second.path().to_path_buf();
+    second
+        .remove()
+        .expect("the invocation removes its own staging folder");
+    assert!(
+        !second_path.exists(),
+        "the refused staging folder is removed"
+    );
     assert_eq!(
         checked(&target, &fixture.config, &["rev-parse", "HEAD"]),
         head_before,
@@ -426,13 +434,22 @@ pub(crate) fn run() -> String {
     let abandoned = create_owned_staging(fixture.temp.path(), OsStr::new("unreachable"))
         .expect("one owned staging folder for the refused clone");
     let failure = git
-        .clone_into(&absent_remote.to_string_lossy(), &abandoned, &cancel, None)
+        .clone_into(
+            &absent_remote.to_string_lossy(),
+            abandoned.path(),
+            &cancel,
+            None,
+        )
         .expect_err("a remote that does not exist refuses the clone");
     assert!(
         matches!(failure, CloneFailure::Refused { .. }),
         "the missing remote is a refusal: {failure:?}"
     );
-    remove_owned_staging(&abandoned);
+    let abandoned_path = abandoned.path().to_path_buf();
+    abandoned
+        .remove()
+        .expect("the invocation removes its own staging folder");
+    assert!(!abandoned_path.exists());
     assert!(!unreachable.exists(), "a refused clone leaves no target");
     assert!(staging_leftovers(fixture.temp.path()).is_empty());
 

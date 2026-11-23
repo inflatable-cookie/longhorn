@@ -467,8 +467,9 @@ pub fn classify_token_exchange(
 /// The application displays `user_code` and opens the verification page; the
 /// mechanism never opens a browser and authors no sentence. The flow polls
 /// every [`DEFAULT_POLL_INTERVAL`] unless the server suggests another interval
-/// (never less than the default), lengthens the interval on `slow_down`, and
-/// stops at the shorter of the server's `expires_in` and [`MAX_DEVICE_WAIT`].
+/// (never less than the default), lengthens the interval on `slow_down` and
+/// never shortens it there, and stops at the shorter of the server's
+/// `expires_in` and [`MAX_DEVICE_WAIT`].
 /// `cancel` is read before every poll and every 100 ms during a wait.
 ///
 /// # Errors
@@ -908,9 +909,15 @@ fn classify_device_error(
     match error {
         Some("authorization_pending") => Ok(()),
         Some("slow_down") => {
-            *interval = suggested_interval
-                .map_or(interval.saturating_add(SLOW_DOWN_STEP), Duration::from_secs)
-                .max(DEFAULT_POLL_INTERVAL);
+            // RFC 8628: a slow-down lengthens the wait. A suggestion that is
+            // not longer than the interval already in force cannot shorten it,
+            // so the step applies instead.
+            let suggested = suggested_interval.map(Duration::from_secs);
+            *interval = match suggested {
+                Some(suggested) if suggested > *interval => suggested,
+                _ => interval.saturating_add(SLOW_DOWN_STEP),
+            }
+            .max(DEFAULT_POLL_INTERVAL);
             Ok(())
         }
         Some("access_denied") => Err(GithubAuthFailure::Denied),
