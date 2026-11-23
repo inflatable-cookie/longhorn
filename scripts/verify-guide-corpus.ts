@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 import { run } from "./proof-support.ts";
 import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -29,7 +30,9 @@ for (const path of checkedPaths) {
 await verifyLocalLinks(documents);
 verifySnippetBoundaries(documents);
 
-const guides = guidePaths.map((path) => documents.get(path)!).join("\n");
+const guides = guidePaths
+  .map((path) => requireValue(documents.get(path), "documents.get(path)"))
+  .join("\n");
 requireAll(guides, [
   "canonical application id",
   "display name",
@@ -56,7 +59,10 @@ requireAll(guides, [
   "no npm/crates.io install",
 ]);
 
-const api = documents.get("docs/reference/api-surface.md")!;
+const api = requireValue(
+  documents.get("docs/reference/api-surface.md"),
+  'documents.get("docs/reference/api-surface.md")',
+);
 // Derived from the workspace rather than hardcoded. A literal count means
 // every new crate reddens this gate with a message that names a generator
 // selector rather than "you added a crate" -- which is exactly what happened
@@ -110,11 +116,11 @@ console.log(
 async function verifyLocalLinks(documents: Map<string, string>): Promise<void> {
   for (const [path, content] of documents) {
     for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
-      const target = match[1]!;
+      const target = requireValue(match[1], "match[1]");
       if (/^(?:https?:|mailto:|#)/.test(target)) {
         continue;
       }
-      const filesystemTarget = target.split("#", 1)[0]!;
+      const filesystemTarget = requireValue(target.split("#", 1)[0], 'target.split("#", 1)[0]');
       try {
         await access(resolve(repoRoot, dirname(path), filesystemTarget));
       } catch {
@@ -133,7 +139,9 @@ function verifySnippetBoundaries(documents: Map<string, string>): void {
     /workspace:\*/,
   ];
   for (const [path, content] of documents) {
-    const blocks = [...content.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((match) => match[1]!);
+    const blocks = [...content.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((match) =>
+      requireValue(match[1], "match[1]"),
+    );
     for (const block of blocks) {
       for (const line of block.split("\n")) {
         const target = registryInstallTarget(line);
@@ -158,7 +166,10 @@ function verifySnippetBoundaries(documents: Map<string, string>): void {
 // imply that a Longhorn or Poodle package is installable from a registry.
 function registryInstallTarget(line: string): string | null {
   for (const match of line.matchAll(/(?:^|\s)(?:npm|pnpm|yarn|bun)\s+(?:add|install)\s+/g)) {
-    const rest = line.slice(match.index + match[0].length).split(/[;&|]/, 1)[0]!;
+    const rest = requireValue(
+      line.slice(match.index + match[0].length).split(/[;&|]/, 1)[0],
+      "line.slice(match.index + match[0].length).split(/[;&|]/, 1)[0]",
+    );
     for (const token of rest.trim().split(/\s+/)) {
       if (token === "" || token.startsWith("-")) {
         continue;

@@ -394,31 +394,31 @@ describe("Rust exec routing", () => {
   });
 });
 
-describe("Private Cargo outputs", () => {
-  async function invokePrivate(
-    bin: string,
-    capture: string,
-    arguments_: ReadonlyArray<string>,
-  ): Promise<Invocation> {
-    const proc = Bun.spawn(["/bin/bash", privateHelper, ...arguments_], {
-      env: {
-        PATH: `${bin}:/bin`,
-        HOME: process.env.HOME ?? "/tmp",
-        RUST_COMMAND_CAPTURE: capture,
-        CARGO_BUILD_BUILD_DIR: "/pool/slot/build",
-      },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const [exitCode, stdout, stderr] = await Promise.all([
-      proc.exited,
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-    ]);
-    const run = await readFile(capture, "utf8").catch(() => "");
-    return { exitCode, stdout, stderr, run };
-  }
+async function invokePrivate(
+  bin: string,
+  capture: string,
+  arguments_: ReadonlyArray<string>,
+): Promise<Invocation> {
+  const proc = Bun.spawn(["/bin/bash", privateHelper, ...arguments_], {
+    env: {
+      PATH: `${bin}:/bin`,
+      HOME: process.env.HOME ?? "/tmp",
+      RUST_COMMAND_CAPTURE: capture,
+      CARGO_BUILD_BUILD_DIR: "/pool/slot/build",
+    },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const [exitCode, stdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
+  const run = await readFile(capture, "utf8").catch(() => "");
+  return { exitCode, stdout, stderr, run };
+}
 
+describe("Private Cargo outputs", () => {
   test("moves final outputs and leaves the pooled build directory alone", async () => {
     const { bin, capture } = await sandbox(["cargo"]);
     const result = await invokePrivate(bin, capture, [
@@ -565,11 +565,12 @@ describe("Switch point argv", () => {
   });
 });
 
-describe("Library archive paths from Cargo's JSON", () => {
-  const message = (reason: string, target: object, filenames: Array<string> = []) =>
-    JSON.stringify({ reason, target, filenames });
-  const lib = (name: string) => ({ name, kind: ["lib"] });
+const lib = (name: string) => ({ name, kind: ["lib"] });
 
+const message = (reason: string, target: Record<string, unknown>, filenames: Array<string> = []) =>
+  JSON.stringify({ reason, target, filenames });
+
+describe("Library archive paths from Cargo's JSON", () => {
   test("reports the rlib Cargo built for the named package, wherever Cargo put it", () => {
     const output = [
       "Compiling longhorn-agent-tool-dispatch v0.1.0",
@@ -600,13 +601,13 @@ describe("Library archive paths from Cargo's JSON", () => {
   });
 });
 
-describe("Staged workspace preparation", () => {
-  async function stagedWorkspace() {
-    const root = await mkdtemp(join(tmpdir(), "longhorn-staged-workspace-"));
-    temporaryDirectories.push(root);
-    return root;
-  }
+async function stagedWorkspace() {
+  const root = await mkdtemp(join(tmpdir(), "longhorn-staged-workspace-"));
+  temporaryDirectories.push(root);
+  return root;
+}
 
+describe("Staged workspace preparation", () => {
   test("creates the real target directory that keeps a lease adoption-free", async () => {
     const workspace = await stagedWorkspace();
     const target = await prepareStagedWorkspace(workspace);
@@ -689,21 +690,23 @@ function poolReport(removable: Record<string, unknown>): string {
   return JSON.stringify({ schema: "oxide.pool.describe/1", selected: "removable", removable });
 }
 
+const assign = (values: Record<string, string | undefined>) => {
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+};
+
 /** Sets process environment entries for `body` (undefined deletes), then restores them. */
 async function withEnvironment<T>(
   entries: Record<string, string | undefined>,
   body: () => Promise<T>,
 ): Promise<T> {
   const previous = Object.fromEntries(Object.keys(entries).map((key) => [key, process.env[key]]));
-  const assign = (values: Record<string, string | undefined>) => {
-    for (const [key, value] of Object.entries(values)) {
-      if (value === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = value;
-      }
-    }
-  };
+
   assign(entries);
   try {
     return await body();

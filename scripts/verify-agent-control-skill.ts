@@ -72,10 +72,7 @@ export function parseWorkspaceVersion(cargo: string): string {
   return parseWorkspacePackageVersion(cargo);
 }
 
-function sameSet(
-  left: Array<string>,
-  right: Array<string>,
-): { missing: Array<string>; extra: Array<string> } {
+function sameSet(left: Array<string>, right: Array<string>) {
   const leftSet = new Set(left);
   const rightSet = new Set(right);
   return {
@@ -131,7 +128,6 @@ function withToolTable(skill: string, tools: Array<string>): string {
     throw new Error("cannot splice tool table");
   }
   const start = heading + 1;
-  let end = start;
   const lines = skill.slice(start).split("\n");
   let consumed = 0;
   for (const line of lines) {
@@ -140,7 +136,7 @@ function withToolTable(skill: string, tools: Array<string>): string {
     }
     consumed += line.length + 1;
   }
-  end = start + consumed;
+  const end = start + consumed;
   const header = "| Tool | Arguments | Result | Limits |\n| --- | --- | --- | --- |\n";
   const rows = tools.map((name) => `| \`${name}\` | args | result | limits |`).join("\n");
   return `${skill.slice(0, start)}${header}${rows}\n${skill.slice(end)}`;
@@ -441,7 +437,9 @@ async function runInstallFixtures(): Promise<void> {
       await installSkill(target);
       throw new Error("non-repo target should be refused");
     } catch (error) {
-      if (!(error as Error).message.includes("not a git repository")) {
+      if (
+        !(error instanceof Error ? error.message : String(error)).includes("not a git repository")
+      ) {
         throw error;
       }
     }
@@ -514,7 +512,9 @@ async function runInstallFixtures(): Promise<void> {
       await installSkill(newer);
       throw new Error("newer stamp should refuse overwrite");
     } catch (error) {
-      if (!(error as Error).message.includes("refusing to overwrite")) {
+      if (
+        !(error instanceof Error ? error.message : String(error)).includes("refusing to overwrite")
+      ) {
         throw error;
       }
     }

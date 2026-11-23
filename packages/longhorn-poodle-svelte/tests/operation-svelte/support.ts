@@ -1,3 +1,4 @@
+import { requireValue } from "../../../../scripts/proof-support.ts";
 import { OperationSession } from "../../src/operation/svelte.ts";
 import type {
   OperationCancellationCommand,
@@ -74,14 +75,16 @@ export class MountedOperationPort implements OperationPort {
 }
 
 export function soundcheckSnapshot(): OperationSnapshot {
-  return cloned(fixture.mutationResults[1]!.snapshot);
+  return cloned(requireValue(fixture.mutationResults[1], "fixture.mutationResults[1]").snapshot);
 }
 
 export function loopholeSnapshot(): OperationSnapshot {
-  const snapshot = cloned(fixture.mutationResults[2]!.snapshot);
+  const snapshot = cloned(
+    requireValue(fixture.mutationResults[2], "fixture.mutationResults[2]").snapshot,
+  );
   snapshot.catalogueRevision = 8;
   snapshot.recent[0] = operation({
-    ...snapshot.recent[0]!,
+    ...requireValue(snapshot.recent[0], "snapshot.recent[0]"),
     operationId: "operation:render-complete",
     kindId: "loophole.render",
     label: "Render opening titles",

@@ -1,3 +1,5 @@
+import { readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -20,7 +22,7 @@ const importGraph = Object.fromEntries(
     shapes.map(async (shape) => {
       const imports = await packageImports(join(proofRoot, `${shape}.ts`));
       assertEqualSet(`${shape} Longhorn imports`, imports, declaration(shape).imports);
-      return [shape, imports];
+      return [shape, imports] as const;
     }),
   ),
 );
@@ -32,7 +34,7 @@ for (const shape of shapes) {
       throw new Error(`${shape} contains non-fixture domain ${domain.domainId}`);
     }
   }
-  const imports = importGraph[shape]!;
+  const imports = requireValue(importGraph[shape], "importGraph[shape]");
   const hasEvents = imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events");
   const hasEventAdmission = fixture.tauriPermissions.some((permission) =>
     permission.startsWith("core:event:"),
@@ -46,12 +48,12 @@ for (const shape of shapes) {
   }
 }
 
-const queryCapability = JSON.parse(
+const queryCapability = readPermissions(
   await readFile(
     join(repoRoot, "crates/longhorn-tauri-bridge/examples/capabilities/query-only.json"),
     "utf8",
   ),
-) as { readonly permissions: ReadonlyArray<string> };
+);
 assertEqualSet(
   "Minimal shell query-only Tauri admission",
   queryCapability.permissions,
@@ -146,7 +148,7 @@ async function packageImports(entry: string): Promise<ReadonlyArray<string>> {
     const source = await readFile(path, "utf8");
     const pattern = /(?:import|export)\s+(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g;
     for (const match of source.matchAll(pattern)) {
-      const specifier = match[1]!;
+      const specifier = requireValue(match[1], "match[1]");
       if (/^@inflatable-cookie\/longhorn(\/|-)/.test(specifier)) {
         packages.add(specifier);
       } else if (specifier.startsWith(".")) {
@@ -166,9 +168,9 @@ async function sourceText(roots: ReadonlyArray<string>): Promise<string> {
   }
   return (
     await Promise.all(
-      paths
-        .filter((path) => /\.(rs|ts|json|toml|md)$/.test(path))
-        .map((path) => readFile(path, "utf8")),
+      paths.flatMap((path) =>
+        /\.(rs|ts|json|toml|md)$/.test(path) ? [readFile(path, "utf8")] : [],
+      ),
     )
   ).join("\n");
 }

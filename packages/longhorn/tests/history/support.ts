@@ -27,7 +27,7 @@ export function fixture(): HistoryFixture {
 }
 
 export function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }
 
 export function tick(): Promise<void> {

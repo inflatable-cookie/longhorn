@@ -1,3 +1,4 @@
+import { requireValue } from "../../../../scripts/proof-support.ts";
 import fixtureJson from "../../../../fixtures/settings/protocol-v1.json";
 
 import type { EventTransport, Unlisten } from "@inflatable-cookie/longhorn/core";
@@ -34,14 +35,14 @@ export function deferred(): Deferred {
 
 export function registry(timing: "immediate" | "staged" = "staged"): SettingsRegistrySnapshot {
   const value = structuredClone(fixture.registry) as SettingsRegistrySnapshot;
-  value.applyUnits[0]!.timing = timing;
+  requireValue(value.applyUnits[0], "value.applyUnits[0]").timing = timing;
   return value;
 }
 
 export function twoPageRegistry(): SettingsRegistrySnapshot {
   const value = registry();
   value.pages.push({
-    ...structuredClone(value.pages[0]!),
+    ...structuredClone(requireValue(value.pages[0], "value.pages[0]")),
     id: "app:advanced",
     label: "Advanced",
     keywords: ["expert"],
@@ -88,6 +89,7 @@ export class FakeSettingsTransport implements EventTransport {
       case SETTINGS_LOAD_COMMAND:
         await this.loadGate;
         if (this.loadError !== undefined) {
+          // oxlint-disable-next-line typescript/only-throw-error -- Tauri can reject with serialized failure objects.
           throw this.loadError;
         }
         return {
@@ -98,6 +100,7 @@ export class FakeSettingsTransport implements EventTransport {
       case SETTINGS_RESET_COMMAND:
         await this.mutationGate;
         if (this.mutationError !== undefined) {
+          // oxlint-disable-next-line typescript/only-throw-error -- Tauri can reject with serialized failure objects.
           throw this.mutationError;
         }
         return structuredClone(this.mutationValue);

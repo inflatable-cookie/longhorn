@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import { CONFIG_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/base.ts";
 import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "../generated/protocol.ts";
 
@@ -56,10 +57,10 @@ export function record(
   path: string,
   allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail("invalid_payload", path, "expected object");
   }
-  const result = value as Record<string, unknown>;
+  const result = value;
   if (allowed === undefined) {
     return result;
   }

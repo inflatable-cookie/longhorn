@@ -1,22 +1,13 @@
+import { readCargoInventory } from "./cargo-metadata.ts";
+import { requireList, requireRecord, requireString } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { readdir, readFile } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { dependencyReferences, isLonghornPathPackage, parseLock } from "./sync-prototype-locks.ts";
 import { rustCommand } from "./rust-command.ts";
 
-type CargoMetadata = {
-  packages: Array<{
-    id: string;
-    name: string;
-    version: string;
-    source: string | null;
-    manifest_path: string;
-    dependencies: { name: string; source: string | null; optional: boolean }[];
-  }>;
-  workspace_members: Array<string>;
-};
-
-async function metadataFor(directory: string): Promise<CargoMetadata> {
+async function metadataFor(directory: string) {
   const command = rustCommand([
     "metadata",
     "--format-version",
@@ -34,7 +25,25 @@ async function metadataFor(directory: string): Promise<CargoMetadata> {
   if (exitCode !== 0) {
     throw new Error(`${command.join(" ")} failed in ${directory}\n${stdout}\n${stderr}`);
   }
-  return JSON.parse(stdout) as CargoMetadata;
+  const inventory = readCargoInventory(stdout);
+  return {
+    workspace_members: inventory.members,
+    packages: inventory.packages.map((pkg) => {
+      const record = requireRecord(pkg, "Cargo package");
+      return {
+        ...pkg,
+        id: requireString(record.id, "package id"),
+        dependencies: requireList(record.dependencies, "Cargo dependencies").map((value) => {
+          const dep = requireRecord(value, "Cargo dependency");
+          return {
+            name: requireString(dep.name, "dependency name"),
+            source: dep.source === null ? null : requireString(dep.source, "dependency source"),
+            optional: dep.optional === true,
+          };
+        }),
+      };
+    }),
+  };
 }
 
 function isWithin(parent: string, child: string): boolean {
@@ -101,7 +110,7 @@ export async function discoverPrototypeWorkspaceDependencies(
     }
 
     while (pending.length > 0) {
-      const pkg = pending.pop()!;
+      const pkg = requireValue(pending.pop(), "pending.pop()");
       const key = `${pkg.name}\0${pkg.version}\0${pkg.source ?? "path"}`;
       if (visited.has(key)) {
         continue;
@@ -153,8 +162,10 @@ export function prototypeGroupMemberCoverage(effigyToml: string, memberId: strin
   const member = body.slice(memberStart, memberEnd + 5);
   const covered = new Set<string>();
   for (const [, covers] of member.matchAll(/\bcovers\s*=\s*\[([\s\S]*?)\]/g)) {
-    for (const [, packageName] of covers!.matchAll(/"cargo-package:([^"]+)"/g)) {
-      covered.add(packageName!);
+    for (const [, packageName] of requireValue(covers, "covers").matchAll(
+      /"cargo-package:([^"]+)"/g,
+    )) {
+      covered.add(requireValue(packageName, "packageName"));
     }
   }
   return [...covered].sort();
@@ -167,11 +178,9 @@ export function prototypeCoverageFailures(
   const expectedSet = new Set(expected);
   const actualSet = new Set(actual);
   return [
-    ...expected
-      .filter((name) => !actualSet.has(name))
-      .map((name) => `missing cargo-package:${name}`),
-    ...actual
-      .filter((name) => !expectedSet.has(name))
-      .map((name) => `unexpected cargo-package:${name}`),
+    ...expected.flatMap((name) => (actualSet.has(name) ? [] : [`missing cargo-package:${name}`])),
+    ...actual.flatMap((name) =>
+      expectedSet.has(name) ? [] : [`unexpected cargo-package:${name}`],
+    ),
   ];
 }

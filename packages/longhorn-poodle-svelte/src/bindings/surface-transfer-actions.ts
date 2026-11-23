@@ -49,7 +49,7 @@ export function surfaceTransferDrag(
   let options = initialOptions;
   let preparationGeneration = 0;
   let armedRequest: SurfaceSessionStartRequest | undefined;
-  let removePointerListeners = () => undefined;
+  let removePointerListeners = noop;
   const priorDraggable = node.getAttribute("draggable");
   node.draggable = true;
 
@@ -57,7 +57,7 @@ export function surfaceTransferDrag(
     ++preparationGeneration;
     armedRequest = undefined;
     removePointerListeners();
-    removePointerListeners = () => undefined;
+    removePointerListeners = noop;
     void options.state.cancelPreparation().catch((error: unknown) => {
       reportError(options.reportError, error);
     });
@@ -112,7 +112,7 @@ export function surfaceTransferDrag(
       return;
     }
     removePointerListeners();
-    removePointerListeners = () => undefined;
+    removePointerListeners = noop;
     event.dataTransfer.setData(
       LONGHORN_TRANSFER_MIME_TYPE,
       serializeTransferPayload(preparation.response.session.payload),
@@ -143,21 +143,21 @@ export function surfaceTransferDrag(
   };
 }
 
+function handleDragOver(event: DragEvent): void {
+  if (readPayload(event.dataTransfer) === null) {
+    return;
+  }
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "move";
+  }
+}
+
 export function surfaceTransferDrop(
   node: HTMLElement,
   initialOptions: SurfaceTransferDropOptions,
 ): SurfaceTransferAction<SurfaceTransferDropOptions> {
   let options = initialOptions;
-
-  function handleDragOver(event: DragEvent): void {
-    if (readPayload(event.dataTransfer) === null) {
-      return;
-    }
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = "move";
-    }
-  }
 
   function handleDrop(event: DragEvent): void {
     const payload = readPayload(event.dataTransfer);
@@ -212,7 +212,7 @@ export class StaleSurfaceTransferPreparationError extends Error {
 }
 
 function readPayload(dataTransfer: DataTransfer | null | undefined) {
-  if (dataTransfer == null) {
+  if (dataTransfer === null || dataTransfer === undefined) {
     return null;
   }
   const raw = dataTransfer.getData(LONGHORN_TRANSFER_MIME_TYPE);
@@ -272,3 +272,5 @@ function notifyTerminal(
     reportError(reporter, error);
   }
 }
+
+function noop(): void {}

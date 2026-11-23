@@ -234,17 +234,14 @@ function isNewer(candidate: Snapshot, current: Snapshot | undefined): boolean {
   );
 }
 
-function deferred<Value>(): {
-  promise: Promise<Value>;
-  resolve(value: Value): void;
-} {
+function deferred<Value>() {
   let resolve: ((value: Value) => void) | undefined;
   const promise = new Promise<Value>((accept) => {
     resolve = accept;
   });
   return {
     promise,
-    resolve(value) {
+    resolve(value: Value) {
       resolve?.(value);
     },
   };

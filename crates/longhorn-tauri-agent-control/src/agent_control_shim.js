@@ -458,7 +458,7 @@
       const start = prop(element, "selectionStart") ?? current.length;
       const end = prop(element, "selectionEnd") ?? start;
       const next = `${current.slice(0, start)}${text}${current.slice(end)}`;
-      element.value = next;
+      Object.assign(element, { value: next });
       const cursor = start + text.length;
       prop(element, "setSelectionRange")?.call(element, cursor, cursor);
       return;
@@ -618,7 +618,7 @@
       transfer.items.add(new FileCtor([bytes], file.name, mediaType ? { type: mediaType } : undefined));
     }
     try {
-      node.files = transfer.files;
+      Object.assign(node, { files: transfer.files });
     } catch (error) {
       return unsupported(`the page refused FileList assignment from a constructed DataTransfer: ${String(error)}`);
     }
@@ -675,7 +675,7 @@
           seq: nextSeq,
           kind: "console",
           level,
-          text: args.map((value) => String(value)).join(" ")
+          text: args.map(String).join(" ")
         });
         original?.(...args);
       };

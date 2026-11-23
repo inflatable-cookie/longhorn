@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import { BRIDGE_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/protocol.ts";
 export type BridgeProtocolValidationCode =
   | "unsupported_protocol_version"
@@ -55,10 +56,10 @@ export function record(
   required: ReadonlyArray<string>,
   optional: ReadonlyArray<string> = [],
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     incompatible("invalid_object", value);
   }
-  const result = value as Record<string, unknown>;
+  const result = value;
   const allowed = new Set([...required, ...optional]);
   for (const key of Object.keys(result)) {
     if (!allowed.has(key)) {
@@ -125,10 +126,11 @@ export function oneOf<const T extends string>(
   values: ReadonlyArray<T>,
   code: BridgeProtocolValidationCode,
 ): T {
-  if (typeof value !== "string" || !values.includes(value as T)) {
+  const match = values.find((candidate) => candidate === value);
+  if (match === undefined) {
     incompatible(code, value);
   }
-  return value as T;
+  return match;
 }
 
 export function nullable<T>(value: unknown, parse: (value: unknown) => T): T | null {

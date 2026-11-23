@@ -1,3 +1,4 @@
+import { errorCode } from "./proof-support.ts";
 // Shared absence assertions for the artifact proofs.
 //
 // Card 164 collapsed eighteen TypeScript packages into three, which changed
@@ -37,7 +38,7 @@ export async function assertPackageAbsent(stage: string, name: string): Promise<
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return;
     }
     throw error;
@@ -63,7 +64,7 @@ async function consumerSources(stage: string): Promise<string> {
       );
       return sources.join("\n");
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      if (errorCode(error) !== "ENOENT") {
         throw error;
       }
     }
@@ -87,10 +88,7 @@ export async function assertImportsAbsent(
 }
 
 /** Split a mixed forbidden list into the two claims it now makes. */
-export function splitForbidden(forbidden: ReadonlyArray<string>): {
-  readonly packages: Array<string>;
-  readonly imports: Array<string>;
-} {
+export function splitForbidden(forbidden: ReadonlyArray<string>) {
   return {
     packages: forbidden.filter((name) => !isSubpath(name)),
     imports: forbidden.filter((name) => isSubpath(name)),

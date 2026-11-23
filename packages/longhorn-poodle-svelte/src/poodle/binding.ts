@@ -1,3 +1,4 @@
+import type { PanelTabItem } from "@inflatable-cookie/poodle-svelte";
 import type {
   LayoutMutationCommand,
   LayoutMutationRequest,
@@ -93,12 +94,12 @@ export class PoodleLayoutBinding {
         definition: panelDefinition,
         presentation,
       });
-      return {
+      const item: PanelTabItem = {
         value: panelInstanceId,
         label: presentation.label,
-        ...(presentation.icon === undefined ? {} : { icon: presentation.icon }),
         closable: panelDefinition.closeable,
       };
+      return presentation.icon === undefined ? item : { ...item, icon: presentation.icon };
     });
 
     let active: PanelRenderContext | null = null;

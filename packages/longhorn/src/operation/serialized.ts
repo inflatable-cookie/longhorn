@@ -1,3 +1,4 @@
+import { wireCopy } from "../core/wire-copy.ts";
 import type {
   OperationCancellationCommand,
   OperationMutationCommand,
@@ -13,29 +14,25 @@ export class SerializedOperationPort implements OperationPort {
   }
 
   async snapshot(query: OperationSnapshotQuery): Promise<unknown> {
-    return clone(await this.#inner.snapshot(clone(query)));
+    return wireCopy(await this.#inner.snapshot(wireCopy(query)));
   }
 
   async mutate(command: OperationMutationCommand): Promise<unknown> {
-    return clone(await this.#inner.mutate(clone(command)));
+    return wireCopy(await this.#inner.mutate(wireCopy(command)));
   }
 
   async cancel(command: OperationCancellationCommand): Promise<unknown> {
-    return clone(await this.#inner.cancel(clone(command)));
+    return wireCopy(await this.#inner.cancel(wireCopy(command)));
   }
 
   async listen(listener: (event: unknown) => void): Promise<OperationUnlisten> {
     if (this.#inner.listen === undefined) {
       return () => {};
     }
-    return this.#inner.listen((event) => listener(clone(event)));
+    return this.#inner.listen((event) => listener(wireCopy(event)));
   }
 
   nextRequestId(): string {
     return this.#inner.nextRequestId();
   }
-}
-
-function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
 }

@@ -32,7 +32,7 @@ export default {
     ".": {
       entry: [
         "svelte.config.mjs",
-        "scripts/{agent-control-shim,check-*,fmt-rust,generate-*,install-agent-control-skill,lint-typescript,proof-artifacts,release-bump,sync-prototype-locks,test-count,variant-keys-lint,verify-*}.ts",
+        "scripts/{agent-control-shim,check-*,fmt-rust,generate-*,install-agent-control-skill,proof-artifacts,release-bump,sync-prototype-locks,test-count,variant-keys-lint,verify-*}.ts",
         "scripts/**/*.test.ts",
         "examples/agent-control-proof/*.ts",
         "examples/bridge-topology-proof/*.ts",

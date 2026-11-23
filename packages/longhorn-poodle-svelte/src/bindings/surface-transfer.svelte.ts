@@ -1,9 +1,9 @@
 import type { SurfaceTransferClient } from "@inflatable-cookie/longhorn/surface-transfer";
-import {
-  type SurfaceSessionResponse,
-  type SurfaceSessionStartRequest,
-  type SurfaceTransferCommand,
-  type SurfaceTransferResponse,
+import type {
+  SurfaceSessionResponse,
+  SurfaceSessionStartRequest,
+  SurfaceTransferCommand,
+  SurfaceTransferResponse,
 } from "@inflatable-cookie/longhorn/surface-transfer";
 import type { DragSessionId } from "@inflatable-cookie/longhorn/transfer";
 

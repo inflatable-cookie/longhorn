@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   COMMAND_VARIANT_FIELDS,
   COMMAND_VARIANT_FIELDS_DISCRIMINANTS,
@@ -326,12 +327,12 @@ function text(value: unknown, path: string): string {
 
 function positiveInteger(value: unknown, path: string): void {
   finiteInteger(value, path);
-  if ((value as number) < 1) {
+  if (value < 1) {
     fail(path, "expected positive integer");
   }
 }
 
-function finiteInteger(value: unknown, path: string): void {
+function finiteInteger(value: unknown, path: string): asserts value is number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     fail(path, "expected non-negative safe integer");
   }
@@ -350,10 +351,10 @@ function object(
   path: string,
   allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  const record = value as Record<string, unknown>;
+  const record = value;
   if (allowed === undefined) {
     return record;
   }
@@ -407,7 +408,8 @@ function variantKeys(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = value[COMMAND_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = COMMAND_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string" ? COMMAND_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (keys === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }

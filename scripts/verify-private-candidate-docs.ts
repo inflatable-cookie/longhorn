@@ -1,3 +1,5 @@
+import { parseJsonRecord, requireList, requireRecord, requireString } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseReleaseGates } from "./check-release-gates-alignment.ts";
@@ -10,45 +12,23 @@ export type CandidateFacts = {
   consumerGraphs: number;
 };
 
-type CandidateReceipt = {
-  version: string;
-  sources: {
-    longhorn: { commit: string };
-    poodle: { commit: string };
-    consumers: Record<string, { commit: string }>;
-  };
-  artifacts: {
-    longhornTypescript: { setSha256: string; packages: Array<unknown> };
-    poodle: { setSha256: string; packages: Array<unknown> };
-    longhornRust: { setSha256: string; packages: Array<unknown> };
-  };
-  compatibility: { protocols: Array<unknown>; protocolNegotiation: string };
-  graphs: Array<{
-    name: string;
-    typescriptPackages: Array<unknown>;
-    rustDirectPackages: Array<unknown>;
-    rustResolvedPackages: Array<unknown>;
-  }>;
-  audits: Record<string, boolean>;
-};
-
 type FactField = keyof CandidateFacts;
 
-const SMALL_COUNT_WORDS: Readonly<Record<number, string>> = {
-  0: "zero",
-  1: "one",
-  2: "two",
-  3: "three",
-  4: "four",
-  5: "five",
-  6: "six",
-  7: "seven",
-  8: "eight",
-  9: "nine",
-  10: "ten",
-  11: "eleven",
-  12: "twelve",
-};
+const SMALL_COUNT_WORDS = [
+  "zero",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+] as const;
 
 const GATE_SCRIPT = "bun scripts/verify-private-candidate-docs.ts";
 
@@ -127,6 +107,18 @@ export function assertCandidateFactsInProse(
   }
 }
 
+function artifactRecord(value: unknown, name: string) {
+  const artifact = requireRecord(value, name);
+  return {
+    setSha256: requireString(artifact.setSha256, `${name} hash`),
+    packages: requireList(artifact.packages, `${name} packages`),
+  };
+}
+
+function sourceCommit(value: unknown): string {
+  return requireString(requireRecord(value, "source").commit, "source commit");
+}
+
 export async function verifyPrivateCandidateDocs(root = repoRoot): Promise<{
   schema: string;
   outcome: string;
@@ -135,9 +127,41 @@ export async function verifyPrivateCandidateDocs(root = repoRoot): Promise<{
   protocolFixtures: number;
   publication: boolean;
 }> {
-  const receipt = JSON.parse(
+  const data = parseJsonRecord(
     await readFile(join(root, "fixtures/release/private-0-1-candidate-v1.json"), "utf8"),
-  ) as CandidateReceipt;
+  );
+  const sources = requireRecord(data.sources, "receipt sources");
+  const artifacts = requireRecord(data.artifacts, "receipt artifacts");
+  const protocols = requireRecord(data.compatibility, "receipt compatibility");
+  const receipt = {
+    version: requireString(data.version, "receipt version"),
+    sources: {
+      longhorn: sourceCommit(sources.longhorn),
+      poodle: sourceCommit(sources.poodle),
+      consumers: Object.values(requireRecord(sources.consumers, "consumer sources")).map(
+        sourceCommit,
+      ),
+    },
+    artifacts: {
+      longhornTypescript: artifactRecord(artifacts.longhornTypescript, "Longhorn TypeScript"),
+      poodle: artifactRecord(artifacts.poodle, "Poodle"),
+      longhornRust: artifactRecord(artifacts.longhornRust, "Longhorn Rust"),
+    },
+    compatibility: {
+      protocols: requireList(protocols.protocols, "protocols"),
+      protocolNegotiation: protocols.protocolNegotiation,
+    },
+    graphs: requireList(data.graphs, "consumer graphs").map((value) => {
+      const graph = requireRecord(value, "consumer graph");
+      return {
+        name: requireString(graph.name, "consumer name"),
+        typescriptPackages: requireList(graph.typescriptPackages, "TypeScript graph"),
+        rustDirectPackages: requireList(graph.rustDirectPackages, "direct Rust graph"),
+        rustResolvedPackages: requireList(graph.rustResolvedPackages, "resolved Rust graph"),
+      };
+    }),
+    audits: requireRecord(data.audits, "receipt audits"),
+  };
   const facts = factsFromReceipt(receipt);
   const reference = await readFile(join(root, "docs/reference/private-0-1-candidate.md"), "utf8");
   const compatibility = await readFile(
@@ -149,9 +173,9 @@ export async function verifyPrivateCandidateDocs(root = repoRoot): Promise<{
 
   requireAll(reference, [
     receipt.version,
-    receipt.sources.longhorn.commit,
-    receipt.sources.poodle.commit,
-    ...Object.values(receipt.sources.consumers).map(({ commit }) => commit),
+    receipt.sources.longhorn,
+    receipt.sources.poodle,
+    ...receipt.sources.consumers,
     receipt.artifacts.longhornTypescript.setSha256,
     receipt.artifacts.poodle.setSha256,
     receipt.artifacts.longhornRust.setSha256,
@@ -235,7 +259,7 @@ function displayName(name: string): string {
     return "optional server";
   }
   if (["nucleus", "loophole", "soundcheck", "split-shell", "jetstream"].includes(name)) {
-    return `${name[0]!.toUpperCase()}${name.slice(1)}`;
+    return `${requireValue(name[0], "name[0]").toUpperCase()}${name.slice(1)}`;
   }
   return name;
 }

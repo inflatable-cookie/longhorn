@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import type {
   BridgeCommandDelivery,
   BridgeCommandEnvelope,
@@ -55,14 +56,8 @@ export class BridgeDomainClient {
       throw new BridgeAuthorityError("capability_unavailable", operation.domainId);
     }
     const authority = this.#session.authority(operation.domainId);
-    const context = (
-      request as {
-        readonly context?: {
-          readonly domainId?: unknown;
-          readonly sessionId?: unknown;
-        };
-      }
-    ).context;
+    const envelope = isRecord(request) ? request : undefined;
+    const context = isRecord(envelope?.context) ? envelope.context : undefined;
     if (context?.domainId !== operation.domainId) {
       throw new BridgeAuthorityError("request_domain_mismatch", operation.domainId);
     }
@@ -79,8 +74,7 @@ export class BridgeDomainClient {
       if (authority.writeAuthority !== "authoritative") {
         throw new BridgeAuthorityError("write_denied", operation.domainId);
       }
-      const envelope = request as BridgeCommandEnvelope<unknown>;
-      if (envelope.authorityEpoch !== authority.authorityEpoch) {
+      if (envelope?.authorityEpoch !== authority.authorityEpoch) {
         throw new BridgeAuthorityError("stale_authority", operation.domainId);
       }
     }

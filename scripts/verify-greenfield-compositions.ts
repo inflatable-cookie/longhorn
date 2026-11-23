@@ -1,3 +1,13 @@
+import { errorCode } from "./proof-support.ts";
+import {
+  parseJsonRecord,
+  requireRecord,
+  requireString,
+  requireStrings,
+  readPackageIdentity,
+  readPackageManifest,
+} from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { digest, fileDependency, run, assertExactSet, sha256 } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { randomUUID } from "node:crypto";
@@ -25,7 +35,8 @@ import {
   taskScratch,
 } from "./rust-command.ts";
 
-type ShapeName = "minimal" | "workspace" | "full-hosting" | "optional-server";
+const shapeNames = ["minimal", "workspace", "full-hosting", "optional-server"] as const;
+type ShapeName = (typeof shapeNames)[number];
 type ShapePolicy = {
   hierarchy: ReadonlyArray<string>;
   typescript: ReadonlyArray<string>;
@@ -327,12 +338,9 @@ async function writeReceipt(report: {
           typescript: [...shape.typescriptPackages].sort(),
           rust: [...shape.rust.rustPackages].sort(),
         },
-      ];
+      ] as const;
     }),
-  ) as Record<
-    ShapeName,
-    { hierarchy: Array<string>; typescript: Array<string>; rust: Array<string> }
-  >;
+  );
   const receipt = {
     schema: report.schema,
     sources: {
@@ -371,20 +379,10 @@ async function verifyReceipt(report: {
   optionalServerLocal: { rustPackages: Array<string> };
   audits: Record<string, boolean>;
 }): Promise<void> {
-  const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
-    schema: string;
-    sources: { longhornSelected: string; poodleSelected: string };
-    artifacts: {
-      sets: { typescript: string; poodle: string; rust: string };
-      inventories: { typescript: Array<string>; poodle: Array<string>; rust: Array<string> };
-    };
-    shapes: Record<
-      ShapeName,
-      { hierarchy: Array<string>; typescript: Array<string>; rust: Array<string> }
-    >;
-    optionalServerLocalRust: Array<string>;
-    audits: Record<string, boolean>;
-  };
+  const receipt = parseJsonRecord(await readFile(receiptPath, "utf8"));
+  const artifacts = requireRecord(receipt.artifacts, "receipt artifacts");
+  const inventories = requireRecord(artifacts.inventories, "receipt inventories");
+  const shapes = requireRecord(receipt.shapes, "receipt shapes");
   if (receipt.schema !== report.schema) {
     throw new Error("greenfield receipt schema drift");
   }
@@ -395,35 +393,43 @@ async function verifyReceipt(report: {
   assertExactSet(
     "receipt TypeScript inventory",
     report.artifacts.typescript.map(({ name }) => name),
-    receipt.artifacts.inventories.typescript,
+    requireStrings(inventories.typescript, "receipt TypeScript packages"),
   );
   assertExactSet(
     "receipt Poodle inventory",
     report.artifacts.poodle.map(({ name }) => name),
-    receipt.artifacts.inventories.poodle,
+    requireStrings(inventories.poodle, "receipt Poodle packages"),
   );
   assertExactSet(
     "receipt Rust inventory",
     report.artifacts.rust.map(({ name }) => name),
-    receipt.artifacts.inventories.rust,
+    requireStrings(inventories.rust, "receipt Rust packages"),
   );
   for (const shape of report.shapes) {
-    const expected = receipt.shapes[shape.shape];
+    const expected = requireRecord(shapes[shape.shape], shape.shape);
     if (!shape.rust) {
       throw new Error(`${shape.shape} Rust report missing`);
     }
-    assertExactSet(`${shape.shape} receipt hierarchy`, shape.hierarchy, expected.hierarchy);
+    assertExactSet(
+      `${shape.shape} receipt hierarchy`,
+      shape.hierarchy,
+      requireStrings(expected.hierarchy, "expected hierarchy"),
+    );
     assertExactSet(
       `${shape.shape} receipt TypeScript graph`,
       shape.typescriptPackages,
-      expected.typescript,
+      requireStrings(expected.typescript, "expected TypeScript packages"),
     );
-    assertExactSet(`${shape.shape} receipt Rust graph`, shape.rust.rustPackages, expected.rust);
+    assertExactSet(
+      `${shape.shape} receipt Rust graph`,
+      shape.rust.rustPackages,
+      requireStrings(expected.rust, "expected Rust packages"),
+    );
   }
   assertExactSet(
     "receipt optional-server local graph",
     report.optionalServerLocal.rustPackages,
-    receipt.optionalServerLocalRust,
+    requireStrings(receipt.optionalServerLocalRust, "local Rust packages"),
   );
   if (JSON.stringify(receipt.audits) !== JSON.stringify(report.audits)) {
     throw new Error("greenfield audit receipt drift");
@@ -538,7 +544,7 @@ async function packPackages(
     ) {
       throw new Error(`${name} artifact contains workspace or proof material`);
     }
-    const parsed = JSON.parse(manifest) as { name: string; version: string };
+    const parsed = readPackageIdentity(manifest);
     if (parsed.name !== name || parsed.version !== expected) {
       throw new Error(`${name} artifact identity drift`);
     }
@@ -551,20 +557,16 @@ async function packPackages(
 
 async function verifyRenderers(artifacts: Map<string, string>) {
   const reports = [];
-  for (const shape of Object.keys(policies) as Array<ShapeName>) {
+  for (const shape of shapeNames) {
     const policy = policies[shape];
     const stage = join(temporaryRoot, `renderer-${shape}-${randomUUID()}`);
     await mkdir(stage);
     await cp(join(exampleRoot, "common"), join(stage, "common"), { recursive: true });
     await cp(join(exampleRoot, shape), join(stage, shape), { recursive: true });
-    const manifest = JSON.parse(
+    const manifest = readPackageManifest(
       await readFile(join(exampleRoot, shape, "package.json"), "utf8"),
-    ) as {
-      dependencies: Record<string, string>;
-      devDependencies: Record<string, string>;
-      overrides?: Record<string, string>;
-    };
-    manifest.dependencies = rewriteArtifactDependencies(manifest.dependencies, artifacts);
+    );
+    manifest.dependencies = rewriteArtifactDependencies(manifest.dependencies ?? {}, artifacts);
     manifest.overrides = Object.fromEntries(
       [...artifacts].map(([name, path]) => [name, fileDependency(path)]),
     );
@@ -604,21 +606,26 @@ async function verifyRenderers(artifacts: Map<string, string>) {
       await assertArtifactInstall(stage, name);
     }
 
-    const capability = JSON.parse(
+    const capability = parseJsonRecord(
       await readFile(join(stage, shape, "capability.json"), "utf8"),
-    ) as {
-      schema: string;
-      shape: string;
-      hierarchy: Array<string>;
-      permissions: Array<string>;
-      failurePosture: string;
-    };
+    );
     if (capability.schema !== "longhorn.greenfield-capability.v1" || capability.shape !== shape) {
       throw new Error(`${shape} capability identity drift`);
     }
-    assertExactSet(`${shape} hierarchy`, capability.hierarchy, policy.hierarchy);
-    assertExactSet(`${shape} permissions`, capability.permissions, policy.permissions);
-    if (!capability.failurePosture.includes("visible") && shape !== "optional-server") {
+    assertExactSet(
+      `${shape} hierarchy`,
+      requireStrings(capability.hierarchy, "capability hierarchy"),
+      policy.hierarchy,
+    );
+    assertExactSet(
+      `${shape} permissions`,
+      requireStrings(capability.permissions, "capability permissions"),
+      policy.permissions,
+    );
+    if (
+      !requireString(capability.failurePosture, "failure posture").includes("visible") &&
+      shape !== "optional-server"
+    ) {
       throw new Error(`${shape} hides failure posture`);
     }
     const selectedSource = await readFile(join(stage, shape, "src/selected.ts"), "utf8");
@@ -628,7 +635,7 @@ async function verifyRenderers(artifacts: Map<string, string>) {
       ...new Set(
         [...selectedSource.matchAll(/"(@inflatable-cookie\/longhorn(?:[/-][^"]*)?)"/g)].map(
           (match) => {
-            const specifier = match[1]!;
+            const specifier = requireValue(match[1], "match[1]");
             for (const pkg of [
               "@inflatable-cookie/longhorn-poodle-svelte",
               "@inflatable-cookie/longhorn-tauri",
@@ -685,7 +692,7 @@ async function verifyRustArtifacts() {
     identities.push({ name, filename: basename(archive), sha256: await digest(archive) });
   }
   await cp(join(exampleRoot, "common-rust"), join(workspace, "common-rust"), { recursive: true });
-  for (const shape of Object.keys(policies) as Array<ShapeName>) {
+  for (const shape of shapeNames) {
     await cp(join(exampleRoot, shape, "src-tauri"), join(workspace, "consumers", shape), {
       recursive: true,
     });
@@ -705,13 +712,13 @@ async function verifyRustArtifacts() {
       manifestPath: join(workspace, "Cargo.toml"),
       toolchain: MSRV_TOOLCHAIN,
     });
-  for (const shape of Object.keys(policies) as Array<ShapeName>) {
+  for (const shape of shapeNames) {
     const packageName = `longhorn-greenfield-${shape}-tauri`;
     const output = await run(
       staged(["cargo", "run", "-p", packageName, "--offline", "--quiet"]),
       workspace,
     );
-    const trace = JSON.parse(output.trim()) as Record<string, unknown>;
+    const trace = parseJsonRecord(output.trim());
     if (
       trace.firstLoad !== "compiled-default" ||
       trace.mutation !== "atomic-published" ||
@@ -755,7 +762,7 @@ async function verifyRustArtifacts() {
     ]),
     workspace,
   );
-  const localTrace = JSON.parse(localOutput.trim()) as Record<string, unknown>;
+  const localTrace = parseJsonRecord(localOutput.trim());
   const localTree = await run(
     staged([
       "cargo",
@@ -791,12 +798,12 @@ async function verifyRustArtifacts() {
 async function privateWorkspaceManifest(): Promise<string> {
   const root = await readFile(join(repoRoot, "Cargo.toml"), "utf8");
   const tail = root.slice(root.indexOf("[workspace.package]"));
-  const selected = new Set(allRustCrates);
+  const selected = new Set<string>(allRustCrates);
   const filtered = tail
     .split("\n")
     .filter((line) => {
       const match = line.match(/^(longhorn-[\w-]+)\s*=/);
-      return match === null || selected.has(match[1]! as (typeof allRustCrates)[number]);
+      return match === null || selected.has(requireValue(match[1], "match[1]"));
     })
     .join("\n");
   const members = [
@@ -814,7 +821,9 @@ function rewriteArtifactDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
@@ -822,7 +831,7 @@ async function assertAbsent(stage: string, name: string): Promise<void> {
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return;
     }
     throw error;
@@ -837,9 +846,9 @@ async function assertArtifactInstall(stage: string, name: string): Promise<void>
   }
 }
 async function assertOnePackage(stage: string, name: string, version: string): Promise<void> {
-  const manifest = JSON.parse(
+  const manifest = readPackageIdentity(
     await readFile(join(stage, "node_modules", ...name.split("/"), "package.json"), "utf8"),
-  ) as { name: string; version: string };
+  );
   if (manifest.name !== name || manifest.version !== version) {
     throw new Error(`${name} resolved ${manifest.version}`);
   }

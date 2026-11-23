@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Fails when Longhorn code gains direct knowledge of another repository.
 //
 // The rule is narrow and structural: no file may reach into a sibling checkout
@@ -117,14 +118,14 @@ function inspect(file: string, source: string): void {
     return;
   }
   record(file, source, /process\.env\.([A-Z0-9_]+)_REPO\b/g, (match) =>
-    DEPENDENCIES.has(match[1]!.toLowerCase().replaceAll("_", "-"))
+    DEPENDENCIES.has(requireValue(match[1], "match[1]").toLowerCase().replaceAll("_", "-"))
       ? null
       : "takes a sibling-repository environment override",
   );
 
   // `../name` from the repository root, and absolute paths into a checkout
   record(file, source, /\bprojects\/([a-z0-9-]+)\//g, (match) =>
-    match[1] === SELF || DEPENDENCIES.has(match[1]!)
+    match[1] === SELF || DEPENDENCIES.has(requireValue(match[1], "match[1]"))
       ? null
       : "hardcodes a path into another checkout",
   );
@@ -133,7 +134,8 @@ function inspect(file: string, source: string): void {
     file,
     source,
     /\b(?:resolve|join)\(\s*(?:repoRoot|longhornRoot)\s*,\s*["'`]\.\.\/([a-z0-9-]+)/g,
-    (match) => (DEPENDENCIES.has(match[1]!) ? null : "resolves a sibling checkout"),
+    (match) =>
+      DEPENDENCIES.has(requireValue(match[1], "match[1]")) ? null : "resolves a sibling checkout",
   );
 }
 

@@ -291,12 +291,15 @@ function keyLabel(code: string): string {
 }
 
 function compareUnicodeScalars(left: string, right: string): number {
-  const leftValues = [...left];
-  const rightValues = [...right];
+  const leftValues = Array.from(left);
+  const rightValues = Array.from(right);
   const length = Math.min(leftValues.length, rightValues.length);
   for (let index = 0; index < length; index += 1) {
-    const leftCode = leftValues[index]!.codePointAt(0)!;
-    const rightCode = rightValues[index]!.codePointAt(0)!;
+    const leftCode = leftValues[index]?.codePointAt(0);
+    const rightCode = rightValues[index]?.codePointAt(0);
+    if (leftCode === undefined || rightCode === undefined) {
+      break;
+    }
     if (leftCode !== rightCode) {
       return leftCode - rightCode;
     }

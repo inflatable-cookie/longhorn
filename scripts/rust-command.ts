@@ -1,3 +1,6 @@
+import { isRecord } from "../packages/longhorn/src/core/record.ts";
+import { parseJsonRecord, requireStrings } from "./proof-json.ts";
+import { errorCode } from "./proof-support.ts";
 // Scripts that run Cargo themselves build their argv here instead of naming a
 // runner. `scripts/rust-command.sh` is Longhorn's one switch point (`oxide`
 // locally, plain `cargo` when `GITHUB_ACTIONS=true` or under
@@ -80,21 +83,22 @@ export function libraryArchives(messages: string, packageName: string): Array<st
     if (!line.startsWith("{")) {
       continue;
     }
-    const message = JSON.parse(line) as {
-      reason?: string;
-      target?: { name?: string; kind?: Array<string> };
-      filenames?: Array<string>;
-    };
+    const message = parseJsonRecord(line);
     if (message.reason !== "compiler-artifact") {
       continue;
     }
-    if (message.target?.name !== libraryName) {
+    const target = message.target;
+    if (!isRecord(target) || target.name !== libraryName) {
       continue;
     }
-    if (!message.target.kind?.includes("lib")) {
+    if (!requireStrings(target.kind ?? [], "Cargo target kind").includes("lib")) {
       continue;
     }
-    archives.push(...(message.filenames ?? []).filter((file) => file.endsWith(".rlib")));
+    archives.push(
+      ...requireStrings(message.filenames ?? [], "Cargo artifact filenames").filter((file) =>
+        file.endsWith(".rlib"),
+      ),
+    );
   }
   return archives;
 }
@@ -165,7 +169,7 @@ async function scratchBase(): Promise<string> {
   try {
     await mkdir(base);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+    if (errorCode(error) !== "EEXIST") {
       throw new Error(
         `cannot create build scratch ${base}: ${String(error)}. Its parent must already be an external build scratch root.`,
         { cause: error },
@@ -175,13 +179,10 @@ async function scratchBase(): Promise<string> {
   return base;
 }
 
-type PoolDescription = {
-  removable?: {
-    available?: unknown;
-    unavailable_reason?: unknown;
-    suggested_scratch_root?: unknown;
-  };
-};
+const refusal = (why: string) =>
+  new Error(
+    `no build scratch root: ${why}. Set ${scratchVariable} to an existing directory on a build volume; nothing is created on the internal drive.`,
+  );
 
 /**
  * The scratch root Oxide reports for its registered removable build pool.
@@ -189,10 +190,6 @@ type PoolDescription = {
  * and names `OXIDE_TASK_SCRATCH_ROOT`, the operator's way to set it.
  */
 async function reportedScratchRoot(): Promise<string> {
-  const refusal = (why: string) =>
-    new Error(
-      `no build scratch root: ${why}. Set ${scratchVariable} to an existing directory on a build volume; nothing is created on the internal drive.`,
-    );
   let proc: Bun.Subprocess<"ignore", "pipe", "pipe">;
   try {
     // An explicit environment, so `oxide` is looked up on the current PATH.
@@ -214,13 +211,13 @@ async function reportedScratchRoot(): Promise<string> {
     throw refusal(`oxide pool describe --json exited ${code}: ${errors.trim()}`);
   }
 
-  let report: PoolDescription;
+  let report: Record<string, unknown>;
   try {
-    report = JSON.parse(output) as PoolDescription;
+    report = parseJsonRecord(output);
   } catch {
     throw refusal("oxide pool describe --json printed no JSON");
   }
-  const removable = report.removable;
+  const removable = isRecord(report.removable) ? report.removable : undefined;
   if (removable === undefined || removable.available !== true) {
     const reason =
       typeof removable?.unavailable_reason === "string" ? ` (${removable.unavailable_reason})` : "";
@@ -287,6 +284,7 @@ async function assertExternalScratch(owner: string): Promise<void> {
   if (!info.isDirectory()) {
     throw new Error(`build scratch ${resolved} is not a directory`);
   }
+
   const refusal = scratchRefusal({ path: resolved, device: info.dev }, await bootVolume());
   if (refusal !== null) {
     throw new Error(

@@ -226,7 +226,8 @@ function variantKeys(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = value[CONFIG_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "status"];
-  const keys = CONFIG_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string" ? CONFIG_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (keys === undefined) {
     fail("invalid_payload", path, `no generated fields for ${type}.${String(discriminant)}`);
   }

@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
@@ -21,10 +22,13 @@ if (rows.length === 0) {
 
 for (const row of rows) {
   const [surface, status, awaits, trigger] = row.slice(1);
-  if (!statuses.has(status!)) {
+  if (!statuses.has(requireValue(status, "status"))) {
     throw new Error(`held surface has invalid status: ${surface}`);
   }
-  if (awaits!.trim() === "" || trigger!.trim() === "") {
+  if (
+    requireValue(awaits, "awaits").trim() === "" ||
+    requireValue(trigger, "trigger").trim() === ""
+  ) {
     throw new Error(`held surface must name what it awaits and its trigger: ${surface}`);
   }
 }
@@ -39,23 +43,23 @@ for (const match of api.matchAll(
   /^\| `([a-z0-9-]+)` \| library \|.*\| \[source\]\(([^)]+)\) \|$/gm,
 )) {
   const [, crate, source] = match;
-  const path = source!
+  const path = requireValue(source, "source")
     .replace(/^\.\.\/\.\.\//, "")
     .split("/")
     .slice(0, 2)
     .join("/");
-  crateRoots.set(crate!, path);
+  crateRoots.set(requireValue(crate, "crate"), path);
 }
 
 const packageRoots = new Map<string, string>();
 for (const match of api.matchAll(/^\| `(@[^`]+)` \|.*\| \[README\]\(([^)]+)\) \|$/gm)) {
   const [, name, reference] = match;
-  const path = reference!
+  const path = requireValue(reference, "reference")
     .replace(/^\.\.\/\.\.\//, "")
     .split("/")
     .slice(0, 2)
     .join("/");
-  packageRoots.set(name!, path);
+  packageRoots.set(requireValue(name, "name"), path);
 }
 
 if (crateRoots.size === 0) {
@@ -125,14 +129,11 @@ function needleFor(token: string): string {
     return stripped;
   }
   const member = stripped.includes("::")
-    ? stripped.split("::").at(-1)!
+    ? requireValue(stripped.split("::").at(-1), 'stripped.split("::").at(-1)')
     : stripped.includes(".")
-      ? stripped.split(".").at(-1)!
+      ? requireValue(stripped.split(".").at(-1), 'stripped.split(".").at(-1)')
       : stripped;
-  return member
-    .split("/")
-    .at(-1)!
-    .replace(/[*/]+$/, "");
+  return requireValue(member.split("/").at(-1), 'member .split("/") .at(-1)').replace(/[*/]+$/, "");
 }
 
 const trees = new Map<string, string>();
@@ -148,14 +149,14 @@ function surfacePaths(ownerName: string, root: string): Array<string> {
 }
 
 for (const row of retained) {
-  const [itemCell, owner, why, evidence, reviewed] = row.slice(1) as [
-    string,
-    string,
-    string,
-    string,
-    string,
-  ];
-  const items = [...itemCell.matchAll(/`([^`]+)`/g)].map((match) => match[1]!.trim());
+  const itemCell = requireValue(row[1], "held item");
+  const owner = requireValue(row[2], "held item owner");
+  const why = requireValue(row[3], "retention reason");
+  const evidence = requireValue(row[4], "retention evidence");
+  const reviewed = requireValue(row[5], "review date");
+  const items = [...itemCell.matchAll(/`([^`]+)`/g)].map((match) =>
+    requireValue(match[1], "match[1]").trim(),
+  );
   if (items.length === 0) {
     throw new Error(`retained row must name its items in backticks: ${itemCell.trim()}`);
   }
@@ -232,7 +233,7 @@ for (const row of rows) {
   const [surface, , awaits, trigger] = row.slice(1);
   if (/\bg0\d\.\d{3}\b|\bcard \(?\d{3}/i.test(`${awaits} ${trigger}`)) {
     throw new Error(
-      `held surface "${surface!.trim()}" names a task or card; name the consumer trigger instead`,
+      `held surface "${requireValue(surface, "surface").trim()}" names a task or card; name the consumer trigger instead`,
     );
   }
 }
@@ -253,7 +254,10 @@ for (const packageName of heldPackages) {
   }
 }
 
-const selectionSection = selection.split("## Held Surface", 1)[0]!;
+const selectionSection = requireValue(
+  selection.split("## Held Surface", 1)[0],
+  'selection.split("## Held Surface", 1)[0]',
+);
 const selectableBlock = selectionSection.split("## Add One System At A Time")[1] ?? "";
 for (const crate of heldCrates) {
   if (crate === "longhorn-bridge") {

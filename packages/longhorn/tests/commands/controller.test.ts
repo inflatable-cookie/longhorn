@@ -64,11 +64,11 @@ function harness(options?: {
     },
     nextRequestId: () => `request:${++request}`,
   };
-  const controller = new CommandController({
-    ports,
-    platform: "macOs",
-    ...(options?.search === undefined ? {} : { search: options.search }),
-  });
+  const controller = new CommandController(
+    options?.search === undefined
+      ? { ports, platform: "macOs" }
+      : { ports, platform: "macOs", search: options.search },
+  );
   return {
     controller,
     catalogue,

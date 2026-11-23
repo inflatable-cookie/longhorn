@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import { OPERATION_FIELDS } from "./generated/fields.ts";
 import {
   OPERATION_VARIANT_FIELDS,
@@ -123,6 +124,7 @@ export function assertValidOperationMutationCommand(
     case "changeRetention":
       exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       natural(object.expectedCatalogueRevision, "$.expectedCatalogueRevision");
+      // oxlint-disable-next-line quality/no-known-value-widening -- Runtime validation also covers structurally typed callers and untrusted wire values.
       assertValidOperationSnapshot({
         protocolVersion: 1,
         authority: object.authority,
@@ -163,8 +165,7 @@ export function assertValidOperationCancellationCommand(
 export function assertValidOperationMutationResult(
   value: unknown,
 ): asserts value is OperationMutationResult {
-  resultBase(value, OPERATION_MUTATION_STATUSES);
-  const object = value as Record<string, unknown>;
+  const object = resultBase(value, OPERATION_MUTATION_STATUSES);
   if (object.status === "committed") {
     exactKeys(object, "$", variantKeys("OperationMutationResult", object, "$"));
     mutationReceipt(object.receipt, "$.receipt");
@@ -177,8 +178,7 @@ export function assertValidOperationMutationResult(
 export function assertValidOperationCancellationResult(
   value: unknown,
 ): asserts value is OperationCancellationResult {
-  resultBase(value, OPERATION_CANCELLATION_STATUSES);
-  const object = value as Record<string, unknown>;
+  const object = resultBase(value, OPERATION_CANCELLATION_STATUSES);
   if (object.status === "committed") {
     exactKeys(object, "$", variantKeys("OperationCancellationResult", object, "$"));
     cancellationReceipt(object.receipt, "$.receipt");
@@ -207,12 +207,13 @@ export function assertPayloadFree(value: unknown): void {
   visit(value, "$", new Set());
 }
 
-function resultBase(value: unknown, statuses: ReadonlyArray<string>): void {
+function resultBase(value: unknown, statuses: ReadonlyArray<string>): Record<string, unknown> {
   assertPayloadFree(value);
   const object = record(value, "$");
   member(object.status, statuses, "$.status");
   text(object.requestId, "$.requestId");
   assertValidOperationSnapshot(object.snapshot);
+  return object;
 }
 
 function operationEntry(value: unknown, path: string): asserts value is OperationEntryProjection {
@@ -300,7 +301,7 @@ function mutationReceipt(value: unknown, path: string): void {
       operationEntry(object.operation, `${path}.operation`);
       catalogueRevisionPair(object, path);
       break;
-    case "progressed":
+    case "progressed": {
       exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       operationRevisionPair(object, path);
       natural(object.previousProgressSequence, `${path}.previousProgressSequence`);
@@ -316,6 +317,7 @@ function mutationReceipt(value: unknown, path: string): void {
       }
       catalogueRevisionPair(object, path);
       break;
+    }
     case "transitioned":
       exactKeys(object, path, variantKeys("OperationMutationReceiptProjection", object, path));
       member(object.previousState, OPERATION_STATES, `${path}.previousState`);
@@ -463,10 +465,10 @@ function exactKeys(
 }
 
 function record(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 
 function array(value: unknown, path: string): Array<unknown> {
@@ -555,7 +557,8 @@ function variantKeys(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = object[OPERATION_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = OPERATION_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string" ? OPERATION_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (keys === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }

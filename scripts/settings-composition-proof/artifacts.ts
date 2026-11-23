@@ -1,3 +1,4 @@
+import { readPackageManifest } from "../proof-json.ts";
 import { poodleRelease } from "../poodle-release.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join } from "node:path";
@@ -105,19 +106,14 @@ async function inspectNpmArtifact(
     throw new Error(`${name} artifact contains workspace dependency aliases`);
   }
   if (name === "@inflatable-cookie/longhorn") {
-    assertFrameworkRootBoundary(
-      JSON.parse(packedManifest) as {
-        dependencies?: Record<string, string>;
-        peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-      },
-    );
+    assertFrameworkRootBoundary(readPackageManifest(packedManifest));
   }
   return { name, filename: basename(path), sha256: await digest(path) };
 }
 
 function assertFrameworkRootBoundary(manifest: {
-  dependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
+  dependencies?: Record<string, string> | undefined;
+  peerDependencies?: Record<string, string> | undefined;
 }): void {
   // Card 164 made this claim stronger, not weaker. The settings root was
   // allowed exactly one dependency, on longhorn-core; the consolidated

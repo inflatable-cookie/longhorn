@@ -1,3 +1,5 @@
+import { parseJsonRecord, requireRecord } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 // Fails when a manifest or script names a path that resolves above the
 // repository root.
 //
@@ -132,15 +134,9 @@ async function inspectManifest(file: string, absolute: string): Promise<void> {
 }
 
 function recordPackagePins(file: string, source: string, base: string): void {
-  let manifest: {
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-    optionalDependencies?: Record<string, string>;
-    peerDependencies?: Record<string, string>;
-    overrides?: Record<string, string | Record<string, string>>;
-  };
+  let manifest: Record<string, unknown>;
   try {
-    manifest = JSON.parse(source);
+    manifest = parseJsonRecord(source);
   } catch {
     return;
   }
@@ -155,12 +151,14 @@ function recordPackagePins(file: string, source: string, base: string): void {
     if (!block) {
       continue;
     }
-    for (const [name, spec] of Object.entries(block)) {
-      pins.push([name, spec]);
+    for (const [name, spec] of Object.entries(requireRecord(block, "dependency table"))) {
+      if (typeof spec === "string") {
+        pins.push([name, spec]);
+      }
     }
   }
   if (manifest.overrides) {
-    for (const [name, spec] of Object.entries(manifest.overrides)) {
+    for (const [name, spec] of Object.entries(requireRecord(manifest.overrides, "overrides"))) {
       if (typeof spec === "string") {
         pins.push([name, spec]);
       }
@@ -172,7 +170,7 @@ function recordPackagePins(file: string, source: string, base: string): void {
     if (!matched) {
       continue;
     }
-    const target = matched[2]!;
+    const target = requireValue(matched[2], "matched[2]");
     const absolute = resolve(base, target);
     if (!escapes(absolute)) {
       continue;
@@ -197,7 +195,7 @@ function recordPaths(
   pattern.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
-    const target = match[1]!;
+    const target = requireValue(match[1], "match[1]");
     const absolute = resolve(base, target);
     if (!escapes(absolute)) {
       continue;

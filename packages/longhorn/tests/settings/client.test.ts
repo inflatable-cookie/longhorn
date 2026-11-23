@@ -137,7 +137,7 @@ class FakeSettingsTransport implements EventTransport {
   async invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown> {
     this.trace.push(`invoke:${command}`);
     this.#arguments.set(command, clone(arguments_));
-    let response: unknown;
+    let response;
     switch (command) {
       case SETTINGS_REGISTRY_COMMAND:
         response = this.registryValue;
@@ -193,5 +193,5 @@ class FakeSettingsTransport implements EventTransport {
 }
 
 function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

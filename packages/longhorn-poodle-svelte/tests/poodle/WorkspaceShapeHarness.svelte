@@ -1,11 +1,9 @@
 <script lang="ts">
   import type { DockEdge } from "@inflatable-cookie/poodle-svelte";
-  import type {
-  RegionId,
-} from "@inflatable-cookie/longhorn/layout";
+  import type { RegionId } from "@inflatable-cookie/longhorn/layout";
 
-  import { LayoutDockRegion } from '../../src/poodle/index.ts';
-import type { PanelPresentationResolver, PoodleLayoutBinding } from '../../src/poodle/index.ts';
+  import { LayoutDockRegion } from "../../src/poodle/index.ts";
+  import type { PanelPresentationResolver, PoodleLayoutBinding } from "../../src/poodle/index.ts";
 
   interface Props {
     binding: PoodleLayoutBinding;

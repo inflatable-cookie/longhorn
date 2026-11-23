@@ -5,8 +5,7 @@ import type { BridgeOperationDescriptor } from "./operation.ts";
 type BridgeOperationHandler<Request, Reply> = (request: Request) => Reply | Promise<Reply>;
 
 interface RegisteredOperation {
-  readonly descriptor: BridgeOperationDescriptor<unknown, unknown>;
-  readonly handler: BridgeOperationHandler<unknown, unknown>;
+  invoke(value: unknown): Promise<unknown>;
 }
 
 export class BridgeHostRouter {
@@ -31,8 +30,10 @@ export class BridgeHostRouter {
       throw new Error(`duplicate bridge operation route: ${descriptor.route}`);
     }
     const registration: RegisteredOperation = {
-      descriptor: descriptor,
-      handler: handler as BridgeOperationHandler<unknown, unknown>,
+      async invoke(value) {
+        const request = descriptor.request.parse(value);
+        return descriptor.reply.parse(await handler(request));
+      },
     };
     this.#operations.set(descriptor.route, registration);
     return () => {
@@ -52,7 +53,6 @@ export class BridgeHostRouter {
     if (registration === undefined) {
       throw new Error(`unknown bridge operation route: ${route}`);
     }
-    const request = registration.descriptor.request.parse(value);
-    return registration.descriptor.reply.parse(await registration.handler(request));
+    return registration.invoke(value);
   }
 }

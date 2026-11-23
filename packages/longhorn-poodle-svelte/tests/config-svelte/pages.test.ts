@@ -83,14 +83,14 @@ describe("public Poodle config pages", () => {
     expect(await screen.findByText("Migration required (1 → 2)")).toBeTruthy();
     expect(screen.getByText("Archive exclusions")).toBeTruthy();
     expect(
-      (screen.getByRole("button", { name: "Review exact plan" }) as HTMLButtonElement).disabled,
+      screen.getByRole<HTMLButtonElement>("button", { name: "Review exact plan" }).disabled,
     ).toBe(true);
 
     const archiveChoice = within(
       screen.getByRole("radiogroup", {
         name: "Restore choice for app.preferences",
       }),
-    ).getByRole("radio", { name: "Use archive" }) as HTMLInputElement;
+    ).getByRole<HTMLInputElement>("radio", { name: "Use archive" });
     await waitFor(() => expect(archiveChoice.disabled).toBe(false));
     await fireEvent.click(archiveChoice);
     for (const domainId of ["app.database", "app.future"]) {
@@ -102,9 +102,9 @@ describe("public Poodle config pages", () => {
         ).getByRole("radio", { name: "Keep current" }),
       );
     }
-    const review = screen.getByRole("button", {
+    const review = screen.getByRole<HTMLButtonElement>("button", {
       name: "Review exact plan",
-    }) as HTMLButtonElement;
+    });
     await waitFor(() => expect(review.disabled).toBe(false));
     await fireEvent.click(review);
 
@@ -129,7 +129,7 @@ describe("public Poodle config pages", () => {
       await screen.findByRole("radiogroup", {
         name: "Restore choice for app.preferences",
       }),
-    ).getByRole("radio", { name: "Use archive" }) as HTMLInputElement;
+    ).getByRole<HTMLInputElement>("radio", { name: "Use archive" });
     await waitFor(() => expect(archiveChoice.disabled).toBe(false));
     await fireEvent.click(archiveChoice);
     for (const domainId of ["app.database", "app.future"]) {
@@ -141,9 +141,9 @@ describe("public Poodle config pages", () => {
         ).getByRole("radio", { name: "Keep current" }),
       );
     }
-    const review = screen.getByRole("button", {
+    const review = screen.getByRole<HTMLButtonElement>("button", {
       name: "Review exact plan",
-    }) as HTMLButtonElement;
+    });
     await waitFor(() => expect(review.disabled).toBe(false));
     await fireEvent.click(review);
     await fireEvent.click(await screen.findByRole("button", { name: "Restore selected domains…" }));
@@ -246,7 +246,7 @@ async function inspectAndChooseFixtureDomains(): Promise<void> {
     await screen.findByRole("radiogroup", {
       name: "Restore choice for app.preferences",
     }),
-  ).getByRole("radio", { name: "Use archive" }) as HTMLInputElement;
+  ).getByRole<HTMLInputElement>("radio", { name: "Use archive" });
   await waitFor(() => expect(archiveChoice.disabled).toBe(false));
   await fireEvent.click(archiveChoice);
   for (const domainId of ["app.database", "app.future"]) {
@@ -258,8 +258,8 @@ async function inspectAndChooseFixtureDomains(): Promise<void> {
       ).getByRole("radio", { name: "Keep current" }),
     );
   }
-  const review = screen.getByRole("button", {
+  const review = screen.getByRole<HTMLButtonElement>("button", {
     name: "Review exact plan",
-  }) as HTMLButtonElement;
+  });
   await waitFor(() => expect(review.disabled).toBe(false));
 }

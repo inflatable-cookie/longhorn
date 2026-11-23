@@ -1,3 +1,6 @@
+import { readToolResult, readSemanticNode } from "./reply.ts";
+import type { parseDiscovery, SemanticNode } from "./reply.ts";
+import { parseJsonRecord } from "../../scripts/proof-json.ts";
 // Card 237 dogfood: follow the skill, not the Card 234 e2e driver.
 // Launch is the guide's worked example. Driving steps come only from
 // skills/agent-control/SKILL.md (finder, raw-POST fallback, tool order).
@@ -18,13 +21,7 @@ const appPath = join(
   "Longhorn Agent Control Proof.app",
 );
 
-type Discovery = { appId: string; pid: number; port: number; token: string };
-type SemanticNode = {
-  elementRef: string;
-  role: string;
-  name?: string;
-  children?: Array<SemanticNode>;
-};
+type Discovery = ReturnType<typeof parseDiscovery>;
 
 const findings: Array<string> = [];
 
@@ -45,7 +42,7 @@ async function run(
   stderr: string;
 }> {
   const subprocess = Bun.spawn([...command], {
-    ...(cwd === undefined ? {} : { cwd }),
+    cwd: cwd ?? process.cwd(),
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -76,16 +73,16 @@ async function mcp(
   method: string,
   params: Record<string, unknown>,
   name?: string,
-): Promise<{ status: number; body: string; json: unknown }> {
-  const headers: Record<string, string> = {
+) {
+  const headers = new Headers({
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
     "mcp-protocol-version": "2026-07-28",
     "mcp-method": method,
     authorization: `Bearer ${discovery.token}`,
-  };
+  });
   if (name) {
-    headers["mcp-name"] = name;
+    headers.set("mcp-name", name);
   }
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
@@ -100,7 +97,7 @@ async function mcp(
   return {
     status: response.status,
     body,
-    json: data ? JSON.parse(data) : null,
+    json: data ? parseJsonRecord(data) : null,
   };
 }
 
@@ -115,13 +112,10 @@ async function callTool(
     { name: tool, arguments: args, _meta: meta() },
     tool,
   );
-  const payload = reply.json as {
-    result?: { isError?: boolean; content: Array<Record<string, unknown>> };
-  };
-  const first = payload.result?.content[0] ?? {};
-  const parsed =
-    first.type === "text" ? (JSON.parse(String(first.text)) as Record<string, unknown>) : first;
-  return { isError: payload.result?.isError === true, result: parsed, raw: reply.json };
+  const result = reply.json?.result === undefined ? undefined : readToolResult(reply.json.result);
+  const first = result?.content[0] ?? {};
+  const parsed = first.type === "text" ? parseJsonRecord(String(first.text)) : first;
+  return { isError: result?.isError === true, result: parsed, raw: reply.json };
 }
 
 function findByName(node: SemanticNode, name: string): SemanticNode | undefined {
@@ -263,7 +257,7 @@ async function main(): Promise<void> {
   if (snapshot.isError) {
     throw new Error(`snapshot failed: ${JSON.stringify(snapshot.result)}`);
   }
-  const root = snapshot.result.root as SemanticNode;
+  const root = readSemanticNode(snapshot.result.root);
   const item = findByName(root, "Item");
   const add = findByName(root, "Add");
   if (!item || !add) {
@@ -341,13 +335,11 @@ async function main(): Promise<void> {
     { name: "screenshot", arguments: {}, _meta: meta() },
     "screenshot",
   );
-  const shotPayload = shot.json as {
-    result?: { isError?: boolean; content: Array<Record<string, unknown>> };
-  };
-  if (shotPayload.result?.isError) {
-    throw new Error(`screenshot failed: ${JSON.stringify(shotPayload.result)}`);
+  const shotResult = readToolResult(shot.json?.result);
+  if (shotResult.isError) {
+    throw new Error(`screenshot failed: ${JSON.stringify(shotResult)}`);
   }
-  const image = shotPayload.result?.content[0];
+  const image = shotResult.content[0];
   if (!image || image.type !== "image") {
     note("screenshot did not return image content as the skill describes");
     throw new Error("screenshot returned no image");

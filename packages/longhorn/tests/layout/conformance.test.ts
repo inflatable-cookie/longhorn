@@ -165,10 +165,8 @@ describe("two-shape layout conformance", () => {
 
   test("round-trips Rust expected snapshots exactly in TypeScript", () => {
     for (const fixture of fixtures) {
-      expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
-      expect(JSON.parse(JSON.stringify(fixture.expected_snapshot))).toEqual(
-        fixture.expected_snapshot,
-      );
+      expect(structuredClone(fixture)).toEqual(fixture);
+      expect(structuredClone(fixture.expected_snapshot)).toEqual(fixture.expected_snapshot);
     }
   });
 });

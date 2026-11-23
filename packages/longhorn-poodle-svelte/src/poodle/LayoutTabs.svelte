@@ -5,19 +5,12 @@
     TabActivationMode,
     TabVariant,
   } from "@inflatable-cookie/poodle-svelte";
-  import type {
-  RegionId,
-} from "@inflatable-cookie/longhorn/layout";
-import type {
-  SurfaceId,
-} from "@inflatable-cookie/longhorn/surfaces";
+  import type { RegionId } from "@inflatable-cookie/longhorn/layout";
+  import type { SurfaceId } from "@inflatable-cookie/longhorn/surfaces";
   import type { Snippet } from "svelte";
 
   import type { PoodleLayoutBinding } from "./binding.ts";
-  import type {
-    PanelPresentationResolver,
-    PanelRenderContext,
-  } from "./types.ts";
+  import type { PanelPresentationResolver, PanelRenderContext } from "./types.ts";
 
   interface Props {
     binding: PoodleLayoutBinding;
@@ -53,9 +46,7 @@ import type {
     body,
   }: Props = $props();
 
-  const projection = $derived(
-    binding.region(containerId, regionId, resolvePanel),
-  );
+  const projection = $derived(binding.region(containerId, regionId, resolvePanel));
 
   function activate(panelInstanceId: string): void {
     if (panelInstanceId !== projection.state.active_panel_instance_id) {
@@ -87,7 +78,6 @@ import type {
   {ariaLabel}
   onValueChange={activate}
   onClose={(panelInstanceId) => binding.close(panelInstanceId)}
-  onReorder={(panelInstanceIds) =>
-    binding.reorder(containerId, regionId, panelInstanceIds)}
+  onReorder={(panelInstanceIds) => binding.reorder(containerId, regionId, panelInstanceIds)}
   {...body ? { children: renderBody } : {}}
 />

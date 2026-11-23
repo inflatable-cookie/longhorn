@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -59,10 +60,10 @@ function rustSeamStrings(crateDirectory: string): Set<string> {
     for (const match of text.matchAll(
       /#\[tauri::command[^\]]*\]\s*(?:pub\s+)?(?:async\s+)?fn\s+(longhorn_[a-z0-9_]+)/gs,
     )) {
-      found.add(match[1]!);
+      found.add(requireValue(match[1], "match[1]"));
     }
     for (const match of text.matchAll(/pub const [A-Z0-9_]+: &str = "(longhorn:\/\/[^"]+)"/g)) {
-      found.add(match[1]!);
+      found.add(requireValue(match[1], "match[1]"));
     }
   }
   return found;
@@ -74,7 +75,7 @@ function tsSeamStrings(file: string): Set<string> {
   const text = readFileSync(file, "utf8");
   const found = new Set<string>();
   for (const match of text.matchAll(/export const [A-Z0-9_]+ =\s*"([^"]+)";/gs)) {
-    found.add(match[1]!);
+    found.add(requireValue(match[1], "match[1]"));
   }
   return found;
 }

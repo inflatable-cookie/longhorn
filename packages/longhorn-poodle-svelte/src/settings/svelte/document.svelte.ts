@@ -106,13 +106,14 @@ export class SettingsSessionDocument {
     this.#registry = registry;
     this.#projection = projection;
     this.#renderers = renderers;
-    if (projection.pages.length === 0) {
+    const [firstPage] = projection.pages;
+    if (firstPage === undefined) {
       return "unsupported";
     }
     const route =
       preferredRoute !== undefined && registry.pages.some(({ id }) => id === preferredRoute.pageId)
         ? preferredRoute
-        : { pageId: projection.pages[0]!.id };
+        : { pageId: firstPage.id };
     await this.installRoute(route);
     return "ready";
   }

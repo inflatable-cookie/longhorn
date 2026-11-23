@@ -133,7 +133,7 @@ export const changed: ForkChangedEvent = {
   kind: "navigation",
 };
 export function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  return structuredClone<T>(value);
 }
 export const continuationPage: ForkContinuationPageSnapshot = {
   protocolVersion: 1,

@@ -1,3 +1,4 @@
+import { requireValue } from "../../../../scripts/proof-support.ts";
 import { NotificationSession } from "../../src/notifications/svelte.ts";
 import type {
   NotificationChangedEvent,
@@ -13,7 +14,9 @@ import { cloned, fixture } from "../../../longhorn/tests/notifications/support.t
 
 export class MountedNotificationPort implements NotificationPort {
   readonly listeners = new Set<(event: unknown) => void>();
-  snapshotValue = cloned(fixture.mutationResults[0]!.snapshot);
+  snapshotValue = cloned(
+    requireValue(fixture.mutationResults[0], "fixture.mutationResults[0]").snapshot,
+  );
   request = 0;
   unlistenCount = 0;
 
@@ -59,7 +62,7 @@ export function createMountedSession(port = new MountedNotificationPort()) {
 
 export function withNewRecord(snapshot: NotificationSnapshot): NotificationSnapshot {
   const next = cloned(snapshot);
-  const source = cloned(next.page.records[0]!);
+  const source = cloned(requireValue(next.page.records[0], "next.page.records[0]"));
   next.ledgerRevision += 1;
   source.notificationId = "notification:new";
   source.sequence += 1;

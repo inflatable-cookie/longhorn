@@ -37,5 +37,5 @@ export function fixturePort(): OperationPort {
 }
 
 export function cloned<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

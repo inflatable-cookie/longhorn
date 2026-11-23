@@ -8,6 +8,7 @@ setup = ["bootstrap:deps"]
 include = ["config/release.toml"]
 
 [tasks]
+# Temporary diagnostic routes used during revision.
 "bootstrap:deps" = "bun install --frozen-lockfile"
 
 # Aggregates stay one task per job. Keep package-level variants only where
@@ -139,11 +140,13 @@ include = ["config/release.toml"]
 ]
 "lint:ts" = [
   { task = "check:bun-deps" },
-  "bun scripts/lint-typescript.ts",
+  "OXLINT_TSGOLINT_PATH=./node_modules/.bin/tsgolint bun x --bun oxlint --type-aware --deny-warnings packages scripts examples/agent-control-proof oxlint.config.ts knip.ts",
 ]
 "fmt:ts" = [
   { task = "check:bun-deps" },
-  "bun x --bun oxfmt --check 'packages/**/*.{ts,svelte}' 'scripts/**/*.ts' 'examples/agent-control-proof/*.ts' oxlint.config.ts knip.ts svelte.config.mjs",
+  "node node_modules/.bin/oxfmt --check 'packages/**/*.ts' 'scripts/**/*.ts' 'examples/agent-control-proof/*.ts' oxlint.config.ts knip.ts svelte.config.mjs",
+  # Keep Svelte separate so its measured coverage stays visible.
+  "node node_modules/.bin/oxfmt --check 'packages/**/*.svelte'",
 ]
 "check:knip" = [
   { task = "check:bun-deps" },
@@ -648,6 +651,7 @@ members = [
     targets = [
       "path:scripts/verify-pack-typecheck.ts",
       "path:scripts/proof-install.ts",
+      "path:scripts/proof-json.ts",
       "path:scripts/poodle-release.ts",
       "bun-package:@inflatable-cookie/longhorn",
       "path:packages/longhorn/**",
@@ -661,6 +665,7 @@ members = [
     covers = [
       "path:scripts/verify-pack-typecheck.ts",
       "path:scripts/proof-install.ts",
+      "path:scripts/proof-json.ts",
       "path:scripts/poodle-release.ts",
       "bun-package:@inflatable-cookie/longhorn",
       "path:packages/longhorn/**",
@@ -1222,8 +1227,8 @@ members = [
     task = "lint:ts",
     args = [],
     targets = ["workspace:root"],
-    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:oxlint.config.ts", "path:config/oxlint-baseline.json"],
-    limits = ["Gates authored TypeScript and Svelte script blocks against new diagnostics"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:oxlint.config.ts"],
+    limits = ["Requires zero lint diagnostics in authored TypeScript and Svelte script blocks"],
   },
   {
     id = "format",
@@ -1291,7 +1296,7 @@ members = [
     task = "check:machete",
     args = [],
     targets = ["workspace:root"],
-    covers = ["path:crates/*/Cargo.toml", "path:examples/**/Cargo.toml", "path:scripts/check-rust-dependency-use.ts"],
+    covers = ["path:crates/*/Cargo.toml", "path:examples/**/Cargo.toml", "path:scripts/check-rust-dependency-use.ts", "path:scripts/cargo-metadata.ts", "path:scripts/proof-json.ts"],
     limits = ["Scans actual root workspace members reported by Cargo metadata"],
   },
   {

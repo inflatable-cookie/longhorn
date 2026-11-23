@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Proves contract 023's independent default/release graph. The production
 // dispatcher must not import or embed contract 022's developer app-control
 // surface. Exact public symbols are used instead of broad words such as
@@ -65,7 +66,7 @@ try {
   if (archives.length !== 1) {
     throw new Error(`expected one dispatcher rlib, found ${archives.length}`);
   }
-  const bytes = await readFile(archives[0]!);
+  const bytes = await readFile(requireValue(archives[0], "archives[0]"));
   const hits = forbidden.filter((marker) => bytes.includes(marker));
   if (hits.length > 0) {
     throw new Error(`release dispatcher contains contract 022 markers: ${hits.join(", ")}`);

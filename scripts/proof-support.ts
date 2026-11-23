@@ -95,3 +95,23 @@ export function parseTrace(output: string): Record<string, unknown> {
   }
   return Object.fromEntries(Object.entries(trace));
 }
+
+// Use when a fixture, command argument, or inventory entry is required.
+export function requireValue<T>(value: T, label: string): NonNullable<T> {
+  if (value === null || value === undefined) {
+    throw new Error(`missing ${label}`);
+  }
+  return value;
+}
+
+export function errorCode(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+  return undefined;
+}

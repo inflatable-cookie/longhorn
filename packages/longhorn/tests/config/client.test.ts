@@ -77,7 +77,7 @@ class FakeConfigTransport implements EventTransport {
   async invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown> {
     this.commands.push(command);
     this.arguments.set(command, clone(arguments_));
-    const response = responses[command];
+    const response = responses.get(command);
     if (response === undefined) {
       throw new Error(`unexpected command ${command}`);
     }
@@ -89,22 +89,24 @@ class FakeConfigTransport implements EventTransport {
   }
 }
 
-const responses: Record<string, unknown> = {
-  [CONFIG_SNAPSHOT_COMMAND]: fixture.snapshot,
-  [CONFIG_STORAGE_INSPECT_COMMAND]: fixture.outcomes.inspectTransition,
-  [CONFIG_STORAGE_EXECUTE_COMMAND]: fixture.outcomes.executeTransition,
-  [CONFIG_STORAGE_RECOVER_COMMAND]: fixture.outcomes.recoverStorage,
-  [CONFIG_STORAGE_CLEANUP_COMMAND]: fixture.outcomes.cleanupStorage,
-  [CONFIG_BACKUP_CREATE_COMMAND]: fixture.outcomes.createBackup,
-  [CONFIG_BACKUP_EXPORT_COMMAND]: fixture.outcomes.exportBackup,
-  [CONFIG_BACKUP_RETENTION_COMMAND]: fixture.outcomes.applyRetention,
-  [CONFIG_RESTORE_INSPECT_COMMAND]: fixture.outcomes.inspectRestore,
-  [CONFIG_RESTORE_PLAN_COMMAND]: fixture.outcomes.planRestore,
-  [CONFIG_RESTORE_EXECUTE_COMMAND]: fixture.outcomes.executeRestore,
-  [CONFIG_RESTORE_ADAPTER_EXECUTE_COMMAND]: fixture.outcomes.executeAdapterRestore,
-  [CONFIG_RESTORE_RECOVER_COMMAND]: fixture.outcomes.recoverRestore,
-};
+const responses = new Map<string, unknown>(
+  Object.entries({
+    [CONFIG_SNAPSHOT_COMMAND]: fixture.snapshot,
+    [CONFIG_STORAGE_INSPECT_COMMAND]: fixture.outcomes.inspectTransition,
+    [CONFIG_STORAGE_EXECUTE_COMMAND]: fixture.outcomes.executeTransition,
+    [CONFIG_STORAGE_RECOVER_COMMAND]: fixture.outcomes.recoverStorage,
+    [CONFIG_STORAGE_CLEANUP_COMMAND]: fixture.outcomes.cleanupStorage,
+    [CONFIG_BACKUP_CREATE_COMMAND]: fixture.outcomes.createBackup,
+    [CONFIG_BACKUP_EXPORT_COMMAND]: fixture.outcomes.exportBackup,
+    [CONFIG_BACKUP_RETENTION_COMMAND]: fixture.outcomes.applyRetention,
+    [CONFIG_RESTORE_INSPECT_COMMAND]: fixture.outcomes.inspectRestore,
+    [CONFIG_RESTORE_PLAN_COMMAND]: fixture.outcomes.planRestore,
+    [CONFIG_RESTORE_EXECUTE_COMMAND]: fixture.outcomes.executeRestore,
+    [CONFIG_RESTORE_ADAPTER_EXECUTE_COMMAND]: fixture.outcomes.executeAdapterRestore,
+    [CONFIG_RESTORE_RECOVER_COMMAND]: fixture.outcomes.recoverRestore,
+  }),
+);
 
 function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

@@ -112,7 +112,7 @@ class CheckedNotificationSubscription implements NotificationSubscription {
 function parseSnapshot(value: unknown): NotificationSnapshot {
   const response = { requestId: "request:validation", snapshot: value };
   assertValidNotificationSnapshotResponse(response);
-  return value as NotificationSnapshot;
+  return response.snapshot;
 }
 
 export function notificationEventAction(

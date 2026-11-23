@@ -4,6 +4,9 @@ import type {
   OperationMutationCommand,
   OperationRequestId,
   OperationSnapshotQuery,
+  OperationSnapshotResponse,
+  OperationMutationResult,
+  OperationCancellationResult,
 } from "./generated/protocol.ts";
 
 export type OperationUnlisten = () => void | Promise<void>;
@@ -19,15 +22,9 @@ export interface OperationPort {
 }
 
 export interface CheckedOperationPort {
-  snapshot(
-    query: OperationSnapshotQuery,
-  ): Promise<import("./generated/protocol.ts").OperationSnapshotResponse>;
-  mutate(
-    command: OperationMutationCommand,
-  ): Promise<import("./generated/protocol.ts").OperationMutationResult>;
-  cancel(
-    command: OperationCancellationCommand,
-  ): Promise<import("./generated/protocol.ts").OperationCancellationResult>;
+  snapshot(query: OperationSnapshotQuery): Promise<OperationSnapshotResponse>;
+  mutate(command: OperationMutationCommand): Promise<OperationMutationResult>;
+  cancel(command: OperationCancellationCommand): Promise<OperationCancellationResult>;
   listen?(listener: (event: OperationChangedEvent) => void): Promise<OperationUnlisten>;
   nextRequestId(): OperationRequestId;
 }

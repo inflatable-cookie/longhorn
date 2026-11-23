@@ -38,7 +38,7 @@ it("mounts public Poodle composition, loads branches explicitly, and tears down"
   expect(session.branches).toBeUndefined();
   await fireEvent.click(mounted.getByRole("button", { name: "Branches" }));
   await waitFor(() => expect(session.branches?.branches).toHaveLength(2));
-  await mounted.unmount();
+  await Promise.resolve(mounted.unmount());
   await waitFor(() => expect(listeners.size).toBe(0));
   expect(unlisten).toBe(1);
 });

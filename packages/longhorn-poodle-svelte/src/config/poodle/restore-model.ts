@@ -30,7 +30,7 @@ export function compatibilityLabel(compatibility: RestoreDomainCompatibilityProj
   return renderLabelTemplate(template, fieldsOf(compatibility));
 }
 
-function fieldsOf(compatibility: RestoreDomainCompatibilityProjection): Record<string, string> {
+function fieldsOf(compatibility: RestoreDomainCompatibilityProjection) {
   const fields: Record<string, string> = {};
   for (const [key, value] of Object.entries(compatibility)) {
     if (key !== "status" && (typeof value === "string" || typeof value === "number")) {

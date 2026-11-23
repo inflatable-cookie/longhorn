@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Proves contract 022's compile-time opt-in for the agent control surface:
 // three feature states of `longhorn-tauri-agent-control`, each with a
 // positive control so a broken scan cannot pass vacuously.
@@ -152,8 +153,8 @@ async function build(features: FeatureSet): Promise<BuildResult> {
     features,
     targetDir,
     tree,
-    pluginRlib: pluginRlibs[0]!,
-    coreRlib: coreRlibs.length === 0 ? null : coreRlibs[0]!,
+    pluginRlib: requireValue(pluginRlibs[0], "pluginRlibs[0]"),
+    coreRlib: coreRlibs.length === 0 ? null : requireValue(coreRlibs[0], "coreRlibs[0]"),
   };
 }
 
@@ -170,7 +171,7 @@ async function proveServerPresent(buildResult: BuildResult): Promise<{
     throw new Error(`${buildResult.features} build produced no core-crate rlib`);
   }
   const pluginHits = await markerHits(buildResult.pluginRlib, MARKERS);
-  if (!pluginHits.includes(CORE_MARKERS[0]!)) {
+  if (!pluginHits.includes(requireValue(CORE_MARKERS[0], "CORE_MARKERS[0]"))) {
     throw new Error(
       `${buildResult.features} release artifact does not reference ${CORE_MARKERS[0]} — the scan would pass vacuously`,
     );
@@ -210,7 +211,10 @@ try {
   }
 
   const packagedHits = await proveServerPresent(packaged);
-  const packagedEvaluate = await markerHits(packaged.coreRlib!, EVALUATE_MARKERS);
+  const packagedEvaluate = await markerHits(
+    requireValue(packaged.coreRlib, "packaged.coreRlib"),
+    EVALUATE_MARKERS,
+  );
   if (packagedEvaluate.length > 0) {
     throw new Error(
       `agent-control-only core artifact carries evaluate markers: ${packagedEvaluate.join(", ")}`,
@@ -218,7 +222,10 @@ try {
   }
 
   const evaluateHits = await proveServerPresent(withEvaluate);
-  const evaluatePresent = await markerHits(withEvaluate.coreRlib!, EVALUATE_MARKERS);
+  const evaluatePresent = await markerHits(
+    requireValue(withEvaluate.coreRlib, "withEvaluate.coreRlib"),
+    EVALUATE_MARKERS,
+  );
   const missingEvaluate = EVALUATE_MARKERS.filter((marker) => !evaluatePresent.includes(marker));
   if (missingEvaluate.length > 0) {
     throw new Error(

@@ -125,7 +125,7 @@ describe("SurfaceState", () => {
     });
     const mounted = render(LifecycleHarness, { props: { state } });
     await Promise.resolve();
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
 
     registration.resolve(() => {
       unlistens += 1;

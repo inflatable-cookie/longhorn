@@ -1,3 +1,6 @@
+import { errorCode } from "../proof-support.ts";
+import { readPackageIdentity, readPackageManifest, readPermissions } from "../proof-json.ts";
+import { requireValue } from "../proof-support.ts";
 import { installProofStage } from "../proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "../consumer-absence.ts";
 import { randomUUID } from "node:crypto";
@@ -13,7 +16,7 @@ import {
 } from "../proof-support.ts";
 import { POODLE_RELEASE } from "./artifacts.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import type { PackageManifest, ProofContext, ShapeName } from "./types.ts";
+import type { ProofContext, ShapeName } from "./types.ts";
 
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
@@ -77,10 +80,8 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
     }
   }
 
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
-  manifest.dependencies = rewriteDependencies(manifest.dependencies, context.artifacts);
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
+  manifest.dependencies = rewriteDependencies(manifest.dependencies ?? {}, context.artifacts);
   // Only Longhorn's own packs are overridden onto paths. Poodle is a published
   // dependency, so the staged consumer resolves it from the registry exactly as
   // a real consumer does -- which is what the pack indirection was standing in
@@ -142,9 +143,9 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
     }
   }
 
-  const capability = JSON.parse(
+  const capability = readPermissions(
     await readFile(join(stage, "consumers", shape, "capability.json"), "utf8"),
-  ) as { readonly permissions: ReadonlyArray<string> };
+  );
   assertExactSet(`${shape} permissions`, capability.permissions, policy.permissions);
   assertExactSet(`${shape} imports`, await longhornImports(stage), policy.imports);
   const lock = await readFile(join(stage, "bun.lock"), "utf8");
@@ -179,7 +180,9 @@ function rewriteDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
@@ -188,7 +191,7 @@ async function installedScope(stage: string, scope: string): Promise<ReadonlyArr
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return [];
     }
     throw error;
@@ -212,10 +215,7 @@ async function assertArtifactInstall(stage: string, name: string, expected: stri
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as {
-    readonly name: string;
-    readonly version: string;
-  };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -245,7 +245,7 @@ async function longhornImports(stage: string): Promise<ReadonlyArray<string>> {
     for (const match of source.matchAll(
       /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
-      imports.add(match[1]!);
+      imports.add(requireValue(match[1], "match[1]"));
     }
   }
   return [...imports].sort();

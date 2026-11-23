@@ -117,16 +117,17 @@ export function resolveCommandKeyboard(
       (left, right) =>
         right.specificity - left.specificity || left.binding.id.localeCompare(right.binding.id),
     );
-  if (matches.length === 0) {
+  const [firstMatch] = matches;
+  if (firstMatch === undefined) {
     return { kind: "unbound" };
   }
 
-  const winningSpecificity = matches[0]!.specificity;
-  const winningContext = matches[0]!.binding.contextId;
+  const winningSpecificity = firstMatch.specificity;
+  const winningContext = firstMatch.binding.contextId;
   const winning = matches.filter(({ specificity }) => specificity === winningSpecificity);
   const distinctInvocations = uniqueInvocations(winning.map(({ binding }) => binding.invocation));
   const conflict = distinctInvocations.length > 1;
-  const representativeId = matches[0]!.binding.id;
+  const representativeId = firstMatch.binding.id;
   const candidates: Array<CommandBindingCandidate> = matches.map(({ binding, specificity }) => ({
     bindingId: binding.id,
     source: binding.source,
@@ -154,7 +155,7 @@ export function resolveCommandKeyboard(
     return { kind: "conflict", conflict: record, candidates };
   }
 
-  const binding = matches[0]!.binding;
+  const binding = firstMatch.binding;
   const declaration = options.commands.find(({ id }) => id === binding.invocation.commandId);
   if (input.editableText && declaration?.textInputPolicy === "blocked") {
     return { kind: "gated", gate: "textInput", candidates };
@@ -289,8 +290,13 @@ function compareInvocation(left: CommandInvocation, right: CommandInvocation): n
   const rightArguments = Object.entries(right.arguments).sort(([a], [b]) => compareText(a, b));
   const length = Math.min(leftArguments.length, rightArguments.length);
   for (let index = 0; index < length; index += 1) {
-    const [leftId, leftValue] = leftArguments[index]!;
-    const [rightId, rightValue] = rightArguments[index]!;
+    const leftArgument = leftArguments[index];
+    const rightArgument = rightArguments[index];
+    if (leftArgument === undefined || rightArgument === undefined) {
+      break;
+    }
+    const [leftId, leftValue] = leftArgument;
+    const [rightId, rightValue] = rightArgument;
     const field = compareText(leftId, rightId);
     if (field !== 0) {
       return field;
@@ -331,11 +337,16 @@ function compareArgumentValue(
 }
 
 function compareText(left: string, right: string): number {
-  const leftValues = [...left];
-  const rightValues = [...right];
+  const leftValues = Array.from(left);
+  const rightValues = Array.from(right);
   const length = Math.min(leftValues.length, rightValues.length);
   for (let index = 0; index < length; index += 1) {
-    const difference = leftValues[index]!.codePointAt(0)! - rightValues[index]!.codePointAt(0)!;
+    const leftCode = leftValues[index]?.codePointAt(0);
+    const rightCode = rightValues[index]?.codePointAt(0);
+    if (leftCode === undefined || rightCode === undefined) {
+      break;
+    }
+    const difference = leftCode - rightCode;
     if (difference !== 0) {
       return difference;
     }

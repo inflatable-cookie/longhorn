@@ -30,7 +30,7 @@ describe("generated command/keymap protocol fixture", () => {
     fixture.previewResults.forEach(assertValidCommandKeymapPreviewResult);
     fixture.loadOutcomes.forEach(assertValidCommandKeymapLoadOutcome);
     fixture.mutationResults.forEach(assertValidCommandKeymapMutationResult);
-    expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
+    expect(structuredClone(fixture)).toEqual(fixture);
   });
 
   test("fails closed on future protocol and discriminants", () => {

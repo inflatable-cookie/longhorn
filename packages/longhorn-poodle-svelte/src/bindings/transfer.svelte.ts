@@ -1,15 +1,15 @@
 import type { TransferClient } from "@inflatable-cookie/longhorn/transfer";
-import {
-  type DragSessionId,
-  type PanelSessionStartRequest,
-  type PanelTransferCommand,
-  type PanelTransferResponse,
-  type TransferCancelRequest,
-  type TransferCancelResponse,
-  type TransferClientSnapshot,
-  type TransferLeaseRequest,
-  type TransferLeaseResponse,
-  type TransferSessionResponse,
+import type {
+  DragSessionId,
+  PanelSessionStartRequest,
+  PanelTransferCommand,
+  PanelTransferResponse,
+  TransferCancelRequest,
+  TransferCancelResponse,
+  TransferClientSnapshot,
+  TransferLeaseRequest,
+  TransferLeaseResponse,
+  TransferSessionResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 
 import { ReactiveClientState, UnsupportedCapabilityError } from "./index.ts";

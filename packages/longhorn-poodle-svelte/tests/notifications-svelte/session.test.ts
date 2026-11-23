@@ -23,7 +23,7 @@ describe("notification Svelte and public Poodle adapters", () => {
     expect(state.session.records.map((record) => record.notificationId)).toContain(
       "notification:new",
     );
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     vi.useRealTimers();
   });
 
@@ -33,14 +33,14 @@ describe("notification Svelte and public Poodle adapters", () => {
     await waitFor(() => expect(state.session.status.kind).toBe("ready"));
     state.port.publish(withNewRecord(state.port.snapshotValue));
     await waitFor(() => expect(state.session.toasts).toHaveLength(1));
-    await first.unmount();
+    await Promise.resolve(first.unmount());
     await waitFor(() => expect(state.port.listeners.size).toBe(0));
 
     const second = render(NotificationHarness, { props: { session: state.session } });
     await second.findByRole("button", { name: "New notification" });
     expect(state.session.toasts).toEqual([]);
     expect(second.container.querySelector(".poodle-toast-host")).toBeNull();
-    await second.unmount();
+    await Promise.resolve(second.unmount());
     expect(state.port.unlistenCount).toBe(2);
   });
 
@@ -58,7 +58,7 @@ describe("notification Svelte and public Poodle adapters", () => {
     await fireEvent.click(within(first.container).getByRole("button", { name: "Scan complete" }));
     expect(firstSession.selectedNotificationId).toBe("notification:scan");
     expect(secondSession.selectedNotificationId).toBeUndefined();
-    await first.unmount();
-    await second.unmount();
+    await Promise.resolve(first.unmount());
+    await Promise.resolve(second.unmount());
   });
 });

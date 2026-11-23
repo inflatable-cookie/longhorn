@@ -13,15 +13,16 @@
     Surface,
     Table,
   } from "@inflatable-cookie/poodle-svelte";
-  import type {
-    SelectOption,
-    TableColumn,
-    TableRow,
-  } from "@inflatable-cookie/poodle-svelte";
+  import type { SelectOption, TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
-  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from '@inflatable-cookie/longhorn/config';
-import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPreviewProjection, StorageTransitionReceiptProjection } from '@inflatable-cookie/longhorn/config';
+  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/config";
+  import type {
+    ConfigOperationsSnapshot,
+    StorageProfileId,
+    StorageTransitionPreviewProjection,
+    StorageTransitionReceiptProjection,
+  } from "@inflatable-cookie/longhorn/config";
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   let {
@@ -42,9 +43,7 @@ import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPrevi
   let notice = $state<string | null>(null);
 
   const storage = $derived(snapshot?.storage ?? null);
-  const canTransition = $derived(
-    snapshot?.capabilities.includes("storageTransition") === true,
-  );
+  const canTransition = $derived(snapshot?.capabilities.includes("storageTransition") === true);
   const profileOptions = $derived<Array<SelectOption>>(
     storage?.availableProfiles.map((value) => ({
       value,
@@ -68,7 +67,9 @@ import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPrevi
   );
 
   onMount(() => {
-    if (snapshot === null) {void refresh();}
+    if (snapshot === null) {
+      void refresh();
+    }
   });
 
   async function refresh(): Promise<void> {
@@ -84,7 +85,9 @@ import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPrevi
 
   async function inspect(): Promise<void> {
     const targetProfile = selectedProfile;
-    if (targetProfile === null) {return;}
+    if (targetProfile === null) {
+      return;
+    }
     await run(async () => {
       receipt = null;
       const outcome = await client.inspectStorageTransition({
@@ -106,13 +109,17 @@ import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPrevi
   }
 
   async function execute(): Promise<void> {
-    if (snapshot === null || preview === null) {return;}
+    const inspected = preview;
+    const current = snapshot;
+    if (current === null || inspected === null) {
+      return;
+    }
     await run(async () => {
       const outcome = await client.executeStorageTransition({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        generation: snapshot!.generation,
-        confirmationDigest: preview!.confirmationDigest,
+        generation: current.generation,
+        confirmationDigest: inspected.confirmationDigest,
       });
       if (outcome.status === "committed") {
         receipt = outcome.receipt;
@@ -141,13 +148,16 @@ import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPrevi
   }
 
   async function cleanup(): Promise<void> {
-    if (receipt === null) {return;}
+    const committed = receipt;
+    if (committed === null) {
+      return;
+    }
     await run(async () => {
       const outcome = await client.cleanupStorage({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
         requestId: nextRequestId(),
-        transitionId: receipt!.transitionId,
-        transitionReceiptDigest: receipt!.receiptDigest,
+        transitionId: committed.transitionId,
+        transitionReceiptDigest: committed.receiptDigest,
       });
       if (outcome.status === "applied") {
         acceptSnapshot(outcome.snapshot);
@@ -199,10 +209,20 @@ import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPrevi
 <div aria-busy={busy}>
   <Stack gap="md">
     {#if error}
-      <Callout tone="danger" title="Storage operation failed" message={error} announceMode="assertive" />
+      <Callout
+        tone="danger"
+        title="Storage operation failed"
+        message={error}
+        announceMode="assertive"
+      />
     {/if}
     {#if notice}
-      <Callout tone="success" title="Storage operation complete" message={notice} announceMode="polite" />
+      <Callout
+        tone="success"
+        title="Storage operation complete"
+        message={notice}
+        announceMode="polite"
+      />
     {/if}
 
     <!-- Three different situations used to render this one warning: the first
@@ -264,7 +284,11 @@ import type { ConfigOperationsSnapshot, StorageProfileId, StorageTransitionPrevi
           <DetailItem label="Directory leaf" value={storage.layout.effectiveLeaf} />
           <DetailItem label="Leaf source" value={storage.layout.leafProvenance} />
           <DetailItem label="Platform" value={storage.layout.platform} />
-          <DetailItem label="Layout digest" value={storage.layout.layoutDigest} truncateValue={true} />
+          <DetailItem
+            label="Layout digest"
+            value={storage.layout.layoutDigest}
+            truncateValue={true}
+          />
         </Grid>
       </Surface>
 

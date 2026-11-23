@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import { BRIDGE_FIELDS } from "../generated/fields.ts";
 import type {
   BridgeCancellationReceipt,
@@ -74,15 +75,16 @@ function parseCancellationOutcome<D>(
 
 function singleVariant(
   value: unknown,
-  keys: ReadonlyArray<string>,
+  variants: ReadonlyArray<string>,
   code: "unknown_job_outcome" | "unknown_cancellation_outcome",
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     incompatible(code, value);
   }
-  const source = value as Record<string, unknown>;
+  const source = value;
   const present = Object.keys(source);
-  if (present.length !== 1 || !keys.includes(present[0]!)) {
+  const [key] = present;
+  if (present.length !== 1 || key === undefined || !variants.includes(key)) {
     incompatible(code, value);
   }
   return source;

@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   HISTORY_MAXIMUM_OPAQUE_ID_BYTES,
   HISTORY_CHANGED_KINDS,
@@ -203,10 +204,10 @@ function protocol(value: unknown, path: string): void {
 }
 
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 
 function array(value: unknown, path: string): ReadonlyArray<unknown> {
@@ -239,9 +240,9 @@ function oneOf(value: unknown, path: string, values: ReadonlyArray<string>): voi
 function id(value: unknown, path: string): void {
   string(value, path);
   if (
-    (value as string).length === 0 ||
-    (value as string).length > HISTORY_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z0-9._:-]+$/.test(value as string)
+    value.length === 0 ||
+    value.length > HISTORY_MAXIMUM_OPAQUE_ID_BYTES ||
+    !/^[a-z0-9._:-]+$/.test(value)
   ) {
     fail(path, "expected bounded lowercase opaque id");
   }
@@ -253,7 +254,7 @@ function optionalId(value: unknown, path: string): void {
   }
 }
 
-function string(value: unknown, path: string): void {
+function string(value: unknown, path: string): asserts value is string {
   if (typeof value !== "string" || value.length === 0) {
     fail(path, "expected nonempty string");
   }
@@ -265,15 +266,15 @@ function optionalString(value: unknown, path: string): void {
   }
 }
 
-function integer(value: unknown, path: string): void {
-  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+function integer(value: unknown, path: string): asserts value is number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     fail(path, "expected nonnegative safe integer");
   }
 }
 
 function positiveInteger(value: unknown, path: string): void {
   integer(value, path);
-  if ((value as number) === 0) {
+  if (value === 0) {
     fail(path, "expected nonzero integer");
   }
 }
@@ -340,7 +341,8 @@ function variantKeys(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = record[HISTORY_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const allowed = HISTORY_VARIANT_FIELDS[type]?.[discriminant as string];
+  const allowed =
+    typeof discriminant === "string" ? HISTORY_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (allowed === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }

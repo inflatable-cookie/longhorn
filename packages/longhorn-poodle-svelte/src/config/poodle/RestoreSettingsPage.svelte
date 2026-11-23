@@ -17,10 +17,25 @@
   import type { RadioGroupOption, SelectOption } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
-  import { CONFIG_OPERATIONS_PROTOCOL_VERSION, RESTORE_AUTHENTICITY_LABELS, RESTORE_INTEGRITY_LABELS } from '@inflatable-cookie/longhorn/config';
-import type { ConfigOperationRejection, ConfigOperationsSnapshot, RestoreAdapterReceiptProjection, RestoreDomainChoice, RestoreDomainInspectionProjection, RestoreExecutionFailureProjection, RestoreExecutionReceiptProjection, RestoreInspectionProjection, RestorePlanProjection, RestoreRecoveryReceiptProjection } from '@inflatable-cookie/longhorn/config';
-  import { canUseArchive, compatibilityLabel, identityLabel } from './restore-model.ts';
-import type { RestoreChoice } from './restore-model.ts';
+  import {
+    CONFIG_OPERATIONS_PROTOCOL_VERSION,
+    RESTORE_AUTHENTICITY_LABELS,
+    RESTORE_INTEGRITY_LABELS,
+  } from "@inflatable-cookie/longhorn/config";
+  import type {
+    ConfigOperationRejection,
+    ConfigOperationsSnapshot,
+    RestoreAdapterReceiptProjection,
+    RestoreDomainChoice,
+    RestoreDomainInspectionProjection,
+    RestoreExecutionFailureProjection,
+    RestoreExecutionReceiptProjection,
+    RestoreInspectionProjection,
+    RestorePlanProjection,
+    RestoreRecoveryReceiptProjection,
+  } from "@inflatable-cookie/longhorn/config";
+  import { canUseArchive, compatibilityLabel, identityLabel } from "./restore-model.ts";
+  import type { RestoreChoice } from "./restore-model.ts";
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   type Activity = "idle" | "loading" | "inspecting" | "planning" | "publishing" | "recovering";
@@ -60,8 +75,10 @@ import type { RestoreChoice } from './restore-model.ts';
   );
   const allChoicesMade = $derived(
     inspection !== null &&
-      inspection.domains.every((domain) => choices[domain.domainId] === "useArchive" ||
-        choices[domain.domainId] === "keepCurrent") &&
+      inspection.domains.every(
+        (domain) =>
+          choices[domain.domainId] === "useArchive" || choices[domain.domainId] === "keepCurrent",
+      ) &&
       inspection.domains.some((domain) => choices[domain.domainId] === "useArchive"),
   );
   const archiveOptions = $derived<Array<SelectOption>>([
@@ -77,7 +94,9 @@ import type { RestoreChoice } from './restore-model.ts';
   ];
 
   onMount(() => {
-    if (snapshot === null) {void refresh();}
+    if (snapshot === null) {
+      void refresh();
+    }
   });
 
   async function refresh(): Promise<void> {
@@ -125,7 +144,9 @@ import type { RestoreChoice } from './restore-model.ts';
   async function createPlan(): Promise<void> {
     const current = inspection;
     const generation = inspectionGeneration;
-    if (current === null || generation === null || !allChoicesMade) {return;}
+    if (current === null || generation === null || !allChoicesMade) {
+      return;
+    }
     await run("planning", async () => {
       const domainChoices = current.domains.map((domain): RestoreDomainChoice => {
         const choice = choices[domain.domainId];
@@ -153,7 +174,9 @@ import type { RestoreChoice } from './restore-model.ts';
   async function execute(): Promise<void> {
     const current = plan;
     const generation = planGeneration;
-    if (current === null || generation === null) {return;}
+    if (current === null || generation === null) {
+      return;
+    }
     await run("publishing", async () => {
       const outcome = await client.executeRestore({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -186,7 +209,9 @@ import type { RestoreChoice } from './restore-model.ts';
   ): Promise<void> {
     const current = inspection;
     const generation = inspectionGeneration;
-    if (current === null || generation === null) {return;}
+    if (current === null || generation === null) {
+      return;
+    }
     await run("publishing", async () => {
       const outcome = await client.executeAdapterRestore({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -207,9 +232,7 @@ import type { RestoreChoice } from './restore-model.ts';
     });
   }
 
-  function executeInspectedAdapter(
-    domain: RestoreDomainInspectionProjection,
-  ): Promise<void> {
+  function executeInspectedAdapter(domain: RestoreDomainInspectionProjection): Promise<void> {
     if (domain.compatibility.status !== "customAdapterReady") {
       return Promise.resolve();
     }
@@ -263,7 +286,9 @@ import type { RestoreChoice } from './restore-model.ts';
 
   function reject(rejection: ConfigOperationRejection): void {
     error = rejection.detail;
-    if (rejection.snapshot) {acceptSnapshot(rejection.snapshot);}
+    if (rejection.snapshot) {
+      acceptSnapshot(rejection.snapshot);
+    }
     if (rejection.code === "restorePlanStale" || rejection.code === "authorityChanged") {
       plan = null;
       planGeneration = null;
@@ -290,10 +315,20 @@ import type { RestoreChoice } from './restore-model.ts';
 <div aria-busy={activity !== "idle"}>
   <Stack gap="md">
     {#if error}
-      <Callout tone="danger" title="Restore operation failed" message={error} announceMode="assertive" />
+      <Callout
+        tone="danger"
+        title="Restore operation failed"
+        message={error}
+        announceMode="assertive"
+      />
     {/if}
     {#if notice}
-      <Callout tone="success" title="Restore operation complete" message={notice} announceMode="polite" />
+      <Callout
+        tone="success"
+        title="Restore operation complete"
+        message={notice}
+        announceMode="polite"
+      />
     {/if}
 
     <!-- Three different situations used to render this one warning: the first
@@ -374,10 +409,23 @@ import type { RestoreChoice } from './restore-model.ts';
             <DetailItem label="Archive" value={inspection.archiveId} />
             <DetailItem label="Created" value={formatArchiveTimestamp(inspection.createdAt)} />
             <DetailItem label="Integrity" value={RESTORE_INTEGRITY_LABELS[inspection.integrity]} />
-            <DetailItem label="Authenticity" value={RESTORE_AUTHENTICITY_LABELS[inspection.authenticity]} />
-            <DetailItem label="Application identity" value={identityLabel(inspection.identity.application)} />
-            <DetailItem label="Producer identity" value={identityLabel(inspection.identity.producer)} />
-            <DetailItem label="Archive digest" value={inspection.archiveSha256} truncateValue={true} />
+            <DetailItem
+              label="Authenticity"
+              value={RESTORE_AUTHENTICITY_LABELS[inspection.authenticity]}
+            />
+            <DetailItem
+              label="Application identity"
+              value={identityLabel(inspection.identity.application)}
+            />
+            <DetailItem
+              label="Producer identity"
+              value={identityLabel(inspection.identity.producer)}
+            />
+            <DetailItem
+              label="Archive digest"
+              value={inspection.archiveSha256}
+              truncateValue={true}
+            />
           </Grid>
         </Surface>
 
@@ -389,7 +437,9 @@ import type { RestoreChoice } from './restore-model.ts';
                 <Stack gap="sm">
                   <strong>{domain.domainId}</strong>
                   <p>{compatibilityLabel(domain.compatibility)}</p>
-                  <small>{domain.storageClass} · {domain.consistencyGroup} · {domain.sourceState}</small>
+                  <small
+                    >{domain.storageClass} · {domain.consistencyGroup} · {domain.sourceState}</small
+                  >
                 </Stack>
                 <Stack>
                   <RadioGroup
@@ -422,7 +472,9 @@ import type { RestoreChoice } from './restore-model.ts';
             <h3>Consistency groups</h3>
             <Stack gap="sm" asRole="list">
               {#each inspection.consistencyGroups as group (group.id)}
-                <span role="listitem"><strong>{group.id}</strong>: {group.mode} via {group.authority}</span>
+                <span role="listitem"
+                  ><strong>{group.id}</strong>: {group.mode} via {group.authority}</span
+                >
               {/each}
             </Stack>
           </Surface>
@@ -461,7 +513,8 @@ import type { RestoreChoice } from './restore-model.ts';
             {#each plan.entries as entry (entry.domainId)}
               <span role="listitem">
                 <strong>{entry.domainId}</strong>: {entry.choice}
-                {#if entry.action} → {entry.action}{/if}
+                {#if entry.action}
+                  → {entry.action}{/if}
                 {#if entry.current?.state === "present"}
                   ({entry.current.byteLength} bytes, {entry.current.sha256})
                 {/if}

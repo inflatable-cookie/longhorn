@@ -1,3 +1,4 @@
+import { requireValue } from "../../../../scripts/proof-support.ts";
 import fixtureJson from "../../../../fixtures/settings/protocol-v1.json";
 import type {
   SettingsRegistrySnapshot,
@@ -17,7 +18,7 @@ export function registry(generation = fixture.registry.generation): SettingsRegi
 }
 
 export function snapshot(
-  revision = fixture.snapshots[0]!.authority.scopeRevision,
+  revision = requireValue(fixture.snapshots[0], "fixture.snapshots[0]").authority.scopeRevision,
   generation = fixture.registry.generation,
 ): SettingsScopeSnapshot {
   const value = structuredClone(fixture.snapshots[0]) as SettingsScopeSnapshot;

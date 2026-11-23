@@ -1,3 +1,6 @@
+import { parseDiscovery, readToolResult, requireNumber } from "./reply.ts";
+import { parseJsonRecord } from "../../scripts/proof-json.ts";
+import { requireValue } from "../../scripts/proof-support.ts";
 // Drives the Card 231 packaged freshness matrix against the bundled
 // agent-control proof app (contract 022 evidence: unfocused, occluded, and
 // minimized screenshots are fresh, judged DOM-relative — never wall-clock).
@@ -61,7 +64,7 @@ const discoveryDir = join(
 );
 const appId = "dev.example.longhorn-agent-control-proof";
 
-type Discovery = { appId: string; pid: number; port: number; token: string };
+type Discovery = ReturnType<typeof parseDiscovery>;
 
 type MatrixRow = {
   state: string;
@@ -100,7 +103,7 @@ async function waitForDiscovery(): Promise<{ discovery: Discovery; path: string 
     const match = entries.find((entry) => entry.startsWith(`${appId}-`));
     if (match) {
       const path = join(discoveryDir, match);
-      const discovery = JSON.parse(await readFile(path, "utf8")) as Discovery;
+      const discovery = parseDiscovery(await readFile(path, "utf8"));
       return { discovery, path };
     }
     if (Date.now() > deadline) {
@@ -116,16 +119,16 @@ async function mcp(
   method: string,
   params: Record<string, unknown>,
   name?: string,
-): Promise<unknown> {
-  const headers: Record<string, string> = {
+) {
+  const headers = new Headers({
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
     "mcp-protocol-version": "2026-07-28",
     "mcp-method": method,
     authorization: `Bearer ${discovery.token}`,
-  };
+  });
   if (name) {
-    headers["mcp-name"] = name;
+    headers.set("mcp-name", name);
   }
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
@@ -143,7 +146,7 @@ async function mcp(
   if (!data) {
     throw new Error(`MCP ${method} returned no SSE data: ${body}`);
   }
-  return JSON.parse(data);
+  return parseJsonRecord(data);
 }
 
 function meta() {
@@ -159,17 +162,16 @@ async function callTool(
   tool: string,
   args: Record<string, unknown>,
 ): Promise<{ isError: boolean; result: Record<string, unknown> }> {
-  const payload = (await mcp(
+  const payload = await mcp(
     discovery,
     "tools/call",
     { name: tool, arguments: args, _meta: meta() },
     tool,
-  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  const result = payload.result;
+  );
+  const result = readToolResult(payload.result);
   const isError = result.isError === true;
   const first = result.content[0] ?? {};
-  const parsed =
-    first.type === "text" ? (JSON.parse(String(first.text)) as Record<string, unknown>) : first;
+  const parsed = first.type === "text" ? parseJsonRecord(String(first.text)) : first;
   return { isError, result: parsed };
 }
 
@@ -183,27 +185,28 @@ async function evaluateCounter(discovery: Discovery): Promise<number> {
   return Number.parseInt(String(result.value), 10);
 }
 
-async function evaluateJson<T>(discovery: Discovery, js: string): Promise<T> {
+async function evaluateJson(discovery: Discovery, js: string) {
   const { isError, result } = await callTool(discovery, "evaluate", { js });
   if (isError) {
     throw new Error(`evaluate failed: ${JSON.stringify(result)}`);
   }
-  return JSON.parse(String(result.value)) as T;
+  return parseJsonRecord(String(result.value));
 }
 
 async function screenshot(discovery: Discovery, path: string): Promise<void> {
-  const payload = (await mcp(
+  const payload = await mcp(
     discovery,
     "tools/call",
     { name: "screenshot", arguments: {}, _meta: meta() },
     "screenshot",
-  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  if (payload.result.isError) {
-    throw new Error(`screenshot failed: ${JSON.stringify(payload.result.content)}`);
+  );
+  const payloadResult = readToolResult(payload.result);
+  if (payloadResult.isError) {
+    throw new Error(`screenshot failed: ${JSON.stringify(payloadResult.content)}`);
   }
-  const image = payload.result.content[0];
+  const image = payloadResult.content[0];
   if (!image || image.type !== "image") {
-    throw new Error(`screenshot returned no image content: ${JSON.stringify(payload.result)}`);
+    throw new Error(`screenshot returned no image content: ${JSON.stringify(payloadResult)}`);
   }
   await writeFile(path, Buffer.from(String(image.data), "base64"));
 }
@@ -226,7 +229,8 @@ function hslToRgb(hue: number, saturation: number, lightness: number): [number, 
               ? [x, 0, c]
               : [c, 0, x];
   const m = lightness - c / 2;
-  return [r, g, b].map((channel) => Math.round((channel + m) * 255)) as [number, number, number];
+  const channel = (value: number) => Math.round((value + m) * 255);
+  return [channel(r), channel(g), channel(b)];
 }
 
 function expectedPixel(counter: number): [number, number, number] {
@@ -275,7 +279,11 @@ async function pixelAt(
   const y = Math.floor(height * fractionY);
   const row = rawHeight < 0 ? y : height - 1 - y;
   const offset = dataOffset + row * rowSize + x * bytesPerPixel;
-  const pixel: [number, number, number] = [bmp[offset + 2]!, bmp[offset + 1]!, bmp[offset]!];
+  const pixel: [number, number, number] = [
+    requireValue(bmp[offset + 2], "bmp[offset + 2]"),
+    requireValue(bmp[offset + 1], "bmp[offset + 1]"),
+    requireValue(bmp[offset], "bmp[offset]"),
+  ];
   await rm(bmpPath);
   return pixel;
 }
@@ -285,7 +293,10 @@ function colorNear(
   expected: [number, number, number],
   tolerance: number,
 ): boolean {
-  return actual.every((channel, index) => Math.abs(channel - expected[index]!) <= tolerance);
+  return actual.every(
+    (channel, index) =>
+      Math.abs(channel - requireValue(expected[index], "expected[index]")) <= tolerance,
+  );
 }
 
 async function activateApp(): Promise<void> {
@@ -297,7 +308,7 @@ async function activateTerminal(): Promise<void> {
 }
 
 async function coverWithTerminal(discovery: Discovery): Promise<void> {
-  const bounds = await evaluateJson<{ x: number; y: number; w: number; h: number }>(
+  const bounds = await evaluateJson(
     discovery,
     "JSON.stringify({x: window.screenX, y: window.screenY, w: window.outerWidth, h: window.outerHeight})",
   );
@@ -306,7 +317,7 @@ async function coverWithTerminal(discovery: Discovery): Promise<void> {
     "-e",
     'tell application "Terminal" to do script ""',
     "-e",
-    `tell application "Terminal" to set bounds of front window to {${bounds.x - 20}, ${bounds.y - 20}, ${bounds.x + bounds.w + 20}, ${bounds.y + bounds.h + 20}}`,
+    `tell application "Terminal" to set bounds of front window to {${requireNumber(bounds.x, "window x") - 20}, ${requireNumber(bounds.y, "window y") - 20}, ${requireNumber(bounds.x, "window x") + requireNumber(bounds.w, "window w") + 20}, ${requireNumber(bounds.y, "window y") + requireNumber(bounds.h, "window h") + 20}}`,
     "-e",
     'tell application "Terminal" to activate',
   ]);
@@ -493,7 +504,7 @@ async function main(): Promise<void> {
     rows,
     geometry,
     discoveryRemovedOnQuit: discoveryRemoved,
-    fresh: rows.every((row) => row.fresh) && (geometry.pass as boolean),
+    fresh: rows.every((row) => row.fresh) && geometry.pass === true,
   };
   await writeFile(join(outDir, "matrix.json"), `${JSON.stringify(receipt, null, 2)}\n`);
   console.log(JSON.stringify(receipt, null, 2));

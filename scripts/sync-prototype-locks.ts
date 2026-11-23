@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Refresh workspace-excluded prototype Cargo.lock files (and the root lock).
 // `release prepare` syncs only the root lock; this selector also admits a
 // missing Longhorn path package when an updated workspace graph requires it.
@@ -97,8 +98,8 @@ export function dependencyReferences(
     return [];
   }
   return [...dependencies.matchAll(/"([^"]+)"/g)].map(([, reference]) => {
-    const [name, version] = reference!.split(/\s+/, 2);
-    return { name: name!, version };
+    const [name, version] = requireValue(reference, "reference").split(/\s+/, 2);
+    return { name: requireValue(name, "name"), version };
   });
 }
 
@@ -123,7 +124,7 @@ function serializeLock(lock: ParsedLock): string {
 export function addMissingLonghornPathPackages(
   prototypeLockText: string,
   workspaceLockText: string,
-): { text: string; added: Array<string> } {
+) {
   const original = parseLock(prototypeLockText);
   const workspacePackages = parseLock(workspaceLockText).packages.filter(isLonghornPathPackage);
   const packages = [...original.packages];
@@ -199,7 +200,7 @@ export function assessLock(
   allowedPathPackages: Array<LockPackage> = [],
 ): LockAssessment {
   const allowedPathNames = new Set(
-    allowedPathPackages.filter(isLonghornPathPackage).map((pkg) => pkg.name),
+    allowedPathPackages.flatMap((pkg) => (isLonghornPathPackage(pkg) ? [pkg.name] : [])),
   );
   const unexpected: Array<string> = [];
   const thirdPartyMoved: Array<string> = [];
@@ -258,7 +259,8 @@ export function assessLock(
     if (
       beforeMap.has(key) &&
       afterMap.has(key) &&
-      beforeMap.get(key)!.body === afterMap.get(key)!.body
+      requireValue(beforeMap.get(key), "beforeMap.get(key)").body ===
+        requireValue(afterMap.get(key), "afterMap.get(key)").body
     ) {
       continue;
     }

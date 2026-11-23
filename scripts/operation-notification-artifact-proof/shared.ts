@@ -5,6 +5,7 @@ export function equalJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
+// oxlint-disable-next-line quality/no-unknown-returns -- Canonicalize arbitrary JSON for comparison without assuming its shape.
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonical);

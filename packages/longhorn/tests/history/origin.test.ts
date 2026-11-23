@@ -17,6 +17,25 @@ const command = (target: unknown) => ({
   target,
 });
 
+const page = (floor: unknown) => ({
+  protocolVersion: 1,
+  authorityEpoch: 7,
+  historyId: "history:x",
+  revision: 4,
+  offset: 0,
+  totalEntries: 0,
+  entries: [],
+  truncatedBefore: false,
+  truncatedAfter: false,
+  retainedBaseline: {
+    prunedEntryCount: 1,
+    prunedEncodedWeight: 8,
+    lastPrunedEntryId: "entry:0",
+    lastPrunedSequence: 1,
+  },
+  floor,
+});
+
 describe("the origin is a position the client can name", () => {
   it("accepts checkoutRoot, which carries nothing but its kind", () => {
     expect(() =>
@@ -44,24 +63,6 @@ describe("the origin is a position the client can name", () => {
   // the oldest entry is where the surviving history begins, not where the
   // document did.
   it("rejects a baseline floor that omits how much was pruned", () => {
-    const page = (floor: unknown) => ({
-      protocolVersion: 1,
-      authorityEpoch: 7,
-      historyId: "history:x",
-      revision: 4,
-      offset: 0,
-      totalEntries: 0,
-      entries: [],
-      truncatedBefore: false,
-      truncatedAfter: false,
-      retainedBaseline: {
-        prunedEntryCount: 1,
-        prunedEncodedWeight: 8,
-        lastPrunedEntryId: "entry:0",
-        lastPrunedSequence: 1,
-      },
-      floor,
-    });
     expect(() =>
       assertValidHistoryPageSnapshot(page({ kind: "baseline", prunedEntryCount: 1 })),
     ).not.toThrow();

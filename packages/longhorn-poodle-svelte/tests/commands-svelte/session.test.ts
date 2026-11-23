@@ -27,11 +27,11 @@ describe("command Svelte and public Poodle adapters", () => {
     expect(await firstMount.findByRole("dialog", { name: "Command palette" })).toBeTruthy();
     expect(second.session.open).toBe(false);
 
-    await firstMount.unmount();
+    await Promise.resolve(firstMount.unmount());
     await first.session.stop();
     expect(first.target.listeners.size).toBe(0);
     expect(second.target.listeners.size).toBe(1);
-    await secondMount.unmount();
+    await Promise.resolve(secondMount.unmount());
     await second.session.stop();
     expect(second.target.listeners.size).toBe(0);
   });
@@ -83,7 +83,7 @@ describe("command Svelte and public Poodle adapters", () => {
     await fireEvent.click(mounted.getByRole("button", { name: "Apply" }));
     expect(captured).toBe("base:open");
     expect(applied).toBe(1);
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await state.session.stop();
   });
 });

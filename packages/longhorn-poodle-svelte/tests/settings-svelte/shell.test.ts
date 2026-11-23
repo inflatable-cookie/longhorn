@@ -69,7 +69,7 @@ describe("SettingsShell", () => {
       expect(document.querySelector('[aria-label="Settings pages"]')).not.toBeNull();
       expect(document.querySelector('[data-testid="consumer-page"]')).not.toBeNull();
     });
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await session.stop();
 
     expect(transport.activeListenerCount()).toBe(0);
@@ -104,7 +104,7 @@ describe("SettingsShell", () => {
     await fireEvent.click(mounted.getByRole("button", { name: "Discard" }));
     await waitFor(() => expect(closes).toBe(1));
     expect(session.dirty).toBe(false);
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await session.stop();
   });
 
@@ -141,7 +141,7 @@ describe("SettingsShell", () => {
     // The query survives. Clearing it on the first pick would throw away the
     // filter at the moment it became useful.
     expect((search as HTMLInputElement).value).toBe("Output");
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await session.stop();
   });
 
@@ -159,7 +159,7 @@ describe("SettingsShell", () => {
 
     expect(await mounted.findByText("Settings changed elsewhere")).toBeTruthy();
     expect(mounted.getByTestId("consumer-page").dataset.dirty).toBe("true");
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await session.stop();
   });
 
@@ -177,7 +177,7 @@ describe("SettingsShell", () => {
     expect(mounted.queryByText("Saved")).toBeNull();
     expect(mounted.queryByRole("button", { name: "Apply" })).toBeNull();
     expect(mounted.queryByRole("button", { name: "Cancel" })).toBeNull();
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await session.stop();
   });
 
@@ -193,7 +193,7 @@ describe("SettingsShell", () => {
     await waitFor(() => {
       expect(transport.calls(SETTINGS_RESET_COMMAND)).toBe(1);
     });
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await session.stop();
   });
 
@@ -209,7 +209,7 @@ describe("SettingsShell", () => {
 
     expect(await mounted.findByText("Settings failed")).toBeTruthy();
     expect(mounted.queryByTestId("consumer-page")).toBeNull();
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await session.stop();
   });
 
@@ -222,7 +222,7 @@ describe("SettingsShell", () => {
         props: { session },
       });
       await mounted.findByTestId("consumer-page");
-      await mounted.unmount();
+      await Promise.resolve(mounted.unmount());
       await session.stop();
       expect(transport.activeListenerCount()).toBe(0);
       expect(session.status.kind).toBe("idle");

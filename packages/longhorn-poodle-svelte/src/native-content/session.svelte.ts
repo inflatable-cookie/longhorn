@@ -253,6 +253,8 @@ export class NativeContentSession {
 
     try {
       this.#installObserver();
+      // The client may synchronously notify before it returns the connection.
+      // oxlint-disable-next-line prefer-const -- This binding must be initialized before connect calls its callbacks.
       let connection: NativeContentConnection | undefined;
       let earlySnapshot: NativeContentSnapshot | undefined;
       let earlyFailure: unknown;

@@ -127,8 +127,7 @@ export function assertValidNativeContentDesiredUpdateResult(
     assertValidNativeContentSnapshot(object.snapshot);
     desiredReceipt(object.receipt, "$.receipt");
     assertValidNativeContentChangedEvent(object.event);
-    const event = object.event as Record<string, unknown>;
-    const change = event.change as Record<string, unknown>;
+    const change = object.event.change;
     if (change.kind !== "desired_updated" || change.request_id !== object.request_id) {
       fail("$.event.change", "desired update event correlation mismatch");
     }
@@ -150,8 +149,7 @@ export function assertValidNativeContentDecisionResult(
     assertValidNativeContentSnapshot(object.snapshot);
     proposalReceipt(object.receipt, "$.receipt");
     assertValidNativeContentChangedEvent(object.event);
-    const event = object.event as Record<string, unknown>;
-    const change = event.change as Record<string, unknown>;
+    const change = object.event.change;
     if (change.kind !== "content_size_decided" || change.request_id !== object.request_id) {
       fail("$.event.change", "content-size decision event correlation mismatch");
     }

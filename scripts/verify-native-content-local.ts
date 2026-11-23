@@ -1,3 +1,5 @@
+import { parseJsonRecord, requireList, requireRecord, requireStrings } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 // Bundled local child-view source: disposable native consumer check and proof
 // (contract 017, native-content local selectors).
 //
@@ -133,7 +135,7 @@ try {
         `the native consumer printed no proof report (exit ${app.status}, signal ${app.signal})\n${stdout}\n${app.stderr ?? ""}`,
       );
     }
-    const report = JSON.parse(reportLine.slice("ncl-proof-report:".length));
+    const report = parseJsonRecord(reportLine.slice("ncl-proof-report:".length));
     if (report.schema !== "longhorn.native-content-local-proof.v1") {
       throw new Error(`unexpected proof report schema: ${report.schema}`);
     }
@@ -143,17 +145,25 @@ try {
       );
     }
 
+    const steps = requireList(report.steps, "proof steps").map((step) =>
+      requireRecord(step, "proof step"),
+    );
+    const ipc = requireRecord(report.ipc, "proof IPC");
     // The evidence must show exactly the claims the proof exists for.
-    assertClaim(report.steps, "observed-source-identity");
-    assertClaim(report.steps, "adapter-typed-escape-denial");
-    assertClaim(report.steps, "document-title-evidence");
-    assertClaim(report.steps, "detach-applied");
-    assertClaim(report.steps, "post-detach-observation");
-    assertClaim(report.steps, "teardown-receipt");
-    if (!report.policyEvents.some((event: { kind: string }) => event.kind === "downloadDenied")) {
+    assertClaim(steps, "observed-source-identity");
+    assertClaim(steps, "adapter-typed-escape-denial");
+    assertClaim(steps, "document-title-evidence");
+    assertClaim(steps, "detach-applied");
+    assertClaim(steps, "post-detach-observation");
+    assertClaim(steps, "teardown-receipt");
+    if (
+      !requireList(report.policyEvents, "policy events").some(
+        (event) => requireRecord(event, "policy event").kind === "downloadDenied",
+      )
+    ) {
       throw new Error("the native proof recorded no download denial");
     }
-    const pageLoadUrls = report.pageLoadUrls as Array<string>;
+    const pageLoadUrls = requireStrings(report.pageLoadUrls, "page-load URLs");
     if (pageLoadUrls.length === 0) {
       throw new Error("the proof recorded no page-load events");
     }
@@ -162,11 +172,11 @@ try {
         throw new Error(`a page-load event left the application asset protocol: ${url}`);
       }
     }
-    const ipcWebviews = report.ipc.webviews as Array<string>;
+    const ipcWebviews = requireStrings(ipc.webviews, "IPC webviews");
     if (JSON.stringify(ipcWebviews) !== JSON.stringify(["proof-child"])) {
       throw new Error(`the scoped IPC receipt came from unexpected webviews: ${ipcWebviews}`);
     }
-    if (report.ipc.nonceMatchesInjection !== true) {
+    if (ipc.nonceMatchesInjection !== true) {
       throw new Error("the injected initialization-script nonce did not round-trip");
     }
 
@@ -186,9 +196,10 @@ try {
           navigationPolicy: report.navigationPolicy,
           csp: report.csp,
           capability: report.capability,
-          observedSourceUrl: report.steps.find(
-            (step: { step: string }) => step.step === "observed-source-identity",
-          )?.detail.url,
+          observedSourceUrl: requireRecord(
+            steps.find((step) => step.step === "observed-source-identity")?.detail,
+            "source identity detail",
+          ).url,
           documentTitle: report.documentTitle,
           proofLimits: [
             "macOS with a GUI session: the proof runs a real WKWebView child in a real window",
@@ -214,7 +225,7 @@ try {
   await buildScratch.dispose();
 }
 
-function assertClaim(steps: ReadonlyArray<{ step: string }>, name: string): void {
+function assertClaim(steps: ReadonlyArray<Record<string, unknown>>, name: string): void {
   if (!steps.some((step) => step.step === name)) {
     throw new Error(`the native proof never recorded the ${name} step`);
   }
@@ -231,8 +242,8 @@ async function verifyExampleSources(): Promise<void> {
   }
 
   const manifest = await readFile(join(consumerRoot, "Cargo.toml"), "utf8");
-  const declared = [...manifest.matchAll(/^(longhorn-[\w-]+)(?:\.workspace)?\s*=/gm)].map(
-    (match) => match[1]!,
+  const declared = [...manifest.matchAll(/^(longhorn-[\w-]+)(?:\.workspace)?\s*=/gm)].map((match) =>
+    requireValue(match[1], "match[1]"),
   );
   for (const name of declared) {
     if (!(crates as ReadonlyArray<string>).includes(name)) {
@@ -272,7 +283,7 @@ async function verifyExampleSources(): Promise<void> {
  * the crate by tag actually receives. The proof copies crate sources, so this
  * is the check that those sources are the ones a package ships.
  */
-function verifyPackageInventory(name: string): { name: string; files: number } {
+function verifyPackageInventory(name: string) {
   const listing = run(rustCommand(["package", "-p", name, "--list", "--allow-dirty"]), repoRoot);
   const files = listing.trim().split("\n");
   for (const required of ["Cargo.toml"]) {
@@ -304,7 +315,7 @@ async function privateWorkspaceManifest(): Promise<string> {
     .split("\n")
     .filter((line) => {
       const match = line.match(/^(longhorn-[\w-]+)\s*=/);
-      return match === null || selected.has(match[1]!);
+      return match === null || selected.has(requireValue(match[1], "match[1]"));
     })
     .join("\n");
   const members = [...crates.map((name) => `  "crates/${name}",`), '  "consumer",'].join("\n");

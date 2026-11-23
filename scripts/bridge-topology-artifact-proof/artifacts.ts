@@ -1,3 +1,4 @@
+import { readPackageManifest } from "../proof-json.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join } from "node:path";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
@@ -141,7 +142,7 @@ export async function packAndCheckRustArtifacts(
   };
 }
 
-async function inspectNpmArtifact(name: string, path: string, artifactRoot: string): Promise<void> {
+async function inspectNpmArtifact(name: string, path: string, artifactRoot: string) {
   const listing = await run(["tar", "-tzf", path], artifactRoot);
   if (
     listing.includes("node_modules/") ||
@@ -150,28 +151,13 @@ async function inspectNpmArtifact(name: string, path: string, artifactRoot: stri
   ) {
     throw new Error(`${name} artifact contains proof or workspace material`);
   }
-  const packedManifest = JSON.parse(
+  const packedManifest = readPackageManifest(
     await run(["tar", "-xOzf", path, "package/package.json"], artifactRoot),
-  ) as {
-    readonly name: string;
-    readonly version: string;
-    readonly dependencies?: Record<string, string>;
-    readonly peerDependencies?: Record<string, string>;
-    readonly exports?: Record<string, unknown>;
-  };
+  );
   if (packedManifest.name !== name || packedManifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
-  const expectedDependencies: Record<string, ReadonlyArray<string>> = {
-    "@inflatable-cookie/longhorn": [],
-    "@inflatable-cookie/longhorn-poodle-svelte": [],
-    "@inflatable-cookie/longhorn-tauri": [],
-  };
-  assertExactSet(
-    `${name} dependencies`,
-    Object.keys(packedManifest.dependencies ?? {}),
-    expectedDependencies[name] ?? [],
-  );
+  assertExactSet(`${name} dependencies`, Object.keys(packedManifest.dependencies ?? {}), []);
   if (
     name === "@inflatable-cookie/longhorn-bridge" &&
     packedManifest.peerDependencies?.["@inflatable-cookie/longhorn-tauri"] !== LONGHORN_VERSION

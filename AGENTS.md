@@ -50,7 +50,8 @@ and timeouts. The workspace route also exercises PTY sessions in one process.
 
 `check:ts` typechecks the packages, repository scripts and agent-control
 proof drivers. `check:svelte` checks the adapter templates and treats warnings
-as errors. `lint:ts`, `fmt:ts`, and `check:knip` run in `qa`.
+as errors. `lint:ts`, `fmt:ts`, and `check:knip` run in `qa`. `fmt:ts`
+uses Node for Oxfmt, including its Svelte formatter.
 `check:machete` requires local cargo-machete and runs in the
 `rust-dependencies` QA group.
 

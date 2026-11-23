@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { ToastHost } from '@inflatable-cookie/poodle-svelte';
-import type { ToastHostPlacement, ToastHostStore, ToastHostStoreItem } from '@inflatable-cookie/poodle-svelte';
+  import { ToastHost } from "@inflatable-cookie/poodle-svelte";
+  import type {
+    ToastHostPlacement,
+    ToastHostStore,
+    ToastHostStoreItem,
+  } from "@inflatable-cookie/poodle-svelte";
   import { readable } from "svelte/store";
 
   import type { NotificationSession } from "../svelte/session.svelte.ts";
@@ -19,13 +23,16 @@ import type { ToastHostPlacement, ToastHostStore, ToastHostStoreItem } from '@in
 
   const store: ToastHostStore = {
     toasts: readable<Array<ToastHostStoreItem>>([], (set) => {
-      const sync = () => set(session.toasts.map((toast) => ({
-        id: toast.id,
-        title: toast.title,
-        message: toast.description,
-        tone: toast.tone,
-        actionLabel: toast.action?.label ?? null,
-      })));
+      const sync = () =>
+        set(
+          session.toasts.map((toast) => ({
+            id: toast.id,
+            title: toast.title,
+            message: toast.description,
+            tone: toast.tone,
+            actionLabel: toast.action?.label ?? null,
+          })),
+        );
       sync();
       return session.observe(sync);
     }),
@@ -34,7 +41,11 @@ import type { ToastHostPlacement, ToastHostStore, ToastHostStoreItem } from '@in
 
   function act(id: string): void {
     const toast = session.toasts.find((candidate) => candidate.id === id);
-    if (toast?.action !== undefined) {void session.invokeAction(toast.notificationId, toast.action.referenceId).catch(() => undefined);}
+    if (toast?.action !== undefined) {
+      void session
+        .invokeAction(toast.notificationId, toast.action.referenceId)
+        .catch(() => undefined);
+    }
   }
 </script>
 

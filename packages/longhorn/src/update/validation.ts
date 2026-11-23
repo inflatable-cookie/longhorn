@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import { UPDATE_FIELDS } from "./generated/fields.ts";
 import {
   UPDATE_AVAILABILITY_STATES,
@@ -225,7 +226,8 @@ function variantFields(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = value[UPDATE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const fields = UPDATE_VARIANT_FIELDS[type]?.[discriminant as string];
+  const fields =
+    typeof discriminant === "string" ? UPDATE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (fields === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }
@@ -239,8 +241,9 @@ function noPayload(value: unknown): void {
     }
     if (candidate !== null && typeof candidate === "object") {
       for (const [key, child] of Object.entries(candidate)) {
-        if (key.toLocaleLowerCase().includes("payload"))
+        if (key.toLocaleLowerCase().includes("payload")) {
           fail(`${path}.${key}`, "product payload field is forbidden");
+        }
         visit(child, `${path}.${key}`);
       }
     }
@@ -248,10 +251,10 @@ function noPayload(value: unknown): void {
   visit(value, "$");
 }
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 function exact(
   value: Record<string, unknown>,
@@ -289,7 +292,7 @@ function digest(value: unknown, path: string): void {
     fail(path, "expected 64 lowercase hex digits");
   }
 }
-function string(value: unknown, path: string): void {
+function string(value: unknown, path: string): asserts value is string {
   if (typeof value !== "string") {
     fail(path, "expected string");
   }
@@ -302,7 +305,7 @@ function optionalString(value: unknown, path: string): void {
 /** Versions are strings on the wire, as `semver::Version` serialises them. */
 function version(value: unknown, path: string): void {
   string(value, path);
-  if ((value as string).length === 0) {
+  if (value.length === 0) {
     fail(path, "expected non-empty version");
   }
 }

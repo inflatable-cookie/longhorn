@@ -136,9 +136,10 @@ async function prepare(directory: string) {
   };
 }
 
+const path = (value: string) =>
+  value.replaceAll("\\", String.raw`\\`).replaceAll('"', String.raw`\"`);
+
 function renderManifest(longhorn: string, swallowtail: string): string {
-  const path = (value: string) =>
-    value.replaceAll("\\", String.raw`\\`).replaceAll('"', String.raw`\"`);
   return `[package]\nname = "longhorn-agent-tool-dispatch-provider-free-fixture"\nversion = "0.0.0"\nedition = "2024"\nrust-version = "${MSRV}"\npublish = false\n\n[workspace]\n\n[dependencies]\nlonghorn-agent-tool-dispatch = { path = "${path(join(longhorn, "crates", "longhorn-agent-tool-dispatch"))}" }\nswallowtail-core = { path = "${path(join(swallowtail, "crates", "swallowtail-core"))}" }\nswallowtail-host-local = { path = "${path(join(swallowtail, "crates", "swallowtail-host-local"))}" }\nswallowtail-runtime = { path = "${path(join(swallowtail, "crates", "swallowtail-runtime"))}" }\nswallowtail-testkit = { path = "${path(join(swallowtail, "crates", "swallowtail-testkit"))}" }\n\n[[bin]]\nname = "provider-free-fixture"\npath = "main.rs"\n`;
 }
 

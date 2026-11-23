@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   SURFACE_VARIANT_FIELDS,
   SURFACE_VARIANT_FIELDS_DISCRIMINANTS,
@@ -75,9 +76,7 @@ export function assertValidSurfaceMutationRejectionCode(
 ): asserts value is SurfaceMutationRejectionCode {
   if (
     typeof value !== "string" ||
-    !SURFACE_MUTATION_REJECTION_CODES.includes(
-      value as (typeof SURFACE_MUTATION_REJECTION_CODES)[number],
-    )
+    !SURFACE_MUTATION_REJECTION_CODES.some((code) => code === value)
   ) {
     throw new SurfaceProtocolValidationError("unknown_rejection_code", value);
   }
@@ -94,6 +93,7 @@ export function assertValidSurfaceMutationResponse(
     case "committed": {
       record(response, variantKeys("SurfaceMutationResponse", response));
       const receipt = record(response.receipt, SURFACE_FIELDS.SurfaceMutationReceipt);
+      // oxlint-disable-next-line quality/no-known-value-widening -- Runtime validation also covers structurally typed callers and untrusted wire values.
       assertValidSurfaceMutationOutcome(record(receipt.outcome));
       return;
     }
@@ -139,7 +139,8 @@ function assertKnownKind(
  */
 function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[SURFACE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = SURFACE_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string" ? SURFACE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (keys === undefined) {
     throw new SurfaceProtocolValidationError("unknown_outcome", { type, discriminant });
   }
@@ -160,10 +161,10 @@ function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArra
  * every caller but one.
  */
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     throw new SurfaceProtocolValidationError("invalid_object", value);
   }
-  const result = value as Record<string, unknown>;
+  const result = value;
   if (allowed === undefined) {
     return result;
   }

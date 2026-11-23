@@ -55,17 +55,17 @@ export class CommandSession {
   }
 
   get status(): CommandControllerStatus {
-    this.#revision;
+    void this.#revision;
     return this.#controller.status;
   }
 
   get mutation(): CommandMutationStatus {
-    this.#revision;
+    void this.#revision;
     return this.#controller.mutation;
   }
 
   get projection() {
-    this.#revision;
+    void this.#revision;
     return this.#controller.projection;
   }
 
@@ -103,7 +103,7 @@ export class CommandSession {
   }
 
   get dirty(): boolean {
-    this.#revision;
+    void this.#revision;
     return this.#controller.dirty;
   }
 
@@ -143,7 +143,7 @@ export class CommandSession {
     await this.#controller.search(query);
   }
 
-  select(commandId: string): Promise<unknown> {
+  select(commandId: string) {
     return this.#controller.dispatch({
       commandId,
       source: "palette",

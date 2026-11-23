@@ -67,7 +67,7 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
   });
 
   test("domain roots expose their clients and hide their adapters", async () => {
-    const table: Record<string, { present: Array<string>; absent: Array<string> }> = {
+    const table = {
       licence: {
         present: ["LicenceClient", "LicenceController"],
         absent: ["createTauriLicencePort"],
@@ -93,7 +93,7 @@ describe("@inflatable-cookie/longhorn package boundary", () => {
         present: ["UpdateClient", "UpdateController"],
         absent: ["createTauriUpdatePort"],
       },
-    };
+    } satisfies Record<string, { present: Array<string>; absent: Array<string> }>;
     for (const [domain, { present, absent }] of Object.entries(table)) {
       const root = (await import(`../src/${domain}/index.ts`)) as Record<string, unknown>;
       for (const symbol of present) {

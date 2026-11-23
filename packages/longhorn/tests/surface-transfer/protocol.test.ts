@@ -120,7 +120,7 @@ function statuses(category: string): Set<unknown> {
 }
 
 function roundTrip(value: unknown): unknown {
-  return JSON.parse(JSON.stringify(value));
+  return structuredClone(value);
 }
 
 function record(value: unknown): Record<string, unknown> {

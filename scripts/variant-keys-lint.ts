@@ -27,7 +27,7 @@ function keyTakingParameters(source: ts.SourceFile): Map<string, number> {
     if (ts.isFunctionDeclaration(node) && node.name) {
       const index = node.parameters.findIndex((parameter) => {
         const text = parameter.type?.getText(source) ?? "";
-        if (!/^readonly string\[\]$/.test(text.replaceAll(/\s+/g, " ").trim())) {
+        if (!/^(?:readonlystring\[\]|ReadonlyArray<string>)$/.test(text.replaceAll(/\s+/g, ""))) {
           return false;
         }
         return ts.isIdentifier(parameter.name) && KEY_PARAMETERS.has(parameter.name.text);

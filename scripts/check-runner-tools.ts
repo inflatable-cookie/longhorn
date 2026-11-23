@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Fails when scripts invoke tools a clean GitHub runner does not have, when a
 // release gate needs a tool `release.yml` does not install, or when the Rust
 // CI jobs lack the pinned Bun their tests require.
@@ -168,9 +169,9 @@ export function cargoInstallCrates(script: string): Array<string> {
       continue;
     }
     for (let index = 2; index < argv.length;) {
-      const token = argv[index]!;
+      const token = requireValue(argv[index], "argv[index]");
       if (token.startsWith("-")) {
-        const flag = token.split("=")[0]!;
+        const flag = requireValue(token.split("=")[0], 'token.split("=")[0]');
         if (token.includes("=") || !CARGO_INSTALL_FLAGS_WITH_VALUE.has(flag)) {
           index += 1;
         } else {
@@ -220,7 +221,10 @@ function cargoSubcommands(command: string): Array<string> {
 
 function leadingCommand(argv: Array<string>): Array<string> {
   let index = 0;
-  while (index < argv.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(argv[index]!)) {
+  while (
+    index < argv.length &&
+    /^[A-Za-z_][A-Za-z0-9_]*=/.test(requireValue(argv[index], "argv[index]"))
+  ) {
     index += 1;
   }
   return argv.slice(index);
@@ -278,7 +282,7 @@ function stripShellComment(line: string): string {
   // A shell comment starts at a token boundary outside single or double quotes.
   return line.replaceAll(
     /(?:'[^']*'|"[^"]*"|\\.|[^\s#][^\s]*)|(^|\s)#.*$/g,
-    (match, space) => space ?? match,
+    (match, space: string | undefined) => space ?? match,
   );
 }
 

@@ -20,7 +20,7 @@ import fixtureJson from "../../../../fixtures/config/protocol-v1.json";
 
 export const fixture = fixtureJson;
 
-export class PageTransport implements EventTransport {
+class PageTransport implements EventTransport {
   readonly calls: Array<string> = [];
   readonly #held = new Map<string, Promise<void>>();
   readonly #release = new Map<string, () => void>();
@@ -44,7 +44,12 @@ export class PageTransport implements EventTransport {
     if (this.#held.has(command)) {
       return;
     }
-    this.#held.set(command, new Promise<void>((resolve) => this.#release.set(command, resolve)));
+    this.#held.set(
+      command,
+      new Promise<void>((resolve) => {
+        this.#release.set(command, resolve);
+      }),
+    );
   }
 
   release(command: string): void {
@@ -68,11 +73,7 @@ export class PageTransport implements EventTransport {
   }
 }
 
-export function pageFixture(): {
-  client: ConfigOperationsClient;
-  snapshot: ConfigOperationsSnapshot;
-  transport: PageTransport;
-} {
+export function pageFixture() {
   const transport = new PageTransport();
   return {
     client: new ConfigOperationsClient(transport),

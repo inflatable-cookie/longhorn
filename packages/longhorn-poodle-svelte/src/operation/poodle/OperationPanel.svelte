@@ -42,22 +42,20 @@
   let cancellationTarget = $state<OperationEntryProjection | undefined>();
   const loading = $derived(session.status.kind === "loading");
   const failure = $derived(
-    session.status.kind === "failed"
-      ? errorMessage(session.status.error)
-      : null,
+    session.status.kind === "failed" ? errorMessage(session.status.error) : null,
   );
 
   function select(operation: OperationEntryProjection): void {
     session.select(
-      session.selectedOperationId === operation.operationId
-        ? undefined
-        : operation.operationId,
+      session.selectedOperationId === operation.operationId ? undefined : operation.operationId,
     );
   }
 
   async function confirmCancellation(): Promise<void> {
     const operation = cancellationTarget;
-    if (operation === undefined) {return;}
+    if (operation === undefined) {
+      return;
+    }
     // A failed request is recorded on the session and shown by the command
     // callout, so the dialog closes either way rather than staying over it.
     await session.cancel(operation.operationId).catch(() => undefined);
@@ -74,9 +72,7 @@
   <Stack gap="sm">
     <Stack direction="row" gap="sm" justify="between">
       <Button
-        variant={session.selectedOperationId === operation.operationId
-          ? "primary"
-          : "secondary"}
+        variant={session.selectedOperationId === operation.operationId ? "primary" : "secondary"}
         pressed={session.selectedOperationId === operation.operationId}
         onClick={() => select(operation)}
       >
@@ -129,12 +125,7 @@
   {#if loading}
     <Spinner ariaLabel="Loading operations" />
   {:else if failure}
-    <Callout
-      tone="danger"
-      title="Operations unavailable"
-      message={failure}
-      announceMode="polite"
-    />
+    <Callout tone="danger" title="Operations unavailable" message={failure} announceMode="polite" />
   {:else}
     {#if session.commandRejection}
       <Callout

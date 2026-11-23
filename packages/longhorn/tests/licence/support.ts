@@ -33,5 +33,5 @@ export function fixture(): LicenceFixture {
 }
 
 export function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }

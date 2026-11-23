@@ -1,3 +1,7 @@
+import { parseJsonRecord, requireRecord, requireList, requireString } from "./proof-json.ts";
+import { errorCode } from "./proof-support.ts";
+import { readPackageIdentity, readPackageManifest, readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import {
   digest,
   fileDependency,
@@ -67,13 +71,6 @@ interface ArtifactIdentity {
   readonly name: string;
   readonly filename: string;
   readonly sha256: string;
-}
-
-interface PackageManifest {
-  readonly name: string;
-  dependencies: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  overrides?: Record<string, string>;
 }
 
 try {
@@ -252,30 +249,16 @@ async function inspectTypescriptArtifact(name: string, path: string) {
   ) {
     throw new Error(`${name} artifact contains proof or workspace material`);
   }
-  const manifest = JSON.parse(
+  const manifest = readPackageManifest(
     await run(["tar", "-xOzf", path, "package/package.json"], typescriptArtifactRoot),
-  ) as {
-    readonly name: string;
-    readonly version: string;
-    readonly dependencies?: Record<string, string>;
-    readonly peerDependencies?: Record<string, string>;
-    readonly exports?: Record<string, unknown>;
-  };
+  );
   if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
   // Card 164: both tiers carry no dependencies at all. The framework package
   // has none by construction, and the projection tier expresses its needs as
   // peers rather than dependencies.
-  const expectedDependencies: Record<string, ReadonlyArray<string>> = {
-    "@inflatable-cookie/longhorn": [],
-    "@inflatable-cookie/longhorn-poodle-svelte": [],
-  };
-  assertExactSet(
-    `${name} dependencies`,
-    Object.keys(manifest.dependencies ?? {}),
-    expectedDependencies[name] ?? [],
-  );
+  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), []);
   if (name === "@inflatable-cookie/longhorn-native-content-svelte") {
     assertExactSet("native-content Svelte peers", Object.keys(manifest.peerDependencies ?? {}), [
       "svelte",
@@ -411,7 +394,7 @@ async function packAndRunRustArtifacts() {
     });
   const traces: Record<string, Record<string, unknown>> = {};
   const graphs: Record<string, ReadonlyArray<string>> = {};
-  for (const shape of Object.keys(packages) as Array<keyof typeof packages>) {
+  for (const shape of ["pure", "nucleus", "soundcheck", "jetstream"] as const) {
     traces[shape] = parseTrace(
       await run(staged(["cargo", "run", "-p", packages[shape], "--offline", "--quiet"]), workspace),
     );
@@ -453,10 +436,8 @@ async function verifyConsumer(
     `${JSON.stringify(native.rendererFixture, null, 2)}\n`,
   );
 
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
-  manifest.dependencies = rewriteDependencies(manifest.dependencies, artifacts);
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
+  manifest.dependencies = rewriteDependencies(manifest.dependencies ?? {}, artifacts);
   // Only Longhorn's own packs are overridden onto paths. Poodle is published,
   // so the staged consumer resolves it from the registry as a real consumer
   // does -- which is what the pack indirection stood in for before it shipped.
@@ -537,10 +518,8 @@ async function verifyConsumer(
         "core:event:allow-unlisten",
       ]
     : [];
-  const permissions = (
-    JSON.parse(await readFile(join(source, "capability.json"), "utf8")) as {
-      readonly permissions: ReadonlyArray<string>;
-    }
+  const permissions = readPermissions(
+    await readFile(join(source, "capability.json"), "utf8"),
   ).permissions;
   assertExactSet(`${shape} permissions`, permissions, expectedPermissions);
 
@@ -612,50 +591,46 @@ async function verifyPackagedMechanisms() {
   const results = [];
   for (const declaration of declarations) {
     const root = join(repoRoot, "examples", declaration.directory, "evidence");
-    const inventory = JSON.parse(await readFile(join(root, "inventory.json"), "utf8")) as {
-      readonly packaged_run: {
-        readonly report: string;
-        readonly transcript: string;
-        readonly outcome: string;
-        readonly passed_checks: number;
-      };
-      readonly native_boundary: Record<string, unknown>;
-      readonly forbidden_edges: Record<string, boolean>;
-    };
+    const inventory = parseJsonRecord(await readFile(join(root, "inventory.json"), "utf8"));
+    const packaged = requireRecord(inventory.packaged_run, "packaged run");
     if (
-      inventory.packaged_run.outcome !== declaration.reportOutcome ||
-      inventory.packaged_run.passed_checks !== declaration.passing
+      packaged.outcome !== declaration.reportOutcome ||
+      packaged.passed_checks !== declaration.passing
     ) {
       throw new Error(`${declaration.shape} packaged inventory regressed`);
     }
-    if (Object.values(inventory.forbidden_edges).some(Boolean)) {
+    if (Object.values(requireRecord(inventory.forbidden_edges, "forbidden edges")).some(Boolean)) {
       throw new Error(`${declaration.shape} packaged graph has a forbidden edge`);
     }
-    const report = JSON.parse(
-      await readFile(join(root, inventory.packaged_run.report.replace("evidence/", "")), "utf8"),
-    ) as {
-      readonly outcome: string;
-      readonly checks: ReadonlyArray<{ readonly id: string; readonly status: string }>;
-    };
+    const report = parseJsonRecord(
+      await readFile(
+        join(root, requireString(packaged.report, "packaged run report").replace("evidence/", "")),
+        "utf8",
+      ),
+    );
     if (report.outcome !== declaration.reportOutcome) {
       throw new Error(`${declaration.shape} packaged report outcome regressed`);
     }
-    const passing = report.checks.filter(({ status }) => status === "pass").length;
+    const passing = requireList(report.checks, "packaged checks").filter(
+      (check) => requireRecord(check, "packaged check").status === "pass",
+    ).length;
     if (passing !== declaration.passing) {
       throw new Error(`${declaration.shape} passing check count regressed`);
     }
     const transcript = await readFile(
-      join(root, inventory.packaged_run.transcript.replace("evidence/", "")),
+      join(
+        root,
+        requireString(packaged.transcript, "packaged transcript").replace("evidence/", ""),
+      ),
       "utf8",
     );
     if (/fixture_error|proof_failed/.test(transcript)) {
       throw new Error(`${declaration.shape} transcript contains failure evidence`);
     }
-    const support = JSON.parse(await readFile(join(root, "target-support.json"), "utf8")) as {
-      readonly targets: Record<string, { readonly status: string }>;
-    };
+    const support = parseJsonRecord(await readFile(join(root, "target-support.json"), "utf8"));
+    const targets = requireRecord(support.targets, "target support");
     for (const target of ["macos", "windows", "linux"] as const) {
-      if (support.targets[target]?.status !== declaration[target]) {
+      if (requireRecord(targets[target], target).status !== declaration[target]) {
         throw new Error(`${declaration.shape} ${target} support status changed`);
       }
     }
@@ -745,7 +720,9 @@ function rewriteDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
@@ -771,7 +748,7 @@ async function packageImports(stage: string) {
     for (const match of source.matchAll(
       /from\s+["']((?:@inflatable-cookie\/(?:longhorn[/-]|poodle-))[^"']+)["']/g,
     )) {
-      imports.add(match[1]!);
+      imports.add(requireValue(match[1], "match[1]"));
     }
   }
   return [...imports].sort();
@@ -781,7 +758,7 @@ async function installedScope(stage: string, scope: string) {
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return [];
     }
     throw error;
@@ -805,10 +782,7 @@ async function assertArtifactInstall(stage: string, name: string, expected: stri
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as {
-    readonly name: string;
-    readonly version: string;
-  };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -819,7 +793,7 @@ async function assertPackageAbsent(stage: string, name: string) {
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return;
     }
     throw error;
@@ -852,6 +826,7 @@ function equalJson(left: unknown, right: unknown) {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
+// oxlint-disable-next-line quality/no-unknown-returns -- Canonicalize arbitrary JSON for comparison without assuming its shape.
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonical);

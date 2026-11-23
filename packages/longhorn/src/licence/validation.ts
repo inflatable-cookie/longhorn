@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import { LICENCE_FIELDS } from "./generated/fields.ts";
 import {
   LICENCE_CHANGED_KINDS,
@@ -231,7 +232,8 @@ function variantFields(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = value[LICENCE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const fields = LICENCE_VARIANT_FIELDS[type]?.[discriminant as string];
+  const fields =
+    typeof discriminant === "string" ? LICENCE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (fields === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }
@@ -239,10 +241,10 @@ function variantFields(
 }
 
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 function array(value: unknown, path: string): Array<unknown> {
   if (!Array.isArray(value)) {
@@ -271,14 +273,14 @@ function positive(value: unknown, path: string): void {
     fail(path, "expected positive safe integer");
   }
 }
-function string(value: unknown, path: string): void {
+function string(value: unknown, path: string): asserts value is string {
   if (typeof value !== "string") {
     fail(path, "expected string");
   }
 }
 function nonEmpty(value: unknown, path: string): void {
   string(value, path);
-  if ((value as string).length === 0) {
+  if (value.length === 0) {
     fail(path, "expected a non-empty string");
   }
 }

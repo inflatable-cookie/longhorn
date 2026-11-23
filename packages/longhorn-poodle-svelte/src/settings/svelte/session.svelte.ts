@@ -146,7 +146,7 @@ export class SettingsSession {
       this.#runtime.document
         .currentScopes()
         .map(({ snapshot }) => snapshot?.recovery)
-        .find((value) => value != null) ?? null
+        .find((value) => value !== null && value !== undefined) ?? null
     );
   }
 

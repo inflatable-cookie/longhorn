@@ -15,15 +15,6 @@ export interface ArtifactIdentity {
   readonly sha256: string;
 }
 
-export interface PackageManifest {
-  readonly name: string;
-  readonly version?: string;
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-}
-
 export interface ShapePolicy {
   readonly longhorn: ReadonlyArray<string>;
   readonly forbiddenImports: ReadonlyArray<string>;

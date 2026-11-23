@@ -34,12 +34,12 @@ describe("operation Svelte and public Poodle adapters", () => {
     expect(firstMount.getByText("soundcheck detail for operation:scan")).toBeTruthy();
     expect(second.session.selected).toBeUndefined();
 
-    await firstMount.unmount();
+    await Promise.resolve(firstMount.unmount());
     await waitFor(() => expect(first.port.listeners.size).toBe(0));
     expect(first.port.unlistenCount).toBe(1);
     expect(first.port.cancellations).toEqual([]);
     expect(second.port.listeners.size).toBe(1);
-    await secondMount.unmount();
+    await Promise.resolve(secondMount.unmount());
   });
 
   it("remounts from current host truth", async () => {
@@ -48,7 +48,7 @@ describe("operation Svelte and public Poodle adapters", () => {
       props: { session: state.session, shape: "soundcheck" },
     });
     await waitFor(() => expect(state.session.status.kind).toBe("ready"));
-    await first.unmount();
+    await Promise.resolve(first.unmount());
     state.port.snapshotValue = loopholeSnapshot();
 
     const second = render(OperationPanelHarness, {
@@ -56,7 +56,7 @@ describe("operation Svelte and public Poodle adapters", () => {
     });
     expect(await second.findByRole("button", { name: "Render final sequence" })).toBeTruthy();
     expect(state.port.unlistenCount).toBe(1);
-    await second.unmount();
+    await Promise.resolve(second.unmount());
     await waitFor(() => expect(state.port.unlistenCount).toBe(2));
   });
 
@@ -87,8 +87,8 @@ describe("operation Svelte and public Poodle adapters", () => {
     });
     expect(firstSession.selected).toBeUndefined();
 
-    await first.unmount();
-    await second.unmount();
+    await Promise.resolve(first.unmount());
+    await Promise.resolve(second.unmount());
     await waitFor(() => expect(port.listeners.size).toBe(0));
     expect(port.unlistenCount).toBe(2);
   });
@@ -114,7 +114,7 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(renderPanel.queryByRole("alertdialog", { name: "Cancel operation?" })).toBeNull();
     });
 
-    await renderPanel.unmount();
+    await Promise.resolve(renderPanel.unmount());
   });
 
   it("projects Soundcheck and Loophole through the same controlled panel", async () => {
@@ -167,7 +167,7 @@ describe("operation Svelte and public Poodle adapters", () => {
       expect(loophole.session.recent).toHaveLength(0);
     });
 
-    await scanPanel.unmount();
-    await renderPanel.unmount();
+    await Promise.resolve(scanPanel.unmount());
+    await Promise.resolve(renderPanel.unmount());
   });
 });

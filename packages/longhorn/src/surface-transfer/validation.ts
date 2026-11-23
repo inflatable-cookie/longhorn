@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   SURFACE_TRANSFER_VARIANT_FIELDS,
   SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
@@ -135,7 +136,10 @@ function responseWithStatus(
  */
 function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = SURFACE_TRANSFER_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string"
+      ? SURFACE_TRANSFER_VARIANT_FIELDS[type]?.[discriminant]
+      : undefined;
   if (keys === undefined) {
     throw new SurfaceTransferProtocolValidationError("unknown_response_status", {
       type,
@@ -164,10 +168,10 @@ function assertKnown(
  * allowed keys depend on their discriminant and so are not one flat set.
  */
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     throw new SurfaceTransferProtocolValidationError("invalid_object", value);
   }
-  const result = value as Record<string, unknown>;
+  const result = value;
   if (allowed === undefined) {
     return result;
   }

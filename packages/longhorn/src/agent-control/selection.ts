@@ -67,14 +67,12 @@ function isAgentOriginated(world: FileSelectionWorld): boolean {
  * Page origin as a command-argument token. Reads the installed shim;
  * with no shim, or when the shim reports human, the token is `"human"`.
  */
+// oxlint-disable-next-line quality/no-object-parameters -- The world is a page global with an optional shim, including plain host test doubles.
 export function currentSelectionOrigin(world: object = globalThis): SelectionOrigin {
   return isAgentOriginated(world) ? SELECTION_ORIGIN_AGENT : SELECTION_ORIGIN_HUMAN;
 }
 
-function beginOptions(
-  kind: "open" | "save",
-  options: OpenDialogOptions | undefined,
-): Record<string, unknown> {
+function beginOptions(kind: "open" | "save", options: OpenDialogOptions | undefined) {
   const open = kind === "open" ? options : undefined;
   return {
     kind,
@@ -92,25 +90,39 @@ function beginOptions(
  */
 export function bindFileSelection(
   ports: FileSelectionPorts,
+  // oxlint-disable-next-line quality/no-object-parameters -- The world is a page global with an optional shim.
   world: object = globalThis,
 ): FileSelectionApi {
-  const originWorld = world as FileSelectionWorld;
   return {
     open: async (options?: OpenDialogOptions) => {
-      if (!isAgentOriginated(originWorld)) {
+      if (!isAgentOriginated(world)) {
         return ports.pluginOpen(options);
       }
-      return (await ports.invoke(BEGIN_SELECTION_COMMAND, {
+      const result = await ports.invoke(BEGIN_SELECTION_COMMAND, {
         options: beginOptions("open", options),
-      })) as OpenDialogResult;
+      });
+      if (result === null || typeof result === "string") {
+        return result;
+      }
+      if (
+        Array.isArray(result) &&
+        result.every((path): path is string => typeof path === "string")
+      ) {
+        return result;
+      }
+      throw new TypeError("invalid agent open-dialog result");
     },
     save: async (options?: SaveDialogOptions) => {
-      if (!isAgentOriginated(originWorld)) {
+      if (!isAgentOriginated(world)) {
         return ports.pluginSave(options);
       }
-      return (await ports.invoke(BEGIN_SELECTION_COMMAND, {
+      const result = await ports.invoke(BEGIN_SELECTION_COMMAND, {
         options: beginOptions("save", options),
-      })) as SaveDialogResult;
+      });
+      if (result === null || typeof result === "string") {
+        return result;
+      }
+      throw new TypeError("invalid agent save-dialog result");
     },
   };
 }

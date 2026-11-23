@@ -1,3 +1,5 @@
+import { readPackageIdentity, readPackageManifest, readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { digest, fileDependency, runWithDiagnostics as run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { assertImportsAbsent, assertPackageAbsent, splitForbidden } from "./consumer-absence.ts";
@@ -90,10 +92,8 @@ try {
       await cp(join(proofRoot, "common", filename), join(stage, filename));
     }
 
-    const manifest = JSON.parse(
-      await readFile(join(source, "package.json"), "utf8"),
-    ) as PackageManifest;
-    manifest.dependencies = rewriteDependencies(manifest.dependencies, artifactPaths);
+    const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
+    manifest.dependencies = rewriteDependencies(manifest.dependencies ?? {}, artifactPaths);
     manifest.overrides = Object.fromEntries(
       [...artifactPaths].map(([name, path]) => [name, fileDependency(path)]),
     );
@@ -129,9 +129,7 @@ try {
       throw new Error(`${shape} installed unexpected Svelte ${svelte.manifest.version}`);
     }
     await assertSingleSvelteRuntime(stage);
-    const capability = JSON.parse(await readFile(join(stage, "capability.json"), "utf8")) as {
-      readonly permissions: ReadonlyArray<string>;
-    };
+    const capability = readPermissions(await readFile(join(stage, "capability.json"), "utf8"));
     assertCapabilityPolicy(shape, capability.permissions);
     const lock = await readFile(join(stage, "bun.lock"), "utf8");
     if (
@@ -207,7 +205,9 @@ function rewriteDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
@@ -253,10 +253,7 @@ async function assertSingleSvelteRuntime(stage: string): Promise<void> {
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as {
-    readonly name: string;
-    readonly version: string;
-  };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -280,11 +277,6 @@ function assertCapabilityPolicy(shape: string, permissions: ReadonlyArray<string
   if (shape === "loophole" && (!base || !surfaces)) {
     throw new Error("Loophole capability omits full transfer authority");
   }
-}
-
-interface PackageManifest {
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
 }
 
 interface ArtifactIdentity {

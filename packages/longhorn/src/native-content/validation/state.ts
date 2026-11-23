@@ -50,12 +50,10 @@ export function assertValidNativeContentSnapshot(
   const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentSnapshot);
   assertNativeContentProtocolVersion(object.protocol_version);
   cursor(object.cursor, "$.cursor");
-  desiredState(object.desired, "$.desired");
-  observedState(object.observed, "$.observed");
+  const desired = desiredUpdate(object.desired, "$.desired", true);
+  const observed = observedState(object.observed, "$.observed");
   nullable(object.invalidated_generation, "$.invalidated_generation", positive);
-  const desired = object.desired as Record<string, unknown>;
-  const observed = object.observed as Record<string, unknown>;
-  const valueCursor = object.cursor as Record<string, unknown>;
+  const valueCursor = object.cursor;
   if (
     desired.island_id !== valueCursor.island_id ||
     desired.generation !== valueCursor.attach_generation ||
@@ -123,7 +121,11 @@ export function decision(value: unknown, path: string): asserts value is Content
   }
 }
 
-export function desiredUpdate(value: unknown, path: string, includeIdentity: boolean): void {
+export function desiredUpdate(
+  value: unknown,
+  path: string,
+  includeIdentity: boolean,
+): Record<string, unknown> {
   const keys = [
     "generation",
     "host_window_id",
@@ -154,10 +156,7 @@ export function desiredUpdate(value: unknown, path: string, includeIdentity: boo
   desiredVisibility(object.visibility, `${path}.visibility`);
   member(object.focus, NATIVE_CONTENT_FOCUS_INTENTS, `${path}.focus`);
   member(object.input_routing, NATIVE_CONTENT_INPUT_ROUTING_MODES, `${path}.input_routing`);
-}
-
-function desiredState(value: unknown, path: string): void {
-  desiredUpdate(value, path, true);
+  return object;
 }
 
 function capabilities(value: unknown, path: string): void {
@@ -185,7 +184,7 @@ function desiredVisibility(value: unknown, path: string): void {
   }
 }
 
-function observedState(value: unknown, path: string): void {
+function observedState(value: unknown, path: string): Record<string, unknown> {
   const object = exactObject(value, path, NATIVE_CONTENT_FIELDS.ObservedState);
   natural(object.revision, `${path}.revision`);
   positive(object.generation, `${path}.generation`);
@@ -197,6 +196,7 @@ function observedState(value: unknown, path: string): void {
   nullable(object.input_routing, `${path}.input_routing`, (candidate, candidatePath) =>
     member(candidate, NATIVE_CONTENT_INPUT_ROUTING_MODES, candidatePath),
   );
+  return object;
 }
 
 function observedGeometry(value: unknown, path: string): void {

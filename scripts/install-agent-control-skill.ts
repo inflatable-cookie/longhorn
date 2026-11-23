@@ -59,12 +59,13 @@ export function compareVersions(left: string, right: string): number {
   return 0;
 }
 
+const list = async (root: string) =>
+  (await readdir(root, { recursive: true }))
+    .map((path) => String(path).replaceAll("\\", "/"))
+    .sort();
+
 /// True when the source and installed skill trees have identical files.
 async function treesMatch(source: string, dest: string): Promise<boolean> {
-  const list = async (root: string) =>
-    (await readdir(root, { recursive: true }))
-      .map((path) => String(path).replaceAll("\\", "/"))
-      .sort();
   let sourceFiles: Array<string>;
   let destFiles: Array<string>;
   try {
@@ -115,12 +116,8 @@ export async function installSkill(targetRepo: string): Promise<string> {
     throw new Error("source skill is missing a longhorn_version stamp");
   }
 
-  let destVersion: string | null = null;
-  try {
-    destVersion = parseVersionStamp(await readFile(join(dest, "SKILL.md"), "utf8"));
-  } catch {
-    destVersion = null;
-  }
+  const oldSkill = await readFile(join(dest, "SKILL.md"), "utf8").catch(() => null);
+  const destVersion = oldSkill === null ? null : parseVersionStamp(oldSkill);
 
   if (destVersion !== null) {
     const cmp = compareVersions(destVersion, sourceVersion);
@@ -155,7 +152,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   try {
     target = parseInstallTarget(argv);
   } catch (error) {
-    console.error((error as Error).message);
+    console.error(error instanceof Error ? error.message : String(error));
     return 2;
   }
   if (!target) {
@@ -166,7 +163,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     console.log(await installSkill(target));
     return 0;
   } catch (error) {
-    console.error((error as Error).message);
+    console.error(error instanceof Error ? error.message : String(error));
     return 1;
   }
 }

@@ -86,12 +86,12 @@ describe("ReactiveClientState", () => {
 
     const first = render(LifecycleHarness, { props: { state } });
     await Promise.resolve();
-    await first.unmount();
+    await Promise.resolve(first.unmount());
     await Promise.resolve();
 
     const second = render(LifecycleHarness, { props: { state } });
     await Promise.resolve();
-    await second.unmount();
+    await Promise.resolve(second.unmount());
     await Promise.resolve();
 
     expect(starts).toBe(2);
@@ -117,7 +117,7 @@ describe("ReactiveClientState", () => {
     await waitFor(() => {
       expect(mounted.getByTestId("status").textContent).toBe("ready");
     });
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await state.destroy();
   });
 
@@ -140,7 +140,7 @@ describe("ReactiveClientState", () => {
 
     const mounted = render(LifecycleHarness, { props: { state } });
     await Promise.resolve();
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     ready.resolve();
     await state.stop();
 

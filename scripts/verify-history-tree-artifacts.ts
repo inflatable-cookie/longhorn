@@ -1,3 +1,7 @@
+import { requireRecord } from "./proof-json.ts";
+import { errorCode } from "./proof-support.ts";
+import { readPackageIdentity, readPackageManifest, readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import {
   parseTrace,
   digest,
@@ -48,18 +52,12 @@ await mkdir(typescriptArtifactRoot);
 const buildScratch = await taskScratch("longhorn-history-tree-rust");
 
 type Shape = "document" | "loophole";
-type Json = Record<string, any>;
+type Json = Record<string, unknown>;
 interface ArtifactIdentity {
   readonly name: string;
   readonly filename: string;
   readonly sha256: string;
 }
-interface PackageManifest {
-  readonly name: string;
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
-}
-
 const policies = {
   document: {
     rust: ["longhorn-core", "longhorn-history", "longhorn-history-tree"],
@@ -206,9 +204,9 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   ) {
     throw new Error(`${name} artifact contains workspace material`);
   }
-  const manifest = JSON.parse(
+  const manifest = readPackageManifest(
     await run(["tar", "-xOzf", path, "package/package.json"], typescriptArtifactRoot),
-  ) as Json;
+  );
   if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
@@ -227,8 +225,9 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
       "./tauri",
     ]);
     for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) {
-      if (manifest.peerDependenciesMeta?.[peer]?.optional !== true)
+      if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) {
         throw new Error(`${peer} is not an optional history-tree peer`);
+      }
     }
   }
   const extractRoot = join(
@@ -239,7 +238,9 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   await run(["tar", "-xzf", path, "-C", extractRoot], typescriptArtifactRoot);
   const source = await readSourceTree(join(extractRoot, "package", "src"));
   for (const marker of ["PulseMutation", "PulseHistoryMutation", "projectVersion"]) {
-    if (source.includes(marker)) throw new Error(`${name} contains product marker ${marker}`);
+    if (source.includes(marker)) {
+      throw new Error(`${name} contains product marker ${marker}`);
+    }
   }
 }
 
@@ -288,8 +289,9 @@ async function packAndRunRustArtifacts(): Promise<{
     await readSourceTree(join(workspace, "crates", "longhorn-tauri-history-tree", "src")),
   ].join("\n");
   for (const marker of ["PulseMutation", "PulseHistoryMutation", "project_version", "prototype"]) {
-    if (source.toLowerCase().includes(marker.toLowerCase()))
+    if (source.toLowerCase().includes(marker.toLowerCase())) {
       throw new Error(`Rust artifacts contain product/prototype marker ${marker}`);
+    }
   }
 
   // One exec lease over the staged workspace at the MSRV pin, with private final
@@ -322,8 +324,8 @@ async function packAndRunRustArtifacts(): Promise<{
     throw new Error(`artifact tree test count mismatch: ${testCount}`);
   }
 
-  const traces = {} as Record<Shape, Json>;
-  const graphs = {} as Record<Shape, ReadonlyArray<string>>;
+  const traces: Record<Shape, Json> = { document: {}, loophole: {} };
+  const graphs: Record<Shape, ReadonlyArray<string>> = { document: [], loophole: [] };
   for (const shape of ["document", "loophole"] as const) {
     const packageName = `longhorn-${shape}-history-tree-artifact-proof`;
     traces[shape] = parseTrace(
@@ -355,13 +357,13 @@ async function verifyTypescriptConsumer(
     join(stage, "consumers", shape, "fixture.json"),
     `${JSON.stringify(nativeTrace, null, 2)}\n`,
   );
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
   manifest.dependencies = Object.fromEntries(
-    Object.entries(manifest.dependencies).map(([name, version]) => [
+    Object.entries(manifest.dependencies ?? {}).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
   // Only Longhorn's own packs are overridden onto paths; Poodle resolves from
@@ -407,11 +409,8 @@ async function verifyTypescriptConsumer(
   }
   const permissions =
     shape === "loophole"
-      ? (
-          JSON.parse(
-            await readFile(join(stage, "consumers", shape, "capability.json"), "utf8"),
-          ) as { permissions: Array<string> }
-        ).permissions
+      ? readPermissions(await readFile(join(stage, "consumers", shape, "capability.json"), "utf8"))
+          .permissions
       : [];
   assertExactSet(`${shape} permissions`, permissions, policy.permissions);
   assertExactSet(`${shape} imports`, await longhornImports(stage), policy.imports);
@@ -440,7 +439,7 @@ async function verifyTypescriptConsumer(
 
 function assertMetrics(shape: Shape, trace: Json): void {
   const expected = policies[shape].metrics;
-  const metrics = trace.metrics as Json;
+  const metrics = requireRecord(trace.metrics, "history-tree metrics");
   for (const [key, value] of [
     ["retainedNodes", expected.nodes],
     ["branchRefs", expected.branches],
@@ -448,8 +447,9 @@ function assertMetrics(shape: Shape, trace: Json): void {
     ["lcaCheckoutSteps", expected.lca],
     ["numericArrayBaselineBytes", expected.baseline],
   ] as const) {
-    if (metrics[key] !== value)
+    if (metrics[key] !== value) {
       throw new Error(`${shape} ${key} mismatch: ${metrics[key]} != ${value}`);
+    }
   }
   if (
     metrics.pathRecordsReturned !== 17 ||
@@ -457,13 +457,18 @@ function assertMetrics(shape: Shape, trace: Json): void {
   ) {
     throw new Error(`${shape} projection bound mismatch`);
   }
-  if (metrics.denseEnvelopeBytes >= expected.baseline) {
+  const dense = metrics.denseEnvelopeBytes;
+  if (typeof dense !== "number" || dense >= expected.baseline) {
     throw new Error(`${shape} dense envelope did not improve the Card 068 baseline`);
   }
-  if (shape === "loophole" && metrics.denseEnvelopeBytes * 2 >= expected.baseline) {
+  if (shape === "loophole" && dense * 2 >= expected.baseline) {
     throw new Error("Loophole dense envelope lost the Card 072 2x floor");
   }
-  if (!Object.values(trace.failures as Json).every((value) => value === true || value === 0)) {
+  if (
+    !Object.values(requireRecord(trace.failures, "history-tree failures")).every(
+      (value) => value === true || value === 0,
+    )
+  ) {
     throw new Error(`${shape} failure matrix incomplete`);
   }
 }
@@ -518,6 +523,7 @@ function containsKey(value: unknown, key: string): boolean {
 function equalJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
+// oxlint-disable-next-line quality/no-unknown-returns -- Canonicalize arbitrary JSON for comparison without assuming its shape.
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonical);
@@ -552,7 +558,7 @@ async function installedScope(stage: string, scope: string): Promise<ReadonlyArr
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return [];
     }
     throw error;
@@ -561,8 +567,9 @@ async function installedScope(stage: string, scope: string): Promise<ReadonlyArr
 async function assertArtifactInstall(stage: string, name: string, expected: string) {
   const installed = await installedPackage(stage, name);
   for (const root of ["/Dev/projects/longhorn/packages/", "/Dev/projects/poodle/packages/"]) {
-    if (installed.realPath.includes(root))
+    if (installed.realPath.includes(root)) {
       throw new Error(`${name} resolved to sibling source: ${installed.realPath}`);
+    }
   }
   if (installed.manifest.version !== expected) {
     throw new Error(`${name} installed ${installed.manifest.version}, expected ${expected}`);
@@ -571,10 +578,7 @@ async function assertArtifactInstall(stage: string, name: string, expected: stri
 }
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as {
-    name: string;
-    version: string;
-  };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -584,7 +588,7 @@ async function assertPackageAbsent(stage: string, name: string): Promise<void> {
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return;
     }
     throw error;
@@ -609,7 +613,7 @@ async function longhornImports(stage: string): Promise<ReadonlyArray<string>> {
     for (const match of source.matchAll(
       /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
-      imports.add(match[1]!);
+      imports.add(requireValue(match[1], "match[1]"));
     }
   }
   return [...imports].sort();

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { KeybindingSettings } from '../../src/commands/poodle.ts';
-import type { CommandSettingsRecord } from '../../src/commands/poodle.ts';
+  import { KeybindingSettings } from "../../src/commands/poodle.ts";
+  import type { CommandSettingsRecord } from "../../src/commands/poodle.ts";
 
   let {
     records,
@@ -13,9 +13,4 @@ import type { CommandSettingsRecord } from '../../src/commands/poodle.ts';
   } = $props();
 </script>
 
-<KeybindingSettings
-  {records}
-  dirty={true}
-  {onCapture}
-  {onApply}
-/>
+<KeybindingSettings {records} dirty={true} {onCapture} {onApply} />

@@ -1,3 +1,6 @@
+import { errorCode } from "./proof-support.ts";
+import { readPackageIdentity, readPackageManifest, readPermissions } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import {
   digest,
   fileDependency,
@@ -45,12 +48,6 @@ interface ArtifactIdentity {
   readonly name: string;
   readonly filename: string;
   readonly sha256: string;
-}
-
-interface PackageManifest {
-  readonly name: string;
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
 }
 
 const policies = {
@@ -196,16 +193,9 @@ async function inspectNpmArtifact(name: string, path: string): Promise<void> {
   ) {
     throw new Error(`${name} artifact contains proof or workspace material`);
   }
-  const manifest = JSON.parse(
+  const manifest = readPackageManifest(
     await run(["tar", "-xOzf", path, "package/package.json"], typescriptArtifactRoot),
-  ) as {
-    readonly name: string;
-    readonly version: string;
-    readonly dependencies?: Record<string, string>;
-    readonly peerDependencies?: Record<string, string>;
-    readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-    readonly exports?: Record<string, unknown>;
-  };
+  );
   if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
@@ -316,8 +306,8 @@ async function packAndRunRustArtifacts(): Promise<{
       manifestPath: join(workspace, "Cargo.toml"),
       toolchain: MSRV_TOOLCHAIN,
     });
-  const traces = {} as Record<Shape, Record<string, unknown>>;
-  const graphs = {} as Record<Shape, ReadonlyArray<string>>;
+  const traces: Record<Shape, Record<string, unknown>> = { minimal: {}, loophole: {} };
+  const graphs: Record<Shape, ReadonlyArray<string>> = { minimal: [], loophole: [] };
   for (const shape of ["minimal", "loophole"] as const) {
     traces[shape] = parseTrace(
       await run(
@@ -382,13 +372,13 @@ async function verifyTypescriptConsumer(
     `${JSON.stringify(nativeTrace.rendererFixture, null, 2)}\n`,
   );
 
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
   manifest.dependencies = Object.fromEntries(
-    Object.entries(manifest.dependencies).map(([name, version]) => [
+    Object.entries(manifest.dependencies ?? {}).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
   // Only Longhorn's own packs are overridden onto paths. Poodle is published,
@@ -449,11 +439,8 @@ async function verifyTypescriptConsumer(
 
   const permissions =
     shape === "loophole"
-      ? (
-          JSON.parse(
-            await readFile(join(stage, "consumers", shape, "capability.json"), "utf8"),
-          ) as { readonly permissions: ReadonlyArray<string> }
-        ).permissions
+      ? readPermissions(await readFile(join(stage, "consumers", shape, "capability.json"), "utf8"))
+          .permissions
       : [];
   assertExactSet(`${shape} permissions`, permissions, policy.permissions);
   assertExactSet(`${shape} imports`, await longhornImports(stage), policy.imports);
@@ -531,6 +518,7 @@ function equalJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
+// oxlint-disable-next-line quality/no-unknown-returns -- Canonicalize arbitrary JSON for comparison without assuming its shape.
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(canonical);
@@ -568,7 +556,7 @@ async function installedScope(stage: string, scope: string): Promise<ReadonlyArr
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return [];
     }
     throw error;
@@ -593,10 +581,7 @@ async function assertArtifactInstall(stage: string, name: string, expected: stri
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as {
-    readonly name: string;
-    readonly version: string;
-  };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -626,7 +611,7 @@ async function longhornImports(stage: string): Promise<ReadonlyArray<string>> {
     for (const match of source.matchAll(
       /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
-      imports.add(match[1]!);
+      imports.add(requireValue(match[1], "match[1]"));
     }
   }
   return [...imports].sort();

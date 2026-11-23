@@ -1,8 +1,8 @@
 import type { SurfaceClient } from "@inflatable-cookie/longhorn/surfaces";
-import {
-  type SurfaceMutationRequest,
-  type SurfaceMutationResponse,
-  type SurfaceSnapshot,
+import type {
+  SurfaceMutationRequest,
+  SurfaceMutationResponse,
+  SurfaceSnapshot,
 } from "@inflatable-cookie/longhorn/surfaces";
 
 import {

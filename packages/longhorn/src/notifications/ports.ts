@@ -3,6 +3,8 @@ import type {
   NotificationMutationCommand,
   NotificationRequestId,
   NotificationSnapshotQuery,
+  NotificationSnapshotResponse,
+  NotificationMutationResult,
 } from "./generated/protocol.ts";
 
 export type NotificationUnlisten = () => void | Promise<void>;
@@ -17,12 +19,8 @@ export interface NotificationPort {
 }
 
 export interface CheckedNotificationPort {
-  snapshot(
-    query: NotificationSnapshotQuery,
-  ): Promise<import("./generated/protocol.ts").NotificationSnapshotResponse>;
-  mutate(
-    command: NotificationMutationCommand,
-  ): Promise<import("./generated/protocol.ts").NotificationMutationResult>;
+  snapshot(query: NotificationSnapshotQuery): Promise<NotificationSnapshotResponse>;
+  mutate(command: NotificationMutationCommand): Promise<NotificationMutationResult>;
   listen?(listener: (event: NotificationChangedEvent) => void): Promise<NotificationUnlisten>;
   nextRequestId(): NotificationRequestId;
 }

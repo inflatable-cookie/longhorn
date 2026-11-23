@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { Button, Callout, FormActions, Grid, Stack, TextInput } from "@inflatable-cookie/poodle-svelte";
+  import {
+    Button,
+    Callout,
+    FormActions,
+    Grid,
+    Stack,
+    TextInput,
+  } from "@inflatable-cookie/poodle-svelte";
 
-  import type {
-    CommandKeymapConflict,
-  } from "@inflatable-cookie/longhorn/commands/protocol";
+  import type { CommandKeymapConflict } from "@inflatable-cookie/longhorn/commands/protocol";
   import type { CommandSettingsRecord } from "@inflatable-cookie/longhorn/commands";
 
   interface Props {
@@ -46,9 +51,7 @@
           return (
             record.label.toLowerCase().includes(needle) ||
             record.id.includes(needle) ||
-            record.keywords.some((keyword) =>
-              keyword.toLowerCase().includes(needle),
-            )
+            record.keywords.some((keyword) => keyword.toLowerCase().includes(needle))
           );
         }),
   );
@@ -75,9 +78,7 @@
     {#if captureBindingId !== undefined}
       <Callout tone="info">
         {capturedLabel ?? "Press a shortcut"}
-        <Button variant="ghost" onClick={() => onCancelCapture?.()}>
-          Cancel capture
-        </Button>
+        <Button variant="ghost" onClick={() => onCancelCapture?.()}>Cancel capture</Button>
       </Callout>
     {/if}
 
@@ -100,11 +101,7 @@
             </Stack>
             <Stack direction="row" gap="sm" wrap={true}>
               {#each record.bindings as binding (binding.id)}
-                <Button
-                  variant="secondary"
-                  disabled={busy}
-                  onClick={() => onCapture?.(binding.id)}
-                >
+                <Button variant="secondary" disabled={busy} onClick={() => onCapture?.(binding.id)}>
                   Change {binding.id}
                 </Button>
               {/each}
@@ -115,22 +112,11 @@
     </Stack>
 
     <FormActions>
-      <Button variant="ghost" disabled={busy} onClick={() => onReset?.()}>
-        Reset
-      </Button>
-      <Button
-        variant="secondary"
-        disabled={!dirty || busy}
-        onClick={() => onCancel?.()}
-      >
+      <Button variant="ghost" disabled={busy} onClick={() => onReset?.()}>Reset</Button>
+      <Button variant="secondary" disabled={!dirty || busy} onClick={() => onCancel?.()}>
         Cancel
       </Button>
-      <Button
-        variant="primary"
-        loading={busy}
-        disabled={!dirty}
-        onClick={() => onApply?.()}
-      >
+      <Button variant="primary" loading={busy} disabled={!dirty} onClick={() => onApply?.()}>
         Apply
       </Button>
     </FormActions>

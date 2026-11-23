@@ -1,3 +1,4 @@
+import { wireCopy } from "../core/wire-copy.ts";
 import type {
   NativeContentConnectRequest,
   NativeContentContentSizeDecisionRequest,
@@ -14,33 +15,29 @@ export class SerializedNativeContentPort implements NativeContentPort {
   }
 
   async connect(request: NativeContentConnectRequest): Promise<unknown> {
-    return clone(await this.#inner.connect(clone(request)));
+    return wireCopy(await this.#inner.connect(wireCopy(request)));
   }
 
   async snapshot(request: NativeContentSnapshotRequest): Promise<unknown> {
-    return clone(await this.#inner.snapshot(clone(request)));
+    return wireCopy(await this.#inner.snapshot(wireCopy(request)));
   }
 
   async updateDesired(request: NativeContentDesiredUpdateRequest): Promise<unknown> {
-    return clone(await this.#inner.updateDesired(clone(request)));
+    return wireCopy(await this.#inner.updateDesired(wireCopy(request)));
   }
 
   async decideContentSize(request: NativeContentContentSizeDecisionRequest): Promise<unknown> {
-    return clone(await this.#inner.decideContentSize(clone(request)));
+    return wireCopy(await this.#inner.decideContentSize(wireCopy(request)));
   }
 
   async listen(listener: (event: unknown) => void): Promise<NativeContentUnlisten> {
     if (this.#inner.listen === undefined) {
       return () => {};
     }
-    return this.#inner.listen((event) => listener(clone(event)));
+    return this.#inner.listen((event) => listener(wireCopy(event)));
   }
 
   nextRequestId(): string {
     return this.#inner.nextRequestId();
   }
-}
-
-function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
 }

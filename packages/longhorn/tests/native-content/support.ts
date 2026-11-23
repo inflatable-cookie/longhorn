@@ -17,7 +17,7 @@ import type {
 } from "../../src/native-content/index.ts";
 
 export function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }
 
 export function baseSnapshot(): NativeContentSnapshot {

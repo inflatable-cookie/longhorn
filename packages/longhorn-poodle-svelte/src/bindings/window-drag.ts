@@ -71,24 +71,23 @@ export interface WindowDragAction {
   destroy(): void;
 }
 
+function isChromeGesture(event: MouseEvent): boolean {
+  return (
+    event.button === 0 &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    // oxlint-disable-next-line @nkzw/no-instanceof -- Only a real DOM Element supports closest; event targets can also be Window or Text.
+    event.target instanceof Element &&
+    !event.target.closest(INTERACTIVE_SELECTOR)
+  );
+}
+
 export function windowDrag(node: HTMLElement, initialOptions: WindowDragOptions): WindowDragAction {
   let options = initialOptions;
   // Where the deferred macOS zoom was pressed. Null whenever none is pending.
   let pendingZoomAt: { x: number; y: number } | null = null;
-
-  // One eligibility test for every gesture: primary button, no modifiers, and
-  // not on something the operator meant to click.
-  function isChromeGesture(event: MouseEvent): boolean {
-    return (
-      event.button === 0 &&
-      !event.altKey &&
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.shiftKey &&
-      event.target instanceof Element &&
-      !event.target.closest(INTERACTIVE_SELECTOR)
-    );
-  }
 
   function invoke(action: () => void | Promise<void>): void {
     try {

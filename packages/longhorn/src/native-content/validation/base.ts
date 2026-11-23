@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import {
   NATIVE_CONTENT_VARIANT_FIELDS,
   NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS,
@@ -54,10 +55,10 @@ export function exactObject(
 }
 
 export function record(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 
 export function exactKeys(
@@ -83,7 +84,7 @@ export function member<const Value extends string>(
   values: ReadonlyArray<Value>,
   path: string,
 ): asserts value is Value {
-  if (typeof value !== "string" || !values.includes(value as Value)) {
+  if (typeof value !== "string" || !values.some((candidate) => candidate === value)) {
     fail(path, `unknown value ${String(value)}`);
   }
 }
@@ -189,7 +190,10 @@ export function variantKeys(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = object[NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = NATIVE_CONTENT_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string"
+      ? NATIVE_CONTENT_VARIANT_FIELDS[type]?.[discriminant]
+      : undefined;
   if (keys === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }

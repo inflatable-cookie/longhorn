@@ -41,7 +41,7 @@ describe("generated settings protocol fixture", () => {
     fixture.mutationResults.forEach((value) => assertValidSettingsMutationResult(value));
     fixture.registryEvents.forEach((value) => assertValidSettingsRegistryChangedEvent(value));
     fixture.scopeEvents.forEach((value) => assertValidSettingsScopeChangedEvent(value));
-    expect(JSON.parse(JSON.stringify(fixture))).toEqual(fixture);
+    expect(structuredClone(fixture)).toEqual(fixture);
   });
 
   test("fails safe on future versions and every fixture discriminant", () => {

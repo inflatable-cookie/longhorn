@@ -20,6 +20,7 @@ export type ReleaseBumpOptions = {
   repoRoot?: string;
   version: string;
   date?: string;
+  // oxlint-disable-next-line quality/no-unknown-returns -- Only completion matters for a caller-supplied lock sync.
   syncLocks?: (repoRoot: string) => Promise<unknown>;
   regenerateApiReference?: (repoRoot: string) => Promise<void>;
 };
@@ -58,7 +59,7 @@ export function replaceLonghornPathPins(manifest: string, version: string): stri
 }
 
 export function bumpPackageManifest(text: string, version: string): string {
-  const versionLine = /^  "version": "[^"]+",/m;
+  const versionLine = /^ {2}"version": "[^"]+",/m;
   if (!versionLine.test(text)) {
     throw new Error('package.json version line must be of the form `  "version": "...",`');
   }

@@ -1,3 +1,4 @@
+import { readPackageManifest } from "../proof-json.ts";
 import { poodleRelease } from "../poodle-release.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join } from "node:path";
@@ -54,11 +55,7 @@ export async function packTypescriptArtifacts(repoRoot: string, artifactRoot: st
   return { paths, identities };
 }
 
-async function inspectTypescriptArtifact(
-  name: string,
-  path: string,
-  artifactRoot: string,
-): Promise<void> {
+async function inspectTypescriptArtifact(name: string, path: string, artifactRoot: string) {
   const listing = await run(["tar", "-tzf", path], artifactRoot);
   if (
     listing.includes("node_modules/") ||
@@ -67,35 +64,21 @@ async function inspectTypescriptArtifact(
   ) {
     throw new Error(`${name} artifact contains proof/workspace material`);
   }
-  const manifest = JSON.parse(
+  const manifest = readPackageManifest(
     await run(["tar", "-xOzf", path, "package/package.json"], artifactRoot),
-  ) as {
-    name: string;
-    version: string;
-    dependencies?: Record<string, string>;
-    exports?: Record<string, unknown>;
-    peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-  };
+  );
   if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
-  const dependencies: Record<string, ReadonlyArray<string>> = {
-    "@inflatable-cookie/longhorn": [],
-    "@inflatable-cookie/longhorn-poodle-svelte": [],
-    "@inflatable-cookie/longhorn-tauri": [],
-  };
-  assertExactSet(
-    `${name} dependencies`,
-    Object.keys(manifest.dependencies ?? {}),
-    dependencies[name] ?? [],
-  );
+  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), []);
   if (
     name === "@inflatable-cookie/longhorn-operation" ||
     name === "@inflatable-cookie/longhorn-notifications"
   ) {
     for (const peer of ["svelte", "@inflatable-cookie/poodle-svelte"]) {
-      if (manifest.peerDependenciesMeta?.[peer]?.optional !== true)
+      if (manifest.peerDependenciesMeta?.[peer]?.optional !== true) {
         throw new Error(`${name} ${peer} peer is not optional`);
+      }
     }
   }
   const extractRoot = join(artifactRoot, `inspect-${name.replace("@", "").replace("/", "-")}`);
@@ -103,7 +86,9 @@ async function inspectTypescriptArtifact(
   await run(["tar", "-xzf", path, "-C", extractRoot], artifactRoot);
   const source = await readSourceTree(join(extractRoot, "package", "src"));
   for (const marker of ["PulseMutation", "PluginRecord", "ExportReport", "executeProductPayload"]) {
-    if (source.includes(marker)) throw new Error(`${name} contains donor payload marker ${marker}`);
+    if (source.includes(marker)) {
+      throw new Error(`${name} contains donor payload marker ${marker}`);
+    }
   }
 }
 
@@ -140,8 +125,9 @@ export async function packAndRunRustArtifacts(
     )
   ).join("\n");
   for (const marker of ["PulseMutation", "PluginRecord", "ExportReport", "executeProductPayload"]) {
-    if (sharedSource.includes(marker))
+    if (sharedSource.includes(marker)) {
       throw new Error(`Rust artifacts contain donor marker ${marker}`);
+    }
   }
 
   const consumersRoot = join(workspace, "consumers");
@@ -153,7 +139,12 @@ export async function packAndRunRustArtifacts(
   await writeFile(join(workspace, "Cargo.toml"), rustWorkspaceManifest());
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
 
-  const nativeTraces = {} as Record<Shape, Record<string, unknown>>;
+  const nativeTraces: Record<Shape, Record<string, unknown>> = {
+    "minimal-operation": {},
+    soundcheck: {},
+    loophole: {},
+    "notification-only": {},
+  };
   // One exec lease over the staged workspace at the MSRV pin, with private final
   // outputs on build scratch: the tool inside calls plain Cargo, and the
   // intermediates keep the build directory the lease supplies. The real
@@ -165,7 +156,12 @@ export async function packAndRunRustArtifacts(
       manifestPath: join(workspace, "Cargo.toml"),
       toolchain: MSRV_TOOLCHAIN,
     });
-  const graphs = {} as Record<Shape, ReadonlyArray<string>>;
+  const graphs: Record<Shape, ReadonlyArray<string>> = {
+    "minimal-operation": [],
+    soundcheck: [],
+    loophole: [],
+    "notification-only": [],
+  };
   const packages: Record<Shape, string> = {
     "minimal-operation": "longhorn-minimal-operation-artifact-proof",
     soundcheck: "longhorn-soundcheck-operation-artifact-proof",

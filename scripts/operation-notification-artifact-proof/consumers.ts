@@ -1,3 +1,10 @@
+import { errorCode } from "../proof-support.ts";
+import {
+  readPackageIdentity,
+  readPackageManifest,
+  readPermissions as parsePermissions,
+} from "../proof-json.ts";
+import { requireValue } from "../proof-support.ts";
 import { installProofStage } from "../proof-install.ts";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
@@ -13,7 +20,7 @@ import {
 } from "../proof-support.ts";
 import { equalJson } from "./shared.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import type { PackageManifest, ProofContext, Shape } from "./types.ts";
+import type { ProofContext, Shape } from "./types.ts";
 
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
@@ -149,10 +156,8 @@ async function verifyConsumer(context: ProofContext, shape: Shape) {
     `${JSON.stringify(native.rendererFixture, null, 2)}\n`,
   );
 
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
-  manifest.dependencies = rewriteDependencies(manifest.dependencies, context.artifacts);
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
+  manifest.dependencies = rewriteDependencies(manifest.dependencies ?? {}, context.artifacts);
   // Only Longhorn's own packs are overridden onto paths. Poodle is a published
   // dependency, so the staged consumer resolves it from the registry exactly as
   // a real consumer does -- which is what the pack indirection was standing in
@@ -252,7 +257,9 @@ function rewriteDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
@@ -261,7 +268,7 @@ async function installedScope(stage: string, scope: string): Promise<ReadonlyArr
   try {
     return (await readdir(join(stage, "node_modules", scope))).sort();
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return [];
     }
     throw error;
@@ -286,10 +293,7 @@ async function assertArtifactInstall(stage: string, name: string, expected: stri
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as {
-    readonly name: string;
-    readonly version: string;
-  };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }
@@ -300,7 +304,7 @@ async function assertPackageAbsent(stage: string, name: string): Promise<void> {
   try {
     await lstat(join(stage, "node_modules", ...name.split("/")));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return;
     }
     throw error;
@@ -319,12 +323,10 @@ async function assertSingleSvelteRuntime(stage: string): Promise<void> {
 
 async function readPermissions(path: string): Promise<ReadonlyArray<string>> {
   try {
-    const capability = JSON.parse(await readFile(path, "utf8")) as {
-      readonly permissions: ReadonlyArray<string>;
-    };
+    const capability = parsePermissions(await readFile(path, "utf8"));
     return capability.permissions;
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return [];
     }
     throw error;
@@ -341,7 +343,7 @@ async function longhornImports(stage: string): Promise<ReadonlyArray<string>> {
     for (const match of source.matchAll(
       /from\s+["'](@inflatable-cookie\/longhorn(?:[/-][^"']*)?)["']/g,
     )) {
-      imports.add(match[1]!);
+      imports.add(requireValue(match[1], "match[1]"));
     }
   }
   return [...imports].sort();

@@ -1,3 +1,4 @@
+import { readPackageManifest } from "../proof-json.ts";
 import { poodleRelease } from "../poodle-release.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
 import { basename, join } from "node:path";
@@ -73,7 +74,7 @@ export async function packTypescriptArtifacts(
   return { identities, paths };
 }
 
-async function inspectNpmArtifact(name: string, path: string, artifactRoot: string): Promise<void> {
+async function inspectNpmArtifact(name: string, path: string, artifactRoot: string) {
   const listing = await run(["tar", "-tzf", path], artifactRoot);
   if (
     listing.includes("node_modules/") ||
@@ -82,16 +83,9 @@ async function inspectNpmArtifact(name: string, path: string, artifactRoot: stri
   ) {
     throw new Error(`${name} artifact contains proof or workspace material`);
   }
-  const manifest = JSON.parse(
+  const manifest = readPackageManifest(
     await run(["tar", "-xOzf", path, "package/package.json"], artifactRoot),
-  ) as {
-    readonly name: string;
-    readonly version: string;
-    readonly dependencies?: Record<string, string>;
-    readonly peerDependencies?: Record<string, string>;
-    readonly peerDependenciesMeta?: Record<string, { optional?: boolean }>;
-    readonly exports?: Record<string, unknown>;
-  };
+  );
   if (manifest.name !== name || manifest.version !== LONGHORN_VERSION) {
     throw new Error(`${name} packed identity mismatch`);
   }
@@ -99,15 +93,7 @@ async function inspectNpmArtifact(name: string, path: string, artifactRoot: stri
   // peers; everything that needed a peer moved to longhorn-poodle-svelte. The
   // command surface is proven by the entries each package exposes rather than
   // by a package per domain.
-  const expectedDependencies: Record<string, ReadonlyArray<string>> = {
-    "@inflatable-cookie/longhorn": [],
-    "@inflatable-cookie/longhorn-poodle-svelte": [],
-  };
-  assertExactSet(
-    `${name} dependencies`,
-    Object.keys(manifest.dependencies ?? {}),
-    expectedDependencies[name] ?? [],
-  );
+  assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), []);
   const exports = Object.keys(manifest.exports ?? {});
   if (name === "@inflatable-cookie/longhorn") {
     for (const entry of [".", "./commands", "./commands/protocol"]) {

@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   NOTIFICATION_VARIANT_FIELDS,
   NOTIFICATION_VARIANT_FIELDS_DISCRIMINANTS,
@@ -253,10 +254,10 @@ function protocol(value: unknown, path: string): void {
 }
 
 function record(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 
 function exact(value: unknown, path: string, keys: ReadonlyArray<string>): Record<string, unknown> {
@@ -299,20 +300,20 @@ function boolean(value: unknown, path: string): void {
     fail(path, "expected boolean");
   }
 }
-function integer(value: unknown, path: string): void {
+function integer(value: unknown, path: string): asserts value is number {
   if (typeof value !== "number" || !Number.isSafeInteger(value)) {
     fail(path, "expected safe integer");
   }
 }
-function natural(value: unknown, path: string): void {
+function natural(value: unknown, path: string): asserts value is number {
   integer(value, path);
-  if ((value as number) < 0) {
+  if (value < 0) {
     fail(path, "expected nonnegative integer");
   }
 }
 function positive(value: unknown, path: string): void {
   natural(value, path);
-  if ((value as number) === 0) {
+  if (value === 0) {
     fail(path, "expected positive integer");
   }
 }
@@ -338,7 +339,10 @@ function variantKeys(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = object[NOTIFICATION_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = NOTIFICATION_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string"
+      ? NOTIFICATION_VARIANT_FIELDS[type]?.[discriminant]
+      : undefined;
   if (keys === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }

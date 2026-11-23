@@ -1,3 +1,4 @@
+import { requireValue } from "../../../../scripts/proof-support.ts";
 import { CommandSession } from "../../src/commands/poodle.ts";
 import { CommandController } from "../../../longhorn/src/commands/index.ts";
 import type {
@@ -46,7 +47,7 @@ class FakeKeyboardTarget {
 export function createSession() {
   const target = new FakeKeyboardTarget();
   const catalogue = new Port(fixture.catalogue);
-  const keymap = new Port(fixture.loadOutcomes[0]!);
+  const keymap = new Port(requireValue(fixture.loadOutcomes[0], "fixture.loadOutcomes[0]"));
   const available = new Port(availability());
   const executions: Array<CommandExecutionIntent> = [];
   let request = 0;

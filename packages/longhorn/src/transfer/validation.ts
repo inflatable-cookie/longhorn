@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   TRANSFER_VARIANT_FIELDS,
   TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
@@ -160,6 +161,7 @@ export function assertValidPanelTransferResponse(
   if (response.status === "committed") {
     const completion = record(response.completion, TRANSFER_FIELDS.PanelTransferCompletion);
     assertTransferProtocolVersion(completion.protocol_version);
+    // oxlint-disable-next-line quality/no-known-value-widening -- Runtime validation also covers structurally typed callers and untrusted wire values.
     assertValidTransferTargetBinding(record(record(completion.target).binding));
   } else {
     assertValidTransferAbort(response.abort);
@@ -187,7 +189,8 @@ function responseWithStatus(
  */
 function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = TRANSFER_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string" ? TRANSFER_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (keys === undefined) {
     throw new TransferProtocolValidationError("unknown_response_status", {
       type,
@@ -216,10 +219,10 @@ function assertKnown(
  * allowed keys depend on their discriminant and so are not one flat set.
  */
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     throw new TransferProtocolValidationError("invalid_object", value);
   }
-  const result = value as Record<string, unknown>;
+  const result = value;
   if (allowed === undefined) {
     return result;
   }

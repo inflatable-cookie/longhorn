@@ -29,21 +29,9 @@ const SKIP_TAGS = new Set([
   "IFRAME",
 ]);
 
-type FormControl = Element & {
-  value: string;
-  disabled?: boolean;
-  checked?: boolean;
-  readOnly?: boolean;
-  type?: string;
-  selectionStart?: number | null;
-  selectionEnd?: number | null;
-  setSelectionRange?: (start: number, end: number) => void;
-  selectedOptions?: ArrayLike<Element>;
-  selected?: boolean;
-};
-
 function prop<T>(element: Element, name: string): T | undefined {
-  // The caller names the property type; the page object carries no type of its own.
+  // DOM access is structural across webviews and test windows. Callers select each property by element role.
+  // oxlint-disable-next-line quality/no-reflect-get,typescript/no-unsafe-type-assertion -- The selected DOM interface is the contract for the property.
   return Reflect.get(element, name) as T | undefined;
 }
 
@@ -115,6 +103,7 @@ export type AgentControlApi = {
 };
 
 export type ShimWorld = {
+  [SHIM_GLOBAL]?: AgentControlApi;
   document: Document;
   location: { href: string };
   console: Pick<Console, "log" | "info" | "warn" | "error" | "debug">;
@@ -144,6 +133,7 @@ function unsupported(message: string): ShimResult<never> {
 }
 
 function ok(): ActionOk {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- The wire success marker has no payload; the public ActionOk type represents that as Record<string, never>.
   return { ok: true } as ActionOk;
 }
 
@@ -156,6 +146,7 @@ function resolveRef(document: Document, element: string): Element | null {
 
 function refPrefix(document: Document): string {
   const view = document.defaultView;
+  // oxlint-disable-next-line quality/no-reflect-get -- The prefix is stamped on this window by the Rust host.
   const value: unknown = view ? Reflect.get(view, REF_PREFIX_GLOBAL) : undefined;
   return typeof value === "string" ? value : "";
 }
@@ -549,7 +540,7 @@ function snapshot(world: ShimWorld): ShimResult<{ page: PageState; root: Semanti
   };
 }
 
-function centerOf(element: Element): { x: number; y: number } {
+function centerOf(element: Element) {
   const rect = element.getBoundingClientRect();
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
@@ -644,7 +635,7 @@ function insertText(element: Element, text: string): void {
     const start = prop<number | null>(element, "selectionStart") ?? current.length;
     const end = prop<number | null>(element, "selectionEnd") ?? start;
     const next = `${current.slice(0, start)}${text}${current.slice(end)}`;
-    (element as FormControl).value = next;
+    Object.assign(element, { value: next });
     const cursor = start + text.length;
     prop<(this: Element, start: number, end: number) => void>(element, "setSelectionRange")?.call(
       element,
@@ -847,7 +838,7 @@ function setFileInput(
     );
   }
   try {
-    (node as HTMLInputElement).files = transfer.files;
+    Object.assign(node, { files: transfer.files });
   } catch (error) {
     return unsupported(
       `the page refused FileList assignment from a constructed DataTransfer: ${String(error)}`,
@@ -884,7 +875,7 @@ function waitFor(world: ShimWorld, predicate: WaitPredicate): ShimResult<{ holds
 }
 
 function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
-  const existing = world[SHIM_GLOBAL] as AgentControlApi | undefined;
+  const existing = world[SHIM_GLOBAL];
   if (existing) {
     return existing.readEvents.bind(existing);
   }
@@ -914,7 +905,7 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
         seq: nextSeq,
         kind: "console",
         level,
-        text: args.map((value) => String(value)).join(" "),
+        text: args.map(String).join(" "),
       });
       original?.(...args);
     };
@@ -931,8 +922,7 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
     push({ seq: nextSeq, kind: "error", message });
   });
   world.addEventListener("unhandledrejection", (event) => {
-    const reason =
-      "reason" in event ? String((event as PromiseRejectionEvent).reason) : "unhandledrejection";
+    const reason = "reason" in event ? String(event.reason) : "unhandledrejection";
     push({ seq: nextSeq, kind: "error", message: reason });
   });
 
@@ -990,7 +980,7 @@ function installOriginTracking(
 }
 
 export function installAgentControlShim(world: ShimWorld): AgentControlApi {
-  const existing = world[SHIM_GLOBAL] as AgentControlApi | undefined;
+  const existing = world[SHIM_GLOBAL];
   if (existing) {
     return existing;
   }

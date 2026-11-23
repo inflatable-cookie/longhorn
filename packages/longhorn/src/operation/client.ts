@@ -137,7 +137,7 @@ class CheckedOperationSubscription implements OperationSubscription {
 function parseSnapshot(value: unknown): OperationSnapshot {
   const response = { requestId: "request:validation", snapshot: value };
   assertValidOperationSnapshotResponse(response);
-  return value as OperationSnapshot;
+  return response.snapshot;
 }
 
 export function operationEventAction(

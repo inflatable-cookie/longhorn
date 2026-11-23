@@ -1,3 +1,5 @@
+import { readPackageIdentity, readPackageManifest, readPermissions } from "../proof-json.ts";
+import { requireValue } from "../proof-support.ts";
 import { assertExactSet } from "../proof-support.ts";
 import { installProofStage } from "../proof-install.ts";
 import { randomUUID } from "node:crypto";
@@ -7,13 +9,13 @@ import { cp, mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promi
 import { testCount } from "../test-count.ts";
 import { fileDependency, runWithDiagnostics as run } from "../proof-support.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import type { PackageManifest, ProofContext, ShapePolicy } from "./types.ts";
+import type { ProofContext, ShapePolicy } from "./types.ts";
 
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
 const LONGHORN_VERSION = longhornVersion();
 
-const shapes: Record<string, ShapePolicy> = {
+const shapes = {
   "minimal-shell": {
     longhorn: ["@inflatable-cookie/longhorn"],
     forbiddenImports: [
@@ -83,7 +85,7 @@ const shapes: Record<string, ShapePolicy> = {
     ],
     pages: ["General"],
   },
-};
+} satisfies Record<string, ShapePolicy>;
 
 export async function verifyConsumers(context: ProofContext) {
   const reports = [];
@@ -123,10 +125,8 @@ async function verifyConsumer(context: ProofContext, shape: string, policy: Shap
     join(stage, "src/fixtures/config-protocol-v1.json"),
   );
 
-  const manifest = JSON.parse(
-    await readFile(join(source, "package.json"), "utf8"),
-  ) as PackageManifest;
-  manifest.dependencies = rewriteDependencies(manifest.dependencies, context.artifacts);
+  const manifest = readPackageManifest(await readFile(join(source, "package.json"), "utf8"));
+  manifest.dependencies = rewriteDependencies(manifest.dependencies ?? {}, context.artifacts);
   // Only Longhorn's own packs are overridden onto paths. Poodle is a published
   // dependency, so the staged consumer resolves it from the registry exactly as
   // a real consumer does -- which is what the pack indirection was standing in
@@ -162,9 +162,7 @@ async function verifyConsumer(context: ProofContext, shape: string, policy: Shap
     throw new Error(`${shape} installed unexpected Svelte version`);
   }
   await assertSingleSvelteRuntime(stage);
-  const capability = JSON.parse(await readFile(join(stage, "capability.json"), "utf8")) as {
-    readonly permissions: ReadonlyArray<string>;
-  };
+  const capability = readPermissions(await readFile(join(stage, "capability.json"), "utf8"));
   assertExactSet(`${shape} permissions`, capability.permissions, policy.permissions);
   const lock = await readFile(join(stage, "bun.lock"), "utf8");
   if (
@@ -197,7 +195,9 @@ function rewriteDependencies(
   return Object.fromEntries(
     Object.entries(dependencies).map(([name, version]) => [
       name,
-      artifacts.has(name) ? fileDependency(artifacts.get(name)!) : version,
+      artifacts.has(name)
+        ? fileDependency(requireValue(artifacts.get(name), "artifacts.get(name)"))
+        : version,
     ]),
   );
 }
@@ -219,10 +219,7 @@ async function assertArtifactInstall(stage: string, name: string, expected: stri
 
 async function installedPackage(stage: string, name: string) {
   const path = join(stage, "node_modules", ...name.split("/"));
-  const manifest = JSON.parse(await readFile(join(path, "package.json"), "utf8")) as {
-    readonly name: string;
-    readonly version: string;
-  };
+  const manifest = readPackageIdentity(await readFile(join(path, "package.json"), "utf8"));
   if (manifest.name !== name) {
     throw new Error(`installed package identity mismatch for ${name}`);
   }

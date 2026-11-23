@@ -1,3 +1,5 @@
+import { readPackageIdentity, readPackageManifest } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { run } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 // Pack-level typecheck of `longhorn-poodle-svelte` against registry Poodle.
@@ -59,24 +61,17 @@ const SVELTE = "@inflatable-cookie/poodle-svelte";
  * see it without relying on a try-block closure. */
 const rootPins = new Map<string, string>();
 
-const adapterManifest = JSON.parse(
+const adapterManifest = readPackageManifest(
   await readFile(join(repoRoot, ADAPTER_PACKAGE, "package.json"), "utf8"),
-) as {
-  peerDependencies: Record<string, string>;
-  exports: Record<string, unknown>;
-};
+);
 
 for (const [name, pin] of Object.entries(
-  (
-    JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")) as {
-      devDependencies?: Record<string, string>;
-    }
-  ).devDependencies ?? {},
+  readPackageManifest(await readFile(join(repoRoot, "package.json"), "utf8")).devDependencies ?? {},
 )) {
   rootPins.set(name, pin);
 }
 
-const declaredSvelteRange = adapterManifest.peerDependencies.svelte;
+const declaredSvelteRange = adapterManifest.peerDependencies?.svelte;
 if (!declaredSvelteRange) {
   throw new Error(
     `${ADAPTER} declares no svelte peer; this proof has nothing to typecheck against`,
@@ -89,16 +84,16 @@ const { floor: svelteFloor, ceiling: svelteCeiling } = rangeShape(declaredSvelte
 // adapter. The workspace dev pins must sit exactly at that range's floor --
 // contract 012 keeps Longhorn's own installs on one exact Poodle release while
 // the published declaration admits the range.
-const declaredPoodleRange = adapterManifest.peerDependencies[CORE];
+const declaredPoodleRange = adapterManifest.peerDependencies?.[CORE];
 if (!declaredPoodleRange) {
   throw new Error(
     `${ADAPTER} declares no ${CORE} peer; this proof has nothing to typecheck against`,
   );
 }
-if (adapterManifest.peerDependencies[SVELTE] !== declaredPoodleRange) {
+if (adapterManifest.peerDependencies?.[SVELTE] !== declaredPoodleRange) {
   throw new Error(
     `${ADAPTER} declares different Poodle peers: ${CORE} ${declaredPoodleRange}, ` +
-      `${SVELTE} ${adapterManifest.peerDependencies[SVELTE]}`,
+      `${SVELTE} ${adapterManifest.peerDependencies?.[SVELTE]}`,
   );
 }
 const { floor: poodleFloor, ceiling: poodleCeiling } = rangeShape(declaredPoodleRange, "Poodle");
@@ -197,11 +192,8 @@ async function typecheckStage(pass: {
     ] as const) {
       versions.set(
         name,
-        (
-          JSON.parse(await readFile(join(repoRoot, directory, "package.json"), "utf8")) as {
-            version: string;
-          }
-        ).version,
+        readPackageIdentity(await readFile(join(repoRoot, directory, "package.json"), "utf8"))
+          .version,
       );
       await run(
         ["bun", "pm", "pack", "--ignore-scripts", "--destination", stage],
@@ -255,9 +247,9 @@ async function typecheckStage(pass: {
     // other than the release identity the manifests declare.
     for (const name of [LONGHORN, ADAPTER]) {
       const installed = join(stage, "node_modules", ...name.split("/"));
-      const manifestInstalled = JSON.parse(
+      const manifestInstalled = readPackageIdentity(
         await readFile(join(installed, "package.json"), "utf8"),
-      ) as { name: string; version: string };
+      );
       if (manifestInstalled.name !== name || manifestInstalled.version !== versions.get(name)) {
         throw new Error(
           `${name} installed as ${manifestInstalled.name}@${manifestInstalled.version}, ` +
@@ -280,8 +272,8 @@ async function typecheckStage(pass: {
     const resolvedPoodle = new Map<string, string>();
     for (const pkg of release.packages) {
       const installed = join(stage, "node_modules", ...pkg.name.split("/"));
-      const installedVersion = (
-        JSON.parse(await readFile(join(installed, "package.json"), "utf8")) as { version: string }
+      const installedVersion = readPackageIdentity(
+        await readFile(join(installed, "package.json"), "utf8"),
       ).version;
       resolvedPoodle.set(pkg.name, installedVersion);
       if (!admitsRange(installedVersion, poodleFloor, poodleCeiling)) {
@@ -336,9 +328,9 @@ async function typecheckStage(pass: {
     // envelope honest when npm serves something other than the newest, and the
     // admission check keeps a hand-edited range from proving a release the
     // published declaration rejects.
-    const resolvedSvelte = JSON.parse(
+    const resolvedSvelte = readPackageIdentity(
       await readFile(join(stage, "node_modules", "svelte", "package.json"), "utf8"),
-    ).version as string;
+    ).version;
     if (!admitsRange(resolvedSvelte, svelteFloor, svelteCeiling)) {
       throw new Error(
         `stage resolved svelte ${resolvedSvelte}, which the declared range ` +
@@ -375,8 +367,10 @@ async function typecheckStage(pass: {
     // One module per exports entry, so the typecheck covers the exports map and
     // the transitive graph behind every published subpath. `./package.json` is
     // an export no module imports; it is verified separately.
-    const exports = Object.keys(adapterManifest.exports).filter((key) => key !== "./package.json");
-    if (!adapterManifest.exports["./package.json"]) {
+    const exports = Object.keys(adapterManifest.exports ?? {}).filter(
+      (key) => key !== "./package.json",
+    );
+    if (!adapterManifest.exports?.["./package.json"]) {
       throw new Error("packed manifest does not export ./package.json");
     }
     const imports = [
@@ -413,7 +407,7 @@ async function typecheckStage(pass: {
     typecheck(stage, ["bun", "x", "tsc", "-p", "tsconfig.json"]);
     typecheck(stage, ["bun", "x", "svelte-check", "--tsconfig", "tsconfig.json"]);
 
-    return { svelte: resolvedSvelte, poodle: poodleVersions[0]! };
+    return { svelte: resolvedSvelte, poodle: requireValue(poodleVersions[0], "poodleVersions[0]") };
   } finally {
     if (process.env.KEEP_PACK_TYPECHECK === "1") {
       console.error(
@@ -426,7 +420,7 @@ async function typecheckStage(pass: {
 }
 
 function typecheck(stage: string, command: ReadonlyArray<string>): void {
-  const result = spawnSync(command[0]!, command.slice(1), {
+  const result = spawnSync(requireValue(command[0], "command[0]"), command.slice(1), {
     cwd: stage,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -482,7 +476,10 @@ async function stagedLockEntry(
   if (!entry) {
     throw new Error(`staged bun.lock records no registry entry for ${name}`);
   }
-  return { version: entry[1]!, integrity: entry[2]! };
+  return {
+    version: requireValue(entry[1], "entry[1]"),
+    integrity: requireValue(entry[2], "entry[2]"),
+  };
 }
 
 /**
@@ -493,7 +490,7 @@ async function stagedLockEntry(
  * the floor and the ceiling, and a range this parser only half understands
  * would prove the wrong releases.
  */
-function rangeShape(range: string, peer: string): { floor: string; ceiling: string } {
+function rangeShape(range: string, peer: string) {
   const match = /^>=(\d+\.\d+\.\d+) <(\d+(?:\.\d+){0,2})$/.exec(range);
   if (!match) {
     throw new Error(
@@ -502,7 +499,12 @@ function rangeShape(range: string, peer: string): { floor: string; ceiling: stri
     );
   }
   const [, floor, ceiling] = match;
-  return { floor: floor!, ceiling: ceiling!.includes(".") ? ceiling! : `${ceiling}.0.0` };
+  return {
+    floor: requireValue(floor, "floor"),
+    ceiling: requireValue(ceiling, "ceiling").includes(".")
+      ? requireValue(ceiling, "ceiling")
+      : `${ceiling}.0.0`,
+  };
 }
 
 /** Membership in `>=floor <ceiling`, for release versions only. A prerelease
@@ -525,7 +527,7 @@ function admitsRange(version: string, floor: string, ceiling: string): boolean {
 function tupleLess(a: ReadonlyArray<number>, b: ReadonlyArray<number>): boolean {
   for (let index = 0; index < 3; index += 1) {
     if (a[index] !== b[index]) {
-      return a[index]! < b[index]!;
+      return requireValue(a[index], "a[index]") < requireValue(b[index], "b[index]");
     }
   }
   return false;

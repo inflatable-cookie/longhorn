@@ -1,4 +1,11 @@
-import { BridgeJobTracker } from "@inflatable-cookie/longhorn/bridge";
+import {
+  BridgeJobTracker,
+  bridgeCodec,
+  parseBridgeCommandEnvelope,
+  parseBridgeCommandReply,
+  parseBridgeQueryEnvelope,
+  parseBridgeQueryReply,
+} from "@inflatable-cookie/longhorn/bridge";
 import type {
   BridgeCommandEnvelope,
   BridgeCommandReply,
@@ -108,14 +115,19 @@ function nextContext(options: BridgeOperationPortOptions): BridgeRequestContext 
   };
 }
 
-function codec<Value>(assertValue: (value: unknown) => void) {
-  return {
-    parse(value: unknown): Value {
-      assertValue(value);
-      return value as Value;
-    },
-  };
+function codec<Value>(assertValue: (value: unknown) => asserts value is Value) {
+  return bridgeCodec((value) => {
+    assertValue(value);
+    return value;
+  });
 }
+
+const noDetails = bridgeCodec((value): null => {
+  if (value !== null) {
+    throw new Error("operation bridge failure details must be null");
+  }
+  return null;
+});
 
 function queryDescriptor(
   domainId: DomainId,
@@ -128,16 +140,12 @@ function queryDescriptor(
     domainId,
     kind: "query",
     requiredCapability: "longhorn.operation.read",
-    request: codec((value) => {
-      const payload = (value as BridgeQueryEnvelope<unknown>).payload;
-      assertValidOperationSnapshotQuery(payload);
-    }),
-    reply: codec((value) => {
-      const outcome = (value as BridgeQueryReply<unknown, null>).outcome;
-      if ("success" in outcome) {
-        assertValidOperationSnapshotResponse(outcome.success);
-      }
-    }),
+    request: bridgeCodec((value) =>
+      parseBridgeQueryEnvelope(value, codec(assertValidOperationSnapshotQuery)),
+    ),
+    reply: bridgeCodec((value) =>
+      parseBridgeQueryReply(value, codec(assertValidOperationSnapshotResponse), noDetails),
+    ),
   };
 }
 
@@ -152,15 +160,12 @@ function commandDescriptor(
     domainId,
     kind: "command",
     requiredCapability: "longhorn.operation.manage",
-    request: codec((value) =>
-      assertValidOperationMutationCommand((value as BridgeCommandEnvelope<unknown>).payload),
+    request: bridgeCodec((value) =>
+      parseBridgeCommandEnvelope(value, codec(assertValidOperationMutationCommand)),
     ),
-    reply: codec((value) => {
-      const outcome = (value as BridgeCommandReply<unknown, null>).outcome;
-      if ("applied" in outcome) {
-        assertValidOperationMutationResult(outcome.applied);
-      }
-    }),
+    reply: bridgeCodec((value) =>
+      parseBridgeCommandReply(value, codec(assertValidOperationMutationResult), noDetails),
+    ),
   };
 }
 
@@ -175,15 +180,12 @@ function cancellationDescriptor(
     domainId,
     kind: "cancellation",
     requiredCapability: "longhorn.operation.cancel",
-    request: codec((value) =>
-      assertValidOperationCancellationCommand((value as BridgeQueryEnvelope<unknown>).payload),
+    request: bridgeCodec((value) =>
+      parseBridgeQueryEnvelope(value, codec(assertValidOperationCancellationCommand)),
     ),
-    reply: codec((value) => {
-      const outcome = (value as BridgeQueryReply<unknown, null>).outcome;
-      if ("success" in outcome) {
-        assertValidOperationCancellationResult(outcome.success);
-      }
-    }),
+    reply: bridgeCodec((value) =>
+      parseBridgeQueryReply(value, codec(assertValidOperationCancellationResult), noDetails),
+    ),
   };
 }
 

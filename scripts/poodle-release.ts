@@ -1,3 +1,4 @@
+import { readPackageIdentity, readPackageManifest } from "./proof-json.ts";
 // One source of truth for which published Poodle release the proofs run
 // against.
 //
@@ -37,12 +38,8 @@ export interface PoodleRelease {
   readonly packages: ReadonlyArray<PoodlePackage>;
 }
 
-function rootManifest(): {
-  dependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  overrides?: Record<string, string>;
-} {
-  return JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
+function rootManifest() {
+  return readPackageManifest(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
 }
 
 function pinnedRange(): string {
@@ -128,7 +125,7 @@ function lockedPackage(name: string): PoodlePackage {
 function installedVersion(name: string): string {
   const manifest = resolve(repoRoot, "node_modules", name, "package.json");
   try {
-    return JSON.parse(readFileSync(manifest, "utf8")).version as string;
+    return readPackageIdentity(readFileSync(manifest, "utf8")).version;
   } catch {
     throw new Error(`${name} is not installed; run \`bun install\``);
   }
@@ -179,9 +176,7 @@ export function poodleRelease(): PoodleRelease {
  */
 export function poodleSveltePeerRange(): string {
   const manifest = resolve(repoRoot, "node_modules", SVELTE, "package.json");
-  const peers = JSON.parse(readFileSync(manifest, "utf8")).peerDependencies as
-    | Record<string, string>
-    | undefined;
+  const peers = readPackageManifest(readFileSync(manifest, "utf8")).peerDependencies;
   const range = peers?.svelte;
   if (!range) {
     throw new Error(`${SVELTE} declares no svelte peer dependency`);

@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -95,7 +96,7 @@ function collect(
   for (const directory of directories) {
     for (const file of walk(join(root, prefix, directory), suffix)) {
       for (const match of readFileSync(file, "utf8").matchAll(matcher)) {
-        found.add(match[1]!);
+        found.add(requireValue(match[1], "match[1]"));
       }
     }
   }
@@ -174,8 +175,8 @@ for (const directory of readdirSync(join(repoRoot, "crates")).filter((name) =>
       }
       permissionIds.add(identifier);
       for (const command of content.matchAll(/commands\.allow\s*=\s*\[([^\]]*)\]/g)) {
-        for (const name of command[1]!.matchAll(/"([^"]+)"/g)) {
-          allowedCommands.add(name[1]!);
+        for (const name of requireValue(command[1], "command[1]").matchAll(/"([^"]+)"/g)) {
+          allowedCommands.add(requireValue(name[1], "name[1]"));
         }
       }
     }
@@ -186,11 +187,11 @@ for (const directory of readdirSync(join(repoRoot, "crates")).filter((name) =>
     for (const file of readdirSync(capabilitiesRoot)) {
       const content = readFileSync(join(capabilitiesRoot, file), "utf8");
       for (const permission of content.matchAll(/"permissions"\s*:\s*\[([^\]]*)\]/g)) {
-        for (const name of permission[1]!.matchAll(/"([^"]+)"/g)) {
-          if (name[1]!.startsWith("core:")) {
+        for (const name of requireValue(permission[1], "permission[1]").matchAll(/"([^"]+)"/g)) {
+          if (requireValue(name[1], "name[1]").startsWith("core:")) {
             continue;
           }
-          if (!permissionIds.has(name[1]!)) {
+          if (!permissionIds.has(requireValue(name[1], "name[1]"))) {
             problems.push(
               `${join("crates", directory, "examples", "capabilities", file)} references undeclared permission ${name[1]}`,
             );

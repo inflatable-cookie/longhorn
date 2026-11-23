@@ -21,6 +21,8 @@
   {...source.availability === undefined ? {} : { availability: source.availability }}
   {...controller.progress === undefined ? {} : { progress: controller.progress }}
   {...controller.channel === undefined ? {} : { channel: controller.channel }}
-  {...controller.installedVersion === undefined ? {} : { installedVersion: controller.installedVersion }}
+  {...controller.installedVersion === undefined
+    ? {}
+    : { installedVersion: controller.installedVersion }}
   observe={(o) => controller.observe(o)}
 />

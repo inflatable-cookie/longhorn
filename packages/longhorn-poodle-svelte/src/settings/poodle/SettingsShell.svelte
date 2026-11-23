@@ -9,8 +9,8 @@
   import { tick } from "svelte";
 
   import { errorMessage, reportFailure } from "../../failures.ts";
-  import { useSettingsSession } from '../svelte.ts';
-import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
+  import { useSettingsSession } from "../svelte.ts";
+  import type { SettingsRendererResolver, SettingsSession } from "../svelte.ts";
 
   /**
    * Binds a `SettingsSession` to Poodle's `SettingsShell`.
@@ -54,7 +54,10 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   let searchQuery = $state("");
   let focusTarget = $state<HTMLElement | null>(null);
 
-  useSettingsSession(() => session, () => resolveRenderer);
+  useSettingsSession(
+    () => session,
+    () => resolveRenderer,
+  );
 
   /**
    * Search narrows the nav rail; it does not replace the page.
@@ -78,7 +81,9 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
     const anchorsByPage = new Map<string, Array<{ id: string; label: string }>>();
     if (matches) {
       for (const { page, anchor } of matches) {
-        if (!anchor) {continue;}
+        if (!anchor) {
+          continue;
+        }
         const existing = anchorsByPage.get(page.id) ?? [];
         if (!existing.some(({ id }) => id === anchor.id)) {
           // An anchor may carry no label. It still matched -- on its id -- so
@@ -135,9 +140,7 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   const unitStatus = $derived(session.primaryUnitStatus);
   const hasStagedUnit = $derived(
     currentPage?.writableApplyUnitIds.some((unitId) =>
-      session.registry?.applyUnits.some(
-        (unit) => unit.id === unitId && unit.timing === "staged",
-      ),
+      session.registry?.applyUnits.some((unit) => unit.id === unitId && unit.timing === "staged"),
     ) ?? false,
   );
 
@@ -150,7 +153,7 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   );
 
   $effect(() => {
-    session.focusRevision;
+    void session.focusRevision;
     void tick().then(() => focusTarget?.focus());
   });
 
@@ -164,7 +167,9 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   function navigate(value: string, _anchorId: string | null = null): void {
     const route = routes.get(value) ?? { pageId: value };
     void session.navigate(route).then(async (navigated) => {
-      if (!navigated) {return;}
+      if (!navigated) {
+        return;
+      }
       await tick();
       focusTarget?.focus();
     });
@@ -175,7 +180,9 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   // close was attempted. `requestClose` raises the guard dialog below and
   // returns false; the shell has already refused to close.
   function handleRequestClose(): void {
-    if (!session.canLeaveCurrent) {session.requestClose();}
+    if (!session.canLeaveCurrent) {
+      session.requestClose();
+    }
   }
 
   // Shell actions (apply, guard resolution, reset) can fail after the session
@@ -183,7 +190,7 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   // callout is the record; the open dialogs cover the page, so they carry it too.
   let actionFailure = $state<{ readonly error: unknown } | undefined>();
 
-  function runAction(action: () => Promise<unknown>): void {
+  function runAction<Result>(action: () => Promise<Result>): void {
     actionFailure = undefined;
     void action().catch((error: unknown) => {
       actionFailure = { error };
@@ -198,7 +205,9 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
     }
     // `handleRequestClose` has already raised the guard for a refused close,
     // and Poodle's shell does not reach here in that case.
-    if (!session.requestClose()) {return;}
+    if (!session.requestClose()) {
+      return;
+    }
     open = false;
     onOpenChange?.(false);
   }
@@ -237,10 +246,7 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
         announceMode="assertive"
       >
         {#snippet actions()}
-          <Button
-            variant="secondary"
-            onClick={() => void session.reconnect().catch(reportFailure)}
-          >
+          <Button variant="secondary" onClick={() => void session.reconnect().catch(reportFailure)}>
             Retry
           </Button>
         {/snippet}
@@ -352,10 +358,7 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   }}
 >
   {#snippet actions()}
-    <Button
-      variant="ghost"
-      onClick={() => runAction(() => session.resolveGuard("stay"))}
-    >
+    <Button variant="ghost" onClick={() => runAction(() => session.resolveGuard("stay"))}>
       Stay
     </Button>
     <Button
@@ -389,16 +392,10 @@ import type { SettingsRendererResolver, SettingsSession } from '../svelte.ts';
   }}
 >
   {#snippet actions()}
-    <Button
-      variant="secondary"
-      onClick={() => runAction(() => session.resolveReset(false))}
-    >
+    <Button variant="secondary" onClick={() => runAction(() => session.resolveReset(false))}>
       Cancel
     </Button>
-    <Button
-      variant="primary"
-      onClick={() => runAction(() => session.resolveReset(true))}
-    >
+    <Button variant="primary" onClick={() => runAction(() => session.resolveReset(true))}>
       Reset
     </Button>
   {/snippet}

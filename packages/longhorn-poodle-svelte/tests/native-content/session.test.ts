@@ -193,7 +193,7 @@ describe("NativeContentSession", () => {
       mounted.getByTestId("consumer-native-viewport").getAttribute("data-native-mechanism"),
     ).toBe("backing_surface");
 
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     await waitFor(() => expect(client.connections[0]?.disposeCount).toBe(1));
     expect(client.connections[0]?.listenerAttached).toBe(false);
     expect(observers.observers[0]?.disconnectCount).toBe(1);
@@ -202,7 +202,7 @@ describe("NativeContentSession", () => {
       props: { session: state, mechanism: "child_view" },
     });
     await waitFor(() => expect(client.connections).toHaveLength(2));
-    await remounted.unmount();
+    await Promise.resolve(remounted.unmount());
     await waitFor(() => expect(client.connections[1]?.disposeCount).toBe(1));
     expect(client.connections[1]?.listenerAttached).toBe(false);
     expect(observers.observers[1]?.disconnectCount).toBe(1);

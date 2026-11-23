@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 // Desktop support second-consumer conformance (contract 003 step 6).
 //
 // Contracts 024 to 029 each need a second consumer's conformance before their
@@ -174,8 +175,8 @@ async function verifyExampleSources(): Promise<void> {
   }
 
   const manifest = await readFile(join(consumerRoot, "Cargo.toml"), "utf8");
-  const declared = [...manifest.matchAll(/^(longhorn-[\w-]+)(?:\.workspace)?\s*=/gm)].map(
-    (match) => match[1]!,
+  const declared = [...manifest.matchAll(/^(longhorn-[\w-]+)(?:\.workspace)?\s*=/gm)].map((match) =>
+    requireValue(match[1], "match[1]"),
   );
   for (const name of declared) {
     if (!(crates as ReadonlyArray<string>).includes(name)) {
@@ -221,7 +222,7 @@ async function verifyExampleSources(): Promise<void> {
  * crate by tag actually receives. The proof copies crate sources, so this is
  * the check that those sources are the ones a package ships.
  */
-function verifyPackageInventory(name: string): { name: string; files: number } {
+function verifyPackageInventory(name: string) {
   const listing = run(rustCommand(["package", "-p", name, "--list", "--allow-dirty"]), repoRoot);
   const files = listing.trim().split("\n");
   for (const required of ["Cargo.toml"]) {
@@ -253,7 +254,7 @@ async function privateWorkspaceManifest(): Promise<string> {
     .split("\n")
     .filter((line) => {
       const match = line.match(/^(longhorn-[\w-]+)\s*=/);
-      return match === null || selected.has(match[1]!);
+      return match === null || selected.has(requireValue(match[1], "match[1]"));
     })
     .join("\n");
   // A staged crate with no `[workspace.dependencies]` line in the repository --

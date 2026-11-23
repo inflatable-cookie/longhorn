@@ -201,10 +201,7 @@ function dismissalResult(snapshot: OperationSnapshot): OperationMutationResult {
   };
 }
 
-function deferred<Value>(): {
-  promise: Promise<Value>;
-  resolve: (value: Value) => void;
-} {
+function deferred<Value>() {
   let resolve!: (value: Value) => void;
   const promise = new Promise<Value>((next) => {
     resolve = next;

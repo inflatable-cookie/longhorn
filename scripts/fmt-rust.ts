@@ -1,3 +1,4 @@
+import { readCargoInventory } from "./cargo-metadata.ts";
 // Format-check all Rust sources in the repository:
 // 1. Root workspace members via `cargo metadata --no-deps` + `cargo fmt --check -p ...`
 //    (never `--all`, which would walk relative path dependencies into sibling repos).
@@ -75,11 +76,8 @@ const metadataResult = await runChecked(
   rustCommand(["metadata", "--no-deps", "--format-version", "1"]),
   repoRoot,
 );
-const metadata = JSON.parse(metadataResult.stdout) as { packages?: Array<{ name?: string }> };
-const packageFlags = (metadata.packages ?? [])
-  .map((pkg) => pkg.name)
-  .filter((name): name is string => typeof name === "string" && name.length > 0)
-  .map((name) => `-p${name}`);
+const metadata = readCargoInventory(metadataResult.stdout);
+const packageFlags = metadata.packages.map((pkg) => `-p${pkg.name}`);
 if (packageFlags.length === 0) {
   throw new Error("cargo metadata --no-deps returned zero workspace packages");
 }

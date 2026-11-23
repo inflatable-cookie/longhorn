@@ -22,7 +22,7 @@ const repoRoot = resolve(import.meta.dir, "..");
 
 /** Scopes and top-level names whose resolution must not ride a machine link. */
 const SCOPES = new Set(["@inflatable-cookie"]);
-const TOP_LEVEL = ["svelte"];
+const TOP_LEVEL = new Set(["svelte"]);
 
 /** Where `bun link` registers packages; overridable the way bun allows. */
 function globalLinkRoot(): string {
@@ -31,8 +31,8 @@ function globalLinkRoot(): string {
 }
 
 type Link = { name: string; target: string };
-const globalLinks: Link[] = [];
-const findings: string[] = [];
+const globalLinks: Array<Link> = [];
+const findings: Array<string> = [];
 let resolutionsChecked = 0;
 
 // The global link registry: whatever is registered machine-wide. Bun installs
@@ -41,13 +41,17 @@ let resolutionsChecked = 0;
 // where the operator sees the state, and a stale Poodle link reads as harmless
 // right up until something resolves through it.
 for (const entry of await readdir(globalLinkRoot(), { withFileTypes: true }).catch(() => [])) {
-  if (entry.name.startsWith(".")) continue;
+  if (entry.name.startsWith(".")) {
+    continue;
+  }
   const path = join(globalLinkRoot(), entry.name);
   if (entry.isSymbolicLink()) {
     await recordGlobalLink(path, entry.name);
     continue;
   }
-  if (!entry.isDirectory() || !SCOPES.has(entry.name)) continue;
+  if (!entry.isDirectory() || !SCOPES.has(entry.name)) {
+    continue;
+  }
   const scoped = await readdir(path, { withFileTypes: true }).catch(() => []);
   for (const nested of scoped) {
     if (nested.isSymbolicLink()) {
@@ -97,9 +101,13 @@ async function recordGlobalLink(path: string, name: string): Promise<void> {
 
 async function workspaceScan(nodeModules: string): Promise<void> {
   const entries = await readdir(nodeModules).catch(() => null);
-  if (entries === null) return;
+  if (entries === null) {
+    return;
+  }
   for (const entry of entries) {
-    if (entry === ".bin" || entry.startsWith(".")) continue;
+    if (entry === ".bin" || entry.startsWith(".")) {
+      continue;
+    }
     if (entry.startsWith("@")) {
       if (!SCOPES.has(entry)) {
         continue;
@@ -113,7 +121,7 @@ async function workspaceScan(nodeModules: string): Promise<void> {
       }
       continue;
     }
-    if (TOP_LEVEL.includes(entry)) {
+    if (TOP_LEVEL.has(entry)) {
       await inspectResolution(nodeModules, entry);
     }
   }

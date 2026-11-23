@@ -1,24 +1,42 @@
+import { readPackageManifest, requireRecord, requireList, requireString } from "./proof-json.ts";
+import { requireValue } from "./proof-support.ts";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
-type Lock = { packages: Record<string, [string, string, unknown, string?]> };
-const rootLock = Bun.JSONC.parse(await readFile(join(root, "bun.lock"), "utf8")) as Lock;
+async function readLock(directory: string) {
+  const data: unknown = Bun.JSONC.parse(await readFile(join(directory, "bun.lock"), "utf8"));
+  const packages = requireRecord(requireRecord(data, "Bun lockfile").packages, "locked packages");
+  return Object.fromEntries(
+    Object.entries(packages).map(([name, value]) => {
+      const entry = requireList(value, name);
+      return [
+        name,
+        {
+          resolution: requireString(entry[0], `${name} resolution`),
+          integrity: typeof entry[3] === "string" ? entry[3] : undefined,
+        },
+      ];
+    }),
+  );
+}
 
-function registryVersions(lock: Lock): Map<string, Set<string>> {
+const rootLock = await readLock(root);
+
+function registryVersions(lock: Awaited<ReturnType<typeof readLock>>): Map<string, Set<string>> {
   const versions = new Map<string, Set<string>>();
-  for (const entry of Object.values(lock.packages)) {
-    if (!entry[3]?.startsWith("sha512-")) {
+  for (const entry of Object.values(lock)) {
+    if (!entry.integrity?.startsWith("sha512-")) {
       continue;
     }
-    const at = entry[0].lastIndexOf("@");
-    const name = entry[0].slice(0, at);
-    const version = entry[0].slice(at + 1);
+    const at = entry.resolution.lastIndexOf("@");
+    const name = entry.resolution.slice(0, at);
+    const version = entry.resolution.slice(at + 1);
     if (!versions.has(name)) {
       versions.set(name, new Set());
     }
-    versions.get(name)!.add(version);
+    requireValue(versions.get(name), "versions.get(name)").add(version);
   }
   return versions;
 }
@@ -31,11 +49,7 @@ export async function installProofStage(
   floating: ReadonlyArray<string> = [],
 ): Promise<void> {
   const manifestPath = join(stage, "package.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-    overrides?: Record<string, string>;
-  };
+  const manifest = readPackageManifest(await readFile(manifestPath, "utf8"));
   const excluded = new Set(floating);
   const direct = { ...manifest.dependencies, ...manifest.devDependencies };
   const pins: Record<string, string> = {};
@@ -43,8 +57,10 @@ export async function installProofStage(
     // An exact consumer pin is itself deterministic, even if it predates the root lock.
     if (!excluded.has(name) && !/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(direct[name] ?? "")) {
       // Prefer the root's top-level resolution where it has nested variants.
-      const topLevel = rootLock.packages[name]?.[0];
-      pins[name] = topLevel?.slice(topLevel.lastIndexOf("@") + 1) ?? [...versions][0]!;
+      const topLevel = rootLock[name]?.resolution;
+      pins[name] =
+        topLevel?.slice(topLevel.lastIndexOf("@") + 1) ??
+        requireValue([...versions][0], "[...versions][0]");
     }
   }
   manifest.overrides = { ...pins, ...manifest.overrides };
@@ -72,7 +88,7 @@ export async function installProofStage(
     await rm(cacheDir, { recursive: true, force: true });
   }
 
-  const staged = Bun.JSONC.parse(await readFile(join(stage, "bun.lock"), "utf8")) as Lock;
+  const staged = await readLock(stage);
   for (const [name, versions] of registryVersions(staged)) {
     if (excluded.has(name)) {
       continue;

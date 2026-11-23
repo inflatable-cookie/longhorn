@@ -19,6 +19,7 @@ export interface CommandSnapshotPort<Snapshot> {
   listen?(invalidate: () => void): CommandUnlisten | Promise<CommandUnlisten>;
 }
 
+// oxlint-disable-next-line typescript/no-empty-object-type -- This public interface permits consumer declaration merging.
 export interface CommandCataloguePort extends CommandSnapshotPort<CommandCatalogueSnapshot> {}
 
 export interface CommandKeymapPort extends CommandSnapshotPort<CommandKeymapLoadOutcome> {
@@ -27,6 +28,7 @@ export interface CommandKeymapPort extends CommandSnapshotPort<CommandKeymapLoad
   reset?(request: CommandKeymapReset): Promise<CommandKeymapMutationResult>;
 }
 
+// oxlint-disable-next-line typescript/no-empty-object-type -- This public interface permits consumer declaration merging.
 export interface CommandAvailabilityPort extends CommandSnapshotPort<CommandAvailabilitySnapshot> {}
 
 export type CommandExecutionSource = "palette" | "keyboard" | "menu" | "help" | "consumer";

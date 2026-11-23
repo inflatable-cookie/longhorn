@@ -549,13 +549,13 @@ describe("update controller", () => {
   });
 });
 
-describe("update presence", () => {
-  async function presence(state: UpdateSnapshot): Promise<string> {
-    const controller = new UpdateController({ port: new Port(state) });
-    await controller.start();
-    return controller.presence;
-  }
+async function presence(state: UpdateSnapshot): Promise<string> {
+  const controller = new UpdateController({ port: new Port(state) });
+  await controller.start();
+  return controller.presence;
+}
 
+describe("update presence", () => {
   test("nothing to install collapses to nothing", async () => {
     expect(await presence(snapshot())).toBe("hidden");
   });

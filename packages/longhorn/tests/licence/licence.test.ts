@@ -177,13 +177,13 @@ describe("licence client", () => {
   });
 });
 
-describe("licence controller", () => {
-  async function ready(state: LicenceSnapshot): Promise<LicenceController> {
-    const controller = new LicenceController({ port: new Port(state) });
-    await controller.start();
-    return controller;
-  }
+async function ready(state: LicenceSnapshot): Promise<LicenceController> {
+  const controller = new LicenceController({ port: new Port(state) });
+  await controller.start();
+  return controller;
+}
 
+describe("licence controller", () => {
   test("start reads the snapshot and reports ready", async () => {
     const controller = await ready(snapshot());
 

@@ -19,7 +19,7 @@ import type {
 } from "../../src/native-content/index.ts";
 
 function clone<Value>(value: Value): Value {
-  return JSON.parse(JSON.stringify(value)) as Value;
+  return structuredClone<Value>(value);
 }
 
 function baseSnapshot(): NativeContentSnapshot {

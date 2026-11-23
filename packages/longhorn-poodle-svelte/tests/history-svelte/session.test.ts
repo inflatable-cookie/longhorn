@@ -32,12 +32,12 @@ describe("history Svelte and public Poodle adapters", () => {
     });
     expect(second.session.snapshot?.summary.revision).toBe(11);
 
-    await firstMount.unmount();
+    await Promise.resolve(firstMount.unmount());
     await waitFor(() => expect(first.port.listeners.size).toBe(0));
     expect(first.port.unlistenCount).toBe(1);
     expect(second.port.listeners.size).toBe(1);
 
-    await secondMount.unmount();
+    await Promise.resolve(secondMount.unmount());
     await waitFor(() => expect(second.port.listeners.size).toBe(0));
   });
 
@@ -58,6 +58,6 @@ describe("history Svelte and public Poodle adapters", () => {
     await fireEvent.click(mounted.getByRole("button", { name: "Rename track" }));
     await waitFor(() => expect(state.session.snapshot?.summary.revision).toBe(12));
 
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
   });
 });

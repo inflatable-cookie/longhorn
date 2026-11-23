@@ -12,11 +12,7 @@ import { LayoutState } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 import type { LayoutDispatchResult } from "@inflatable-cookie/longhorn-poodle-svelte/layout";
 
 import { createPoodleLayoutBinding } from "../../src/poodle/index.ts";
-import type {
-  PanelPresentationResolver,
-  PoodleLayoutBinding,
-  PoodleLayoutDefinitions,
-} from "../../src/poodle/index.ts";
+import type { PanelPresentationResolver, PoodleLayoutDefinitions } from "../../src/poodle/index.ts";
 
 export interface Deferred<T> {
   readonly promise: Promise<T>;
@@ -99,11 +95,7 @@ export function mountedBinding(
   definitions: PoodleLayoutDefinitions,
   document: SurfaceDocument,
   dispatch: (request: LayoutMutationRequest) => Promise<LayoutDispatchResult>,
-): {
-  readonly binding: PoodleLayoutBinding;
-  readonly state: LayoutState;
-  readonly errors: Array<unknown>;
-} {
+) {
   const state = new LayoutState({ dispatch });
   const errors: Array<unknown> = [];
   let requestNumber = 0;

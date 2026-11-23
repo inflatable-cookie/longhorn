@@ -108,11 +108,15 @@ function validatePage(value: unknown, limits: SettingsLimits): void {
 
 function settingsLimits(value: unknown): SettingsLimits {
   const limits = record(value, SETTINGS_FIELDS.SettingsLimits);
+  assertPositiveLimits(limits);
+  if (limits.maximumOpaqueValueBytes > HARD_MAXIMUM_OPAQUE_VALUE_BYTES) {
+    incompatible("invalid_registry", limits.maximumOpaqueValueBytes);
+  }
+  return limits;
+}
+
+function assertPositiveLimits(limits: Record<string, unknown>): asserts limits is SettingsLimits {
   for (const name of SETTINGS_FIELDS.SettingsLimits) {
     positive(limits[name], "invalid_registry");
   }
-  if ((limits.maximumOpaqueValueBytes as number) > HARD_MAXIMUM_OPAQUE_VALUE_BYTES) {
-    incompatible("invalid_registry", limits.maximumOpaqueValueBytes);
-  }
-  return limits as SettingsLimits;
 }

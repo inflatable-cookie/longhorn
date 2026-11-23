@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import { BRIDGE_FIELDS } from "../generated/fields.ts";
 import {
   BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES,
@@ -76,7 +77,7 @@ export function parseBridgeFailure<D>(value: unknown, details: BridgeCodec<D>): 
     message: source.message,
     retryClass: oneOf(source.retryClass, BRIDGE_RETRY_CLASSES, "unknown_retry_class"),
     phase: oneOf(source.phase, BRIDGE_FAILURE_PHASES, "unknown_failure_phase"),
-    details: nullable(source.details, details.parse),
+    details: nullable(source.details, (payload) => details.parse(payload)),
   };
 }
 
@@ -161,15 +162,16 @@ function parseCommandOutcome<S, D>(
 
 function variant(
   value: unknown,
-  keys: ReadonlyArray<string>,
+  variants: ReadonlyArray<string>,
   code: "unknown_query_outcome" | "unknown_command_outcome",
 ): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     incompatible(code, value);
   }
-  const source = value as Record<string, unknown>;
+  const source = value;
   const present = Object.keys(source);
-  if (present.length !== 1 || !keys.includes(present[0]!)) {
+  const [key] = present;
+  if (present.length !== 1 || key === undefined || !variants.includes(key)) {
     incompatible(code, value);
   }
   return source;

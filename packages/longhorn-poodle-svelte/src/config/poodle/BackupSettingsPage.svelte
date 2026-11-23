@@ -15,8 +15,11 @@
   import type { TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
   import { onMount } from "svelte";
 
-  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from '@inflatable-cookie/longhorn/config';
-import type { BackupArchiveProjection, ConfigOperationsSnapshot } from '@inflatable-cookie/longhorn/config';
+  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/config";
+  import type {
+    BackupArchiveProjection,
+    ConfigOperationsSnapshot,
+  } from "@inflatable-cookie/longhorn/config";
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   let {
@@ -53,7 +56,9 @@ import type { BackupArchiveProjection, ConfigOperationsSnapshot } from '@inflata
   );
 
   onMount(() => {
-    if (snapshot === null) {void refresh();}
+    if (snapshot === null) {
+      void refresh();
+    }
   });
 
   async function refresh(): Promise<void> {
@@ -102,7 +107,9 @@ import type { BackupArchiveProjection, ConfigOperationsSnapshot } from '@inflata
   async function applyRetention(): Promise<void> {
     const current = snapshot;
     const retention = backup?.retention;
-    if (current === null || !retention) {return;}
+    if (current === null || !retention) {
+      return;
+    }
     await run(async () => {
       const outcome = await client.applyBackupRetention({
         protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
@@ -145,10 +152,20 @@ import type { BackupArchiveProjection, ConfigOperationsSnapshot } from '@inflata
 <div aria-busy={busy}>
   <Stack gap="md">
     {#if error}
-      <Callout tone="danger" title="Backup operation failed" message={error} announceMode="assertive" />
+      <Callout
+        tone="danger"
+        title="Backup operation failed"
+        message={error}
+        announceMode="assertive"
+      />
     {/if}
     {#if notice}
-      <Callout tone="success" title="Backup operation complete" message={notice} announceMode="polite" />
+      <Callout
+        tone="success"
+        title="Backup operation complete"
+        message={notice}
+        announceMode="polite"
+      />
     {/if}
 
     <!-- Three different situations used to render this one warning: the first
@@ -275,7 +292,9 @@ import type { BackupArchiveProjection, ConfigOperationsSnapshot } from '@inflata
       {#if canRetain && backup.retention}
         <Surface asRole="region" label="Backup retention">
           <h3>Retention plan</h3>
-          <p>{backup.retention.deletionPaths.length} proven archive(s) are eligible for deletion.</p>
+          <p>
+            {backup.retention.deletionPaths.length} proven archive(s) are eligible for deletion.
+          </p>
           <ConfirmAction
             title="Apply backup retention?"
             description="The host will recheck every exact path and archive digest. Protected or uninspectable entries remain untouched."

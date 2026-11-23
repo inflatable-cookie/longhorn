@@ -93,9 +93,11 @@ export class CheckedSnapshotConnection<Snapshot> {
     }
 
     if (cleanupError !== undefined) {
+      // oxlint-disable-next-line typescript/only-throw-error -- Preserve the original rejection value from the injected port.
       throw cleanupError;
     }
     if (readyError !== undefined) {
+      // oxlint-disable-next-line typescript/only-throw-error -- Preserve the original rejection value from the injected port.
       throw readyError;
     }
   }

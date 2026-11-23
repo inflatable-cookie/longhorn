@@ -1,3 +1,4 @@
+import { cargoPackages } from "./cargo-metadata.ts";
 // Proves the repaired age dependency line (RUSTSEC-2026-0387 repair: age
 // 0.12.1 -> 0.11.5) survives public consumer resolution at the exact working
 // tree.
@@ -56,7 +57,7 @@ function resolveRepository(root: string): string {
   return probe.stdout.trim();
 }
 
-function attempt(command: ReadonlyArray<string>, cwd: string): { ok: boolean; output: string } {
+function attempt(command: ReadonlyArray<string>, cwd: string) {
   const [program, ...args] = command;
   if (!program) {
     throw new Error("expected a command to run");
@@ -180,14 +181,8 @@ fn main() {
 }
 `;
 
-type MetadataPackage = {
-  name: string;
-  version: string;
-  source: string | null;
-};
-
 function assertUnlockedResolution(metadata: unknown, snapshot: Snapshot): void {
-  const packages = (metadata as { packages: Array<MetadataPackage> }).packages;
+  const packages = cargoPackages(metadata);
   const byName = new Map(packages.map((pkg) => [pkg.name, pkg]));
 
   const longhorn = packages.filter(
@@ -241,7 +236,7 @@ const snapshot = await snapshotWorkingTree();
 const buildScratch = await taskScratch("config-age-security-consumer");
 let consumerUnlocked: string | undefined;
 let consumerStale: string | undefined;
-let receipt: Record<string, unknown>;
+let receipt;
 
 try {
   consumerUnlocked = await stageConsumer("unlocked", snapshot);
@@ -260,7 +255,7 @@ try {
     }),
     consumerUnlocked,
   );
-  const metadata = JSON.parse(
+  const metadata: unknown = JSON.parse(
     run(
       rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
         manifestPath: join(consumerUnlocked, "Cargo.toml"),
@@ -310,7 +305,7 @@ try {
     }),
     consumerStale,
   );
-  const relockedMetadata = JSON.parse(
+  const relockedMetadata: unknown = JSON.parse(
     run(
       rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
         manifestPath: join(consumerStale, "Cargo.toml"),

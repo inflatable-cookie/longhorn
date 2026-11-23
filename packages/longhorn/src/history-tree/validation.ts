@@ -1,3 +1,4 @@
+import { isRecord } from "../core/record.ts";
 import {
   HISTORY_TREE_VARIANT_FIELDS,
   HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS,
@@ -215,7 +216,7 @@ function commandBase(value: unknown, allowed: ReadonlyArray<string>): void {
   integer(root.expectedRevision, "$.expectedRevision");
   integer(root.offset, "$.offset");
   positive(root.limit, "$.limit");
-  if ((root.limit as number) > MAXIMUM_FORK_HISTORY_PAGE_SIZE) {
+  if (root.limit > MAXIMUM_FORK_HISTORY_PAGE_SIZE) {
     fail("$.limit", `maximum is ${MAXIMUM_FORK_HISTORY_PAGE_SIZE}`);
   }
 }
@@ -247,8 +248,9 @@ function noPayload(value: unknown): void {
     }
     if (candidate !== null && typeof candidate === "object") {
       for (const [key, child] of Object.entries(candidate)) {
-        if (key.toLocaleLowerCase().includes("payload"))
+        if (key.toLocaleLowerCase().includes("payload")) {
           fail(`${path}.${key}`, "product payload field is forbidden");
+        }
         visit(child, `${path}.${key}`);
       }
     }
@@ -256,10 +258,10 @@ function noPayload(value: unknown): void {
   visit(value, "$");
 }
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     fail(path, "expected object");
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 function array(value: unknown, path: string): Array<unknown> {
   if (!Array.isArray(value)) {
@@ -283,25 +285,25 @@ function protocol(value: unknown, path: string): void {
     fail(path, `expected exact protocol ${FORK_HISTORY_PROTOCOL_VERSION}`);
   }
 }
-function integer(value: unknown, path: string): void {
+function integer(value: unknown, path: string): asserts value is number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     fail(path, "expected non-negative safe integer");
   }
 }
-function positive(value: unknown, path: string): void {
+function positive(value: unknown, path: string): asserts value is number {
   integer(value, path);
   if (value === 0) {
     fail(path, "expected positive integer");
   }
 }
-function string(value: unknown, path: string): void {
+function string(value: unknown, path: string): asserts value is string {
   if (typeof value !== "string") {
     fail(path, "expected string");
   }
 }
 function id(value: unknown, path: string): void {
   string(value, path);
-  if ((value as string).length === 0) {
+  if (value.length === 0) {
     fail(path, "expected non-empty id");
   }
 }
@@ -455,7 +457,10 @@ function variantFields(
   path: string,
 ): ReadonlyArray<string> {
   const discriminant = object[HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const fields = HISTORY_TREE_VARIANT_FIELDS[type]?.[discriminant as string];
+  const fields =
+    typeof discriminant === "string"
+      ? HISTORY_TREE_VARIANT_FIELDS[type]?.[discriminant]
+      : undefined;
   if (fields === undefined) {
     fail(path, `no generated fields for ${type}.${String(discriminant)}`);
   }

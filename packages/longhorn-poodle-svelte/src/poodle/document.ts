@@ -41,10 +41,7 @@ export function findPanelInstance(
   return instance;
 }
 
-export function findPanelLocation(
-  document: SurfaceDocument,
-  panelInstanceId: PanelInstanceId,
-): { container: SurfaceRecord; region: RegionState } {
+export function findPanelLocation(document: SurfaceDocument, panelInstanceId: PanelInstanceId) {
   for (const container of document.surfaces) {
     for (const region of container.regions) {
       if (region.panel_instance_ids.includes(panelInstanceId)) {

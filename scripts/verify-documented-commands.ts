@@ -1,3 +1,4 @@
+import { requireValue } from "./proof-support.ts";
 /**
  * Every `effigy <task>` named in a README must resolve.
  *
@@ -30,15 +31,15 @@ function definedTasks(): Set<string> {
   const manifest = readFileSync(join(repoRoot, "effigy.toml"), "utf8");
   const names = new Set<string>();
   for (const [, name] of manifest.matchAll(/^"([a-z0-9:_.-]+)"\s*=/gm)) {
-    names.add(name!);
+    names.add(requireValue(name, "name"));
   }
   for (const [, name] of manifest.matchAll(/^([a-z0-9:_.-]+)\s*=\s*\[/gm)) {
-    names.add(name!);
+    names.add(requireValue(name, "name"));
   }
   for (const [, quoted, bare] of manifest.matchAll(
     /^\[tasks\.(?:"([a-z0-9:_.-]+)"|([a-z0-9_-]+))\]/gm,
   )) {
-    names.add((quoted ?? bare)!);
+    names.add(requireValue(quoted ?? bare, "(quoted ?? bare)"));
   }
   return names;
 }
@@ -66,7 +67,7 @@ for (const file of markdownFiles(join(repoRoot, "examples"))) {
   const text = readFileSync(file, "utf8");
   for (const [, name] of text.matchAll(/\beffigy ([a-z0-9:_-]+)/g)) {
     checked += 1;
-    if (!tasks.has(name!)) {
+    if (!tasks.has(requireValue(name, "name"))) {
       dead.push(`${relative(repoRoot, file)}: effigy ${name}`);
     }
   }

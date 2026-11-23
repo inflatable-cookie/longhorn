@@ -1,3 +1,4 @@
+import { isRecord } from "../../core/record.ts";
 import {
   SETTINGS_VARIANT_FIELDS,
   SETTINGS_VARIANT_FIELDS_DISCRIMINANTS,
@@ -141,10 +142,10 @@ export function array(value: unknown): Array<unknown> {
  * for a tagged union and a gap anywhere else.
  */
 export function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (!isRecord(value)) {
     incompatible("invalid_shape", value);
   }
-  const result = value as Record<string, unknown>;
+  const result = value;
   if (allowed === undefined) {
     return result;
   }
@@ -177,7 +178,8 @@ export function record(value: unknown, allowed?: ReadonlyArray<string>): Record<
  */
 export function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
   const discriminant = value[SETTINGS_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys = SETTINGS_VARIANT_FIELDS[type]?.[discriminant as string];
+  const keys =
+    typeof discriminant === "string" ? SETTINGS_VARIANT_FIELDS[type]?.[discriminant] : undefined;
   if (keys === undefined) {
     incompatible("unknown_field", { type, discriminant });
   }

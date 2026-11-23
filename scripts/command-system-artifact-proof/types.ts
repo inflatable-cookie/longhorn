@@ -5,12 +5,6 @@ export interface ArtifactIdentity {
   readonly sha256: string;
 }
 
-export interface PackageManifest {
-  readonly name: string;
-  dependencies: Record<string, string>;
-  overrides?: Record<string, string>;
-}
-
 export interface ProofContext {
   readonly repoRoot: string;
   readonly proofRoot: string;

@@ -124,7 +124,7 @@ describe("TransferState", () => {
 
     const prepareTask = state.preparePanel(fixture.session_requests[0] as PanelSessionStartRequest);
     await state.publishLease(fixture.lease_requests[0] as TransferLeaseRequest);
-    await mounted.unmount();
+    await Promise.resolve(mounted.unmount());
     const stopTask = state.stop();
     preparation.resolve(fixture.session_responses[0] as TransferSessionResponse);
     await Promise.all([prepareTask, stopTask]);

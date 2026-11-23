@@ -89,7 +89,10 @@ export class SettingsPageSession {
       }
       throw new SettingsPageApplyAmbiguityError(this.#drafts.size);
     }
-    const draft = this.drafts[0]!;
+    const [draft] = this.drafts;
+    if (draft === undefined) {
+      return true;
+    }
     await this.apply(draft.applyUnitId);
     return this.status(draft.applyUnitId).kind === "saved";
   }

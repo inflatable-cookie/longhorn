@@ -60,6 +60,6 @@ describe("transport conformance", () => {
 
   test("root package state stays JSON-safe", () => {
     const snapshot = baseSnapshot();
-    expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot);
+    expect(structuredClone(snapshot)).toEqual(snapshot);
   });
 });

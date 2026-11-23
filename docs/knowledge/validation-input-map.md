@@ -70,10 +70,11 @@ ignored or lockfile inputs.
   package-specific groups for ordinary package work. Template props and
   warnings are checked by Svelte. The private ambient shim is loaded only by
   the adapter's plain TypeScript config.
-- Oxlint uses Cloudflare's preset with the pinned tsgolint backend. The
-  baseline records existing diagnostics by file, rule and source fingerprint.
-  The gate rejects new diagnostics and asks for resolved entries to be
-  removed. Rust-generated bindings use their generator's separate byte check.
+- Oxlint uses Cloudflare's preset with the pinned tsgolint backend and fails
+  on diagnostics. The lint config documents exceptions for raw port boundaries
+  and test doubles. Rust-generated bindings use their separate byte check.
+- Oxfmt runs with Node and Svelte support enabled. The standalone Svelte
+  formatting pass reports component coverage separately from TypeScript.
 - `rust-dependencies` combines Machete's root Cargo workspace inventory
   with cargo-deny's bans, licenses and sources checks. Run it locally with
   both Cargo plugins installed. The release gate also checks live RustSec

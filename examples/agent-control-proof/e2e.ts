@@ -1,3 +1,6 @@
+import { parseDiscovery, readToolResult, readSemanticNode } from "./reply.ts";
+import type { SemanticNode } from "./reply.ts";
+import { parseJsonRecord, requireRecord } from "../../scripts/proof-json.ts";
 // Packaged end-to-end driver for Cards 232-234 and 240: an MCP client
 // drives the proof app unfocused through snapshot, click, type, wait_for,
 // screenshot, and command; two clients interleave; listen streams stay
@@ -33,17 +36,11 @@ const discoveryDir = join(
 );
 const appId = "dev.example.longhorn-agent-control-proof";
 
-type Discovery = { appId: string; pid: number; port: number; token: string };
-type SemanticNode = {
-  elementRef: string;
-  role: string;
-  name?: string;
-  children?: Array<SemanticNode>;
-};
+type Discovery = ReturnType<typeof parseDiscovery>;
 
 async function run(command: ReadonlyArray<string>, cwd?: string): Promise<string> {
   const subprocess = Bun.spawn([...command], {
-    ...(cwd === undefined ? {} : { cwd }),
+    cwd: cwd ?? process.cwd(),
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -77,16 +74,16 @@ async function mcp(
   method: string,
   params: Record<string, unknown>,
   name?: string,
-): Promise<unknown> {
-  const headers: Record<string, string> = {
+) {
+  const headers = new Headers({
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
     "mcp-protocol-version": "2026-07-28",
     "mcp-method": method,
     authorization: `Bearer ${discovery.token}`,
-  };
+  });
   if (name) {
-    headers["mcp-name"] = name;
+    headers.set("mcp-name", name);
   }
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
@@ -104,7 +101,7 @@ async function mcp(
   if (!data) {
     throw new Error(`MCP ${method} returned no SSE data: ${body}`);
   }
-  return JSON.parse(data);
+  return parseJsonRecord(data);
 }
 
 async function callTool(
@@ -112,16 +109,15 @@ async function callTool(
   tool: string,
   args: Record<string, unknown>,
 ): Promise<{ isError: boolean; result: Record<string, unknown> }> {
-  const payload = (await mcp(
+  const payload = await mcp(
     discovery,
     "tools/call",
     { name: tool, arguments: args, _meta: meta() },
     tool,
-  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  const result = payload.result;
+  );
+  const result = readToolResult(payload.result);
   const first = result.content[0] ?? {};
-  const parsed =
-    first.type === "text" ? (JSON.parse(String(first.text)) as Record<string, unknown>) : first;
+  const parsed = first.type === "text" ? parseJsonRecord(String(first.text)) : first;
   return { isError: result.isError === true, result: parsed };
 }
 
@@ -155,7 +151,7 @@ async function snapshotRoot(
   const args: Record<string, unknown> = webview ? { webview } : {};
   const result = requireOk("snapshot", await callTool(discovery, "snapshot", args));
   return {
-    root: result.root as SemanticNode,
+    root: readSemanticNode(result.root),
     webview: typeof result.webview === "string" ? result.webview : undefined,
   };
 }
@@ -178,7 +174,7 @@ async function waitForDiscovery(): Promise<{ discovery: Discovery; path: string 
         continue;
       }
       const path = join(discoveryDir, entry);
-      const discovery = JSON.parse(await readFile(path, "utf8")) as Discovery;
+      const discovery = parseDiscovery(await readFile(path, "utf8"));
       if (pidAlive(discovery.pid)) {
         return { discovery, path };
       }
@@ -199,18 +195,14 @@ async function frontmostPid(): Promise<number> {
   return Number.parseInt(raw, 10);
 }
 
-async function listenOnce(
-  discovery: Discovery,
-  uri: string,
-  trigger: () => Promise<void>,
-): Promise<boolean> {
-  const headers: Record<string, string> = {
+async function listenOnce(discovery: Discovery, uri: string, trigger: () => Promise<void>) {
+  const headers = new Headers({
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
     "mcp-protocol-version": "2026-07-28",
     "mcp-method": "subscriptions/listen",
     authorization: `Bearer ${discovery.token}`,
-  };
+  });
   const abort = new AbortController();
   const response = await fetch(`http://127.0.0.1:${discovery.port}/mcp`, {
     method: "POST",
@@ -270,7 +262,7 @@ async function main(): Promise<void> {
       continue;
     }
     const leftover = join(discoveryDir, entry);
-    const record = JSON.parse(await readFile(leftover, "utf8")) as Discovery;
+    const record = parseDiscovery(await readFile(leftover, "utf8"));
     if (!pidAlive(record.pid)) {
       await rm(leftover).catch(() => {});
     }
@@ -357,16 +349,17 @@ async function main(): Promise<void> {
   await sampleFocus("after-navigation");
 
   const shotPath = join(outDir, "unfocused-about.png");
-  const shot = (await mcp(
+  const shot = await mcp(
     discovery,
     "tools/call",
     { name: "screenshot", arguments: {}, _meta: meta() },
     "screenshot",
-  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  if (shot.result.isError) {
-    throw new Error(`screenshot failed: ${JSON.stringify(shot.result)}`);
+  );
+  const shotResult = readToolResult(shot.result);
+  if (shotResult.isError) {
+    throw new Error(`screenshot failed: ${JSON.stringify(shotResult)}`);
   }
-  const image = shot.result.content[0];
+  const image = shotResult.content[0];
   if (!image || image.type !== "image") {
     throw new Error("screenshot returned no image");
   }
@@ -453,7 +446,9 @@ async function main(): Promise<void> {
     }),
   );
   const islandState =
-    typeof islandEval.value === "string" ? JSON.parse(islandEval.value) : islandEval.value;
+    typeof islandEval.value === "string"
+      ? parseJsonRecord(islandEval.value)
+      : requireRecord(islandEval.value, "island state");
   if (islandState.note !== "Marquee") {
     throw new Error(`island type did not land: ${JSON.stringify(islandState)}`);
   }
@@ -466,16 +461,17 @@ async function main(): Promise<void> {
   await sampleFocus("after-island-drive");
 
   const islandShotPath = join(outDir, "unfocused-island.png");
-  const islandShot = (await mcp(
+  const islandShot = await mcp(
     discovery,
     "tools/call",
     { name: "screenshot", arguments: {}, _meta: meta() },
     "screenshot",
-  )) as { result: { isError?: boolean; content: Array<Record<string, unknown>> } };
-  if (islandShot.result.isError) {
-    throw new Error(`island screenshot failed: ${JSON.stringify(islandShot.result)}`);
+  );
+  const islandShotResult = readToolResult(islandShot.result);
+  if (islandShotResult.isError) {
+    throw new Error(`island screenshot failed: ${JSON.stringify(islandShotResult)}`);
   }
-  const islandImage = islandShot.result.content[0];
+  const islandImage = islandShotResult.content[0];
   if (!islandImage || islandImage.type !== "image") {
     throw new Error("island screenshot returned no image");
   }

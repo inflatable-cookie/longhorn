@@ -81,12 +81,18 @@ describe("public Poodle cross-window transfer seam", () => {
     const sourceBinding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const targetBinding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { secondary: [instance("instance:b")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const source = render(LayoutDockHarness, {
       props: {
@@ -176,7 +182,10 @@ describe("public Poodle cross-window transfer seam", () => {
     const binding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const screen = render(LayoutDockHarness, {
       props: {
@@ -206,7 +215,7 @@ describe("public Poodle cross-window transfer seam", () => {
     await waitFor(() => expect(cancellations).toBe(1));
     expect(state.preparation.status).toBe("idle");
     expect(errors).toEqual([]);
-    await screen.unmount();
+    await Promise.resolve(screen.unmount());
     await state.destroy();
   });
 
@@ -227,7 +236,10 @@ describe("public Poodle cross-window transfer seam", () => {
     const binding = mountedBinding(
       shape.definitions,
       shapeDocument(shape, { primary: [instance("instance:a")] }),
-      async () => new Promise(() => undefined),
+      async () =>
+        new Promise(() => {
+          /* intentionally pending */
+        }),
     ).binding;
     const screen = render(LayoutDockHarness, {
       props: {
@@ -247,7 +259,7 @@ describe("public Poodle cross-window transfer seam", () => {
 
     await fireEvent.pointerDown(screen.getByRole("tab", { name: "A" }), { button: 0 });
     await waitFor(() => expect(state.preparation.status).toBe("prepared"));
-    await screen.unmount();
+    await Promise.resolve(screen.unmount());
     await waitFor(() => {
       expect(cancellations).toBe(1);
       expect(state.preparation.status).toBe("idle");

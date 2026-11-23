@@ -53,9 +53,7 @@ export function assertValidLayoutMutationRejectionCode(
 ): asserts value is LayoutMutationRejectionCode {
   if (
     typeof value !== "string" ||
-    !LAYOUT_MUTATION_REJECTION_CODES.includes(
-      value as (typeof LAYOUT_MUTATION_REJECTION_CODES)[number],
-    )
+    !LAYOUT_MUTATION_REJECTION_CODES.some((code) => code === value)
   ) {
     throw new LayoutProtocolValidationError("unknown_rejection_code", value);
   }

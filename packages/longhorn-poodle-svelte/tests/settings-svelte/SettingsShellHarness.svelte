@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { SettingsShell } from '../../src/settings/poodle.ts';
-import type { SettingsPageRenderContext, SettingsSession } from '../../src/settings/poodle.ts';
+  import { SettingsShell } from "../../src/settings/poodle.ts";
+  import type { SettingsPageRenderContext, SettingsSession } from "../../src/settings/poodle.ts";
 
   let {
     session,
@@ -12,11 +12,7 @@ import type { SettingsPageRenderContext, SettingsSession } from '../../src/setti
 </script>
 
 {#snippet page(context: SettingsPageRenderContext)}
-  <div
-    data-testid="consumer-page"
-    data-dirty={context.dirty}
-    data-busy={context.busy}
-  >
+  <div data-testid="consumer-page" data-dirty={context.dirty} data-busy={context.busy}>
     <p>{context.page.label} consumer page</p>
     <button
       type="button"
@@ -34,16 +30,11 @@ import type { SettingsPageRenderContext, SettingsSession } from '../../src/setti
     <button
       type="button"
       data-testid="reset"
-      onclick={() =>
-        void context.requestReset("app:audio", ["audio:output"])}
+      onclick={() => void context.requestReset("app:audio", ["audio:output"])}
     >
       Request reset
     </button>
   </div>
 {/snippet}
 
-<SettingsShell
-  {session}
-  resolveRenderer={() => (missingRenderer ? undefined : page)}
-/>
-
+<SettingsShell {session} resolveRenderer={() => (missingRenderer ? undefined : page)} />
