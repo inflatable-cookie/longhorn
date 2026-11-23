@@ -208,8 +208,11 @@ earlier single-call stance.
 ### Native bundle replacement
 
 - The installer uses a private directory beside the target, named from the
-  full bundle name. An OS file lock covers recovery, staging, and replacement
-  for that target, including calls made directly to `NativeInstaller`. An
+  full bundle name. Path components starting with `.--.` are reserved for
+  install workspaces. Apply refuses targets at or inside that namespace,
+  including paths resolved through symlinks. An OS file lock covers
+  recovery, staging, and replacement for that target, including direct
+  calls to `NativeInstaller`. An
   overlapping apply to the same target returns `InstallFailure::Failed` and
   can retry. An existing workspace needs a recognized lock marker. On Unix,
   ordinary applies share a lock on the parent directory. Escalation without

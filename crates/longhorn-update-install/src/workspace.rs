@@ -10,6 +10,54 @@ use longhorn_update::InstallFailure;
 use crate::classify;
 
 const WORKSPACE_FORMAT: &[u8] = b"Longhorn update install workspace v1\n";
+// The reserved prefix has no letters, so a filesystem's case folding cannot
+// turn a permitted target name into a workspace name.
+const WORKSPACE_NAMESPACE: &str = ".--.";
+
+/// Rejects targets in install state before apply can move anything. Check the
+/// parent separately because a symlink inside a workspace can resolve outside it.
+pub(super) fn check_target(target: &Path) -> Result<(), InstallFailure> {
+    if in_workspace_namespace(target) {
+        return Err(reserved_target(target));
+    }
+    let parent = target_parent(target);
+    let resolved_parent = fs::canonicalize(parent).map_err(|error| classify(&error, parent))?;
+    if in_workspace_namespace(&resolved_parent) {
+        return Err(reserved_target(target));
+    }
+
+    match fs::canonicalize(target) {
+        Ok(resolved) if in_workspace_namespace(&resolved) => Err(reserved_target(target)),
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(classify(&error, target)),
+    }
+}
+
+fn in_workspace_namespace(path: &Path) -> bool {
+    path.components().any(|component| {
+        component
+            .as_os_str()
+            .as_encoded_bytes()
+            .starts_with(WORKSPACE_NAMESPACE.as_bytes())
+    })
+}
+
+fn reserved_target(target: &Path) -> InstallFailure {
+    InstallFailure::Failed {
+        detail: format!(
+            "install target {} overlaps the workspace namespace",
+            target.display()
+        ),
+    }
+}
+
+fn target_parent(target: &Path) -> &Path {
+    target
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."))
+}
 
 /// Shared for ordinary applies, exclusive when escalation cannot lock a
 /// target workspace. The directory inode remains in place during replacement.
@@ -55,10 +103,7 @@ impl ParentLock {
         target: &Path,
         lock: impl FnOnce(&File) -> Result<(), TryLockError>,
     ) -> Result<Self, InstallFailure> {
-        let parent = target
-            .parent()
-            .filter(|path| !path.as_os_str().is_empty())
-            .unwrap_or_else(|| Path::new("."));
+        let parent = target_parent(target);
         let directory = File::open(parent).map_err(|error| classify(&error, parent))?;
         match lock(&directory) {
             Ok(()) => Ok(Self {
@@ -86,7 +131,8 @@ impl InstallWorkspace {
         let name = target.file_name().ok_or_else(|| InstallFailure::Failed {
             detail: "install target has no bundle name".to_owned(),
         })?;
-        let mut directory_name = OsString::from(".longhorn-install-");
+        let mut directory_name = OsString::from(WORKSPACE_NAMESPACE);
+        directory_name.push("longhorn-install-");
         directory_name.push(name);
         let root = target.with_file_name(directory_name);
 

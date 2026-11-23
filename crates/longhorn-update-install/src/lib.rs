@@ -60,7 +60,7 @@ use std::{
 use flate2::read::GzDecoder;
 use longhorn_update::{Applied, InstallFailure, UpdateInstaller, VerifiedArtifact};
 
-use workspace::{Backup, InstallWorkspace, ParentLock, entry_exists};
+use workspace::{Backup, InstallWorkspace, ParentLock, check_target, entry_exists};
 
 /// The most one artifact may unpack to.
 ///
@@ -197,6 +197,7 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         artifact: &VerifiedArtifact,
         rename: impl Fn(&Path, &Path) -> io::Result<()>,
     ) -> Result<Applied, InstallFailure> {
+        check_target(&self.target)?;
         let parent_lock = ParentLock::shared(&self.target)?;
         let workspace = InstallWorkspace::acquire(&self.target)?;
         let (_parent_lock, workspace) = if workspace.is_some() {
@@ -633,6 +634,49 @@ mod tests {
     }
 
     #[test]
+    fn a_live_workspace_and_its_staged_bundle_cannot_be_install_targets() {
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        let artifact = signed_archive();
+
+        installer
+            .apply_with_rename(&artifact, |from, to| {
+                if to == installer.target() {
+                    let stage = from.parent().unwrap();
+                    let workspace = stage.parent().unwrap();
+                    let assert_reserved = |target: &Path| {
+                        let error = NativeInstaller::new(target)
+                            .apply(&artifact)
+                            .expect_err("the live workspace is reserved");
+                        assert!(
+                            error
+                                .to_string()
+                                .contains("overlaps the workspace namespace")
+                        );
+                    };
+                    assert_reserved(workspace);
+                    assert_reserved(from);
+                    let case_alias = workspace
+                        .with_file_name(workspace.file_name().unwrap().to_ascii_uppercase());
+                    assert_reserved(&case_alias);
+                    #[cfg(unix)]
+                    {
+                        let alias = directory.path().join("workspace-alias");
+                        std::os::unix::fs::symlink(workspace, &alias).unwrap();
+                        let nested = alias.join(stage.file_name().unwrap()).join("Example.app");
+                        assert_reserved(&alias);
+                        assert_reserved(&nested);
+                    }
+                    assert!(from.join("0").is_file(), "active staging was touched");
+                }
+                fs::rename(from, to)
+            })
+            .expect("the original update can still publish its staged bundle");
+
+        assert!(installer.target().join("0").is_file());
+    }
+
+    #[test]
     fn failed_rollback_reports_both_faults_and_leaves_the_bundle_for_recovery() {
         let directory = tempfile::tempdir().unwrap();
         let artifact = signed_archive();
@@ -640,7 +684,7 @@ mod tests {
         let error = fail_swap_and_rollback(&installer, &artifact);
         let backup = directory
             .path()
-            .join(".longhorn-install-Example.app/previous");
+            .join(".--.longhorn-install-Example.app/previous");
 
         assert!(matches!(error, InstallFailure::Failed { .. }));
         let detail = error.to_string();
@@ -687,7 +731,7 @@ mod tests {
         fs::create_dir(installer.target()).unwrap();
         let backup = directory
             .path()
-            .join(".longhorn-install-Example.app/previous");
+            .join(".--.longhorn-install-Example.app/previous");
 
         let error = installer.apply(&artifact).expect_err("both paths exist");
 
@@ -705,7 +749,7 @@ mod tests {
         drop(fail_swap_and_rollback(&installer, &artifact));
         let backup = directory
             .path()
-            .join(".longhorn-install-Example.app/previous");
+            .join(".--.longhorn-install-Example.app/previous");
         let original = directory.path().join("saved-original");
         fs::rename(&backup, &original).unwrap();
         fs::create_dir(&backup).unwrap();
@@ -734,9 +778,9 @@ mod tests {
         drop(fail_swap_and_rollback(&installer, &artifact));
         let other_parent = directory.path().join("other-parent");
         fs::create_dir(&other_parent).unwrap();
-        let workspace = other_parent.join(".longhorn-install-Example.app");
+        let workspace = other_parent.join(".--.longhorn-install-Example.app");
         fs::rename(
-            directory.path().join(".longhorn-install-Example.app"),
+            directory.path().join(".--.longhorn-install-Example.app"),
             &workspace,
         )
         .unwrap();

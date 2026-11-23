@@ -264,7 +264,7 @@ impl Fixture {
     }
 
     fn workspace(&self) -> PathBuf {
-        self.parent().join(".longhorn-install-Example.app")
+        self.parent().join(".--.longhorn-install-Example.app")
     }
 }
 
