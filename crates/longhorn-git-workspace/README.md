@@ -6,6 +6,11 @@ behaviour; this crate is parts 5a and 5b.
 One `Git` handle carries the caller's `GitPolicy` and the caller's
 `longhorn-redact` `Redactor`. Every reading is a method on it:
 
+- `worktree_identity` reads a worktree's exact, unredacted identity
+  (`WorktreeIdentity`): canonical root, canonical `--git-common-dir`, Unix
+  device/inode metadata (`FilesystemIdentity`), exact branch short name (`None`
+  when detached), and full `HEAD` object ID, with exact comparisons
+  (`same_repository`, `same_worktree`) and opaque `Debug`.
 - `status` reads staged, modified, untracked and conflicted counts and the
   ahead/behind distance, and computes cleanliness once.
 - `inspect_worktree` reads the canonical root, current branch, detached state,

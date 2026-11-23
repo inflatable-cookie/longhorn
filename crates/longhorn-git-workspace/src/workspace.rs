@@ -1,17 +1,149 @@
-//! Generic worktree reading: branch discovery, status, remote reading, the
-//! write-capability probe and the explicit branch switch.
+//! Generic worktree reading: worktree identity, branch discovery, status,
+//! remote reading, the write-capability probe and the explicit branch switch.
 //!
 //! Root admission, branch naming and every sentence a person reads stay with
 //! the application. The readings here carry facts and wire codes only.
 
-use std::{collections::HashMap, path::Path};
+use std::{
+    collections::HashMap,
+    fmt, fs,
+    path::{Path, PathBuf},
+};
 
 use crate::{
-    execution::Git,
+    execution::{Git, redact_git_detail},
     failure::{GitFailure, GitFailureCode},
     model::{GitBranch, GitBranchKind, GitWorkspaceState},
     preflight::{REMOTE_PROBE_TIMEOUT, RemoteAccessFailure, probe_failure},
 };
+
+/// Unix filesystem identity (device and inode) for an exact directory.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct FilesystemIdentity {
+    /// Device identifier (`st_dev`).
+    pub device: u64,
+    /// Inode number (`st_ino`).
+    pub inode: u64,
+}
+
+/// Exact, unredacted identity of a checked-out Git worktree and its repository.
+///
+/// The carried values are structured machine identifiers, not prose, and are
+/// exposed only through explicit accessors. [`fmt::Debug`] stays opaque so
+/// ordinary diagnostic formatting prints no path, branch name, or object ID.
+#[derive(Clone, Eq, Hash, PartialEq)]
+pub struct WorktreeIdentity {
+    root: PathBuf,
+    common_dir: PathBuf,
+    root_filesystem_id: Option<FilesystemIdentity>,
+    common_dir_filesystem_id: Option<FilesystemIdentity>,
+    branch: Option<String>,
+    head_oid: String,
+}
+
+impl WorktreeIdentity {
+    /// Canonical worktree root path, exact and unredacted.
+    #[must_use]
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
+    /// Canonical Git common directory (`--git-common-dir`), exact and
+    /// unredacted.
+    #[must_use]
+    pub fn common_dir(&self) -> &Path {
+        &self.common_dir
+    }
+
+    /// Unix filesystem identity (device and inode) for [`Self::root`], or
+    /// `None` on non-Unix hosts.
+    #[must_use]
+    pub fn root_filesystem_id(&self) -> Option<FilesystemIdentity> {
+        self.root_filesystem_id
+    }
+
+    /// Unix filesystem identity (device and inode) for [`Self::common_dir`],
+    /// or `None` on non-Unix hosts.
+    #[must_use]
+    pub fn common_dir_filesystem_id(&self) -> Option<FilesystemIdentity> {
+        self.common_dir_filesystem_id
+    }
+
+    /// Exact current branch short name, or `None` when `HEAD` is detached.
+    #[must_use]
+    pub fn branch(&self) -> Option<&str> {
+        self.branch.as_deref()
+    }
+
+    /// Full `HEAD` object ID.
+    #[must_use]
+    pub fn head_oid(&self) -> &str {
+        &self.head_oid
+    }
+
+    /// Whether `HEAD` is detached.
+    #[must_use]
+    pub fn is_detached(&self) -> bool {
+        self.branch.is_none()
+    }
+
+    /// Whether `self` and `other` belong to the same Git repository, compared on
+    /// exact canonical `common_dir` paths and filesystem identity.
+    #[must_use]
+    pub fn same_repository(&self, other: &Self) -> bool {
+        same_location(
+            &self.common_dir,
+            self.common_dir_filesystem_id,
+            &other.common_dir,
+            other.common_dir_filesystem_id,
+        )
+    }
+
+    /// Whether `self` and `other` identify the same checked-out worktree in the
+    /// same repository, compared on exact canonical paths and filesystem
+    /// identity.
+    #[must_use]
+    pub fn same_worktree(&self, other: &Self) -> bool {
+        self.same_repository(other)
+            && same_location(
+                &self.root,
+                self.root_filesystem_id,
+                &other.root,
+                other.root_filesystem_id,
+            )
+    }
+}
+
+impl fmt::Debug for WorktreeIdentity {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("WorktreeIdentity");
+        if let Some(id) = self.root_filesystem_id {
+            debug.field("root_filesystem_id", &id);
+        }
+        if let Some(id) = self.common_dir_filesystem_id {
+            debug.field("common_dir_filesystem_id", &id);
+        }
+        debug
+            .field("detached", &self.is_detached())
+            .finish_non_exhaustive()
+    }
+}
+
+fn same_location(
+    left_path: &Path,
+    left_fs: Option<FilesystemIdentity>,
+    right_path: &Path,
+    right_fs: Option<FilesystemIdentity>,
+) -> bool {
+    if left_path != right_path {
+        return false;
+    }
+    match (left_fs, right_fs) {
+        (Some(left), Some(right)) => left == right,
+        (None, None) => true,
+        _ => false,
+    }
+}
 
 /// Tracked, staged or conflicted work blocks a branch switch. Untracked
 /// application content is in-progress work, not dirt.
@@ -44,6 +176,63 @@ pub enum SwitchReading {
 }
 
 impl Git<'_> {
+    /// Reads one folder's exact, unredacted worktree and repository identity.
+    ///
+    /// Resolves the canonical worktree root and canonical Git common directory
+    /// (`--git-common-dir`), records Unix device/inode filesystem identity for
+    /// both, and reads the exact branch short name (`None` when detached) and
+    /// full `HEAD` object ID.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GitFailureCode::RepositoryUnavailable`] when the folder cannot
+    /// be resolved or is not inside a Git worktree, and
+    /// [`GitFailureCode::BranchUnavailable`] when `HEAD` cannot be resolved
+    /// (for example on an unborn branch).
+    pub fn worktree_identity(&self, root: &Path) -> Result<WorktreeIdentity, GitFailure> {
+        let requested = self.canonicalize_directory(root)?;
+        self.ensure_git_repository(&requested)?;
+        let toplevel = self.run_git(
+            &requested,
+            &["rev-parse", "--path-format=absolute", "--show-toplevel"],
+            GitFailureCode::RepositoryUnavailable,
+        )?;
+        let worktree_root = self.canonicalize_directory(Path::new(&toplevel))?;
+        let common = self.run_git(
+            &worktree_root,
+            &["rev-parse", "--path-format=absolute", "--git-common-dir"],
+            GitFailureCode::RepositoryUnavailable,
+        )?;
+        let common_dir = self.canonicalize_directory(Path::new(&common))?;
+        let root_filesystem_id = self.filesystem_identity(&worktree_root)?;
+        let common_dir_filesystem_id = self.filesystem_identity(&common_dir)?;
+        let branch = self
+            .run_git_probe(
+                &worktree_root,
+                &["symbolic-ref", "--quiet", "--short", "HEAD"],
+            )?
+            .filter(|value| !value.is_empty());
+        let head_oid = self.run_git(
+            &worktree_root,
+            &["rev-parse", "--verify", "HEAD"],
+            GitFailureCode::BranchUnavailable,
+        )?;
+        if head_oid.is_empty() {
+            return Err(GitFailure::Unavailable {
+                code: GitFailureCode::BranchUnavailable,
+                detail: "Git returned an empty HEAD object ID.".to_owned(),
+            });
+        }
+        Ok(WorktreeIdentity {
+            root: worktree_root,
+            common_dir,
+            root_filesystem_id,
+            common_dir_filesystem_id,
+            branch,
+            head_oid,
+        })
+    }
+
     /// Reads one folder as a Git worktree: its canonical root, current branch,
     /// detached state, upstream, every observed branch and its status.
     ///
@@ -172,6 +361,34 @@ impl Git<'_> {
         self.run_git(Path::new(&root), &arguments, GitFailureCode::SwitchFailed)?;
         let state = reload(&root)?;
         Ok(SwitchReading::Switched { state })
+    }
+
+    fn canonicalize_directory(&self, path: &Path) -> Result<PathBuf, GitFailure> {
+        path.canonicalize()
+            .map_err(|error| GitFailure::FolderUnavailable {
+                code: GitFailureCode::RepositoryUnavailable,
+                detail: redact_git_detail(self.redactor(), &error.to_string(), None),
+            })
+    }
+
+    fn filesystem_identity(&self, path: &Path) -> Result<Option<FilesystemIdentity>, GitFailure> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt as _;
+            let metadata = fs::metadata(path).map_err(|error| GitFailure::FolderUnavailable {
+                code: GitFailureCode::RepositoryUnavailable,
+                detail: redact_git_detail(self.redactor(), &error.to_string(), None),
+            })?;
+            Ok(Some(FilesystemIdentity {
+                device: metadata.dev(),
+                inode: metadata.ino(),
+            }))
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = path;
+            Ok(None)
+        }
     }
 
     fn ensure_git_repository(&self, root: &Path) -> Result<(), GitFailure> {

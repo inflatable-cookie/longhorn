@@ -108,6 +108,11 @@ The policy hook:
 
 The readings, all methods on `Git`:
 
+- `worktree_identity(&self, root) -> Result<WorktreeIdentity, GitFailure>`,
+  returning `WorktreeIdentity` (`root()`, `common_dir()`,
+  `root_filesystem_id()`, `common_dir_filesystem_id()`, `branch()`, `head_oid()`,
+  `is_detached()`, `same_repository(&other)`, `same_worktree(&other)`) and
+  `FilesystemIdentity { device, inode }`;
 - `status(&self, root) -> Result<GitStatus, GitFailure>`;
 - `inspect_worktree(&self, root) -> Result<GitWorkspaceState, GitFailure>`;
 - `origin_url(&self, root) -> Option<String>`, redacted with the caller's
@@ -248,6 +253,21 @@ already classifies those strings keeps its classification. A refusal's
 `TimedOut` carry no Git text.
 
 ## Worktree reading
+
+`worktree_identity` canonicalises the folder, requires
+`git rev-parse --is-inside-work-tree` to answer `true`, resolves and
+canonicalises the worktree root (`git rev-parse --path-format=absolute
+--show-toplevel`) and the Git common directory (`git rev-parse
+--path-format=absolute --git-common-dir`), reads Unix `device` and `inode`
+filesystem identity (`FilesystemIdentity`) for both directories when on Unix,
+reads the current branch short name via `git symbolic-ref --quiet --short HEAD`
+(`None` when detached), and reads the full `HEAD` object ID via `git rev-parse
+--verify HEAD` (`git.branch_unavailable` when `HEAD` cannot be resolved). Its
+fields stay private behind explicit accessors, `same_repository` compares exact
+canonical `common_dir` paths and filesystem identities, and `same_worktree`
+requires `same_repository` plus matching canonical `root` paths and filesystem
+identities so linked worktrees share a repository without comparing as the same
+worktree.
 
 `inspect_worktree` canonicalises the folder, requires
 `git rev-parse --is-inside-work-tree` to answer `true`, reads the current
@@ -409,12 +429,18 @@ component before comparing, and `remote_for_display` stays available for raw
 values a caller obtained itself. An attach reading's `WrongRemote.observed`
 takes the same redaction after its display form.
 
-Structured identifiers Git reports stay exact: branch names and ids, upstream
+Structured identifiers Git reports stay exact: `WorktreeIdentity` (`root`,
+`common_dir`, `branch`, and `head_oid`), branch names and ids, upstream
 references, the current branch or detached revision shorthand, and the
-canonical root. They are addresses, not prose — a branch id is handed back to
-`switch_branch`, so a redacted identifier would stop addressing anything. A
-caller that displays one applies its own redaction policy, as it does for its
-own paths.
+canonical root. They are machine addresses, not prose — a branch id is handed
+back to `switch_branch`, and repository/worktree identity checks require exact
+paths rather than redacted strings that can collide across distinct
+repositories. A caller that displays one applies its own redaction policy, as it
+does for its own paths. To keep ordinary diagnostics safe by default,
+`WorktreeIdentity`'s `Debug` implementation is opaque (printing no raw paths,
+branch, or object ID), exposing exact values only through explicit accessors,
+while any failure detail from `worktree_identity` still goes through
+`redact_git_detail`.
 
 ## Required evidence
 
@@ -423,8 +449,13 @@ own paths.
   two-period termination, one-second forced-kill grace, immediate stop after
   the first failure). The tests run real `git` on `PATH` against temporary
   local repositories and bare remotes, with no network and no OS credential
-  backend. They cover status, conflicts, ahead and behind, detached
-  checkouts, a preflight refusal per class, the ambient-helper rule, sync in
+  backend. They cover exact worktree and repository identity (`worktree_identity`
+  across distinct repositories whose paths redact to the same text, linked
+  worktrees vs main checkouts, symlinked and subdirectory paths, detached HEAD
+  with full object ID, non-worktree `RepositoryUnavailable` refusals with
+  redacted detail, and opaque `Debug` output), status, conflicts, ahead and
+  behind, detached checkouts, a preflight refusal per class, the ambient-helper
+  rule, sync in
   every stop state, branch switching, clone staging and the exclusive rename
   including an existing target and a failed clone, attach in every reading, the
   credential hook and its delivered environment, redaction of successful
