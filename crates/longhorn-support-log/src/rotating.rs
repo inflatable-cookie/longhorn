@@ -1,7 +1,7 @@
 //! Size-bounded rotating line log on disk.
 
 use std::fs::{self, File, OpenOptions};
-use std::io::Write;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 use std::time::SystemTime;
@@ -39,6 +39,10 @@ pub struct LogStats {
     /// Lines dropped because a directory creation, open, rotation or write
     /// failed.
     pub failed: u64,
+    /// Whether a failed write also failed to truncate back to the
+    /// pre-append length, leaving a partial line the log cannot repair.
+    /// Latched: once set it stays set for the life of the log.
+    pub repair_required: bool,
 }
 
 /// One JSON Lines record. The caller names the fields; the log redacts and
@@ -203,9 +207,16 @@ impl Sink {
     }
 
     /// Appends one whole line, rotating first when it would cross the bound.
-    /// Never panics and never returns a failure; drops are counted.
+    /// Never panics and never returns a failure; drops are counted. While
+    /// a repair is required the log writes nothing: the live file may hold
+    /// a partial line, so every line is dropped until the operator repairs
+    /// the file and restarts with a fresh log.
     fn write(&self, line: &str) {
         let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
+        if state.stats.repair_required {
+            state.stats.failed += 1;
+            return;
+        }
         let incoming = u64::try_from(line.len()).unwrap_or(u64::MAX);
         if incoming > self.config.max_bytes {
             state.stats.oversized += 1;
@@ -235,16 +246,8 @@ impl Sink {
             state.stats.failed += 1;
             return;
         };
-        if file
-            .write_all(line.as_bytes())
-            .and_then(|()| file.flush())
-            .is_ok()
-        {
-            state.stats.written += 1;
-        } else {
-            state.file = None;
-            state.stats.failed += 1;
-        }
+        let outcome = append_whole_line(file, line.as_bytes());
+        apply_append_outcome(&mut state, outcome);
     }
 
     /// Whether `incoming` bytes would push a non-empty live file past the
@@ -280,5 +283,222 @@ impl Sink {
             let _ = fs::rename(rotated(generation), rotated(generation + 1));
         }
         let _ = fs::rename(live, rotated(1));
+    }
+}
+
+/// One whole-line append attempt.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AppendOutcome {
+    /// The line reached the stream whole.
+    Written,
+    /// The write failed and the stream is back at its pre-append length,
+    /// so the next line cannot join onto a partial one.
+    Dropped,
+    /// The write failed and the stream would not truncate back. It may
+    /// hold a partial line; the operator repairs it.
+    RepairRequired,
+}
+
+/// A stream an append can measure and truncate. `File` is the only
+/// production target; tests inject a fake.
+trait AppendTarget: Write {
+    fn committed_len(&mut self) -> io::Result<u64>;
+    fn truncate_to(&mut self, len: u64) -> io::Result<()>;
+}
+
+impl AppendTarget for File {
+    fn committed_len(&mut self) -> io::Result<u64> {
+        self.metadata().map(|metadata| metadata.len())
+    }
+
+    fn truncate_to(&mut self, len: u64) -> io::Result<()> {
+        self.set_len(len)
+    }
+}
+
+/// Records one append outcome in `state`. A failure drops the handle so
+/// the next write reopens; a repair-required failure also latches
+/// `repair_required`, which [`Sink::write`] honors by dropping every later
+/// line until the operator repairs the file.
+fn apply_append_outcome(state: &mut State, outcome: AppendOutcome) {
+    match outcome {
+        AppendOutcome::Written => {
+            state.stats.written += 1;
+        }
+        AppendOutcome::Dropped => {
+            state.file = None;
+            state.stats.failed += 1;
+        }
+        AppendOutcome::RepairRequired => {
+            state.file = None;
+            state.stats.failed += 1;
+            state.stats.repair_required = true;
+        }
+    }
+}
+
+/// Appends `line` whole or not at all. A writer may commit a prefix before
+/// it fails (`write_all` returns the error, not the bytes), so on any
+/// failure the stream is truncated back to its pre-append length. When the
+/// truncation fails too the stream may hold a partial line and the caller
+/// must report repair.
+fn append_whole_line(target: &mut impl AppendTarget, line: &[u8]) -> AppendOutcome {
+    let pre_len = target.committed_len().ok();
+    if target.write_all(line).and_then(|()| target.flush()).is_ok() {
+        return AppendOutcome::Written;
+    }
+    let repaired = match pre_len {
+        Some(len) => target
+            .truncate_to(len)
+            .and_then(|()| target.flush())
+            .is_ok(),
+        None => false,
+    };
+    if repaired {
+        AppendOutcome::Dropped
+    } else {
+        AppendOutcome::RepairRequired
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// An injected writer that commits a `fail_after`-byte prefix of each
+    /// append, then fails; it optionally refuses to truncate.
+    struct FailingWriter {
+        committed: Vec<u8>,
+        fail_after: usize,
+        truncate_fails: bool,
+    }
+
+    impl FailingWriter {
+        fn seeded(fail_after: usize) -> Self {
+            Self {
+                committed: b"good line\n".to_vec(),
+                fail_after: b"good line\n".len() + fail_after,
+                truncate_fails: false,
+            }
+        }
+    }
+
+    impl Write for FailingWriter {
+        fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+            let remaining = self.fail_after.saturating_sub(self.committed.len());
+            if remaining == 0 {
+                return Err(io::Error::other("injected write failure"));
+            }
+            let taken = remaining.min(buf.len());
+            self.committed.extend_from_slice(&buf[..taken]);
+            Ok(taken)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl AppendTarget for FailingWriter {
+        fn committed_len(&mut self) -> io::Result<u64> {
+            Ok(self.committed.len() as u64)
+        }
+
+        fn truncate_to(&mut self, len: u64) -> io::Result<()> {
+            if self.truncate_fails {
+                return Err(io::Error::other("injected truncate failure"));
+            }
+            self.committed.truncate(len as usize);
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn a_short_write_is_truncated_back_to_the_pre_append_length() {
+        let mut writer = FailingWriter::seeded(4);
+        assert_eq!(
+            append_whole_line(&mut writer, b"{\"event\":\"failed\"}\n"),
+            AppendOutcome::Dropped
+        );
+        // The four committed prefix bytes are gone: the next line cannot
+        // join onto a partial record.
+        assert_eq!(writer.committed, b"good line\n");
+    }
+
+    #[test]
+    fn a_write_that_fails_before_any_byte_is_dropped_whole() {
+        let mut writer = FailingWriter::seeded(0);
+        assert_eq!(
+            append_whole_line(&mut writer, b"{\"event\":\"failed\"}\n"),
+            AppendOutcome::Dropped
+        );
+        assert_eq!(writer.committed, b"good line\n");
+    }
+
+    #[test]
+    fn a_failed_truncate_reports_repair_required() {
+        let mut writer = FailingWriter::seeded(4);
+        writer.truncate_fails = true;
+        assert_eq!(
+            append_whole_line(&mut writer, b"{\"event\":\"failed\"}\n"),
+            AppendOutcome::RepairRequired
+        );
+        // The partial prefix is still there for the operator to repair.
+        assert_eq!(writer.committed, b"good line\n{\"ev");
+    }
+
+    #[test]
+    fn a_whole_write_is_kept() {
+        let mut writer = FailingWriter::seeded(usize::MAX / 2);
+        assert_eq!(
+            append_whole_line(&mut writer, b"{\"event\":\"ok\"}\n"),
+            AppendOutcome::Written
+        );
+        assert_eq!(writer.committed, b"good line\n{\"event\":\"ok\"}\n");
+    }
+
+    #[test]
+    fn outcomes_count_and_latch_repair() {
+        let mut state = State::default();
+        apply_append_outcome(&mut state, AppendOutcome::Written);
+        apply_append_outcome(&mut state, AppendOutcome::Dropped);
+        assert_eq!(state.stats.written, 1);
+        assert_eq!(state.stats.failed, 1);
+        assert!(!state.stats.repair_required);
+
+        apply_append_outcome(&mut state, AppendOutcome::RepairRequired);
+        assert_eq!(state.stats.failed, 2);
+        assert!(state.stats.repair_required);
+    }
+
+    #[test]
+    fn a_latched_repair_drops_later_lines_without_touching_the_disk() {
+        use longhorn_redact::{RedactionRules, Redactor};
+
+        let root = tempfile::tempdir().unwrap();
+        let sink = Sink {
+            redactor: Redactor::new(Vec::new(), RedactionRules::common()),
+            config: RotatingLogConfig {
+                directory: root.path().to_path_buf(),
+                file_name: "support.log".to_owned(),
+                max_bytes: 1024,
+                retained: 2,
+                field_bytes: 1024,
+            },
+            state: Mutex::new(State {
+                stats: LogStats {
+                    repair_required: true,
+                    ..LogStats::default()
+                },
+                ..State::default()
+            }),
+        };
+        sink.write("{\"event\":\"after\"}\n");
+        let state = sink.state.lock().unwrap();
+        assert_eq!(state.stats.written, 0);
+        assert_eq!(state.stats.failed, 1);
+        assert!(state.stats.repair_required);
+        // No partial record is joined: nothing was opened or created.
+        assert!(!root.path().join("support.log").exists());
     }
 }

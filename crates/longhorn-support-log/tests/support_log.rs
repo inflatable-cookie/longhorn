@@ -196,7 +196,8 @@ fn a_retained_handle_still_enforces_the_bound_on_every_write() {
         LogStats {
             written: 1_600,
             oversized: 0,
-            failed: 0
+            failed: 0,
+            repair_required: false
         }
     );
 }
@@ -329,7 +330,8 @@ fn an_oversized_line_is_dropped_and_counted() {
         LogStats {
             written: 1,
             oversized: 1,
-            failed: 0
+            failed: 0,
+            repair_required: false
         }
     );
     assert_eq!(
@@ -387,7 +389,8 @@ fn a_failed_write_is_dropped_and_counted() {
         LogStats {
             written: 0,
             oversized: 0,
-            failed: 2
+            failed: 2,
+            repair_required: false
         }
     );
     assert_eq!(fs::read(&live).unwrap(), b"kept\n");
