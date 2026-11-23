@@ -150,6 +150,23 @@ async function invoke(
 const CLIPPY = ["clippy", "--workspace", "--", "-D", "warnings"];
 const EXEC_TOOL = ["cargo", "run", "-p", "longhorn-bindings", "--", "bridge", "check"];
 
+test("workspace and unsafe crates retain the Clippy marker and pedantic gates", async () => {
+  for (const manifest of [
+    "Cargo.toml",
+    "crates/longhorn-pty/Cargo.toml",
+    "crates/longhorn-tauri-agent-control/Cargo.toml",
+  ]) {
+    const text = await readFile(join(import.meta.dir, "..", manifest), "utf8");
+    const section =
+      text
+        .split(manifest === "Cargo.toml" ? "[workspace.lints.clippy]" : "[lints.clippy]")[1]
+        ?.split("\n[")[0] ?? "";
+    for (const lint of ["dbg_macro", "todo", "unimplemented", "explicit_into_iter_loop"]) {
+      expect(section).toContain(`${lint} = "deny"`);
+    }
+  }
+});
+
 describe("Rust command routing", () => {
   test("uses Oxide locally and preserves arguments", async () => {
     const { bin, capture } = await sandbox(["oxide", "cargo"]);
@@ -828,7 +845,11 @@ describe("Task scratch", () => {
     await symlink(target, join(pool, "longhorn"));
     const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: pool }));
     await withEnvironment(
-      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      {
+        GITHUB_ACTIONS: "",
+        OXIDE_TASK_SCRATCH_ROOT: undefined,
+        PATH: `${bin}:${process.env.PATH}`,
+      },
       async () => {
         await expect(taskScratch("proof")).rejects.toThrow(/must be an owned real directory below/);
       },
