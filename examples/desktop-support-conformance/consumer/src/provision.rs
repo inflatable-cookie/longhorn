@@ -229,7 +229,7 @@ pub(crate) fn run() -> String {
         root.path(),
         &release_source,
         &NoSignatureVerifier,
-        &CommandRunner,
+        &CommandRunner::default(),
         &redactor(),
         &mut |stage| stages.push(stage),
     )
@@ -282,7 +282,7 @@ pub(crate) fn run() -> String {
         "the receipt carries a unix timestamp"
     );
 
-    match tool_health(&tool, root.path(), &CommandRunner, &redactor()) {
+    match tool_health(&tool, root.path(), &CommandRunner::default(), &redactor()) {
         ToolHealth::Installed {
             version,
             receipt_version,
@@ -321,7 +321,7 @@ pub(crate) fn run() -> String {
         root.path(),
         &second_source,
         &NoSignatureVerifier,
-        &CommandRunner,
+        &CommandRunner::default(),
         &redactor(),
         &mut |_| {},
     )
@@ -353,7 +353,7 @@ pub(crate) fn run() -> String {
         root.path(),
         &second_source,
         &NoSignatureVerifier,
-        &CommandRunner,
+        &CommandRunner::default(),
         &redactor(),
         &mut |_| {},
     )
@@ -399,7 +399,7 @@ pub(crate) fn run() -> String {
         root.path(),
         &third_source,
         &NoSignatureVerifier,
-        &CommandRunner,
+        &CommandRunner::default(),
         &redactor(),
         &mut |_| {},
     )
@@ -426,7 +426,7 @@ pub(crate) fn run() -> String {
         "rollback left no backup or temporary copy behind"
     );
     assert!(receipt_path.is_dir(), "the obstruction is untouched");
-    match tool_health(&tool, root.path(), &CommandRunner, &redactor()) {
+    match tool_health(&tool, root.path(), &CommandRunner::default(), &redactor()) {
         ToolHealth::Installed {
             version,
             receipt_version,

@@ -5,12 +5,21 @@ use std::{
     fmt,
     io::{self, Read},
     path::Path,
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
+    sync::mpsc::{self, Receiver, RecvTimeoutError},
     thread,
+    time::{Duration, Instant},
 };
 
 /// Maximum bytes retained from either child output stream by [`CommandRunner`].
 pub const MAX_PROCESS_OUTPUT_BYTES: usize = 64 * 1024;
+/// The longest a process started by [`CommandRunner::default`] may run.
+pub const DEFAULT_PROCESS_TIMEOUT: Duration = Duration::from_secs(30);
+/// How often the runner checks whether a child has exited.
+const POLL_INTERVAL: Duration = Duration::from_millis(10);
+/// How long output may keep arriving after the child has exited. A grandchild
+/// that inherits the pipes can hold them open; the runner stops waiting then.
+const OUTPUT_GRACE: Duration = Duration::from_secs(5);
 
 /// A host process runner. Implementations must execute the fixed program and
 /// argument vector as supplied, without interpreting them through a shell.
@@ -137,70 +146,79 @@ impl fmt::Display for RunnerError {
 
 impl std::error::Error for RunnerError {}
 
-/// Production runner that starts programs directly and retains bounded output.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct CommandRunner;
+/// Production runner: starts programs directly with no standard input, retains
+/// bounded output, and kills a process that runs past its time limit.
+#[derive(Clone, Copy, Debug)]
+pub struct CommandRunner {
+    timeout: Duration,
+}
+
+impl Default for CommandRunner {
+    fn default() -> Self {
+        Self::with_timeout(DEFAULT_PROCESS_TIMEOUT)
+    }
+}
+
+impl CommandRunner {
+    /// A runner that kills any process still running after `timeout`.
+    #[must_use]
+    pub const fn with_timeout(timeout: Duration) -> Self {
+        Self { timeout }
+    }
+
+    /// The run-time limit this runner enforces.
+    #[must_use]
+    pub const fn timeout(&self) -> Duration {
+        self.timeout
+    }
+}
+
+/// One stream's read result, delivered by its reader thread.
+type StreamResult = io::Result<(Vec<u8>, bool)>;
 
 impl ProcessRunner for CommandRunner {
     fn run(&self, program: &Path, arguments: &[OsString]) -> Result<ProcessOutput, RunnerError> {
         let mut child = Command::new(program)
             .args(arguments)
+            .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|error| RunnerError::new(format!("the process could not start: {error}")))?;
-        let Some(stdout) = child.stdout.take() else {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(RunnerError::new(
-                "the process standard output was unavailable",
-            ));
+        let (Some(stdout), Some(stderr)) = (child.stdout.take(), child.stderr.take()) else {
+            stop(&mut child);
+            return Err(RunnerError::new("the process output was unavailable"));
         };
-        let Some(stderr) = child.stderr.take() else {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(RunnerError::new(
-                "the process standard error was unavailable",
-            ));
-        };
-        let stdout_reader = match thread::Builder::new().spawn(move || read_bounded(stdout)) {
-            Ok(reader) => reader,
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(RunnerError::new(format!(
-                    "the output reader could not start: {error}"
-                )));
-            }
-        };
-        let stderr_reader = match thread::Builder::new().spawn(move || read_bounded(stderr)) {
-            Ok(reader) => reader,
-            Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = stdout_reader.join();
+        let (stdout_rx, stderr_rx) = match (spawn_reader(stdout), spawn_reader(stderr)) {
+            (Ok(stdout_rx), Ok(stderr_rx)) => (stdout_rx, stderr_rx),
+            (Err(error), _) | (_, Err(error)) => {
+                stop(&mut child);
                 return Err(RunnerError::new(format!(
                     "the output reader could not start: {error}"
                 )));
             }
         };
 
-        let status = match child.wait() {
-            Ok(status) => status,
+        let deadline = Instant::now() + self.timeout;
+        let status = match wait_until(&mut child, deadline) {
+            Ok(Some(status)) => status,
+            Ok(None) => {
+                stop(&mut child);
+                return Err(RunnerError::new(format!(
+                    "the process did not finish within {} ms and was stopped",
+                    self.timeout.as_millis()
+                )));
+            }
             Err(error) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = stdout_reader.join();
-                let _ = stderr_reader.join();
+                stop(&mut child);
                 return Err(RunnerError::new(format!(
                     "the process wait failed: {error}"
                 )));
             }
         };
-        let stdout = join_reader(stdout_reader);
-        let stderr = join_reader(stderr_reader);
-        let (stdout, stdout_truncated) = stdout?;
-        let (stderr, stderr_truncated) = stderr?;
+        let output_deadline = Instant::now() + OUTPUT_GRACE;
+        let (stdout, stdout_truncated) = receive(&stdout_rx, output_deadline)?;
+        let (stderr, stderr_truncated) = receive(&stderr_rx, output_deadline)?;
         Ok(ProcessOutput {
             stdout,
             stderr,
@@ -212,7 +230,57 @@ impl ProcessRunner for CommandRunner {
     }
 }
 
-fn read_bounded(mut reader: impl Read) -> io::Result<(Vec<u8>, bool)> {
+/// Polls for the child's exit until `deadline`; `None` means it is still running.
+fn wait_until(
+    child: &mut Child,
+    deadline: Instant,
+) -> io::Result<Option<std::process::ExitStatus>> {
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(Some(status));
+        }
+        if Instant::now() >= deadline {
+            return Ok(None);
+        }
+        thread::sleep(POLL_INTERVAL);
+    }
+}
+
+/// Kills a child that will not be waited for, and reaps it.
+fn stop(child: &mut Child) {
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+/// Reads one stream on its own thread. The reader is detached, so a stream
+/// that never closes cannot hold the caller past its own deadline.
+fn spawn_reader(reader: impl Read + Send + 'static) -> io::Result<Receiver<StreamResult>> {
+    let (sender, receiver) = mpsc::channel();
+    thread::Builder::new().spawn(move || {
+        let _ = sender.send(read_bounded(reader));
+    })?;
+    Ok(receiver)
+}
+
+fn receive(
+    receiver: &Receiver<StreamResult>,
+    deadline: Instant,
+) -> Result<(Vec<u8>, bool), RunnerError> {
+    match receiver.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+        Ok(Ok(output)) => Ok(output),
+        Ok(Err(error)) => Err(RunnerError::new(format!(
+            "the process output could not be read: {error}"
+        ))),
+        Err(RecvTimeoutError::Timeout) => Err(RunnerError::new(
+            "the process output did not close within the time limit",
+        )),
+        Err(RecvTimeoutError::Disconnected) => Err(RunnerError::new(
+            "the process output reader stopped unexpectedly",
+        )),
+    }
+}
+
+fn read_bounded(mut reader: impl Read) -> StreamResult {
     let mut output = Vec::with_capacity(MAX_PROCESS_OUTPUT_BYTES);
     let mut truncated = false;
     let mut buffer = [0u8; 8192];
@@ -227,13 +295,4 @@ fn read_bounded(mut reader: impl Read) -> io::Result<(Vec<u8>, bool)> {
         truncated |= retained < read;
     }
     Ok((output, truncated))
-}
-
-fn join_reader(
-    reader: thread::JoinHandle<io::Result<(Vec<u8>, bool)>>,
-) -> Result<(Vec<u8>, bool), RunnerError> {
-    reader
-        .join()
-        .map_err(|_| RunnerError::new("the process output reader stopped unexpectedly"))?
-        .map_err(|error| RunnerError::new(format!("the process output could not be read: {error}")))
 }

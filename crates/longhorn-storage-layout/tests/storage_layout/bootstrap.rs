@@ -2,9 +2,9 @@ use std::fs;
 
 use longhorn_storage_layout::{
     PlatformDirectoryFact, PlatformDirectoryFacts, StorageBootstrapOrigin,
-    StorageBootstrapRecoveryKind, StorageBootstrapState, StorageIdentity, StorageProfile,
-    StorageProfileSelection, TargetPlatform, inspect_storage_bootstrap,
-    resolve_storage_bootstrap_paths,
+    StorageBootstrapRecoveryKind, StorageBootstrapState, StorageIdentity, StorageLocatorError,
+    StorageProfile, StorageProfileLocator, StorageProfileSelection, TargetPlatform, encode_locator,
+    inspect_storage_bootstrap, resolve_storage_bootstrap_paths,
 };
 use serde_json::json;
 use tempfile::tempdir;
@@ -159,4 +159,36 @@ fn shared_product_profile_round_trips_through_the_canonical_locator() {
             .locator()
             .starts_with(temp.path().join("xdg-config/com.inflatablecookie.loophole"))
     );
+}
+
+#[test]
+fn an_encoded_locator_writes_its_explicit_root_and_transition_as_given() {
+    let selection = StorageProfileSelection::portable("/example/portable-root").unwrap();
+    let locator = StorageProfileLocator::new(
+        "com.example.app".to_owned(),
+        selection,
+        Some("example-transition".to_owned()),
+        None,
+    );
+
+    let document: serde_json::Value =
+        serde_json::from_slice(&encode_locator(&locator).unwrap()).unwrap();
+
+    assert_eq!(document["canonicalApplicationId"], "com.example.app");
+    assert_eq!(document["explicitRoot"], "/example/portable-root");
+    assert_eq!(document["transitionId"], "example-transition");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_non_utf8_explicit_root_is_refused_rather_than_written_lossily() {
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt, path::PathBuf};
+
+    let root = PathBuf::from(OsStr::from_bytes(b"/example/portable-\xff"));
+    let selection = StorageProfileSelection::portable(root.clone()).unwrap();
+    let locator = StorageProfileLocator::new("com.example.app".to_owned(), selection, None, None);
+
+    let error = encode_locator(&locator).expect_err("a lossy root cannot be written");
+
+    assert_eq!(error, StorageLocatorError::NonUtf8Root { path: root });
 }

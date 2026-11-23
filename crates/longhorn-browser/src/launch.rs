@@ -84,8 +84,10 @@ impl Error for BrowserLaunchError {}
 /// URL as one argument, so no part of the URL is ever parsed as a command.
 /// That is the reason this is not simply `sh -c "open $url"`, which is how
 /// this capability is usually written and why it is usually a vulnerability.
-/// [`BrowserUrl`] refuses shell metacharacters as well, so the two defences
-/// are independent.
+/// The URL's own rules come from [`BrowserUrl`], which allows only an https
+/// (or loopback http) URL with no whitespace or control characters. It does
+/// not screen shell metacharacters: the argument boundary is the defence, and
+/// it does not depend on what the URL contains.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct NativeSystemBrowser;
 
@@ -163,15 +165,35 @@ impl SystemBrowser for DecliningSystemBrowser {
 mod tests {
     use super::*;
 
+    // Unix has a launcher program. Other platforms refuse with
+    // `UnsupportedPlatform`, which the unit tests of `open` do not reach.
+    #[cfg(unix)]
     #[test]
     fn the_platform_launcher_is_a_program_and_never_a_shell() {
-        // The whole safety argument rests on this: no `sh`, no `cmd`, no
-        // `-c`. If this assertion ever needs relaxing, the URL is being
-        // parsed by something that also parses commands.
-        let program = launcher_program().unwrap_or("unsupported");
+        // The whole safety argument rests on this: the launcher's file name is
+        // not a command interpreter. If this assertion ever needs relaxing, the
+        // URL is being parsed by something that also parses commands.
+        const INTERPRETERS: &[&str] = &[
+            "sh",
+            "bash",
+            "dash",
+            "zsh",
+            "ksh",
+            "csh",
+            "tcsh",
+            "fish",
+            "cmd",
+            "cmd.exe",
+            "powershell",
+            "pwsh",
+        ];
+        let program = launcher_program().expect("a unix platform has a launcher");
+        let name = std::path::Path::new(program)
+            .file_name()
+            .and_then(std::ffi::OsStr::to_str)
+            .expect("the launcher has a file name");
 
-        assert!(!program.contains("sh"), "{program}");
-        assert!(!program.contains("cmd"), "{program}");
+        assert!(!INTERPRETERS.contains(&name), "{program} is an interpreter");
     }
 
     #[test]

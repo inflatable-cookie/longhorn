@@ -29,7 +29,8 @@ version arguments. `install_tool` composes release resolution, download,
 verification, extraction, signature checking, version probes, atomic
 replacement with rollback, and an atomic receipt. Its process runner and
 progress callback are injected. `CommandRunner` is the production adapter;
-it starts programs with argument vectors, never a shell string.
+it starts programs with argument vectors, never a shell string, and stops any
+that run past their time limit.
 
 `tool_health` probes the managed executable without a network request.
 `LoginPathCache` discovers the login-shell PATH through fixed markers, caches

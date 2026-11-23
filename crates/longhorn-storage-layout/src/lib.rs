@@ -20,7 +20,7 @@ mod types;
 pub use bootstrap::{
     StorageBootstrapOrigin, StorageBootstrapPathError, StorageBootstrapPaths,
     StorageBootstrapRecovery, StorageBootstrapRecoveryKind, StorageBootstrapSelection,
-    StorageBootstrapState, StorageProfileLocator, StorageProfileSelection,
+    StorageBootstrapState, StorageLocatorError, StorageProfileLocator, StorageProfileSelection,
     StorageProfileSelectionError, encode_locator, inspect_storage_bootstrap, locator_matches,
     resolve_storage_bootstrap_paths,
 };

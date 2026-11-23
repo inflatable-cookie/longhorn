@@ -22,5 +22,5 @@ mod time;
 
 pub use ring::{Level, RingLog, RingRecord};
 pub use rotating::{JsonRecord, LogStats, RotatingLog, RotatingLogConfig};
-pub use text::{OMITTED_MARKER, TailBounds, bound_field, bounded_tail};
+pub use text::{OMITTED_MARKER, TailBounds, bound_field, bounded_tail, single_line};
 pub use time::utc_timestamp;

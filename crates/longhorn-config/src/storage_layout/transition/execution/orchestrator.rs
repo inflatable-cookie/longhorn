@@ -68,7 +68,7 @@ pub(crate) fn recover_inner(
         &active.transition_id,
         &crate::storage_layout::layout_evidence(&active.target_layout_digest),
     )
-    .map_err(StorageTransitionError::Locator)?;
+    .map_err(|error| StorageTransitionError::Locator(error.to_string()))?;
     verify_journal_authority(request, &active, target_committed)?;
     if !target_committed && active.phase != JournalPhase::Prepared {
         remove_verified_interrupted_targets(request, &active, &sync_dir)?;
@@ -303,7 +303,9 @@ pub(crate) fn execute_inner(
             &plan.preview.target_layout_digest,
         )),
     );
-    transition_io::atomic_write(request.bootstrap.locator(), &encode_locator(&locator))?;
+    let encoded = encode_locator(&locator)
+        .map_err(|error| StorageTransitionError::Locator(error.to_string()))?;
+    transition_io::atomic_write(request.bootstrap.locator(), &encoded)?;
     if injected == Some(InjectedFailure::AfterLocator) {
         return Err(StorageTransitionError::RecoveryRequired(
             "injected failure after locator commit".into(),

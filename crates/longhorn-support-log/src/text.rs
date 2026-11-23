@@ -55,8 +55,10 @@ pub(crate) fn clip(text: &str, max_bytes: usize) -> &str {
 }
 
 /// Writes interior CR and LF as the two characters `\r` and `\n`, so a
-/// field never breaks its line.
-pub(crate) fn single_line(text: &str) -> String {
+/// field never breaks its line. This is the line rule contract 025 gives log
+/// lines; a backslash is not escaped.
+#[must_use]
+pub fn single_line(text: &str) -> String {
     text.replace('\r', "\\r").replace('\n', "\\n")
 }
 

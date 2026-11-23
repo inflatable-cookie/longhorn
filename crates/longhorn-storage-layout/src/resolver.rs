@@ -10,15 +10,56 @@ use super::{
 };
 use crate::{RootKind, StorageLayoutDigest, StorageRoots};
 
-const REQUIRED_ROOTS: [RootKind; 7] = [
-    RootKind::Config,
-    RootKind::Data,
-    RootKind::State,
-    RootKind::Cache,
-    RootKind::Runtime,
-    RootKind::Log,
-    RootKind::Backup,
-];
+/// The seven roots every complete layout resolves. A type of its own, so the
+/// per-root rules cannot be asked for an optional root (policy, workspace or
+/// project), and no branch of them needs an impossible case.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RequiredRoot {
+    Config,
+    Data,
+    State,
+    Cache,
+    Runtime,
+    Log,
+    Backup,
+}
+
+impl RequiredRoot {
+    const ALL: [Self; 7] = [
+        Self::Config,
+        Self::Data,
+        Self::State,
+        Self::Cache,
+        Self::Runtime,
+        Self::Log,
+        Self::Backup,
+    ];
+
+    const fn kind(self) -> RootKind {
+        match self {
+            Self::Config => RootKind::Config,
+            Self::Data => RootKind::Data,
+            Self::State => RootKind::State,
+            Self::Cache => RootKind::Cache,
+            Self::Runtime => RootKind::Runtime,
+            Self::Log => RootKind::Log,
+            Self::Backup => RootKind::Backup,
+        }
+    }
+
+    /// The child directory a typed profile gives this root.
+    const fn child(self) -> &'static str {
+        match self {
+            Self::Config => "config",
+            Self::Data => "data",
+            Self::State => "state",
+            Self::Cache => "cache",
+            Self::Runtime => "runtime",
+            Self::Log => "logs",
+            Self::Backup => "backups",
+        }
+    }
+}
 
 /// Resolves one complete layout without filesystem or environment access.
 pub fn resolve_storage_layout(
@@ -34,9 +75,9 @@ pub fn resolve_storage_layout(
     };
     let mut roots = BTreeMap::new();
 
-    for kind in REQUIRED_ROOTS {
-        let resolved = resolve_required_root(request, kind, &effective_leaf)?;
-        roots.insert(kind, resolved);
+    for required in RequiredRoot::ALL {
+        let resolved = resolve_required_root(request, required, &effective_leaf)?;
+        roots.insert(required.kind(), resolved);
     }
 
     let state = roots
@@ -78,26 +119,33 @@ pub fn resolve_storage_root(
 ) -> Result<Option<ResolvedStorageRoot>, StorageLayoutError> {
     validate_portable_input(request)?;
 
-    if matches!(kind, RootKind::Policy | RootKind::Project) {
-        return request
-            .overrides
-            .get(kind)
-            .map(|path| override_root(kind, path))
-            .transpose();
-    }
-
-    if kind == RootKind::Workspace {
-        let state = if request.overrides.get(RootKind::Workspace).is_some() {
-            None
-        } else {
-            let leaf = request.identity.effective_leaf();
-            Some(resolve_required_root(request, RootKind::State, leaf)?)
-        };
-        return resolve_workspace_root(request, state.as_ref()).map(Some);
-    }
-
+    let required = match kind {
+        RootKind::Policy | RootKind::Project => {
+            return request
+                .overrides
+                .get(kind)
+                .map(|path| override_root(kind, path))
+                .transpose();
+        }
+        RootKind::Workspace => {
+            let state = if request.overrides.get(RootKind::Workspace).is_some() {
+                None
+            } else {
+                let leaf = request.identity.effective_leaf();
+                Some(resolve_required_root(request, RequiredRoot::State, leaf)?)
+            };
+            return resolve_workspace_root(request, state.as_ref()).map(Some);
+        }
+        RootKind::Config => RequiredRoot::Config,
+        RootKind::Data => RequiredRoot::Data,
+        RootKind::State => RequiredRoot::State,
+        RootKind::Cache => RequiredRoot::Cache,
+        RootKind::Runtime => RequiredRoot::Runtime,
+        RootKind::Log => RequiredRoot::Log,
+        RootKind::Backup => RequiredRoot::Backup,
+    };
     let leaf = request.identity.effective_leaf();
-    resolve_required_root(request, kind, leaf).map(Some)
+    resolve_required_root(request, required, leaf).map(Some)
 }
 
 fn validate_portable_input(request: &StorageLayoutRequest) -> Result<(), StorageLayoutError> {
@@ -115,138 +163,106 @@ fn validate_portable_input(request: &StorageLayoutRequest) -> Result<(), Storage
 
 fn resolve_required_root(
     request: &StorageLayoutRequest,
-    kind: RootKind,
+    required: RequiredRoot,
     leaf: &str,
 ) -> Result<ResolvedStorageRoot, StorageLayoutError> {
-    if let Some(path) = request.overrides.get(kind) {
-        return override_root(kind, path);
+    if let Some(path) = request.overrides.get(required.kind()) {
+        return override_root(required.kind(), path);
     }
 
     match request.profile {
-        StorageProfile::PlatformNativeV1 => native_root(request, kind, leaf),
-        StorageProfile::UnifiedAppRootV1 => unified_root(request, kind, leaf),
-        StorageProfile::SharedProductRootV1 => shared_product_root(request, kind, leaf),
-        StorageProfile::PortableV1 => portable_root(request, kind),
+        StorageProfile::PlatformNativeV1 => native_root(request, required, leaf),
+        StorageProfile::UnifiedAppRootV1 => unified_root(request, required, leaf),
+        StorageProfile::SharedProductRootV1 => shared_product_root(request, required, leaf),
+        StorageProfile::PortableV1 => portable_root(request, required),
     }
 }
 
 fn native_root(
     request: &StorageLayoutRequest,
-    kind: RootKind,
+    required: RequiredRoot,
     leaf: &str,
 ) -> Result<ResolvedStorageRoot, StorageLayoutError> {
-    let fact = native_fact(kind);
+    let fact = native_fact(required);
     let base = required_fact(request, fact)?;
-    let path = match (request.facts.platform(), kind) {
-        (_, RootKind::Backup) => base.join(leaf).join("backups"),
-        (TargetPlatform::MacOs | TargetPlatform::Windows, RootKind::Config) => {
+    let path = match (request.facts.platform(), required) {
+        (_, RequiredRoot::Backup) => base.join(leaf).join("backups"),
+        (TargetPlatform::MacOs | TargetPlatform::Windows, RequiredRoot::Config) => {
             base.join(leaf).join("config")
         }
-        (TargetPlatform::MacOs | TargetPlatform::Windows, RootKind::Data) => {
+        (TargetPlatform::MacOs | TargetPlatform::Windows, RequiredRoot::Data) => {
             base.join(leaf).join("data")
         }
-        (TargetPlatform::MacOs | TargetPlatform::Windows, RootKind::State) => {
+        (TargetPlatform::MacOs | TargetPlatform::Windows, RequiredRoot::State) => {
             base.join(leaf).join("state")
         }
-        (TargetPlatform::MacOs, RootKind::Cache | RootKind::Log | RootKind::Runtime) => {
-            base.join(leaf)
-        }
-        (TargetPlatform::Windows, RootKind::Cache) => base.join(leaf).join("cache"),
-        (TargetPlatform::Windows, RootKind::Log) => base.join(leaf).join("logs"),
-        (TargetPlatform::Windows, RootKind::Runtime) => base.join(leaf),
-        (TargetPlatform::Linux, RootKind::Log) => base.join(leaf).join("logs"),
+        (
+            TargetPlatform::MacOs,
+            RequiredRoot::Cache | RequiredRoot::Log | RequiredRoot::Runtime,
+        ) => base.join(leaf),
+        (TargetPlatform::Windows, RequiredRoot::Cache) => base.join(leaf).join("cache"),
+        (TargetPlatform::Windows, RequiredRoot::Log) => base.join(leaf).join("logs"),
+        (TargetPlatform::Windows, RequiredRoot::Runtime) => base.join(leaf),
+        (TargetPlatform::Linux, RequiredRoot::Log) => base.join(leaf).join("logs"),
         (TargetPlatform::Linux, _) => base.join(leaf),
-        (_, unsupported) => unreachable!("required native root {unsupported:?}"),
     };
     Ok(ResolvedStorageRoot::new(
-        kind,
+        required.kind(),
         path,
         StorageRootProvenance::PlatformProfile(fact),
     ))
 }
 
-fn native_fact(kind: RootKind) -> PlatformDirectoryFact {
-    match kind {
-        RootKind::Config => PlatformDirectoryFact::Config,
-        RootKind::Data | RootKind::Backup => PlatformDirectoryFact::Data,
-        RootKind::State => PlatformDirectoryFact::State,
-        RootKind::Cache => PlatformDirectoryFact::Cache,
-        RootKind::Runtime => PlatformDirectoryFact::Runtime,
-        RootKind::Log => PlatformDirectoryFact::Log,
-        RootKind::Policy | RootKind::Workspace | RootKind::Project => {
-            unreachable!("optional roots have separate resolution")
-        }
+fn native_fact(required: RequiredRoot) -> PlatformDirectoryFact {
+    match required {
+        RequiredRoot::Config => PlatformDirectoryFact::Config,
+        RequiredRoot::Data | RequiredRoot::Backup => PlatformDirectoryFact::Data,
+        RequiredRoot::State => PlatformDirectoryFact::State,
+        RequiredRoot::Cache => PlatformDirectoryFact::Cache,
+        RequiredRoot::Runtime => PlatformDirectoryFact::Runtime,
+        RequiredRoot::Log => PlatformDirectoryFact::Log,
     }
 }
 
 fn unified_root(
     request: &StorageLayoutRequest,
-    kind: RootKind,
+    required: RequiredRoot,
     leaf: &str,
 ) -> Result<ResolvedStorageRoot, StorageLayoutError> {
     let base = required_fact(request, PlatformDirectoryFact::Data)?.join(leaf);
-    let child = match kind {
-        RootKind::Config => "config",
-        RootKind::Data => "data",
-        RootKind::State => "state",
-        RootKind::Cache => "cache",
-        RootKind::Runtime => "runtime",
-        RootKind::Log => "logs",
-        RootKind::Backup => "backups",
-        RootKind::Policy | RootKind::Workspace | RootKind::Project => {
-            unreachable!("optional roots have separate resolution")
-        }
-    };
     Ok(ResolvedStorageRoot::new(
-        kind,
-        base.join(child),
+        required.kind(),
+        base.join(required.child()),
         StorageRootProvenance::UnifiedProfile(PlatformDirectoryFact::Data),
     ))
 }
 
 fn shared_product_root(
     request: &StorageLayoutRequest,
-    kind: RootKind,
+    required: RequiredRoot,
     leaf: &str,
 ) -> Result<ResolvedStorageRoot, StorageLayoutError> {
     let base = required_fact(request, PlatformDirectoryFact::SharedData)?.join(leaf);
-    let child = typed_child(kind);
     Ok(ResolvedStorageRoot::new(
-        kind,
-        base.join(child),
+        required.kind(),
+        base.join(required.child()),
         StorageRootProvenance::SharedProductProfile(PlatformDirectoryFact::SharedData),
     ))
 }
 
 fn portable_root(
     request: &StorageLayoutRequest,
-    kind: RootKind,
+    required: RequiredRoot,
 ) -> Result<ResolvedStorageRoot, StorageLayoutError> {
     let base = request
         .portable_root
         .as_deref()
         .ok_or(StorageLayoutError::PortableRootRequired)?;
-    let child = typed_child(kind);
     Ok(ResolvedStorageRoot::new(
-        kind,
-        base.join(child),
+        required.kind(),
+        base.join(required.child()),
         StorageRootProvenance::PortableProfile,
     ))
-}
-
-fn typed_child(kind: RootKind) -> &'static str {
-    match kind {
-        RootKind::Config => "config",
-        RootKind::Data => "data",
-        RootKind::State => "state",
-        RootKind::Cache => "cache",
-        RootKind::Runtime => "runtime",
-        RootKind::Log => "logs",
-        RootKind::Backup => "backups",
-        RootKind::Policy | RootKind::Workspace | RootKind::Project => {
-            unreachable!("optional roots have separate resolution")
-        }
-    }
 }
 
 fn required_fact(

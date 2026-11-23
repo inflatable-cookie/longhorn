@@ -101,12 +101,15 @@ Part 4c:
 - `tool_health(...) -> ToolHealth`: `Installed`, `NotInstalled` or `Broken`,
   without network access.
 - `ProcessRunner` and `ProcessOutput`: injected fixed-program execution and
-  bounded process output. `CommandRunner` is the production adapter.
+  bounded process output. `CommandRunner` is the production adapter. It is
+  built with `CommandRunner::default()` (`DEFAULT_PROCESS_TIMEOUT`, 30 seconds)
+  or `CommandRunner::with_timeout`, and exposes `CommandRunner::timeout()`.
 - `LoginPathCache`: cached login-shell PATH discovery with `get` and
   `refresh`; `parse_login_path_output`, `find_executable_on_path` and
   `is_executable` are public host-integration helpers.
 - `InstallError` preserves `ReleaseError` and `ProvisionError`, and adds
-  typed install refusals and host faults.
+  typed install refusals and host faults. Each class reports the class beneath it
+  through `Error::source`, and a rollback fault names the failure it undid.
 
 Failures (contract 027's classes; see Failure classes):
 
@@ -176,6 +179,16 @@ shell. The environment is `PATH=/usr/bin:/bin`. `not set` and `unknown` are
 no team. On other platforms the adapter refuses with
 `SignatureUnsupported`, so a declared team fails closed.
 
+**Proposed, not yet implemented.** The check above reads the team in a second
+call, so the team is not read from the same verification that judged the
+signature. The stronger form is one call that verifies the signature against
+an anchored requirement naming the declared team:
+`codesign --verify --strict -R='anchor apple generic and certificate leaf[subject.OU] = "<team>"' <path>`.
+The declared team would be checked as a ten-character alphanumeric identifier
+before it enters the requirement string. It is not adopted until a Developer
+ID signed binary has confirmed the requirement on macOS. Until then the form
+above stands.
+
 ## Extraction
 
 `extract_executable` writes one file: the requested member, at
@@ -214,6 +227,11 @@ Zip members are `Stored` or `Deflated`. Any other compression method, and any
 encrypted member, is `UnreadableArchive`, wherever it sits in the archive. The zip extraction does not check
 the CRC-32 in the header: integrity is the declared digest's job, and for a
 team-only declaration the signature check on the staged executable is.
+
+**Zip entry count first.** A zip's end record declares its entry count. That
+count is read before the central directory is parsed, and a count over the
+member bound refuses as `TooManyMembers` without the reader allocating a record
+per entry. The bound is still checked on each entry the reader yields.
 
 **Every entry is checked, not only the member.** A tar or zip is refused
 whole if any entry anywhere:
@@ -462,7 +480,8 @@ repository, and its tests use neutral ones.
 
 - A pinned query asks `GET {api}/repos/{owner}/{repository}/releases/tags/{tag}`.
   An unpinned query asks `GET {api}/repos/{owner}/{repository}/releases/latest`.
-  One listing request per resolve. Nothing pages.
+  One listing request per resolve. Nothing pages. The listing body is read to
+  4 MiB; a longer body is `Malformed` before it is parsed.
 - `404`: `NoCompatibleRelease`, naming the pin when there is one.
 - A draft or a pre-release, on either route: `NoCompatibleRelease`.
 - A pinned tag must equal the listing's `tag_name` exactly. A different
@@ -651,7 +670,11 @@ The staged executable is probed before any current binary changes.
 `ProcessRunner` is injected. `CommandRunner` is the production adapter. It
 starts a fixed program path with an argument vector, captures both streams
 concurrently, retains at most 64 KiB from each and drains the rest. It does
-not invoke a shell for version probes. The pipeline decodes no more than that
+not invoke a shell for version probes. It gives the process no standard input,
+and it stops a process that runs past its time limit: 30 seconds by default,
+or the limit given to `with_timeout`. A stopped process is a `RunnerError`, as
+is output still open five seconds after the process exits, so a grandchild that
+holds the pipes cannot hold the caller. The pipeline decodes no more than that
 bound, runs the caller's `Redactor`, then uses
 `longhorn-support-log::bound_field` to retain no more than 4 KiB for each
 failure field. Debug output from `ProcessOutput` reports sizes and status,
@@ -671,20 +694,26 @@ One binary install is refused while another owns it. The process holds a
 mutex reservation and an exclusive `fs4` lock on
 `managed_root/state/tool-provision/locks/<binary_name>.lock`; a busy lock is a
 typed `ConcurrentInstall` fault. Lock files are stable coordination files and
-remain in place. Names are plain non-hidden path components, so the reserved
-names below cannot be a tool binary.
+remain in place. Tool and binary names are plain non-hidden path components
+(ASCII letters, digits, `.`, `_`, `-` or `+`, with no leading dot), widening
+them to accept `+` as release segments do; the no-leading-dot rule ensures the
+reserved hidden names below cannot be a tool binary.
 
 After a staged probe succeeds, the pipeline copies an existing regular binary
 to `managed_root/bin/.<binary_name>.previous` through a same-volume temporary
 file. An existing previous file means `RecoveryRequired`; it is never deleted
-as presumed debris. The new executable is copied to a same-volume temporary
-file named with prefix `.<binary_name>.incoming-`, made executable and
-synced, then atomically persisted over the binary path. The previous copy
-stays until the new binary probes successfully at its final path and the
-receipt commits. Any post-swap probe, digest-read or receipt failure restores
-the previous binary atomically; a failed first install removes its new binary.
-Rollback restores previous receipt bytes too. On success the previous copy is
-removed. Temporary staging is explicitly closed before the swap.
+as presumed debris. The verified candidate is synced and then renamed over the
+binary path. It sits in the staging directory on the same volume, so no second
+copy is made. The previous copy stays until the new binary probes successfully
+at its final path and the receipt commits. Any post-swap probe, digest-read or
+receipt failure restores the previous binary by renaming the backup back; a
+failed first install removes its new binary. A restore that also fails is
+`Fault::Rollback`, which keeps the cause and the restore failure. Rollback
+restores previous receipt bytes too. On success the previous copy is removed,
+and the staging directory is dropped after the swap, best effort, because the
+swap has already happened. Downloads and digest files land in
+`staging/.download/`, never beside the executable, so an asset named like the
+binary cannot collide with it.
 The install target must be absent or a regular file. A symlink or other file
 type is refused before network access because this protocol does not preserve
 that target type during rollback; PATH lookup and health probing still follow
@@ -715,9 +744,10 @@ marker. The first `get` caches the result; `refresh` runs the shell again and
 replaces it. A start/exit, output or marker failure returns the process PATH
 (or `/usr/bin:/bin` if absent) and a detail; login-shell failure does not make
 PATH discovery fail. `find_executable_on_path` checks absolute entries in
-order. `is_executable` follows symlinks and on Unix requires at least one
-execute bit. Local-bin appending and home-directory resolution remain
-consumer-owned.
+order. Its names follow the managed-name rule: ASCII letters, digits, `.`,
+`_`, `-` and `+`, with no leading dot. `is_executable` follows symlinks and on
+Unix requires at least one execute bit. Local-bin appending and home-directory
+resolution remain consumer-owned.
 
 ### Compatibility for consumers
 
@@ -736,7 +766,7 @@ Against the donor at `93866f852`:
 - Stage/final version mismatches and floor failures are typed refusals. Release
   and artifact failures retain the 4b and 4a enums instead of strings.
 - The donor's `.incoming` copy and ignored rollback errors become a same-volume
-  atomic persist, a retained `.previous` copy and an explicit rollback fault.
+  atomic rename, a retained `.previous` copy and an explicit rollback fault.
   A receipt failure also rolls back the binary; receipt writes use a temporary
   file and atomic rename.
 - The donor's product-specific stored receipt becomes the generic JSON record
