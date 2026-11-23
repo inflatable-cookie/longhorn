@@ -1,7 +1,11 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 import type { ConnectionFailure, EventTransport, Unlisten } from "@inflatable-cookie/longhorn/core";
-import { connectBridgeStream } from "@inflatable-cookie/longhorn/bridge/stream";
+import {
+  connectBridgeStream,
+  DirectBridgeStreamSource,
+  parseBridgeSnapshotEnvelope,
+} from "@inflatable-cookie/longhorn/bridge/stream";
 import {
   BRIDGE_DOMAIN_EVENT,
   BRIDGE_PROGRESS_EVENT,
@@ -10,7 +14,10 @@ import {
   TauriBridgeStreamSource,
 } from "@inflatable-cookie/longhorn-tauri/bridge-events";
 
-import { fixture, jsonCodec } from "../../longhorn/tests/bridge/support.ts";
+import { fixture, jsonCodec, values } from "../../longhorn/tests/bridge/support.ts";
+
+const sessionId = "session:fixture";
+const domainId = "example.workspace";
 
 class RecordingEventTransport implements EventTransport {
   readonly order: Array<string> = [];
@@ -36,10 +43,10 @@ class RecordingEventTransport implements EventTransport {
 
 test("subscription composition listens before requesting resync", async () => {
   const transport = new RecordingEventTransport();
-  const source = new TauriBridgeStreamSource("session:fixture", "example.workspace", transport);
+  const source = new TauriBridgeStreamSource(sessionId, domainId, transport);
   const connection = connectBridgeStream({
-    sessionId: "session:fixture",
-    domainId: "example.workspace",
+    sessionId,
+    domainId,
     source,
     snapshot: jsonCodec,
     event: jsonCodec,
@@ -49,6 +56,119 @@ test("subscription composition listens before requesting resync", async () => {
   await connection.ready;
   expect(transport.order).toEqual([BRIDGE_DOMAIN_EVENT, "longhorn_bridge_resync"]);
   await connection.dispose();
+});
+
+const streamRoutes = [
+  {
+    name: "direct",
+    open() {
+      const source = new DirectBridgeStreamSource(() => fixture.snapshot);
+      return {
+        source,
+        emit: (payload: unknown) => source.emit(payload),
+        listenerCount: () => source.listenerCount(),
+      };
+    },
+  },
+  {
+    name: "Tauri-backed",
+    open() {
+      const transport = new RecordingEventTransport();
+      return {
+        source: new TauriBridgeStreamSource(sessionId, domainId, transport),
+        emit: (payload: unknown) => transport.emit(BRIDGE_DOMAIN_EVENT, payload),
+        listenerCount: () => transport.listeners.size,
+      };
+    },
+  },
+];
+
+describe.each(streamRoutes)("$name stream subscription conformance", ({ open }) => {
+  const initial = parseBridgeSnapshotEnvelope(fixture.snapshot, jsonCodec);
+  const update = parseBridgeSnapshotEnvelope(values(fixture.events)[0], jsonCodec);
+  type Snapshot = typeof initial;
+
+  function subscribe(onSnapshot: (snapshot: Snapshot) => void) {
+    const route = open();
+    const failures: Array<ConnectionFailure> = [];
+    const connection = connectBridgeStream({
+      sessionId,
+      domainId,
+      source: route.source,
+      snapshot: jsonCodec,
+      event: jsonCodec,
+      apply: (_current, payload) => payload,
+      onSnapshot,
+      onFailure: (failure) => failures.push(failure),
+    });
+    return { ...route, connection, failures };
+  }
+
+  test("delivers valid snapshots and releases the listener on disposal", async () => {
+    const observed: Array<Snapshot> = [];
+    const { connection, emit, listenerCount, failures } = subscribe((value) =>
+      observed.push(value),
+    );
+
+    expect(await connection.ready).toEqual(initial);
+    emit(update);
+    expect(connection.current()).toEqual(update);
+    expect(observed).toEqual([initial, update]);
+    expect(failures).toEqual([]);
+    await connection.dispose();
+    expect(listenerCount()).toBe(0);
+  });
+
+  test("reports malformed data and stops delivery", async () => {
+    const observed: Array<Snapshot> = [];
+    const { connection, emit, listenerCount, failures } = subscribe((value) =>
+      observed.push(value),
+    );
+
+    await connection.ready;
+    emit(null);
+    emit(update);
+    await tick();
+    expect(observed).toEqual([initial]);
+    expect(failures).toEqual([{ phase: "event", error: expect.any(Error) }]);
+    expect(listenerCount()).toBe(0);
+  });
+
+  test("a throwing initial callback leaves readiness and the listener intact", async () => {
+    const observed: Array<Snapshot> = [];
+    const { connection, emit, listenerCount, failures } = subscribe((value) => {
+      observed.push(value);
+      if (value.cursor.sequence === initial.cursor.sequence) {
+        throw new Error("initial callback failed");
+      }
+    });
+
+    expect(await connection.ready).toEqual(initial);
+    emit(update);
+    expect(observed).toEqual([initial, update]);
+    expect(failures).toEqual([]);
+    expect(listenerCount()).toBe(1);
+    await connection.dispose();
+  });
+
+  test("a throwing event callback leaves the accepted snapshot and listener intact", async () => {
+    const callbackError = new Error("event callback failed");
+    const { connection, emit, listenerCount, failures } = subscribe((value) => {
+      if (value.cursor.sequence === update.cursor.sequence) {
+        throw callbackError;
+      }
+    });
+
+    await connection.ready;
+    expect(() => emit(update)).toThrow(callbackError);
+    expect(connection.current()).toEqual(update);
+    const next = { ...update, cursor: { ...update.cursor, sequence: update.cursor.sequence + 1 } };
+    emit(next);
+    expect(connection.current()).toEqual(next);
+    expect(failures).toEqual([]);
+    expect(listenerCount()).toBe(1);
+    await connection.dispose();
+  });
 });
 
 test("job listeners admit only matching correlation and one terminal", async () => {
@@ -170,20 +290,47 @@ test("a malformed progress event reaches onFailure and ends the job", async () =
   expect(progress).toHaveLength(0);
 });
 
-test("dispose runs both unlistens when terminal disposal rejects", async () => {
-  const disposed: Array<string> = [];
-  const transport: EventTransport = {
-    invoke: () => Promise.resolve(undefined),
-    listen: (event) =>
-      Promise.resolve(() => {
-        disposed.push(event);
-        if (event === BRIDGE_TERMINAL_EVENT) {
-          return Promise.reject(new Error("terminal unlisten failed"));
-        }
-        return undefined;
-      }),
-  };
-  const dispose = await listenTauriBridgeJob(
+test.each(["throws", "rejects"])(
+  "dispose runs both unlistens when terminal disposal %s",
+  async (mode) => {
+    const disposed: Array<string> = [];
+    const terminalError = new Error("terminal unlisten failed");
+    const transport: EventTransport = {
+      invoke: () => Promise.resolve(undefined),
+      listen: (event) =>
+        Promise.resolve(() => {
+          disposed.push(event);
+          if (event === BRIDGE_TERMINAL_EVENT) {
+            if (mode === "throws") {
+              throw terminalError;
+            }
+            return Promise.reject(terminalError);
+          }
+          return undefined;
+        }),
+    };
+    const dispose = await listenTauriBridgeJob(
+      "request:scan",
+      "job:scan",
+      {
+        progressCodec: jsonCodec,
+        successCodec: jsonCodec,
+        detailCodec: jsonCodec,
+        terminal: () => {},
+      },
+      transport,
+    );
+
+    await expect(dispose()).rejects.toBe(terminalError);
+    expect(disposed).toEqual([BRIDGE_TERMINAL_EVENT, BRIDGE_PROGRESS_EVENT]);
+  },
+);
+
+test("a throwing failure reporter leaves both job listeners released", async () => {
+  const transport = new RecordingEventTransport();
+  const failures: Array<ConnectionFailure> = [];
+  const reportError = new Error("reporter failed");
+  await listenTauriBridgeJob(
     "request:scan",
     "job:scan",
     {
@@ -191,12 +338,53 @@ test("dispose runs both unlistens when terminal disposal rejects", async () => {
       successCodec: jsonCodec,
       detailCodec: jsonCodec,
       terminal: () => {},
+      onFailure(failure) {
+        failures.push(failure);
+        throw reportError;
+      },
     },
     transport,
   );
 
-  await expect(dispose()).rejects.toThrow("terminal unlisten failed");
-  expect(disposed).toEqual([BRIDGE_TERMINAL_EVENT, BRIDGE_PROGRESS_EVENT]);
+  expect(() => transport.emit(BRIDGE_TERMINAL_EVENT, null)).toThrow(reportError);
+  await tick();
+  expect(failures).toEqual([{ phase: "event", error: expect.any(Error) }]);
+  expect(transport.listeners.size).toBe(0);
+});
+
+test("registration keeps its original rejection when teardown also fails", async () => {
+  const registrationError = new Error("terminal registration failed");
+  const teardownError = new Error("progress unlisten failed");
+  const failures: Array<ConnectionFailure> = [];
+  const transport: EventTransport = {
+    invoke: () => Promise.resolve(undefined),
+    async listen(event) {
+      if (event === BRIDGE_TERMINAL_EVENT) {
+        throw registrationError;
+      }
+      return () => {
+        throw teardownError;
+      };
+    },
+  };
+  const registration = listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: jsonCodec,
+      successCodec: jsonCodec,
+      detailCodec: jsonCodec,
+      terminal: () => {},
+      onFailure(failure) {
+        failures.push(failure);
+        throw new Error("reporter failed");
+      },
+    },
+    transport,
+  );
+
+  await expect(registration).rejects.toBe(registrationError);
+  expect(failures).toEqual([{ phase: "unlisten", error: teardownError }]);
 });
 
 test("a malformed progress event during terminal registration releases the terminal listener", async () => {
@@ -248,7 +436,7 @@ test("a throwing consumer callback is not reported as a malformed event", async 
   const transport = new RecordingEventTransport();
   const failures: Array<ConnectionFailure> = [];
   const terminal: Array<unknown> = [];
-  await listenTauriBridgeJob(
+  const dispose = await listenTauriBridgeJob(
     "request:scan",
     "job:scan",
     {
@@ -281,4 +469,46 @@ test("a throwing consumer callback is not reported as a malformed event", async 
   expect(failures).toHaveLength(0);
   expect(transport.listeners.size).toBe(2);
   expect(terminal).toHaveLength(1);
+  await dispose();
+});
+
+test("a throwing progress callback during registration leaves the job listening", async () => {
+  class ReplayingTransport extends RecordingEventTransport {
+    override async listen(event: string, listener: (payload: unknown) => void): Promise<Unlisten> {
+      const unlisten = await super.listen(event, listener);
+      if (event === BRIDGE_PROGRESS_EVENT) {
+        listener({ requestId: "request:scan", jobId: "job:scan", progress: 20 });
+      }
+      return unlisten;
+    }
+  }
+
+  const transport = new ReplayingTransport();
+  const failures: Array<ConnectionFailure> = [];
+  const terminal: Array<unknown> = [];
+  const dispose = await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: jsonCodec,
+      successCodec: jsonCodec,
+      detailCodec: jsonCodec,
+      progress() {
+        throw new Error("consumer failed during registration");
+      },
+      terminal: (event) => terminal.push(event),
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    outcome: { succeeded: { value: 3 } },
+  });
+  expect(terminal).toHaveLength(1);
+  expect(failures).toEqual([]);
+  await dispose();
+  expect(transport.listeners.size).toBe(0);
 });

@@ -71,13 +71,18 @@ Clients:
 5. resync on a revision gap or epoch change
 
 Teardown is idempotent and safe when an asynchronous listener registration
-completes after disposal. Events are projections and invalidation hints, not
-durable delivery. Query-only domains do not require an event transport.
+completes after disposal. A failure reporter cannot prevent teardown.
+Teardown attempts every registered unlisten. Registration keeps its original
+rejection if cleanup also fails. Events are best-effort projections and
+invalidation hints. Query-only domains do not require an event transport.
 
 A malformed event ends its subscription and is reported as an event failure.
-An error thrown by a consumer callback is not a transport failure and does not
-end the subscription. A job's terminal event that arrives before its listener
-is registered is not replayed; see Q-007.
+A throwing consumer callback leaves the subscription active and any accepted
+snapshot current. After registration and outside a snapshot query, the
+exception propagates to the event emitter. During registration or a snapshot
+query, the subscription contains it so the operation can finish. A job's
+terminal event that arrives before its listener is registered is not replayed.
+See Q-007.
 
 ## Session Lifecycle
 
