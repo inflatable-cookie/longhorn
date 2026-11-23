@@ -5,6 +5,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  readdir,
   realpath,
   rm,
   stat,
@@ -817,6 +818,23 @@ describe("Task scratch", () => {
       );
     },
   );
+
+  test.skipIf(!temporaryIsExternal)("refuses a planted allocation-base symlink", async () => {
+    const fixture = await fixtureDirectory("longhorn-planted-base");
+    const pool = join(fixture, "pool");
+    const target = join(fixture, "target");
+    await mkdir(pool);
+    await mkdir(target);
+    await symlink(target, join(pool, "longhorn"));
+    const bin = await fakeOxide(poolReport({ available: true, suggested_scratch_root: pool }));
+    await withEnvironment(
+      { GITHUB_ACTIONS: "", OXIDE_TASK_SCRATCH_ROOT: undefined, PATH: `${bin}:${process.env.PATH}` },
+      async () => {
+        await expect(taskScratch("proof")).rejects.toThrow(/must be an owned real directory below/);
+      },
+    );
+    expect(await readdir(target)).toEqual([]);
+  });
 
   test("fails closed when Oxide reports no available removable pool, and names the variable", async () => {
     const bin = await fakeOxide(
