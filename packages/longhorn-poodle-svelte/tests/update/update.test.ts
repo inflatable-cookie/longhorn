@@ -10,6 +10,11 @@ import type {
 
 import ObserveOnlyHarness from "./ObserveOnlyHarness.svelte";
 import UpdateHarness from "./UpdateHarness.svelte";
+import {
+  actionableVersion,
+  deferUpdate,
+  installUpdate,
+} from "../../src/update/poodle/UpdateSurface.svelte.ts";
 
 function snapshot(overrides: Partial<UpdateSnapshot> = {}): UpdateSnapshot {
   return {
@@ -29,30 +34,41 @@ const OFFER = snapshot({
   availability: { state: "offer", version: "1.4.0", reason: "staged", notes: null },
 });
 
+/** The digest a retained artifact carries. 64 lowercase hex digits. */
+const DIGEST = "a".repeat(64);
+
 /** A port whose snapshot changes between reads, and that can notify. */
 class Port implements UpdatePort {
   state: UpdateSnapshot = snapshot();
+  /** Every command the controller sent, in order. */
+  readonly calls: Array<Record<string, unknown>> = [];
   #listeners: Array<(event: unknown) => void> = [];
   #progressListeners: Array<(event: unknown) => void> = [];
   async snapshot(): Promise<unknown> {
     return this.state;
   }
   async check(): Promise<unknown> {
+    this.calls.push({ name: "check" });
     return this.#committed();
   }
   async selectChannel(): Promise<unknown> {
+    this.calls.push({ name: "selectChannel" });
     return this.#committed();
   }
-  async defer(): Promise<unknown> {
+  async defer(command?: { version?: string; cause?: unknown }): Promise<unknown> {
+    this.calls.push({ name: "defer", version: command?.version, cause: command?.cause });
     return this.#committed();
   }
-  async prepare(): Promise<unknown> {
+  async prepare(command?: { version?: string }): Promise<unknown> {
+    this.calls.push({ name: "prepare", version: command?.version });
     return this.#committed();
   }
-  async apply(): Promise<unknown> {
+  async apply(command?: { version?: string; digest?: string }): Promise<unknown> {
+    this.calls.push({ name: "apply", version: command?.version, digest: command?.digest });
     return this.#committed();
   }
   async cancel(): Promise<unknown> {
+    this.calls.push({ name: "cancel" });
     return this.#committed();
   }
   listen(listener: (event: unknown) => void) {
@@ -193,5 +209,71 @@ describe("update surface bindings", () => {
       }),
     );
     mounted.unmount();
+  });
+
+  /**
+   * One stage-apply decision for every binding.
+   *
+   * The update centre's popover and the settings status panel act on one
+   * controller, so the command their install button sends is defined once,
+   * beside the sampled projection, rather than twice inside the two
+   * components. This asserts the shared decision: an offer is staged, a
+   * retained artifact is applied and never staged again, and "not now" is the
+   * operator's deferral rather than the gate's.
+   */
+  describe("shared commands", () => {
+    it("stages an offer and applies a retained artifact", async () => {
+      const port = new Port();
+      port.state = OFFER;
+      const controller = new UpdateController({ port });
+      await controller.start();
+
+      expect(actionableVersion(controller)).toBe("1.4.0");
+      installUpdate(controller);
+      await waitFor(() => expect(port.calls).toContainEqual({ name: "prepare", version: "1.4.0" }));
+      expect(port.calls).not.toContainEqual(expect.objectContaining({ name: "apply" }));
+
+      port.state = snapshot({
+        availability: { state: "offer", version: "1.4.0", reason: "staged", notes: null },
+        staged: { version: "1.4.0", channel: "production", digest: DIGEST },
+        progress: { state: "readyToInstall", version: "1.4.0" },
+      });
+      port.notify();
+      await controller.refresh();
+
+      expect(actionableVersion(controller)).toBe("1.4.0");
+      installUpdate(controller);
+      await waitFor(() =>
+        expect(port.calls).toContainEqual({ name: "apply", version: "1.4.0", digest: DIGEST }),
+      );
+      expect(port.calls.filter(({ name }) => name === "prepare")).toHaveLength(1);
+    });
+
+    it("defers the actionable version as the operator's own decision", async () => {
+      const port = new Port();
+      port.state = OFFER;
+      const controller = new UpdateController({ port });
+      await controller.start();
+
+      deferUpdate(controller);
+      await waitFor(() =>
+        expect(port.calls).toContainEqual({
+          name: "defer",
+          version: "1.4.0",
+          cause: { cause: "userPostponed" },
+        }),
+      );
+    });
+
+    it("does nothing when no version is actionable", async () => {
+      const port = new Port();
+      const controller = new UpdateController({ port });
+      await controller.start();
+
+      expect(actionableVersion(controller)).toBeUndefined();
+      installUpdate(controller);
+      deferUpdate(controller);
+      await waitFor(() => expect(port.calls).toEqual([]));
+    });
   });
 });

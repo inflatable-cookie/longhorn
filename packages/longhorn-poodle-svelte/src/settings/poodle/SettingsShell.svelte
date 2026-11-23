@@ -166,13 +166,18 @@
   // filter the moment it became useful.
   function navigate(value: string, _anchorId: string | null = null): void {
     const route = routes.get(value) ?? { pageId: value };
-    void session.navigate(route).then(async (navigated) => {
-      if (!navigated) {
-        return;
-      }
-      await tick();
-      focusTarget?.focus();
-    });
+    // A rail click is a shell action like any other: a rejected navigation --
+    // a scope that will not load, a deep link that no longer resolves -- is a
+    // failure the operator has to see, not a promise nobody observes. Focus
+    // moves only after the route it moves to has committed.
+    runAction(
+      () => session.navigate(route),
+      (navigated) => {
+        if (navigated) {
+          void tick().then(() => focusTarget?.focus());
+        }
+      },
+    );
   }
 
   // Poodle's shell holds itself open on `closeRefusedReason` and returns
@@ -185,14 +190,28 @@
     }
   }
 
-  // Shell actions (apply, guard resolution, reset) can fail after the session
-  // has already moved on, so the rejection is kept here and shown. The page
-  // callout is the record; the open dialogs cover the page, so they carry it too.
+  // Shell actions (apply, guard resolution, reset, rail navigation) can fail
+  // after the session has already moved on, so the rejection is kept here and
+  // shown. It sits above the page region rather than inside it: a failed
+  // navigation can leave the session in its failed state, and the page that
+  // would have carried the record is then not the one on screen. The open
+  // dialogs cover the page, so they carry it too. The success continuation runs
+  // only after the action resolved, never beside the failure that replaced it.
   let actionFailure = $state<{ readonly error: unknown } | undefined>();
 
-  function runAction<Result>(action: () => Promise<Result>): void {
+  function runAction<Result>(
+    action: () => Promise<Result>,
+    onSuccess?: (result: Result) => void,
+  ): void {
     actionFailure = undefined;
-    void action().catch((error: unknown) => {
+    let result: Promise<Result>;
+    try {
+      result = action();
+    } catch (error) {
+      actionFailure = { error };
+      return;
+    }
+    void result.then(onSuccess, (error: unknown) => {
       actionFailure = { error };
     });
   }
@@ -227,6 +246,14 @@
   onOpenChange={handleOpenChange}
 >
   {#snippet page()}
+    {#if actionFailure}
+      <Callout
+        tone="danger"
+        title="Settings action failed"
+        message={errorMessage(actionFailure.error)}
+        announceMode="assertive"
+      />
+    {/if}
     {#if session.status.kind === "loading"}
       <Callout tone="pending" title="Loading settings" announceMode="polite" />
     {:else if session.status.kind === "reconnecting"}
@@ -263,15 +290,6 @@
         data-page-id={currentPage.id}
         data-anchor-id={session.route?.anchorId}
       >
-        {#if actionFailure}
-          <Callout
-            tone="danger"
-            title="Settings action failed"
-            message={errorMessage(actionFailure.error)}
-            announceMode="assertive"
-          />
-        {/if}
-
         {#if session.recovery}
           <Callout
             tone="danger"

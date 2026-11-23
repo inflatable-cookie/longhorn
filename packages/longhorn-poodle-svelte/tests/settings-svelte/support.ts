@@ -33,6 +33,18 @@ export function deferred(): Deferred {
   return { promise, resolve };
 }
 
+/**
+ * A held-open scope disposal.
+ *
+ * `entered` resolves once a scope listener's unlisten has been called and is
+ * waiting, which is the state a replacement has to survive: clearing authority
+ * has emptied the scope map and is still awaiting the release.
+ */
+export interface ScopeUnlistenGate {
+  readonly entered: Promise<void>;
+  release(): void;
+}
+
 export function registry(timing: "immediate" | "staged" = "staged"): SettingsRegistrySnapshot {
   const value = structuredClone(fixture.registry) as SettingsRegistrySnapshot;
   requireValue(value.applyUnits[0], "value.applyUnits[0]").timing = timing;
@@ -75,6 +87,8 @@ export class FakeSettingsTransport implements EventTransport {
 
   readonly #listeners = new Map<string, Set<(payload: unknown) => void>>();
   #releaseRegistryListener: (() => void) | undefined;
+  #scopeUnlistenGate: Deferred | undefined;
+  #scopeUnlistenEntered: (() => void) | undefined;
 
   client(): SettingsClient {
     return new SettingsClient(this);
@@ -120,14 +134,43 @@ export class FakeSettingsTransport implements EventTransport {
       });
     }
     let active = true;
-    return () => {
+    return async () => {
       if (!active) {
         return;
       }
       active = false;
       listeners.delete(listener);
       this.unlistenCount += 1;
+      const gate = this.#scopeUnlistenGate;
+      if (event === SETTINGS_SCOPE_CHANGED_EVENT && gate !== undefined) {
+        this.#scopeUnlistenGate = undefined;
+        this.#scopeUnlistenEntered?.();
+        this.#scopeUnlistenEntered = undefined;
+        await gate.promise;
+      }
     };
+  }
+
+  /** Holds the next scope listener's unlisten open, pausing scope disposal. */
+  deferNextScopeUnlisten(): ScopeUnlistenGate {
+    const gate = deferred();
+    const entered = deferred();
+    this.#scopeUnlistenGate = gate;
+    this.#scopeUnlistenEntered = () => entered.resolve();
+    return { entered: entered.promise, release: () => gate.resolve() };
+  }
+
+  /**
+   * Publishes a registry generation: the registry the client reads, the scope
+   * snapshot scopes of that generation load, and the change event.
+   */
+  publishRegistry(generation: number): void {
+    this.registryValue.generation = generation;
+    this.scopeValue.authority.registryGeneration = generation;
+    this.#emit(SETTINGS_REGISTRY_CHANGED_EVENT, {
+      protocolVersion: 1,
+      registryGeneration: generation,
+    });
   }
 
   emitScope(snapshot_: SettingsScopeSnapshot): void {
@@ -156,6 +199,13 @@ export class FakeSettingsTransport implements EventTransport {
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
+  }
+
+  /** Drains microtasks until `done`, so a test need not count them. */
+  async settle(done: () => boolean): Promise<void> {
+    for (let attempt = 0; attempt < 200 && !done(); attempt += 1) {
+      await this.drain();
+    }
   }
 
   #emit(event: string, payload: unknown): void {

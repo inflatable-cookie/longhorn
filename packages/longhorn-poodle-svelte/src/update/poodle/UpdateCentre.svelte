@@ -31,27 +31,6 @@
   }: Props = $props();
 
   const update = sampleUpdateController(() => controller);
-
-  function install(): void {
-    const version = update.actionableVersion;
-    if (version === undefined) {
-      return;
-    }
-    // Two halves of one button. A retained artifact is applied; anything else
-    // is staged first, and the surface's progress then says when to restart.
-    if (update.progress?.state === "readyToInstall") {
-      void controller.apply(version);
-    } else {
-      void controller.prepare(version);
-    }
-  }
-
-  function defer(): void {
-    const version = update.actionableVersion;
-    if (version !== undefined) {
-      void controller.defer(version, { cause: "userPostponed" });
-    }
-  }
 </script>
 
 <PoodleUpdateCenter
@@ -69,7 +48,7 @@
   {ariaLabel}
   {confirmInstall}
   {onOpenChange}
-  onCheck={() => void controller.check()}
-  onInstall={update.actionableVersion === undefined ? null : install}
-  onDefer={update.actionableVersion === undefined ? null : defer}
+  onCheck={update.check}
+  onInstall={update.actionableVersion === undefined ? null : update.install}
+  onDefer={update.actionableVersion === undefined ? null : update.defer}
 />

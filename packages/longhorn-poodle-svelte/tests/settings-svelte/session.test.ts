@@ -269,6 +269,39 @@ describe("SettingsSession", () => {
     await session.stop();
   });
 
+  /**
+   * Clearing authority empties the scope map before it waits for the scope
+   * subscriptions to release. Two registry changes can therefore arrive with
+   * the second clear finding nothing to dispose: it installed its registry
+   * first and was then overwritten when the older clear finished, leaving the
+   * document a generation behind. The older replacement now waits its turn.
+   */
+  it("keeps the newest registry when two changes overlap a paused disposal", async () => {
+    const newer = fixture.registry.generation + 1;
+    const newest = fixture.registry.generation + 2;
+    const transport = new FakeSettingsTransport();
+    const session = new SettingsSession({
+      client: transport.client(),
+      nextRequestId: requestIds("replace"),
+    });
+    await session.start(() => renderer());
+    expect(session.registry?.generation).toBe(fixture.registry.generation);
+
+    const disposal = transport.deferNextScopeUnlisten();
+    transport.publishRegistry(newer);
+    // The first replacement is now disposing the outgoing scopes and cannot
+    // finish until the gate below releases.
+    await disposal.entered;
+    transport.publishRegistry(newest);
+    await transport.drain();
+    disposal.release();
+
+    await transport.settle(() => session.status.kind === "ready");
+    expect(session.registry?.generation).toBe(newest);
+    expect(session.status.kind).toBe("ready");
+    await session.stop();
+  });
+
   it("ignores a mutation result that arrives after teardown", async () => {
     const transport = new FakeSettingsTransport();
     const session = new SettingsSession({
