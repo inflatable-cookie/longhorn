@@ -158,52 +158,54 @@ impl WindowLifecycleScheduler for TauriAsyncWindowLifecycleScheduler {
     }
 
     fn schedule(&self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
-        // A wake queued behind a dead handler is a wake that vanishes: the
-        // worker pops it, fails to upgrade, and exits without a word. Refuse
-        // instead, so the caller hears about the dead handler at the one
-        // moment it can still act.
+        self.schedule_with_spawn(wake, |inner| {
+            std::thread::Builder::new()
+                .name("longhorn-window-lifecycle-timer".to_string())
+                .spawn(move || Self::run_worker(&inner))
+                .map(|_| ())
+        })
+    }
+}
+
+impl TauriAsyncWindowLifecycleScheduler {
+    pub(crate) fn schedule_with_spawn(
+        &self,
+        wake: ScheduledWindowLifecycleWake,
+        spawn: impl FnOnce(Arc<SchedulerInner>) -> std::io::Result<()>,
+    ) -> Result<(), String> {
         match self.inner.handler.get() {
             None => return Err("Tauri lifecycle scheduler is not bound".to_string()),
             Some(handler) if handler.upgrade().is_none() => {
                 return Err(
-                    "Tauri lifecycle wake handler is gone; refusing to queue an \
-                     undeliverable wake"
+                    "Tauri lifecycle wake handler is gone; refusing to queue an undeliverable wake"
                         .to_string(),
                 );
             }
             _ => {}
         }
-        let spawn_worker = {
-            let mut state = self
-                .inner
-                .state
-                .lock()
-                .map_err(|_| "lifecycle scheduler state is poisoned".to_string())?;
-            let sequence = state.next_sequence;
-            state.next_sequence += 1;
-            let key = (wake.event().window_id().clone(), wake.event().kind());
-            state.latest.insert(key, sequence);
-            state
-                .queue
-                .push(std::cmp::Reverse((wake.due_at().get(), sequence)));
-            state.wakes.insert(sequence, QueuedWake { sequence, wake });
-            let spawn_worker = !state.worker_running;
+        let mut state = self
+            .inner
+            .state
+            .lock()
+            .map_err(|_| "lifecycle scheduler state is poisoned".to_string())?;
+        if !state.worker_running {
+            spawn(Arc::clone(&self.inner))
+                .map_err(|error| format!("lifecycle timer thread failed to start: {error}"))?;
             state.worker_running = true;
-            spawn_worker
-        };
-        self.inner.wakeup.notify_one();
-        if spawn_worker {
-            let inner = Arc::clone(&self.inner);
-            if let Err(error) = std::thread::Builder::new()
-                .name("longhorn-window-lifecycle-timer".to_string())
-                .spawn(move || Self::run_worker(&inner))
-            {
-                if let Ok(mut state) = self.inner.state.lock() {
-                    state.worker_running = false;
-                }
-                return Err(format!("lifecycle timer thread failed to start: {error}"));
-            }
         }
+        let sequence = state.next_sequence;
+        state.next_sequence += 1;
+        let key = (wake.event().window_id().clone(), wake.event().kind());
+        if let Some(previous) = state.latest.insert(key, sequence) {
+            state.wakes.remove(&previous);
+            state.queue.retain(|entry| entry.0.1 != previous);
+        }
+        state
+            .queue
+            .push(std::cmp::Reverse((wake.due_at().get(), sequence)));
+        state.wakes.insert(sequence, QueuedWake { sequence, wake });
+        drop(state);
+        self.inner.wakeup.notify_one();
         Ok(())
     }
 }

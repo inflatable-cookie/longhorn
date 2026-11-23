@@ -131,3 +131,73 @@ fn newer_wake_for_the_same_window_and_kind_supersedes_the_older_one() {
         "superseded wake was still delivered"
     );
 }
+
+#[test]
+fn scheduler_retains_only_live_wakes_under_churn() {
+    let scheduler = TauriAsyncWindowLifecycleScheduler::new(Arc::new(FixedClock));
+    let (sender, _receiver) = channel();
+    let handler: Arc<dyn WindowLifecycleWakeHandler> = Arc::new(RecordingHandler(sender));
+    scheduler.bind(Arc::downgrade(&handler)).unwrap();
+    for due in 1000..2000 {
+        let wake = ScheduledWindowLifecycleWake::new(
+            MonotonicMillis::new(due),
+            WindowLifecycleEvent::Blurred {
+                window_id: WindowId::new("window:churn").unwrap(),
+            },
+        );
+        scheduler.schedule(wake).unwrap();
+    }
+    let state = scheduler.inner.state.lock().unwrap();
+    assert_eq!(
+        (state.queue.len(), state.wakes.len(), state.latest.len()),
+        (1, 1, 1)
+    );
+}
+
+#[test]
+fn spawn_failure_preserves_accepted_wake_and_refuses_new_one() {
+    let scheduler = TauriAsyncWindowLifecycleScheduler::new(Arc::new(FixedClock));
+    let (sender, receiver) = channel();
+    let handler: Arc<dyn WindowLifecycleWakeHandler> = Arc::new(RecordingHandler(sender));
+    scheduler.bind(Arc::downgrade(&handler)).unwrap();
+    let wake = |due| {
+        ScheduledWindowLifecycleWake::new(
+            MonotonicMillis::new(due),
+            WindowLifecycleEvent::Blurred {
+                window_id: WindowId::new("window:rollback").unwrap(),
+            },
+        )
+    };
+    scheduler.schedule_with_spawn(wake(10), |_| Ok(())).unwrap();
+    scheduler.inner.state.lock().unwrap().worker_running = false;
+    let error = scheduler
+        .schedule_with_spawn(wake(11), |_| Err(std::io::Error::other("injected")))
+        .unwrap_err();
+    assert!(error.contains("injected"));
+    {
+        let state = scheduler.inner.state.lock().unwrap();
+        assert_eq!(state.wakes.len(), 1);
+        assert_eq!(
+            state.wakes.values().next().unwrap().wake.due_at(),
+            MonotonicMillis::new(10)
+        );
+    }
+    let other = ScheduledWindowLifecycleWake::new(
+        MonotonicMillis::new(10),
+        WindowLifecycleEvent::Blurred {
+            window_id: WindowId::new("window:other").unwrap(),
+        },
+    );
+    scheduler.schedule(other).unwrap();
+    let delivered = receiver.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert_eq!(
+        delivered.event().window_id(),
+        &WindowId::new("window:rollback").unwrap()
+    );
+    let delivered = receiver.recv_timeout(Duration::from_secs(2)).unwrap();
+    assert_eq!(
+        delivered.event().window_id(),
+        &WindowId::new("window:other").unwrap()
+    );
+    assert!(receiver.recv_timeout(Duration::from_millis(100)).is_err());
+}
