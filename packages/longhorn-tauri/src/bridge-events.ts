@@ -90,15 +90,37 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   // Set once the job has failed or been closed. Nothing reaches the consumer
   // after that, and a registration that completes later is released at once.
   let stopped = false;
+  let registered = false;
   const unlistens: Array<Unlisten> = [];
 
   // Last registered, first released.
   const teardown = async (): Promise<void> => {
     const pending = unlistens.splice(0).reverse();
-    const results = await Promise.allSettled(pending.map((unlisten) => unlisten()));
+    const results = await Promise.allSettled(
+      pending.map((unlisten) => Promise.resolve().then(() => unlisten())),
+    );
     for (const result of results) {
       if (result.status === "rejected") {
         throw result.reason;
+      }
+    }
+  };
+
+  const reportUnlistenFailure = (error: unknown): void => {
+    try {
+      listeners.onFailure?.({ phase: "unlisten", error });
+    } catch {
+      // A secondary reporter failure cannot replace the original error.
+    }
+  };
+
+  const notify = (callback: () => void): void => {
+    try {
+      callback();
+    } catch (error) {
+      // A transport may deliver inline before returning its unlisten.
+      if (registered) {
+        throw error;
       }
     }
   };
@@ -108,10 +130,8 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
       return;
     }
     stopped = true;
-    listeners.onFailure?.({ phase: "event", error });
-    void teardown().catch((teardownError: unknown) => {
-      listeners.onFailure?.({ phase: "unlisten", error: teardownError });
-    });
+    void teardown().catch(reportUnlistenFailure);
+    notify(() => listeners.onFailure?.({ phase: "event", error }));
   };
 
   const adopt = async (unlisten: Unlisten): Promise<void> => {
@@ -122,7 +142,7 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
     try {
       await unlisten();
     } catch (error) {
-      listeners.onFailure?.({ phase: "unlisten", error });
+      reportUnlistenFailure(error);
     }
   };
 
@@ -137,10 +157,8 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
       fail(error);
       return;
     }
-    // Consumer callbacks are not transport failures: a throw here propagates
-    // to the emitter and leaves the job's listeners in place.
     if (tracker.classifyProgress(event) === "accept") {
-      listeners.progress?.(event);
+      notify(() => listeners.progress?.(event));
     }
   };
 
@@ -156,7 +174,7 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
       return;
     }
     if (tracker.classifyTerminal(event) === "accept") {
-      listeners.terminal(event);
+      notify(() => listeners.terminal(event));
     }
   };
 
@@ -168,9 +186,10 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   try {
     await adopt(await transport.listen(BRIDGE_PROGRESS_EVENT, onProgress));
     await adopt(await transport.listen(BRIDGE_TERMINAL_EVENT, onTerminal));
+    registered = true;
   } catch (error) {
     stopped = true;
-    await teardown();
+    await teardown().catch(reportUnlistenFailure);
     throw error;
   }
   return close;

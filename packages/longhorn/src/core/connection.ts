@@ -57,48 +57,41 @@ export class CheckedSnapshotConnection<Snapshot> {
    * It is a no-op after dispose.
    */
   offer(candidate: Snapshot): void {
-    if (this.#disposed) {
-      return;
+    if (!this.#disposed && this.#accept(candidate)) {
+      this.#options.onSnapshot?.(candidate);
     }
-    this.#accept(candidate);
   }
 
   async dispose(): Promise<void> {
     this.#disposed = true;
 
-    let cleanupError: unknown;
+    let cleanupFailure: { error: unknown } | undefined;
     try {
       await this.#closeListener();
     } catch (error) {
-      cleanupError = error;
+      cleanupFailure = { error };
       this.#recordFailure("unlisten", error);
     }
 
-    let readyError: unknown;
+    let readyFailure: ConnectionFailure | undefined;
     try {
       await this.ready;
     } catch (error) {
-      if (this.#failures.some((failure) => failure.error === error)) {
-        readyError = error;
-      }
+      readyFailure = this.#failures.find((failure) => Object.is(failure.error, error));
     }
 
-    if (cleanupError === undefined) {
+    if (cleanupFailure === undefined) {
       try {
         await this.#closeListener();
       } catch (error) {
-        cleanupError = error;
+        cleanupFailure = { error };
         this.#recordFailure("unlisten", error);
       }
     }
 
-    if (cleanupError !== undefined) {
-      // oxlint-disable-next-line typescript/only-throw-error -- Preserve the original rejection value from the injected port.
-      throw cleanupError;
-    }
-    if (readyError !== undefined) {
-      // oxlint-disable-next-line typescript/only-throw-error -- Preserve the original rejection value from the injected port.
-      throw readyError;
+    const failure = cleanupFailure ?? readyFailure;
+    if (failure !== undefined) {
+      throw failure.error;
     }
   }
 
@@ -123,6 +116,11 @@ export class CheckedSnapshotConnection<Snapshot> {
         throw disposedError;
       }
       return undefined;
+    }
+
+    if (this.#failures.length > 0) {
+      await this.#closeAfterFailure();
+      return this.#current;
     }
 
     this.#refreshPending = true;
@@ -150,6 +148,7 @@ export class CheckedSnapshotConnection<Snapshot> {
       return;
     }
 
+    let candidate: Snapshot;
     try {
       const action = this.#options.handleEvent(payload, this.#current);
       switch (action.kind) {
@@ -165,13 +164,18 @@ export class CheckedSnapshotConnection<Snapshot> {
           }
           return;
         case "snapshot":
-          this.#accept(this.#options.validateSnapshot(action.value));
-          return;
+          candidate = this.#options.validateSnapshot(action.value);
+          if (!this.#accept(candidate)) {
+            return;
+          }
+          break;
       }
     } catch (error) {
       this.#recordFailure("event", error);
       void this.#closeAfterFailure();
+      return;
     }
+    this.#notifySnapshot(candidate, this.#registered && this.#pump === undefined);
   }
 
   #synchronize(): Promise<void> {
@@ -190,28 +194,48 @@ export class CheckedSnapshotConnection<Snapshot> {
         if (this.#disposed || this.#failures.length > 0) {
           return;
         }
-        this.#accept(this.#options.validateSnapshot(value));
+        const candidate = this.#options.validateSnapshot(value);
+        if (this.#accept(candidate)) {
+          this.#notifySnapshot(candidate, false);
+        }
       }
     } finally {
       this.#pump = undefined;
     }
   }
 
-  #accept(candidate: Snapshot): void {
+  #accept(candidate: Snapshot): boolean {
     if (!this.#options.isNewer(candidate, this.#current)) {
-      return;
+      return false;
     }
     this.#current = candidate;
-    this.#options.onSnapshot?.(candidate);
+    return true;
+  }
+
+  #notifySnapshot(candidate: Snapshot, propagate: boolean): void {
+    try {
+      this.#options.onSnapshot?.(candidate);
+    } catch (error) {
+      // A callback during registration or a query can otherwise reject that operation.
+      if (propagate) {
+        throw error;
+      }
+    }
   }
 
   #recordFailure(phase: ConnectionFailurePhase, error: unknown): void {
-    if (this.#failures.some((failure) => failure.phase === phase && failure.error === error)) {
+    if (
+      this.#failures.some((failure) => failure.phase === phase && Object.is(failure.error, error))
+    ) {
       return;
     }
     const failure = { phase, error };
     this.#failures.push(failure);
-    this.#options.onFailure?.(failure);
+    try {
+      this.#options.onFailure?.(failure);
+    } catch {
+      // A failure reporter cannot interrupt teardown or replace the recorded error.
+    }
   }
 
   async #closeAfterFailure(): Promise<void> {
