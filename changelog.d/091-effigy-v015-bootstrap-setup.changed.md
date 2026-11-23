@@ -1,1 +1,0 @@
-Migrate `effigy.toml` `[bootstrap].setup` from the object entry `{ task = "bootstrap:deps" }` to the plain selector string `"bootstrap:deps"` for Effigy v0.15 strict manifest syntax. Held for the v0.15 upgrade day.
