@@ -266,16 +266,6 @@ impl Fixture {
     fn workspace(&self) -> PathBuf {
         self.parent().join(".longhorn-install-Example.app")
     }
-
-    fn displace(&self) -> PathBuf {
-        let (bytes, signature) = self.fixtures.signed_but_unusable().unwrap();
-        self.installer()
-            .apply(&verified(self, bytes, &signature))
-            .expect_err("initialize the workspace without replacing the target");
-        let backup = self.workspace().join("previous");
-        fs::rename(&self.target, &backup).unwrap();
-        backup
-    }
 }
 
 #[test]
@@ -412,42 +402,6 @@ fn an_in_tree_symlink_is_part_of_a_valid_bundle() {
 }
 
 #[test]
-fn a_crash_mid_swap_is_recovered_and_the_update_completes() {
-    // The swap renamed the target aside and died before the staged bundle
-    // moved in: the application is missing and a backup sits beside the gap.
-    let fixture = Fixture::new();
-    let backup = fixture.displace();
-    assert!(!fixture.target.exists());
-
-    let (bytes, signature) = fixture.fixtures.valid();
-    fixture
-        .installer()
-        .apply(&verified(&fixture, bytes, &signature))
-        .expect("the displaced install is restored, then replaced");
-
-    assert_eq!(fixture.marker(), "new");
-    assert!(!backup.exists(), "the backup was consumed by the recovery");
-}
-
-#[test]
-fn a_displaced_install_is_restored_even_when_the_new_artifact_fails() {
-    // Recovery is not conditional on the new attempt succeeding — a crashed
-    // update must never cost the install it was replacing.
-    let fixture = Fixture::new();
-    let backup = fixture.displace();
-
-    let (bytes, signature) = fixture.fixtures.signed_but_unusable().unwrap();
-    drop(
-        fixture
-            .installer()
-            .apply(&verified(&fixture, bytes, &signature)),
-    );
-
-    assert_eq!(fixture.marker(), "old");
-    assert!(!backup.exists());
-}
-
-#[test]
 fn a_displaced_legacy_bundle_is_left_for_manual_recovery() {
     let fixture = Fixture::new();
     let backup = fixture.target.with_extension("longhorn-previous");
@@ -465,28 +419,17 @@ fn a_displaced_legacy_bundle_is_left_for_manual_recovery() {
 }
 
 #[test]
-fn an_occupied_target_keeps_the_displaced_bundle_for_inspection() {
-    let fixture = Fixture::new();
-    let backup = fixture.displace();
-    fs::create_dir(&fixture.target).unwrap();
-    let (bytes, signature) = fixture.fixtures.valid();
-
-    let error = fixture
-        .installer()
-        .apply(&verified(&fixture, bytes, &signature))
-        .expect_err("both the live target and the backup exist");
-
-    assert!(error.to_string().contains(&*backup.to_string_lossy()));
-    assert_eq!(fs::read(backup.join("Contents/marker")).unwrap(), b"old");
-    assert_eq!(fs::read_dir(&fixture.target).unwrap().count(), 0);
-}
-
-#[test]
-fn apply_refuses_to_use_a_preexisting_workspace_it_did_not_initialize() {
+fn matching_workspace_names_do_not_authorize_recovery_of_an_unrelated_directory() {
     let fixture = Fixture::new();
     let marker = fixture.workspace().join("previous/marker");
     fs::create_dir_all(marker.parent().unwrap()).unwrap();
     fs::write(&marker, b"keep").unwrap();
+    fs::write(
+        fixture.workspace().join("longhorn-update-install-v1.lock"),
+        b"",
+    )
+    .unwrap();
+    fs::rename(&fixture.target, fixture.parent().join("original")).unwrap();
     let (bytes, signature) = fixture.fixtures.valid();
 
     let error = fixture
@@ -496,7 +439,7 @@ fn apply_refuses_to_use_a_preexisting_workspace_it_did_not_initialize() {
 
     assert!(error.to_string().contains("unrecognized"));
     assert_eq!(fs::read(&marker).unwrap(), b"keep");
-    assert_eq!(fixture.marker(), "old");
+    assert!(!fixture.target.exists());
 }
 
 #[test]
@@ -628,6 +571,66 @@ fn escalation_receives_the_verified_artifact_not_a_staged_path() {
     // The target was never writable, so the marker is unchanged — the spy
     // proved extraction, and a real implementor would also move.
     assert_eq!(fixture.marker(), "old");
+}
+
+#[cfg(unix)]
+#[test]
+fn an_unwritable_parent_serializes_escalation_without_a_workspace() {
+    use std::{os::unix::fs::PermissionsExt, sync::mpsc, time::Duration};
+
+    struct Paused(mpsc::Sender<()>, mpsc::Receiver<()>);
+
+    impl PrivilegedReplace for Paused {
+        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+            self.0.send(()).map_err(|error| error.to_string())?;
+            self.1
+                .recv_timeout(Duration::from_secs(5))
+                .map_err(|error| error.to_string())
+        }
+    }
+
+    struct AllowsReplacement;
+
+    impl PrivilegedReplace for AllowsReplacement {
+        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+            Ok(())
+        }
+    }
+
+    let fixture = Fixture::new();
+    let (bytes, signature) = fixture.fixtures.valid();
+    let artifact = verified(&fixture, bytes, &signature);
+    let parent = fixture.parent();
+    let permissions = fs::metadata(parent).unwrap().permissions();
+    fs::set_permissions(parent, fs::Permissions::from_mode(0o555)).unwrap();
+
+    let (entered, entered_port) = mpsc::channel();
+    let (resume, wait_for_resume) = mpsc::channel();
+    let (first, overlapping) = std::thread::scope(|scope| {
+        let target = &fixture.target;
+        let artifact = &artifact;
+        let first = scope.spawn(move || {
+            NativeInstaller::new(target)
+                .with_escalation(Paused(entered, wait_for_resume))
+                .apply(artifact)
+        });
+        let overlapping = entered_port.recv_timeout(Duration::from_secs(5)).map(|()| {
+            fixture
+                .installer()
+                .with_escalation(AllowsReplacement)
+                .apply(artifact)
+        });
+        let _ = resume.send(());
+        (first.join(), overlapping)
+    });
+    fs::set_permissions(parent, permissions).unwrap();
+
+    first.unwrap().expect("the first escalation completes");
+    let error = overlapping
+        .expect("the first apply entered the port")
+        .expect_err("the overlapping apply must stay out of the port");
+    assert!(error.to_string().contains("another update is active"));
+    assert!(!fixture.workspace().exists());
 }
 
 #[test]

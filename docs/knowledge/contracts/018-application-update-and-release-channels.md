@@ -211,17 +211,22 @@ earlier single-call stance.
   full bundle name. An OS file lock covers recovery, staging, and replacement
   for that target, including calls made directly to `NativeInstaller`. An
   overlapping apply to the same target returns `InstallFailure::Failed` and
-  can retry. An existing directory without the installer's lock marker is
-  refused.
+  can retry. An existing workspace needs a recognized lock marker. On Unix,
+  ordinary applies share a lock on the parent directory. Escalation without
+  a workspace takes that parent lock exclusively and rechecks for a workspace
+  before invoking the host port. If the lock is unavailable, apply fails
+  without invoking the port.
 - Each attempt cleans up only its own staging allocation. A process crash
   can leave its staging directory behind for manual cleanup. Later applies
   leave it and any legacy prefix-matching siblings untouched.
-- Replacement moves the current bundle to `previous` inside the private
-  directory. If publishing fails, the installer tries to restore that bundle.
-  If restoration also fails, `InstallFailure::Failed` names both faults and
-  the preserved bundle's path. When the destination is absent, the next apply
-  restores `previous` before extracting the next artifact. When both paths
-  exist, the installer reports the backup path for inspection and preserves it.
+- Before moving the current bundle to `previous`, the installer records the
+  target workspace's location and the filesystem identities of the bundle and
+  workspace when available. If publishing fails, the installer tries to
+  restore that bundle. If restoration also fails, `InstallFailure::Failed`
+  names both faults and the preserved bundle's path. A later apply restores
+  `previous` before extraction only when the destination is absent and the
+  record matches. Otherwise it reports the backup path for inspection and
+  preserves it.
 - A legacy sibling named `*.longhorn-previous` can match several targets.
   If the destination is absent and only that legacy backup exists, the error
   names it so the caller can confirm its identity and restore it manually.

@@ -60,7 +60,7 @@ use std::{
 use flate2::read::GzDecoder;
 use longhorn_update::{Applied, InstallFailure, UpdateInstaller, VerifiedArtifact};
 
-use workspace::{InstallWorkspace, entry_exists};
+use workspace::{Backup, InstallWorkspace, ParentLock, entry_exists};
 
 /// The most one artifact may unpack to.
 ///
@@ -197,7 +197,15 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         artifact: &VerifiedArtifact,
         rename: impl Fn(&Path, &Path) -> io::Result<()>,
     ) -> Result<Applied, InstallFailure> {
-        match InstallWorkspace::acquire(&self.target)? {
+        let parent_lock = ParentLock::shared(&self.target)?;
+        let workspace = InstallWorkspace::acquire(&self.target)?;
+        let (_parent_lock, workspace) = if workspace.is_some() {
+            (parent_lock, workspace)
+        } else {
+            let lock = parent_lock.into_exclusive(&self.target)?;
+            (lock, InstallWorkspace::acquire(&self.target)?)
+        };
+        match workspace {
             Some(workspace) => self.apply_in_workspace(&workspace, artifact, rename)?,
             None => {
                 self.check_legacy_backup()?;
@@ -220,8 +228,8 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         artifact: &VerifiedArtifact,
         rename: impl Fn(&Path, &Path) -> io::Result<()>,
     ) -> Result<(), InstallFailure> {
-        let backup = workspace.root.join("previous");
-        self.restore_if_displaced(&backup)?;
+        let backup = workspace.backup();
+        backup.restore(&self.target)?;
         self.check_legacy_backup()?;
 
         // Only this attempt's TempDir is eligible for staging cleanup.
@@ -242,38 +250,45 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
     fn swap(
         &self,
         staged: &Path,
-        backup: &Path,
+        backup: &Backup<'_>,
         artifact: &VerifiedArtifact,
         rename: impl Fn(&Path, &Path) -> io::Result<()>,
     ) -> Result<(), InstallFailure> {
         // Move the current install aside rather than deleting it, so a
         // failed swap leaves something to put back.
-        let displaced = match rename(&self.target, backup) {
+        backup.record(&self.target)?;
+        let displaced = match rename(&self.target, &backup.bundle) {
             Ok(()) => true,
-            Err(error) if error.kind() == io::ErrorKind::NotFound => false,
-            Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
-                return self.escalated_swap(artifact);
+            Err(error) => {
+                backup.clear_receipt();
+                match error.kind() {
+                    io::ErrorKind::NotFound => false,
+                    io::ErrorKind::PermissionDenied => return self.escalated_swap(artifact),
+                    _ => return Err(classify(&error, &self.target)),
+                }
             }
-            Err(error) => return Err(classify(&error, &self.target)),
         };
 
         match rename(staged, &self.target) {
             Ok(()) => {
-                if displaced {
-                    drop(fs::remove_dir_all(backup));
+                if displaced && backup.clear_receipt() {
+                    drop(fs::remove_dir_all(&backup.bundle));
                 }
                 Ok(())
             }
             Err(error) => {
-                if displaced && let Err(rollback) = rename(backup, &self.target) {
-                    return Err(InstallFailure::Failed {
-                        detail: format!(
-                            "replacing {} failed: {error}; rollback failed: {rollback}; \
-                             previous bundle preserved at {}",
-                            self.target.display(),
-                            backup.display(),
-                        ),
-                    });
+                if displaced {
+                    if let Err(rollback) = rename(&backup.bundle, &self.target) {
+                        return Err(InstallFailure::Failed {
+                            detail: format!(
+                                "could not replace {} ({error}). Rollback failed ({rollback}). \
+                                 Previous bundle preserved at {}",
+                                self.target.display(),
+                                backup.bundle.display(),
+                            ),
+                        });
+                    }
+                    backup.clear_receipt();
                 }
                 Err(classify(&error, &self.target))
             }
@@ -286,29 +301,6 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         self.escalate
             .replace(artifact, &self.target)
             .map_err(|detail| InstallFailure::NotWritable { detail })
-    }
-
-    /// Restores a displaced bundle before extracting the next artifact.
-    fn restore_if_displaced(&self, backup: &Path) -> Result<(), InstallFailure> {
-        if !entry_exists(backup)? {
-            return Ok(());
-        }
-        if entry_exists(&self.target)? {
-            return Err(InstallFailure::Failed {
-                detail: format!(
-                    "{} already exists; inspect and move the previous bundle at {} before retrying",
-                    self.target.display(),
-                    backup.display(),
-                ),
-            });
-        }
-        fs::rename(backup, &self.target).map_err(|error| InstallFailure::Failed {
-            detail: format!(
-                "could not restore {} from {}: {error}",
-                self.target.display(),
-                backup.display(),
-            ),
-        })
     }
 
     fn check_legacy_backup(&self) -> Result<(), InstallFailure> {
@@ -568,9 +560,12 @@ mod tests {
     }
 
     fn signed_archive() -> VerifiedArtifact {
+        sign_archive(archive_of(1))
+    }
+
+    fn sign_archive(bytes: Vec<u8>) -> VerifiedArtifact {
         let key = KeyPair::generate_unencrypted_keypair().unwrap();
         let public_key = ArtifactKey::from_key_file(&key.pk.to_box().unwrap().to_string()).unwrap();
-        let bytes = archive_of(1);
         let signature = minisign::sign(None, &key.sk, io::Cursor::new(&bytes), None, None)
             .unwrap()
             .to_string();
@@ -581,6 +576,33 @@ mod tests {
             &signature,
         )
         .unwrap()
+    }
+
+    fn existing_install(root: &Path) -> NativeInstaller<NoPrivilegedReplace> {
+        let installer = NativeInstaller::new(root.join("Example.app"));
+        fs::create_dir(installer.target()).unwrap();
+        fs::write(installer.target().join("original"), b"old").unwrap();
+        installer
+    }
+
+    fn fail_swap_and_rollback(
+        installer: &NativeInstaller<NoPrivilegedReplace>,
+        artifact: &VerifiedArtifact,
+    ) -> InstallFailure {
+        installer
+            .apply_with_rename(artifact, |from, to| {
+                if from == installer.target() {
+                    return fs::rename(from, to);
+                }
+                if from.file_name().is_some_and(|name| name == "previous") {
+                    return Err(io::Error::new(
+                        io::ErrorKind::PermissionDenied,
+                        "injected rollback failure",
+                    ));
+                }
+                Err(io::Error::other("injected swap failure"))
+            })
+            .expect_err("both renames into the target failed")
     }
 
     #[test]
@@ -614,24 +636,8 @@ mod tests {
     fn failed_rollback_reports_both_faults_and_leaves_the_bundle_for_recovery() {
         let directory = tempfile::tempdir().unwrap();
         let artifact = signed_archive();
-        let installer = NativeInstaller::new(directory.path().join("Example.app"));
-        fs::create_dir(installer.target()).unwrap();
-        fs::write(installer.target().join("original"), b"old").unwrap();
-
-        let error = installer
-            .apply_with_rename(&artifact, |from, to| {
-                if from == installer.target() {
-                    return fs::rename(from, to);
-                }
-                if from.file_name().is_some_and(|name| name == "previous") {
-                    return Err(io::Error::new(
-                        io::ErrorKind::PermissionDenied,
-                        "injected rollback failure",
-                    ));
-                }
-                Err(io::Error::other("injected swap failure"))
-            })
-            .expect_err("both renames into the target failed");
+        let installer = existing_install(directory.path());
+        let error = fail_swap_and_rollback(&installer, &artifact);
         let backup = directory
             .path()
             .join(".longhorn-install-Example.app/previous");
@@ -639,16 +645,117 @@ mod tests {
         assert!(matches!(error, InstallFailure::Failed { .. }));
         let detail = error.to_string();
         assert!(detail.contains("injected swap failure"));
-        assert!(detail.contains("rollback failed: injected rollback failure"));
+        assert!(detail.contains("Rollback failed (injected rollback failure)"));
         assert!(detail.contains(&*backup.to_string_lossy()));
         assert_eq!(fs::read(backup.join("original")).unwrap(), b"old");
         assert!(!installer.target().exists());
 
-        installer
+        #[cfg(unix)]
+        {
+            installer
+                .apply(&artifact)
+                .expect("retry recovers and replaces");
+            assert!(installer.target().join("0").is_file());
+            assert!(!backup.exists());
+        }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn a_displaced_install_is_restored_even_when_the_new_artifact_fails() {
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        drop(fail_swap_and_rollback(&installer, &signed_archive()));
+
+        let error = installer
+            .apply(&sign_archive(Vec::new()))
+            .expect_err("extraction should fail after recovery");
+
+        assert!(matches!(error, InstallFailure::MalformedArtifact { .. }));
+        assert_eq!(
+            fs::read(installer.target().join("original")).unwrap(),
+            b"old"
+        );
+    }
+
+    #[test]
+    fn an_occupied_target_keeps_the_displaced_bundle_for_inspection() {
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        let artifact = signed_archive();
+        drop(fail_swap_and_rollback(&installer, &artifact));
+        fs::create_dir(installer.target()).unwrap();
+        let backup = directory
+            .path()
+            .join(".longhorn-install-Example.app/previous");
+
+        let error = installer.apply(&artifact).expect_err("both paths exist");
+
+        assert!(error.to_string().contains(&*backup.to_string_lossy()));
+        assert_eq!(fs::read(backup.join("original")).unwrap(), b"old");
+        assert_eq!(fs::read_dir(installer.target()).unwrap().count(), 0);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn a_backup_receipt_cannot_authorize_a_different_directory() {
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        let artifact = signed_archive();
+        drop(fail_swap_and_rollback(&installer, &artifact));
+        let backup = directory
+            .path()
+            .join(".longhorn-install-Example.app/previous");
+        let original = directory.path().join("saved-original");
+        fs::rename(&backup, &original).unwrap();
+        fs::create_dir(&backup).unwrap();
+        fs::write(backup.join("unrelated"), b"keep").unwrap();
+
+        let error = installer
             .apply(&artifact)
-            .expect("retry recovers and replaces");
-        assert!(installer.target().join("0").is_file());
-        assert!(!backup.exists());
+            .expect_err("the identity changed");
+
+        assert!(
+            error
+                .to_string()
+                .contains("could not verify the previous bundle")
+        );
+        assert_eq!(fs::read(backup.join("unrelated")).unwrap(), b"keep");
+        assert_eq!(fs::read(original.join("original")).unwrap(), b"old");
+        assert!(!installer.target().exists());
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn moving_a_workspace_does_not_transfer_its_backup_to_another_target() {
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        let artifact = signed_archive();
+        drop(fail_swap_and_rollback(&installer, &artifact));
+        let other_parent = directory.path().join("other-parent");
+        fs::create_dir(&other_parent).unwrap();
+        let workspace = other_parent.join(".longhorn-install-Example.app");
+        fs::rename(
+            directory.path().join(".longhorn-install-Example.app"),
+            &workspace,
+        )
+        .unwrap();
+        let other = NativeInstaller::new(other_parent.join("Example.app"));
+
+        let error = other
+            .apply(&artifact)
+            .expect_err("the target parent changed");
+
+        assert!(
+            error
+                .to_string()
+                .contains("could not verify the previous bundle")
+        );
+        assert_eq!(
+            fs::read(workspace.join("previous/original")).unwrap(),
+            b"old"
+        );
+        assert!(!other.target().exists());
     }
 
     /// Empty entries declare no bytes, so only the entry quota bounds them.

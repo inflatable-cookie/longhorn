@@ -1,13 +1,76 @@
 use std::{
     ffi::OsString,
     fs::{self, File, TryLockError},
-    io,
+    io::{self, Read, Write},
     path::{Path, PathBuf},
 };
 
 use longhorn_update::InstallFailure;
 
 use crate::classify;
+
+const WORKSPACE_FORMAT: &[u8] = b"Longhorn update install workspace v1\n";
+
+/// Shared for ordinary applies, exclusive when escalation cannot lock a
+/// target workspace. The directory inode remains in place during replacement.
+pub(super) struct ParentLock {
+    #[cfg(unix)]
+    _directory: File,
+}
+
+impl ParentLock {
+    pub(super) fn shared(target: &Path) -> Result<Self, InstallFailure> {
+        #[cfg(unix)]
+        {
+            Self::acquire(target, File::try_lock_shared)
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = target;
+            Ok(Self {})
+        }
+    }
+
+    pub(super) fn into_exclusive(self, target: &Path) -> Result<Self, InstallFailure> {
+        #[cfg(unix)]
+        {
+            // An upgrade on the same handle is platform-dependent. Reopen
+            // and have the caller recheck the workspace under the new lock.
+            drop(self);
+            Self::acquire(target, File::try_lock)
+        }
+        #[cfg(not(unix))]
+        {
+            Err(InstallFailure::NotWritable {
+                detail: format!(
+                    "cannot coordinate privileged replacement of {}",
+                    target.display()
+                ),
+            })
+        }
+    }
+
+    #[cfg(unix)]
+    fn acquire(
+        target: &Path,
+        lock: impl FnOnce(&File) -> Result<(), TryLockError>,
+    ) -> Result<Self, InstallFailure> {
+        let parent = target
+            .parent()
+            .filter(|path| !path.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        let directory = File::open(parent).map_err(|error| classify(&error, parent))?;
+        match lock(&directory) {
+            Ok(()) => Ok(Self {
+                _directory: directory,
+            }),
+            Err(TryLockError::WouldBlock) => Err(InstallFailure::Failed {
+                detail: format!("another update is active in {}", parent.display()),
+            }),
+            Err(TryLockError::Error(error)) => Err(classify(&error, parent)),
+        }
+    }
+}
 
 /// Per-target install state on the target's volume. Keep the lock file in
 /// place so all processes lock the same file, including after a crash.
@@ -60,12 +123,32 @@ impl InstallWorkspace {
         }
 
         // Only the process that created the directory may initialize it.
-        let lock = File::options()
+        let mut lock = File::options()
             .read(true)
             .write(true)
             .create_new(initialized)
             .open(&lock_path)
             .map_err(|error| classify(&error, &lock_path))?;
+        if initialized {
+            lock.write_all(WORKSPACE_FORMAT)
+                .map_err(|error| classify(&error, &lock_path))?;
+        } else {
+            let mut format = Vec::new();
+            (&lock)
+                .take((WORKSPACE_FORMAT.len() + 1) as u64)
+                .read_to_end(&mut format)
+                .map_err(|error| classify(&error, &lock_path))?;
+            if format != WORKSPACE_FORMAT {
+                let backup = root.join("previous");
+                return Err(InstallFailure::Failed {
+                    detail: format!(
+                        "install workspace at {} is unrecognized or still initializing. Inspect {} for a previous bundle",
+                        root.display(),
+                        backup.display(),
+                    ),
+                });
+            }
+        }
         match lock.try_lock() {
             Ok(()) => Ok(Some(Self { root, _lock: lock })),
             Err(TryLockError::WouldBlock) => Err(InstallFailure::Failed {
@@ -74,6 +157,134 @@ impl InstallWorkspace {
             Err(TryLockError::Error(error)) => Err(classify(&error, &lock_path)),
         }
     }
+
+    pub(super) fn backup(&self) -> Backup<'_> {
+        Backup {
+            root: &self.root,
+            bundle: self.root.join("previous"),
+            receipt: self.root.join("previous.identity"),
+        }
+    }
+}
+
+pub(super) struct Backup<'workspace> {
+    root: &'workspace Path,
+    pub(super) bundle: PathBuf,
+    receipt: PathBuf,
+}
+
+impl Backup<'_> {
+    /// Record the destination's identity before moving it. A crash before the
+    /// move leaves only a receipt, and one after the move leaves both entries.
+    pub(super) fn record(&self, target: &Path) -> Result<(), InstallFailure> {
+        let metadata = match fs::symlink_metadata(target) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(classify(&error, target)),
+        };
+        if let Some(identity) = self.identity(&metadata) {
+            let mut receipt = tempfile::NamedTempFile::new_in(self.root)
+                .map_err(|error| classify(&error, &self.receipt))?;
+            receipt
+                .write_all(&identity)
+                .map_err(|error| classify(&error, &self.receipt))?;
+            receipt
+                .persist(&self.receipt)
+                .map_err(|error| classify(&error.error, &self.receipt))?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn restore(&self, target: &Path) -> Result<(), InstallFailure> {
+        let metadata = match fs::symlink_metadata(&self.bundle) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(classify(&error, &self.bundle)),
+        };
+        if entry_exists(target)? {
+            return Err(InstallFailure::Failed {
+                detail: format!(
+                    "{} already exists. Inspect and move the previous bundle at {} before retrying",
+                    target.display(),
+                    self.bundle.display(),
+                ),
+            });
+        }
+        if !self.matches(&metadata) {
+            return Err(InstallFailure::Failed {
+                detail: format!(
+                    "could not verify the previous bundle at {}. Inspect it before restoring {}",
+                    self.bundle.display(),
+                    target.display(),
+                ),
+            });
+        }
+        fs::rename(&self.bundle, target).map_err(|error| InstallFailure::Failed {
+            detail: format!(
+                "could not restore {} from {}: {error}",
+                target.display(),
+                self.bundle.display(),
+            ),
+        })?;
+        self.clear_receipt();
+        Ok(())
+    }
+
+    fn matches(&self, metadata: &fs::Metadata) -> bool {
+        let Some(identity) = self.identity(metadata) else {
+            return false;
+        };
+        if !fs::symlink_metadata(&self.receipt).is_ok_and(|metadata| metadata.is_file()) {
+            return false;
+        }
+        let mut recorded = Vec::new();
+        File::open(&self.receipt)
+            .and_then(|file| {
+                file.take((identity.len() + 1) as u64)
+                    .read_to_end(&mut recorded)
+            })
+            .is_ok()
+            && recorded == identity
+    }
+
+    #[cfg(unix)]
+    fn identity(&self, metadata: &fs::Metadata) -> Option<Vec<u8>> {
+        let workspace = file_identity(&fs::symlink_metadata(self.root).ok()?)?;
+        let bundle = file_identity(metadata)?;
+        let mut identity = format!("{workspace}{bundle}").into_bytes();
+        // Bind the receipt to the workspace location as well as its inode.
+        let root = fs::canonicalize(self.root).ok()?;
+        identity.extend_from_slice(root.as_os_str().as_encoded_bytes());
+        Some(identity)
+    }
+
+    #[cfg(not(unix))]
+    fn identity(&self, _metadata: &fs::Metadata) -> Option<Vec<u8>> {
+        None
+    }
+
+    /// Retire the receipt before reclaiming a displaced bundle, so it cannot
+    /// match a later allocation. Cleanup after publication is best effort.
+    pub(super) fn clear_receipt(&self) -> bool {
+        match fs::remove_file(&self.receipt) {
+            Ok(()) => true,
+            Err(error) => error.kind() == io::ErrorKind::NotFound,
+        }
+    }
+}
+
+#[cfg(unix)]
+fn file_identity(metadata: &fs::Metadata) -> Option<String> {
+    use std::{os::unix::fs::MetadataExt, time::UNIX_EPOCH};
+
+    let birth = metadata.created().ok()?.duration_since(UNIX_EPOCH).ok()?;
+    Some(format!(
+        "{}:{}:{}:{}\n",
+        metadata.dev(),
+        metadata.ino(),
+        birth.as_secs(),
+        birth.subsec_nanos(),
+    ))
 }
 
 /// Includes dangling symlinks when deciding whether an entry is occupied.
