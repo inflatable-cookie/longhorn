@@ -2,7 +2,8 @@
 
 - [Generated API Surface](api-surface.md)
 - [Private 0.1 Compatibility Candidate](private-0-1-candidate.md)
-- [Held Surface](held-surface.md) — built but not yet consumer-ready
+- [Held Surface](held-surface.md) — built but not yet consumer-ready, plus
+  the checked register of surface a quality pass judged and kept
 
 The generated surface is an exact private package and entrypoint inventory.
 Package READMEs and Rust documentation carry symbol-level behavior. Adoption

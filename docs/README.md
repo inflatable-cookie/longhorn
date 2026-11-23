@@ -14,7 +14,8 @@ For consumers:
 
 - [Adoption guides](guides/README.md) and [glossary](guides/glossary.md)
 - [API reference](reference/README.md), including the
-  [held surface](reference/held-surface.md): built but not consumer-ready
+  [held surface](reference/held-surface.md): built but not consumer-ready,
+  plus surface a quality pass judged and kept
 - Releases: [CHANGELOG.md](../CHANGELOG.md)
 
 The plan is in Nucleus: its lanes, their documents and their order.

@@ -175,6 +175,11 @@ and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
   until the bounded migration and its conformance evidence close.
 - Longhorn is pre-1.0: do not add compatibility aliases, deprecated stubs,
   re-export shims, or silent fallbacks. Coordinate material consumer breaks.
+- Having no callers today never justifies removing public surface. Before
+  proposing any removal, read
+  [docs/reference/held-surface.md](docs/reference/held-surface.md) (held and
+  retained surface) and the contracts, and record a new keep decision there.
+  The register owns the detail.
 
 ## Guardrails
 
