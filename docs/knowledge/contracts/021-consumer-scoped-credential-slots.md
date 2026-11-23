@@ -63,6 +63,10 @@ from a previous product-specific store; Longhorn does not probe foreign names.
 - exact built-in persisted-name fixtures
 - distinct namespace, scope, purpose, and application-service fixtures
 - memory-store and keyring mapping conformance over consumer-scoped slots
+  (default tests cover `(service, slot.as_str())` entry identity, `classify`,
+  and error mapping; live OS keychain round-trip and service-isolation tests run
+  under `cargo test -p longhorn-credential-keyring --features real-keychain-tests`
+  on macOS and Windows and are gated off in default CI)
 - locked-is-not-absent and idempotent-remove regression coverage
 - repository-wide migration from enum variants with no compatibility alias
 - forbidden product vocabulary scan across Longhorn source

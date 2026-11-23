@@ -102,13 +102,14 @@ Part 4c:
   without network access.
 - `ProcessRunner` and `ProcessOutput`: injected fixed-program execution and
   bounded process output. `CommandRunner` is the production adapter. It is
-  built with `CommandRunner::default()` or `CommandRunner::with_timeout`.
+  built with `CommandRunner::default()` (`DEFAULT_PROCESS_TIMEOUT`, 30 seconds)
+  or `CommandRunner::with_timeout`, and exposes `CommandRunner::timeout()`.
 - `LoginPathCache`: cached login-shell PATH discovery with `get` and
   `refresh`; `parse_login_path_output`, `find_executable_on_path` and
   `is_executable` are public host-integration helpers.
 - `InstallError` preserves `ReleaseError` and `ProvisionError`, and adds
   typed install refusals and host faults. Each class reports the class beneath it
-through `Error::source`, and a rollback fault names the failure it undid.
+  through `Error::source`, and a rollback fault names the failure it undid.
 
 Failures (contract 027's classes; see Failure classes):
 
@@ -480,7 +481,7 @@ repository, and its tests use neutral ones.
 - A pinned query asks `GET {api}/repos/{owner}/{repository}/releases/tags/{tag}`.
   An unpinned query asks `GET {api}/repos/{owner}/{repository}/releases/latest`.
   One listing request per resolve. Nothing pages. The listing body is read to
-4 MiB; a longer body is `Malformed` before it is parsed.
+  4 MiB; a longer body is `Malformed` before it is parsed.
 - `404`: `NoCompatibleRelease`, naming the pin when there is one.
 - A draft or a pre-release, on either route: `NoCompatibleRelease`.
 - A pinned tag must equal the listing's `tag_name` exactly. A different
@@ -693,8 +694,10 @@ One binary install is refused while another owns it. The process holds a
 mutex reservation and an exclusive `fs4` lock on
 `managed_root/state/tool-provision/locks/<binary_name>.lock`; a busy lock is a
 typed `ConcurrentInstall` fault. Lock files are stable coordination files and
-remain in place. Names are plain non-hidden path components, so the reserved
-names below cannot be a tool binary.
+remain in place. Tool and binary names are plain non-hidden path components
+(ASCII letters, digits, `.`, `_`, `-` or `+`, with no leading dot), widening
+them to accept `+` as release segments do so the reserved hidden names below
+cannot be a tool binary.
 
 After a staged probe succeeds, the pipeline copies an existing regular binary
 to `managed_root/bin/.<binary_name>.previous` through a same-volume temporary
@@ -742,9 +745,9 @@ replaces it. A start/exit, output or marker failure returns the process PATH
 (or `/usr/bin:/bin` if absent) and a detail; login-shell failure does not make
 PATH discovery fail. `find_executable_on_path` checks absolute entries in
 order. Its names follow the managed-name rule: ASCII letters, digits, `.`,
-`_`, `-` and `+`, with no leading dot. `is_executable` follows symlinks and on Unix requires at least one
-execute bit. Local-bin appending and home-directory resolution remain
-consumer-owned.
+`_`, `-` and `+`, with no leading dot. `is_executable` follows symlinks and on
+Unix requires at least one execute bit. Local-bin appending and home-directory
+resolution remain consumer-owned.
 
 ### Compatibility for consumers
 

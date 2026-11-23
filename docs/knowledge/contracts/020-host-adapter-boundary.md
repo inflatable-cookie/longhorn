@@ -103,8 +103,9 @@ where none exists, Longhorn provides one.
   This capability hands a server-influenced string to an operating system
   launcher, so it carries two independent defences. `BrowserUrl` is an
   allowlist — HTTPS with a host, ASCII, no control characters, no whitespace,
-  no embedded credentials, bounded length. A backslash ends the host, as WHATWG and
-  `longhorn-url` read it, and it cannot hide credentials from the `@` rule. `NativeSystemBrowser` spawns a
+  no embedded credentials, bounded length. A backslash ends the host, as WHATWG
+  and `longhorn-url` read it, and it cannot hide credentials from the `@` rule.
+  `NativeSystemBrowser` spawns a program directly with the URL as a single
   program directly with the URL as a single argument and never involves a
   shell. The usual one-line implementation of this capability, interpolating a
   URL into `sh -c`, is a remote code execution path; neither defence here

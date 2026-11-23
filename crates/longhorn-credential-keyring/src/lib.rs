@@ -59,7 +59,16 @@ impl KeyringCredentialStore {
 
 #[cfg(any(test, target_os = "macos", target_os = "windows"))]
 mod mapping {
-    use super::CredentialError;
+    use super::{CredentialError, CredentialSlot, KeyringCredentialStore};
+
+    /// The complete OS keychain identity passed to the backend: host-supplied
+    /// application service plus the slot's canonical persisted name.
+    pub(super) fn entry_key<'a>(
+        store: &'a KeyringCredentialStore,
+        slot: &'a CredentialSlot,
+    ) -> (&'a str, &'a str) {
+        (store.service(), slot.as_str())
+    }
 
     /// What one backend call answered, restated in this crate's terms so the
     /// contract mapping compiles — and is tested — on every platform, not
@@ -114,21 +123,20 @@ mod mapping {
 }
 
 #[cfg(any(test, target_os = "macos", target_os = "windows"))]
-use mapping::{BackendFailure, map_remove, map_retrieve, map_store};
+use mapping::{BackendFailure, entry_key, map_remove, map_retrieve, map_store};
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 mod platform {
     use super::{BackendFailure, CredentialError, CredentialSlot, KeyringCredentialStore};
-    use super::{map_remove, map_retrieve, map_store};
+    use super::{entry_key, map_remove, map_retrieve, map_store};
 
     fn entry(
         store: &KeyringCredentialStore,
         slot: &CredentialSlot,
     ) -> Result<keyring::Entry, CredentialError> {
-        keyring::Entry::new(store.service(), slot.as_str()).map_err(|error| {
-            CredentialError::Unavailable {
-                detail: error.to_string(),
-            }
+        let (service, account) = entry_key(store, slot);
+        keyring::Entry::new(service, account).map_err(|error| CredentialError::Unavailable {
+            detail: error.to_string(),
         })
     }
 
@@ -346,5 +354,41 @@ mod mapping_tests {
                 detail: "denied".to_owned()
             })
         );
+    }
+
+    #[test]
+    fn entry_key_preserves_service_isolation_and_canonical_slot_names() {
+        let app_a = KeyringCredentialStore::new("com.example.app-a");
+        let app_b = KeyringCredentialStore::new("com.example.app-b");
+
+        let refresh = CredentialSlot::refresh_token();
+        let licence = CredentialSlot::licence_key();
+        let backup = CredentialSlot::backup_identity();
+        assert_eq!(
+            entry_key(&app_a, &refresh),
+            ("com.example.app-a", "refresh-token")
+        );
+        assert_eq!(
+            entry_key(&app_a, &licence),
+            ("com.example.app-a", "licence-key")
+        );
+        assert_eq!(
+            entry_key(&app_a, &backup),
+            ("com.example.app-a", "backup-identity")
+        );
+
+        let slot_a = CredentialSlot::consumer_scoped("publisher", "source-1", "signing").unwrap();
+        let slot_b = CredentialSlot::consumer_scoped("publisher", "source-2", "signing").unwrap();
+        let slot_c = CredentialSlot::consumer_scoped("other", "source-1", "signing").unwrap();
+        let slot_d = CredentialSlot::consumer_scoped("publisher", "source-1", "token").unwrap();
+
+        assert_eq!(
+            entry_key(&app_a, &slot_a),
+            ("com.example.app-a", "consumer:publisher:source-1:signing")
+        );
+        assert_ne!(entry_key(&app_a, &slot_a), entry_key(&app_b, &slot_a));
+        assert_ne!(entry_key(&app_a, &slot_a), entry_key(&app_a, &slot_b));
+        assert_ne!(entry_key(&app_a, &slot_a), entry_key(&app_a, &slot_c));
+        assert_ne!(entry_key(&app_a, &slot_a), entry_key(&app_a, &slot_d));
     }
 }
