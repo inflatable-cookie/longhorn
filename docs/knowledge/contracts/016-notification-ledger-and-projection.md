@@ -143,6 +143,8 @@ The TypeScript controller owns its subscriptions and pending commands.
 Renderers observe it and read its projections through getters. Projection
 copies can be edited locally without changing controller state. Selection
 and toast dismissal go through `select()` and `dismissToast()`.
+A mutation reply from an earlier lifecycle resolves to its caller without
+installing a snapshot or updating command feedback.
 
 A requested page applies only while the live lifecycle, authority, ledger
 revision and offset still match the request. A page that resolves after a

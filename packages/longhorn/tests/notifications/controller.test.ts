@@ -71,6 +71,32 @@ class LivePort implements NotificationPort {
 }
 
 describe("notification controller", () => {
+  test("a mutation that settles after stop leaves the renderer empty", async () => {
+    let complete!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      complete = resolve;
+    });
+    const port = new (class extends LivePort {
+      override async mutate(command: NotificationMutationCommand): Promise<unknown> {
+        await gate;
+        return super.mutate(command);
+      }
+    })();
+    const controller = new NotificationController({ port });
+    await controller.start();
+
+    const mutation = controller.markSeen("notification:scan");
+    expect(controller.isPending("notification:scan", "markSeen")).toBeTrue();
+    await controller.stop();
+    complete();
+    expect((await mutation).status).toBe("committed");
+
+    expect(controller.status).toEqual({ kind: "idle" });
+    expect(controller.snapshot).toBeUndefined();
+    expect(controller.records).toEqual([]);
+    expect(controller.pendingCommands).toEqual([]);
+  });
+
   test("public reads and command results cannot modify controller state", async () => {
     const port = new LivePort();
     const controller = new NotificationController({ port });

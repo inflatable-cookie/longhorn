@@ -10,7 +10,7 @@ export function attempt<Value>(run: () => Value | PromiseLike<Value>): Promise<V
 
 /**
  * Disposes every registration. One unlisten that throws, sync or async, does
- * not skip the rest. Callers decide how to report the settled failures.
+ * not skip the rest. Results include any failures and follow registration order.
  */
 export function disposeAll(
   unlisten: ReadonlyArray<() => void | Promise<void>>,

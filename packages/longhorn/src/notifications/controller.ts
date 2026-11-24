@@ -288,24 +288,30 @@ export class NotificationController {
       expectedLedgerRevision: snapshot.ledgerRevision,
       notificationId,
     } as const;
-    return this.#runPending({ requestId: command.requestId, notificationId, kind }, async () => {
-      const result = await this.#client.mutate(command);
-      this.#install(result.snapshot);
-      if (result.status === "rejected") {
-        this.#commandRejection = {
-          requestId: command.requestId,
-          notificationId,
-          kind,
-          rejection: structuredClone(result.rejection),
-        };
-      }
-      return result;
-    });
+    return this.#runPending(
+      { requestId: command.requestId, notificationId, kind },
+      async (lifecycle) => {
+        const result = await this.#client.mutate(command);
+        if (!this.#isCurrent(lifecycle)) {
+          return result;
+        }
+        if (result.status === "rejected") {
+          this.#commandRejection = {
+            requestId: command.requestId,
+            notificationId,
+            kind,
+            rejection: structuredClone(result.rejection),
+          };
+        }
+        this.#install(result.snapshot);
+        return result;
+      },
+    );
   }
 
   async #runPending<Result>(
     pending: NotificationPendingCommand,
-    run: () => Promise<Result>,
+    run: (lifecycle: number) => Promise<Result>,
   ): Promise<Result> {
     if (this.isPending(pending.notificationId, pending.kind)) {
       throw new NotificationControllerCommandPendingError(pending.notificationId, pending.kind);
@@ -316,7 +322,7 @@ export class NotificationController {
     this.#commandRejection = undefined;
     this.#notify();
     try {
-      return await run();
+      return await run(lifecycle);
     } catch (error) {
       if (this.#isCurrent(lifecycle)) {
         this.#commandFailure = { ...pending, error };
