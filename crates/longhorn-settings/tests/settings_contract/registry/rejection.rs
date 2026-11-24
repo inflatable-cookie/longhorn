@@ -102,6 +102,28 @@ fn duplicate_anchors_fail_even_when_one_page_would_be_pruned() {
 }
 
 #[test]
+fn duplicate_page_keywords_fail_at_seal() {
+    let mut builder = minimal_builder();
+    builder
+        .register_page(SettingsPageDefinition {
+            id: page_id("app:keywords"),
+            keywords: vec!["Output".into(), "output".into()],
+            ..page_with(
+                module_id("app:module"),
+                section_id("app:section"),
+                renderer_id("app:renderer"),
+                vec![scope_id("app:scope")],
+                vec![unit_id("app:apply")],
+            )
+        })
+        .unwrap();
+
+    let error = builder.seal([]).unwrap_err();
+    assert_eq!(error.code(), SettingsRegistryErrorCode::DuplicateItem);
+    assert!(error.to_string().contains("duplicate search keywords"));
+}
+
+#[test]
 fn missing_references_report_stable_error_categories() {
     let cases: Vec<(&str, SettingsPageDefinition)> = vec![
         (

@@ -113,6 +113,12 @@ pub fn register_module_page(
             reset_supported: features.reset,
         })
         .unwrap();
+    let folded_label = label.to_ascii_lowercase();
+    let keywords = if folded_label == prefix {
+        vec![folded_label]
+    } else {
+        vec![folded_label, prefix.to_owned()]
+    };
     builder
         .register_page(SettingsPageDefinition {
             id: page,
@@ -120,7 +126,7 @@ pub fn register_module_page(
             section_id: section,
             renderer_id: renderer,
             label: label.to_owned(),
-            keywords: vec![label.to_ascii_lowercase(), prefix.to_owned()],
+            keywords,
             order,
             anchors: vec![SettingsAnchorDefinition {
                 id: anchor_id(&format!("{prefix}:anchor")),

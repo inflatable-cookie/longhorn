@@ -1,6 +1,6 @@
 use longhorn_core::{
     SettingsActivationTargetId, SettingsApplyUnitId, SettingsAuthorityToken, SettingsEntryId,
-    SettingsPageId, SettingsPolicySourceId, SettingsRequestId, SettingsScopeId,
+    SettingsPageId, SettingsPolicySourceId, SettingsRequestId, SettingsScopeId, WireCounter,
 };
 use longhorn_settings::{
     SettingsActivationRequirement, SettingsActivationState, SettingsApplyCommand,
@@ -186,9 +186,55 @@ fn scope_revision_never_wraps() {
         1
     );
     assert_eq!(
-        SettingsScopeRevision::new(u64::MAX).checked_next(),
+        SettingsScopeRevision::new(WireCounter::MAX).checked_next(),
         Err(SettingsProtocolError::ScopeRevisionOverflow)
     );
+}
+
+#[test]
+fn registry_counters_stay_inside_the_javascript_number_range() {
+    let maximum = WireCounter::MAX.to_string();
+    let above = (WireCounter::MAX + 1).to_string();
+
+    // A client validates both counters as safe integers, so a host that never
+    // reads them cannot send a value its own renderer rejects.
+    assert!(serde_json::from_str::<SettingsRegistryGeneration>(&maximum).is_ok());
+    assert!(serde_json::from_str::<SettingsScopeRevision>(&maximum).is_ok());
+    assert!(serde_json::from_str::<SettingsRegistryGeneration>(&above).is_err());
+    assert!(serde_json::from_str::<SettingsScopeRevision>(&above).is_err());
+
+    assert_eq!(
+        SettingsRegistryGeneration::new(WireCounter::MAX).checked_next(),
+        Err(longhorn_core::WireCounterOverflow)
+    );
+    assert_eq!(
+        SettingsScopeRevision::new(WireCounter::MAX).checked_next(),
+        Err(SettingsProtocolError::ScopeRevisionOverflow)
+    );
+
+    let snapshot = SettingsScopeSnapshot {
+        protocol_version: SettingsProtocolVersion::CURRENT,
+        scope_id: SettingsScopeId::new("app:scope").unwrap(),
+        authority: authority(WireCounter::MAX, WireCounter::MAX, "token:maximum"),
+        values: vec![],
+        recovery: None,
+        activation_requirements: vec![],
+    };
+    let encoded = serde_json::to_value(&snapshot).unwrap();
+    assert_eq!(
+        encoded["authority"]["registryGeneration"],
+        json!(WireCounter::MAX)
+    );
+    assert_eq!(
+        encoded["authority"]["scopeRevision"],
+        json!(WireCounter::MAX)
+    );
+}
+
+#[test]
+#[should_panic(expected = "JavaScript safe integer")]
+fn registry_generation_construction_refuses_a_value_above_the_wire_bound() {
+    let _ = SettingsRegistryGeneration::new(WireCounter::MAX + 1);
 }
 
 fn authority(generation: u64, revision: u64, token: &str) -> SettingsAuthorityExpectation {

@@ -250,7 +250,6 @@ where
 
 fn canonicalize_page(mut page: SettingsPageDefinition) -> SettingsPageDefinition {
     page.keywords.sort();
-    page.keywords.dedup();
     page.anchors.sort_by(|left, right| {
         left.order
             .cmp(&right.order)

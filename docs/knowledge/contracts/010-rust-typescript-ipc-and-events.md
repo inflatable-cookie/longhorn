@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-31
+Updated: 2026-11-24
 Evidence: `003-foundation-boundary-characterization.md` (Git history);
 `013-typed-bridge-and-backend-topology-boundary.md` (Git history);
 `014-command-input-and-palette-boundary.md` (Git history)
@@ -56,10 +56,11 @@ execution payload.
   `into_inner` or silently skip teardown on poison.
 - Snapshots and authoritative events carry an authority epoch plus monotonic
   revision or sequence.
-- Core-backed revisions and bridge and command counters carried as JSON
-  numbers admit integers through `2^53 - 1`, with a positive minimum for
-  authority epochs. Rust readers reject out-of-range values. Advancing these
-  counters returns a typed error when the next value would exceed the bound.
+- Core-backed revisions, bridge and command counters, and settings registry
+  generations and scope revisions carried as JSON numbers admit integers
+  through `2^53 - 1`, with a positive minimum for authority epochs. Rust
+  readers reject out-of-range values. Advancing these counters returns a typed
+  error when the next value would exceed the bound.
 - Progress and terminal events echo their initiating request id.
 - Cancellation returns a receipt and does not imply immediate termination.
 

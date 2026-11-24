@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// Explicit limits for one settings registry and its opaque values.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SettingsLimits {
     /// Maximum registered modules.
     pub maximum_modules: usize,
