@@ -616,11 +616,21 @@ quiesced its external authorities:
 2. re-resolve every descriptor and adapter and re-inspect every target
 3. reject stale current evidence before staging
 4. stage the complete target and exact rollback payload set without live mutation
-5. validate size, path, uniqueness, target, and rollback evidence for every stage
+5. validate stage size, paths, uniqueness, target and rollback evidence, and
+   journal size in every phase
 6. durably publish the complete private payload set and grouped journal
 7. publish each target through its adapter
 8. independently verify the complete target set
 9. mark success durably, then remove private transaction material
+
+Grouped restore journals may occupy at most 4 MiB of serialized JSON. The same
+limit applies at admission, publication and boot reads. Grouped restore checks
+that every phase fits before writing staging files or applying any target. The
+journal records the admitted length and digest of each staged file. Apply and
+boot recovery allocate at most the recorded length for each payload and require
+an exact file size and matching digest. Boot recovery also checks the recorded
+target and rollback lengths together against the hard per-domain and total
+backup limits.
 
 Any failure after journal publication rolls every selected adapter back,
 including adapters not yet published, and independently verifies the complete

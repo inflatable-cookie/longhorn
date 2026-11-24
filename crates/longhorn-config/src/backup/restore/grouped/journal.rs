@@ -1,6 +1,6 @@
 use std::{
     fs,
-    io::{self},
+    io::{self, Read},
     path::{Path, PathBuf},
 };
 
@@ -11,7 +11,7 @@ use crate::atomic_file::{sync_directory, write_private_file};
 use crate::journal_file::{self, JournalVersioned};
 use crate::{
     BackupAdapterId, BackupAdapterPayload, BackupAdapterRelativePath, BackupAdapterStateEvidence,
-    DomainDescriptor, Sha256Digest,
+    BackupLimits, DomainDescriptor, Sha256Digest,
 };
 
 use super::super::RestoreOperationState;
@@ -20,6 +20,7 @@ const STATE_DIRECTORY: &str = ".longhorn/grouped-adapter-restore";
 const PAYLOAD_DIRECTORY: &str = "payloads";
 const JOURNAL_FILE: &str = "journal.json";
 const JOURNAL_VERSION: u32 = 2;
+const JOURNAL_SUBJECT: &str = "grouped restore journal";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -116,12 +117,32 @@ pub(super) fn load(authority_root: &Path) -> io::Result<Option<GroupedRestoreJou
     let journal: Option<GroupedRestoreJournal> = journal_file::load(
         &journal_path(authority_root),
         JOURNAL_VERSION,
-        "grouped restore journal",
+        JOURNAL_SUBJECT,
     )?;
     if let Some(journal) = &journal {
+        // Version 2 records exact lengths, so recovery can honor the admitted
+        // aggregate and reject impossible totals without the execution options.
+        let limits = BackupLimits::HARD_MAXIMUM;
+        let mut remaining = limits.max_total_bytes() as u64;
         for entry in &journal.entries {
             validate_evidence_payload_shape(&entry.target_evidence, &entry.target_payloads)?;
             validate_evidence_payload_shape(&entry.rollback_evidence, &entry.rollback_payloads)?;
+            let domain_bytes = entry
+                .target_payloads
+                .iter()
+                .chain(&entry.rollback_payloads)
+                .try_fold(0u64, |total, record| total.checked_add(record.byte_length))
+                .ok_or_else(|| {
+                    io::Error::other("grouped restore journal payload length overflow")
+                })?;
+            if domain_bytes > limits.max_domain_bytes() as u64 {
+                return Err(io::Error::other(
+                    "grouped restore journal exceeds domain payload byte limit",
+                ));
+            }
+            remaining = remaining.checked_sub(domain_bytes).ok_or_else(|| {
+                io::Error::other("grouped restore journal exceeds total payload byte limit")
+            })?;
         }
     }
     Ok(journal)
@@ -151,64 +172,78 @@ pub(super) fn persist_prepared(
     confirmation_digest: Sha256Digest,
     prepared: &[PreparedGroupedDomain],
 ) -> io::Result<GroupedRestoreJournal> {
-    clear_state(authority_root)?;
-    let payload_root = payload_directory(authority_root);
-    crate::dir_sync::create_dir_all_synced_to_root(authority_root, &payload_root)?;
-    let mut entries = Vec::with_capacity(prepared.len());
-    for (domain_index, domain) in prepared.iter().enumerate() {
-        entries.push(GroupedJournalEntry {
+    let entries = prepared
+        .iter()
+        .enumerate()
+        .map(|(domain_index, domain)| GroupedJournalEntry {
             domain: domain.domain.clone(),
             adapter: domain.adapter.as_str().to_owned(),
             descriptor_digest: domain.descriptor_digest.clone(),
             target_evidence: domain.target_evidence.clone(),
             rollback_evidence: domain.rollback_evidence.clone(),
-            target_payloads: persist_payload_set(
-                &payload_root,
-                domain_index,
-                "target",
-                &domain.target_payloads,
-            )?,
-            rollback_payloads: persist_payload_set(
-                &payload_root,
-                domain_index,
-                "rollback",
-                &domain.rollback_payloads,
-            )?,
-        });
-    }
-    crate::dir_sync::sync_ancestors_to_root(authority_root, &payload_root)?;
-    let journal = GroupedRestoreJournal {
+            target_payloads: payload_records(domain_index, "target", &domain.target_payloads),
+            rollback_payloads: payload_records(domain_index, "rollback", &domain.rollback_payloads),
+        })
+        .collect();
+    let mut journal = GroupedRestoreJournal {
         version: JOURNAL_VERSION,
         operation_id,
         archive_sha256,
         confirmation_digest,
-        phase: GroupedJournalPhase::Prepared,
+        phase: GroupedJournalPhase::RecoveryRequired,
         entries,
     };
+    // Only the phase changes after preparation, and recovery-required has
+    // the longest serialized name. Checking it reserves room for every phase.
+    journal_file::encode(&journal, JOURNAL_SUBJECT)?;
+    journal.phase = GroupedJournalPhase::Prepared;
+
+    clear_state(authority_root)?;
+    let payload_root = payload_directory(authority_root);
+    crate::dir_sync::create_dir_all_synced_to_root(authority_root, &payload_root)?;
+    for (domain, entry) in prepared.iter().zip(&journal.entries) {
+        persist_payload_set(
+            &payload_root,
+            &domain.target_payloads,
+            &entry.target_payloads,
+        )?;
+        persist_payload_set(
+            &payload_root,
+            &domain.rollback_payloads,
+            &entry.rollback_payloads,
+        )?;
+    }
+    crate::dir_sync::sync_ancestors_to_root(authority_root, &payload_root)?;
     publish(authority_root, &journal)?;
     Ok(journal)
 }
 
-fn persist_payload_set(
-    root: &Path,
+fn payload_records(
     domain_index: usize,
     kind: &str,
     payloads: &[BackupAdapterPayload],
-) -> io::Result<Vec<GroupedPayloadRecord>> {
+) -> Vec<GroupedPayloadRecord> {
     payloads
         .iter()
         .enumerate()
-        .map(|(payload_index, payload)| {
-            let file_name = format!("{domain_index:04}-{kind}-{payload_index:04}.payload");
-            write_private_file(&root.join(&file_name), payload.bytes())?;
-            Ok(GroupedPayloadRecord {
-                relative_path: payload.relative_path().as_str().to_owned(),
-                file_name,
-                byte_length: payload.bytes().len() as u64,
-                sha256: Sha256Digest::from_bytes(payload.bytes()),
-            })
+        .map(|(payload_index, payload)| GroupedPayloadRecord {
+            relative_path: payload.relative_path().as_str().to_owned(),
+            file_name: format!("{domain_index:04}-{kind}-{payload_index:04}.payload"),
+            byte_length: payload.bytes().len() as u64,
+            sha256: Sha256Digest::from_bytes(payload.bytes()),
         })
         .collect()
+}
+
+fn persist_payload_set(
+    root: &Path,
+    payloads: &[BackupAdapterPayload],
+    records: &[GroupedPayloadRecord],
+) -> io::Result<()> {
+    for (payload, record) in payloads.iter().zip(records) {
+        write_private_file(&root.join(&record.file_name), payload.bytes())?;
+    }
+    Ok(())
 }
 
 pub(super) fn read_payloads(
@@ -218,10 +253,19 @@ pub(super) fn read_payloads(
     records
         .iter()
         .map(|record| {
-            let bytes = fs::read(payload_directory(authority_root).join(&record.file_name))?;
-            if bytes.len() as u64 != record.byte_length
-                || Sha256Digest::from_bytes(&bytes) != record.sha256
-            {
+            let mut input = fs::File::open(payload_directory(authority_root).join(&record.file_name))?;
+            let expected = record.byte_length;
+            let observed = input.metadata()?.len();
+            if observed != expected {
+                return Err(io::Error::other(format!(
+                    "grouped restore payload length changed: expected {expected}, observed {observed}"
+                )));
+            }
+            let length = usize::try_from(expected)
+                .map_err(|_| io::Error::other("grouped restore payload length is not addressable"))?;
+            let mut bytes = vec![0; length];
+            input.read_exact(&mut bytes)?;
+            if input.read(&mut [0])? != 0 || Sha256Digest::from_bytes(&bytes) != record.sha256 {
                 return Err(io::Error::other(
                     "grouped restore payload does not match journal evidence",
                 ));
@@ -239,7 +283,7 @@ pub(super) fn publish(authority_root: &Path, journal: &GroupedRestoreJournal) ->
         &state_directory(authority_root),
         JOURNAL_FILE,
         journal,
-        "grouped restore journal",
+        JOURNAL_SUBJECT,
     )
 }
 
@@ -266,4 +310,58 @@ fn state_directory(authority_root: &Path) -> PathBuf {
 
 fn payload_directory(authority_root: &Path) -> PathBuf {
     state_directory(authority_root).join(PAYLOAD_DIRECTORY)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preparation_reserves_space_for_later_phases() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let root = temp.path();
+        let max_journal_bytes = 4 * 1024 * 1024;
+        let mut journal = GroupedRestoreJournal {
+            version: JOURNAL_VERSION,
+            operation_id: String::new(),
+            archive_sha256: Sha256Digest::from_bytes(b"archive"),
+            confirmation_digest: Sha256Digest::from_bytes(b"confirmation"),
+            phase: GroupedJournalPhase::Prepared,
+            entries: Vec::new(),
+        };
+        let prepared = serde_json::to_vec(&journal).unwrap();
+        journal.operation_id = "x".repeat(max_journal_bytes - prepared.len());
+        assert_eq!(
+            journal_file::encode(&journal, JOURNAL_SUBJECT)
+                .unwrap()
+                .len(),
+            max_journal_bytes
+        );
+        let error = persist_prepared(
+            root,
+            journal.operation_id.clone(),
+            journal.archive_sha256.clone(),
+            journal.confirmation_digest.clone(),
+            &[],
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("exceeds byte limit"), "{error}");
+        assert!(!state_directory(root).exists());
+
+        // An older writer could publish Prepared right at the limit.
+        journal.operation_id.clear();
+        let pretty_base = serde_json::to_vec_pretty(&journal).unwrap().len();
+        journal.operation_id = "x".repeat(max_journal_bytes - pretty_base);
+        fs::create_dir_all(state_directory(root)).unwrap();
+        fs::write(
+            journal_path(root),
+            serde_json::to_vec_pretty(&journal).unwrap(),
+        )
+        .unwrap();
+        let mut loaded = load(root).unwrap().unwrap();
+        assert_eq!(loaded.phase, GroupedJournalPhase::Prepared);
+        loaded.phase = GroupedJournalPhase::RecoveryRequired;
+        publish(root, &loaded).unwrap();
+        assert_eq!(load(root).unwrap(), Some(loaded));
+    }
 }
