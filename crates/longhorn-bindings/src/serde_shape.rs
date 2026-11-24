@@ -63,6 +63,10 @@ pub(crate) fn enum_names<T: for<'de> Deserialize<'de>>()
     }
 }
 
+pub(crate) fn enum_names_json<T: for<'de> Deserialize<'de>>() -> Result<String, Box<dyn Error>> {
+    Ok(serde_json::to_string(enum_names::<T>()?)?)
+}
+
 pub(crate) fn error_declarations<T: Serialize, C: for<'de> Deserialize<'de>>(
     error: T,
     name: &str,

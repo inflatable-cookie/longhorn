@@ -23,73 +23,36 @@ use longhorn_native_content::{
 };
 use ts_rs::TS;
 
-use crate::generation::{
-    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
-    string_union_variants, tagged_variants, variant_field_map,
+use crate::{
+    generation::{
+        Artifact, DomainArtifacts, GENERATE_TASK, build_domain_artifacts, config,
+        exported_declaration, tagged_variants_json,
+    },
+    serde_shape::enum_names_json,
 };
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/longhorn/src/native-content/generated/protocol.ts";
-const GOLDEN_FIXTURE: &str = "fixtures/native-content/protocol-v1.json";
-const GENERATED_FIELDS: &str = "packages/longhorn/src/native-content/generated/fields.ts";
-const GENERATED_VARIANT_FIELDS: &str =
-    "packages/longhorn/src/native-content/generated/variant-fields.ts";
+const ARTIFACTS: DomainArtifacts = DomainArtifacts {
+    protocol: "packages/longhorn/src/native-content/generated/protocol.ts",
+    fields: "packages/longhorn/src/native-content/generated/fields.ts",
+    fields_constant: "NATIVE_CONTENT_FIELDS",
+    variant_fields: "packages/longhorn/src/native-content/generated/variant-fields.ts",
+    variant_fields_constant: "NATIVE_CONTENT_VARIANT_FIELDS",
+    fixture: "fixtures/native-content/protocol-v1.json",
+};
 
-struct RenderedProtocol {
-    contents: String,
-    fields: String,
-    variant_fields: String,
-}
-
-/// Generates or checks the native-content bindings and golden fixtures.
-pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
-    let protocol = render_protocol()?;
-    let artifacts = [
-        Artifact {
-            relative_path: GENERATED_PROTOCOL,
-            contents: protocol.contents,
-        },
-        Artifact {
-            relative_path: GENERATED_FIELDS,
-            contents: protocol.fields,
-        },
-        Artifact {
-            relative_path: GENERATED_VARIANT_FIELDS,
-            contents: protocol.variant_fields,
-        },
-        Artifact {
-            relative_path: GOLDEN_FIXTURE,
-            contents: fixture::render()?,
-        },
-    ];
-    apply(
-        "native-content",
-        "generate:native-content",
-        mode,
-        &artifacts,
-    )
-}
-
-fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let mechanism = NativeContentMechanism::decl(config());
-    let detach_policy = DetachPolicy::decl(config());
-    let input_routing = InputRoutingMode::decl(config());
-    let desired_presence = DesiredPresence::decl(config());
+/// Renders the native-content bindings and golden fixtures.
+///
+/// # Errors
+///
+/// Returns an error if declaration inspection or fixture serialization fails.
+pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let desired_visibility = DesiredVisibility::decl(config());
-    let focus_intent = FocusIntent::decl(config());
-    let lifecycle = AttachmentLifecycle::decl(config());
-    let readiness = ObservedReadiness::decl(config());
-    let effective_visibility = EffectiveVisibility::decl(config());
-    let effective_focus = EffectiveFocus::decl(config());
     let observed_geometry = ObservedGeometry::decl(config());
     let operation = NativeContentOperation::decl(config());
     let operation_outcome = OperationOutcome::decl(config());
     let decision = ContentSizeDecision::decl(config());
-    let host_destroy_outcome = HostDestroyOutcome::decl(config());
-    let rejection_code = NativeContentRejectionCode::decl(config());
-    let failure_phase = NativeContentFailurePhase::decl(config());
-    let retry_class = NativeContentRetryClass::decl(config());
     let connect_result = NativeContentConnectResult::decl(config());
     let snapshot_result = NativeContentSnapshotResult::decl(config());
     let update_result = NativeContentDesiredUpdateResult::decl(config());
@@ -114,17 +77,17 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         NativeContentProtocolVersion::decl(config()),
         NativeContentAuthorityEpoch::decl(config()),
         NativeContentClientEpoch::decl(config()),
-        mechanism.clone(),
-        detach_policy.clone(),
-        input_routing.clone(),
+        NativeContentMechanism::decl(config()),
+        DetachPolicy::decl(config()),
+        InputRoutingMode::decl(config()),
         MechanismCapabilities::decl(config()),
-        desired_presence.clone(),
+        DesiredPresence::decl(config()),
         desired_visibility.clone(),
-        focus_intent.clone(),
-        lifecycle.clone(),
-        readiness.clone(),
-        effective_visibility.clone(),
-        effective_focus.clone(),
+        FocusIntent::decl(config()),
+        AttachmentLifecycle::decl(config()),
+        ObservedReadiness::decl(config()),
+        EffectiveVisibility::decl(config()),
+        EffectiveFocus::decl(config()),
         observed_geometry.clone(),
         DesiredState::decl(config()),
         DesiredUpdate::decl(config()),
@@ -141,11 +104,11 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         ContentSizeProposalReceipt::decl(config()),
         DesiredUpdateReceipt::decl(config()),
         ObservationReceipt::decl(config()),
-        host_destroy_outcome.clone(),
+        HostDestroyOutcome::decl(config()),
         HostDestroyReceipt::decl(config()),
-        rejection_code.clone(),
-        failure_phase.clone(),
-        retry_class.clone(),
+        NativeContentRejectionCode::decl(config()),
+        NativeContentFailurePhase::decl(config()),
+        NativeContentRetryClass::decl(config()),
         NativeContentProtocolRejection::decl(config()),
         NativeContentCursor::decl(config()),
         NativeContentSnapshot::decl(config()),
@@ -163,7 +126,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     .map(exported_declaration);
 
     let contents = format!(
-        "// @generated by `effigy generate:native-content`; do not edit.\n\
+        "// @generated by `effigy {GENERATE_TASK}`; do not edit.\n\
          // Rust serde types are the wire authority. Browser, plugin, GPU, and product payloads are absent.\n\n\
          export const NATIVE_CONTENT_PROTOCOL_VERSION = {NATIVE_CONTENT_PROTOCOL_VERSION} as const;\n\
          export const NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES = {MAX_OPAQUE_ID_BYTES} as const;\n\
@@ -191,48 +154,31 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const NATIVE_CONTENT_DECISION_STATUSES = {} as const;\n\
          export const NATIVE_CONTENT_CHANGE_KINDS = {} as const;\n\n\
          {}\n",
-        serde_json::to_string(&string_union_variants(&mechanism)?)?,
-        serde_json::to_string(&string_union_variants(&detach_policy)?)?,
-        serde_json::to_string(&string_union_variants(&input_routing)?)?,
-        serde_json::to_string(&string_union_variants(&desired_presence)?)?,
-        serde_json::to_string(&tagged_variants(&desired_visibility, "state")?)?,
-        serde_json::to_string(&string_union_variants(&focus_intent)?)?,
-        serde_json::to_string(&string_union_variants(&lifecycle)?)?,
-        serde_json::to_string(&string_union_variants(&readiness)?)?,
-        serde_json::to_string(&string_union_variants(&effective_visibility)?)?,
-        serde_json::to_string(&string_union_variants(&effective_focus)?)?,
-        serde_json::to_string(&tagged_variants(&observed_geometry, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&operation, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&operation_outcome, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&decision, "kind")?)?,
-        serde_json::to_string(&string_union_variants(&host_destroy_outcome)?)?,
-        serde_json::to_string(&string_union_variants(&rejection_code)?)?,
-        serde_json::to_string(&string_union_variants(&failure_phase)?)?,
-        serde_json::to_string(&string_union_variants(&retry_class)?)?,
-        serde_json::to_string(&tagged_variants(&connect_result, "status")?)?,
-        serde_json::to_string(&tagged_variants(&snapshot_result, "status")?)?,
-        serde_json::to_string(&tagged_variants(&update_result, "status")?)?,
-        serde_json::to_string(&tagged_variants(&decision_result, "status")?)?,
-        serde_json::to_string(&tagged_variants(&change, "kind")?)?,
+        enum_names_json::<NativeContentMechanism>()?,
+        enum_names_json::<DetachPolicy>()?,
+        enum_names_json::<InputRoutingMode>()?,
+        enum_names_json::<DesiredPresence>()?,
+        tagged_variants_json(&desired_visibility)?,
+        enum_names_json::<FocusIntent>()?,
+        enum_names_json::<AttachmentLifecycle>()?,
+        enum_names_json::<ObservedReadiness>()?,
+        enum_names_json::<EffectiveVisibility>()?,
+        enum_names_json::<EffectiveFocus>()?,
+        tagged_variants_json(&observed_geometry)?,
+        tagged_variants_json(&operation)?,
+        tagged_variants_json(&operation_outcome)?,
+        tagged_variants_json(&decision)?,
+        enum_names_json::<HostDestroyOutcome>()?,
+        enum_names_json::<NativeContentRejectionCode>()?,
+        enum_names_json::<NativeContentFailurePhase>()?,
+        enum_names_json::<NativeContentRetryClass>()?,
+        tagged_variants_json(&connect_result)?,
+        tagged_variants_json(&snapshot_result)?,
+        tagged_variants_json(&update_result)?,
+        tagged_variants_json(&decision_result)?,
+        tagged_variants_json(&change)?,
         declarations.join("\n\n")
     );
-    let (fields, _skipped) = field_map(
-        "generate:native-content",
-        "NATIVE_CONTENT_FIELDS",
-        &declarations,
-    );
 
-    let variant_fields = variant_field_map(
-        "generate:native-content",
-        "NATIVE_CONTENT_VARIANT_FIELDS",
-        &declarations,
-    )?;
-
-    Ok(RenderedProtocol {
-        contents,
-
-        fields,
-
-        variant_fields,
-    })
+    build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)
 }

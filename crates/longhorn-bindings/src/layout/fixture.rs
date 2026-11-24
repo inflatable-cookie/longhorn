@@ -52,7 +52,7 @@ pub(crate) fn registry() -> Result<LayoutDefinitionRegistry, Box<dyn Error>> {
     )?)
 }
 
-pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
+pub fn render(rejection_codes: &[&str]) -> Result<String, Box<dyn Error>> {
     let limits = limits();
     let schema = schema();
     let panels = panel_definitions();
@@ -117,7 +117,7 @@ pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
 fn rejection_fixtures(
     source: &SurfaceDocument,
     stale_rejection: &LayoutMutationRejection,
-    rejection_codes: &[String],
+    rejection_codes: &[&str],
 ) -> Result<Vec<LayoutMutationRejection>, serde_json::Error> {
     rejection_codes
         .iter()

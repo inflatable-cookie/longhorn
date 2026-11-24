@@ -19,53 +19,25 @@ use longhorn_operation::{
 };
 use ts_rs::TS;
 
-use crate::generation::{
-    Artifact, GenerationMode, LabelMap, apply, config, exported_declaration, field_map,
-    label_module, string_union_variants, tagged_variants, variant_field_map,
+use crate::{
+    generation::{
+        Artifact, DomainArtifacts, GENERATE_TASK, LabelMap, build_domain_artifacts, config,
+        exported_declaration, label_module, tagged_variants_json,
+    },
+    serde_shape::enum_names_json,
 };
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/longhorn/src/operation/generated/protocol.ts";
-const GOLDEN_FIXTURE: &str = "fixtures/operation/protocol-v1.json";
-const GENERATED_FIELDS: &str = "packages/longhorn/src/operation/generated/fields.ts";
-const GENERATED_VARIANT_FIELDS: &str =
-    "packages/longhorn/src/operation/generated/variant-fields.ts";
-
-struct RenderedProtocol {
-    contents: String,
-    fields: String,
-    variant_fields: String,
-}
+const ARTIFACTS: DomainArtifacts = DomainArtifacts {
+    protocol: "packages/longhorn/src/operation/generated/protocol.ts",
+    fields: "packages/longhorn/src/operation/generated/fields.ts",
+    fields_constant: "OPERATION_FIELDS",
+    variant_fields: "packages/longhorn/src/operation/generated/variant-fields.ts",
+    variant_fields_constant: "OPERATION_VARIANT_FIELDS",
+    fixture: "fixtures/operation/protocol-v1.json",
+};
 const GENERATED_LABELS: &str = "packages/longhorn/src/operation/generated/labels.ts";
-
-/// Generates or checks the operation bindings and golden fixtures.
-pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
-    let protocol = render_protocol()?;
-    let artifacts = [
-        Artifact {
-            relative_path: GENERATED_PROTOCOL,
-            contents: protocol.contents,
-        },
-        Artifact {
-            relative_path: GENERATED_FIELDS,
-            contents: protocol.fields,
-        },
-        Artifact {
-            relative_path: GENERATED_VARIANT_FIELDS,
-            contents: protocol.variant_fields,
-        },
-        Artifact {
-            relative_path: GOLDEN_FIXTURE,
-            contents: fixture::render()?,
-        },
-        Artifact {
-            relative_path: GENERATED_LABELS,
-            contents: render_labels(),
-        },
-    ];
-    apply("operation", "generate:operation", mode, &artifacts)
-}
 
 fn render_labels() -> String {
     let entries: Vec<(&str, &str)> = OperationStateProjection::ALL
@@ -73,7 +45,7 @@ fn render_labels() -> String {
         .map(|state| (state.wire_name(), state.label()))
         .collect();
     label_module(
-        "generate:operation",
+        GENERATE_TASK,
         &[LabelMap {
             constant: "OPERATION_STATE_LABELS",
             import: "OperationStateProjection",
@@ -83,21 +55,20 @@ fn render_labels() -> String {
     )
 }
 
-fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let state = OperationStateProjection::decl(config());
-    let cancellation_support = OperationCancellationSupportProjection::decl(config());
+/// Renders the operation bindings and golden fixtures.
+///
+/// # Errors
+///
+/// Returns an error if declaration inspection or fixture serialization fails.
+pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let overall = OperationOverallProgressProjection::decl(config());
     let teardown_resolution = OperationTeardownResolutionProjection::decl(config());
     let mutation_command = OperationMutationCommand::decl(config());
-    let removal_reason = OperationRemovalReasonProjection::decl(config());
     let mutation_receipt = OperationMutationReceiptProjection::decl(config());
     let teardown_outcome = OperationTeardownOutcomeProjection::decl(config());
-    let rejection_code = OperationRejectionCode::decl(config());
     let mutation_result = OperationMutationResult::decl(config());
-    let cancellation_outcome = OperationCancellationOutcomeProjection::decl(config());
     let executor_dispatch = OperationExecutorDispatchProjection::decl(config());
     let cancellation_result = OperationCancellationResult::decl(config());
-    let changed_kind = OperationChangedKind::decl(config());
     let declarations = [
         OperationAuthorityId::decl(config()),
         OperationId::decl(config()),
@@ -109,8 +80,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         OperationCatalogueRevision::decl(config()),
         OperationProtocolVersion::decl(config()),
         OperationAuthorityProjection::decl(config()),
-        state.clone(),
-        cancellation_support.clone(),
+        OperationStateProjection::decl(config()),
+        OperationCancellationSupportProjection::decl(config()),
         overall.clone(),
         OperationPhaseProgressProjection::decl(config()),
         OperationProgressProjection::decl(config()),
@@ -122,24 +93,24 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         teardown_resolution.clone(),
         mutation_command.clone(),
         OperationCancellationCommand::decl(config()),
-        removal_reason.clone(),
+        OperationRemovalReasonProjection::decl(config()),
         OperationRemovalProjection::decl(config()),
         mutation_receipt.clone(),
         teardown_outcome.clone(),
-        rejection_code.clone(),
+        OperationRejectionCode::decl(config()),
         OperationRejection::decl(config()),
         mutation_result.clone(),
-        cancellation_outcome.clone(),
+        OperationCancellationOutcomeProjection::decl(config()),
         OperationCancellationReceiptProjection::decl(config()),
         executor_dispatch.clone(),
         cancellation_result.clone(),
-        changed_kind.clone(),
+        OperationChangedKind::decl(config()),
         OperationChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 
     let contents = format!(
-        "// @generated by `effigy generate:operation`; do not edit.\n\
+        "// @generated by `effigy {GENERATE_TASK}`; do not edit.\n\
          // Rust serde types are the wire authority. Product payloads are intentionally absent.\n\n\
          export const OPERATION_PROTOCOL_VERSION = {OPERATION_PROTOCOL_VERSION} as const;\n\
          export const OPERATION_STATES = {} as const;\n\
@@ -157,35 +128,28 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const OPERATION_CANCELLATION_STATUSES = {} as const;\n\
          export const OPERATION_CHANGED_KINDS = {} as const;\n\n\
          {}\n",
-        serde_json::to_string(&string_union_variants(&state)?)?,
-        serde_json::to_string(&string_union_variants(&cancellation_support)?)?,
-        serde_json::to_string(&tagged_variants(&overall, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&teardown_resolution, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&mutation_command, "kind")?)?,
-        serde_json::to_string(&string_union_variants(&removal_reason)?)?,
-        serde_json::to_string(&tagged_variants(&mutation_receipt, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&teardown_outcome, "kind")?)?,
-        serde_json::to_string(&string_union_variants(&rejection_code)?)?,
-        serde_json::to_string(&tagged_variants(&mutation_result, "status")?)?,
-        serde_json::to_string(&string_union_variants(&cancellation_outcome)?)?,
-        serde_json::to_string(&tagged_variants(&executor_dispatch, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&cancellation_result, "status")?)?,
-        serde_json::to_string(&string_union_variants(&changed_kind)?)?,
+        enum_names_json::<OperationStateProjection>()?,
+        enum_names_json::<OperationCancellationSupportProjection>()?,
+        tagged_variants_json(&overall)?,
+        tagged_variants_json(&teardown_resolution)?,
+        tagged_variants_json(&mutation_command)?,
+        enum_names_json::<OperationRemovalReasonProjection>()?,
+        tagged_variants_json(&mutation_receipt)?,
+        tagged_variants_json(&teardown_outcome)?,
+        enum_names_json::<OperationRejectionCode>()?,
+        tagged_variants_json(&mutation_result)?,
+        enum_names_json::<OperationCancellationOutcomeProjection>()?,
+        tagged_variants_json(&executor_dispatch)?,
+        tagged_variants_json(&cancellation_result)?,
+        enum_names_json::<OperationChangedKind>()?,
         declarations.join("\n\n")
     );
-    let (fields, _skipped) = field_map("generate:operation", "OPERATION_FIELDS", &declarations);
 
-    let variant_fields = variant_field_map(
-        "generate:operation",
-        "OPERATION_VARIANT_FIELDS",
-        &declarations,
-    )?;
-
-    Ok(RenderedProtocol {
-        contents,
-
-        fields,
-
-        variant_fields,
-    })
+    let mut artifacts =
+        build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)?;
+    artifacts.push(Artifact {
+        relative_path: GENERATED_LABELS,
+        contents: render_labels(),
+    });
+    Ok(artifacts)
 }

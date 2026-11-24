@@ -18,57 +18,25 @@ use longhorn_notifications::{
 };
 use ts_rs::TS;
 
-use crate::generation::{
-    Artifact, GenerationMode, LabelMap, apply, config, exported_declaration, field_map,
-    label_module, string_union_variants, tagged_variants, variant_field_map,
+use crate::{
+    generation::{
+        Artifact, DomainArtifacts, GENERATE_TASK, LabelMap, build_domain_artifacts, config,
+        exported_declaration, label_module, tagged_variants_json,
+    },
+    serde_shape::enum_names_json,
 };
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/longhorn/src/notifications/generated/protocol.ts";
-const GOLDEN_FIXTURE: &str = "fixtures/notifications/protocol-v1.json";
-const GENERATED_FIELDS: &str = "packages/longhorn/src/notifications/generated/fields.ts";
-const GENERATED_VARIANT_FIELDS: &str =
-    "packages/longhorn/src/notifications/generated/variant-fields.ts";
-
-struct RenderedProtocol {
-    contents: String,
-    fields: String,
-    variant_fields: String,
-}
+const ARTIFACTS: DomainArtifacts = DomainArtifacts {
+    protocol: "packages/longhorn/src/notifications/generated/protocol.ts",
+    fields: "packages/longhorn/src/notifications/generated/fields.ts",
+    fields_constant: "NOTIFICATIONS_FIELDS",
+    variant_fields: "packages/longhorn/src/notifications/generated/variant-fields.ts",
+    variant_fields_constant: "NOTIFICATION_VARIANT_FIELDS",
+    fixture: "fixtures/notifications/protocol-v1.json",
+};
 const GENERATED_LABELS: &str = "packages/longhorn/src/notifications/generated/labels.ts";
-
-/// Generates or checks the notification bindings and golden fixtures.
-pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
-    let protocol = render_protocol()?;
-    apply(
-        "notifications",
-        "generate:notifications",
-        mode,
-        &[
-            Artifact {
-                relative_path: GENERATED_PROTOCOL,
-                contents: protocol.contents,
-            },
-            Artifact {
-                relative_path: GENERATED_FIELDS,
-                contents: protocol.fields,
-            },
-            Artifact {
-                relative_path: GENERATED_VARIANT_FIELDS,
-                contents: protocol.variant_fields,
-            },
-            Artifact {
-                relative_path: GOLDEN_FIXTURE,
-                contents: fixture::render()?,
-            },
-            Artifact {
-                relative_path: GENERATED_LABELS,
-                contents: render_labels(),
-            },
-        ],
-    )
-}
 
 fn render_labels() -> String {
     let entries: Vec<(&str, &str)> = NotificationSeverity::ALL
@@ -85,7 +53,7 @@ fn render_labels() -> String {
         .collect();
 
     let mut rendered = label_module(
-        "generate:notifications",
+        GENERATE_TASK,
         &[LabelMap {
             constant: "NOTIFICATION_SEVERITY_LABELS",
             import: "NotificationSeverityProjection",
@@ -110,17 +78,16 @@ fn render_labels() -> String {
     rendered
 }
 
-fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
-    let severity = NotificationSeverityProjection::decl(config());
-    let read_state = NotificationReadStateProjection::decl(config());
-    let retention = NotificationRetentionClassProjection::decl(config());
+/// Renders the notification bindings and golden fixtures.
+///
+/// # Errors
+///
+/// Returns an error if declaration inspection or fixture serialization fails.
+pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let clear_target = NotificationClearTargetProjection::decl(config());
     let mutation = NotificationMutationCommand::decl(config());
-    let removal_reason = NotificationRemovalReasonProjection::decl(config());
     let receipt = NotificationMutationReceiptProjection::decl(config());
-    let rejection_code = NotificationRejectionCode::decl(config());
     let result = NotificationMutationResult::decl(config());
-    let changed_kind = NotificationChangedKind::decl(config());
     let declarations = [
         NotificationActionReferenceId::decl(config()),
         NotificationAuthorityId::decl(config()),
@@ -133,9 +100,9 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         NotificationSourceId::decl(config()),
         NotificationProtocolVersion::decl(config()),
         NotificationAuthorityProjection::decl(config()),
-        severity.clone(),
-        read_state.clone(),
-        retention.clone(),
+        NotificationSeverityProjection::decl(config()),
+        NotificationReadStateProjection::decl(config()),
+        NotificationRetentionClassProjection::decl(config()),
         NotificationActionProjection::decl(config()),
         NotificationDraftProjection::decl(config()),
         NotificationRecordProjection::decl(config()),
@@ -146,19 +113,19 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         NotificationSnapshotResponse::decl(config()),
         clear_target.clone(),
         mutation.clone(),
-        removal_reason.clone(),
+        NotificationRemovalReasonProjection::decl(config()),
         NotificationRemovalProjection::decl(config()),
         receipt.clone(),
-        rejection_code.clone(),
+        NotificationRejectionCode::decl(config()),
         NotificationRejection::decl(config()),
         result.clone(),
-        changed_kind.clone(),
+        NotificationChangedKind::decl(config()),
         NotificationChangedEvent::decl(config()),
     ]
     .map(exported_declaration);
 
     let contents = format!(
-        "// @generated by `effigy generate:notifications`; do not edit.\n\
+        "// @generated by `effigy {GENERATE_TASK}`; do not edit.\n\
          // Rust serde types are the wire authority. Executable actions are intentionally absent.\n\n\
          export const NOTIFICATION_PROTOCOL_VERSION = {NOTIFICATION_PROTOCOL_VERSION} as const;\n\
          export const NOTIFICATION_SEVERITIES = {} as const;\n\
@@ -172,35 +139,24 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const NOTIFICATION_MUTATION_STATUSES = {} as const;\n\
          export const NOTIFICATION_CHANGED_KINDS = {} as const;\n\n\
          {}\n",
-        serde_json::to_string(&string_union_variants(&severity)?)?,
-        serde_json::to_string(&string_union_variants(&read_state)?)?,
-        serde_json::to_string(&string_union_variants(&retention)?)?,
-        serde_json::to_string(&tagged_variants(&clear_target, "kind")?)?,
-        serde_json::to_string(&tagged_variants(&mutation, "kind")?)?,
-        serde_json::to_string(&string_union_variants(&removal_reason)?)?,
-        serde_json::to_string(&tagged_variants(&receipt, "kind")?)?,
-        serde_json::to_string(&string_union_variants(&rejection_code)?)?,
-        serde_json::to_string(&tagged_variants(&result, "status")?)?,
-        serde_json::to_string(&string_union_variants(&changed_kind)?)?,
+        enum_names_json::<NotificationSeverityProjection>()?,
+        enum_names_json::<NotificationReadStateProjection>()?,
+        enum_names_json::<NotificationRetentionClassProjection>()?,
+        tagged_variants_json(&clear_target)?,
+        tagged_variants_json(&mutation)?,
+        enum_names_json::<NotificationRemovalReasonProjection>()?,
+        tagged_variants_json(&receipt)?,
+        enum_names_json::<NotificationRejectionCode>()?,
+        tagged_variants_json(&result)?,
+        enum_names_json::<NotificationChangedKind>()?,
         declarations.join("\n\n")
     );
-    let (fields, _skipped) = field_map(
-        "generate:notifications",
-        "NOTIFICATIONS_FIELDS",
-        &declarations,
-    );
 
-    let variant_fields = variant_field_map(
-        "generate:notifications",
-        "NOTIFICATION_VARIANT_FIELDS",
-        &declarations,
-    )?;
-
-    Ok(RenderedProtocol {
-        contents,
-
-        fields,
-
-        variant_fields,
-    })
+    let mut artifacts =
+        build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)?;
+    artifacts.push(Artifact {
+        relative_path: GENERATED_LABELS,
+        contents: render_labels(),
+    });
+    Ok(artifacts)
 }

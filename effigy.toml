@@ -171,8 +171,8 @@ include = ["config/release.toml"]
 "test:vitest" = "sh -c 'for c in packages/*/vitest.config.ts; do bun x vitest run --config \"$c\" || exit 1; done'"
 
 # --- Generated protocol bindings ----------------------------------------
-"check:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do bash scripts/rust-command.sh run -q -p longhorn-bindings -- \"$d\" check || exit 1; done'"
-"generate:bindings" = "sh -c 'for d in bridge commands config history history-tree layout licence native-content notifications operation settings surfaces surface-transfer transfer update; do bash scripts/rust-command.sh run -q -p longhorn-bindings -- \"$d\" write || exit 1; done'"
+"check:bindings" = "bash scripts/rust-command.sh run -q -p longhorn-bindings -- all check"
+"generate:bindings" = "bash scripts/rust-command.sh run -q -p longhorn-bindings -- all write"
 "check:api-reference" = "bun scripts/generate-api-reference.ts"
 "check:tauri-seam-strings" = "bun scripts/verify-tauri-seam-strings.ts"
 "check:consumer-isolation" = "bun scripts/verify-consumer-isolation.ts"
@@ -1719,7 +1719,7 @@ members = [
       "path:fixtures/layout/*-conformance-v1.json",
       "path:packages/longhorn/src/**/generated/**",
     ],
-    limits = ["Checks all registered domains and outputs; a new domain still needs to be added to the selector loop"],
+    limits = ["Checks all registered domains and outputs"],
   },
   {
     id = "rustdoc",

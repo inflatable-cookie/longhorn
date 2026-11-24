@@ -29,7 +29,7 @@ struct IncompatibilityFixture {
     unknown_response_status: Value,
 }
 
-pub fn render(error_codes: &[String]) -> Result<String, Box<dyn Error>> {
+pub fn render(error_codes: &[&str]) -> Result<String, Box<dyn Error>> {
     let session_id = DragSessionId::from_entropy([0xCD; 16]);
     let session_requests = vec![SurfaceSessionStartRequest::new(
         request_id("request:start-surface"),
@@ -153,11 +153,11 @@ fn completion(session_id: DragSessionId, request_id: &str, target: Value) -> Val
     })
 }
 
-fn aborts(error_codes: &[String]) -> Result<Vec<SurfaceTransferAbort>, serde_json::Error> {
+fn aborts(error_codes: &[&str]) -> Result<Vec<SurfaceTransferAbort>, serde_json::Error> {
     error_codes
         .iter()
         .enumerate()
-        .map(|(index, code)| {
+        .map(|(index, &code)| {
             typed(json!({
                 "protocol_version": 1,
                 "request_id": format!("request:surface-error-{index:02}"),
