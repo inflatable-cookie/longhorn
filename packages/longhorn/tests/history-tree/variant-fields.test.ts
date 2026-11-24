@@ -6,7 +6,7 @@ import {
 import { HISTORY_TREE_VARIANT_FIELDS } from "../../src/history-tree/generated/variant-fields.ts";
 
 const base = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   authorityEpoch: 7,
   historyId: "history:tree",
   expectedRevision: 4,

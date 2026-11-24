@@ -47,10 +47,8 @@ function tracked() {
       calls.push("delete");
       revision += 1;
       return {
-        ...clone(removal),
-        entryId: undefined,
-        previousRevision: revision - 1,
-        committedRevision: revision,
+        status: "deleted",
+        receipt: { ...clone(removal), previousRevision: revision - 1, committedRevision: revision },
       };
     },
     prune: async () => {

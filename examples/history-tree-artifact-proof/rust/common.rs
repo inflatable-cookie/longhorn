@@ -1,8 +1,6 @@
 use std::{convert::Infallible, time::Instant};
 
-use longhorn_core::{
-    HistoryEntryId, HistoryGroupId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision,
-};
+use longhorn_core::{HistoryEntryId, HistoryId, HistoryKindId, HistoryPlanId, HistoryRevision};
 use longhorn_history::{
     HistoryAuthorityEpoch, HistoryCoalesce, HistoryCoalesceContext, HistoryEntryMetadata,
     HistoryEntrySequence, HistoryLabel, HistoryNavigationTransactionFailure, HistoryPayloadCodec,
@@ -385,7 +383,7 @@ fn metadata(label: &str) -> HistoryEntryMetadata {
     HistoryEntryMetadata::new(
         HistoryLabel::new(label).expect("history label"),
         Some(HistoryKindId::new("fixture:mutation").expect("kind id")),
-        Some(HistoryGroupId::new("fixture:group").expect("group id")),
+        None,
     )
 }
 

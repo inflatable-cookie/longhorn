@@ -220,6 +220,21 @@ impl<P> ForkHistory<P> {
             .revision
             .checked_next()
             .map_err(|_| ForkRetentionError::RevisionOverflow)?;
+        // Keep a reference to any surviving part of a branch whose tip is pruned.
+        let removed: HashSet<_> = prune_ids.iter().cloned().collect();
+        for branch in self.branches.values_mut() {
+            let mut head = branch.head_entry_id().cloned();
+            while head.as_ref().is_some_and(|id| removed.contains(id)) {
+                head = self.nodes[head.as_ref().expect("removed head exists")]
+                    .parent_entry_id()
+                    .cloned();
+            }
+            if let Some(head) = head
+                && !protected.contains(&head)
+            {
+                branch.set_head(head);
+            }
+        }
         let removal = self.remove_in_leaf_order(prune_ids);
 
         self.revision = committed_revision;

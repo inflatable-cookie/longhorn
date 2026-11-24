@@ -1,4 +1,4 @@
-import { ForkHistoryClient } from "@inflatable-cookie/longhorn/history-tree";
+import { FORK_HISTORY_PROTOCOL_VERSION, ForkHistoryClient } from "@inflatable-cookie/longhorn/history-tree";
 import fixtureJson from "./fixture.json";
 
 const fixture = structuredClone(fixtureJson) as any;
@@ -14,10 +14,10 @@ const client = new ForkHistoryClient({
 });
 
 const snapshot = await client.snapshot();
-const path = await client.path({ protocolVersion: 1, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, target: { kind: "default" }, offset: 0, limit: 17 });
-const branches = await client.branches({ protocolVersion: 1, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, offset: 0, limit: 17 });
-const continuations = await client.continuations({ protocolVersion: 1, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, anchorEntryId: fixture.rendererFixture.continuations.anchorEntryId, offset: 0, limit: 17 });
-const navigation = await client.navigate({ protocolVersion: 1, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, planId: client.nextPlanId(), target: { kind: "redo" } });
+const path = await client.path({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, target: { kind: "default" }, offset: 0, limit: 17 });
+const branches = await client.branches({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, offset: 0, limit: 17 });
+const continuations = await client.continuations({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, anchorEntryId: fixture.rendererFixture.continuations.anchorEntryId, offset: 0, limit: 17 });
+const navigation = await client.navigate({ protocolVersion: FORK_HISTORY_PROTOCOL_VERSION, authorityEpoch: snapshot.authorityEpoch, historyId: snapshot.summary.historyId, expectedRevision: snapshot.summary.revision, planId: client.nextPlanId(), target: { kind: "redo" } });
 const publicTrace = trace(snapshot, path, branches, continuations, navigation);
 if (!equalJson(publicTrace, fixture.publicTrace)) throw new Error("document native and renderer traces diverged");
 console.log(JSON.stringify({ shape: "document", publicTrace, transport: "direct", cleanInstall: true }));

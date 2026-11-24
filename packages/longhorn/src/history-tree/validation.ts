@@ -12,6 +12,8 @@ import {
   FORK_HISTORY_PATH_FLOORS,
   FORK_HISTORY_PATH_TARGETS,
   FORK_HISTORY_PRUNE_STATUSES,
+  FORK_HISTORY_DELETE_STATUSES,
+  FORK_HISTORY_RETENTION_REJECTION_CODES,
   FORK_HISTORY_PROTOCOL_VERSION,
   MAXIMUM_FORK_HISTORY_PAGE_SIZE,
 } from "./generated/protocol.ts";
@@ -23,6 +25,7 @@ import type {
   ForkDeleteContinuationCommand,
   ForkPruneCommand,
   ForkPruneResult,
+  ForkDeleteResult,
   ForkRemovalReceiptProjection,
   ForkChangedEvent,
   ForkNavigationCommand,
@@ -428,8 +431,28 @@ export function assertForkPruneCommand(value: unknown): asserts value is ForkPru
   integer(root.expectedRevision, "$.expectedRevision");
   // The budget bounds the unprotected share, and a zero budget is rejected by
   // the authority rather than treated as "remove everything unprotected".
-  positive(root.maximumEntries, "$.maximumEntries");
-  positive(root.maximumEncodedWeight, "$.maximumEncodedWeight");
+  integer(root.maximumEntries, "$.maximumEntries");
+  integer(root.maximumEncodedWeight, "$.maximumEncodedWeight");
+}
+
+function assertRetentionRejection(value: unknown): void {
+  const rejection = object(value, "$.rejection");
+  exact(rejection, "$.rejection", HISTORY_TREE_FIELDS.ForkRetentionRejectionProjection);
+  oneOf(rejection.code, "$.rejection.code", FORK_HISTORY_RETENTION_REJECTION_CODES);
+  string(rejection.detail, "$.rejection.detail");
+  boolean(rejection.refreshRequired, "$.rejection.refreshRequired");
+}
+
+export function assertForkDeleteResult(value: unknown): asserts value is ForkDeleteResult {
+  noPayload(value);
+  const root = object(value, "$");
+  oneOf(root.status, "$.status", FORK_HISTORY_DELETE_STATUSES);
+  exact(root, "$", variantFields("ForkDeleteResult", root, "$"));
+  if (root.status === "deleted") {
+    assertForkRemovalReceipt(root.receipt);
+  } else {
+    assertRetentionRejection(root.rejection);
+  }
 }
 
 export function assertForkPruneResult(value: unknown): asserts value is ForkPruneResult {
@@ -439,6 +462,8 @@ export function assertForkPruneResult(value: unknown): asserts value is ForkPrun
   exact(root, "$", variantFields("ForkPruneResult", root, "$"));
   if (root.status === "pruned") {
     assertForkRemovalReceipt(root.receipt);
+  } else if (root.status === "rejected") {
+    assertRetentionRejection(root.rejection);
   }
 }
 

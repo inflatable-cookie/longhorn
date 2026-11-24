@@ -310,7 +310,8 @@ async function packAndRunRustArtifacts(): Promise<{
   // AlreadyAtTarget added two protocol round-trips on the same crate. 64
   // since task 099 added policy-weight/migration-error, near-ceiling prune,
   // pinned-spine protected-lineage, and lazy branch-page projection tests.
-  if (testCount !== 64) {
+  // 68 includes task 163 retention, navigation, record, and legacy-load regressions.
+  if (testCount !== 68) {
     throw new Error(`artifact tree test count mismatch: ${testCount}`);
   }
 

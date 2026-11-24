@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { isRecord } from "../../src/core/record.ts";
+import { assertForkSnapshot } from "../../src/history-tree/validation.ts";
 
 import type {
   ForkBranchPageSnapshot,
@@ -10,17 +12,27 @@ import type {
   ForkSnapshot,
 } from "../../src/history-tree/generated/protocol.ts";
 
-export function forkHistoryGolden(): ForkSnapshot {
-  return JSON.parse(
+export function forkHistoryFixture(): Record<string, unknown> {
+  const value: unknown = JSON.parse(
     readFileSync(
-      new URL("../../../../fixtures/history-tree/protocol-v1.json", import.meta.url),
+      new URL("../../../../fixtures/history-tree/protocol-v2.json", import.meta.url),
       "utf8",
     ),
-  ) as ForkSnapshot;
+  );
+  if (!isRecord(value)) {
+    throw new Error("invalid history fixture");
+  }
+  return value;
+}
+
+export function forkHistoryGolden(): ForkSnapshot {
+  const value = forkHistoryFixture().snapshot;
+  assertForkSnapshot(value);
+  return value;
 }
 
 export const snapshot: ForkSnapshot = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   authorityEpoch: 7,
   summary: {
     historyId: "history:tree",
@@ -38,7 +50,7 @@ export const snapshot: ForkSnapshot = {
   },
 };
 export const pathPage: ForkPathPageSnapshot = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   authorityEpoch: 7,
   historyId: "history:tree",
   revision: 4,
@@ -78,7 +90,7 @@ export const pathPage: ForkPathPageSnapshot = {
   truncatedAfter: true,
 };
 export const branchPage: ForkBranchPageSnapshot = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   authorityEpoch: 7,
   historyId: "history:tree",
   revision: 4,
@@ -137,7 +149,7 @@ export const committed: ForkNavigationResult = {
   },
 };
 export const changed: ForkChangedEvent = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   authorityEpoch: 7,
   historyId: "history:tree",
   previousRevision: 4,
@@ -148,7 +160,7 @@ export function clone<T>(value: T): T {
   return structuredClone<T>(value);
 }
 export const continuationPage: ForkContinuationPageSnapshot = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   authorityEpoch: 7,
   historyId: "history:tree",
   revision: 4,
@@ -179,7 +191,7 @@ export const continuationPage: ForkContinuationPageSnapshot = {
   truncatedAfter: false,
 };
 export const removal: ForkRemovalReceiptProjection = {
-  protocolVersion: 1,
+  protocolVersion: 2,
   authorityEpoch: 7,
   historyId: "history:tree",
   previousRevision: 4,

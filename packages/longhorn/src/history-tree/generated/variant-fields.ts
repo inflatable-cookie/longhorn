@@ -13,7 +13,12 @@ export const HISTORY_TREE_VARIANT_FIELDS: Record<string, Record<string, readonly
     "branch": ["kind", "branchId"],
     "continuation": ["kind", "fromEntryId"],
   },
+  "ForkDeleteResult": {
+    "deleted": ["status", "receipt"],
+    "rejected": ["status", "rejection"],
+  },
   "ForkPruneResult": {
+    "rejected": ["status", "rejection"],
     "unchanged": ["status"],
     "pruned": ["status", "receipt"],
   },
@@ -33,6 +38,7 @@ export const HISTORY_TREE_VARIANT_FIELDS: Record<string, Record<string, readonly
 export const HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS: Record<string, string> = {
   "ForkPathFloorProjection": "kind",
   "ForkPathTargetProjection": "kind",
+  "ForkDeleteResult": "status",
   "ForkPruneResult": "status",
   "ForkNavigationTargetProjection": "kind",
   "ForkNavigationResult": "status",

@@ -4,9 +4,9 @@ use std::sync::{Arc, Mutex};
 
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkChangedKind, ForkContinuationPageCommand,
-    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
-    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkPruneCommand,
-    ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
+    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkDeleteResult,
+    ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot,
+    ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
 };
 use longhorn_tauri_history_tree::{
     ForkHistoryHandlerAssembly, ForkHistoryHostAuthority, ForkHistoryHostError,
@@ -66,18 +66,38 @@ impl ForkHistoryHostAuthority for Authority {
     fn delete_continuation(
         &mut self,
         caller: &str,
-        _: ForkDeleteContinuationCommand,
-    ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
+        command: ForkDeleteContinuationCommand,
+    ) -> Result<ForkDeleteResult, ForkHistoryHostError> {
         self.calls.lock().unwrap().push(format!("delete:{caller}"));
-        Ok(removal())
+        if command.entry_id.as_str() == "entry:blocked" {
+            let error =
+                longhorn_history_tree::ForkRetentionError::CurrentNodeInSubtree(command.entry_id);
+            return Ok(ForkDeleteResult::Rejected {
+                rejection:
+                    longhorn_history_tree::ForkRetentionRejectionProjection::from_retention_error(
+                        &error,
+                    )
+                    .unwrap(),
+            });
+        }
+        Ok(ForkDeleteResult::Deleted { receipt: removal() })
     }
 
     fn prune(
         &mut self,
         caller: &str,
-        _: ForkPruneCommand,
+        command: ForkPruneCommand,
     ) -> Result<ForkPruneResult, ForkHistoryHostError> {
         self.calls.lock().unwrap().push(format!("prune:{caller}"));
+        if command.maximum_entries == 0 {
+            return Ok(ForkPruneResult::Rejected {
+                rejection:
+                    longhorn_history_tree::ForkRetentionRejectionProjection::from_retention_error(
+                        &longhorn_history_tree::ForkRetentionError::ZeroLimit,
+                    )
+                    .unwrap(),
+            });
+        }
         Ok(ForkPruneResult::Unchanged)
     }
 
@@ -92,6 +112,39 @@ impl ForkHistoryHostAuthority for Authority {
             .push(format!("navigate:{caller}"));
         Ok(committed())
     }
+}
+
+#[test]
+fn destructive_refusals_cross_the_tauri_command_boundary() {
+    let service = Arc::new(ForkHistoryHandlerAssembly::new(Authority {
+        calls: Arc::new(Mutex::new(Vec::new())),
+    }));
+    let app = tauri::test::mock_builder()
+        .manage(TauriForkHistoryState::new(service))
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let window = WebviewWindowBuilder::new(&app, "refusals", WebviewUrl::default())
+        .build()
+        .unwrap();
+    let mut delete = delete_command();
+    delete.entry_id = longhorn_core::HistoryEntryId::new("entry:blocked").unwrap();
+    let result = tauri::async_runtime::block_on(longhorn_history_tree_delete_continuation(
+        window.clone(),
+        app.state(),
+        delete,
+    ))
+    .unwrap();
+    assert!(
+        matches!(result, ForkDeleteResult::Rejected { rejection } if rejection.code == longhorn_history_tree::ForkRetentionRejectionCode::CurrentNodeInSubtree)
+    );
+    let mut prune = prune_command();
+    prune.maximum_entries = 0;
+    let result =
+        tauri::async_runtime::block_on(longhorn_history_tree_prune(window, app.state(), prune))
+            .unwrap();
+    assert!(
+        matches!(result, ForkPruneResult::Rejected { rejection } if rejection.code == longhorn_history_tree::ForkRetentionRejectionCode::ZeroLimit)
+    );
 }
 
 #[test]
@@ -146,7 +199,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
             delete_command()
         ))
         .unwrap(),
-        removal()
+        ForkDeleteResult::Deleted { receipt: removal() }
     );
     assert_eq!(
         tauri::async_runtime::block_on(longhorn_history_tree_prune(
@@ -217,38 +270,38 @@ fn contains_key(value: &serde_json::Value, key: &str) -> bool {
 }
 
 fn snapshot() -> ForkSnapshot {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"summary":{"historyId":"history:tree","revision":4,"currentBranchId":"branch:main","currentEntryId":"entry:b","undoDepth":2,"redoDepth":1,"nextUndoLabel":"Move","nextRedoLabel":"Resize","retainedEntryCount":4,"retainedEncodedWeight":64,"branchCount":2,"alternatePathCount":2}})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"summary":{"historyId":"history:tree","revision":4,"currentBranchId":"branch:main","currentEntryId":"entry:b","undoDepth":2,"redoDepth":1,"nextUndoLabel":"Move","nextRedoLabel":"Resize","retainedEntryCount":4,"retainedEncodedWeight":64,"branchCount":2,"alternatePathCount":2}})).unwrap()
 }
 fn path() -> ForkPathPageSnapshot {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"branchId":null,"headEntryId":"entry:c","precedingContinuationCount":1,"floor":{"kind":"origin"},"offset":0,"totalEntries":1,"entries":[{"entryId":"entry:b","label":"Move","kindId":null,"groupId":null,"recordedAt":null,"continuationCount":2,"sequence":2,"committedRevision":2,"encodedWeight":16,"position":"current"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","revision":4,"branchId":null,"headEntryId":"entry:c","precedingContinuationCount":1,"floor":{"kind":"origin"},"offset":0,"totalEntries":1,"entries":[{"entryId":"entry:b","label":"Move","kindId":null,"groupId":null,"recordedAt":null,"continuationCount":2,"sequence":2,"committedRevision":2,"encodedWeight":16,"position":"current"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
 }
 fn branches() -> ForkBranchPageSnapshot {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"offset":0,"totalBranches":1,"branches":[{"branchId":"branch:main","headEntryId":"entry:c","divergenceEntryId":null,"divergenceBranchId":null,"name":"Main","annotation":null,"pinned":true,"current":true}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","revision":4,"offset":0,"totalBranches":1,"branches":[{"branchId":"branch:main","headEntryId":"entry:c","divergenceEntryId":null,"divergenceBranchId":null,"name":"Main","annotation":null,"pinned":true,"current":true}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
 }
 fn continuations() -> ForkContinuationPageSnapshot {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","revision":4,"anchorEntryId":"entry:b","offset":0,"totalContinuations":1,"continuations":[{"entryId":"entry:c","label":"Resize","recordedAt":null,"preferred":true,"entryCount":1,"branchId":"branch:main","branchName":"Main"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","revision":4,"anchorEntryId":"entry:b","offset":0,"totalContinuations":1,"continuations":[{"entryId":"entry:c","label":"Resize","recordedAt":null,"preferred":true,"entryCount":1,"branchId":"branch:main","branchName":"Main"}],"truncatedBefore":false,"truncatedAfter":false})).unwrap()
 }
 fn removal() -> ForkRemovalReceiptProjection {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","previousRevision":4,"committedRevision":5,"removedEntries":[{"entryId":"entry:d","sequence":4,"encodedWeight":16}],"removedBranches":["branch:alternate"],"removedCheckpoints":[],"retainedEntryCount":3,"retainedEncodedWeight":48,"unprotectedEntryCount":0,"unprotectedEncodedWeight":0})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","previousRevision":4,"committedRevision":5,"removedEntries":[{"entryId":"entry:d","sequence":4,"encodedWeight":16}],"removedBranches":["branch:alternate"],"removedCheckpoints":[],"retainedEntryCount":3,"retainedEncodedWeight":48,"unprotectedEntryCount":0,"unprotectedEncodedWeight":0})).unwrap()
 }
 fn delete_command() -> ForkDeleteContinuationCommand {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"entryId":"entry:d"})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"entryId":"entry:d"})).unwrap()
 }
 fn committed() -> ForkNavigationResult {
-    serde_json::from_value(serde_json::json!({"status":"committed","snapshot":{"protocolVersion":1,"authorityEpoch":7,"summary":{"historyId":"history:tree","revision":5,"currentBranchId":"branch:main","currentEntryId":"entry:c","undoDepth":3,"redoDepth":0,"nextUndoLabel":"Resize","nextRedoLabel":null,"retainedEntryCount":4,"retainedEncodedWeight":64,"branchCount":2,"alternatePathCount":2}},"receipt":{"historyId":"history:tree","planId":"plan:test","previousRevision":4,"committedRevision":5,"sourceEntryId":"entry:b","targetEntryId":"entry:c","targetBranchId":"branch:main","movedEntryIds":["entry:c"]}})).unwrap()
+    serde_json::from_value(serde_json::json!({"status":"committed","snapshot":{"protocolVersion":2,"authorityEpoch":7,"summary":{"historyId":"history:tree","revision":5,"currentBranchId":"branch:main","currentEntryId":"entry:c","undoDepth":3,"redoDepth":0,"nextUndoLabel":"Resize","nextRedoLabel":null,"retainedEntryCount":4,"retainedEncodedWeight":64,"branchCount":2,"alternatePathCount":2}},"receipt":{"historyId":"history:tree","planId":"plan:test","previousRevision":4,"committedRevision":5,"sourceEntryId":"entry:b","targetEntryId":"entry:c","targetBranchId":"branch:main","movedEntryIds":["entry:c"]}})).unwrap()
 }
 fn path_command() -> ForkPathPageCommand {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"target":{"kind":"default"},"offset":0,"limit":10})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"target":{"kind":"default"},"offset":0,"limit":10})).unwrap()
 }
 fn branch_command() -> ForkBranchPageCommand {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"offset":0,"limit":10})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"offset":0,"limit":10})).unwrap()
 }
 fn continuation_command() -> ForkContinuationPageCommand {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"anchorEntryId":"entry:b","offset":0,"limit":10})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"anchorEntryId":"entry:b","offset":0,"limit":10})).unwrap()
 }
 fn prune_command() -> ForkPruneCommand {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"maximumEntries":16,"maximumEncodedWeight":1024})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","expectedRevision":4,"maximumEntries":16,"maximumEncodedWeight":1024})).unwrap()
 }
 fn navigation_command() -> ForkNavigationCommand {
-    serde_json::from_value(serde_json::json!({"protocolVersion":1,"authorityEpoch":7,"historyId":"history:tree","planId":"plan:test","expectedRevision":4,"target":{"kind":"redo"}})).unwrap()
+    serde_json::from_value(serde_json::json!({"protocolVersion":2,"authorityEpoch":7,"historyId":"history:tree","planId":"plan:test","expectedRevision":4,"target":{"kind":"redo"}})).unwrap()
 }

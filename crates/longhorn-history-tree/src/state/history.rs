@@ -304,7 +304,8 @@ impl<P> ForkHistory<P> {
     /// # Errors
     ///
     /// Rejects without mutating the graph on stale revision, duplicate entry or
-    /// branch identity, missing or unexpected divergent branch seed, policy
+    /// branch identity, no-op payload, group metadata, missing or unexpected
+    /// divergent branch seed, policy
     /// failure, or hard ceiling exhaustion ([`ForkHistoryError::NodeLimitReached`],
     /// [`ForkHistoryError::BranchLimitReached`],
     /// [`ForkHistoryError::EncodedWeightLimitExceeded`]). Because recording runs
@@ -324,6 +325,12 @@ impl<P> ForkHistory<P> {
                 expected: record.expected_revision,
                 actual: self.revision,
             });
+        }
+        if record.metadata.group_id().is_some() {
+            return Err(ForkHistoryError::GroupRequiresLifecycle);
+        }
+        if policy.is_noop(&record.payload) {
+            return Err(ForkHistoryError::NoOpPayload);
         }
         if self.nodes.contains_key(&record.entry_id) {
             return Err(ForkHistoryError::DuplicateEntry(record.entry_id));

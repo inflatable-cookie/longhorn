@@ -14,6 +14,10 @@ pub enum ForkHistoryError<E = Infallible> {
         /// Current revision.
         actual: HistoryRevision,
     },
+    /// No-op payloads cannot be recorded.
+    NoOpPayload,
+    /// Group metadata requires a group lifecycle, which fork history does not provide.
+    GroupRequiresLifecycle,
     /// Entry identity already exists.
     DuplicateEntry(HistoryEntryId),
     /// Branch identity already exists.
@@ -58,6 +62,10 @@ impl<E: fmt::Display> fmt::Display for ForkHistoryError<E> {
                 expected.get(),
                 actual.get()
             ),
+            Self::NoOpPayload => formatter.write_str("fork history cannot record a no-op payload"),
+            Self::GroupRequiresLifecycle => {
+                formatter.write_str("fork history does not support grouped records")
+            }
             Self::DuplicateEntry(id) => write!(formatter, "fork history entry {id} already exists"),
             Self::DuplicateBranch(id) => write!(formatter, "fork branch {id} already exists"),
             Self::DivergentBranchRequired => {

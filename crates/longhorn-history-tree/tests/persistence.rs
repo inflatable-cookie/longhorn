@@ -3,8 +3,8 @@
 use std::{convert::Infallible, error::Error, fmt, time::Instant};
 
 use longhorn_core::{
-    CompatibilityStore, FutureSchemaRefused, HistoryEntryId, HistoryGroupId, HistoryId,
-    HistoryKindId, HistoryRevision,
+    CompatibilityStore, FutureSchemaRefused, HistoryEntryId, HistoryId, HistoryKindId,
+    HistoryRevision,
 };
 use longhorn_history::{
     HistoryEntryMetadata, HistoryEntrySequence, HistoryLabel, HistoryPayloadCodec,
@@ -145,7 +145,7 @@ fn metadata(label: &str) -> HistoryEntryMetadata {
     HistoryEntryMetadata::new(
         HistoryLabel::new(label).expect("fixture label"),
         Some(HistoryKindId::new("fixture:mutation").expect("fixture kind")),
-        Some(HistoryGroupId::new("fixture:group").expect("fixture group")),
+        None,
     )
 }
 
@@ -318,6 +318,30 @@ fn golden_dense_envelope_round_trips_exact_graph_deterministically() {
     assert_eq!(
         String::from_utf8(encoded).unwrap(),
         include_str!("../fixtures/history/tree-v1.json").trim_end()
+    );
+}
+
+#[test]
+fn previously_persisted_group_metadata_remains_readable() {
+    let (_, bytes) = encoded_v1();
+    let mut value: Value = serde_json::from_slice(&bytes).unwrap();
+    value["nodes"][0]["groupId"] = Value::from("group:legacy");
+    let loaded = persistence_v1()
+        .load(
+            &history_id("history:fork-fixture"),
+            &serde_json::to_vec(&value).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        loaded
+            .history()
+            .node(&entry_id("entry:a"))
+            .unwrap()
+            .metadata()
+            .group_id()
+            .unwrap()
+            .as_str(),
+        "group:legacy"
     );
 }
 

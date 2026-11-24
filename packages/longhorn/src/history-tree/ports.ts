@@ -11,7 +11,7 @@ import type {
   ForkNavigationResult,
   ForkPathPageCommand,
   ForkPathPageSnapshot,
-  ForkRemovalReceiptProjection,
+  ForkDeleteResult,
   ForkSnapshot,
   HistoryPlanId,
 } from "./generated/protocol.ts";
@@ -37,7 +37,7 @@ export interface CheckedForkHistoryPort {
   path(command: ForkPathPageCommand): Promise<ForkPathPageSnapshot>;
   branches(command: ForkBranchPageCommand): Promise<ForkBranchPageSnapshot>;
   continuations(command: ForkContinuationPageCommand): Promise<ForkContinuationPageSnapshot>;
-  deleteContinuation(command: ForkDeleteContinuationCommand): Promise<ForkRemovalReceiptProjection>;
+  deleteContinuation(command: ForkDeleteContinuationCommand): Promise<ForkDeleteResult>;
   prune(command: ForkPruneCommand): Promise<ForkPruneResult>;
   navigate(command: ForkNavigationCommand): Promise<ForkNavigationResult>;
   listen?(listener: (event: ForkChangedEvent) => void): Promise<ForkHistoryUnlisten>;

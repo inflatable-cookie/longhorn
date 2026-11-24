@@ -1,8 +1,8 @@
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
-    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
-    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkPruneCommand,
-    ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
+    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkDeleteResult,
+    ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot,
+    ForkPruneCommand, ForkPruneResult, ForkSnapshot,
 };
 
 use crate::ForkHistoryHostError;
@@ -35,15 +35,21 @@ pub trait ForkHistoryHostAuthority: Send {
 
     /// Deletes one continuation and everything below it. Irreversible.
     ///
+    /// Return expected domain refusals as `ForkDeleteResult::Rejected` using
+    /// `ForkRetentionRejectionProjection::from_retention_error`; reserve host
+    /// errors for failures outside that domain.
+    ///
     /// Separate from `navigate` because it destroys authority rather than
     /// moving through it, and its capability is separate for the same reason.
     fn delete_continuation(
         &mut self,
         caller: &str,
         command: ForkDeleteContinuationCommand,
-    ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError>;
+    ) -> Result<ForkDeleteResult, ForkHistoryHostError>;
 
     /// Prunes the unprotected share of the graph to a budget.
+    ///
+    /// Project expected domain refusals into `ForkPruneResult::Rejected`.
     fn prune(
         &mut self,
         caller: &str,

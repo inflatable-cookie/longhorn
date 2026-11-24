@@ -7,7 +7,7 @@ use crate::{ForkBranchId, ForkSummary};
 use super::{ForkProtocolProjectionError, count};
 
 /// Current exact metadata-only fork-history protocol version.
-pub const FORK_HISTORY_PROTOCOL_VERSION: u32 = 1;
+pub const FORK_HISTORY_PROTOCOL_VERSION: u32 = 2;
 
 /// Exact metadata-only fork-history protocol line.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
