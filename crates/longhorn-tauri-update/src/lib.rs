@@ -16,6 +16,8 @@ mod error;
 mod handler;
 
 pub use authority::UpdateHostAuthority;
+#[doc(hidden)]
+pub use commands::dispatch_update;
 pub use commands::{
     TauriUpdateState, UPDATE_CHANGED_EVENT, UPDATE_PROGRESS_EVENT, longhorn_update_apply,
     longhorn_update_cancel, longhorn_update_check, longhorn_update_defer, longhorn_update_prepare,

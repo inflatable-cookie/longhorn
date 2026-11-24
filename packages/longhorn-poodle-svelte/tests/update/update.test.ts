@@ -43,7 +43,8 @@ class Port implements UpdatePort {
   /** Every command the controller sent, in order. */
   readonly calls: Array<Record<string, unknown>> = [];
   #listeners: Array<(event: unknown) => void> = [];
-  #progressListeners: Array<(event: unknown) => void> = [];
+  #progressListener: ((event: unknown) => void) | undefined;
+  prepareWait: Promise<void> = Promise.resolve();
   async snapshot(): Promise<unknown> {
     return this.state;
   }
@@ -75,14 +76,21 @@ class Port implements UpdatePort {
     this.#listeners.push(listener);
     return () => {};
   }
-  listenProgress(listener: (event: unknown) => void) {
-    this.#progressListeners.push(listener);
-    return () => {};
+  async prepareWithProgress(command: { version: string }, listener: (event: unknown) => void) {
+    this.#progressListener = listener;
+    try {
+      await this.prepareWait;
+      return await this.prepare(command);
+    } finally {
+      this.#progressListener = undefined;
+    }
   }
   notifyProgress(progress: UpdateSnapshot["progress"]): void {
-    for (const listener of this.#progressListeners) {
-      listener({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: 1, progress });
-    }
+    this.#progressListener?.({
+      protocolVersion: UPDATE_PROTOCOL_VERSION,
+      authorityEpoch: 1,
+      progress,
+    });
   }
   notify(): void {
     for (const listener of this.#listeners) {
@@ -193,22 +201,31 @@ describe("update surface bindings", () => {
     await controller.start();
     const mounted = render(UpdateHarness, { props: { controller } });
 
-    port.notifyProgress({
-      state: "downloading",
-      received: 50,
-      expected: 100,
-      fraction: 0.5,
+    let finish: (() => void) | undefined;
+    port.prepareWait = new Promise<void>((resolve) => {
+      finish = resolve;
     });
-
-    await waitFor(() =>
-      expect(controller.progress).toEqual({
+    const pending = controller.prepare("1.4.0");
+    try {
+      port.notifyProgress({
         state: "downloading",
         received: 50,
         expected: 100,
         fraction: 0.5,
-      }),
-    );
-    mounted.unmount();
+      });
+      await waitFor(() =>
+        expect(controller.progress).toEqual({
+          state: "downloading",
+          received: 50,
+          expected: 100,
+          fraction: 0.5,
+        }),
+      );
+    } finally {
+      finish?.();
+      await pending;
+      mounted.unmount();
+    }
   });
 
   /**

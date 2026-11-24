@@ -25,6 +25,10 @@ export interface UpdatePort {
   selectChannel(command: UpdateSelectChannelCommand): Promise<unknown>;
   defer(command: UpdateDeferCommand): Promise<unknown>;
   prepare(command: UpdatePrepareCommand): Promise<unknown>;
+  /** Reports from this prepare invocation only. */
+  prepareWithProgress?:
+    | ((command: UpdatePrepareCommand, listener: (event: unknown) => void) => Promise<unknown>)
+    | undefined;
   apply(command: UpdateApplyCommand): Promise<unknown>;
   cancel(command: UpdateCancelCommand): Promise<unknown>;
   listen?:

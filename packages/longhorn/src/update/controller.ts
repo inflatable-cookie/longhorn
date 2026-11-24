@@ -5,6 +5,7 @@ import type {
   DeferralCause,
   UpdateAvailabilityProjection,
   UpdateOutcomeProjection,
+  UpdateProgressEvent,
   UpdateProgressProjection,
   UpdateRejectionCode,
   UpdateSnapshot,
@@ -76,6 +77,7 @@ export class UpdateController {
   #lifecycle = 0;
   #commandSequence = 0;
   #pending = false;
+  #legacyProgress: ((event: UpdateProgressEvent) => void) | undefined;
   #unlisten: Array<UpdateUnlisten> = [];
   /**
    * The most recent live progress report.
@@ -223,13 +225,11 @@ export class UpdateController {
       }
       this.#unlisten.push(unlisten);
       const unlistenProgress = await this.#client.listenProgress((event) => {
-        if (!this.#started || lifecycle !== this.#lifecycle) {
-          return;
+        if (lifecycle === this.#lifecycle) {
+          this.#legacyProgress?.(event);
         }
-        this.#liveProgress = event.progress;
-        this.#notify();
       });
-      if (!this.#started || lifecycle !== this.#lifecycle) {
+      if (lifecycle !== this.#lifecycle) {
         await unlistenProgress();
         return;
       }
@@ -245,6 +245,9 @@ export class UpdateController {
   async stop(): Promise<void> {
     this.#started = false;
     this.#lifecycle += 1;
+    this.#pending = false;
+    this.#legacyProgress = undefined;
+    this.#liveProgress = undefined;
     const unlisten = this.#unlisten;
     this.#unlisten = [];
     for (const stop of unlisten) {
@@ -260,6 +263,9 @@ export class UpdateController {
       if (lifecycle !== this.#lifecycle) {
         return;
       }
+      if (snapshot.authorityEpoch !== this.#snapshot?.authorityEpoch) {
+        this.#liveProgress = undefined;
+      }
       this.#snapshot = snapshot;
       this.#setStatus({ kind: "ready" });
     } catch (error) {
@@ -271,17 +277,17 @@ export class UpdateController {
 
   /** Asks the source for the channel's current manifest. */
   async check(): Promise<UpdateCommandOutcome> {
-    return this.#command((client, epoch) =>
-      client.check({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch }),
+    return this.#command((client, { authorityEpoch }) =>
+      client.check({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch }),
     );
   }
 
   /** Follows a different channel from now on. */
   async selectChannel(channel: Channel): Promise<UpdateCommandOutcome> {
-    return this.#command((client, epoch) =>
+    return this.#command((client, { authorityEpoch }) =>
       client.selectChannel({
         protocolVersion: UPDATE_PROTOCOL_VERSION,
-        authorityEpoch: epoch,
+        authorityEpoch,
         channel,
       }),
     );
@@ -290,21 +296,30 @@ export class UpdateController {
   /** Declines a version for now. */
   async defer(version: string, cause: DeferralCause): Promise<UpdateCommandOutcome> {
     return this.#command(
-      (client, epoch) =>
+      (client, { authorityEpoch }) =>
         client.defer({
           protocolVersion: UPDATE_PROTOCOL_VERSION,
-          authorityEpoch: epoch,
+          authorityEpoch,
           version,
           cause,
         }),
-      true,
+      { committedMayDefer: true },
     );
   }
 
   /** Fetches, verifies and retains an update for a later apply. */
   async prepare(version: string): Promise<UpdateCommandOutcome> {
-    return this.#command((client, epoch) =>
-      client.prepare({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch, version }),
+    return this.#command(
+      (client, snapshot, reportProgress) =>
+        client.prepareWithProgress(
+          {
+            protocolVersion: UPDATE_PROTOCOL_VERSION,
+            authorityEpoch: snapshot.authorityEpoch,
+            version,
+          },
+          reportProgress,
+        ),
+      { prepare: true },
     );
   }
 
@@ -315,34 +330,37 @@ export class UpdateController {
    * can offer the restart again.
    */
   async apply(version: string): Promise<UpdateCommandOutcome> {
-    return this.#command(async (client, epoch, snapshot) => {
-      const staged = snapshot.staged;
-      if (staged?.version !== version) {
-        return { status: "rejected", code: "noOffer", snapshot };
-      }
-      return client.apply({
-        protocolVersion: UPDATE_PROTOCOL_VERSION,
-        authorityEpoch: epoch,
-        version,
-        digest: staged.digest,
-      });
-    }, true);
+    return this.#command(
+      async (client, snapshot) => {
+        const staged = snapshot.staged;
+        if (staged?.version !== version) {
+          return { status: "rejected", code: "noOffer", snapshot };
+        }
+        return client.apply({
+          protocolVersion: UPDATE_PROTOCOL_VERSION,
+          authorityEpoch: snapshot.authorityEpoch,
+          version,
+          digest: staged.digest,
+        });
+      },
+      { committedMayDefer: true },
+    );
   }
 
   /** Discards the retained staged artifact. */
   async cancel(): Promise<UpdateCommandOutcome> {
-    return this.#command((client, epoch) =>
-      client.cancel({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: epoch }),
+    return this.#command((client, { authorityEpoch }) =>
+      client.cancel({ protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch }),
     );
   }
 
   async #command(
     run: (
       client: UpdateClient,
-      epoch: number,
       snapshot: UpdateSnapshot,
+      reportProgress: (event: UpdateProgressEvent) => void,
     ) => Promise<UpdateOutcomeProjection>,
-    committedMayDefer = false,
+    options: { readonly committedMayDefer?: boolean; readonly prepare?: boolean } = {},
   ): Promise<UpdateCommandOutcome> {
     const commandSequence = ++this.#commandSequence;
     this.#lastRejection = undefined;
@@ -355,22 +373,42 @@ export class UpdateController {
       return { status: "failed", error };
     }
     const lifecycle = this.#lifecycle;
+    const isCurrent = () =>
+      lifecycle === this.#lifecycle && commandSequence === this.#commandSequence;
+    const reportProgress = (event: UpdateProgressEvent) => {
+      if (
+        this.#started &&
+        isCurrent() &&
+        this.#pending &&
+        event.authorityEpoch === snapshot.authorityEpoch &&
+        event.authorityEpoch === this.#snapshot?.authorityEpoch
+      ) {
+        this.#liveProgress = event.progress;
+        this.#notify();
+      }
+    };
     this.#pending = true;
+    this.#legacyProgress =
+      options.prepare && this.#client.port.prepareWithProgress === undefined
+        ? reportProgress
+        : undefined;
     this.#liveProgress = undefined;
     this.#notify();
     try {
-      const outcome = await run(this.#client, snapshot.authorityEpoch, snapshot);
+      const outcome = await run(this.#client, snapshot, reportProgress);
       const result: UpdateCommandOutcome =
         outcome.status === "rejected"
           ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
-          : committedMayDefer && outcome.snapshot.deferral !== null
+          : options.committedMayDefer && outcome.snapshot.deferral !== null
             ? {
                 status: "committedWithDeferral",
                 snapshot: outcome.snapshot,
                 deferral: outcome.snapshot.deferral,
               }
             : { status: "committed", snapshot: outcome.snapshot };
-      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+      if (isCurrent()) {
+        this.#pending = false;
+        this.#legacyProgress = undefined;
         this.#snapshot = outcome.snapshot;
         this.#liveProgress = undefined;
         this.#lastRejection = result.status === "rejected" ? result.code : undefined;
@@ -378,15 +416,13 @@ export class UpdateController {
       }
       return result;
     } catch (error) {
-      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+      if (isCurrent()) {
+        this.#pending = false;
+        this.#legacyProgress = undefined;
+        this.#liveProgress = undefined;
         this.#setStatus({ kind: "failed", error });
       }
       return { status: "failed", error };
-    } finally {
-      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
-        this.#pending = false;
-        this.#notify();
-      }
     }
   }
 

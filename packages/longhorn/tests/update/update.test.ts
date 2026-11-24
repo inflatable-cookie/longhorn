@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { ok } from "node:assert/strict";
 import {
   UPDATE_PROTOCOL_VERSION,
   UpdateClient,
@@ -17,6 +18,7 @@ import type {
   UpdateChangedEvent,
   UpdateOutcomeProjection,
   UpdatePort,
+  UpdatePrepareCommand,
   UpdateProgressProjection,
   UpdateSnapshot,
 } from "../../src/update/index.ts";
@@ -86,7 +88,7 @@ class Port implements UpdatePort {
     this.calls.push("listen");
     return () => {};
   }
-  async listenProgress(listener: (event: unknown) => void): Promise<() => void> {
+  listenProgress(listener: (event: unknown) => void): () => void {
     this.calls.push("listenProgress");
     this.#progressListener = listener;
     return () => {
@@ -97,6 +99,35 @@ class Port implements UpdatePort {
     this.#progressListener?.(event);
   }
 }
+
+class PreparingPort extends Port {
+  readonly #transfers: Array<{
+    readonly report: (event: unknown) => void;
+    readonly complete: (outcome: UpdateOutcomeProjection) => void;
+  }> = [];
+
+  prepareWithProgress(
+    _command: UpdatePrepareCommand,
+    report: (event: unknown) => void,
+  ): Promise<unknown> {
+    return new Promise<UpdateOutcomeProjection>((complete) => {
+      this.#transfers.push({ report, complete });
+    });
+  }
+
+  transfer(index: number) {
+    const transfer = this.#transfers[index];
+    ok(transfer, `expected prepare ${index + 1} to be pending`);
+    return transfer;
+  }
+}
+
+const LIVE_PROGRESS = { state: "downloading", received: 5, expected: 10, fraction: 0.5 } as const;
+const PROGRESS_EVENT = {
+  protocolVersion: UPDATE_PROTOCOL_VERSION,
+  authorityEpoch: 3,
+  progress: LIVE_PROGRESS,
+};
 
 describe("update validation", () => {
   test("a well-formed snapshot passes", () => {
@@ -509,23 +540,48 @@ describe("update controller", () => {
    * the authority across the download.
    */
   test("a live report wins over the snapshot while the transfer runs", async () => {
+    const port = new PreparingPort();
+    const controller = new UpdateController({ port: new SerializedUpdatePort(port) });
+    await controller.start();
+
+    const pending = controller.prepare("1.4.0");
+    const transfer = port.transfer(0);
+    port.emitProgress(PROGRESS_EVENT);
+    transfer.report({ ...PROGRESS_EVENT, authorityEpoch: 2 });
+    expect(controller.progress).toEqual({ state: "idle" });
+
+    transfer.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+    expect(controller.presence).toBe("quiet");
+    transfer.complete(committed());
+    await pending;
+  });
+
+  test("an event-only port reports live bytes only during prepare and at its epoch", async () => {
     const port = new Port();
+    let finish: ((outcome: UpdateOutcomeProjection) => void) | undefined;
+    port.prepare = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
     const controller = new UpdateController({ port });
     await controller.start();
 
-    port.emitProgress({
-      protocolVersion: UPDATE_PROTOCOL_VERSION,
-      authorityEpoch: 3,
-      progress: { state: "downloading", received: 5, expected: 10, fraction: 0.5 },
-    });
+    port.emitProgress(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+    const pending = controller.prepare("1.4.0");
+    port.emitProgress({ ...PROGRESS_EVENT, authorityEpoch: 2 });
+    expect(controller.progress).toEqual({ state: "idle" });
 
-    expect(controller.progress).toEqual({
-      state: "downloading",
-      received: 5,
-      expected: 10,
-      fraction: 0.5,
-    });
-    expect(controller.presence).toBe("quiet");
+    port.emitProgress(PROGRESS_EVENT);
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+    await controller.cancel();
+    port.emitProgress(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+
+    ok(finish, "legacy prepare is pending");
+    finish(committed());
+    await pending;
   });
 
   test("the live report is dropped when the command that started it settles", async () => {
@@ -533,19 +589,100 @@ describe("update controller", () => {
       staged: STAGED,
       progress: { state: "readyToInstall", version: "1.4.0" },
     });
-    const port = new Port(snapshot(), () => committed(retained));
+    const port = new PreparingPort();
     const controller = new UpdateController({ port });
     await controller.start();
 
-    port.emitProgress({
-      protocolVersion: UPDATE_PROTOCOL_VERSION,
-      authorityEpoch: 3,
-      progress: { state: "downloading", received: 5, expected: 10, fraction: 0.5 },
-    });
-    await controller.prepare("1.4.0");
+    const pending = controller.prepare("1.4.0");
+    const transfer = port.transfer(0);
+    transfer.report(PROGRESS_EVENT);
+    transfer.complete(committed(retained));
+    await pending;
+    transfer.report(PROGRESS_EVENT);
 
     expect(controller.progress).toEqual({ state: "readyToInstall", version: "1.4.0" });
     expect(controller.staged).toEqual(STAGED);
+  });
+
+  test("drops cancelled and superseded progress even when another prepare uses the same epoch", async () => {
+    const port = new PreparingPort();
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    const cancelled = controller.prepare("1.4.0");
+    const first = port.transfer(0);
+    first.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+
+    await controller.cancel();
+    first.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+
+    const superseded = controller.prepare("1.4.0");
+    const second = port.transfer(1);
+    first.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+
+    const pending = controller.prepare("1.4.0");
+    const third = port.transfer(2);
+    second.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+    third.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+
+    first.complete(committed());
+    second.complete(committed());
+    await Promise.all([cancelled, superseded]);
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+    third.complete(committed());
+    await pending;
+  });
+
+  test("drops old reports after a channel switch and accepts the new epoch", async () => {
+    const beta = snapshot({ authorityEpoch: 4, channel: "beta" });
+    const port = new PreparingPort(snapshot(), () => committed(beta));
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    const previous = controller.prepare("1.4.0");
+    const first = port.transfer(0);
+    first.report(PROGRESS_EVENT);
+    await controller.selectChannel("beta");
+    first.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+
+    const current = controller.prepare("1.4.0");
+    const second = port.transfer(1);
+    second.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+    second.report({ ...PROGRESS_EVENT, authorityEpoch: 4 });
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+
+    first.complete(committed());
+    second.complete(committed(beta));
+    await Promise.all([previous, current]);
+    expect(controller.snapshot?.channel).toBe("beta");
+  });
+
+  test("refreshing to a new epoch clears progress from a still pending prepare", async () => {
+    let state = snapshot();
+    const port = new PreparingPort();
+    port.snapshot = async () => state;
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    const pending = controller.prepare("1.4.0");
+    const transfer = port.transfer(0);
+    transfer.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+
+    state = snapshot({ authorityEpoch: 4, channel: "beta" });
+    await controller.refresh();
+    expect(controller.progress).toEqual({ state: "idle" });
+    transfer.report(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+    transfer.complete({ status: "rejected", code: "staleAuthority", snapshot: state });
+    await pending;
   });
 });
 

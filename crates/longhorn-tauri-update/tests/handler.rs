@@ -1,13 +1,13 @@
 //! Direct, serialized, and Tauri mock-runtime handler conformance.
 
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 
 use longhorn_tauri_update::{
-    TauriUpdateState, UPDATE_CHANGED_EVENT, UpdateHandlerAssembly, UpdateHostAuthority,
-    UpdateHostError, longhorn_update_apply, longhorn_update_cancel, longhorn_update_check,
-    longhorn_update_defer, longhorn_update_prepare, longhorn_update_select_channel,
-    longhorn_update_snapshot, update_changed_event,
+    TauriUpdateState, UPDATE_CHANGED_EVENT, UPDATE_PROGRESS_EVENT, UpdateHandlerAssembly,
+    UpdateHostAuthority, UpdateHostError, longhorn_update_apply, longhorn_update_cancel,
+    longhorn_update_check, longhorn_update_defer, longhorn_update_prepare,
+    longhorn_update_select_channel, longhorn_update_snapshot, update_changed_event,
 };
 use longhorn_update::{
     ArtifactFetch, Channel, DeferralCause, EndpointUrl, FetchError, FetchProgress,
@@ -367,6 +367,99 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
 }
 
 #[test]
+fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/update/protocol-v1.json")).unwrap();
+    let expected = fixture["progressEvent"].clone();
+    let service = Arc::new(UpdateHandlerAssembly::new(
+        Authority::new(Arc::new(Mutex::new(Vec::new()))),
+        Arc::new(Fetch::reporting(vec![FetchProgress::of(27, 54)])),
+    ));
+    let messages = Arc::new(Mutex::new(Vec::new()));
+    let received = Arc::clone(&messages);
+    let app = tauri::test::mock_builder()
+        .invoke_handler(tauri::generate_handler![
+            longhorn_tauri_update::longhorn_update_snapshot,
+            longhorn_tauri_update::longhorn_update_prepare
+        ])
+        .channel_interceptor(move |_, callback, _, body| {
+            received.lock().unwrap().push((
+                callback,
+                body.clone().deserialize::<serde_json::Value>().unwrap(),
+            ));
+            true
+        })
+        .manage(TauriUpdateState::new(service))
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let window = WebviewWindowBuilder::new(&app, "settings", WebviewUrl::default())
+        .build()
+        .unwrap();
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let received = Arc::clone(&events);
+    app.listen(UPDATE_PROGRESS_EVENT, move |event| {
+        received
+            .lock()
+            .unwrap()
+            .push(serde_json::from_str::<serde_json::Value>(event.payload()).unwrap());
+    });
+    let invoke = |command: &str, body| {
+        tauri::test::get_ipc_response(
+            &window,
+            tauri::webview::InvokeRequest {
+                cmd: command.into(),
+                callback: tauri::ipc::CallbackFn(1),
+                error: tauri::ipc::CallbackFn(2),
+                url: "tauri://localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::Json(body),
+                headers: Default::default(),
+                invoke_key: tauri::test::INVOKE_KEY.into(),
+            },
+        )
+        .unwrap()
+        .deserialize::<serde_json::Value>()
+        .unwrap()
+    };
+
+    assert_eq!(
+        invoke("longhorn_update_snapshot", serde_json::json!({})),
+        serde_json::json!(snapshot())
+    );
+    assert_eq!(
+        invoke(
+            "longhorn_update_snapshot",
+            serde_json::json!({ "includeProgressCapabilities": true })
+        ),
+        serde_json::json!({ "snapshot": snapshot(), "scopedPrepareProgress": true })
+    );
+    assert_eq!(
+        invoke(
+            "longhorn_update_prepare",
+            serde_json::json!({
+                "command": fixture["prepareCommand"],
+                "onProgress": "__CHANNEL__:42"
+            })
+        ),
+        serde_json::json!(committed())
+    );
+    assert!(events.lock().unwrap().is_empty());
+    assert_eq!(
+        *messages.lock().unwrap(),
+        [(tauri::ipc::CallbackFn(42), expected.clone())]
+    );
+
+    assert_eq!(
+        invoke(
+            "longhorn_update_prepare",
+            serde_json::json!({ "command": fixture["prepareCommand"] })
+        ),
+        serde_json::json!(committed())
+    );
+    assert_eq!(*events.lock().unwrap(), [expected]);
+    assert_eq!(messages.lock().unwrap().len(), 1);
+}
+
+#[test]
 fn serialized_service_returns_the_committed_outcome() {
     let fetch = Arc::new(Fetch::reporting(Vec::new()));
     let service =
@@ -485,5 +578,178 @@ fn the_authority_lock_is_not_held_across_the_transfer() {
             readable.expect("the authority lock is released during the transfer"),
             "the state is readable while the transfer runs"
         );
+    });
+}
+
+#[test]
+fn an_in_flight_publication_finishes_before_cancel_commits() {
+    use std::sync::mpsc::{RecvTimeoutError, channel};
+    use std::time::Duration;
+
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let service = UpdateHandlerAssembly::new(
+        Authority::new(Arc::clone(&calls)),
+        Arc::new(Fetch::reporting(vec![FetchProgress::of(1, 2)])),
+    );
+    let entered = Signal::new();
+    let emit = Signal::new();
+    let cancelling = Signal::new();
+
+    std::thread::scope(|scope| {
+        let preparing = scope.spawn(|| {
+            service.prepare("settings", prepare_command(), &mut |_| {
+                entered.raise();
+                emit.wait();
+                calls.lock().unwrap().push("published".to_owned());
+            })
+        });
+        entered.wait();
+
+        let (finished, result) = channel();
+        let service = &service;
+        let cancelling = &cancelling;
+        let cancel = scope.spawn(move || {
+            cancelling.raise();
+            let outcome = service.cancel(
+                "settings",
+                UpdateCancelCommand {
+                    protocol_version: UpdateProtocolVersion::CURRENT,
+                    authority_epoch: 4,
+                },
+            );
+            finished.send(outcome).unwrap();
+        });
+        cancelling.wait();
+        let while_publishing = result.recv_timeout(Duration::from_millis(100));
+        emit.raise();
+
+        preparing.join().unwrap().unwrap();
+        cancel.join().unwrap();
+        assert_eq!(
+            while_publishing,
+            Err(RecvTimeoutError::Timeout),
+            "cancellation completed while the admitted report was paused in its sink"
+        );
+        assert_eq!(result.try_recv().unwrap().unwrap(), committed());
+        let calls = calls.lock().unwrap();
+        let published = calls.iter().position(|call| call == "published").unwrap();
+        let cancelled = calls
+            .iter()
+            .position(|call| call == "cancel:settings")
+            .unwrap();
+        assert!(
+            published < cancelled,
+            "publication must precede cancel: {calls:?}"
+        );
+    });
+}
+
+#[test]
+fn cancel_and_channel_switch_suppress_further_reports() {
+    for switch_channel in [false, true] {
+        let fetch = Arc::new(BlockingFetch {
+            entered: Signal::new(),
+            release: Signal::new(),
+            reports: vec![FetchProgress::of(1, 2)],
+        });
+        let service = UpdateHandlerAssembly::new(
+            Authority::new(Arc::new(Mutex::new(Vec::new()))),
+            fetch.clone(),
+        );
+
+        std::thread::scope(|scope| {
+            let preparing = scope.spawn(|| {
+                let mut events = Vec::new();
+                service
+                    .prepare("settings", prepare_command(), &mut |event| {
+                        events.push(event)
+                    })
+                    .unwrap();
+                events
+            });
+            fetch.entered.wait();
+            let outcome = if switch_channel {
+                service.select_channel(
+                    "settings",
+                    UpdateSelectChannelCommand {
+                        protocol_version: UpdateProtocolVersion::CURRENT,
+                        authority_epoch: 4,
+                        channel: Channel::Beta,
+                    },
+                )
+            } else {
+                service.cancel(
+                    "settings",
+                    UpdateCancelCommand {
+                        protocol_version: UpdateProtocolVersion::CURRENT,
+                        authority_epoch: 4,
+                    },
+                )
+            };
+            fetch.release.raise();
+            assert!(matches!(
+                outcome.unwrap(),
+                UpdateOutcomeProjection::Committed { .. }
+            ));
+            assert!(
+                preparing.join().unwrap().is_empty(),
+                "late report after switch_channel={switch_channel}"
+            );
+        });
+    }
+}
+
+#[test]
+fn only_the_new_prepare_reports_at_the_same_epoch() {
+    struct ConcurrentFetch {
+        calls: AtomicUsize,
+        transfers: [BlockingFetch; 2],
+    }
+
+    impl ArtifactFetch for ConcurrentFetch {
+        fn fetch(
+            &self,
+            request: &SourceRequest,
+            limit: u64,
+            report: &mut dyn FnMut(FetchProgress),
+        ) -> Result<Vec<u8>, FetchError> {
+            let index = self.calls.fetch_add(1, Ordering::Relaxed);
+            self.transfers[index].fetch(request, limit, report)
+        }
+    }
+
+    let fetch = Arc::new(ConcurrentFetch {
+        calls: AtomicUsize::new(0),
+        transfers: std::array::from_fn(|_| BlockingFetch {
+            entered: Signal::new(),
+            release: Signal::new(),
+            reports: vec![FetchProgress::of(1, 2)],
+        }),
+    });
+    let service = UpdateHandlerAssembly::new(
+        Authority::new(Arc::new(Mutex::new(Vec::new()))),
+        fetch.clone(),
+    );
+    let prepare = || {
+        let mut events = Vec::new();
+        service
+            .prepare("settings", prepare_command(), &mut |event| {
+                events.push(event)
+            })
+            .unwrap();
+        events
+    };
+    let [first, second] = &fetch.transfers;
+    std::thread::scope(|scope| {
+        let older = scope.spawn(prepare);
+        first.entered.wait();
+        let newer = scope.spawn(prepare);
+        second.entered.wait();
+
+        first.release.raise();
+        let older_events = older.join();
+        second.release.raise();
+        assert!(older_events.unwrap().is_empty());
+        assert_eq!(newer.join().unwrap().len(), 1);
     });
 }

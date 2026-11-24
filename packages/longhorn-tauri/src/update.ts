@@ -10,6 +10,7 @@ import type {
   UpdateSelectChannelCommand,
   UpdateUnlisten,
 } from "@inflatable-cookie/longhorn/update";
+import type { TauriTransport } from "./transport/index.ts";
 export const UPDATE_SNAPSHOT_COMMAND = "longhorn_update_snapshot";
 export const UPDATE_CHECK_COMMAND = "longhorn_update_check";
 export const UPDATE_SELECT_CHANNEL_COMMAND = "longhorn_update_select_channel";
@@ -41,8 +42,29 @@ export function createTauriUpdatePort(options: {
   readonly transport: InvokeTransport;
 }): UpdatePort {
   const events = isEventTransport(options.transport) ? options.transport : undefined;
+  const transport = options.transport;
+  const progress = hasProgress(transport) ? transport : undefined;
+  let scopedPrepareProgress = false;
   return {
-    snapshot: () => options.transport.invoke(UPDATE_SNAPSHOT_COMMAND, {}),
+    async snapshot() {
+      const response = await transport.invoke(
+        UPDATE_SNAPSHOT_COMMAND,
+        progress === undefined ? {} : { includeProgressCapabilities: true },
+      );
+      if (
+        progress !== undefined &&
+        typeof response === "object" &&
+        response !== null &&
+        "scopedPrepareProgress" in response &&
+        response.scopedPrepareProgress === true &&
+        "snapshot" in response
+      ) {
+        scopedPrepareProgress = true;
+        return response.snapshot;
+      }
+      scopedPrepareProgress = false;
+      return response;
+    },
     check: (command: UpdateCheckCommand) =>
       options.transport.invoke(UPDATE_CHECK_COMMAND, { command }),
     selectChannel: (command: UpdateSelectChannelCommand) =>
@@ -51,6 +73,12 @@ export function createTauriUpdatePort(options: {
       options.transport.invoke(UPDATE_DEFER_COMMAND, { command }),
     prepare: (command: UpdatePrepareCommand) =>
       options.transport.invoke(UPDATE_PREPARE_COMMAND, { command }),
+    get prepareWithProgress(): UpdatePort["prepareWithProgress"] {
+      return !scopedPrepareProgress || progress === undefined
+        ? undefined
+        : (command, listener) =>
+            progress.invokeWithProgress(UPDATE_PREPARE_COMMAND, { command }, listener);
+    },
     apply: (command: UpdateApplyCommand) =>
       options.transport.invoke(UPDATE_APPLY_COMMAND, { command }),
     cancel: (command: UpdateCancelCommand) =>
@@ -64,6 +92,9 @@ export function createTauriUpdatePort(options: {
         ? undefined
         : (listener) => listen(events, UPDATE_PROGRESS_EVENT, listener),
   };
+}
+function hasProgress(transport: InvokeTransport): transport is TauriTransport {
+  return "invokeWithProgress" in transport && typeof transport.invokeWithProgress === "function";
 }
 function listen(
   events: EventTransport,
