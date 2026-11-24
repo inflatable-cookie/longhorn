@@ -247,14 +247,32 @@ must move to 0.41.x as well, because libsqlite3-sys declares
 
 ## 0.6.0 release
 
-Tom authorized one Longhorn release tag cut from `main` after longhorn#128
-(relayed by the Nucleus planner, 2026-11-23: "Authorise a patch tag"), then
-chose v0.6.0 over a patch because `main` carries public-API breaks (T3
-planning thread, 2026-11-23: "Aim for 0.6.0"). This PR is the
-bump-preparation slice only: it folds the changelog fragments, runs
-`effigy release:bump -- 0.6.0`, and records the evidence for Steps 1 to 5.
-It does not tag, dispatch `release.yml`, or publish. Those steps stay gated
-by Tom's approval under Steps 6 and 7.
+Tom authorized one release tag cut from `main` after longhorn#128 (relayed by
+the Nucleus planner, 2026-11-23), then chose v0.6.0 over a patch because
+`main` carries public-API breaks. He approved the bounded dependency update,
+including rusqlite 0.41 (operator decision `28232532`).
+
+The annotated `v0.6.0` tag (tag object
+`62c1186c956cceb9739bdfe067e5c6d78abd86f2`) dereferences to exact commit
+`a4c2a9f146d024631db0b0ee7e7cd91cdbbd88c4`. That commit qualified with all
+jobs green in [CI run 45300067522](https://github.com/inflatable-cookie/longhorn/actions/runs/45300067522),
+the [release dry run 45300071256](https://github.com/inflatable-cookie/longhorn/actions/runs/45300071256)
+(full QA, gates, and pack-and-verify), a passing local `effigy ci:rehearse`,
+and all seven gates certified by `effigy release status --check-gates`.
+
+The [tagged release workflow run 45351234438](https://github.com/inflatable-cookie/longhorn/actions/runs/45351234438)
+published all three npm packages at 0.6.0 with signed provenance. For each
+package, registry `dist.integrity` matches the workflow's packed artifact
+byte for byte:
+
+- `@inflatable-cookie/longhorn` — `sha512-2Fv3comkbKXBv+0Er9dAOgLMEsbXXvG0b/v+BqgoHkm085ia+aRDdIbQ9xwBYcuH2ecgjpH64x8yf5ZniagegQ==`
+- `@inflatable-cookie/longhorn-tauri` — `sha512-u9UYReBBukKwgag7SAKp+7ROzx/zRA7PU0+JjpPo7B5NR0JY9olqNLbcxVNmwpJiT8tCbzxuYvAKjcliopTHNg==`
+- `@inflatable-cookie/longhorn-poodle-svelte` — `sha512-v3xP7wbr6bu4RlzoX0Ksc03wRBC6Rii9fZMACQpRj6zjg3GPeYnhCdaibvCffBc1pc4JispVf2iUlZMu/ocgug==`
+
+Both adapters peer on `@inflatable-cookie/longhorn` at exactly 0.6.0. The
+`#133` source-consumer scratch fragment merged after the release bump had
+folded the fragments, so its code is in the tag but its note is deferred to
+0.6.1. The fragment remains in place.
 
 ## 0.5.0 release
 
