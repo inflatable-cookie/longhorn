@@ -311,6 +311,75 @@ fn debug_on_the_credential_path_prints_no_secret() {
     }
 }
 
+#[test]
+fn debug_on_an_activation_exchange_prints_no_credential() {
+    // Redemption puts the key or account token in the request body, and a
+    // consumer adapter may put a bearer token in a header value. `{:?}` on
+    // either the request or the enclosing exchange must not carry any of
+    // that out. Derived `Debug` would print `body: [123, 34, ...]`, from
+    // which the credential decodes byte for byte.
+    let source = TokenRedemptionSource::new(endpoint(), signing_key().verifying_key(), "example");
+    let key = LicenceKey::from_body("ABCDE12345FGHJK6789").unwrap();
+    let token = "bearer-token-0123456789";
+
+    let key_exchange = source.acquire(&Credential::Key(key.clone())).unwrap();
+    let token_exchange = source
+        .acquire(&Credential::AccountToken(secrecy::SecretString::from(
+            token.to_owned(),
+        )))
+        .unwrap();
+    let bearer_exchange = Activation::Exchange(
+        longhorn_licence::ActivationRequest::new(
+            ActivationUrl::new("https://hosted.example.com/activate").unwrap(),
+            Vec::new(),
+        )
+        .with_header("Authorization", format!("Bearer {token}")),
+    );
+
+    for exchange in [&key_exchange, &token_exchange, &bearer_exchange] {
+        let Activation::Exchange(request) = exchange else {
+            panic!("these sources compose exchanges");
+        };
+        for printed in [format!("{request:?}"), format!("{exchange:?}")] {
+            assert!(!printed.contains(key.as_str()), "{printed}");
+            assert!(!printed.contains(token), "{printed}");
+            assert!(!printed.contains("application/json"), "{printed}");
+            assert!(
+                !request_body_is_recoverable(&printed, &request.body),
+                "{printed}"
+            );
+            // Diagnostics survive the scrub: URL, body length, header names.
+            assert!(
+                printed.contains("licences.example.com") || printed.contains("hosted.example.com"),
+                "{printed}"
+            );
+            assert!(printed.contains("body_len"), "{printed}");
+        }
+        let printed = format!("{request:?}");
+        assert!(!printed.contains("body: ["), "{printed}");
+        for (name, _) in &request.headers {
+            assert!(printed.contains(name), "{printed}");
+        }
+    }
+}
+
+/// Replays the derived-`Debug` leak: a `body: [n, n, ...]` byte list that
+/// decodes back to the request body.
+fn request_body_is_recoverable(printed: &str, body: &[u8]) -> bool {
+    let Some(start) = printed.find("body: [") else {
+        return false;
+    };
+    let rest = &printed[start + "body: [".len()..];
+    let Some(end) = rest.find(']') else {
+        return false;
+    };
+    let decoded: Option<Vec<u8>> = rest[..end]
+        .split(',')
+        .map(|part| part.trim().parse::<u8>().ok())
+        .collect();
+    decoded.as_deref() == Some(body)
+}
+
 // -- consumer adapters ------------------------------------------------------
 
 /// A backend returning its own shape rather than a signed licence — the
