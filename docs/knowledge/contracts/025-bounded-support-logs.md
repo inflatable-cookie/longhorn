@@ -129,9 +129,12 @@ With `retained` 0 it removes the live file. Every step runs even when an
 earlier one fails. A step that fails for any reason other than a missing path
 (a generation that is absent is normal, since a log may hold fewer rotations
 than `retained`) is a degraded rotation: a generation that could not shift is
-overwritten or lost, and the count goes to `degraded_rotations()`. The line
-that triggered the rotation is still written if the live file moved, and is
-counted in `written`, so retention loss is never hidden inside a clean count.
+overwritten or lost, and the count goes to `degraded_rotations()` only. The
+line that triggered the rotation is still written if the live file moved, and
+is counted in `written` like any other whole line. `written` therefore does
+not show retention loss: a caller that checks `stats()` must also read
+`degraded_rotations()`, and a zero there is the only evidence that no
+retained generation was lost.
 If the live file is still over the bound after this, the line is dropped and
 counted in `failed`.
 

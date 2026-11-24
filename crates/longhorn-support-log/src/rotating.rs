@@ -33,7 +33,9 @@ pub struct RotatingLogConfig {
 /// What a [`RotatingLog`] did with its lines since it was opened.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct LogStats {
-    /// Lines written whole.
+    /// Lines written whole, including a line whose rotation degraded. This
+    /// count does not show retention loss; see
+    /// [`RotatingLog::degraded_rotations`].
     pub written: u64,
     /// Lines larger than `max_bytes`, dropped unwritten.
     pub oversized: u64,
