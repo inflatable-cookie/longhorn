@@ -95,11 +95,7 @@ where
             Ok(resolution) => resolution,
             Err(error) => {
                 return Ok(SurfaceTransferResponse::Aborted {
-                    abort: SurfaceTransferAbort::host_transfer(
-                        request_id,
-                        error.code(),
-                        error.detail(),
-                    ),
+                    abort: SurfaceTransferAbort::from_transfer(request_id, &error),
                 });
             }
         };

@@ -214,6 +214,62 @@ fn optional_surface_commands_share_base_epoch_and_projection_authority() {
     );
 }
 
+#[test]
+fn surface_commit_reports_consumed_session_when_target_resolution_fails() {
+    let caller = HostWindowHandle::new("main").unwrap();
+    let snapshot = ManagedTransferSnapshot::new(
+        &caller,
+        [ManagedTransferWindow::new(
+            WindowId::new("window:main").unwrap(),
+            caller.clone(),
+            ScreenRect::new(ScreenPoint::new(90, 90), ScreenSize::new(1_000, 800)),
+            ScreenRect::new(ScreenPoint::new(100, 120), ScreenSize::new(800, 600)),
+        )],
+    )
+    .unwrap();
+    let runtime = move |_caller: &HostWindowHandle| Ok(snapshot.clone());
+    let handler = TransferHandlerAssembly::new(runtime, Clock, limits());
+    let base = AssembledTransferCommands::new(handler, NoopPanel);
+    base.snapshot(&caller).unwrap();
+
+    let surface = AssembledSurfaceTransferCommands::new(
+        base.shared_handler(),
+        RecordingSurface {
+            calls: Arc::new(Mutex::new(Vec::new())),
+        },
+    );
+    let started = surface
+        .start_surface(
+            &caller,
+            SurfaceSessionStartRequest::new(
+                TransferRequestId::new("request:failed-surface-start").unwrap(),
+                SurfaceId::new("surface:failed").unwrap(),
+            ),
+        )
+        .unwrap();
+    let SurfaceSessionResponse::Started { .. } = started else {
+        panic!("expected started surface session");
+    };
+
+    let response = surface
+        .commit_surface(
+            &caller,
+            SurfaceTransferCommand::new(
+                TransferRequestId::new("request:failed-surface-commit").unwrap(),
+                DragSessionId::from_entropy([7; 16]),
+                TransferCommitSelector::ExplicitZone {
+                    drop_zone_id: longhorn_core::DropZoneId::new("zone:missing").unwrap(),
+                },
+            ),
+        )
+        .unwrap();
+    let SurfaceTransferResponse::Aborted { abort } = response else {
+        panic!("expected failed target resolution to abort");
+    };
+
+    assert!(abort.session_consumed());
+}
+
 fn limits() -> TransferLimits {
     TransferLimits::new(
         8,

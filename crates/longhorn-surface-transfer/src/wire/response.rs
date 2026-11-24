@@ -3,8 +3,8 @@ use longhorn_core::{
 };
 use longhorn_surfaces::{SurfaceDocument, SurfaceMutationRejectionCode};
 use longhorn_transfer::{
-    DragSessionId, TransferCommittedTarget, TransferErrorCode, TransferProtocolVersion,
-    TransferSessionStarted,
+    DragSessionId, TransferCommittedTarget, TransferError, TransferErrorCode,
+    TransferProtocolVersion, TransferSessionStarted,
 };
 use serde::{Deserialize, Serialize};
 
@@ -149,6 +149,21 @@ impl SurfaceTransferAbort {
             message: message.into(),
             retryable: false,
             session_consumed: false,
+            reconciliation_required: false,
+        }
+    }
+
+    /// Projects a coordinator failure while preserving terminal session consumption.
+    #[must_use]
+    pub fn from_transfer(request_id: TransferRequestId, error: &TransferError) -> Self {
+        Self {
+            protocol_version: TransferProtocolVersion::CURRENT,
+            request_id,
+            source: SurfaceTransferAbortSource::Transfer(error.code()),
+            surface_code: None,
+            message: error.detail().to_owned(),
+            retryable: false,
+            session_consumed: error.session_consumed(),
             reconciliation_required: false,
         }
     }
