@@ -34,7 +34,7 @@ export const BRIDGE_SERVICE_OWNERSHIPS = ["ownedLocal","externalLocal","external
 export const BRIDGE_SERVICE_STATES = ["absent","starting","attaching","awaitingReadiness","ready","restarting","reconnecting","stopped","failed"] as const;
 export const BRIDGE_SERVICE_ACTIONS = ["spawn","attach","checkReadiness","restart","reconnect","shutdown"] as const;
 export const BRIDGE_SERVICE_FAILURE_CODES = ["spawnFailed","attachFailed","readinessFailed","serviceExited","restartFailed","reconnectFailed","shutdownFailed"] as const;
-export const BRIDGE_SNAPSHOT_DECISIONS = ["accepted","acceptedResnapshotRequired","supersededSession","wrongDomain"] as const;
+export const BRIDGE_SNAPSHOT_DECISIONS = ["accepted","acceptedResnapshotRequired","supersededSession","wrongDomain","staleSnapshot"] as const;
 export const BRIDGE_STREAM_DECISIONS = ["apply","ignoreDuplicate","ignoreStale","ignoreSupersededSession","ignoreWrongDomain","resnapshotGap","resnapshotNewEpoch","resnapshotRequired"] as const;
 export const BRIDGE_PROGRESS_DECISIONS = ["accept","ignoreWrongCorrelation","ignoreAfterTerminal"] as const;
 export const BRIDGE_TERMINAL_DECISIONS = ["accept","ignoreWrongCorrelation","ignoreAlreadyTerminal"] as const;
@@ -167,7 +167,7 @@ export type BridgeSnapshotEnvelope<P> = { cursor: BridgeStreamCursor, payload: P
 
 export type BridgeEventEnvelope<P> = { cursor: BridgeStreamCursor, payload: P, };
 
-export type BridgeSnapshotDecision = "accepted" | "acceptedResnapshotRequired" | "supersededSession" | "wrongDomain";
+export type BridgeSnapshotDecision = "accepted" | "acceptedResnapshotRequired" | "supersededSession" | "wrongDomain" | "staleSnapshot";
 
 export type BridgeStreamDecision = "apply" | "ignoreDuplicate" | "ignoreStale" | "ignoreSupersededSession" | "ignoreWrongDomain" | "resnapshotGap" | "resnapshotNewEpoch" | "resnapshotRequired";
 
@@ -219,5 +219,22 @@ export const BRIDGE_ADMITTED_CONNECTION_REASONS: Record<
   "unauthorized": ["authorizationRejected"],
   "failed": ["hostFailure"],
   "closed": ["shutdown"],
+};
+
+export const BRIDGE_ADMITTED_CONNECTION_TRANSITIONS: Record<
+  BridgeConnectionState,
+  readonly BridgeConnectionState[]
+> = {
+  "idle": ["connecting", "closed"],
+  "connecting": ["negotiating", "reconnecting", "offline", "failed", "closed"],
+  "negotiating": ["ready", "reconnecting", "offline", "incompatible", "unauthorized", "failed", "closed"],
+  "ready": ["degraded", "reconnecting", "offline", "failed", "closed"],
+  "degraded": ["ready", "reconnecting", "offline", "failed", "closed"],
+  "reconnecting": ["negotiating", "reconnecting", "offline", "failed", "closed"],
+  "offline": ["reconnecting", "failed", "closed"],
+  "incompatible": ["closed"],
+  "unauthorized": ["closed"],
+  "failed": ["closed"],
+  "closed": [],
 };
 

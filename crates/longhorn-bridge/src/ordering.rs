@@ -166,6 +166,9 @@ pub enum BridgeSnapshotDecision {
     SupersededSession,
     /// The snapshot belongs to another domain tracker.
     WrongDomain,
+    /// The snapshot is older than the accepted baseline, so it is refused and
+    /// the baseline is kept. A superseded snapshot must never overwrite newer state.
+    StaleSnapshot,
 }
 
 /// Deterministic classification of one live authoritative event.
@@ -232,11 +235,17 @@ impl BridgeStreamTracker {
         if cursor.domain_id != self.domain_id {
             return BridgeSnapshotDecision::WrongDomain;
         }
-        let pending_is_newer = self.pending_cursor.as_ref().is_some_and(|pending| {
-            pending.authority_epoch > cursor.authority_epoch
-                || (pending.authority_epoch == cursor.authority_epoch
-                    && pending.sequence > cursor.sequence)
-        });
+        if self
+            .accepted_cursor
+            .as_ref()
+            .is_some_and(|accepted| follows(accepted, &cursor))
+        {
+            return BridgeSnapshotDecision::StaleSnapshot;
+        }
+        let pending_is_newer = self
+            .pending_cursor
+            .as_ref()
+            .is_some_and(|pending| follows(pending, &cursor));
         self.accepted_cursor = Some(cursor);
         self.pending_cursor = None;
         self.requires_snapshot = pending_is_newer;
@@ -301,13 +310,18 @@ impl BridgeStreamTracker {
     }
 
     fn remember_pending(&mut self, cursor: &BridgeStreamCursor) {
-        let replace = self.pending_cursor.as_ref().is_none_or(|pending| {
-            cursor.authority_epoch > pending.authority_epoch
-                || (cursor.authority_epoch == pending.authority_epoch
-                    && cursor.sequence > pending.sequence)
-        });
+        let replace = self
+            .pending_cursor
+            .as_ref()
+            .is_none_or(|pending| follows(cursor, pending));
         if replace {
             self.pending_cursor = Some(cursor.clone());
         }
     }
+}
+
+/// Whether `later` follows `earlier` in authority epoch, then in sequence.
+fn follows(later: &BridgeStreamCursor, earlier: &BridgeStreamCursor) -> bool {
+    later.authority_epoch > earlier.authority_epoch
+        || (later.authority_epoch == earlier.authority_epoch && later.sequence > earlier.sequence)
 }

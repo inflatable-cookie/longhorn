@@ -193,9 +193,11 @@ authority, and derives that strictness from it.** Concretely:
 - **Generated field maps preserve their known keys in TypeScript.** Oxlint
   rejects inline allowed-key arrays passed to validation helpers.
 - **A rule Rust declares is generated, not copied.** Including rules that are
-  not types: the connection state/reason matrix lived in a `matches!` arm, was
-  hand-copied into TypeScript, and agreed by maintenance rather than by
-  construction until it was declared and emitted.
+  not types: the connection state/reason matrix and the state-to-state
+  transition matrix each lived in a `matches!` arm, were hand-copied into
+  TypeScript, and agreed by maintenance rather than by construction until they
+  were declared (`BridgeConnectionStatus::ADMITTED_REASONS`,
+  `BridgeConnectionState::ADMITTED_TRANSITIONS`) and emitted.
   Bridge request contexts and session payloads share the validator for the
   generated `DomainId` grammar and byte bound. Service supervision uses the
   generated failure codes and reports unknown ownership as `invalid_ownership`.

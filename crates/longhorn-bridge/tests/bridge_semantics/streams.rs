@@ -91,6 +91,37 @@ fn duplicate_stale_contiguous_gap_and_epoch_rules_are_deterministic() {
 }
 
 #[test]
+fn older_snapshot_cannot_replace_a_newer_accepted_baseline() {
+    let mut tracker = BridgeStreamTracker::new(
+        session_id("session:current"),
+        domain_id("example.workspace"),
+    );
+    assert_eq!(
+        tracker.accept_snapshot(cursor("session:current", 2, 5)),
+        BridgeSnapshotDecision::Accepted
+    );
+    assert_eq!(
+        tracker.classify_event(&cursor("session:current", 2, 6)),
+        BridgeStreamDecision::Apply
+    );
+
+    assert_eq!(
+        tracker.accept_snapshot(cursor("session:current", 2, 4)),
+        BridgeSnapshotDecision::StaleSnapshot
+    );
+    assert_eq!(
+        tracker.accept_snapshot(cursor("session:current", 1, 99)),
+        BridgeSnapshotDecision::StaleSnapshot
+    );
+    assert_eq!(tracker.accepted_cursor().unwrap().sequence().get(), 6);
+    assert!(!tracker.requires_snapshot());
+    assert_eq!(
+        tracker.classify_event(&cursor("session:current", 2, 5)),
+        BridgeStreamDecision::IgnoreStale
+    );
+}
+
+#[test]
 fn superseded_session_can_never_advance_current_authority() {
     let mut tracker =
         BridgeStreamTracker::new(session_id("session:old"), domain_id("example.workspace"));

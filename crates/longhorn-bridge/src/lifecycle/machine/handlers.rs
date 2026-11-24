@@ -96,12 +96,24 @@ impl BridgeConnectionMachine {
     }
 
     /// Invalidates current authority and schedules a bounded reconnect.
+    ///
+    /// A status whose reason forbids retry (`RetryForbidden`) is terminal for
+    /// retries: any retrying class is refused as an invalid transition, and the
+    /// machine keeps its current state. Only `Never` may follow it.
     pub fn reconnect(
         &mut self,
         retry_class: BridgeRetryClass,
         clock: &impl BridgeClock,
         backoff: &impl BridgeBackoffPolicy,
     ) -> Result<BridgeConnectionTransitionReceipt, BridgeLifecycleError> {
+        if retry_class != BridgeRetryClass::Never
+            && self.status.reason() == Some(BridgeConnectionReason::RetryForbidden)
+        {
+            return Err(invalid_transition(
+                self.status.state(),
+                BridgeConnectionState::Reconnecting,
+            ));
+        }
         let admitted_attempt = if retry_class == BridgeRetryClass::Never {
             None
         } else {

@@ -101,6 +101,16 @@ describe("checked bridge connection runtime", () => {
     expect(runtime.reconnect("never").current.state).toBe("offline");
   });
 
+  test("a retry-forbidden offline connection refuses a retrying reconnect", () => {
+    const clock = new Clock();
+    const runtime = readyRuntime(clock);
+    expect(runtime.reconnect("never").current.state).toBe("offline");
+
+    expect(() => runtime.reconnect("afterBackoff")).toThrow(BridgeRuntimeError);
+    expect(runtime.status.state).toBe("offline");
+    expect(runtime.status.reason).toBe("retryForbidden");
+  });
+
   test("degrade mismatch unauthorized failure and shutdown are explicit", () => {
     const clock = new Clock();
     const degraded = readyRuntime(clock, 0);

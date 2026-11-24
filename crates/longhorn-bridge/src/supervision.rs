@@ -225,6 +225,30 @@ pub struct BridgeServiceTransitionReceipt {
 }
 
 impl BridgeServiceTransitionReceipt {
+    /// Returns the service generation the transition belongs to.
+    #[must_use]
+    pub const fn generation(self) -> BridgeServiceGeneration {
+        self.generation
+    }
+
+    /// Returns the ownership under which the transition was committed.
+    #[must_use]
+    pub const fn ownership(self) -> BridgeServiceOwnership {
+        self.ownership
+    }
+
+    /// Returns the action that produced the transition.
+    #[must_use]
+    pub const fn action(self) -> BridgeServiceAction {
+        self.action
+    }
+
+    /// Returns the service state this transition left.
+    #[must_use]
+    pub const fn previous(self) -> BridgeServiceState {
+        self.previous
+    }
+
     /// Returns current service state.
     #[must_use]
     pub const fn current(self) -> BridgeServiceState {

@@ -59,7 +59,11 @@ export function connectBridgeStream<Snapshot, Event>(
     validateSnapshot: (value) => {
       const snapshot = parseBridgeSnapshotEnvelope(value, options.snapshot);
       const decision = tracker.acceptSnapshot(snapshot.cursor);
-      if (decision === "supersededSession" || decision === "wrongDomain") {
+      if (
+        decision === "supersededSession" ||
+        decision === "wrongDomain" ||
+        decision === "staleSnapshot"
+      ) {
         throw new BridgeStreamAuthorityError(decision);
       }
       return snapshot;
@@ -78,9 +82,9 @@ export function connectBridgeStream<Snapshot, Event>(
 }
 
 export class BridgeStreamAuthorityError extends Error {
-  readonly decision: "supersededSession" | "wrongDomain";
+  readonly decision: "supersededSession" | "wrongDomain" | "staleSnapshot";
 
-  constructor(decision: "supersededSession" | "wrongDomain") {
+  constructor(decision: "supersededSession" | "wrongDomain" | "staleSnapshot") {
     super(`bridge stream snapshot rejected: ${decision}`);
     this.name = "BridgeStreamAuthorityError";
     this.decision = decision;

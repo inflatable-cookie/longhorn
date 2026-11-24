@@ -189,6 +189,18 @@ impl BridgeConnectionTransitionReceipt {
         self.current
     }
 
+    /// Returns the monotonic time at which the transition was committed.
+    #[must_use]
+    pub const fn at(&self) -> BridgeMonotonicMillis {
+        self.at
+    }
+
+    /// Returns the state this transition left.
+    #[must_use]
+    pub const fn previous(&self) -> BridgeConnectionStatus {
+        self.previous
+    }
+
     /// Returns the negotiated current session, if any.
     #[must_use]
     pub const fn session_id(&self) -> Option<&BridgeSessionId> {

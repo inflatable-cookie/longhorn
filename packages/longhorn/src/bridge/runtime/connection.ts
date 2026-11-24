@@ -18,6 +18,7 @@ import {
   parseBridgeNegotiationReceipt,
   parseBridgeStreamCursor,
 } from "../validation.ts";
+import { BRIDGE_ADMITTED_CONNECTION_TRANSITIONS } from "../generated/protocol.ts";
 import { BridgeSession } from "../session.ts";
 import {
   checkedDeadline,
@@ -106,6 +107,13 @@ export class BridgeConnectionRuntime {
 
   reconnect(retryClass: BridgeRetryClass): BridgeConnectionTransitionReceipt {
     retryClass = checkedRetryClass(retryClass);
+    if (retryClass !== "never" && this.#status.reason === "retryForbidden") {
+      // A retry-forbidden status is terminal for retries, as in the Rust machine.
+      throw new BridgeRuntimeError(
+        "invalid_transition",
+        `cannot transition from ${this.#status.state} to reconnecting`,
+      );
+    }
     const attempt = this.#reconnectAttempts + 1;
     const admitted = retryClass !== "never" && attempt <= this.#reconnectLimit;
     this.#requireTransition(admitted ? "reconnecting" : "offline");
@@ -272,19 +280,8 @@ function authoritySatisfies(
   }
 }
 
+// Generated from `BridgeConnectionState::ADMITTED_TRANSITIONS`, the same table
+// the Rust machine enforces. There is no hand-written copy here.
 function transitionAllowed(current: BridgeConnectionState, next: BridgeConnectionState): boolean {
-  if (next === "closed") {
-    return current !== "closed";
-  }
-  const transitions: Partial<Record<BridgeConnectionState, ReadonlyArray<BridgeConnectionState>>> =
-    {
-      idle: ["connecting"],
-      connecting: ["negotiating", "reconnecting", "offline", "failed"],
-      negotiating: ["ready", "reconnecting", "offline", "incompatible", "unauthorized", "failed"],
-      ready: ["degraded", "reconnecting", "offline", "failed"],
-      degraded: ["ready", "reconnecting", "offline", "failed"],
-      reconnecting: ["negotiating", "reconnecting", "offline", "failed"],
-      offline: ["reconnecting", "failed"],
-    };
-  return transitions[current]?.includes(next) ?? false;
+  return BRIDGE_ADMITTED_CONNECTION_TRANSITIONS[current].includes(next);
 }

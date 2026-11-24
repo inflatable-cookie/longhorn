@@ -4,6 +4,7 @@ import {
   bridgeCodec,
   record,
   connectBridgeStream,
+  BridgeStreamTracker,
   DirectBridgeStreamSource,
   SerializedLoopbackBridgeStreamSource,
 } from "@inflatable-cookie/longhorn/bridge/stream";
@@ -81,6 +82,20 @@ describe("checked bridge stream lifetime", () => {
       expect(direct.listenerCount()).toBe(0);
     });
   }
+
+  test("an older snapshot cannot move the accepted baseline back over a newer one", () => {
+    const base = structuredClone(fixture.snapshot) as BridgeSnapshotEnvelope<Snapshot>;
+    const start = base.cursor.sequence;
+    const at = (sequence: number) => ({ ...base.cursor, sequence });
+    const tracker = new BridgeStreamTracker(base.cursor.sessionId, base.cursor.domainId);
+
+    expect(tracker.acceptSnapshot(at(start + 2))).toBe("accepted");
+    expect(tracker.acceptSnapshot(at(start))).toBe("staleSnapshot");
+    expect(tracker.acceptedCursor()?.sequence).toBe(start + 2);
+    // An event already inside the baseline must not apply a second time.
+    expect(tracker.classifyEvent(at(start + 1))).toBe("ignoreStale");
+    expect(tracker.classifyEvent(at(start + 2))).toBe("ignoreDuplicate");
+  });
 
   test("disposal during late registration removes the listener exactly once", async () => {
     let resolveRegistration: ((unlisten: () => void) => void) | undefined;
