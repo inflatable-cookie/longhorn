@@ -98,8 +98,9 @@ impl BridgeConnectionMachine {
     /// Invalidates current authority and schedules a bounded reconnect.
     ///
     /// A status whose reason forbids retry (`RetryForbidden`) is terminal for
-    /// retries: any retrying class is refused as an invalid transition, and the
-    /// machine keeps its current state. Only `Never` may follow it.
+    /// retries. A retrying class is refused here as an invalid transition. A
+    /// `never` reconnect is refused by the transition table, which admits no
+    /// `Offline` to `Offline`. Either way the machine keeps its current state.
     pub fn reconnect(
         &mut self,
         retry_class: BridgeRetryClass,

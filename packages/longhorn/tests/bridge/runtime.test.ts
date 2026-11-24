@@ -106,7 +106,14 @@ describe("checked bridge connection runtime", () => {
     const runtime = readyRuntime(clock);
     expect(runtime.reconnect("never").current.state).toBe("offline");
 
-    expect(() => runtime.reconnect("afterBackoff")).toThrow(BridgeRuntimeError);
+    let thrown: unknown;
+    try {
+      runtime.reconnect("afterBackoff");
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(BridgeRuntimeError);
+    expect((thrown as BridgeRuntimeError).code).toBe("invalid_transition");
     expect(runtime.status.state).toBe("offline");
     expect(runtime.status.reason).toBe("retryForbidden");
   });

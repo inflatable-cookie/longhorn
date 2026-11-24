@@ -6,9 +6,9 @@ reconnect still goes offline as before.
 
 An older same-session snapshot no longer replaces a newer accepted baseline. The
 stream tracker refuses it as `staleSnapshot`, whenever it resolves, and keeps the
-baseline. Before this, a late resync reply moved the baseline back, so a
-redelivered event could apply twice. The TypeScript stream refuses the snapshot
-before it touches the payload.
+baseline. A stale resync reply is dropped: the TypeScript stream keeps its current
+snapshot and stays live, where it previously moved the baseline back and could
+apply an already-applied event a second time.
 
 The connection state-to-state transition table is now declared once,
 `BridgeConnectionState::ADMITTED_TRANSITIONS`, and generated as
@@ -25,7 +25,6 @@ The transition and service receipts expose the fields they put on the wire:
   wire and in `BRIDGE_SNAPSHOT_DECISIONS`. A Rust `match` with no wildcard arm
   must handle it. Migration: treat it like `SupersededSession`, as a refused
   snapshot that keeps the current baseline.
-- The TypeScript `BridgeSnapshotDecision` type and `BridgeStreamAuthorityError`'s
-  `decision` gain `"staleSnapshot"`. Migration: handle it beside
-  `"supersededSession"` and `"wrongDomain"`; a stream connection already reports
-  it as a failure and keeps its current value.
+- The TypeScript `BridgeSnapshotDecision` type gains `"staleSnapshot"`. Migration:
+  handle it beside `"supersededSession"` and `"wrongDomain"`. The stream does not
+  throw on it.

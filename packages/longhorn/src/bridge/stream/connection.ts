@@ -59,13 +59,11 @@ export function connectBridgeStream<Snapshot, Event>(
     validateSnapshot: (value) => {
       const snapshot = parseBridgeSnapshotEnvelope(value, options.snapshot);
       const decision = tracker.acceptSnapshot(snapshot.cursor);
-      if (
-        decision === "supersededSession" ||
-        decision === "wrongDomain" ||
-        decision === "staleSnapshot"
-      ) {
+      if (decision === "supersededSession" || decision === "wrongDomain") {
         throw new BridgeStreamAuthorityError(decision);
       }
+      // A stale reply is returned unchanged. The tracker kept its baseline, and
+      // the connection's isNewer check drops the reply, so the stream stays live.
       return snapshot;
     },
     handleEvent: (value, current) => {
@@ -82,9 +80,9 @@ export function connectBridgeStream<Snapshot, Event>(
 }
 
 export class BridgeStreamAuthorityError extends Error {
-  readonly decision: "supersededSession" | "wrongDomain" | "staleSnapshot";
+  readonly decision: "supersededSession" | "wrongDomain";
 
-  constructor(decision: "supersededSession" | "wrongDomain" | "staleSnapshot") {
+  constructor(decision: "supersededSession" | "wrongDomain") {
     super(`bridge stream snapshot rejected: ${decision}`);
     this.name = "BridgeStreamAuthorityError";
     this.decision = decision;
