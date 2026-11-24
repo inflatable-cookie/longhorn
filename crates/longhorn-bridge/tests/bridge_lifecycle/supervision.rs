@@ -171,6 +171,114 @@ fn external_local_attach_and_failure_are_observable() {
 }
 
 #[test]
+fn delayed_readiness_cannot_report_ready_for_a_superseded_service() {
+    let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
+    let mut supervisor = Supervisor {
+        outcomes: vec![
+            BridgeServiceOutcome::Accepted,
+            BridgeServiceOutcome::Ready,
+        ],
+    };
+    machine
+        .execute(
+            &mut supervisor,
+            BridgeServiceRequest::new(BridgeServiceAction::Spawn, None),
+        )
+        .unwrap();
+    machine
+        .execute(
+            &mut supervisor,
+            BridgeServiceRequest::new(BridgeServiceAction::CheckReadiness, None),
+        )
+        .unwrap();
+    assert_eq!(machine.state(), BridgeServiceState::Ready);
+
+    // A readiness probe is admitted against the ready service.
+    let probe = machine.begin(BridgeServiceAction::CheckReadiness).unwrap();
+
+    // The consumer restarts the owned service before the probe reports.
+    assert_eq!(
+        machine
+            .observe(BridgeServiceAction::Restart, BridgeServiceOutcome::Accepted)
+            .unwrap()
+            .current(),
+        BridgeServiceState::Restarting
+    );
+    let after_restart = machine.begin(BridgeServiceAction::CheckReadiness).unwrap();
+
+    // The delayed probe cannot claim readiness for the earlier incarnation.
+    assert_eq!(
+        machine.commit(probe, BridgeServiceOutcome::Ready).unwrap_err(),
+        BridgeSupervisionError::StaleObservation {
+            admitted: probe.generation(),
+            current: after_restart.generation(),
+        }
+    );
+    assert_eq!(machine.state(), BridgeServiceState::Restarting);
+
+    // A probe admitted after the restart still reports readiness.
+    assert_eq!(
+        machine
+            .commit(after_restart, BridgeServiceOutcome::Ready)
+            .unwrap()
+            .current(),
+        BridgeServiceState::Ready
+    );
+}
+
+#[test]
+fn delayed_shutdown_cannot_stop_a_service_restarted_after_admission() {
+    let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
+    let mut supervisor = Supervisor {
+        outcomes: vec![
+            BridgeServiceOutcome::Accepted,
+            BridgeServiceOutcome::Ready,
+        ],
+    };
+    machine
+        .execute(
+            &mut supervisor,
+            BridgeServiceRequest::new(BridgeServiceAction::Spawn, None),
+        )
+        .unwrap();
+    machine
+        .execute(
+            &mut supervisor,
+            BridgeServiceRequest::new(BridgeServiceAction::CheckReadiness, None),
+        )
+        .unwrap();
+
+    let shutdown = machine.begin(BridgeServiceAction::Shutdown).unwrap();
+    machine
+        .observe(BridgeServiceAction::Restart, BridgeServiceOutcome::Accepted)
+        .unwrap();
+
+    assert!(matches!(
+        machine.commit(shutdown, BridgeServiceOutcome::Stopped),
+        Err(BridgeSupervisionError::StaleObservation { .. })
+    ));
+    assert_eq!(machine.state(), BridgeServiceState::Restarting);
+}
+
+#[test]
+fn admission_checks_the_same_ownership_and_state_rules_as_execution() {
+    let machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
+    assert_eq!(
+        machine.begin(BridgeServiceAction::Shutdown).unwrap_err(),
+        BridgeSupervisionError::InvalidTransition {
+            state: BridgeServiceState::Absent,
+            action: BridgeServiceAction::Shutdown,
+        }
+    );
+
+    let external = BridgeServiceMachine::new(BridgeServiceOwnership::ExternalRemote);
+    assert_eq!(
+        external.begin(BridgeServiceAction::Restart).unwrap_err(),
+        BridgeSupervisionError::LifecycleNotOwned
+    );
+}
+
+#[test]
 fn credential_api_serializes_only_an_opaque_reference() {
     let request = BridgeServiceRequest::new(
         BridgeServiceAction::Attach,

@@ -162,6 +162,31 @@ impl BridgeServiceGeneration {
     }
 }
 
+/// One admitted supervision action bound to the generation that admitted it.
+///
+/// A machine-local token, not a wire shape: [`BridgeServiceMachine::begin`]
+/// returns it and [`BridgeServiceMachine::commit`] accepts its observation only
+/// while that generation is still current.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BridgeServiceAdmission {
+    generation: BridgeServiceGeneration,
+    action: BridgeServiceAction,
+}
+
+impl BridgeServiceAdmission {
+    /// Returns the generation that admitted the action.
+    #[must_use]
+    pub const fn generation(self) -> BridgeServiceGeneration {
+        self.generation
+    }
+
+    /// Returns the admitted action.
+    #[must_use]
+    pub const fn action(self) -> BridgeServiceAction {
+        self.action
+    }
+}
+
 /// One committed and observable optional-service transition.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -220,19 +245,68 @@ impl BridgeServiceMachine {
         supervisor: &mut impl BridgeServiceSupervisor,
         request: BridgeServiceRequest,
     ) -> Result<BridgeServiceTransitionReceipt, BridgeSupervisionError> {
-        self.admit(request.action())?;
+        let admission = self.begin(request.action())?;
         let outcome = supervisor.perform(&request);
-        self.observe(request.action(), outcome)
+        self.commit(admission, outcome)
     }
 
-    /// Commits an adapter observation. Useful when the injected operation is asynchronous.
+    /// Admits one action whose observation arrives after the call returns.
+    ///
+    /// The returned admission carries the admitting generation, so the
+    /// observation must be committed through [`Self::commit`]. A transition
+    /// that lands in between supersedes the admission and the delayed
+    /// observation is rejected instead of being reported for the later
+    /// service incarnation.
+    pub fn begin(
+        &self,
+        action: BridgeServiceAction,
+    ) -> Result<BridgeServiceAdmission, BridgeSupervisionError> {
+        self.admit(action)?;
+        Ok(BridgeServiceAdmission {
+            generation: self.generation,
+            action,
+        })
+    }
+
+    /// Commits the observation for an action admitted by [`Self::begin`].
+    ///
+    /// Rejects the observation when any transition committed after admission:
+    /// the observation then describes a service incarnation this machine has
+    /// already left behind.
+    pub fn commit(
+        &mut self,
+        admission: BridgeServiceAdmission,
+        outcome: BridgeServiceOutcome,
+    ) -> Result<BridgeServiceTransitionReceipt, BridgeSupervisionError> {
+        if admission.generation != self.generation {
+            return Err(BridgeSupervisionError::StaleObservation {
+                admitted: admission.generation,
+                current: self.generation,
+            });
+        }
+        self.apply(admission.action, outcome)
+    }
+
+    /// Commits an adapter observation that is current when the call is made.
+    ///
+    /// This admits and commits in one step, so it cannot carry an observation
+    /// that started before the call. Use [`Self::begin`] and [`Self::commit`]
+    /// for an observation that completes later.
     pub fn observe(
         &mut self,
         action: BridgeServiceAction,
         outcome: BridgeServiceOutcome,
     ) -> Result<BridgeServiceTransitionReceipt, BridgeSupervisionError> {
-        self.admit(action)?;
-        let current = transition_state(self.state, action, outcome)?;
+        let admission = self.begin(action)?;
+        self.commit(admission, outcome)
+    }
+
+    fn apply(
+        &mut self,
+        action: BridgeServiceAction,
+        outcome: BridgeServiceOutcome,
+    ) -> Result<BridgeServiceTransitionReceipt, BridgeSupervisionError> {
+        let current = transition_state(action, outcome)?;
         let generation = self.generation.next()?;
         let receipt = BridgeServiceTransitionReceipt {
             generation,
@@ -318,7 +392,6 @@ impl BridgeServiceMachine {
 }
 
 fn transition_state(
-    previous: BridgeServiceState,
     action: BridgeServiceAction,
     outcome: BridgeServiceOutcome,
 ) -> Result<BridgeServiceState, BridgeSupervisionError> {
@@ -344,7 +417,6 @@ fn transition_state(
         },
         _ => return Err(BridgeSupervisionError::InvalidObservation { action, outcome }),
     };
-    let _ = previous;
     Ok(current)
 }
 
@@ -369,6 +441,13 @@ pub enum BridgeSupervisionError {
     },
     /// Supervision receipt generation exhausted its integer domain.
     GenerationExhausted,
+    /// The observation belongs to a generation a later transition superseded.
+    StaleObservation {
+        /// Generation that admitted the observation.
+        admitted: BridgeServiceGeneration,
+        /// Generation current when the observation arrived.
+        current: BridgeServiceGeneration,
+    },
 }
 
 impl fmt::Display for BridgeSupervisionError {
@@ -390,6 +469,12 @@ impl fmt::Display for BridgeSupervisionError {
                 )
             }
             Self::GenerationExhausted => formatter.write_str("bridge service generation exhausted"),
+            Self::StaleObservation { admitted, current } => write!(
+                formatter,
+                "service observation admitted at generation {} arrived at generation {}",
+                admitted.get(),
+                current.get()
+            ),
         }
     }
 }
