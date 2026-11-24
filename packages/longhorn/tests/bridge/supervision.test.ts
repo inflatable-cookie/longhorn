@@ -62,6 +62,104 @@ test("external local attach and coded failure are observable", async () => {
   expect(failed.outcome).toEqual({ failed: "readinessFailed" });
 });
 
+test("a delayed readiness probe cannot report ready for a superseded service", async () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  const port = new Port(["accepted", "ready"]);
+  await runtime.execute(port, "spawn");
+  await runtime.execute(port, "checkReadiness");
+  expect(runtime.state).toBe("ready");
+
+  // Admit the probe against the ready service, restart before it reports.
+  const probe = runtime.begin("checkReadiness");
+  expect(runtime.observe("restart", "accepted").current).toBe("restarting");
+  const afterRestart = runtime.begin("checkReadiness");
+  expect(afterRestart.incarnation).toBeGreaterThan(probe.incarnation);
+
+  expect(() => runtime.commit(probe, "ready")).toThrow(BridgeSupervisionError);
+  expect(runtime.state).toBe("restarting");
+
+  // A probe admitted after the restart still reports readiness.
+  expect(runtime.commit(afterRestart, "ready").current).toBe("ready");
+});
+
+test("a readiness probe awaiting its adapter cannot report ready after a restart", async () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  runtime.observe("spawn", "accepted");
+  runtime.observe("checkReadiness", "ready");
+
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const probe: BridgeServiceSupervisorPort = {
+    perform: async () => {
+      await gate;
+      return "ready";
+    },
+  };
+
+  const pending = runtime.execute(probe, "checkReadiness");
+  runtime.observe("restart", "accepted");
+  release();
+
+  await expect(pending).rejects.toBeInstanceOf(BridgeSupervisionError);
+  expect(runtime.state).toBe("restarting");
+});
+
+test("overlapping readiness probes of one incarnation both commit", () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  runtime.observe("spawn", "accepted");
+  runtime.observe("checkReadiness", "ready");
+
+  const first = runtime.begin("checkReadiness");
+  const second = runtime.begin("checkReadiness");
+  expect(first.incarnation).toBe(second.incarnation);
+
+  expect(runtime.commit(first, "ready").current).toBe("ready");
+  expect(runtime.commit(second, "ready").current).toBe("ready");
+});
+
+test("a shutdown admitted beside a probe still stops the service", () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  runtime.observe("spawn", "accepted");
+  runtime.observe("checkReadiness", "ready");
+
+  const probe = runtime.begin("checkReadiness");
+  const shutdown = runtime.begin("shutdown");
+  expect(probe.incarnation).toBe(shutdown.incarnation);
+
+  // The probe reports first, then the shutdown that was already admitted.
+  expect(runtime.commit(probe, "ready").current).toBe("ready");
+  expect(runtime.commit(shutdown, "stopped").current).toBe("stopped");
+  expect(runtime.state).toBe("stopped");
+});
+
+test("a probe observation cannot resurrect a stopped service", () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  runtime.observe("spawn", "accepted");
+  runtime.observe("checkReadiness", "ready");
+
+  const probe = runtime.begin("checkReadiness");
+  const shutdown = runtime.begin("shutdown");
+  expect(runtime.commit(shutdown, "stopped").current).toBe("stopped");
+
+  expect(() => runtime.commit(probe, "ready")).toThrow(BridgeSupervisionError);
+  expect(runtime.state).toBe("stopped");
+});
+
+test("admission checks the same ownership and state rules as execution", () => {
+  const owned = new BridgeServiceRuntime("ownedLocal");
+  expect(() => owned.begin("shutdown")).toThrow(BridgeSupervisionError);
+
+  const external = new BridgeServiceRuntime("externalRemote");
+  try {
+    external.begin("restart");
+    throw new Error("expected ownership rejection");
+  } catch (error) {
+    expect((error as BridgeSupervisionError).code).toBe("lifecycle_not_owned");
+  }
+});
+
 test("supervision accepts no credential material or arbitrary failure text", async () => {
   const runtime = new BridgeServiceRuntime("externalLocal");
   const port = new Port([{ failed: "attachFailed", detail: "token=secret" }]);
