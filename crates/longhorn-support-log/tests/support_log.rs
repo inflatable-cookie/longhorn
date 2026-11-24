@@ -200,6 +200,8 @@ fn a_retained_handle_still_enforces_the_bound_on_every_write() {
             repair_required: false
         }
     );
+    // Normal eviction of the oldest generation is not a degraded rotation.
+    assert_eq!(log.degraded_rotations(), 0);
 }
 
 #[test]
@@ -411,6 +413,133 @@ fn a_rotation_that_cannot_clear_the_live_file_drops_the_line() {
     log.record("event", &"x".repeat(200));
     assert_eq!(log.stats().written, 0);
     assert_eq!(log.stats().failed, 1);
+}
+
+#[test]
+fn a_failed_intermediate_shift_is_reported_as_a_degraded_rotation() {
+    let root = tempfile::tempdir().unwrap();
+    let max_bytes = 1024;
+    fs::write(root.path().join(FILE), vec![b'x'; 1000]).unwrap();
+    fs::write(root.path().join(format!("{FILE}.1")), b"old-one\n").unwrap();
+    // Injected fault: the `.2` slot is a non-empty directory, so removing it
+    // and renaming `.1` onto it both fail. The live file still moves to `.1`,
+    // overwriting the generation that could not shift.
+    let blocked = root.path().join(format!("{FILE}.2"));
+    fs::create_dir(&blocked).unwrap();
+    fs::write(blocked.join("blocker"), b"b").unwrap();
+    let log = RotatingLog::open(config(root.path(), max_bytes), redactor());
+
+    log.record("event", &"z".repeat(64));
+
+    // The line landed, so it counts as written, but the retention loss is
+    // not hidden: the rotation is reported as degraded.
+    assert_eq!(log.stats().written, 1);
+    assert_eq!(log.stats().failed, 0);
+    assert_eq!(log.degraded_rotations(), 1);
+    assert_eq!(log.rejected_records(), 0);
+    // The live file moved to `.1`; the `old-one` generation that could not
+    // shift is gone with it.
+    assert_eq!(
+        fs::read(root.path().join(format!("{FILE}.1"))).unwrap(),
+        vec![b'x'; 1000]
+    );
+
+    // A fresh instance over the same files has observed no failure.
+    let fresh = RotatingLog::open(config(root.path(), max_bytes), redactor());
+    assert_eq!(fresh.degraded_rotations(), 0);
+}
+
+#[test]
+fn a_generation_removed_outside_the_log_is_not_a_degraded_rotation() {
+    let root = tempfile::tempdir().unwrap();
+    let max_bytes = 1024;
+    // Neither `.1` nor `.2` exists: something outside the log removed them,
+    // so each shift finds nothing to move.
+    fs::write(root.path().join(FILE), vec![b'x'; 1000]).unwrap();
+    let log = RotatingLog::open(config(root.path(), max_bytes), redactor());
+
+    log.record("event", "fits");
+
+    assert_eq!(log.stats().written, 1);
+    assert_eq!(log.degraded_rotations(), 0);
+}
+
+#[test]
+fn a_rotation_with_missing_generations_is_not_degraded() {
+    let root = tempfile::tempdir().unwrap();
+    let log = RotatingLog::open(config(root.path(), 512), redactor());
+
+    // The first rotations find no older generations: that is normal, not a
+    // retention loss.
+    for _ in 0..3 {
+        log.record("event", &"x".repeat(200));
+    }
+
+    assert_eq!(log.stats().written, 3);
+    assert_eq!(log.stats().failed, 0);
+    assert_eq!(log.degraded_rotations(), 0);
+}
+
+// --- JSON key collisions ---------------------------------------------------
+
+#[test]
+fn a_record_with_identical_keys_is_rejected_whole() {
+    let root = tempfile::tempdir().unwrap();
+    let log = RotatingLog::open(config(root.path(), MAX_BYTES), redactor());
+
+    log.record_json(&JsonRecord::new().text("event", "a").text("event", "b"));
+
+    assert!(!root.path().join(FILE).exists());
+    assert_eq!(log.stats().written, 0);
+    assert_eq!(log.stats().failed, 0);
+    assert_eq!(log.rejected_records(), 1);
+}
+
+#[test]
+fn keys_that_redaction_makes_equal_are_rejected_whole() {
+    let root = tempfile::tempdir().unwrap();
+    let redactor = Redactor::new(
+        vec!["SECRETONE".to_owned(), "SECRETTWO".to_owned()],
+        RedactionRules::common(),
+    );
+    let log = RotatingLog::open(config(root.path(), MAX_BYTES), redactor);
+
+    log.record_json(
+        &JsonRecord::new()
+            .text("k-SECRETONE", "1")
+            .text("k-SECRETTWO", "2"),
+    );
+
+    // Both keys redact to `k-[redacted]`; a reader would keep one value and
+    // silently drop the other, so neither reaches the file.
+    assert!(!root.path().join(FILE).exists());
+    assert_eq!(log.rejected_records(), 1);
+}
+
+#[test]
+fn keys_that_truncation_makes_equal_are_rejected_whole() {
+    let root = tempfile::tempdir().unwrap();
+    let mut config = config(root.path(), MAX_BYTES);
+    config.field_bytes = 8;
+    let log = RotatingLog::open(config, redactor());
+
+    // Both keys keep only `event-on` after the 8-byte bound.
+    log.record_json(
+        &JsonRecord::new()
+            .text("event-one", "a")
+            .text("event-once", "b"),
+    );
+    assert!(!root.path().join(FILE).exists());
+    assert_eq!(log.rejected_records(), 1);
+
+    // Keys that stay distinct after the bound are written as before.
+    log.record_json(&JsonRecord::new().text("event-one", "a").text("state", "b"));
+    assert_eq!(
+        fs::read_to_string(root.path().join(FILE)).unwrap(),
+        "{\"event-on\":\"a\",\"state\":\"b\"}\n"
+    );
+    assert_eq!(log.rejected_records(), 1);
+    assert_eq!(log.stats().written, 1);
 }
 
 // --- tails and fields ------------------------------------------------------
