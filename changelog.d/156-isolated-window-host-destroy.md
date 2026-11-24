@@ -7,7 +7,8 @@ report `ForeignIsland` for a mismatched island.
 
 - `take_requests` now returns `AdmittedIsolatedContentRequest` values. Inspect
   the helper payload with `request()` and pass the admitted value to
-  `decide_resize`. Drain the adapter queue to obtain the admission revision.
+  `decide_resize`, which checks the revision recorded when the adapter admitted
+  the request.
 - Construct `HelperMessageKind::Progress` and
   `IsolatedWindowRuntimeEventKind::Progress` phases with
   `IsolatedWindowStartupPhase::new`. Protocol v1 still uses a JSON string and
