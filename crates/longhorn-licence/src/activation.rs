@@ -80,7 +80,12 @@ impl fmt::Display for ActivationUrlError {
 impl Error for ActivationUrlError {}
 
 /// One HTTP exchange an activation needs, described rather than performed.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+///
+/// `Debug` is scrubbed by hand: the body carries the licence key or
+/// account token and the headers can carry a bearer token, so neither is
+/// ever printed. Diagnostics keep the URL, the body length, and the header
+/// names.
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivationRequest {
     /// Where to send it.
@@ -107,6 +112,18 @@ impl ActivationRequest {
     pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.push((name.into(), value.into()));
         self
+    }
+}
+
+impl fmt::Debug for ActivationRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let header_names: Vec<&str> = self.headers.iter().map(|(name, _)| name.as_str()).collect();
+        formatter
+            .debug_struct("ActivationRequest")
+            .field("url", &self.url)
+            .field("body_len", &self.body.len())
+            .field("headers", &header_names)
+            .finish()
     }
 }
 
