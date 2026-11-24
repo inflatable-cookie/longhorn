@@ -1,9 +1,64 @@
+use std::{error::Error, fmt};
+
 use longhorn_core::PhysicalSize;
 use longhorn_native_content::{AttachGeneration, NativeContentFailureCode, NativeContentRequestId};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Current exact isolated-window helper protocol version.
 pub const ISOLATED_WINDOW_HELPER_PROTOCOL_VERSION: u32 = 1;
+
+/// Maximum UTF-8 byte length of a helper startup phase.
+pub const MAX_STARTUP_PHASE_BYTES: usize = 128;
+
+/// Consumer-defined helper startup phase with a bounded UTF-8 payload.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(try_from = "String")]
+pub struct IsolatedWindowStartupPhase(String);
+
+impl IsolatedWindowStartupPhase {
+    /// Validates and constructs a helper startup phase.
+    pub fn new(phase: impl Into<String>) -> Result<Self, StartupPhaseTooLong> {
+        Self::try_from(phase.into())
+    }
+
+    /// Returns the phase text.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl TryFrom<String> for IsolatedWindowStartupPhase {
+    type Error = StartupPhaseTooLong;
+
+    fn try_from(phase: String) -> Result<Self, Self::Error> {
+        if phase.len() > MAX_STARTUP_PHASE_BYTES {
+            return Err(StartupPhaseTooLong {
+                actual: phase.len(),
+            });
+        }
+        Ok(Self(phase))
+    }
+}
+
+/// A helper startup phase exceeded its UTF-8 byte ceiling.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct StartupPhaseTooLong {
+    /// Supplied byte count.
+    pub actual: usize,
+}
+
+impl fmt::Display for StartupPhaseTooLong {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "startup phase is {} bytes; maximum is {MAX_STARTUP_PHASE_BYTES}",
+            self.actual
+        )
+    }
+}
+
+impl Error for StartupPhaseTooLong {}
 
 /// Exact isolated-window helper protocol version.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -106,7 +161,7 @@ pub enum HelperMessageKind {
     /// Bounded startup progress before readiness.
     Progress {
         /// Consumer-defined bounded startup phase.
-        phase: String,
+        phase: IsolatedWindowStartupPhase,
     },
     /// Native content is attached and ready under consumer-defined readiness.
     Ready {

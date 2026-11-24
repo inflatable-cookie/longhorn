@@ -4,8 +4,8 @@ use std::{collections::VecDeque, sync::Arc};
 
 use longhorn_native_content::{
     ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
-    NativeContentMechanism, NativeContentOperation, check_attach_reservation, gate_attached,
-    gate_detach, validate_plan_generation,
+    NativeContentIslandId, NativeContentMechanism, NativeContentOperation, NativeContentRevision,
+    check_attach_reservation, gate_attached, gate_detach, validate_plan_generation,
 };
 
 use crate::{
@@ -17,12 +17,7 @@ use super::{Attachment, IsolatedWindowAdapter, compare_generation, state::MAX_TE
 
 impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
     pub(crate) fn validate_plan(&self, plan: &ApplyPlan) -> Result<(), IsolatedWindowError> {
-        if plan.island_id() != self.spec.island_id() {
-            return Err(IsolatedWindowError::ForeignIsland {
-                expected: self.spec.island_id().clone(),
-                supplied: plan.island_id().clone(),
-            });
-        }
+        self.require_island(plan.island_id())?;
         if plan.operations().iter().any(|planned| {
             matches!(
                 planned.operation(),
@@ -40,15 +35,27 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .state
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
+        let includes_attach = plan
+            .operations()
+            .iter()
+            .any(|planned| matches!(planned.operation(), NativeContentOperation::Attach { .. }));
         if let Some(attachment) = state.attachment.as_ref() {
+            if includes_attach
+                && plan.generation() == attachment.generation
+                && state.retired_generation == Some(attachment.generation)
+            {
+                return Err(IsolatedWindowError::GenerationRetired(plan.generation()));
+            }
             // Mechanism-specific extension (contract 017): a terminally failed
             // owner rejects its own generation and yields only to exactly the
             // next generation.
-            if attachment.failed {
+            if attachment.failed && state.retired_generation != Some(attachment.generation) {
                 if plan.generation() == attachment.generation {
                     return Err(IsolatedWindowError::FailedGeneration);
                 }
-                if attachment.generation.checked_next().ok() == Some(plan.generation()) {
+                if !attachment.detaching
+                    && attachment.generation.checked_next().ok() == Some(plan.generation())
+                {
                     return Ok(());
                 }
             }
@@ -61,18 +68,17 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .as_ref()
                 .map(|attachment| attachment.generation),
             plan.generation(),
-            plan.operations().iter().any(|planned| {
-                matches!(planned.operation(), NativeContentOperation::Attach { .. })
-            }),
+            includes_attach,
         )?;
         Ok(())
     }
 
     pub(crate) fn execute(
         &self,
-        generation: AttachGeneration,
+        plan: &ApplyPlan,
         operation: &NativeContentOperation,
     ) -> Result<(), IsolatedWindowError> {
+        let generation = plan.generation();
         match operation {
             NativeContentOperation::Attach {
                 host_window_id,
@@ -81,7 +87,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 if host_window_id != self.spec.host_window_id() {
                     return Err(IsolatedWindowError::HostBindingMismatch);
                 }
-                self.attach(generation)
+                self.attach(generation, plan.desired_revision())
             }
             NativeContentOperation::Attach { .. }
             | NativeContentOperation::SetChildBounds { .. }
@@ -143,16 +149,28 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         }
     }
 
-    pub(crate) fn attach(&self, generation: AttachGeneration) -> Result<(), IsolatedWindowError> {
+    fn attach(
+        &self,
+        generation: AttachGeneration,
+        desired_revision: NativeContentRevision,
+    ) -> Result<(), IsolatedWindowError> {
         {
             let mut state = self
                 .state
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
+            if state.latest_generation == Some(generation)
+                && state.retired_generation == Some(generation)
+            {
+                return Err(IsolatedWindowError::GenerationRetired(generation));
+            }
             // Mechanism-specific extension (contract 017): a terminally failed
             // owner retires when exactly the next generation attaches.
             if state.attachment.as_ref().is_some_and(|attachment| {
-                attachment.failed && attachment.generation.checked_next().ok() == Some(generation)
+                attachment.failed
+                    && state.retired_generation != Some(attachment.generation)
+                    && !attachment.detaching
+                    && attachment.generation.checked_next().ok() == Some(generation)
             }) {
                 let retired = state.attachment.as_ref().map(|value| value.generation);
                 state.attachment = None;
@@ -171,6 +189,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             state.latest_generation = Some(generation);
             state.attachment = Some(Attachment {
                 generation,
+                desired_revision,
                 handle: None,
                 ready: false,
                 detaching: false,
@@ -208,28 +227,38 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .state
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
+            let retired = state.retired_generation == Some(generation);
             match state.attachment.as_mut() {
                 Some(attachment) if attachment.generation == generation => {
                     attachment.handle = Some(handle.clone());
-                    true
+                    Some(retired)
                 }
-                _ => false,
+                _ => None,
             }
         };
-        if !retained {
-            if let Err(error) = self.runtime.teardown(&handle, self.spec.teardown_timeout()) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.isolated-window.teardown",
-                    format_args!("{error:?}"),
-                );
+        match retained {
+            Some(false) => {
+                self.emit(IsolatedWindowAdapterEvent::Attached { generation });
+                Ok(())
             }
-            return Err(IsolatedWindowError::NotAttached);
+            Some(true) => {
+                self.detach(generation)?;
+                Err(IsolatedWindowError::GenerationRetired(generation))
+            }
+            None => {
+                if let Err(error) = self.runtime.teardown(&handle, self.spec.teardown_timeout()) {
+                    longhorn_core::report_best_effort_failure(
+                        "native-content.isolated-window.teardown",
+                        format_args!("{error:?}"),
+                    );
+                }
+                Err(IsolatedWindowError::NotAttached)
+            }
         }
-        self.emit(IsolatedWindowAdapterEvent::Attached { generation });
-        Ok(())
     }
 
-    pub(crate) fn detach(&self, generation: AttachGeneration) -> Result<(), IsolatedWindowError> {
+    /// Performs bounded owner teardown or confirms an already retired generation is detached.
+    pub fn detach(&self, generation: AttachGeneration) -> Result<(), IsolatedWindowError> {
         let handle = {
             let mut state = self
                 .state
@@ -247,6 +276,12 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             else {
                 return Ok(());
             };
+            if attachment.detaching {
+                return Err(IsolatedWindowError::Runtime {
+                    operation: "teardown",
+                    detail: "owner teardown is already in progress".into(),
+                });
+            }
             let handle = attachment
                 .handle
                 .clone()
@@ -361,5 +396,19 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
 
     pub(crate) fn emit(&self, event: IsolatedWindowAdapterEvent) {
         (self.observer)(event);
+    }
+
+    pub(super) fn require_island(
+        &self,
+        supplied: &NativeContentIslandId,
+    ) -> Result<(), IsolatedWindowError> {
+        let expected = self.spec.island_id();
+        if supplied != expected {
+            return Err(IsolatedWindowError::ForeignIsland {
+                expected: expected.clone(),
+                supplied: supplied.clone(),
+            });
+        }
+        Ok(())
     }
 }

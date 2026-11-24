@@ -21,11 +21,11 @@ pub enum ChildViewError {
     InvalidInitializationScript,
     /// Consumer policy denied the requested child document.
     NavigationDenied(Url),
-    /// The plan belongs to another island.
+    /// Work or evidence belongs to another island.
     ForeignIsland {
         /// Adapter island.
         expected: NativeContentIslandId,
-        /// Supplied plan island.
+        /// Supplied island.
         supplied: NativeContentIslandId,
     },
     /// The plan contains another mechanism's operation.
@@ -139,7 +139,7 @@ impl fmt::Display for ChildViewError {
             Self::ForeignIsland { expected, supplied } => {
                 write!(
                     formatter,
-                    "plan island {supplied} does not match {expected}"
+                    "island {supplied} does not match {expected}"
                 )
             }
             Self::WrongMechanism => formatter.write_str("plan is not child-view-only"),

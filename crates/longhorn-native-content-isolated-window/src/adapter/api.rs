@@ -1,17 +1,17 @@
 //! Public adapter operations.
 
-use longhorn_core::{ClientSize, NativeContentFailureCode};
+use longhorn_core::{ClientSize, NativeContentFailureCode, WindowId};
 use longhorn_native_content::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
     ContentSizeProposal, ContentSizeProposalReceipt, EffectiveFocus, EffectiveVisibility,
     InputRoutingMode, NativeContentCoordinator, ObservationUpdate, ObservedGeometry,
-    ObservedReadiness, StepExecution, gate_attached,
+    ObservedReadiness, StepExecution, compare_generation_allow_next, gate_attached,
 };
 
 use crate::{
-    HelperSnapshot, IsolatedContentRequest, IsolatedContentRequestKind, IsolatedWindowAdapterEvent,
-    IsolatedWindowError, IsolatedWindowRuntimeEvent, IsolatedWindowRuntimeEventKind,
-    TeardownOutcome,
+    AdmittedIsolatedContentRequest, HelperSnapshot, IsolatedContentRequestKind,
+    IsolatedWindowAdapterEvent, IsolatedWindowError, IsolatedWindowRuntimeEvent,
+    IsolatedWindowRuntimeEventKind, TeardownOutcome,
 };
 
 use super::{
@@ -29,9 +29,22 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         self.validate_plan(plan)?;
         authority.receipt(plan, std::iter::empty())?;
 
+        {
+            let mut state = self
+                .state
+                .lock()
+                .map_err(|_| IsolatedWindowError::Poisoned)?;
+            if let Some(attachment) = state.attachment.as_mut()
+                && attachment.generation == plan.generation()
+            {
+                attachment.desired_revision =
+                    attachment.desired_revision.max(plan.desired_revision());
+            }
+        }
+
         let mut executions = Vec::new();
         for planned in plan.operations() {
-            match self.execute(plan.generation(), planned.operation()) {
+            match self.execute(plan, planned.operation()) {
                 Ok(()) => executions.push(StepExecution::Applied {
                     step: planned.step(),
                 }),
@@ -59,6 +72,9 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
+            if state.retired_generation == Some(generation) {
+                return Ok(ObservationUpdate::absent(generation));
+            }
             match state.attachment.as_ref() {
                 None => None,
                 Some(attachment) => {
@@ -134,7 +150,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
     pub fn take_requests(
         &self,
         generation: AttachGeneration,
-    ) -> Result<Vec<IsolatedContentRequest>, IsolatedWindowError> {
+    ) -> Result<Vec<AdmittedIsolatedContentRequest>, IsolatedWindowError> {
         let mut state = self
             .state
             .lock()
@@ -154,19 +170,22 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         Ok(std::mem::take(&mut attachment.requests))
     }
 
-    /// Applies consumer policy to one resize request without mutating desired state.
+    /// Applies consumer policy to an admitted resize at its original desired revision.
     pub fn decide_resize(
         &self,
         authority: &NativeContentCoordinator,
         generation: AttachGeneration,
-        request: &IsolatedContentRequest,
+        request: &AdmittedIsolatedContentRequest,
         decision: ContentSizeDecision,
     ) -> Result<ContentSizeProposalReceipt, IsolatedWindowError> {
         self.handle(generation)?;
-        let IsolatedContentRequestKind::Resize { size } = request.request else {
+        compare_attached_generation(generation, request.generation)?;
+        self.require_island(&request.island_id)?;
+        let IsolatedContentRequestKind::Resize { size } = request.request.request else {
             return Err(IsolatedWindowError::NotResizeRequest);
         };
         let desired = authority.desired();
+        self.require_island(desired.island_id())?;
         compare_attached_generation(desired.generation(), generation)?;
         let scale = f64::from(desired.scale().thousandths());
         let semantic = ClientSize::new(
@@ -179,7 +198,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         })?;
         authority
             .decide_content_size(
-                ContentSizeProposal::new(generation, desired.revision(), semantic),
+                ContentSizeProposal::new(generation, request.desired_revision, semantic),
                 decision,
             )
             .map_err(Into::into)
@@ -206,6 +225,35 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .map(|state| state.teardown_reports.iter().cloned().collect())
     }
 
+    /// Retires the generation after coordinator host invalidation, then tears down its owner.
+    ///
+    /// A failed teardown leaves the owner available for retry while the generation
+    /// stays retired. If launch is still in progress, its completion tears down
+    /// the returned handle and this call reports [`IsolatedWindowError::AttachInProgress`].
+    pub fn host_destroyed(
+        &self,
+        host_window_id: &WindowId,
+        generation: AttachGeneration,
+    ) -> Result<(), IsolatedWindowError> {
+        if host_window_id != self.spec.host_window_id() {
+            return Err(IsolatedWindowError::HostBindingMismatch);
+        }
+        {
+            let mut state = self
+                .state
+                .lock()
+                .map_err(|_| IsolatedWindowError::Poisoned)?;
+            if let Some(attachment) = state.attachment.as_ref() {
+                compare_attached_generation(attachment.generation, generation)?;
+            } else {
+                compare_generation_allow_next(state.latest_generation, generation)?;
+            }
+            state.latest_generation = Some(generation);
+            state.retired_generation = Some(generation);
+        }
+        self.detach(generation)
+    }
+
     /// Admits callbacks only while exact island and generation remain current.
     ///
     /// Request IDs are deduplicated while pending and for the most recent 256
@@ -214,13 +262,9 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         &self,
         event: IsolatedWindowRuntimeEvent,
     ) -> Result<(), IsolatedWindowError> {
-        if event.island_id != *self.spec.island_id() {
-            return Err(IsolatedWindowError::NotAttached);
-        }
+        self.require_island(&event.island_id)?;
         let generation = event.generation;
-        let mut emitted = Some(event.kind.clone());
-        let mut suppressed = None;
-        {
+        let suppressed = {
             let mut state = self
                 .state
                 .lock()
@@ -234,6 +278,10 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 generation,
                 |attachment| attachment.generation,
             )?;
+            if attachment.failed {
+                return Err(IsolatedWindowError::FailedGeneration);
+            }
+            let mut suppressed = None;
             match &event.kind {
                 IsolatedWindowRuntimeEventKind::Progress { .. } => {}
                 IsolatedWindowRuntimeEventKind::Ready { .. } => attachment.ready = true,
@@ -242,7 +290,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                         || attachment
                             .requests
                             .iter()
-                            .any(|pending| pending.request_id == request.request_id)
+                            .any(|pending| pending.request.request_id == request.request_id)
                     {
                         return Err(IsolatedWindowError::DuplicateCorrelation);
                     }
@@ -258,26 +306,29 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                     if let IsolatedContentRequestKind::Resize { size } = request.request
                         && attachment.last_host_size == Some(size)
                     {
-                        emitted = None;
                         suppressed = Some(IsolatedWindowAdapterEvent::ResizeCycleSuppressed {
                             generation,
                             size,
                         });
                     } else {
-                        attachment.requests.push(request.clone());
+                        attachment.requests.push(AdmittedIsolatedContentRequest {
+                            island_id: event.island_id,
+                            generation,
+                            desired_revision: attachment.desired_revision,
+                            request: request.clone(),
+                        });
                     }
                 }
                 IsolatedWindowRuntimeEventKind::HelperLost { .. } => attachment.failed = true,
                 IsolatedWindowRuntimeEventKind::FocusChanged { .. }
                 | IsolatedWindowRuntimeEventKind::VisibilityChanged { .. } => {}
             }
-        }
-        if let Some(event) = suppressed {
-            self.emit(event);
-        }
-        if let Some(event) = emitted {
-            self.emit(IsolatedWindowAdapterEvent::Runtime { generation, event });
-        }
+            suppressed
+        };
+        self.emit(suppressed.unwrap_or(IsolatedWindowAdapterEvent::Runtime {
+            generation,
+            event: event.kind,
+        }));
         Ok(())
     }
 
@@ -288,8 +339,11 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
         compare_generation(state.latest_generation, generation)?;
-        Ok(state.attachment.as_ref().is_some_and(|attachment| {
-            attachment.generation == generation && attachment.handle.is_some() && !attachment.failed
-        }))
+        Ok(state.retired_generation != Some(generation)
+            && state.attachment.as_ref().is_some_and(|attachment| {
+                attachment.generation == generation
+                    && attachment.handle.is_some()
+                    && !attachment.failed
+            }))
     }
 }

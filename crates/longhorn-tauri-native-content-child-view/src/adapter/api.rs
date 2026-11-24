@@ -207,9 +207,13 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
 
     /// Admits callbacks only while exact generation and transport identity remain current.
     pub fn admit_runtime_event(&self, event: ChildViewRuntimeEvent) -> Result<(), ChildViewError> {
-        if event.island_id != *self.spec.island_id()
-            || event.child_label != *self.spec.child_label()
-        {
+        if event.island_id != *self.spec.island_id() {
+            return Err(ChildViewError::ForeignIsland {
+                expected: self.spec.island_id().clone(),
+                supplied: event.island_id,
+            });
+        }
+        if event.child_label != *self.spec.child_label() {
             return Err(ChildViewError::NotAttached);
         }
         {
