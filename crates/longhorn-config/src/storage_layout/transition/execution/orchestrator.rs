@@ -1,5 +1,4 @@
 use std::{
-    fs,
     io::{self, Read},
     path::Path,
 };
@@ -19,8 +18,8 @@ use super::super::{
     journal::{self, JournalPhase, TransitionJournal},
 };
 use super::{
-    acquire_adapter_guards, acquire_store_guards, capture_custom, fs_error, receipt_digest,
-    restore_custom, stage_ordinary, stage_path, verify_journal_authority, verify_path,
+    acquire_adapter_guards, acquire_store_guards, capture_custom, fs_error, read_staged,
+    receipt_digest, restore_custom, stage_ordinary, verify_journal_authority, verify_path,
 };
 
 /// Executes staged ordinary copies and adapter restores, then commits the locator last.
@@ -51,6 +50,7 @@ pub(crate) fn recover_inner(
     let Some(active) = journal::read(&request.bootstrap)? else {
         return Ok(None);
     };
+    inventory::ensure_restore_inactive(request)?;
     if !crate::storage_layout::layout_digest_matches(
         &active.source_layout_digest,
         request.source_layout.digest(),
@@ -129,6 +129,11 @@ fn remove_verified_interrupted_targets(
             )));
         };
 
+        if *expected_len > crate::store::load::max_live_domain_bytes() {
+            return Err(StorageTransitionError::BoundExceeded {
+                path: target_file.full_path().to_path_buf(),
+            });
+        }
         let root = Dir::open_ambient_dir(target_file.root(), ambient_authority())
             .map_err(|error| fs_error(target_file.root(), error))?;
         let relative = target_file.relative_path().as_path();
@@ -222,23 +227,28 @@ pub(crate) fn execute_inner(
     if plan.confirmation_digest() != confirmation {
         return Err(StorageTransitionError::StalePlan);
     }
-    if journal::read(&request.bootstrap)?.is_some() {
-        return Err(StorageTransitionError::RecoveryRequired(
-            "an unresolved storage transition journal exists".into(),
-        ));
-    }
-
+    inventory::ensure_restore_inactive(request)?;
+    ensure_no_transition(request)?;
     let _adapter_guards = acquire_adapter_guards(request, options.lock_timeout)?;
     let captured_custom = capture_custom(request, plan)?;
     let (_first, _second) = acquire_store_guards(request, options.lock_timeout)?;
+    inventory::ensure_restore_inactive(request)?;
+    ensure_no_transition(request)?;
+
     let current = inventory::inspect_storage_transition(request)?;
     if current.confirmation_digest() != plan.confirmation_digest() {
         return Err(StorageTransitionError::StalePlan);
     }
-    let staging = request.bootstrap.transitions().join(&options.transition_id);
-    stage_ordinary(plan, &staging)?;
+    let staging_relative = request
+        .bootstrap
+        .transitions()
+        .strip_prefix(request.bootstrap.directory())
+        .expect("transition staging is below bootstrap")
+        .join(&options.transition_id);
+    let staging = request.bootstrap.directory().join(&staging_relative);
+    let mut active = TransitionJournal::from_plan(options.transition_id.clone(), plan)?;
+    stage_ordinary(request.source_store, plan, &staging)?;
 
-    let mut active = TransitionJournal::from_plan(options.transition_id.clone(), plan);
     journal::write(&request.bootstrap, &active)?;
     active.phase = JournalPhase::Publishing;
     journal::write(&request.bootstrap, &active)?;
@@ -261,14 +271,18 @@ pub(crate) fn execute_inner(
                         domain: entry.domain.clone(),
                     });
                 };
-                let bytes = fs::read(stage_path(&staging, &entry.domain))
-                    .map_err(|error| fs_error(target.full_path(), error))?;
+                let bytes = read_staged(
+                    request.bootstrap.directory(),
+                    &staging_relative,
+                    &entry.domain,
+                    entry.source_evidence.as_ref(),
+                )?;
                 crate::store::publication::publish(&target, &bytes, DurabilityRequirement::Durable)
                     .map_err(|error| StorageTransitionError::Filesystem {
                         path: error.path,
                         detail: error.detail,
                     })?;
-                verify_path(target.full_path(), entry.source_evidence.as_ref())?;
+                verify_path(&target, entry.source_evidence.as_ref())?;
                 copied_domains.push(entry.domain.clone());
                 if let (Some(path), Some(evidence)) = (&entry.source_path, &entry.source_evidence) {
                     retained_sources.push((path.clone(), evidence.clone()));
@@ -339,4 +353,15 @@ pub(crate) fn execute_inner(
         retained_source_evidence,
         receipt_digest,
     })
+}
+
+fn ensure_no_transition(
+    request: &StorageTransitionRequest<'_>,
+) -> Result<(), StorageTransitionError> {
+    if journal::read(&request.bootstrap)?.is_some() {
+        return Err(StorageTransitionError::RecoveryRequired(
+            "an unresolved storage transition journal exists".into(),
+        ));
+    }
+    Ok(())
 }

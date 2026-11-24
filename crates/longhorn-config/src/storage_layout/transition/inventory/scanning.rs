@@ -9,46 +9,34 @@ use longhorn_storage_layout::RootKind;
 
 use super::super::{StorageFileEvidence, StorageTransitionError, StorageTransitionUnknownFile};
 
-pub(crate) fn read_evidence(
-    path: &Path,
+pub(crate) fn read_domain_evidence(
+    file: &crate::ResolvedFile,
     limits: super::super::StorageTransitionLimits,
     total: &mut usize,
 ) -> Result<StorageFileEvidence, StorageTransitionError> {
-    let metadata = match fs::symlink_metadata(path) {
-        Ok(metadata) => metadata,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            return Ok(StorageFileEvidence::Absent);
-        }
-        Err(error) => return Err(fs_error(path, error)),
+    read_evidence(
+        file.root(),
+        file.relative_path().as_path(),
+        limits
+            .max_file_bytes()
+            .min(crate::store::load::max_live_domain_bytes()),
+        limits.max_total_bytes(),
+        total,
+    )
+}
+
+fn read_evidence(
+    root: &Path,
+    relative: &Path,
+    max_file_bytes: usize,
+    max_total_bytes: usize,
+    total: &mut usize,
+) -> Result<StorageFileEvidence, StorageTransitionError> {
+    let bound = max_file_bytes.min(max_total_bytes - *total);
+    let Some(bytes) = super::super::io::read(root, relative, bound)? else {
+        return Ok(StorageFileEvidence::Absent);
     };
-    if !metadata.file_type().is_file() {
-        return Err(StorageTransitionError::Filesystem {
-            path: path.to_path_buf(),
-            detail: "transition evidence requires a regular file".into(),
-        });
-    }
-    let length =
-        usize::try_from(metadata.len()).map_err(|_| StorageTransitionError::BoundExceeded {
-            path: path.to_path_buf(),
-        })?;
-    if length > limits.max_file_bytes() {
-        return Err(StorageTransitionError::BoundExceeded {
-            path: path.to_path_buf(),
-        });
-    }
-    *total = total
-        .checked_add(length)
-        .filter(|value| *value <= limits.max_total_bytes())
-        .ok_or_else(|| StorageTransitionError::BoundExceeded {
-            path: path.to_path_buf(),
-        })?;
-    let bytes = fs::read(path).map_err(|error| fs_error(path, error))?;
-    if bytes.len() != length {
-        return Err(StorageTransitionError::Filesystem {
-            path: path.to_path_buf(),
-            detail: "file changed while inventory was read".into(),
-        });
-    }
+    *total += bytes.len();
     Ok(StorageFileEvidence::Present {
         byte_length: bytes.len(),
         sha256: Sha256Digest::from_bytes(&bytes),
@@ -118,7 +106,14 @@ pub(crate) fn scan_directory(
                 }
                 unknown.push(StorageTransitionUnknownFile {
                     root: kind,
-                    evidence: read_evidence(&path, limits, total)?,
+                    evidence: read_evidence(
+                        root,
+                        path.strip_prefix(root)
+                            .expect("inventory entries descend from root"),
+                        limits.max_file_bytes(),
+                        limits.max_total_bytes(),
+                        total,
+                    )?,
                     path,
                 });
             } else if !metadata.file_type().is_file() {

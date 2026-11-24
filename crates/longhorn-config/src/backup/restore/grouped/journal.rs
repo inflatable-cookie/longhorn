@@ -4,6 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use cap_std::{ambient_authority, fs::Dir};
 use longhorn_core::DomainId;
 use serde::{Deserialize, Serialize};
 
@@ -124,7 +125,9 @@ pub(super) fn load(authority_root: &Path) -> io::Result<Option<GroupedRestoreJou
         // aggregate and reject impossible totals without the execution options.
         let limits = BackupLimits::HARD_MAXIMUM;
         let mut remaining = limits.max_total_bytes() as u64;
-        for entry in &journal.entries {
+        for (domain_index, entry) in journal.entries.iter().enumerate() {
+            validate_payload_names(domain_index, "target", &entry.target_payloads)?;
+            validate_payload_names(domain_index, "rollback", &entry.rollback_payloads)?;
             validate_evidence_payload_shape(&entry.target_evidence, &entry.target_payloads)?;
             validate_evidence_payload_shape(&entry.rollback_evidence, &entry.rollback_payloads)?;
             let domain_bytes = entry
@@ -146,6 +149,25 @@ pub(super) fn load(authority_root: &Path) -> io::Result<Option<GroupedRestoreJou
         }
     }
     Ok(journal)
+}
+
+fn validate_payload_names(
+    domain_index: usize,
+    kind: &str,
+    records: &[GroupedPayloadRecord],
+) -> io::Result<()> {
+    for (payload_index, record) in records.iter().enumerate() {
+        if record.file_name != payload_file_name(domain_index, kind, payload_index) {
+            return Err(io::Error::other(
+                "grouped restore payload name does not match its journal position",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn payload_file_name(domain_index: usize, kind: &str, payload_index: usize) -> String {
+    format!("{domain_index:04}-{kind}-{payload_index:04}.payload")
 }
 
 fn validate_evidence_payload_shape(
@@ -228,7 +250,7 @@ fn payload_records(
         .enumerate()
         .map(|(payload_index, payload)| GroupedPayloadRecord {
             relative_path: payload.relative_path().as_str().to_owned(),
-            file_name: format!("{domain_index:04}-{kind}-{payload_index:04}.payload"),
+            file_name: payload_file_name(domain_index, kind, payload_index),
             byte_length: payload.bytes().len() as u64,
             sha256: Sha256Digest::from_bytes(payload.bytes()),
         })
@@ -250,10 +272,15 @@ pub(super) fn read_payloads(
     authority_root: &Path,
     records: &[GroupedPayloadRecord],
 ) -> io::Result<Vec<BackupAdapterPayload>> {
+    if records.is_empty() {
+        return Ok(Vec::new());
+    }
+    let root = Dir::open_ambient_dir(authority_root, ambient_authority())?;
+    let directory = root.open_dir(Path::new(STATE_DIRECTORY).join(PAYLOAD_DIRECTORY))?;
     records
         .iter()
         .map(|record| {
-            let mut input = fs::File::open(payload_directory(authority_root).join(&record.file_name))?;
+            let mut input = directory.open(&record.file_name)?;
             let expected = record.byte_length;
             let observed = input.metadata()?.len();
             if observed != expected {

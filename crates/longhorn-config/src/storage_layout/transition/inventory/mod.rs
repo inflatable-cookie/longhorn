@@ -13,13 +13,14 @@ use super::{
     StorageTransitionPreview, StorageTransitionRequest, TransitionDecision,
 };
 
+pub(super) use inspect::ensure_restore_inactive;
 pub use inspect::{inspect_storage_transition, plan_storage_transition};
 
 pub(crate) use digest::{confirmation_digest, evidence_digest};
 pub(crate) use domain::inspect_domain;
 pub(crate) use roots::{equal_root_paths, root_conflicts};
 pub(crate) use scanning::scan_layout;
-pub(super) use scanning::{read_evidence, scan_directory};
+pub(super) use scanning::{read_domain_evidence, scan_directory};
 
 pub(crate) const INVENTORY_ROOTS: [RootKind; 7] = [
     RootKind::Config,

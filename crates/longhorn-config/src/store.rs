@@ -137,7 +137,8 @@ impl ConfigStore {
     ///
     /// Custom domains never enter the ordinary file transaction implicitly.
     /// Requiring failure atomicity refuses separately receipted adapters before
-    /// mutation.
+    /// mutation. Acquires the store coordinator without waiting and holds it
+    /// across reinspection and execution.
     pub fn execute_adapter_restore(
         &self,
         catalog: &BackupCatalog<'_>,

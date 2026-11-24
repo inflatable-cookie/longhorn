@@ -6,18 +6,19 @@ use longhorn_config::{
     BackupPublicationReceiptProjection, BackupRetentionApplyCommand, BackupRetentionApplyOutcome,
     ConfigGeneration, ConfigOperationRejection, ConfigOperationRejectionCode,
     ConfigOperationsSnapshot, ConfigProtocolVersion, ConfigSnapshotCommand, PendingBackupPolicy,
-    RestoreAdapterExecuteCommand, RestoreAdapterExecuteOutcome,
+    RestoreAdapterExecuteCommand, RestoreAdapterExecuteOutcome, RestoreAdapterOutcomeProjection,
     RestoreAdapterParticipationProjection, RestoreAdapterReceiptProjection,
     RestoreAdapterRequirementProjection, RestoreArchiveSelection, RestoreConflictChoiceProjection,
     RestoreDomainChoice, RestoreExecuteCommand, RestoreExecuteOutcome, RestoreInspectCommand,
     RestoreInspectOutcome, RestorePlanCommand, RestorePlanOutcome, RestoreRecoveryCommand,
-    RestoreRecoveryOutcomeProjection, RestoreRecoveryReceiptProjection, StorageCleanupCommand,
-    StorageCleanupOutcome, StorageCleanupReceiptProjection, StorageProfileId,
-    StorageRecoveryCommand, StorageRecoveryOutcome, StorageRecoveryReceiptProjection,
-    StorageTransitionConflictProjection, StorageTransitionDomainProjection,
-    StorageTransitionExecuteCommand, StorageTransitionExecuteOutcome,
-    StorageTransitionInspectCommand, StorageTransitionInspectOutcome,
-    StorageTransitionPreviewProjection, StorageTransitionReceiptProjection,
+    RestoreRecoveryOutcomeProjection, RestoreRecoveryReceiptProjection,
+    RestoreRecoveryResultProjection, StorageCleanupCommand, StorageCleanupOutcome,
+    StorageCleanupReceiptProjection, StorageProfileId, StorageRecoveryCommand,
+    StorageRecoveryOutcome, StorageRecoveryReceiptProjection, StorageTransitionConflictProjection,
+    StorageTransitionDomainProjection, StorageTransitionExecuteCommand,
+    StorageTransitionExecuteOutcome, StorageTransitionInspectCommand,
+    StorageTransitionInspectOutcome, StorageTransitionPreviewProjection,
+    StorageTransitionReceiptProjection,
 };
 use longhorn_core::ConfigRequestId;
 use serde::Serialize;
@@ -89,6 +90,10 @@ struct Incompatibility {
     unknown_inventory_state: Value,
     unknown_bootstrap_state: Value,
     unknown_outcome_status: Value,
+    unknown_restore_execution_stage: serde_json::Value,
+    unknown_restore_failure_terminal: serde_json::Value,
+    unknown_restore_adapter_outcome: serde_json::Value,
+    unknown_restore_recovery_result: serde_json::Value,
     unknown_restore_compatibility: Value,
 }
 
@@ -258,14 +263,14 @@ pub fn render() -> Result<String, Box<dyn Error>> {
                     adapter: "sqlite-v1".into(),
                     participation: RestoreAdapterParticipationProjection::Separate,
                     confirmation_digest: digest('7'),
-                    outcome: "verified".into(),
+                    outcome: RestoreAdapterOutcomeProjection::Verified,
                     evidence: Some(digest('6')),
                 },
                 snapshot: Box::new(snapshot()),
             },
             recover_restore: RestoreRecoveryOutcomeProjection::Recovered {
                 receipt: RestoreRecoveryReceiptProjection {
-                    outcome: "rolledBack".into(),
+                    outcome: RestoreRecoveryResultProjection::RolledBack,
                     domain_ids: vec!["app.preferences".into()],
                 },
                 snapshot: Box::new(snapshot()),
@@ -282,6 +287,10 @@ pub fn render() -> Result<String, Box<dyn Error>> {
             unknown_bootstrap_state: json!({"state": "guessed"}),
             unknown_outcome_status: json!({"status": "scheduled"}),
             unknown_restore_compatibility: json!({"status": "mergeAutomatically"}),
+            unknown_restore_execution_stage: json!("publishEverything"),
+            unknown_restore_failure_terminal: json!("retrying"),
+            unknown_restore_adapter_outcome: json!("partiallyVerified"),
+            unknown_restore_recovery_result: json!("skippedVerification"),
         },
     };
     Ok(format!("{}\n", serde_json::to_string_pretty(&fixture)?))

@@ -2,7 +2,7 @@ use std::{error::Error, fmt, path::PathBuf};
 
 use longhorn_core::DomainId;
 
-use crate::CoordinationFailure;
+use crate::{CoordinationFailure, RestoreOperationState};
 
 /// Planning refusal.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -79,6 +79,13 @@ pub enum StorageTransitionError {
     CleanupRefused(String),
     /// A deterministic authority lock failed.
     Coordination(CoordinationFailure),
+    /// A source or target store has an unresolved restore journal.
+    RestoreUnavailable {
+        /// Coordination root of the affected store.
+        authority_root: PathBuf,
+        /// State of that store's restore journal.
+        state: RestoreOperationState,
+    },
     /// Durable transition journal is invalid or unavailable.
     Journal(String),
     /// Fixed bootstrap locator is invalid or unavailable.
@@ -145,6 +152,14 @@ impl fmt::Display for StorageTransitionError {
             Self::Coordination(error) => {
                 write!(formatter, "transition coordination failed: {error}")
             }
+            Self::RestoreUnavailable {
+                authority_root,
+                state,
+            } => write!(
+                formatter,
+                "restore state {state:?} blocks storage transition at {}",
+                authority_root.display()
+            ),
             Self::Journal(detail) => {
                 write!(
                     formatter,

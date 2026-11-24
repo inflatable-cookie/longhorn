@@ -2,7 +2,10 @@ use std::{error::Error, fmt};
 
 use longhorn_core::DomainId;
 
-use crate::{CoordinationFailure, DomainLocation, RecoveryKind, backup::BackupAdapterError};
+use crate::{
+    CoordinationFailure, DomainLocation, RecoveryKind, RestoreOperationState,
+    backup::BackupAdapterError,
+};
 
 /// Failure to produce one complete bounded coordinated snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,6 +75,8 @@ pub enum BackupCaptureError {
         /// Required location.
         location: DomainLocation,
     },
+    /// A restore journal blocks coordinated capture.
+    RestoreUnavailable(RestoreOperationState),
     /// Store coordination failed.
     Coordination(CoordinationFailure),
     /// Required source could not be read.
@@ -176,6 +181,9 @@ impl fmt::Display for BackupCaptureError {
                     formatter,
                     "backup domain {domain} is unavailable at {location:?}"
                 )
+            }
+            Self::RestoreUnavailable(state) => {
+                write!(formatter, "restore state {state:?} blocks backup capture")
             }
             Self::Coordination(error) => error.fmt(formatter),
             Self::Unreadable { domain, detail } => {

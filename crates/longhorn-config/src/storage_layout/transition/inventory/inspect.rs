@@ -2,6 +2,8 @@ use std::collections::BTreeSet;
 
 use longhorn_storage_layout::RootKind;
 
+use crate::RestoreOperationState;
+
 use super::{
     INVENTORY_ROOTS, MIGRATING_ROOTS, StorageTransitionConflict, StorageTransitionConflictKind,
     StorageTransitionError, StorageTransitionPlan, StorageTransitionPlanError,
@@ -14,6 +16,7 @@ pub fn inspect_storage_transition(
     request: &StorageTransitionRequest<'_>,
 ) -> Result<StorageTransitionPreview, StorageTransitionError> {
     validate_request(request)?;
+    ensure_restore_inactive(request)?;
     let mut conflicts = root_conflicts(request);
     let mut domains = Vec::new();
     let mut known_source = BTreeSet::new();
@@ -81,6 +84,7 @@ pub fn inspect_storage_transition(
             .cmp(&right.path)
             .then_with(|| left.domain.cmp(&right.domain))
     });
+    ensure_restore_inactive(request)?;
     let evidence_digest = evidence_digest(&domains, &source_unknown, &target_unknown, &conflicts);
     let confirmation_digest = confirmation_digest(request, &evidence_digest);
     Ok(StorageTransitionPreview {
@@ -112,6 +116,21 @@ pub fn plan_storage_transition(
     Ok(StorageTransitionPlan {
         preview: preview.clone(),
     })
+}
+
+pub(crate) fn ensure_restore_inactive(
+    request: &StorageTransitionRequest<'_>,
+) -> Result<(), StorageTransitionError> {
+    for store in [request.source_store, request.target_store] {
+        let state = store.restore_operation_state();
+        if state != RestoreOperationState::Inactive {
+            return Err(StorageTransitionError::RestoreUnavailable {
+                authority_root: store.coordinator.authority_root().to_path_buf(),
+                state,
+            });
+        }
+    }
+    Ok(())
 }
 
 fn validate_request(request: &StorageTransitionRequest<'_>) -> Result<(), StorageTransitionError> {

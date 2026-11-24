@@ -57,7 +57,7 @@ pub fn discover_legacy_storage(
                 continue;
             };
             known.insert(file.full_path().to_path_buf());
-            let evidence = inventory::read_evidence(file.full_path(), limits, &mut total)?;
+            let evidence = inventory::read_domain_evidence(&file, limits, &mut total)?;
             let action = if evidence == StorageFileEvidence::Absent {
                 StorageTransitionAction::Absent
             } else {

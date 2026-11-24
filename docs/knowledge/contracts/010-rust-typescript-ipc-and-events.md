@@ -33,6 +33,9 @@ execution payload.
   checked generation seam.
 - Longhorn clients do not maintain handwritten duplicate DTOs.
 - Adapters do not rename serialized keys or enum values after receipt.
+- Config restore failure phases and terminal states, adapter receipt outcomes,
+  and recovery receipt results are closed camelCase wire enums. Renderer
+  validation uses the value sets generated from Rust.
 
 ## Names And Envelopes
 

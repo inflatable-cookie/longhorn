@@ -518,7 +518,8 @@ fn source_retained_recovery_skips_cleanup_for_prepared_journal() {
     let prepared = crate::storage_layout::transition::journal::TransitionJournal::from_plan(
         "prepared-only".into(),
         &plan,
-    );
+    )
+    .unwrap();
     crate::storage_layout::transition::journal::write(&bootstrap, &prepared).unwrap();
 
     // An independent actor places byte-identical content at the target path.
@@ -575,7 +576,6 @@ fn transition_rejects_oversized_legacy_ordinary_domain_before_publishing() {
         unreachable!()
     };
     let oversized = vec![b' '; crate::store::load::max_live_domain_bytes() + 1];
-    fs::write(source_file.full_path(), &oversized).unwrap();
 
     let mut source_store = ConfigStore::new(
         source.storage_roots().clone(),
@@ -599,9 +599,16 @@ fn transition_rejects_oversized_legacy_ordinary_domain_before_publishing() {
         &catalog,
         bootstrap.clone(),
     );
+    let max_bytes = crate::store::load::max_live_domain_bytes();
+    fs::write(source_file.full_path(), &oversized[..max_bytes]).unwrap();
     let preview = inspect_storage_transition(&request).unwrap();
     let plan = plan_storage_transition(&preview).unwrap();
 
+    fs::write(source_file.full_path(), &oversized).unwrap();
+    assert!(matches!(
+        inspect_storage_transition(&request),
+        Err(StorageTransitionError::BoundExceeded { .. })
+    ));
     let err = execute_storage_transition(
         &request,
         &plan,
@@ -617,6 +624,35 @@ fn transition_rejects_oversized_legacy_ordinary_domain_before_publishing() {
         fs::read(source_file.full_path()).unwrap().len(),
         oversized.len()
     );
+}
+
+#[test]
+fn staged_read_refuses_oversized_or_changed_bytes_before_publication() {
+    let temp = tempdir().unwrap();
+    let relative = std::path::Path::new("transitions/new");
+    let domain = DomainId::new("example.stage").unwrap();
+    let path = temp
+        .path()
+        .join(relative)
+        .join("ordinary/example.stage.bin");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let expected = crate::StorageFileEvidence::Present {
+        byte_length: 3,
+        sha256: crate::Sha256Digest::from_bytes(b"old"),
+    };
+    fs::write(&path, b"new").unwrap();
+    assert!(matches!(
+        read_staged(temp.path(), relative, &domain, Some(&expected)),
+        Err(StorageTransitionError::StalePlan)
+    ));
+    fs::File::create(&path)
+        .unwrap()
+        .set_len(crate::store::load::max_live_domain_bytes() as u64 + 1)
+        .unwrap();
+    assert!(matches!(
+        read_staged(temp.path(), relative, &domain, Some(&expected)),
+        Err(StorageTransitionError::BoundExceeded { .. })
+    ));
 }
 
 #[test]

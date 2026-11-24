@@ -1,11 +1,47 @@
 use std::{
-    fs,
+    fs, io,
     path::{Path, PathBuf},
 };
+
+use cap_std::{ambient_authority, fs::Dir};
 
 use crate::atomic_file::{UniqueTemporary, sync_directory};
 
 use super::StorageTransitionError;
+
+/// Reads a regular transition file below its declared authority.
+pub(super) fn read(
+    root: &Path,
+    relative: &Path,
+    max_bytes: usize,
+) -> Result<Option<Vec<u8>>, StorageTransitionError> {
+    let path = root.join(relative);
+    let result = (|| {
+        let directory = Dir::open_ambient_dir(root, ambient_authority())?;
+        let metadata = directory.symlink_metadata(relative)?;
+        if !metadata.is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "expected a regular file",
+            ));
+        }
+        let bytes = crate::store::load::read_bounded_in(&directory, relative, max_bytes)?;
+        if bytes.len() as u64 != metadata.len() {
+            return Err(io::Error::other(
+                "file changed while transition evidence was read",
+            ));
+        }
+        Ok(bytes)
+    })();
+    match result {
+        Ok(bytes) => Ok(Some(bytes)),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) if error.kind() == io::ErrorKind::InvalidData => {
+            Err(StorageTransitionError::BoundExceeded { path })
+        }
+        Err(error) => Err(fs_error(&path, error)),
+    }
+}
 
 pub(super) fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), StorageTransitionError> {
     let parent = path

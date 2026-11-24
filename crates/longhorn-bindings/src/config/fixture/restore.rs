@@ -5,8 +5,9 @@ use longhorn_config::{
     RestoreCurrentEvidenceProjection, RestoreDomainCompatibilityProjection,
     RestoreDomainInspectionProjection, RestoreExclusionProjection, RestoreExecuteOutcome,
     RestoreExecutionFailureProjection, RestoreExecutionReceiptProjection,
-    RestoreIdentityProjection, RestoreIdentityStatusProjection, RestoreInspectOutcome,
-    RestoreInspectionProjection, RestoreInspectionReceiptProjection, RestoreIntegrityProjection,
+    RestoreExecutionStageProjection, RestoreFailureTerminalProjection, RestoreIdentityProjection,
+    RestoreIdentityStatusProjection, RestoreInspectOutcome, RestoreInspectionProjection,
+    RestoreInspectionReceiptProjection, RestoreIntegrityProjection,
     RestoreOperationStateProjection, RestoreOperationsProjection, RestorePlanEntryProjection,
     RestorePlanOutcome, RestorePlanProjection, RestorePlanReceiptProjection,
     RestoreStagingReceiptProjection,
@@ -158,7 +159,7 @@ pub(super) fn restore_execution_receipt() -> RestoreExecutionReceiptProjection {
 }
 
 fn restore_failure(
-    terminal: &str,
+    terminal: RestoreFailureTerminalProjection,
     state: RestoreOperationStateProjection,
 ) -> RestoreExecuteOutcome {
     let mut state_snapshot = snapshot();
@@ -167,12 +168,12 @@ fn restore_failure(
         safety_backup_sha256: Some(digest('9')),
     });
     let failure = RestoreExecutionFailureProjection {
-        stage: "publishTarget".into(),
+        stage: RestoreExecutionStageProjection::PublishTarget,
         domain_id: Some("app.preferences".into()),
-        terminal: terminal.into(),
+        terminal,
         detail: "fixture publication failure".into(),
     };
-    if terminal == "rolledBack" {
+    if terminal == RestoreFailureTerminalProjection::RolledBack {
         RestoreExecuteOutcome::RolledBack {
             failure,
             snapshot: Box::new(state_snapshot),
@@ -221,9 +222,12 @@ pub(super) fn restore_execution_states() -> Vec<RestoreExecuteOutcome> {
             receipt: Box::new(restore_execution_receipt()),
             snapshot: Box::new(snapshot()),
         },
-        restore_failure("rolledBack", RestoreOperationStateProjection::Inactive),
         restore_failure(
-            "recoveryRequired",
+            RestoreFailureTerminalProjection::RolledBack,
+            RestoreOperationStateProjection::Inactive,
+        ),
+        restore_failure(
+            RestoreFailureTerminalProjection::RecoveryRequired,
             RestoreOperationStateProjection::RecoveryRequired,
         ),
     ]

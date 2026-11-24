@@ -6,7 +6,7 @@ use crate::{BackupAdapterRestoreParticipation, DomainDescriptor, DomainLocation,
 use super::{
     INVENTORY_ROOTS, StorageFileEvidence, StorageTransitionAction, StorageTransitionConflict,
     StorageTransitionConflictKind, StorageTransitionDomain, StorageTransitionError,
-    StorageTransitionExclusion, StorageTransitionRequest, TransitionDecision, read_evidence,
+    StorageTransitionExclusion, StorageTransitionRequest, TransitionDecision, read_domain_evidence,
 };
 
 pub(crate) fn inspect_domain(
@@ -140,11 +140,11 @@ fn inspect_ordinary(
     };
     known_source.insert(source.full_path().to_path_buf());
     known_target.insert(target.full_path().to_path_buf());
-    let source_evidence = read_evidence(source.full_path(), request.limits, total_bytes)?;
+    let source_evidence = read_domain_evidence(&source, request.limits, total_bytes)?;
     let target_evidence = if source.full_path() == target.full_path() {
         source_evidence.clone()
     } else {
-        read_evidence(target.full_path(), request.limits, total_bytes)?
+        read_domain_evidence(&target, request.limits, total_bytes)?
     };
     let action = if source.full_path() == target.full_path() {
         StorageTransitionAction::SameAuthority

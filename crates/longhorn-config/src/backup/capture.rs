@@ -9,7 +9,8 @@ use crate::{
     BackupCaptureOptions, BackupCatalog, BackupConsistencyGroup, BackupExclusion,
     BackupExclusionReason, BackupManifestDomain, BackupMetadata, BackupPayloadManifest,
     BackupPayloadPath, BackupScope, BackupSnapshot, BackupSnapshotPayload, BackupSourceState,
-    DomainDescriptor, DomainLocation, coordination::CoordinationGuard, store::ConfigStore,
+    DomainDescriptor, DomainLocation, RestoreOperationState, coordination::CoordinationGuard,
+    store::ConfigStore,
 };
 
 use assembly::{CaptureAssembly, DeferredAdapterCapture};
@@ -79,6 +80,10 @@ fn capture_coordinated<'catalog>(
     assembly: &mut CaptureAssembly<'catalog>,
     allow_external: bool,
 ) -> Result<(), BackupCaptureError> {
+    let state = store.restore_operation_state();
+    if state != RestoreOperationState::Inactive {
+        return Err(BackupCaptureError::RestoreUnavailable(state));
+    }
     for descriptor in descriptors {
         let decision = catalog
             .decision(descriptor)

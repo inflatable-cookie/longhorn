@@ -4,13 +4,14 @@ use crate::{
     RestoreOperationState, RestorePlan, RestoreRecoveryOutcome, RestoreRecoveryReceipt,
     RestoreStagingReceipt, Sha256Digest,
     operations::{
-        RestoreAdapterReceiptProjection, RestoreAuthenticityProjection,
-        RestoreConsistencyGroupProjection, RestoreDomainInspectionProjection,
-        RestoreExclusionProjection, RestoreExecutionFailureProjection,
-        RestoreExecutionReceiptProjection, RestoreIdentityProjection, RestoreInspectionProjection,
-        RestoreInspectionReceiptProjection, RestoreIntegrityProjection,
-        RestoreOperationStateProjection, RestoreOperationsProjection, RestorePlanEntryProjection,
-        RestorePlanProjection, RestorePlanReceiptProjection, RestoreRecoveryReceiptProjection,
+        RestoreAdapterOutcomeProjection, RestoreAdapterReceiptProjection,
+        RestoreAuthenticityProjection, RestoreConsistencyGroupProjection,
+        RestoreDomainInspectionProjection, RestoreExclusionProjection,
+        RestoreExecutionFailureProjection, RestoreExecutionReceiptProjection,
+        RestoreIdentityProjection, RestoreInspectionProjection, RestoreInspectionReceiptProjection,
+        RestoreIntegrityProjection, RestoreOperationStateProjection, RestoreOperationsProjection,
+        RestorePlanEntryProjection, RestorePlanProjection, RestorePlanReceiptProjection,
+        RestoreRecoveryReceiptProjection, RestoreRecoveryResultProjection,
         RestoreStagingReceiptProjection,
     },
 };
@@ -196,9 +197,9 @@ impl RestoreExecutionReceiptProjection {
 impl From<&RestoreExecutionError> for RestoreExecutionFailureProjection {
     fn from(error: &RestoreExecutionError) -> Self {
         Self {
-            stage: execution_stage(error.stage).into(),
+            stage: execution_stage(error.stage),
             domain_id: error.domain.as_ref().map(|domain| domain.as_str().into()),
-            terminal: failure_terminal(error.terminal).into(),
+            terminal: failure_terminal(error.terminal),
             detail: error.detail.clone(),
         }
     }
@@ -208,11 +209,14 @@ impl From<&RestoreRecoveryReceipt> for RestoreRecoveryReceiptProjection {
     fn from(receipt: &RestoreRecoveryReceipt) -> Self {
         Self {
             outcome: match receipt.outcome() {
-                RestoreRecoveryOutcome::NoRecoveryNeeded => "noRecoveryNeeded",
-                RestoreRecoveryOutcome::RolledBack => "rolledBack",
-                RestoreRecoveryOutcome::TerminalCleanup => "terminalCleanup",
-            }
-            .into(),
+                RestoreRecoveryOutcome::NoRecoveryNeeded => {
+                    RestoreRecoveryResultProjection::NoRecoveryNeeded
+                }
+                RestoreRecoveryOutcome::RolledBack => RestoreRecoveryResultProjection::RolledBack,
+                RestoreRecoveryOutcome::TerminalCleanup => {
+                    RestoreRecoveryResultProjection::TerminalCleanup
+                }
+            },
             domain_ids: domain_ids(receipt.domains()),
         }
     }
@@ -221,20 +225,24 @@ impl From<&RestoreRecoveryReceipt> for RestoreRecoveryReceiptProjection {
 impl From<&RestoreAdapterReceipt> for RestoreAdapterReceiptProjection {
     fn from(receipt: &RestoreAdapterReceipt) -> Self {
         let (outcome, evidence) = match receipt.outcome() {
-            BackupAdapterRestoreOutcome::Verified { evidence } => {
-                ("verified", Some(evidence.as_str().into()))
+            BackupAdapterRestoreOutcome::Verified { evidence } => (
+                RestoreAdapterOutcomeProjection::Verified,
+                Some(evidence.as_str().into()),
+            ),
+            BackupAdapterRestoreOutcome::RolledBack { evidence } => (
+                RestoreAdapterOutcomeProjection::RolledBack,
+                Some(evidence.as_str().into()),
+            ),
+            BackupAdapterRestoreOutcome::RecoveryRequired => {
+                (RestoreAdapterOutcomeProjection::RecoveryRequired, None)
             }
-            BackupAdapterRestoreOutcome::RolledBack { evidence } => {
-                ("rolledBack", Some(evidence.as_str().into()))
-            }
-            BackupAdapterRestoreOutcome::RecoveryRequired => ("recoveryRequired", None),
         };
         Self {
             domain_id: receipt.domain().as_str().into(),
             adapter: receipt.adapter().as_str().into(),
             participation: participation(receipt.participation()),
             confirmation_digest: receipt.confirmation_digest().as_str().into(),
-            outcome: outcome.into(),
+            outcome,
             evidence,
         }
     }

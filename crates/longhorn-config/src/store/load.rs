@@ -1,6 +1,6 @@
 use std::{
     io::{self, Read},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use cap_std::{ambient_authority, fs::Dir};
@@ -66,36 +66,56 @@ pub(crate) fn max_live_domain_bytes() -> usize {
 }
 
 pub(crate) fn read_source(file: &ResolvedFile) -> io::Result<SourceDocument> {
-    let max_bytes = max_live_domain_bytes();
-    let directory = Dir::open_ambient_dir(file.root(), ambient_authority())?;
-    let input = directory.open(file.relative_path().as_path())?;
-    let observed = usize::try_from(input.metadata()?.len()).unwrap_or(usize::MAX);
+    Ok(SourceDocument {
+        path: file.full_path().to_path_buf(),
+        bytes: read_bounded(
+            file.root(),
+            file.relative_path().as_path(),
+            max_live_domain_bytes(),
+        )?,
+    })
+}
+
+/// Reads through a trusted root and caps allocation even if the file grows.
+pub(crate) fn read_bounded(root: &Path, relative: &Path, max_bytes: usize) -> io::Result<Vec<u8>> {
+    let directory = Dir::open_ambient_dir(root, ambient_authority())?;
+    read_bounded_in(&directory, relative, max_bytes)
+}
+
+pub(crate) fn read_bounded_in(
+    directory: &Dir,
+    relative: &Path,
+    max_bytes: usize,
+) -> io::Result<Vec<u8>> {
+    let input = directory.open(relative)?;
+    let metadata = input.metadata()?;
+    if !metadata.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "expected a regular file",
+        ));
+    }
+    let observed = usize::try_from(metadata.len()).unwrap_or(usize::MAX);
     if observed > max_bytes {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            format!("domain file exceeds {max_bytes}-byte limit ({observed} bytes)"),
+            format!("file exceeds {max_bytes}-byte limit ({observed} bytes)"),
         ));
     }
-    let read_limit = u64::try_from(max_bytes)
-        .ok()
-        .and_then(|limit| limit.checked_add(1))
-        .expect("domain byte limit fits u64");
+    let read_limit = (max_bytes as u64).saturating_add(1);
     let mut bytes = Vec::with_capacity(observed);
     input.take(read_limit).read_to_end(&mut bytes)?;
     if bytes.len() > max_bytes {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             format!(
-                "domain file exceeds {max_bytes}-byte limit ({} bytes)",
+                "file exceeds {max_bytes}-byte limit ({} bytes)",
                 bytes.len()
             ),
         ));
     }
 
-    Ok(SourceDocument {
-        path: file.full_path().to_path_buf(),
-        bytes,
-    })
+    Ok(bytes)
 }
 
 pub(crate) fn validated_default<D: ConfigDomain>(

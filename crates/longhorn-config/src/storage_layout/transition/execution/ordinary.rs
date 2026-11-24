@@ -1,6 +1,7 @@
-use std::{fs, path::Path};
+use std::path::{Path, PathBuf};
 
-use crate::Sha256Digest;
+use crate::store::load::max_live_domain_bytes;
+use crate::{ConfigStore, DomainLocation, ResolvedFile, Sha256Digest, StorageRootsResolve};
 use longhorn_core::DomainId;
 
 use super::super::{
@@ -9,6 +10,7 @@ use super::super::{
 };
 
 pub(crate) fn stage_ordinary(
+    store: &ConfigStore,
     plan: &StorageTransitionPlan,
     staging: &Path,
 ) -> Result<(), StorageTransitionError> {
@@ -16,24 +18,55 @@ pub(crate) fn stage_ordinary(
         if entry.action != StorageTransitionAction::CopyOrdinary {
             continue;
         }
-        let source = entry
-            .source_path
-            .as_deref()
-            .ok_or(StorageTransitionError::StalePlan)?;
-        let bytes = fs::read(source).map_err(|error| fs_error(source, error))?;
-        if bytes.len() > crate::store::load::max_live_domain_bytes() {
-            return Err(StorageTransitionError::BoundExceeded {
-                path: source.to_path_buf(),
-            });
+        let source = resolve_ordinary(store, &entry.domain)?;
+        if entry.source_path.as_deref() != Some(source.full_path()) {
+            return Err(StorageTransitionError::StalePlan);
         }
+        let bytes = read_ordinary(&source)?.ok_or(StorageTransitionError::StalePlan)?;
         verify_bytes(&bytes, entry.source_evidence.as_ref())?;
-        io::atomic_write(&stage_path(staging, &entry.domain), &bytes)?;
+        io::atomic_write(&staging.join(stage_path(&entry.domain)), &bytes)?;
     }
     Ok(())
 }
 
-pub(crate) fn stage_path(staging: &Path, domain: &DomainId) -> std::path::PathBuf {
-    staging.join("ordinary").join(format!("{domain}.bin"))
+pub(crate) fn stage_path(domain: &DomainId) -> PathBuf {
+    Path::new("ordinary").join(format!("{domain}.bin"))
+}
+
+pub(crate) fn read_staged(
+    bootstrap: &Path,
+    staging_relative: &Path,
+    domain: &DomainId,
+    expected: Option<&StorageFileEvidence>,
+) -> Result<Vec<u8>, StorageTransitionError> {
+    let relative = staging_relative.join(stage_path(domain));
+    let bytes = io::read(bootstrap, &relative, max_live_domain_bytes())?
+        .ok_or(StorageTransitionError::StalePlan)?;
+    verify_bytes(&bytes, expected)?;
+    Ok(bytes)
+}
+
+fn resolve_ordinary(
+    store: &ConfigStore,
+    id: &DomainId,
+) -> Result<ResolvedFile, StorageTransitionError> {
+    let descriptor = store
+        .registered_descriptor(id)
+        .ok_or_else(|| StorageTransitionError::DescriptorMismatch { domain: id.clone() })?;
+    match store.roots.resolve(descriptor) {
+        DomainLocation::File(file) => Ok(file),
+        _ => Err(StorageTransitionError::UnavailableDomain { domain: id.clone() }),
+    }
+}
+
+pub(crate) fn read_ordinary(
+    file: &ResolvedFile,
+) -> Result<Option<Vec<u8>>, StorageTransitionError> {
+    io::read(
+        file.root(),
+        file.relative_path().as_path(),
+        max_live_domain_bytes(),
+    )
 }
 
 pub(crate) fn verify_journal_authority(
@@ -47,9 +80,9 @@ pub(crate) fn verify_journal_authority(
         } else {
             entry.source.as_ref()
         };
-        if entry.custom {
-            let id = DomainId::new(&entry.domain)
-                .map_err(|_| StorageTransitionError::Journal("invalid journal domain".into()))?;
+        let id = DomainId::new(&entry.domain)
+            .map_err(|_| StorageTransitionError::Journal("invalid journal domain".into()))?;
+        if entry.custom || (entry.source_path.is_none() && entry.target_path.is_none()) {
             let descriptor = request
                 .source_store
                 .registered_descriptor(&id)
@@ -75,35 +108,41 @@ pub(crate) fn verify_journal_authority(
                     entry.domain
                 )));
             }
-        } else if let Some(path) = if target {
-            entry.target_path.as_deref()
         } else {
-            entry.source_path.as_deref()
-        } {
-            verify_path(path, expected)?;
+            let (store, journal_path) = if target {
+                (request.target_store, &entry.target_path)
+            } else {
+                (request.source_store, &entry.source_path)
+            };
+            let file = resolve_ordinary(store, &id)?;
+            if journal_path.as_deref() != Some(file.full_path()) {
+                return Err(StorageTransitionError::RecoveryRequired(format!(
+                    "resolved path for {id} no longer matches transition journal"
+                )));
+            }
+            verify_path(&file, expected)?;
         }
     }
     Ok(())
 }
 
 pub(crate) fn verify_path(
-    path: &Path,
+    file: &ResolvedFile,
     expected: Option<&StorageFileEvidence>,
 ) -> Result<(), StorageTransitionError> {
-    let observed = match fs::read(path) {
-        Ok(bytes) => StorageFileEvidence::Present {
+    let observed = match read_ordinary(file)? {
+        Some(bytes) => StorageFileEvidence::Present {
             byte_length: bytes.len(),
             sha256: Sha256Digest::from_bytes(&bytes),
         },
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => StorageFileEvidence::Absent,
-        Err(error) => return Err(fs_error(path, error)),
+        None => StorageFileEvidence::Absent,
     };
     if Some(&observed) == expected {
         Ok(())
     } else {
         Err(StorageTransitionError::RecoveryRequired(format!(
             "transition evidence changed at {}",
-            path.display()
+            file.full_path().display()
         )))
     }
 }

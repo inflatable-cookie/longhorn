@@ -5,6 +5,7 @@ use crate::{
     operations::{
         RestoreAdapterParticipationProjection, RestoreConflictChoiceProjection,
         RestoreCurrentEvidenceProjection, RestoreDomainCompatibilityProjection,
+        RestoreExecutionStageProjection, RestoreFailureTerminalProjection,
         RestoreIdentityStatusProjection,
     },
 };
@@ -161,28 +162,42 @@ pub(crate) fn location_id(value: &DomainLocation) -> String {
     }
 }
 
-pub(crate) const fn execution_stage(value: RestoreExecutionStage) -> &'static str {
+pub(crate) const fn execution_stage(
+    value: RestoreExecutionStage,
+) -> RestoreExecutionStageProjection {
     match value {
-        RestoreExecutionStage::ValidateSafetyBackup => "validateSafetyBackup",
-        RestoreExecutionStage::RecoverPrevious => "recoverPrevious",
-        RestoreExecutionStage::RecheckCurrent => "recheckCurrent",
-        RestoreExecutionStage::CaptureRollback => "captureRollback",
-        RestoreExecutionStage::CaptureSafetyBackup => "captureSafetyBackup",
-        RestoreExecutionStage::EncodeSafetyBackup => "encodeSafetyBackup",
-        RestoreExecutionStage::PublishSafetyBackup => "publishSafetyBackup",
-        RestoreExecutionStage::PublishJournal => "publishJournal",
-        RestoreExecutionStage::PublishTarget => "publishTarget",
-        RestoreExecutionStage::VerifyTarget => "verifyTarget",
-        RestoreExecutionStage::Rollback => "rollback",
-        RestoreExecutionStage::Cleanup => "cleanup",
+        RestoreExecutionStage::ValidateSafetyBackup => {
+            RestoreExecutionStageProjection::ValidateSafetyBackup
+        }
+        RestoreExecutionStage::RecoverPrevious => RestoreExecutionStageProjection::RecoverPrevious,
+        RestoreExecutionStage::RecheckCurrent => RestoreExecutionStageProjection::RecheckCurrent,
+        RestoreExecutionStage::CaptureRollback => RestoreExecutionStageProjection::CaptureRollback,
+        RestoreExecutionStage::CaptureSafetyBackup => {
+            RestoreExecutionStageProjection::CaptureSafetyBackup
+        }
+        RestoreExecutionStage::EncodeSafetyBackup => {
+            RestoreExecutionStageProjection::EncodeSafetyBackup
+        }
+        RestoreExecutionStage::PublishSafetyBackup => {
+            RestoreExecutionStageProjection::PublishSafetyBackup
+        }
+        RestoreExecutionStage::PublishJournal => RestoreExecutionStageProjection::PublishJournal,
+        RestoreExecutionStage::PublishTarget => RestoreExecutionStageProjection::PublishTarget,
+        RestoreExecutionStage::VerifyTarget => RestoreExecutionStageProjection::VerifyTarget,
+        RestoreExecutionStage::Rollback => RestoreExecutionStageProjection::Rollback,
+        RestoreExecutionStage::Cleanup => RestoreExecutionStageProjection::Cleanup,
     }
 }
 
-pub(crate) const fn failure_terminal(value: RestoreFailureTerminal) -> &'static str {
+pub(crate) const fn failure_terminal(
+    value: RestoreFailureTerminal,
+) -> RestoreFailureTerminalProjection {
     match value {
-        RestoreFailureTerminal::NoLiveMutation => "noLiveMutation",
-        RestoreFailureTerminal::RolledBack => "rolledBack",
-        RestoreFailureTerminal::RecoveryRequired => "recoveryRequired",
+        RestoreFailureTerminal::NoLiveMutation => RestoreFailureTerminalProjection::NoLiveMutation,
+        RestoreFailureTerminal::RolledBack => RestoreFailureTerminalProjection::RolledBack,
+        RestoreFailureTerminal::RecoveryRequired => {
+            RestoreFailureTerminalProjection::RecoveryRequired
+        }
     }
 }
 

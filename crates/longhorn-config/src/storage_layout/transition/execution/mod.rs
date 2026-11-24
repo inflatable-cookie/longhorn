@@ -15,6 +15,6 @@ pub use orchestrator::{execute_storage_transition, recover_storage_transition};
 pub(crate) use custom::{capture_custom, restore_custom};
 pub(crate) use guards::acquire_adapter_guards;
 pub(crate) use ordinary::{
-    fs_error, stage_ordinary, stage_path, verify_journal_authority, verify_path,
+    fs_error, read_ordinary, read_staged, stage_ordinary, verify_journal_authority, verify_path,
 };
 pub(crate) use receipt::receipt_digest;
