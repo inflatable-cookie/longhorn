@@ -41,8 +41,9 @@ effigy qa
 ```
 
 `doctor` is cheap orientation: it runs `health` (`fmt:rust`,
-`check:runner-tools`, `check:release-gates`, `check:agent-control-skill`) and
-built-in scans without compiling the workspace. `effigy qa` is the full
+`check:runner-tools`, `check:release-gates`, `check:markers`,
+`check:generated-sources`, `check:agent-control-skill`) and built-in scans
+without compiling the workspace. `effigy qa` is the full
 Rust/TypeScript gate. `effigy test` uses the built-in test plan, which runs
 nextest. `test:rust` runs Cargo's workspace unit, integration and doc tests
 in one route. The focused PTY and Git workspace selectors use nextest for isolation
@@ -137,7 +138,10 @@ Never apply it to a real checkout, never overwrite an existing target or an
 owned-output link, and do not substitute `git init` or target-ignore metadata
 for it. The conversion refusal is an Oxide defect (upstream `755757db`); this is
 the supported interim rule on the installed Oxide (`4df3dfd`). Real Rust stages
-live on external build scratch and are removed after use.
+live on external build scratch and are removed after use: proofs allocate them
+with `stagingDirectory` or `taskScratch` in `scripts/rust-command.ts`, never
+under `os.tmpdir()`, and `scripts/staged-storage.test.ts` fails any proof that
+does.
 
 ### Cargo entry points
 
@@ -169,9 +173,10 @@ Genuine Cargo exceptions:
 | `.git/queue-hooks` warm-merge manifest | Nucleus-owned, outside the repository |
 
 Integration tests that re-exec themselves (`current_exe()` in
-`longhorn-config`, `longhorn-settings-config`, `longhorn-surfaces-config`) need
-no change: they re-run their own test binary, not a sibling binary beside it,
-and no `CARGO_BIN_EXE_<name>` exists for these crates. They pass under `oxide`.
+`longhorn-config`, `longhorn-settings-config`, `longhorn-surfaces-config`,
+`longhorn-git-workspace`) need no change: they re-run their own test binary, not
+a sibling binary beside it, and no `CARGO_BIN_EXE_<name>` exists for these
+crates. They pass under `oxide`.
 
 ## Product rules
 

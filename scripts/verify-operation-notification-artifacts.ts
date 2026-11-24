@@ -1,6 +1,5 @@
 import { join, resolve } from "node:path";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rm } from "node:fs/promises";
 
 import {
   POODLE_RELEASE,
@@ -10,11 +9,11 @@ import {
 import { verifyConsumers } from "./operation-notification-artifact-proof/consumers.ts";
 import { runArtifactCommand as run } from "./proof-support.ts";
 import { containsKey } from "./operation-notification-artifact-proof/shared.ts";
-import { rustCommand, taskScratch } from "./rust-command.ts";
+import { rustCommand, stagingDirectory, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "operation-notification-proof");
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-operation-notification-proof-"));
+const temporaryRoot = await stagingDirectory("longhorn-operation-notification-proof");
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-operation-notification-rust");

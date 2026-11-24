@@ -1,6 +1,5 @@
 import { join, resolve } from "node:path";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rm } from "node:fs/promises";
 
 import {
   POODLE_RELEASE,
@@ -9,11 +8,11 @@ import {
 } from "./command-system-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./command-system-artifact-proof/consumers.ts";
 import { runWithDiagnostics as run } from "./proof-support.ts";
-import { rustCommand, taskScratch } from "./rust-command.ts";
+import { rustCommand, stagingDirectory, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "command-system-proof");
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-command-system-proof-"));
+const temporaryRoot = await stagingDirectory("longhorn-command-system-proof");
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-command-system-rust");

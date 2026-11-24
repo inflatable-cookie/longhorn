@@ -21,9 +21,11 @@ worth wiring, and if it is not wired it should be deleted.
 members, all eight `prototypes/*/` workspaces (both via `scripts/rust-command.sh`),
 and the staged example template Rust sources (`rustfmt --edition 2024 --check`).
 
-`scripts/proof-artifacts.ts` keeps that order and fail-fast behavior, suppresses
-passing member stdout (printing it on failure), and prints each member's elapsed
-seconds and result to stderr when the run ends. Each member resolves its own Cargo storage:
+`scripts/proof-artifacts.ts` keeps that order but runs every member even after
+one fails (`scripts/proof-member-run.ts`), so a milestone run reports every broken
+proof at once. It suppresses passing member stdout (printing failing output at
+the end), prints each member's elapsed seconds and result to stderr, and exits
+non-zero naming the failed members. Each member resolves its own Cargo storage:
 checkout-level routes run through `scripts/rust-command.sh` and pool, and each
 staged workspace leases its own private final outputs on external build scratch
 through `scripts/private-cargo.sh`. It drops an inherited `CARGO_TARGET_DIR` so
@@ -235,6 +237,8 @@ a lease that sets the private output directories for one staged workspace. Those
 directories must be set inside the lease: `oxide exec` replaces a
 `CARGO_TARGET_DIR` inherited on the outer call. `prepareStagedWorkspace` creates
 the empty real `target/` directory that keeps a staged lease adoption-free, and
+`stagingDirectory` gives every proof's staged workspaces that same external root
+rather than `os.tmpdir()`, and `scripts/staged-storage.test.ts` enforces it.
 `scripts/external-scratch.sh` gives local shell routes the same fail-closed
 private directory `taskScratch` gives a TypeScript one; locally it runs the
 TypeScript rule. On hosted CI it creates the directory under runner-owned

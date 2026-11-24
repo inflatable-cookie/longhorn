@@ -27,14 +27,14 @@ import { cargoPackages } from "./cargo-metadata.ts";
 import { runSync as run, sha256 } from "./proof-support.ts";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { tmpdir } from "node:os";
 
 import {
   prepareStagedWorkspace,
   privateCargoCommand,
   rustExec,
+  stagingDirectory,
   taskScratch,
 } from "./rust-command.ts";
 
@@ -106,7 +106,7 @@ async function snapshotWorkingTree(): Promise<Snapshot> {
       kind: "commit",
     };
   }
-  const temp = await mkdtemp(join(tmpdir(), "longhorn-config-age-security-source-"));
+  const temp = await stagingDirectory("longhorn-config-age-security-source");
   const listed = run(
     ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
     repositoryRoot,
@@ -223,7 +223,7 @@ function assertUnlockedResolution(metadata: unknown, snapshot: Snapshot): void {
 }
 
 async function stageConsumer(label: string, snapshot: Snapshot): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), `longhorn-config-age-security-${label}-`));
+  const directory = await stagingDirectory(`longhorn-config-age-security-${label}`);
   await prepareStagedWorkspace(directory);
   await writeFile(join(directory, "Cargo.toml"), consumerManifest(snapshot));
   const sourceDirectory = join(directory, "src");

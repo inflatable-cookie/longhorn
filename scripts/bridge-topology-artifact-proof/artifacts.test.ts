@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
-import { assertProductNeutral } from "./artifacts.ts";
+import {
+  assertBridgeSurface,
+  assertProductNeutral,
+  bridgePackageName,
+  packedTypescriptPackageNames,
+} from "./artifacts.ts";
 
 test("allows prose and longer identifiers that mention network, fixture and credential words", () => {
   const source = [
@@ -27,5 +32,43 @@ test.each([
 ])("rejects %s as the %s marker", (source, marker) => {
   expect(() => assertProductNeutral("test artifact", source)).toThrow(
     `test artifact contains forbidden marker: ${marker}`,
+  );
+});
+
+const bridgeExportMap = {
+  ".": "./src/core/index.ts",
+  "./bridge": "./src/bridge/index.ts",
+  "./bridge/protocol": "./src/bridge/protocol.ts",
+  "./bridge/stream": "./src/bridge/stream.ts",
+  "./bridge/supervision": "./src/bridge/supervision.ts",
+  "./core": "./src/core/index.ts",
+};
+const protocolSource = "export const BRIDGE_PROTOCOL_VERSION = 1 as const;";
+
+test("the bridge surface check runs on a packed package that exists", () => {
+  expect(packedTypescriptPackageNames).toContain(bridgePackageName);
+  expect(bridgePackageName).toBe("@inflatable-cookie/longhorn");
+});
+
+test("the packed bridge exports must be exactly the declared ./bridge set", () => {
+  expect(() =>
+    assertBridgeSurface(bridgePackageName, bridgeExportMap, protocolSource),
+  ).not.toThrow();
+  const { "./bridge/stream": _removed, ...missingStream } = bridgeExportMap;
+  expect(() => assertBridgeSurface(bridgePackageName, missingStream, protocolSource)).toThrow(
+    "bridge exports mismatch",
+  );
+  expect(() =>
+    assertBridgeSurface(
+      bridgePackageName,
+      { ...bridgeExportMap, "./bridge/internal": "./src/bridge/internal.ts" },
+      protocolSource,
+    ),
+  ).toThrow("bridge exports mismatch");
+});
+
+test("the packed source must carry the bridge protocol version", () => {
+  expect(() => assertBridgeSurface(bridgePackageName, bridgeExportMap, "export {};")).toThrow(
+    "packed bridge protocol version is missing",
   );
 });

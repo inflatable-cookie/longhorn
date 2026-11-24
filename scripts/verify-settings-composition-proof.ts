@@ -1,6 +1,5 @@
 import { join, resolve } from "node:path";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rm } from "node:fs/promises";
 
 import {
   POODLE_RELEASE,
@@ -8,11 +7,11 @@ import {
   packTypescriptArtifacts,
 } from "./settings-composition-proof/artifacts.ts";
 import { verifyConsumers } from "./settings-composition-proof/consumers.ts";
-import { taskScratch } from "./rust-command.ts";
+import { stagingDirectory, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples/settings-composition-proof");
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-settings-proof-"));
+const temporaryRoot = await stagingDirectory("longhorn-settings-proof");
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-settings-composition-rust");

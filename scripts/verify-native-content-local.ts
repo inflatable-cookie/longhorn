@@ -26,8 +26,7 @@ import { requireValue } from "./proof-support.ts";
 
 import { runSync as run } from "./proof-support.ts";
 import { spawnSync } from "node:child_process";
-import { cp, lstat, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { cp, lstat, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 import {
@@ -35,6 +34,7 @@ import {
   privateCargoCommand,
   rustCommand,
   rustExec,
+  stagingDirectory,
   taskScratch,
 } from "./rust-command.ts";
 import { MSRV_TOOLCHAIN } from "./msrv.ts";
@@ -62,7 +62,7 @@ if (process.platform !== "darwin") {
   process.exit(1);
 }
 
-const stage = await mkdtemp(join(tmpdir(), "longhorn-native-content-local-"));
+const stage = await stagingDirectory("longhorn-native-content-local");
 // Private final Cargo outputs for the disposable consumer, on external build
 // scratch. The intermediates keep the build directory the exec lease supplies.
 const buildScratch = await taskScratch("longhorn-native-content-local");

@@ -13,18 +13,7 @@ import { installProofStage } from "./proof-install.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { workspaceDependencies } from "./workspace-dependencies.ts";
 import { randomUUID } from "node:crypto";
-import {
-  cp,
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  realpath,
-  rm,
-  writeFile,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { cp, lstat, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { longhornVersion } from "./longhorn-version.ts";
@@ -33,6 +22,7 @@ import {
   privateCargoCommand,
   rustCommand,
   rustExec,
+  stagingDirectory,
   taskScratch,
 } from "./rust-command.ts";
 
@@ -58,7 +48,7 @@ const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
   "1770327218ac9381fc59613d966040d550331c57eb25895d8c7e03dd4c06cd08";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "native-content-system-proof");
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-native-content-artifact-proof-"));
+const temporaryRoot = await stagingDirectory("longhorn-native-content-artifact-proof");
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(typescriptArtifactRoot);
 // Private final Cargo outputs for the staged workspace, on external build
