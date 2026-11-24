@@ -192,8 +192,7 @@ earlier single-call stance.
 - Prepare verifies the downloaded bytes and retains the verified artifact with
   its version, channel, and SHA-256 digest. Each prepare has its own transfer
   identity. Starting another prepare, cancelling, or changing channel makes
-  the previous transfer ineligible to stage bytes or change current progress
-  on completion.
+  the previous transfer ineligible to report progress or stage bytes.
 - Apply names the staged version and digest observed by the client. A mismatch
   refuses the command and preserves the staged artifact. The installer
   receives only the already-verified bytes.
@@ -202,8 +201,14 @@ earlier single-call stance.
   error. A refused install is still deferred, never cancelled.
 - Progress is observable **while the transfer runs**, out of band from the
   controller lock, so a surface renders byte progress rather than waiting for a
-  long call to return. Committed Tauri command hints distinguish checks,
-  channel selection, deferrals, and install progress.
+  long call to return. The Tauri prepare invoke accepts an optional
+  `onProgress` IPC channel scoped to that call. Its messages use the same
+  `UpdateProgressEvent` shape as the legacy event emitted for calls without
+  a channel. The TypeScript controller accepts reports only from its current,
+  pending prepare and only for its current authority epoch. Ports without
+  scoped progress still provide the prepare outcome and snapshot.
+  Committed Tauri command hints distinguish checks, channel selection,
+  deferrals, and install progress.
 
 ### Native bundle replacement
 

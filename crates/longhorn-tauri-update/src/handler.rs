@@ -19,6 +19,9 @@ use crate::{UpdateHostAuthority, UpdateHostError};
 /// same instance to the `UpdateController` it injects as authority.
 pub struct UpdateHandlerAssembly<A: ?Sized> {
     fetch: Arc<dyn ArtifactFetch + Send + Sync>,
+    // Commands serialize changes to the slot. A report holds only a Weak so
+    // invalidation never waits for the transfer or the progress sink.
+    active_progress: Mutex<Option<Arc<()>>>,
     authority: Mutex<A>,
 }
 
@@ -29,6 +32,7 @@ impl<A> UpdateHandlerAssembly<A> {
     pub fn new(authority: A, fetch: Arc<dyn ArtifactFetch + Send + Sync>) -> Self {
         Self {
             fetch,
+            active_progress: Mutex::new(None),
             authority: Mutex::new(authority),
         }
     }
@@ -71,7 +75,7 @@ where
         caller: &str,
         command: UpdateSelectChannelCommand,
     ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-        self.with_authority(|authority| authority.select_channel(caller, command))?
+        self.invalidate_progress_on_commit(|authority| authority.select_channel(caller, command))
     }
 
     /// Declines a version for now.
@@ -85,27 +89,35 @@ where
 
     /// Fetches, verifies and retains, reporting progress as bytes arrive.
     ///
-    /// The authority lock is not held across the transfer; the report is the
-    /// only thing the transfer touches.
+    /// The authority lock is released for the download. The active transfer
+    /// alone may hand progress to the sink.
     pub fn prepare(
         &self,
         caller: &str,
         command: UpdatePrepareCommand,
         progress: &mut dyn FnMut(UpdateProgressEvent),
     ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-        // The lock is released here. Everything between this and the second
-        // `with_authority` is the transfer, which is why `begin_prepare` and
-        // `complete_prepare` exist as two calls at all.
+        let mut progress_slot = self
+            .active_progress
+            .lock()
+            .map_err(|_| UpdateHostError::state_unavailable())?;
         let start = self.with_authority(|authority| authority.begin_prepare(caller, command))??;
         let transfer = match start {
             UpdatePrepareStart::Refused(outcome) => return Ok(outcome),
             UpdatePrepareStart::Transfer(transfer) => transfer,
         };
+        let active = Arc::new(());
+        let report_token = Arc::downgrade(&active);
+        *progress_slot = Some(active);
+        drop(progress_slot);
 
         let epoch = transfer.authority_epoch();
         let delivered = self
             .fetch
             .fetch(transfer.request(), MAX_ARTIFACT_BYTES, &mut |report| {
+                if report_token.strong_count() == 0 {
+                    return;
+                }
                 progress(UpdateProgressEvent {
                     protocol_version: UpdateProtocolVersion::CURRENT,
                     authority_epoch: epoch,
@@ -113,6 +125,16 @@ where
                 });
             });
 
+        let mut progress_slot = self
+            .active_progress
+            .lock()
+            .map_err(|_| UpdateHostError::state_unavailable())?;
+        if progress_slot
+            .as_ref()
+            .is_some_and(|active| Arc::as_ptr(active) == report_token.as_ptr())
+        {
+            *progress_slot = None;
+        }
         self.with_authority(|authority| authority.complete_prepare(caller, transfer, delivered))?
     }
 
@@ -131,6 +153,21 @@ where
         caller: &str,
         command: UpdateCancelCommand,
     ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-        self.with_authority(|authority| authority.cancel(caller, command))?
+        self.invalidate_progress_on_commit(|authority| authority.cancel(caller, command))
+    }
+
+    fn invalidate_progress_on_commit(
+        &self,
+        action: impl FnOnce(&mut A) -> Result<UpdateOutcomeProjection, UpdateHostError>,
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
+        let mut progress_slot = self
+            .active_progress
+            .lock()
+            .map_err(|_| UpdateHostError::state_unavailable())?;
+        let outcome = self.with_authority(action)??;
+        if matches!(outcome, UpdateOutcomeProjection::Committed { .. }) {
+            *progress_slot = None;
+        }
+        Ok(outcome)
     }
 }

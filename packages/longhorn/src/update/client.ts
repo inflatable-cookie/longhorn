@@ -55,6 +55,22 @@ export class UpdateClient implements CheckedUpdatePort {
     assertUpdateOutcome(value);
     return value;
   }
+  /** Prepares with live reports when the port can scope them to this invocation. */
+  async prepareWithProgress(
+    command: UpdatePrepareCommand,
+    listener: (event: UpdateProgressEvent) => void,
+  ): Promise<UpdateOutcomeProjection> {
+    if (this.port.prepareWithProgress === undefined) {
+      return this.prepare(command);
+    }
+    assertUpdatePrepareCommand(command);
+    const value = await this.port.prepareWithProgress(command, (event) => {
+      assertUpdateProgressEvent(event);
+      listener(event);
+    });
+    assertUpdateOutcome(value);
+    return value;
+  }
   async apply(command: UpdateApplyCommand): Promise<UpdateOutcomeProjection> {
     assertUpdateApplyCommand(command);
     const value = await this.port.apply(command);

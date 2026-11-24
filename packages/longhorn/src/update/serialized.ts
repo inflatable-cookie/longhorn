@@ -25,6 +25,14 @@ export class SerializedUpdatePort implements UpdatePort {
   async prepare(command: UpdatePrepareCommand): Promise<unknown> {
     return wireCopy(await this.inner.prepare(wireCopy(command)));
   }
+  get prepareWithProgress(): UpdatePort["prepareWithProgress"] {
+    const prepare = this.inner.prepareWithProgress?.bind(this.inner);
+    if (prepare === undefined) {
+      return undefined;
+    }
+    return async (command, listener) =>
+      wireCopy(await prepare(wireCopy(command), (event) => listener(wireCopy(event))));
+  }
   async apply(command: UpdateApplyCommand): Promise<unknown> {
     return wireCopy(await this.inner.apply(wireCopy(command)));
   }

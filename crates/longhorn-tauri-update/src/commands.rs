@@ -5,6 +5,7 @@ use longhorn_update::{
     UpdateCheckCommand, UpdateDeferCommand, UpdateOutcomeProjection, UpdatePrepareCommand,
     UpdateProgressEvent, UpdateProtocolVersion, UpdateSelectChannelCommand, UpdateSnapshot,
 };
+use tauri::ipc::Channel;
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
 use crate::{UpdateHandlerAssembly, UpdateHostAuthority, UpdateHostError};
@@ -105,18 +106,77 @@ pub async fn longhorn_update_defer<R: Runtime>(
 ///
 /// Runs on a blocking thread so the transfer does not hold the main thread,
 /// and byte progress leaves through `UPDATE_PROGRESS_EVENT` while it runs.
-#[tauri::command]
 pub async fn longhorn_update_prepare<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
     command: UpdatePrepareCommand,
+) -> Result<UpdateOutcomeProjection, UpdateHostError> {
+    prepare(window, state, command, None).await
+}
+
+// Tauri's handler macro dispatches through the exported command wrapper. Keep
+// the three-argument Rust entry point while accepting an optional IPC channel.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __cmd__longhorn_update_prepare {
+    ($path:path, $invoke:ident) => {
+        $crate::dispatch_prepare($invoke)
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __tauri_command_name_longhorn_update_prepare {
+    () => {
+        "longhorn_update_prepare"
+    };
+}
+
+pub use prepare_ipc::dispatch_prepare;
+
+mod prepare_ipc {
+    use tauri::ipc::{Invoke, JavaScriptChannelId};
+    use tauri::{Runtime, State, WebviewWindow};
+
+    use super::{TauriUpdateState, UpdateHostError, UpdateOutcomeProjection, UpdatePrepareCommand};
+
+    #[doc(hidden)]
+    /// Dispatches the prepare IPC command through Tauri's argument parser.
+    pub fn dispatch_prepare<R: Runtime>(invoke: Invoke<R>) -> bool {
+        let handle: fn(Invoke<R>) -> bool = tauri::generate_handler![self::longhorn_update_prepare];
+        handle(invoke)
+    }
+
+    #[tauri::command]
+    async fn longhorn_update_prepare<R: Runtime>(
+        window: WebviewWindow<R>,
+        state: State<'_, TauriUpdateState>,
+        command: UpdatePrepareCommand,
+        on_progress: Option<JavaScriptChannelId>,
+    ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
+        let progress = on_progress.map(|id| id.channel_on(window.as_ref().clone()));
+        super::prepare(window, state, command, progress).await
+    }
+}
+
+async fn prepare<R: Runtime>(
+    window: WebviewWindow<R>,
+    state: State<'_, TauriUpdateState>,
+    command: UpdatePrepareCommand,
+    progress: Option<Channel<UpdateProgressEvent>>,
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
     let assembly = Arc::clone(&state.assembly);
     let label = window.label().to_owned();
     let emit_window = window.clone();
     let outcome = tauri::async_runtime::spawn_blocking(move || {
         assembly.prepare(&label, command, &mut |event| {
-            emitting_progress(&emit_window, event);
+            let result = match &progress {
+                Some(channel) => channel.send(event),
+                None => emit_window.emit(UPDATE_PROGRESS_EVENT, event),
+            };
+            if let Err(error) = result {
+                longhorn_core::report_best_effort_failure("update.progress-emit", error);
+            }
         })
     })
     .await
@@ -208,12 +268,4 @@ fn emitting<R: Runtime>(
         longhorn_core::report_best_effort_failure("update.changed-emit", error);
     }
     Ok(outcome)
-}
-
-/// Publishes one live progress report. A failed render is informational, not a
-/// reason for the transfer to stop reporting.
-fn emitting_progress<R: Runtime>(window: &WebviewWindow<R>, event: UpdateProgressEvent) {
-    if let Err(error) = window.emit(UPDATE_PROGRESS_EVENT, event) {
-        longhorn_core::report_best_effort_failure("update.progress-emit", error);
-    }
 }
