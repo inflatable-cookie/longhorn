@@ -8,6 +8,7 @@ import {
   clone,
   committed,
   continuationPage,
+  forkHistoryGolden,
   pathPage,
   removal,
   snapshot,
@@ -67,6 +68,12 @@ describe("fork-history direct and serialized conformance", () => {
     const payload = port();
     payload.snapshot = async () => ({ ...snapshot, payload: {} });
     await expect(new ForkHistoryClient(payload).snapshot()).rejects.toThrow("payload");
+  });
+  it("decodes the Rust-generated snapshot golden", async () => {
+    const golden = forkHistoryGolden();
+    const value = port();
+    value.snapshot = async () => golden;
+    expect(await new ForkHistoryClient(value).snapshot()).toEqual(golden);
   });
   it("rejects page requests above the generated hard ceiling", async () => {
     await expect(

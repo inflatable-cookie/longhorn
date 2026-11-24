@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import type {
   ForkBranchPageSnapshot,
   ForkChangedEvent,
@@ -7,6 +9,16 @@ import type {
   ForkPathPageSnapshot,
   ForkSnapshot,
 } from "../../src/history-tree/generated/protocol.ts";
+
+export function forkHistoryGolden(): ForkSnapshot {
+  return JSON.parse(
+    readFileSync(
+      new URL("../../../../fixtures/history-tree/protocol-v1.json", import.meta.url),
+      "utf8",
+    ),
+  ) as ForkSnapshot;
+}
+
 export const snapshot: ForkSnapshot = {
   protocolVersion: 1,
   authorityEpoch: 7,
