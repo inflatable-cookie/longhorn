@@ -146,9 +146,11 @@ or two processes, on one file are not supported.
 
 - Logging never panics and never fails its caller. No method returns an
   error.
-- A failed directory creation, open, rotation or write drops the line and
-  counts it in `failed`. A failed write also drops the handle, so the next
-  write reopens.
+- A failed directory creation, open or write drops the line and counts it in
+  `failed`. A failed write also drops the handle, so the next write reopens.
+  A rotation step that fails is a degraded rotation, not a dropped line: the
+  line is written if the live file moved, and only a line still over the
+  bound after rotation is dropped and counted in `failed`.
 - A write appends one whole line or nothing. A writer may commit a prefix
   before it fails, so a failed write truncates the stream back to its
   pre-append length and the next line cannot join onto a partial record.

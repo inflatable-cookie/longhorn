@@ -37,8 +37,10 @@ pub struct LogStats {
     pub written: u64,
     /// Lines larger than `max_bytes`, dropped unwritten.
     pub oversized: u64,
-    /// Lines dropped because a directory creation, open, rotation or write
-    /// failed.
+    /// Lines dropped because a directory creation, open or write failed, or
+    /// the live file was still over the bound after rotation. A degraded
+    /// rotation alone does not drop a line; see
+    /// [`RotatingLog::degraded_rotations`].
     pub failed: u64,
     /// Whether a failed write also failed to truncate back to the
     /// pre-append length, leaving a partial line the log cannot repair.
