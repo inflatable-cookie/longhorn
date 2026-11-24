@@ -7,7 +7,6 @@ import { TauriEventTransport } from "@inflatable-cookie/longhorn-tauri/events";
 
 import type { BridgeCodec } from "@inflatable-cookie/longhorn/bridge";
 import {
-  parseBridgeJobCorrelation,
   parseBridgeJobTerminalEvent,
   parseBridgeProgressEvent,
 } from "@inflatable-cookie/longhorn/bridge";
@@ -149,12 +148,13 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
     }
   };
 
-  // The channels are shared by every job, so correlation comes before any
+  // The channels are shared by every job, so admission comes before any
   // job-specific decode: another job's payload cannot fail this one. A value
-  // whose identifiers are unreadable belongs to no job and is malformed.
+  // from another request is refused on its request id alone. Identifiers that
+  // cannot be read as part of this request are malformed.
   const admits = (value: unknown): boolean => {
     try {
-      return tracker.correlates(parseBridgeJobCorrelation(value));
+      return tracker.admits(value);
     } catch (error) {
       fail(error);
       return false;

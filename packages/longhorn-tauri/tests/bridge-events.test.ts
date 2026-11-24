@@ -224,8 +224,37 @@ function tick(): Promise<void> {
   });
 }
 
-// Two incompatible job shapes on one channel: this job's codecs accept only a
-// plain number, so a foreign job's object-shaped payloads fail them.
+// A channel that fans every event out to all of its listeners, as Tauri does
+// for jobs that share an event name.
+class SharedChannelTransport implements EventTransport {
+  readonly listeners = new Map<string, Set<(payload: unknown) => void>>();
+
+  invoke(): Promise<unknown> {
+    return Promise.resolve(undefined);
+  }
+
+  listen(event: string, listener: (payload: unknown) => void): Promise<Unlisten> {
+    const set = this.listeners.get(event) ?? new Set<(payload: unknown) => void>();
+    set.add(listener);
+    this.listeners.set(event, set);
+    return Promise.resolve(() => {
+      set.delete(listener);
+    });
+  }
+
+  emit(event: string, payload: unknown): void {
+    for (const listener of this.listeners.get(event) ?? []) {
+      listener(payload);
+    }
+  }
+
+  count(): number {
+    return [...this.listeners.values()].reduce((total, set) => total + set.size, 0);
+  }
+}
+
+// Two incompatible job shapes on one channel: the first job's codecs accept
+// only a plain number, the second's only an object.
 const numberCodec = bridgeCodec<number>((value) => {
   if (typeof value !== "number") {
     throw new TypeError("expected a number");
@@ -233,20 +262,112 @@ const numberCodec = bridgeCodec<number>((value) => {
   return value;
 });
 
-test("another job's incompatible payloads never fail or reach the current job", async () => {
-  const transport = new RecordingEventTransport();
+const objectCodec = bridgeCodec<Record<string, unknown>>((value) => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new TypeError("expected an object");
+  }
+  return value as Record<string, unknown>;
+});
+
+test("two active jobs with incompatible shapes never fail each other", async () => {
+  const transport = new SharedChannelTransport();
   const failures: Array<ConnectionFailure> = [];
-  const progress: Array<unknown> = [];
-  const terminal: Array<unknown> = [];
-  const dispose = await listenTauriBridgeJob(
-    "request:scan",
-    "job:scan",
+  const numeric: Array<unknown> = [];
+  const numericTerminal: Array<unknown> = [];
+  const shaped: Array<unknown> = [];
+  const shapedTerminal: Array<unknown> = [];
+  const numericJob = await listenTauriBridgeJob(
+    "request:count",
+    "job:count",
     {
       progressCodec: numberCodec,
       successCodec: numberCodec,
       detailCodec: numberCodec,
+      progress: (event) => numeric.push(event.progress),
+      terminal: (event) => numericTerminal.push(event),
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+  const shapedJob = await listenTauriBridgeJob(
+    "request:shape",
+    "job:shape",
+    {
+      progressCodec: objectCodec,
+      successCodec: objectCodec,
+      detailCodec: numberCodec,
+      progress: (event) => shaped.push(event.progress),
+      terminal: (event) => shapedTerminal.push(event),
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+
+  transport.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "request:shape",
+    jobId: "job:shape",
+    progress: { percent: 10 },
+  });
+  transport.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "request:count",
+    jobId: "job:count",
+    progress: 20,
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:count",
+    jobId: "job:count",
+    outcome: { succeeded: 3 },
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:shape",
+    jobId: "job:shape",
+    outcome: { succeeded: { rows: [1, 2] } },
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:shape",
+    jobId: "job:shape",
+    outcome: {
+      failed: {
+        code: "shape.failed",
+        message: "shape job failed",
+        retryClass: "never",
+        phase: "execution",
+        details: { reason: "not-a-number" },
+      },
+    },
+  });
+  await tick();
+
+  expect(failures).toEqual([]);
+  expect(numeric).toEqual([20]);
+  expect(numericTerminal).toEqual([
+    { requestId: "request:count", jobId: "job:count", outcome: { succeeded: 3 } },
+  ]);
+  expect(shaped).toEqual([{ percent: 10 }]);
+  expect(shapedTerminal).toEqual([
+    { requestId: "request:shape", jobId: "job:shape", outcome: { succeeded: { rows: [1, 2] } } },
+  ]);
+  // Four listeners stay registered until each job is disposed.
+  expect(transport.count()).toBe(4);
+  await numericJob();
+  expect(transport.count()).toBe(2);
+  await shapedJob();
+  expect(transport.count()).toBe(0);
+});
+
+test("a foreign request with an unreadable job id is dropped, not malformed", async () => {
+  const transport = new RecordingEventTransport();
+  const failures: Array<ConnectionFailure> = [];
+  const progress: Array<unknown> = [];
+  const dispose = await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: jsonCodec,
+      successCodec: jsonCodec,
+      detailCodec: jsonCodec,
       progress: (event) => progress.push(event.progress),
-      terminal: (event) => terminal.push(event),
+      terminal: () => {},
       onFailure: (failure) => failures.push(failure),
     },
     transport,
@@ -254,52 +375,44 @@ test("another job's incompatible payloads never fail or reach the current job", 
 
   transport.emit(BRIDGE_PROGRESS_EVENT, {
     requestId: "request:other",
-    jobId: "job:other",
-    progress: { percent: 10, extra: true },
+    jobId: "Not An Id!",
+    progress: 10,
   });
   transport.emit(BRIDGE_TERMINAL_EVENT, {
     requestId: "request:other",
-    jobId: "job:other",
-    outcome: { succeeded: { rows: [1, 2] } },
-  });
-  transport.emit(BRIDGE_TERMINAL_EVENT, {
-    requestId: "request:other",
-    jobId: "job:other",
-    outcome: {
-      failed: {
-        code: "other.failed",
-        message: "other job failed",
-        retryClass: "never",
-        phase: "execution",
-        details: { reason: "not-a-number" },
-      },
-    },
-  });
-  transport.emit(BRIDGE_PROGRESS_EVENT, {
-    requestId: "request:scan",
-    jobId: "job:scan",
-    progress: 20,
-  });
-  transport.emit(BRIDGE_TERMINAL_EVENT, {
-    requestId: "request:scan",
-    jobId: "job:scan",
-    outcome: { succeeded: 3 },
+    jobId: "Not An Id!",
+    outcome: "cancelled",
   });
   await tick();
 
   expect(failures).toEqual([]);
-  expect(progress).toEqual([20]);
-  expect(terminal).toEqual([
-    {
-      requestId: "request:scan",
-      jobId: "job:scan",
-      outcome: { succeeded: 3 },
-    },
-  ]);
-  // Both listeners survive the foreign traffic and are released on disposal.
+  expect(progress).toEqual([]);
   expect(transport.listeners.size).toBe(2);
   await dispose();
-  expect(transport.listeners.size).toBe(0);
+
+  // The same unreadable job id under this job's own request is malformed.
+  const own = new RecordingEventTransport();
+  const ownFailures: Array<ConnectionFailure> = [];
+  await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: jsonCodec,
+      successCodec: jsonCodec,
+      detailCodec: jsonCodec,
+      terminal: () => {},
+      onFailure: (failure) => ownFailures.push(failure),
+    },
+    own,
+  );
+  own.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "request:scan",
+    jobId: "Not An Id!",
+    progress: 10,
+  });
+  await tick();
+  expect(ownFailures.map((failure) => failure.phase)).toEqual(["event"]);
+  expect(own.listeners.size).toBe(0);
 });
 
 test("events after this job's terminal are neither decoded nor reported", async () => {

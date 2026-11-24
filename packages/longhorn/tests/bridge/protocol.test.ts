@@ -12,7 +12,6 @@ import {
   parseBridgeDeduplicationSupport,
   parseBridgeEventEnvelope,
   parseBridgeHelloRequest,
-  parseBridgeJobCorrelation,
   parseBridgeJobTerminalEvent,
   parseBridgeNegotiationReceipt,
   parseBridgeProgressEvent,
@@ -156,22 +155,19 @@ function expectCode(run: () => unknown, code: BridgeProtocolValidationError["cod
   }
 }
 
-test("job correlation reads only the identifiers, whatever the payload", () => {
-  const foreign = {
+test("job admission reads the request id first and never decodes the payload", () => {
+  const tracker = new BridgeJobTracker("request:scan", "job:scan");
+  const own = {
     requestId: "request:scan",
     jobId: "job:scan",
     progress: { percent: 10, unknownField: true },
   };
-  expect(parseBridgeJobCorrelation(foreign)).toEqual({
-    requestId: "request:scan",
-    jobId: "job:scan",
-  });
-
-  const tracker = new BridgeJobTracker("request:scan", "job:scan");
-  expect(tracker.correlates(parseBridgeJobCorrelation(foreign))).toBe(true);
-  const otherJob = parseBridgeJobCorrelation({ ...foreign, jobId: "job:other" });
-  expect(tracker.correlates(otherJob)).toBe(false);
-
-  expectCode(() => parseBridgeJobCorrelation(null), "invalid_object");
-  expectCode(() => parseBridgeJobCorrelation({ requestId: "request:scan" }), "invalid_id");
+  expect(tracker.admits(own)).toBe(true);
+  expect(tracker.admits({ ...own, jobId: "job:other" })).toBe(false);
+  // A foreign request is refused without reading its job id.
+  expect(tracker.admits({ ...own, requestId: "request:other", jobId: "Not An Id!" })).toBe(false);
+  // Under this job's own request, an unreadable job id is malformed.
+  expectCode(() => tracker.admits({ ...own, jobId: "Not An Id!" }), "invalid_id");
+  expectCode(() => tracker.admits(null), "invalid_object");
+  expectCode(() => tracker.admits({ jobId: "job:scan" }), "invalid_id");
 });

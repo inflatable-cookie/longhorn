@@ -5,25 +5,9 @@ import type {
   BridgeJobTerminalEvent,
   BridgeProgressEvent,
 } from "../generated/protocol.ts";
-import type { BridgeJobCorrelation } from "../job.ts";
 import { incompatible, opaqueId, record } from "./base.ts";
 import type { BridgeCodec } from "./base.ts";
 import { parseBridgeFailure } from "./operations.ts";
-
-/**
- * Reads only the request and job identifiers of a progress or terminal event.
- * Other fields are not checked, so a consumer can decide whether an event
- * belongs to its job before any job-specific payload is decoded.
- */
-export function parseBridgeJobCorrelation(value: unknown): BridgeJobCorrelation {
-  if (!isRecord(value)) {
-    incompatible("invalid_object", value);
-  }
-  return {
-    requestId: opaqueId(value.requestId),
-    jobId: opaqueId(value.jobId),
-  };
-}
 
 export function parseBridgeProgressEvent<P>(
   value: unknown,
