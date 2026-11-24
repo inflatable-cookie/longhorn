@@ -21,6 +21,10 @@ export type NotificationControllerStatus =
   | { readonly kind: "loading" }
   | { readonly kind: "ready" }
   | { readonly kind: "failed"; readonly error: unknown };
+export type NotificationPaginationStatus =
+  | { readonly kind: "idle" }
+  | { readonly kind: "loading" }
+  | { readonly kind: "failed"; readonly error: unknown };
 export type NotificationPendingKind = "markSeen" | "dismiss" | "action";
 
 export interface NotificationPendingCommand {
@@ -70,6 +74,7 @@ export class NotificationController {
   readonly toastSelector: ((record: NotificationRecordProjection) => boolean) | undefined;
   readonly actionExecutor: NotificationActionExecutor | undefined;
   status: NotificationControllerStatus = { kind: "idle" };
+  pagination: NotificationPaginationStatus = { kind: "idle" };
   snapshot: NotificationSnapshot | undefined;
   records: Array<NotificationRecordProjection> = [];
   toasts: Array<NotificationToastProjection> = [];
@@ -80,6 +85,7 @@ export class NotificationController {
   started = false;
   lifecycleRevision = 0;
   toastSequence = 0;
+  private pageLoad: Promise<void> | undefined;
 
   constructor(options: NotificationControllerOptions) {
     this.client = new NotificationClient(options.port);
@@ -146,6 +152,8 @@ export class NotificationController {
     this.toasts = [];
     this.selectedNotificationId = undefined;
     this.pending.clear();
+    this.pageLoad = undefined;
+    this.pagination = { kind: "idle" };
     this.commandFailure = undefined;
     this.commandRejection = undefined;
     this.setStatus({ kind: "idle" });
@@ -166,29 +174,33 @@ export class NotificationController {
   }
 
   async loadMore(): Promise<void> {
+    if (this.pageLoad !== undefined) {
+      return this.pageLoad;
+    }
     const current = this.requireSnapshot();
     if (!current.page.hasMore) {
       return;
     }
-    const next = (await this.client.snapshot(this.records.length, this.pageSize)).snapshot;
-    if (
-      next.authority.authorityId !== current.authority.authorityId ||
-      next.authority.authorityEpoch !== current.authority.authorityEpoch ||
-      next.ledgerRevision !== current.ledgerRevision
-    ) {
-      this.install(next);
-      return;
+    const lifecycle = this.lifecycleRevision;
+    const load = this.applyPage(current, this.records.length, lifecycle);
+    this.pageLoad = load;
+    this.setPagination({ kind: "loading" });
+    try {
+      await load;
+      if (this.pageLoad === load) {
+        this.setPagination({ kind: "idle" });
+      }
+    } catch (error) {
+      // A load that a newer snapshot or a stop has abandoned no longer owns status.
+      if (this.pageLoad === load) {
+        this.setPagination({ kind: "failed", error });
+      }
+      throw error;
+    } finally {
+      if (this.pageLoad === load) {
+        this.pageLoad = undefined;
+      }
     }
-    const known = new Set(this.records.map((record) => record.notificationId));
-    this.records = [
-      ...this.records,
-      ...next.page.records.filter((record) => !known.has(record.notificationId)),
-    ];
-    this.snapshot = {
-      ...current,
-      page: { ...current.page, hasMore: next.page.hasMore, records: [...this.records] },
-    };
-    this.notify();
   }
 
   markSeen(notificationId: NotificationId): Promise<NotificationMutationResult> {
@@ -292,6 +304,62 @@ export class NotificationController {
     }
   }
 
+  /**
+   * Applies one requested page only while the live state is still the basis it
+   * was asked against. A page is a slice, so when the ledger has moved past the
+   * basis it resyncs page zero instead of installing the slice as state.
+   */
+  private async applyPage(
+    basis: NotificationSnapshot,
+    offset: number,
+    lifecycle: number,
+  ): Promise<void> {
+    const response = (await this.client.snapshot(offset, this.pageSize)).snapshot;
+    const live = this.pageFence(basis, offset, lifecycle);
+    if (live === undefined) {
+      return;
+    }
+    if (!isSameLedgerPosition(response, live)) {
+      await this.resyncFirstPage(lifecycle);
+      return;
+    }
+    const known = new Set(this.records.map((record) => record.notificationId));
+    this.records = [
+      ...this.records,
+      ...response.page.records.filter((record) => !known.has(record.notificationId)),
+    ];
+    this.snapshot = {
+      ...live,
+      page: { ...live.page, hasMore: response.page.hasMore, records: [...this.records] },
+    };
+    this.notify();
+  }
+
+  /** The live snapshot, when a page requested at `offset` against `basis` may still apply. */
+  private pageFence(
+    basis: NotificationSnapshot,
+    offset: number,
+    lifecycle: number,
+  ): NotificationSnapshot | undefined {
+    const live = this.snapshot;
+    if (!this.isCurrent(lifecycle) || live === undefined || this.records.length !== offset) {
+      return undefined;
+    }
+    return isSameLedgerPosition(live, basis) ? live : undefined;
+  }
+
+  private async resyncFirstPage(lifecycle: number): Promise<void> {
+    const first = (await this.client.snapshot(0, this.pageSize)).snapshot;
+    if (this.isCurrent(lifecycle)) {
+      this.install(first);
+    }
+  }
+
+  private setPagination(pagination: NotificationPaginationStatus): void {
+    this.pagination = pagination;
+    this.notify();
+  }
+
   private install(candidate: NotificationSnapshot): void {
     if (!isNewerNotificationSnapshot(candidate, this.snapshot)) {
       return;
@@ -299,6 +367,11 @@ export class NotificationController {
     const previous = this.snapshot;
     this.snapshot = candidate;
     this.records = [...candidate.page.records];
+    // A newer snapshot abandons any page request it was asked against, and clearing
+    // the load withdraws that request's right to set status. A failure recorded
+    // against the older state must not outlive the snapshot, even with no further pages.
+    this.pageLoad = undefined;
+    this.pagination = { kind: "idle" };
     if (previous !== undefined && this.toastSelector !== undefined) {
       const existing = new Set(this.toasts.map((toast) => toast.notificationId));
       const fresh = candidate.page.records.filter(
@@ -354,6 +427,14 @@ export class NotificationController {
       observer();
     }
   }
+}
+
+function isSameLedgerPosition(a: NotificationSnapshot, b: NotificationSnapshot): boolean {
+  return (
+    a.authority.authorityId === b.authority.authorityId &&
+    a.authority.authorityEpoch === b.authority.authorityEpoch &&
+    a.ledgerRevision === b.ledgerRevision
+  );
 }
 
 export class NotificationControllerUnavailableError extends Error {

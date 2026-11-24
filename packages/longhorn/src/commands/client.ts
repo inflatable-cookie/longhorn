@@ -18,10 +18,12 @@ import type {
   CommandKeymapPreviewResult,
   CommandKeymapReset,
 } from "./generated/protocol.ts";
+import { attempt, disposeAll } from "./listeners.ts";
 import type {
   CommandExecutionIntent,
   CommandExecutionOutcome,
   CommandPorts,
+  CommandSnapshotPort,
   CommandUnlisten,
 } from "./ports.ts";
 
@@ -57,7 +59,7 @@ export class CommandClient {
   async listen(invalidate: () => void): Promise<ReadonlyArray<CommandUnlisten>> {
     const results = await Promise.allSettled(
       [this.#ports.catalogue, this.#ports.keymap, this.#ports.availability].flatMap((port) =>
-        port.listen === undefined ? [] : [port.listen(invalidate)],
+        registrationOf(port, invalidate),
       ),
     );
     const unlisten = results.flatMap((result) =>
@@ -67,7 +69,7 @@ export class CommandClient {
       (result): result is PromiseRejectedResult => result.status === "rejected",
     );
     if (failure !== undefined) {
-      await Promise.allSettled(unlisten.map((dispose) => dispose()));
+      await disposeAll(unlisten);
       throw failure.reason;
     }
     return unlisten;
@@ -109,6 +111,18 @@ export class CommandClient {
     assertValidCommandKeymapMutationResult(result);
     return result;
   }
+}
+
+/**
+ * Starts one port's listener inside a promise, so its registration joins the
+ * settled set whether it returns, resolves or throws synchronously.
+ */
+function registrationOf(
+  port: CommandSnapshotPort<unknown>,
+  invalidate: () => void,
+): Array<Promise<CommandUnlisten>> {
+  const listen = port.listen?.bind(port);
+  return listen === undefined ? [] : [attempt(() => listen(invalidate))];
 }
 
 export class CommandKeymapReadOnlyError extends Error {
