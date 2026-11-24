@@ -20,6 +20,19 @@ const typescriptPackages = [
   ["@inflatable-cookie/longhorn-tauri", "longhorn-tauri"],
 ] as const;
 
+/** Packed TypeScript package names, in pack order. */
+export const packedTypescriptPackageNames: ReadonlyArray<string> = typescriptPackages.map(
+  ([name]) => name,
+);
+
+/**
+ * The packed package that owns the bridge surface. Its `./bridge*` exports and
+ * `BRIDGE_PROTOCOL_VERSION` are checked on the packed artifact.
+ */
+export const bridgePackageName = "@inflatable-cookie/longhorn";
+
+const bridgeExports = ["./bridge", "./bridge/protocol", "./bridge/stream", "./bridge/supervision"];
+
 const rustCrates = ["longhorn-core", "longhorn-bridge", "longhorn-tauri-bridge"] as const;
 
 const donorNames = [
@@ -48,6 +61,9 @@ const credentialValueMarkers = [
 // Match whole names in the source. Removing whitespace joined prose such as
 // “event source” into a network marker. Match call syntax and the literal
 // fixture domain prefix without joining adjacent prose.
+// Test-module text is in scope: Cargo packs `#[cfg(test)]` code under `src`,
+// so a fixture domain or a donor name in a test module ships with the crate.
+// Keep fixture names out of bridge sources, test modules included.
 const forbiddenPatterns = [
   ...[...donorNames, ...productionNetworkMarkers, ...credentialValueMarkers].map((marker) => ({
     marker,
@@ -159,33 +175,10 @@ async function inspectNpmArtifact(name: string, path: string, artifactRoot: stri
   }
   assertExactSet(`${name} dependencies`, Object.keys(packedManifest.dependencies ?? {}), []);
   if (
-    name === "@inflatable-cookie/longhorn-bridge" &&
-    packedManifest.peerDependencies?.["@inflatable-cookie/longhorn-tauri"] !== LONGHORN_VERSION
-  ) {
-    throw new Error(
-      "@inflatable-cookie/longhorn-bridge must keep @inflatable-cookie/longhorn-tauri as an optional peer",
-    );
-  }
-  if (
     name === "@inflatable-cookie/longhorn-tauri" &&
     packedManifest.peerDependencies?.["@tauri-apps/api"] !== "^2.10.1"
   ) {
     throw new Error("@inflatable-cookie/longhorn-tauri has an unexpected Tauri API peer");
-  }
-  if (name === "@inflatable-cookie/longhorn-bridge") {
-    assertExactSet(
-      "@inflatable-cookie/longhorn-bridge exports",
-      Object.keys(packedManifest.exports ?? {}),
-      [
-        ".",
-        "./protocol",
-        "./stream",
-        "./supervision",
-        "./tauri",
-        "./tauri-events",
-        "./package.json",
-      ],
-    );
   }
 
   const extractRoot = join(artifactRoot, `inspect-${name.replace("@", "").replace("/", "-")}`);
@@ -193,11 +186,26 @@ async function inspectNpmArtifact(name: string, path: string, artifactRoot: stri
   await run(["tar", "-xzf", path, "-C", extractRoot], artifactRoot);
   const source = await readSourceTree(join(extractRoot, "package", "src"));
   assertProductNeutral(`${name} TypeScript artifact`, source);
-  if (
-    name === "@inflatable-cookie/longhorn-bridge" &&
-    !source.includes("BRIDGE_PROTOCOL_VERSION = 1")
-  ) {
-    throw new Error("packed bridge protocol version is missing");
+  if (name === bridgePackageName) {
+    assertBridgeSurface(name, packedManifest.exports ?? {}, source);
+  }
+}
+
+/**
+ * Checks the packed bridge surface: the `./bridge*` exports are exactly the
+ * declared set, and the packed source carries the protocol version.
+ */
+export function assertBridgeSurface(
+  name: string,
+  exportsMap: Readonly<Record<string, unknown>>,
+  source: string,
+): void {
+  const bridgeKeys = Object.keys(exportsMap).filter(
+    (key) => key === "./bridge" || key.startsWith("./bridge/"),
+  );
+  assertExactSet(`${name} bridge exports`, bridgeKeys, bridgeExports);
+  if (!source.includes("BRIDGE_PROTOCOL_VERSION = 1")) {
+    throw new Error(`${name} packed bridge protocol version is missing`);
   }
 }
 

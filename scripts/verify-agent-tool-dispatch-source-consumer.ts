@@ -2,15 +2,15 @@
 // Resolved paths stay process-local; the receipt contains symbolic keys only.
 
 import { run, sha256 } from "./proof-support.ts";
-import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { tmpdir } from "node:os";
 
 import { MSRV } from "./msrv.ts";
 import {
   prepareStagedWorkspace,
   privateCargoCommand,
   rustExec,
+  stagingDirectory,
   taskScratch,
 } from "./rust-command.ts";
 
@@ -35,8 +35,8 @@ if (swallowtailHead !== SWALLOWTAIL_SHA) {
 await run(["git", "merge-base", "--is-ancestor", LONGHORN_BASE, longhornHead], longhornRoot);
 
 const sourceGraphBefore = await sourceGraphDigests(longhornRoot, swallowtailRoot);
-const first = await mkdtemp(join(tmpdir(), "longhorn-agent-tool-dispatch-"));
-const second = await mkdtemp(join(tmpdir(), "longhorn-agent-tool-dispatch-repeat-"));
+const first = await stagingDirectory("longhorn-agent-tool-dispatch");
+const second = await stagingDirectory("longhorn-agent-tool-dispatch-repeat");
 // Private final Cargo outputs for both throwaway consumers, on external build
 // scratch. The intermediates keep the build directory each exec lease supplies.
 const buildScratch = await taskScratch("longhorn-agent-tool-dispatch-source-consumer");

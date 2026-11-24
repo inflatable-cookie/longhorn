@@ -1,8 +1,7 @@
 import { parseJsonRecord, requireRecord } from "./proof-json.ts";
 import { requireValue } from "./proof-support.ts";
 import { join, resolve } from "node:path";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, rm } from "node:fs/promises";
 
 import {
   packAndCheckRustArtifacts,
@@ -10,11 +9,11 @@ import {
 } from "./bridge-topology-artifact-proof/artifacts.ts";
 import { verifyConsumers } from "./bridge-topology-artifact-proof/consumers.ts";
 import { runWithDiagnostics as run } from "./proof-support.ts";
-import { rustCommand, taskScratch } from "./rust-command.ts";
+import { rustCommand, stagingDirectory, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "bridge-topology-proof");
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-bridge-artifact-proof-"));
+const temporaryRoot = await stagingDirectory("longhorn-bridge-artifact-proof");
 const artifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(artifactRoot);
 const buildScratch = await taskScratch("longhorn-bridge-topology-rust");

@@ -11,18 +11,7 @@ import { requireValue } from "./proof-support.ts";
 import { digest, fileDependency, run, assertExactSet, sha256 } from "./proof-support.ts";
 import { installProofStage } from "./proof-install.ts";
 import { randomUUID } from "node:crypto";
-import {
-  cp,
-  lstat,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  realpath,
-  rm,
-  writeFile,
-} from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { cp, lstat, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { MSRV_TOOLCHAIN } from "./msrv.ts";
 import { poodleRelease } from "./poodle-release.ts";
@@ -32,6 +21,7 @@ import {
   privateCargoCommand,
   rustCommand,
   rustExec,
+  stagingDirectory,
   taskScratch,
 } from "./rust-command.ts";
 
@@ -66,7 +56,7 @@ const poodlePackages = [
 const LONGHORN_VERSION = longhornVersion();
 const publishedPoodle = poodleRelease();
 const POODLE_VERSION = publishedPoodle.version;
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-greenfield-compositions-"));
+const temporaryRoot = await stagingDirectory("longhorn-greenfield-compositions");
 // Private final Cargo outputs for the staged workspace, on external build
 // scratch. The intermediates keep the build directory each exec lease supplies.
 const buildScratch = await taskScratch("longhorn-greenfield-rust");

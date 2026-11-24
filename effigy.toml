@@ -8,7 +8,8 @@ setup = ["bootstrap:deps"]
 include = ["config/release.toml"]
 
 [tasks]
-# Temporary diagnostic routes used during revision.
+# Installs the locked TypeScript dependencies. `[bootstrap]` runs it as setup,
+# so it is a permanent route, not a diagnostic one.
 "bootstrap:deps" = "bun install --frozen-lockfile"
 
 # Aggregates stay one task per job. Keep package-level variants only where
@@ -112,7 +113,7 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/scanner-heuristics.test.ts scripts/check-generated-sources.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/scanner-heuristics.test.ts scripts/check-generated-sources.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts scripts/proof-member-run.test.ts scripts/staged-storage.test.ts scripts/agents-md-claims.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -286,6 +287,10 @@ include = ["config/release.toml"]
 "proof:poodle-preview" = "bun scripts/verify-poodle-preview.ts"
 "proof:documented-commands" = "bun scripts/verify-documented-commands.ts"
 "proof:bridge-topology-conformance" = "bun scripts/verify-bridge-topology-conformance.ts"
+# The bridge artifact audit: packs the bridge crates and packages, then checks
+# the staged graphs and the neutrality scan. `proof:artifacts` runs it as a
+# member; the bridge-topology-conformance QA group runs it for bridge sources.
+"proof:bridge-topology-artifacts" = "bun scripts/verify-bridge-topology-artifacts.ts"
 # Contract 003 step 6 for contracts 024-029: a neutral consumer staged from
 # packaged crate sources into a disposable private workspace, asserting each
 # contract's behaviour, then a live tool install against the loopback fixture
@@ -691,11 +696,13 @@ members = [
 
 [qa.groups.longhorn-bridge-topology-conformance]
 lifecycle = "maintained"
-purpose = "Check the bridge topology proof and its exact source and capability inputs"
+purpose = "Check the bridge topology proof, its artifact audit, and their exact source and capability inputs"
 scope_policy = "required"
 coverage_gaps = []
 proof_limits = [
-  "Checks only the bridge topology proof, bridge sources, and query-only capability",
+  "Checks the bridge topology proof, the packed bridge crates and packages, bridge sources, and query-only capability",
+  "The artifact audit packs the Rust crates and TypeScript packages it names and does not check the other artifact proofs",
+  "Does not cover root Cargo.toml or Cargo.lock changes; those are PR gap tokens covered by lint:rust",
   "Does not replace package typechecks, Rust tests, or other artifact proofs",
 ]
 members = [
@@ -735,6 +742,72 @@ members = [
       "input:effigy-task-table-proof-bridge-topology-conformance",
     ],
     limits = ["Checks five declared bridge compositions and source-level boundaries"],
+  },
+  {
+    id = "bridge-topology-artifacts",
+    kind = "proof",
+    surface = "published",
+    task = "proof:bridge-topology-artifacts",
+    args = [],
+    targets = [
+      "path:scripts/verify-bridge-topology-artifacts.ts",
+      "path:scripts/bridge-topology-artifact-proof/**",
+      "path:scripts/rust-command.ts",
+      "path:scripts/rust-command.sh",
+      "path:scripts/private-cargo.sh",
+      "path:scripts/proof-json.ts",
+      "path:scripts/proof-support.ts",
+      "path:scripts/msrv.ts",
+      "path:scripts/longhorn-version.ts",
+      "path:scripts/workspace-dependencies.ts",
+      "path:examples/bridge-topology-proof/**",
+      "cargo-package:longhorn-core",
+      "path:crates/longhorn-core/**",
+      "cargo-package:longhorn-bridge",
+      "path:crates/longhorn-bridge/**",
+      "cargo-package:longhorn-tauri-bridge",
+      "path:crates/longhorn-tauri-bridge/**",
+      "bun-package:@inflatable-cookie/longhorn",
+      "path:packages/longhorn/**",
+      "bun-package:@inflatable-cookie/longhorn-tauri",
+      "path:packages/longhorn-tauri/**",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+    ],
+    covers = [
+      "path:scripts/verify-bridge-topology-artifacts.ts",
+      "path:scripts/bridge-topology-artifact-proof/**",
+      "path:scripts/rust-command.ts",
+      "path:scripts/rust-command.sh",
+      "path:scripts/private-cargo.sh",
+      "path:scripts/proof-json.ts",
+      "path:scripts/proof-support.ts",
+      "path:scripts/msrv.ts",
+      "path:scripts/longhorn-version.ts",
+      "path:scripts/workspace-dependencies.ts",
+      "path:examples/bridge-topology-proof/**",
+      "cargo-package:longhorn-core",
+      "path:crates/longhorn-core/**",
+      "cargo-package:longhorn-bridge",
+      "path:crates/longhorn-bridge/**",
+      "cargo-package:longhorn-tauri-bridge",
+      "path:crates/longhorn-tauri-bridge/**",
+      "bun-package:@inflatable-cookie/longhorn",
+      "path:packages/longhorn/**",
+      "bun-package:@inflatable-cookie/longhorn-tauri",
+      "path:packages/longhorn-tauri/**",
+      "path:package.json",
+      "path:bun.lock",
+      "external:root-node-modules",
+      "external:bun-runtime",
+      "input:effigy-task-table-proof-bridge-topology-artifacts",
+    ],
+    limits = [
+      "Packs the bridge crates and the longhorn and longhorn-tauri packages, then checks the staged Rust graphs and the product-neutrality scan",
+      "Does not cover root Cargo.toml or Cargo.lock changes; those are PR gap tokens covered by lint:rust",
+    ],
   },
 ]
 

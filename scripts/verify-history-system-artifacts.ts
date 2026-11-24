@@ -14,8 +14,7 @@ import { workspaceDependencies } from "./workspace-dependencies.ts";
 import { testCount } from "./test-count.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { randomUUID } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { cp, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { longhornVersion } from "./longhorn-version.ts";
@@ -24,6 +23,7 @@ import {
   privateCargoCommand,
   rustCommand,
   rustExec,
+  stagingDirectory,
   taskScratch,
 } from "./rust-command.ts";
 
@@ -35,7 +35,7 @@ const POODLE_RELEASE = poodleRelease();
 const LONGHORN_VERSION = longhornVersion();
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "history-system-proof");
-const temporaryRoot = await mkdtemp(join(tmpdir(), "longhorn-history-system-proof-"));
+const temporaryRoot = await stagingDirectory("longhorn-history-system-proof");
 const typescriptArtifactRoot = join(temporaryRoot, "typescript-artifacts");
 await mkdir(typescriptArtifactRoot);
 // Private final Cargo outputs for the staged workspace, on external build

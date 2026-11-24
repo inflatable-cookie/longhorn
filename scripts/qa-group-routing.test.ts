@@ -27,6 +27,11 @@ const taskTableRoutes = [
     scope: ["input:effigy-task-table-proof-bridge-topology-conformance", ...runtimeInputs],
   },
   {
+    group: "longhorn-bridge-topology-conformance",
+    task: "proof:bridge-topology-artifacts",
+    scope: ["input:effigy-task-table-proof-bridge-topology-artifacts", ...runtimeInputs],
+  },
+  {
     group: "longhorn-poodle-preview",
     task: "proof:poodle-preview",
     scope: ["input:effigy-task-table-proof-poodle-preview", ...runtimeInputs],
@@ -84,6 +89,22 @@ test("mapped proof inputs route to their owning standalone selector", () => {
   expect(
     bridgeManifest.members?.some((member) => member.task === "proof:bridge-topology-conformance"),
   ).toBe(true);
+});
+
+test("a bridge source change routes to the artifact audit as well as the conformance proof", () => {
+  for (const source of [
+    "path:crates/longhorn-tauri-bridge/src/handler.rs",
+    "path:crates/longhorn-bridge/src/lib.rs",
+  ]) {
+    const plan = planGroup("longhorn-bridge-topology-conformance", [source, ...runtimeInputs]);
+    expect(plan.scope_assessment).toBe("declared_match");
+    expect(plan.members?.map((member) => member.task)).toEqual(
+      expect.arrayContaining([
+        "proof:bridge-topology-conformance",
+        "proof:bridge-topology-artifacts",
+      ]),
+    );
+  }
 });
 
 test("prototype dependency changes route through rustdoc and prototype checks", () => {

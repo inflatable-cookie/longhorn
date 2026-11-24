@@ -147,14 +147,24 @@ const scratchVariable = "OXIDE_TASK_SCRATCH_ROOT";
  * keeps its runner-owned temporary storage.
  */
 export async function taskScratch(label: string): Promise<TaskScratch> {
-  const base = await scratchBase();
-  const root = await mkdtemp(join(base, `${label}-`));
+  const root = await stagingDirectory(label);
   return {
     root,
     dispose: async () => {
       await rm(root, { recursive: true, force: true });
     },
   };
+}
+
+/**
+ * Allocates a fresh private directory on external build scratch, for one
+ * proof's staged workspaces and its archives. Staged Rust sources never come
+ * from `os.tmpdir()`: that follows `TMPDIR`, which may name the boot volume, so
+ * the stage uses the same external root and refusal rules as final outputs.
+ * The caller removes it. Hosted CI keeps its runner-owned temporary storage.
+ */
+export async function stagingDirectory(label: string): Promise<string> {
+  return mkdtemp(join(await scratchBase(), `${label}-`));
 }
 
 async function scratchBase(): Promise<string> {

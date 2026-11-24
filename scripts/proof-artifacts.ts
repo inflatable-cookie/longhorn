@@ -1,7 +1,9 @@
 import { resolve } from "node:path";
+import type { ProofMember } from "./proof-member-run.ts";
+import { failedMembers, formatTimings, runProofMembers } from "./proof-member-run.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
-const members = [
+const members: ReadonlyArray<ProofMember> = [
   { name: "app-shell-proof", script: "scripts/verify-app-shell-proof.ts" },
   { name: "bridge-topology-conformance", script: "scripts/verify-bridge-topology-conformance.ts" },
   { name: "bridge-topology-artifacts", script: "scripts/verify-bridge-topology-artifacts.ts" },
@@ -19,18 +21,8 @@ const members = [
   { name: "guide-corpus", script: "scripts/verify-guide-corpus.ts" },
   { name: "documented-commands", script: "scripts/verify-documented-commands.ts" },
   { name: "pack-typecheck", script: "scripts/verify-pack-typecheck.ts" },
-] as const;
+];
 
-type Result = "pass" | "fail";
-
-type Timing = {
-  member: string;
-  seconds: string;
-  result: Result;
-};
-
-const timings: Array<Timing> = [];
-let failed = false;
 // Every member resolves its own storage now: checkout-level routes run through
 // the switch point and pool, and each member's staged workspaces lease their own
 // private final outputs under external build scratch. A `CARGO_TARGET_DIR`
@@ -39,54 +31,31 @@ let failed = false;
 const memberEnvironment = { ...process.env };
 delete memberEnvironment.CARGO_TARGET_DIR;
 
-for (const member of members) {
+const timings = await runProofMembers(members, async (member) => {
   console.log(`proof ${member.name}`);
-
-  const startedAt = performance.now();
-  let exitCode = 1;
-  let stdout = "";
-  try {
-    const child = Bun.spawn(["bun", member.script], {
-      cwd: repoRoot,
-      env: memberEnvironment,
-      stdout: "pipe",
-      stderr: "inherit",
-    });
-    const [text, code] = await Promise.all([new Response(child.stdout).text(), child.exited]);
-    stdout = text;
-    exitCode = code;
-  } catch (error) {
-    console.error(`failed to start proof ${member.name}: ${String(error)}`);
-  }
-
-  timings.push({
-    member: member.name,
-    seconds: ((performance.now() - startedAt) / 1000).toFixed(2),
-    result: exitCode === 0 ? "pass" : "fail",
+  const child = Bun.spawn(["bun", member.script], {
+    cwd: repoRoot,
+    env: memberEnvironment,
+    stdout: "pipe",
+    stderr: "inherit",
   });
+  const [stdout, exitCode] = await Promise.all([new Response(child.stdout).text(), child.exited]);
+  return { exitCode, stdout };
+});
 
-  if (exitCode !== 0) {
-    if (stdout.trim().length > 0) {
-      process.stderr.write(stdout);
-      if (!stdout.endsWith("\n")) {
-        process.stderr.write("\n");
-      }
-    }
-    reportTimings();
-    process.exitCode = 1;
-    failed = true;
-    break;
+// A failing member is reported with its captured output, after every member
+// has run, so one broken proof does not hide the verdict of the others.
+for (const timing of timings) {
+  if (timing.result === "fail" && timing.stdout.trim().length > 0) {
+    process.stderr.write(timing.stdout.endsWith("\n") ? timing.stdout : `${timing.stdout}\n`);
   }
 }
-
-if (!failed) {
-  reportTimings();
+for (const line of formatTimings(timings)) {
+  console.error(line);
 }
 
-function reportTimings(): void {
-  console.error("proof:artifacts timings (seconds)");
-  console.error("member\tseconds\tresult");
-  for (const timing of timings) {
-    console.error(`${timing.member}\t${timing.seconds}\t${timing.result}`);
-  }
+const failures = failedMembers(timings);
+if (failures.length > 0) {
+  console.error(`proof:artifacts failed: ${failures.join(", ")}`);
+  process.exitCode = 1;
 }
