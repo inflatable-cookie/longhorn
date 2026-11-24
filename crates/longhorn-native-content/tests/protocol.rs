@@ -4,15 +4,18 @@ use longhorn_core::{
     ClientPoint, ClientRect, ClientSize, NativeContentRevision, RoundingMode, ScaleFactor, WindowId,
 };
 use longhorn_native_content::{
-    AttachGeneration, AttachmentLifecycle, ContentSizeProposal, DesiredPresence, DesiredState,
-    DesiredUpdate, DesiredVisibility, DetachPolicy, EffectiveFocus, EffectiveVisibility,
-    FocusIntent, InputRoutingMode, MechanismCapabilities, NativeContentAuthorityEpoch,
-    NativeContentChangeProjection, NativeContentConnectRequest, NativeContentConnectResult,
+    AttachGeneration, AttachmentLifecycle, ContentSizeDecision, ContentSizeProposal,
+    CoordinationError, DesiredPresence, DesiredState, DesiredUpdate, DesiredVisibility,
+    DetachPolicy, EffectiveFocus, EffectiveVisibility, FocusIntent, InputRoutingMode,
+    MechanismCapabilities, NativeContentAuthorityEpoch, NativeContentChangeProjection,
+    NativeContentConnectRequest, NativeContentConnectResult,
+    NativeContentContentSizeDecisionRequest, NativeContentContentSizeDecisionResult,
     NativeContentCoordinator, NativeContentDesiredUpdateRequest, NativeContentDesiredUpdateResult,
     NativeContentIslandId, NativeContentKindId, NativeContentMechanism, NativeContentProtocolHost,
-    NativeContentProtocolVersion, NativeContentRejectionCode, NativeContentRequestId,
-    NativeContentSnapshotRequest, NativeContentSnapshotResult, ObservationUpdate, ObservedGeometry,
-    ObservedReadiness, PlanStepId, StepExecution,
+    NativeContentProtocolRejection, NativeContentProtocolVersion, NativeContentRejectionCode,
+    NativeContentRequestId, NativeContentRetryClass, NativeContentSnapshotRequest,
+    NativeContentSnapshotResult, ObservationUpdate, ObservedGeometry, ObservedReadiness,
+    PlanStepId, StepExecution,
 };
 
 fn request_id(value: &str) -> NativeContentRequestId {
@@ -104,6 +107,7 @@ fn renderer_epoch_advances_without_changing_attach_generation() {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: request_id("request:stale-snapshot"),
         island_id: NativeContentIslandId::new("island:fixture").unwrap(),
+        authority_epoch: first.cursor.authority_epoch,
         client_epoch: first.cursor.client_epoch,
     });
     assert!(matches!(
@@ -124,6 +128,7 @@ fn stale_renderer_mutation_is_rejected_without_state_change() {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: request_id("request:update-old"),
         island_id: NativeContentIslandId::new("island:fixture").unwrap(),
+        authority_epoch: old.cursor.authority_epoch,
         client_epoch: old.cursor.client_epoch,
         expected_desired_revision: NativeContentRevision::INITIAL,
         update: desired_update(1, 40.0),
@@ -139,6 +144,7 @@ fn stale_renderer_mutation_is_rejected_without_state_change() {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: request_id("request:update-current"),
         island_id: NativeContentIslandId::new("island:fixture").unwrap(),
+        authority_epoch: current.cursor.authority_epoch,
         client_epoch: current.cursor.client_epoch,
         expected_desired_revision: NativeContentRevision::INITIAL,
         update: desired_update(1, 40.0),
@@ -152,6 +158,99 @@ fn stale_renderer_mutation_is_rejected_without_state_change() {
         } if request_id.as_str() == "request:update-current"
             && matches!(&event.change, NativeContentChangeProjection::DesiredUpdated { request_id, .. } if request_id.as_str() == "request:update-current")
     ));
+}
+
+#[test]
+fn replacement_authority_fences_old_requests_even_when_session_and_revision_match() {
+    let mut original = host();
+    let old = connect(&mut original, "request:original").cursor;
+    let mut replacement = NativeContentProtocolHost::new(
+        old.authority_epoch.checked_next().unwrap(),
+        original.coordinator().clone(),
+    );
+    let current = connect(&mut replacement, "request:replacement").cursor;
+    assert_eq!(old.client_epoch, current.client_epoch);
+    assert_eq!(old.desired_revision, current.desired_revision);
+
+    let snapshot = replacement.snapshot(NativeContentSnapshotRequest {
+        protocol_version: NativeContentProtocolVersion::CURRENT,
+        request_id: request_id("request:old-snapshot"),
+        island_id: old.island_id.clone(),
+        authority_epoch: old.authority_epoch,
+        client_epoch: old.client_epoch,
+    });
+    let update = replacement.update_desired(NativeContentDesiredUpdateRequest {
+        protocol_version: NativeContentProtocolVersion::CURRENT,
+        request_id: request_id("request:old-update"),
+        island_id: old.island_id.clone(),
+        authority_epoch: old.authority_epoch,
+        client_epoch: old.client_epoch,
+        expected_desired_revision: old.desired_revision,
+        update: desired_update(1, 42.0),
+    });
+    let decision = replacement.decide_content_size(NativeContentContentSizeDecisionRequest {
+        protocol_version: NativeContentProtocolVersion::CURRENT,
+        request_id: request_id("request:old-decision"),
+        island_id: old.island_id,
+        authority_epoch: old.authority_epoch,
+        client_epoch: old.client_epoch,
+        proposal: ContentSizeProposal::new(
+            old.attach_generation,
+            old.desired_revision,
+            viewport(0.0).size(),
+        ),
+        decision: ContentSizeDecision::Accepted,
+    });
+    let (
+        NativeContentSnapshotResult::Rejected {
+            rejection: snapshot,
+            ..
+        },
+        NativeContentDesiredUpdateResult::Rejected {
+            rejection: update, ..
+        },
+        NativeContentContentSizeDecisionResult::Rejected {
+            rejection: decision,
+            ..
+        },
+    ) = (snapshot, update, decision)
+    else {
+        panic!("replacement accepted an old authority request");
+    };
+    for rejection in [snapshot, update, decision] {
+        assert_eq!(
+            rejection.code,
+            NativeContentRejectionCode::AuthorityEpochMismatch
+        );
+        assert_eq!(rejection.retry, NativeContentRetryClass::Refresh);
+    }
+    assert_eq!(replacement.coordinator(), original.coordinator());
+}
+
+#[test]
+fn retry_class_distinguishes_stale_evidence_from_permanent_coordination_errors() {
+    for error in [
+        CoordinationError::RevisionOverflow,
+        CoordinationError::GenerationOverflow,
+        CoordinationError::UnsupportedInputRouting {
+            supported: InputRoutingMode::NativeDirect,
+            supplied: InputRoutingMode::RendererForwarded,
+        },
+        CoordinationError::ContentSizeRequestsUnsupported,
+    ] {
+        assert_eq!(
+            NativeContentProtocolRejection::from(error).retry,
+            NativeContentRetryClass::Never
+        );
+    }
+    assert_eq!(
+        NativeContentProtocolRejection::from(CoordinationError::StaleRevision {
+            current: NativeContentRevision::new(1),
+            supplied: NativeContentRevision::INITIAL,
+        })
+        .retry,
+        NativeContentRetryClass::Refresh
+    );
 }
 
 #[test]

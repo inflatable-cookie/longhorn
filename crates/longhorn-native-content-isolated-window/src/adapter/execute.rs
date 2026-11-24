@@ -5,7 +5,8 @@ use std::{collections::VecDeque, sync::Arc};
 use longhorn_native_content::{
     ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
     NativeContentIslandId, NativeContentMechanism, NativeContentOperation, NativeContentRevision,
-    check_attach_reservation, gate_attached, gate_detach, validate_plan_generation,
+    check_attach_reservation, clear_attach_reservation, complete_reserved_attach, gate_attached,
+    gate_detach, validate_plan_generation,
 };
 
 use crate::{
@@ -47,10 +48,12 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 return Err(IsolatedWindowError::GenerationRetired(plan.generation()));
             }
             // Mechanism-specific extension (contract 017): a terminally failed
-            // owner rejects its own generation and yields only to exactly the
-            // next generation.
+            // owner accepts only teardown for its generation and yields only
+            // to exactly the next generation.
             if attachment.failed && state.retired_generation != Some(attachment.generation) {
-                if plan.generation() == attachment.generation {
+                let is_detach = matches!(plan.operations(), [step]
+                    if matches!(step.operation(), NativeContentOperation::Detach { .. }));
+                if plan.generation() == attachment.generation && !is_detach {
                     return Err(IsolatedWindowError::FailedGeneration);
                 }
                 if !attachment.detaching
@@ -200,61 +203,65 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             });
         }
 
-        self.emit(IsolatedWindowAdapterEvent::ListenerInstalled { generation });
-        let callback_adapter = self.clone();
-        let callback = Arc::new(move |event| {
-            if let Err(error) = callback_adapter.admit_runtime_event(event) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.isolated-window.runtime-event",
-                    format_args!("{error:?}"),
-                );
-            }
-        });
-        self.emit(IsolatedWindowAdapterEvent::AttachStarted { generation });
-        let handle = match self.runtime.attach(RuntimeAttachRequest {
-            generation,
-            spec: self.spec.clone(),
-            callback,
-        }) {
-            Ok(handle) => handle,
-            Err(error) => {
-                self.clear_reservation(generation)?;
-                return Err(error);
-            }
-        };
-        let retained = {
-            let mut state = self
-                .state
-                .lock()
-                .map_err(|_| IsolatedWindowError::Poisoned)?;
-            let retired = state.retired_generation == Some(generation);
-            match state.attachment.as_mut() {
-                Some(attachment) if attachment.generation == generation => {
-                    attachment.handle = Some(handle.clone());
-                    Some(retired)
+        complete_reserved_attach(
+            [
+                IsolatedWindowAdapterEvent::ListenerInstalled { generation },
+                IsolatedWindowAdapterEvent::AttachStarted { generation },
+                IsolatedWindowAdapterEvent::Attached { generation },
+            ],
+            self.observer.as_ref(),
+            || {
+                let callback_adapter = self.clone();
+                let callback = Arc::new(move |event| {
+                    if let Err(error) = callback_adapter.admit_runtime_event(event) {
+                        longhorn_core::report_best_effort_failure(
+                            "native-content.isolated-window.runtime-event",
+                            format_args!("{error:?}"),
+                        );
+                    }
+                });
+                self.runtime.attach(RuntimeAttachRequest {
+                    generation,
+                    spec: self.spec.clone(),
+                    callback,
+                })
+            },
+            |handle| {
+                let retained = {
+                    let mut state = self
+                        .state
+                        .lock()
+                        .map_err(|_| IsolatedWindowError::Poisoned)?;
+                    let retired = state.retired_generation == Some(generation);
+                    match state.attachment.as_mut() {
+                        Some(attachment) if attachment.generation == generation => {
+                            attachment.handle = Some(handle.clone());
+                            Some(retired)
+                        }
+                        _ => None,
+                    }
+                };
+                match retained {
+                    Some(false) => Ok(()),
+                    Some(true) => {
+                        self.detach(generation)?;
+                        Err(IsolatedWindowError::GenerationRetired(generation))
+                    }
+                    None => {
+                        if let Err(error) =
+                            self.runtime.teardown(&handle, self.spec.teardown_timeout())
+                        {
+                            longhorn_core::report_best_effort_failure(
+                                "native-content.isolated-window.teardown",
+                                format_args!("{error:?}"),
+                            );
+                        }
+                        Err(IsolatedWindowError::NotAttached)
+                    }
                 }
-                _ => None,
-            }
-        };
-        match retained {
-            Some(false) => {
-                self.emit(IsolatedWindowAdapterEvent::Attached { generation });
-                Ok(())
-            }
-            Some(true) => {
-                self.detach(generation)?;
-                Err(IsolatedWindowError::GenerationRetired(generation))
-            }
-            None => {
-                if let Err(error) = self.runtime.teardown(&handle, self.spec.teardown_timeout()) {
-                    longhorn_core::report_best_effort_failure(
-                        "native-content.isolated-window.teardown",
-                        format_args!("{error:?}"),
-                    );
-                }
-                Err(IsolatedWindowError::NotAttached)
-            }
-        }
+            },
+            || self.clear_reservation(generation),
+        )
     }
 
     /// Performs bounded owner teardown or confirms an already retired generation is detached.
@@ -289,7 +296,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             attachment.detaching = true;
             handle
         };
-        self.emit(IsolatedWindowAdapterEvent::DetachStarted { generation });
+        (self.observer)(IsolatedWindowAdapterEvent::DetachStarted { generation });
         let outcome = match self.runtime.teardown(&handle, self.spec.teardown_timeout()) {
             Ok(outcome) => outcome,
             Err(error) => {
@@ -325,7 +332,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 state.retired_generation = Some(generation);
             }
         }
-        self.emit(IsolatedWindowAdapterEvent::TeardownReported {
+        (self.observer)(IsolatedWindowAdapterEvent::TeardownReported {
             generation,
             outcome: outcome.clone(),
         });
@@ -370,11 +377,9 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             .state
             .lock()
             .map_err(|_| IsolatedWindowError::Poisoned)?;
-        if state.attachment.as_ref().is_some_and(|attachment| {
-            attachment.generation == generation && attachment.handle.is_none()
-        }) {
-            state.attachment = None;
-        }
+        clear_attach_reservation(&mut state.attachment, generation, |attachment| {
+            AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+        });
         Ok(())
     }
 
@@ -392,10 +397,6 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             attachment.detaching = false;
         }
         Ok(())
-    }
-
-    pub(crate) fn emit(&self, event: IsolatedWindowAdapterEvent) {
-        (self.observer)(event);
     }
 
     pub(super) fn require_island(

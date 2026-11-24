@@ -7,13 +7,13 @@ use longhorn_core::{
     PhysicalSize, RoundingMode, ScaleFactor, WindowId,
 };
 use longhorn_native_content::{
-    AttachGeneration, AttachmentLifecycle, ContentSizeDecision, ContentSizeProposal,
+    ApplyPlan, AttachGeneration, AttachmentLifecycle, ContentSizeDecision, ContentSizeProposal,
     CoordinationError, DesiredPresence, DesiredState, DesiredUpdate, DesiredVisibility,
     DetachPolicy, EffectiveFocus, EffectiveVisibility, FocusIntent, HostDestroyOutcome,
     InputRoutingMode, MechanismCapabilities, NativeContentCoordinator, NativeContentFailureCode,
     NativeContentIslandId, NativeContentKindId, NativeContentMechanism, NativeContentOperation,
     ObservationUpdate, ObservedGeometry, ObservedReadiness, OperationOutcome, PlanStepId,
-    PositiveCounterError, ReceiptError, StepExecution, ViewportConversionError,
+    PlannedOperation, PositiveCounterError, ReceiptError, StepExecution, ViewportConversionError,
     viewport_to_physical,
 };
 
@@ -577,6 +577,168 @@ fn detach_is_explicit_and_not_reissued_while_detaching() {
         )
         .unwrap();
     assert!(coordinator.plan().unwrap().is_empty());
+    assert_eq!(
+        coordinator.update_desired(
+            coordinator.desired().revision(),
+            desired_update(
+                1,
+                "window:main",
+                DesiredPresence::Present,
+                DesiredVisibility::Visible,
+                FocusIntent::Unchanged,
+                InputRoutingMode::NativeDirect,
+                viewport(),
+            ),
+        ),
+        Err(CoordinationError::TerminalGeneration(generation(1)))
+    );
+    coordinator
+        .update_desired(
+            coordinator.desired().revision(),
+            desired_update(
+                2,
+                "window:main",
+                DesiredPresence::Present,
+                DesiredVisibility::Visible,
+                FocusIntent::Unchanged,
+                InputRoutingMode::NativeDirect,
+                viewport(),
+            ),
+        )
+        .unwrap();
+    let plan = coordinator.plan().unwrap();
+    assert_eq!(plan.generation(), generation(2));
+    assert!(matches!(
+        plan.operations()[0].operation(),
+        NativeContentOperation::Attach { .. }
+    ));
+}
+
+#[test]
+fn absent_successor_detaches_and_settles_the_observed_failed_generation() {
+    let mut coordinator = coordinator(NativeContentMechanism::IsolatedWindow);
+    coordinator
+        .admit_observation(
+            NativeContentRevision::INITIAL,
+            ObservationUpdate::new(
+                generation(1),
+                AttachmentLifecycle::Failed,
+                ObservedReadiness::NotReady,
+                EffectiveVisibility::Unknown,
+                EffectiveFocus::Unknown,
+                ObservedGeometry::Unknown,
+                None,
+            ),
+        )
+        .unwrap();
+    coordinator
+        .update_desired(
+            NativeContentRevision::INITIAL,
+            desired_update(
+                2,
+                "window:main",
+                DesiredPresence::Absent,
+                DesiredVisibility::Visible,
+                FocusIntent::Unchanged,
+                InputRoutingMode::Disabled,
+                viewport(),
+            ),
+        )
+        .unwrap();
+    let plan = coordinator.plan().unwrap();
+    assert_eq!(plan.generation(), generation(1));
+    let [step] = plan.operations() else {
+        panic!("expected exactly one detach step");
+    };
+    assert!(matches!(
+        step.operation(),
+        NativeContentOperation::Detach { .. }
+    ));
+    assert_eq!(
+        coordinator
+            .receipt(&plan, [StepExecution::Applied { step: step.step() }])
+            .unwrap()
+            .generation(),
+        generation(1)
+    );
+    let revision = coordinator.observed().revision();
+    assert!(matches!(
+        coordinator.admit_observation(
+            revision,
+            attached_observation(NativeContentMechanism::IsolatedWindow, 1)
+        ),
+        Err(CoordinationError::StaleGeneration { .. })
+    ));
+    coordinator
+        .admit_observation(revision, ObservationUpdate::absent(generation(1)))
+        .unwrap();
+    assert!(coordinator.plan().unwrap().is_empty());
+}
+
+#[test]
+fn unobservable_focus_does_not_generate_request_or_release_operations() {
+    let mut coordinator = coordinator(NativeContentMechanism::BackingSurface);
+    for focus in [FocusIntent::Request, FocusIntent::ReleaseIfOwned] {
+        coordinator
+            .update_desired(
+                coordinator.desired().revision(),
+                desired_update(
+                    1,
+                    "window:main",
+                    DesiredPresence::Present,
+                    DesiredVisibility::Visible,
+                    focus,
+                    InputRoutingMode::RendererForwarded,
+                    viewport(),
+                ),
+            )
+            .unwrap();
+        assert!(coordinator.plan().unwrap().operations().iter().all(|step| {
+            !matches!(
+                step.operation(),
+                NativeContentOperation::RequestFocus | NativeContentOperation::ReleaseFocusIfOwned
+            )
+        }));
+    }
+}
+
+#[test]
+fn decoded_plans_enforce_step_bounds_order_and_dependencies() {
+    let plan = coordinator(NativeContentMechanism::ChildView)
+        .plan()
+        .unwrap();
+    let value = serde_json::to_value(&plan).unwrap();
+    assert_eq!(
+        serde_json::from_value::<ApplyPlan>(value.clone()).unwrap(),
+        plan
+    );
+
+    let mut too_long = value.clone();
+    too_long["operations"]
+        .as_array_mut()
+        .unwrap()
+        .push(value["operations"][0].clone());
+    assert!(serde_json::from_value::<ApplyPlan>(too_long).is_err());
+
+    let mut out_of_order = value.clone();
+    out_of_order["operations"]
+        .as_array_mut()
+        .unwrap()
+        .swap(1, 2);
+    assert!(serde_json::from_value::<ApplyPlan>(out_of_order).is_err());
+
+    for (step, dependency) in [
+        (0, None),
+        (6, Some(5)),
+        (1, Some(1)),
+        (2, None),
+        (3, Some(1)),
+    ] {
+        let mut operation = value["operations"][0].clone();
+        operation["step"] = serde_json::json!(step);
+        operation["depends_on"] = serde_json::json!(dependency);
+        assert!(serde_json::from_value::<PlannedOperation>(operation).is_err());
+    }
 }
 
 #[test]

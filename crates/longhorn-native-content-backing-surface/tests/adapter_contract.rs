@@ -297,6 +297,89 @@ fn host_destroy_invalidates_before_retryable_reversible_detach() {
 }
 
 #[test]
+fn host_destroy_before_attach_is_idempotent_and_retires_the_generation() {
+    let runtime = FakeRuntime::default();
+    let adapter = adapter(runtime.clone(), Arc::default());
+    let generation = attach_generation(1);
+    for outcome in [
+        BackingSurfaceHostDestroyOutcome::Invalidated,
+        BackingSurfaceHostDestroyOutcome::AlreadyInvalidated,
+    ] {
+        let receipt = adapter
+            .host_destroyed(&host_window_id(), generation)
+            .unwrap();
+        assert_eq!(receipt.outcome(), outcome);
+        assert_eq!(
+            receipt.detach(),
+            BackingSurfaceDetachOutcome::AlreadyDetached
+        );
+        assert_eq!(
+            adapter.observe(generation).unwrap().lifecycle(),
+            AttachmentLifecycle::Absent
+        );
+    }
+    let first = coordinator(1);
+    assert_eq!(
+        adapter.apply(&first, &first.plan().unwrap()),
+        Err(BackingSurfaceError::GenerationRetired(generation))
+    );
+    assert!(runtime.calls().is_empty());
+    apply_and_observe(&adapter, &mut coordinator(2));
+}
+
+#[test]
+fn host_destroy_during_attach_releases_or_retains_the_late_handle_for_teardown() {
+    for fail_detach in [false, true] {
+        let runtime = FakeRuntime::default();
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let adapter = adapter(runtime.clone(), Arc::clone(&events));
+        let generation = attach_generation(1);
+        let attaching = adapter.clone();
+        runtime.before_attach_returns(move || {
+            assert_eq!(
+                attaching.host_destroyed(&host_window_id(), generation),
+                Err(BackingSurfaceError::AttachInProgress)
+            );
+        });
+        runtime.fail_detach_times(usize::from(fail_detach));
+
+        let first = coordinator(1);
+        let receipt = adapter.apply(&first, &first.plan().unwrap()).unwrap();
+        assert!(matches!(
+            receipt.steps()[0].outcome(),
+            OperationOutcome::Failed { code } if code.as_str() == if fail_detach {
+                "backing:detach-failed"
+            } else {
+                "backing:generation-invalidated"
+            }
+        ));
+        assert!(
+            !events
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|event| matches!(event, BackingSurfaceAdapterEvent::Attached { .. }))
+        );
+        let mut successor = coordinator(2);
+        if fail_detach {
+            assert_eq!(
+                adapter.apply(&successor, &successor.plan().unwrap()),
+                Err(BackingSurfaceError::CurrentGenerationAttached(generation))
+            );
+            assert_eq!(
+                adapter
+                    .host_destroyed(&host_window_id(), generation)
+                    .unwrap()
+                    .detach(),
+                BackingSurfaceDetachOutcome::Detached
+            );
+        }
+        assert!(!runtime.current().native_storage_attached);
+        apply_and_observe(&adapter, &mut successor);
+    }
+}
+
+#[test]
 fn runtime_failure_is_an_exact_partial_receipt_and_retry_is_idempotent() {
     let runtime = FakeRuntime::default();
     runtime.fail_next_clip();

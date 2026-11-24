@@ -406,7 +406,7 @@ fn initial_plan_installs_callbacks_before_attach_and_applies_full_sequence() {
 
     let receipt = adapter.apply(&coordinator, &plan).unwrap();
 
-    assert_eq!(receipt.steps().len(), 5);
+    assert_eq!(receipt.steps().len(), 4);
     assert!(
         receipt
             .steps()
@@ -425,7 +425,6 @@ fn initial_plan_installs_callbacks_before_attach_and_applies_full_sequence() {
                 bounds: physical_viewport()
             },
             NativeCall::Show { handle: 1 },
-            NativeCall::Focus { handle: 1 },
         ]
     );
     assert_eq!(
@@ -437,6 +436,40 @@ fn initial_plan_installs_callbacks_before_attach_and_applies_full_sequence() {
             "adapter:runtime",
             "adapter:attached",
         ]
+    );
+}
+
+#[test]
+fn apply_does_not_repeat_focus_and_explicit_focus_is_generation_checked() {
+    let timeline = Arc::new(Mutex::new(Vec::new()));
+    let runtime = FakeRuntime::with_timeline(timeline.clone());
+    let adapter = adapter(runtime.clone(), timeline);
+    let mut authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    let generation = generation(1);
+    authority
+        .admit_observation(
+            authority.observed().revision(),
+            adapter.observe(generation).unwrap(),
+        )
+        .unwrap();
+
+    assert!(matches!(
+        adapter.request_focus(generation.checked_next().unwrap()),
+        Err(ChildViewError::FutureGeneration { .. })
+    ));
+    adapter.request_focus(generation).unwrap();
+    let plan = authority.plan().unwrap();
+    adapter.apply(&authority, &plan).unwrap();
+    assert_eq!(
+        runtime
+            .calls()
+            .iter()
+            .filter(|call| matches!(call, NativeCall::Focus { .. }))
+            .count(),
+        1
     );
 }
 

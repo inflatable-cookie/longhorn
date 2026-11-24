@@ -233,6 +233,8 @@ or serialized transports. `/tauri` only maps four narrow commands and one
 product-neutral event. Connection is listener-first. Each connect issues a
 new client epoch while attach generation remains host authority. Independent
 revision cursors reject late async results, and pending correlation is finite.
+Connected commands are bound to the host and renderer epochs under
+[Contract 017](../contracts/017-native-content-island-coordination.md#renderer-session-authority).
 
 Capability examples authorize protocol reads or coordination mutations. They
 do not authorize browser navigation, plugin loading, rendering, or product

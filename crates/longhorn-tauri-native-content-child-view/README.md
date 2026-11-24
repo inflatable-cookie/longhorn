@@ -69,7 +69,9 @@ look up a global webview label and navigate around the adapter.
 
 Fresh native child bounds are reported as `ObservedGeometry::ChildBounds`.
 Portable effective visibility and focus remain `unknown`; successful show,
-hide, or focus calls do not fabricate observation. A finished page load marks
+hide, or focus calls do not fabricate observation. Use
+`ChildViewAdapter::request_focus(generation)` for an explicit focus request.
+A finished page load marks
 only the adapter's declared readiness condition.
 
 Tauri exposes no portable child-webview input-disable operation. The adapter

@@ -542,6 +542,44 @@ fn helper_loss_is_terminal_and_stale_generation_cannot_mutate_replacement() {
 }
 
 #[test]
+fn absent_successor_plan_tears_down_the_failed_owner() {
+    let runtime = FakeRuntime::default();
+    let adapter = adapter(runtime.clone(), Arc::default());
+    let mut authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    runtime.emit(
+        1,
+        IsolatedWindowRuntimeEventKind::HelperLost {
+            code: NativeContentFailureCode::new("isolated:owner-exited").unwrap(),
+            exit_status: Some(9),
+        },
+    );
+    let failed = adapter.observe(generation(1)).unwrap();
+    authority
+        .admit_observation(authority.observed().revision(), failed)
+        .unwrap();
+    authority
+        .update_desired(
+            authority.desired().revision(),
+            desired_update(2, DesiredPresence::Absent),
+        )
+        .unwrap();
+
+    let receipt = adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    assert_eq!(receipt.generation(), generation(1));
+    assert_eq!(receipt.steps()[0].outcome(), &OperationOutcome::Applied);
+    let absent = adapter.observe(generation(1)).unwrap();
+    authority
+        .admit_observation(authority.observed().revision(), absent)
+        .unwrap();
+    assert!(authority.plan().unwrap().is_empty());
+}
+
+#[test]
 fn foreign_island_callback_does_not_queue_requests() {
     let events = Arc::new(Mutex::new(Vec::new()));
     let adapter = adapter(FakeRuntime::default(), events.clone());

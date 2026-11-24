@@ -1,10 +1,10 @@
 //! Public adapter operations.
 
-use longhorn_core::{NativeContentFailureCode, WindowId};
+use longhorn_core::WindowId;
 use longhorn_native_content::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, EffectiveFocus,
     EffectiveVisibility, NativeContentCoordinator, ObservationUpdate, ObservedGeometry,
-    ObservedReadiness, StepExecution, gate_attached,
+    ObservedReadiness, execute_adapter_plan, gate_attached,
 };
 use tauri::Url;
 
@@ -26,25 +26,13 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
         plan: &ApplyPlan,
     ) -> Result<ApplyReceipt, ChildViewError> {
         self.validate_plan(plan)?;
-        authority.receipt(plan, std::iter::empty())?;
-
-        let mut executions = Vec::new();
-        for planned in plan.operations() {
-            match self.execute(plan.generation(), planned.operation()) {
-                Ok(()) => executions.push(StepExecution::Applied {
-                    step: planned.step(),
-                }),
-                Err(error) => {
-                    executions.push(StepExecution::Failed {
-                        step: planned.step(),
-                        code: NativeContentFailureCode::new(error.failure_code())
-                            .expect("adapter failure codes use the bounded grammar"),
-                    });
-                    break;
-                }
-            }
-        }
-        authority.receipt(plan, executions).map_err(Into::into)
+        execute_adapter_plan(
+            authority,
+            plan,
+            || Ok(()),
+            |planned| self.execute(plan.generation(), planned.operation()),
+            ChildViewError::failure_code,
+        )
     }
 
     /// Reads fresh native bounds while preserving unobservable states as unknown.
@@ -106,8 +94,14 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
     /// Records renderer unmount without closing or forgetting native content.
     pub fn renderer_unmounted(&self, generation: AttachGeneration) -> Result<(), ChildViewError> {
         self.handle(generation)?;
-        self.emit(ChildViewAdapterEvent::RendererUnmounted { generation });
+        (self.observer)(ChildViewAdapterEvent::RendererUnmounted { generation });
         Ok(())
+    }
+
+    /// Requests native focus once for the current child without claiming effective focus.
+    pub fn request_focus(&self, generation: AttachGeneration) -> Result<(), ChildViewError> {
+        let handle = self.handle(generation)?;
+        self.runtime.focus(&handle)
     }
 
     /// Reads the fresh current document for one exact retained generation.
@@ -172,7 +166,7 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
             }
         };
         if outcome == ChildViewHostDestroyOutcome::Invalidated {
-            self.emit(ChildViewAdapterEvent::HostInvalidated { generation });
+            (self.observer)(ChildViewAdapterEvent::HostInvalidated { generation });
         }
         Ok(ChildViewHostDestroyReceipt {
             island_id: self.spec.island_id().clone(),
@@ -232,7 +226,7 @@ impl<R: crate::ChildViewRuntime> ChildViewAdapter<R> {
                 ChildViewRuntimeEventKind::PageLoadFinished => attachment.ready = true,
             }
         }
-        self.emit(ChildViewAdapterEvent::Runtime {
+        (self.observer)(ChildViewAdapterEvent::Runtime {
             generation: event.generation,
             event: event.kind,
         });

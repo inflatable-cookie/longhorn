@@ -75,7 +75,7 @@
       "island_id": "island:fixture",
       "observed_revision": 0
     },
-    "protocol_version": 1
+    "protocol_version": 2
   },
   "connect": {
     "request_id": "request:connect",
@@ -134,7 +134,7 @@
         "revision": 0,
         "visibility": "unknown"
       },
-      "protocol_version": 1
+      "protocol_version": 2
     },
     "status": "connected"
   },
@@ -173,7 +173,7 @@
         "island_id": "island:fixture",
         "observed_revision": 1
       },
-      "protocol_version": 1
+      "protocol_version": 2
     },
     "receipt": {
       "accepted_size": {
@@ -252,9 +252,31 @@
         "revision": 1,
         "visibility": "unknown"
       },
-      "protocol_version": 1
+      "protocol_version": 2
     },
     "status": "decided"
+  },
+  "decisionRequest": {
+    "authority_epoch": 9,
+    "client_epoch": 1,
+    "decision": {
+      "kind": "constrained",
+      "size": {
+        "height": 576.0,
+        "width": 768.0
+      }
+    },
+    "island_id": "island:fixture",
+    "proposal": {
+      "desired_revision": 1,
+      "generation": 1,
+      "size": {
+        "height": 600.0,
+        "width": 800.0
+      }
+    },
+    "protocol_version": 2,
+    "request_id": "request:decision"
   },
   "desiredUpdate": {
     "event": {
@@ -275,7 +297,7 @@
         "island_id": "island:fixture",
         "observed_revision": 0
       },
-      "protocol_version": 1
+      "protocol_version": 2
     },
     "receipt": {
       "current_revision": 1,
@@ -338,9 +360,39 @@
         "revision": 0,
         "visibility": "unknown"
       },
-      "protocol_version": 1
+      "protocol_version": 2
     },
     "status": "committed"
+  },
+  "desiredUpdateRequest": {
+    "authority_epoch": 9,
+    "client_epoch": 1,
+    "expected_desired_revision": 0,
+    "island_id": "island:fixture",
+    "protocol_version": 2,
+    "request_id": "request:update",
+    "update": {
+      "focus": "request",
+      "generation": 1,
+      "host_window_id": "window:main",
+      "input_routing": "native_direct",
+      "presence": "present",
+      "rounding": "nearest",
+      "scale": 2000,
+      "viewport": {
+        "origin": {
+          "x": 24.0,
+          "y": 16.0
+        },
+        "size": {
+          "height": 360.0,
+          "width": 640.0
+        }
+      },
+      "visibility": {
+        "state": "visible"
+      }
+    }
   },
   "hostDestroy": {
     "current_observed_revision": 1,
@@ -349,7 +401,7 @@
     "previous_observed_revision": 0
   },
   "incompatibility": {
-    "futureProtocolVersion": 2,
+    "futureProtocolVersion": 3,
     "unknownChangeKind": "product_payload",
     "unknownMechanism": "browser_plugin",
     "unknownRejectionCode": "future_rejection",
@@ -358,7 +410,7 @@
   "incompatible": {
     "rejection": {
       "code": "unsupported_protocol_version",
-      "message": "native-content protocol 2 is unsupported; expected 1",
+      "message": "native-content protocol 3 is unsupported; expected 2",
       "phase": "compatibility",
       "retry": "never"
     },
@@ -384,7 +436,7 @@
       "island_id": "island:fixture",
       "observed_revision": 1
     },
-    "protocol_version": 1
+    "protocol_version": 2
   },
   "proposalEvent": {
     "change": {
@@ -407,9 +459,9 @@
       "island_id": "island:fixture",
       "observed_revision": 1
     },
-    "protocol_version": 1
+    "protocol_version": 2
   },
-  "protocolVersion": 1,
+  "protocolVersion": 2,
   "remount": {
     "request_id": "request:remount",
     "snapshot": {
@@ -467,7 +519,7 @@
         "revision": 1,
         "visibility": "unknown"
       },
-      "protocol_version": 1
+      "protocol_version": 2
     },
     "status": "connected"
   },
@@ -528,9 +580,16 @@
         "revision": 0,
         "visibility": "unknown"
       },
-      "protocol_version": 1
+      "protocol_version": 2
     },
     "status": "ready"
+  },
+  "snapshotRequest": {
+    "authority_epoch": 9,
+    "client_epoch": 1,
+    "island_id": "island:fixture",
+    "protocol_version": 2,
+    "request_id": "request:snapshot"
   },
   "staleRevision": {
     "rejection": {

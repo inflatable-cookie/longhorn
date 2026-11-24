@@ -1,4 +1,4 @@
-import fixture from "../../../../fixtures/native-content/protocol-v1.json";
+import fixture from "../../../../fixtures/native-content/protocol-v2.json";
 
 import {
   createDirectNativeContentPort,
@@ -85,11 +85,12 @@ export class MemoryNativeContentHost {
 
   async snapshot(request: NativeContentSnapshotRequest): Promise<unknown> {
     this.calls.push("snapshot");
-    if (request.client_epoch !== this.#clientEpoch) {
+    const rejection = this.#sessionRejection(request);
+    if (rejection !== undefined) {
       return {
         status: "rejected",
         request_id: request.request_id,
-        rejection: staleSessionRejection(),
+        rejection,
       };
     }
     return {
@@ -101,11 +102,12 @@ export class MemoryNativeContentHost {
 
   async updateDesired(request: NativeContentDesiredUpdateRequest): Promise<unknown> {
     this.calls.push("update");
-    if (request.client_epoch !== this.#clientEpoch) {
+    const rejection = this.#sessionRejection(request);
+    if (rejection !== undefined) {
       return {
         status: "rejected",
         request_id: request.request_id,
-        rejection: staleSessionRejection(),
+        rejection,
       };
     }
     if (request.expected_desired_revision !== this.#snapshot.cursor.desired_revision) {
@@ -149,6 +151,10 @@ export class MemoryNativeContentHost {
 
   async decideContentSize(request: NativeContentContentSizeDecisionRequest): Promise<unknown> {
     this.calls.push("decide");
+    const rejection = this.#sessionRejection(request);
+    if (rejection !== undefined) {
+      return { status: "rejected", request_id: request.request_id, rejection };
+    }
     const acceptedSize =
       request.decision.kind === "accepted"
         ? request.proposal.size
@@ -250,6 +256,20 @@ export class MemoryNativeContentHost {
       cursor: clone(this.#snapshot.cursor),
       change,
     };
+  }
+
+  #sessionRejection(
+    request: Pick<NativeContentSnapshotRequest, "authority_epoch" | "client_epoch">,
+  ): NativeContentProtocolRejection | undefined {
+    if (request.authority_epoch !== this.#snapshot.cursor.authority_epoch) {
+      return {
+        code: "authority_epoch_mismatch",
+        message: "host authority was replaced",
+        phase: "admission",
+        retry: "refresh",
+      };
+    }
+    return request.client_epoch === this.#clientEpoch ? undefined : staleSessionRejection();
   }
 }
 

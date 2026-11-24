@@ -153,8 +153,8 @@ return a typed island mismatch. Mechanism-specific lifecycle rules also apply:
   invalidate-then-detach window, so a retained attachment rejects further
   native work for its invalidated generation until detach settles;
 - an isolated-window owner can fail terminally while its island lives on. The
-  failed generation stops admitting runtime events and yields only to the
-  next generation.
+  failed generation stops admitting runtime events, remains eligible for
+  teardown, and yields only to the next generation.
 
 The isolated-window adapter admits up to 128 pending requests. It deduplicates
 all pending request IDs and the latest 256 accepted IDs per generation.
@@ -234,6 +234,15 @@ Attach, update, and detach plans are ordered. Every operation returns applied,
 failed, and dependency-skipped outcomes. A failure leaves desired state
 inspectable and cannot silently advance observed state.
 
+Decoded plans accept at most five steps, numbered consecutively from one.
+Each step after the first depends on its immediate predecessor.
+
+Detach addresses the observed generation, including when desired state has
+advanced to an absent successor while an older generation is failed. Its
+absence observation may settle that older generation. After confirmed
+detach, re-presenting the same generation fails with `TerminalGeneration`.
+An island that has never attached can still use its initial generation.
+
 Detach is idempotent. When safe in-process detach is unavailable, an adapter
 may require owner-process termination and report that policy. Longhorn does
 not call unsafe third-party unload paths to simulate a generic detach.
@@ -247,6 +256,10 @@ adapter retires it before bounded owner teardown. A timeout or runtime error
 keeps the owner available for teardown retry and blocks replacement until
 cleanup settles. If launch is in flight, its completion tears down the
 returned handle while the generation stays retired.
+The backing-surface adapter also retires a generation destroyed before
+attach. If attach is in flight, the destroy call reports attach in progress.
+The returning attach tears down its handle and keeps it available for retry
+if teardown fails.
 
 ## Visibility And Occlusion
 
@@ -269,6 +282,9 @@ adapter must inject stronger evidence or retain `unknown`.
 
 Focus intent is `unchanged`, `request`, or `release-if-owned`. A focus request
 returns an operation result; it does not prove the product accepted input.
+Plans act on focus intent only when the selected mechanism declares observable
+focus. A child view may request native focus explicitly through the adapter's
+generation-checked command while its portable focus observation stays unknown.
 
 The common protocol records only the input-routing mode:
 
@@ -282,6 +298,19 @@ data. They never enter a generic JSON payload or native-content command bus.
 
 Focus loss may gate or release consumer input through an injected callback.
 Longhorn does not synthesize product input.
+
+## Renderer Session Authority
+
+Protocol v2 requires both the host authority epoch and the renderer client
+epoch on snapshot reads, desired updates, and content-size decisions. Connect
+issues the client epoch and returns both epochs. An island owner supplies a
+fresh, increasing authority epoch for each replacement host reachable by old
+renderers. A request for a different host lifetime is rejected before revisions
+or proposal state are examined.
+
+Reconnect after authority or session replacement. Stale state can require a
+fresh snapshot. Unsupported operations and exhausted counters report
+`never` for retry.
 
 ## Tauri Boundary
 

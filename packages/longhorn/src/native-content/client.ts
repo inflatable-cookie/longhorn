@@ -140,6 +140,7 @@ class CheckedNativeContentConnection implements NativeContentConnection {
         protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
         request_id: requestId,
         island_id: this.#islandId,
+        authority_epoch: current.cursor.authority_epoch,
         client_epoch: current.cursor.client_epoch,
         expected_desired_revision: current.cursor.desired_revision,
         update,
@@ -168,6 +169,7 @@ class CheckedNativeContentConnection implements NativeContentConnection {
         protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
         request_id: requestId,
         island_id: this.#islandId,
+        authority_epoch: current.cursor.authority_epoch,
         client_epoch: current.cursor.client_epoch,
         proposal,
         decision,
@@ -230,6 +232,7 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       protocol_version: NATIVE_CONTENT_PROTOCOL_VERSION,
       request_id: requestId,
       island_id: this.#islandId,
+      authority_epoch: current.cursor.authority_epoch,
       client_epoch: current.cursor.client_epoch,
     };
     assertValidNativeContentSnapshotRequest(request);

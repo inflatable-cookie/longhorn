@@ -1,11 +1,11 @@
 //! Public adapter operations.
 
-use longhorn_core::{ClientSize, NativeContentFailureCode, WindowId};
+use longhorn_core::{ClientSize, WindowId};
 use longhorn_native_content::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
     ContentSizeProposal, ContentSizeProposalReceipt, EffectiveFocus, EffectiveVisibility,
     InputRoutingMode, NativeContentCoordinator, ObservationUpdate, ObservedGeometry,
-    ObservedReadiness, StepExecution, compare_generation_allow_next, gate_attached,
+    ObservedReadiness, compare_generation_allow_next, execute_adapter_plan, gate_attached,
 };
 
 use crate::{
@@ -27,38 +27,25 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         plan: &ApplyPlan,
     ) -> Result<ApplyReceipt, IsolatedWindowError> {
         self.validate_plan(plan)?;
-        authority.receipt(plan, std::iter::empty())?;
-
-        {
-            let mut state = self
-                .state
-                .lock()
-                .map_err(|_| IsolatedWindowError::Poisoned)?;
-            if let Some(attachment) = state.attachment.as_mut()
-                && attachment.generation == plan.generation()
-            {
-                attachment.desired_revision =
-                    attachment.desired_revision.max(plan.desired_revision());
-            }
-        }
-
-        let mut executions = Vec::new();
-        for planned in plan.operations() {
-            match self.execute(plan, planned.operation()) {
-                Ok(()) => executions.push(StepExecution::Applied {
-                    step: planned.step(),
-                }),
-                Err(error) => {
-                    executions.push(StepExecution::Failed {
-                        step: planned.step(),
-                        code: NativeContentFailureCode::new(error.failure_code())
-                            .expect("adapter failure codes use the bounded grammar"),
-                    });
-                    break;
+        execute_adapter_plan(
+            authority,
+            plan,
+            || {
+                let mut state = self
+                    .state
+                    .lock()
+                    .map_err(|_| IsolatedWindowError::Poisoned)?;
+                if let Some(attachment) = state.attachment.as_mut()
+                    && attachment.generation == plan.generation()
+                {
+                    attachment.desired_revision =
+                        attachment.desired_revision.max(plan.desired_revision());
                 }
-            }
-        }
-        authority.receipt(plan, executions).map_err(Into::into)
+                Ok(())
+            },
+            |planned| self.execute(plan, planned.operation()),
+            IsolatedWindowError::failure_code,
+        )
     }
 
     /// Reads fresh content size, visibility, and focus from the owner runtime.
@@ -325,7 +312,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             }
             suppressed
         };
-        self.emit(suppressed.unwrap_or(IsolatedWindowAdapterEvent::Runtime {
+        (self.observer)(suppressed.unwrap_or(IsolatedWindowAdapterEvent::Runtime {
             generation,
             event: event.kind,
         }));

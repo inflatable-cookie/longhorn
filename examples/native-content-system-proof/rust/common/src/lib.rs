@@ -58,7 +58,7 @@ pub fn artifact_trace(capabilities: MechanismCapabilities) -> Value {
     else {
         panic!("artifact fixture failed to connect")
     };
-    let client_epoch = host.client_epoch().unwrap();
+    let cursor = &connected.cursor;
 
     host.admit_observation(
         Some(NativeContentRequestId::new("request:observe").unwrap()),
@@ -66,13 +66,14 @@ pub fn artifact_trace(capabilities: MechanismCapabilities) -> Value {
         attached_observation(mechanism, input, capabilities),
     )
     .unwrap();
-    let observed = current_snapshot(&host, client_epoch, "request:observed");
+    let observed = current_snapshot(&host, cursor, "request:observed");
 
     let hidden = host.update_desired(NativeContentDesiredUpdateRequest {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: NativeContentRequestId::new("request:hidden").unwrap(),
         island_id: NativeContentIslandId::new("island:artifact-proof").unwrap(),
-        client_epoch,
+        authority_epoch: cursor.authority_epoch,
+        client_epoch: cursor.client_epoch,
         expected_desired_revision: NativeContentRevision::INITIAL,
         update: DesiredUpdate::new(
             AttachGeneration::INITIAL,
@@ -150,14 +151,15 @@ fn attached_observation(
 
 fn current_snapshot(
     host: &NativeContentProtocolHost,
-    client_epoch: longhorn_native_content::NativeContentClientEpoch,
+    cursor: &longhorn_native_content::NativeContentCursor,
     request_id: &str,
 ) -> NativeContentSnapshot {
     let snapshot = host.snapshot(NativeContentSnapshotRequest {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: NativeContentRequestId::new(request_id).unwrap(),
         island_id: NativeContentIslandId::new("island:artifact-proof").unwrap(),
-        client_epoch,
+        authority_epoch: cursor.authority_epoch,
+        client_epoch: cursor.client_epoch,
     });
     let NativeContentSnapshotResult::Ready { snapshot, .. } = snapshot else {
         panic!("artifact fixture snapshot was rejected")

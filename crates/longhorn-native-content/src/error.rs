@@ -55,7 +55,7 @@ pub enum CoordinationError {
         /// Proposed lifecycle.
         proposed: AttachmentLifecycle,
     },
-    /// A terminal failed generation must be replaced before attaching again.
+    /// A failed or detached generation must be replaced before attaching again.
     TerminalGeneration(AttachGeneration),
     /// Host destruction invalidated this generation.
     InvalidatedGeneration(AttachGeneration),
@@ -134,7 +134,7 @@ impl fmt::Display for CoordinationError {
             ),
             Self::TerminalGeneration(generation) => write!(
                 formatter,
-                "failed attach generation {} must be replaced",
+                "ended attach generation {} must be replaced",
                 generation.get()
             ),
             Self::InvalidatedGeneration(generation) => write!(

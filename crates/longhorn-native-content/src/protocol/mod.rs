@@ -23,4 +23,4 @@ pub use types::{
 };
 
 /// Current exact native-content protocol line.
-pub const NATIVE_CONTENT_PROTOCOL_VERSION: u32 = 1;
+pub const NATIVE_CONTENT_PROTOCOL_VERSION: u32 = 2;

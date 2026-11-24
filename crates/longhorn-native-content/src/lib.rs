@@ -5,6 +5,7 @@
 //! never owns platform handles, native API calls, product payloads, or outer
 //! window placement.
 
+mod adapter;
 mod coordinator;
 mod error;
 mod generation;
@@ -16,6 +17,7 @@ mod proposal;
 mod protocol;
 mod receipt;
 
+pub use adapter::{clear_attach_reservation, complete_reserved_attach, execute_adapter_plan};
 pub use coordinator::{
     DesiredUpdateReceipt, HostDestroyOutcome, HostDestroyReceipt, NativeContentCoordinator,
     ObservationReceipt,
