@@ -201,6 +201,28 @@ describe("notification pagination", () => {
     await controller.stop();
   });
 
+  test("a failure settled before a newer snapshot does not outlive it", async () => {
+    const records = ledgerOf(3);
+    const port = new PagedPort(records, 1);
+    const controller = new NotificationController({ port, pageSize: 2 });
+    await controller.start();
+
+    port.holdPages = true;
+    const more = controller.loadMore();
+    const boom = new Error("page refused");
+    port.failHeld(boom);
+    await expect(more).rejects.toBe(boom);
+    expect(controller.pagination).toEqual({ kind: "failed", error: boom });
+
+    // The newer snapshot has no further pages, so nothing else would clear the failure.
+    port.publish(records.slice(0, 2), 2);
+    await flush();
+    expect(ids(controller)).toEqual(["notification:0", "notification:1"]);
+    expect(controller.hasMore).toBe(false);
+    expect(controller.pagination).toEqual({ kind: "idle" });
+    await controller.stop();
+  });
+
   test("pagination exposes pending and failed states and recovers on retry", async () => {
     const records = ledgerOf(3);
     const port = new PagedPort(records, 1);

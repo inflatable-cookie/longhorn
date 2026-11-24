@@ -367,12 +367,11 @@ export class NotificationController {
     const previous = this.snapshot;
     this.snapshot = candidate;
     this.records = [...candidate.page.records];
-    if (this.pageLoad !== undefined) {
-      // The newer snapshot abandons the page request it was asked against. Clearing
-      // the load also withdraws that request's right to set pagination status.
-      this.pageLoad = undefined;
-      this.pagination = { kind: "idle" };
-    }
+    // A newer snapshot abandons any page request it was asked against, and clearing
+    // the load withdraws that request's right to set status. A failure recorded
+    // against the older state must not outlive the snapshot, even with no further pages.
+    this.pageLoad = undefined;
+    this.pagination = { kind: "idle" };
     if (previous !== undefined && this.toastSelector !== undefined) {
       const existing = new Set(this.toasts.map((toast) => toast.notificationId));
       const fresh = candidate.page.records.filter(
