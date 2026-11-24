@@ -11,17 +11,19 @@ use longhorn_core::{
     ScaleFactor, WindowId,
 };
 use longhorn_native_content::{
-    AttachGeneration, AttachmentLifecycle, ContentSizeDecision, DesiredPresence, DesiredState,
-    DesiredUpdate, DesiredVisibility, EffectiveFocus, EffectiveVisibility, FocusIntent,
-    InputRoutingMode, NativeContentCoordinator, NativeContentFailureCode, NativeContentIslandId,
-    NativeContentKindId, ObservationUpdate, ObservedGeometry, ObservedReadiness, OperationOutcome,
+    AttachGeneration, AttachmentLifecycle, ContentSizeDecision, CoordinationError, DesiredPresence,
+    DesiredState, DesiredUpdate, DesiredVisibility, EffectiveFocus, EffectiveVisibility,
+    FocusIntent, InputRoutingMode, NativeContentCoordinator, NativeContentFailureCode,
+    NativeContentIslandId, NativeContentKindId, ObservationUpdate, ObservedGeometry,
+    ObservedReadiness, OperationOutcome,
 };
 use longhorn_native_content_isolated_window::{
     HelperCommand, HelperCommandKind, HelperMessage, HelperMessageKind, HelperSnapshot,
     ISOLATED_WINDOW_CAPABILITIES, IsolatedContentRequest, IsolatedContentRequestKind,
-    IsolatedWindowAdapter, IsolatedWindowError, IsolatedWindowHelperProtocolVersion,
-    IsolatedWindowRuntime, IsolatedWindowRuntimeEvent, IsolatedWindowRuntimeEventKind,
-    IsolatedWindowSpec, RuntimeAttachRequest, TeardownOutcome,
+    IsolatedWindowAdapter, IsolatedWindowAdapterEvent, IsolatedWindowError,
+    IsolatedWindowHelperProtocolVersion, IsolatedWindowRuntime, IsolatedWindowRuntimeEvent,
+    IsolatedWindowRuntimeEventKind, IsolatedWindowSpec, IsolatedWindowStartupPhase,
+    MAX_STARTUP_PHASE_BYTES, RuntimeAttachRequest, TeardownOutcome,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -44,6 +46,8 @@ struct FakeState {
     snapshot: HelperSnapshot,
     teardown: VecDeque<TeardownOutcome>,
     fail_size: bool,
+    during_attach: Option<Box<dyn FnOnce() + Send>>,
+    during_teardown: Option<Box<dyn FnOnce() + Send>>,
 }
 
 impl Default for FakeState {
@@ -57,6 +61,8 @@ impl Default for FakeState {
                 exit_status: Some(0),
             }]),
             fail_size: false,
+            during_attach: None,
+            during_teardown: None,
         }
     }
 }
@@ -97,7 +103,7 @@ impl IsolatedWindowRuntime for FakeRuntime {
     type Handle = u64;
 
     fn attach(&self, request: RuntimeAttachRequest) -> Result<Self::Handle, IsolatedWindowError> {
-        let handle = {
+        let (handle, during_attach) = {
             let mut state = self.state.lock().unwrap();
             state.next_handle += 1;
             let handle = state.next_handle;
@@ -106,13 +112,16 @@ impl IsolatedWindowRuntime for FakeRuntime {
                 generation: request.generation.get(),
             });
             state.callback = Some(request.callback.clone());
-            handle
+            (handle, state.during_attach.take())
         };
+        if let Some(during_attach) = during_attach {
+            during_attach();
+        }
         (request.callback)(IsolatedWindowRuntimeEvent {
             island_id: request.spec.island_id().clone(),
             generation: request.generation,
             kind: IsolatedWindowRuntimeEventKind::Progress {
-                phase: "owner_started".into(),
+                phase: IsolatedWindowStartupPhase::new("owner_started").unwrap(),
             },
         });
         (request.callback)(IsolatedWindowRuntimeEvent {
@@ -201,12 +210,15 @@ impl IsolatedWindowRuntime for FakeRuntime {
         handle: &Self::Handle,
         _: Duration,
     ) -> Result<TeardownOutcome, IsolatedWindowError> {
-        let mut state = self.state.lock().unwrap();
-        state.calls.push(Call::Teardown(*handle));
-        state
-            .teardown
-            .pop_front()
-            .ok_or_else(|| runtime_error("teardown"))
+        let (outcome, during_teardown) = {
+            let mut state = self.state.lock().unwrap();
+            state.calls.push(Call::Teardown(*handle));
+            (state.teardown.pop_front(), state.during_teardown.take())
+        };
+        if let Some(during_teardown) = during_teardown {
+            during_teardown();
+        }
+        outcome.ok_or_else(|| runtime_error("teardown"))
     }
 }
 
@@ -312,6 +324,74 @@ fn resize_requests_are_correlated_non_mutating_decisions_and_echoes_are_suppress
 }
 
 #[test]
+fn queued_resize_keeps_its_admission_revision_after_a_new_plan() {
+    let runtime = FakeRuntime::default();
+    let adapter = adapter(runtime.clone(), Arc::default());
+    let mut authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    let original = authority.desired().revision();
+    let resize = IsolatedContentRequestKind::Resize {
+        size: PhysicalSize::new(800, 500),
+    };
+    runtime.emit(1, request_event("content:old", resize.clone()));
+    authority
+        .update_desired(original, desired_update(1, DesiredPresence::Present))
+        .unwrap();
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    runtime.emit(1, request_event("content:new", resize));
+
+    let requests = adapter.take_requests(generation(1)).unwrap();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(
+        adapter.decide_resize(
+            &authority,
+            generation(1),
+            &requests[0],
+            ContentSizeDecision::Accepted,
+        ),
+        Err(IsolatedWindowError::Coordination(
+            CoordinationError::StaleRevision {
+                current: authority.desired().revision(),
+                supplied: original,
+            }
+        ))
+    );
+    assert_eq!(
+        adapter
+            .decide_resize(
+                &authority,
+                generation(1),
+                &requests[1],
+                ContentSizeDecision::Accepted
+            )
+            .unwrap()
+            .accepted_size(),
+        Some(ClientSize::new(400.0, 250.0).unwrap())
+    );
+    adapter.detach(generation(1)).unwrap();
+    let replacement = coordinator(2);
+    adapter
+        .apply(&replacement, &replacement.plan().unwrap())
+        .unwrap();
+    assert_eq!(
+        adapter.decide_resize(
+            &replacement,
+            generation(2),
+            &requests[0],
+            ContentSizeDecision::Accepted
+        ),
+        Err(IsolatedWindowError::StaleGeneration {
+            current: generation(2),
+            supplied: generation(1)
+        })
+    );
+}
+
+#[test]
 fn capacity_refusal_does_not_consume_the_request_id() {
     let adapter = adapter(FakeRuntime::default(), Arc::default());
     let authority = coordinator(1);
@@ -344,7 +424,10 @@ fn capacity_refusal_does_not_consume_the_request_id() {
     adapter.admit_runtime_event(retry()).unwrap();
     let admitted = adapter.take_requests(generation(1)).unwrap();
     assert_eq!(admitted.len(), 1);
-    assert_eq!(admitted[0].request_id, request_id("content:retry"));
+    assert_eq!(
+        admitted[0].request().request_id,
+        request_id("content:retry")
+    );
     assert_eq!(
         adapter.admit_runtime_event(retry()),
         Err(IsolatedWindowError::DuplicateCorrelation)
@@ -417,7 +500,8 @@ fn lifecycle_requests_focus_loss_and_observation_remain_explicit() {
 #[test]
 fn helper_loss_is_terminal_and_stale_generation_cannot_mutate_replacement() {
     let runtime = FakeRuntime::default();
-    let adapter = adapter(runtime.clone(), Arc::default());
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let adapter = adapter(runtime.clone(), events.clone());
     let first = coordinator(1);
     adapter.apply(&first, &first.plan().unwrap()).unwrap();
     runtime.emit(
@@ -429,6 +513,18 @@ fn helper_loss_is_terminal_and_stale_generation_cannot_mutate_replacement() {
     );
     let failed = serde_json::to_value(adapter.observe(generation(1)).unwrap()).unwrap();
     assert_eq!(failed["lifecycle"], "failed");
+
+    let admitted = events.lock().unwrap().len();
+    for late in [
+        ready_event(),
+        request_event("content:late", IsolatedContentRequestKind::Show),
+    ] {
+        assert_eq!(
+            adapter.admit_runtime_event(runtime_event(1, late)),
+            Err(IsolatedWindowError::FailedGeneration)
+        );
+    }
+    assert_eq!(events.lock().unwrap().len(), admitted);
 
     let second = coordinator(2);
     adapter.apply(&second, &second.plan().unwrap()).unwrap();
@@ -443,6 +539,182 @@ fn helper_loss_is_terminal_and_stale_generation_cannot_mutate_replacement() {
         })
     );
     assert!(adapter.is_attached(generation(2)).unwrap());
+}
+
+#[test]
+fn foreign_island_callback_does_not_queue_requests() {
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let adapter = adapter(FakeRuntime::default(), events.clone());
+    let authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    let admitted = events.lock().unwrap().len();
+    let mut foreign = runtime_event(
+        1,
+        request_event("content:foreign", IsolatedContentRequestKind::Show),
+    );
+    foreign.island_id = NativeContentIslandId::new("island:other").unwrap();
+    assert_eq!(
+        adapter.admit_runtime_event(foreign.clone()),
+        Err(IsolatedWindowError::ForeignIsland {
+            expected: island_id(),
+            supplied: foreign.island_id
+        })
+    );
+    assert_eq!(events.lock().unwrap().len(), admitted);
+    assert!(adapter.take_requests(generation(1)).unwrap().is_empty());
+}
+
+#[test]
+fn host_destroy_retires_before_teardown_and_retries_an_unresolved_owner() {
+    let runtime = FakeRuntime::default();
+    runtime.set_teardown([
+        TeardownOutcome::TimedOut { timeout_millis: 25 },
+        TeardownOutcome::OwnerProcessTerminated {
+            exit_status: Some(9),
+        },
+    ]);
+    let adapter = adapter(runtime.clone(), Arc::default());
+    let mut authority = coordinator(1);
+    let initial = authority.plan().unwrap();
+    adapter.apply(&authority, &initial).unwrap();
+    authority
+        .admit_observation(
+            authority.observed().revision(),
+            adapter.observe(generation(1)).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        adapter.host_destroyed(&WindowId::new("window:other").unwrap(), generation(1)),
+        Err(IsolatedWindowError::HostBindingMismatch)
+    );
+    assert!(adapter.is_attached(generation(1)).unwrap());
+    authority
+        .host_destroyed(&host_window_id(), authority.observed().revision())
+        .unwrap();
+    authority
+        .update_desired(
+            authority.desired().revision(),
+            desired_update(1, DesiredPresence::Absent),
+        )
+        .unwrap();
+    let absent = authority.plan().unwrap();
+    assert!(absent.operations().is_empty());
+    assert!(!runtime.calls().contains(&Call::Teardown(1)));
+
+    let callback_adapter = adapter.clone();
+    runtime.state.lock().unwrap().during_teardown = Some(Box::new(move || {
+        assert_eq!(
+            callback_adapter.admit_runtime_event(runtime_event(1, ready_event())),
+            Err(IsolatedWindowError::GenerationRetired(generation(1)))
+        );
+        assert!(matches!(
+            callback_adapter.detach(generation(1)),
+            Err(IsolatedWindowError::Runtime {
+                operation: "teardown",
+                ..
+            })
+        ));
+    }));
+    assert!(matches!(
+        adapter.host_destroyed(&host_window_id(), generation(1)),
+        Err(IsolatedWindowError::Runtime {
+            operation: "teardown",
+            ..
+        })
+    ));
+    assert!(!adapter.is_attached(generation(1)).unwrap());
+    assert_eq!(
+        adapter.observe(generation(1)).unwrap().lifecycle(),
+        AttachmentLifecycle::Absent
+    );
+    assert_eq!(
+        adapter.take_requests(generation(1)),
+        Err(IsolatedWindowError::GenerationRetired(generation(1)))
+    );
+    authority
+        .update_desired(
+            authority.desired().revision(),
+            desired_update(2, DesiredPresence::Present),
+        )
+        .unwrap();
+    let replacement = authority.plan().unwrap();
+    assert_eq!(
+        adapter.apply(&authority, &replacement),
+        Err(IsolatedWindowError::CurrentGenerationAttached(generation(
+            1
+        )))
+    );
+
+    adapter
+        .host_destroyed(&host_window_id(), generation(1))
+        .unwrap();
+    adapter
+        .host_destroyed(&host_window_id(), generation(1))
+        .unwrap();
+    assert_eq!(
+        adapter.teardown_reports().unwrap(),
+        vec![
+            (
+                generation(1),
+                TeardownOutcome::TimedOut { timeout_millis: 25 }
+            ),
+            (
+                generation(1),
+                TeardownOutcome::OwnerProcessTerminated {
+                    exit_status: Some(9)
+                }
+            ),
+        ]
+    );
+    adapter.apply(&authority, &replacement).unwrap();
+    assert!(adapter.is_attached(generation(2)).unwrap());
+}
+
+#[test]
+fn host_destroy_during_launch_tears_down_the_returned_owner() {
+    let runtime = FakeRuntime::default();
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let adapter = adapter(runtime.clone(), events.clone());
+    let during_attach = adapter.clone();
+    runtime.state.lock().unwrap().during_attach = Some(Box::new(move || {
+        assert_eq!(
+            during_attach.host_destroyed(&host_window_id(), generation(1)),
+            Err(IsolatedWindowError::AttachInProgress)
+        );
+    }));
+    let authority = coordinator(1);
+    let receipt = adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    assert!(matches!(
+        receipt.steps()[0].outcome(),
+        OperationOutcome::Failed { .. }
+    ));
+    assert_eq!(
+        runtime.calls(),
+        vec![
+            Call::Attach {
+                handle: 1,
+                generation: 1
+            },
+            Call::Teardown(1)
+        ]
+    );
+    assert!(events.lock().unwrap().iter().all(|event| !matches!(
+        event,
+        IsolatedWindowAdapterEvent::Attached { .. } | IsolatedWindowAdapterEvent::Runtime { .. }
+    )));
+    assert_eq!(
+        adapter.teardown_reports().unwrap(),
+        vec![(
+            generation(1),
+            TeardownOutcome::Completed {
+                exit_status: Some(0)
+            }
+        )]
+    );
 }
 
 #[test]
@@ -557,6 +829,28 @@ fn helper_protocol_round_trips_bounded_correlation_without_outer_position() {
     );
 }
 
+#[test]
+fn helper_progress_keeps_the_wire_string_and_rejects_oversized_utf8() {
+    let mut wire: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/helper-progress-v1.json")).unwrap();
+    assert_eq!(
+        serde_json::to_value(serde_json::from_value::<HelperMessage>(wire.clone()).unwrap())
+            .unwrap(),
+        wire
+    );
+    let at_limit = "é".repeat(MAX_STARTUP_PHASE_BYTES / 2);
+    wire["message"]["phase"] = serde_json::Value::String(at_limit.clone());
+    let message: HelperMessage = serde_json::from_value(wire.clone()).unwrap();
+    let HelperMessageKind::Progress { phase } = message.message else {
+        panic!("expected progress")
+    };
+    assert_eq!(phase.as_str(), at_limit);
+    let over_limit = at_limit + "x";
+    wire["message"]["phase"] = serde_json::Value::String(over_limit.clone());
+    assert!(serde_json::from_value::<HelperMessage>(wire).is_err());
+    assert!(IsolatedWindowStartupPhase::new(over_limit).is_err());
+}
+
 fn adapter(
     runtime: FakeRuntime,
     events: Arc<Mutex<Vec<longhorn_native_content_isolated_window::IsolatedWindowAdapterEvent>>>,
@@ -655,6 +949,14 @@ fn snapshot() -> HelperSnapshot {
         content_size: PhysicalSize::new(640, 400),
         visible: false,
         focused: false,
+    }
+}
+
+fn ready_event() -> IsolatedWindowRuntimeEventKind {
+    IsolatedWindowRuntimeEventKind::Ready {
+        snapshot: snapshot(),
+        owner_process_id: 42,
+        native_content_attached: true,
     }
 }
 

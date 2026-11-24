@@ -3,7 +3,10 @@ use std::{sync::Arc, time::Duration};
 use longhorn_native_content::{AttachGeneration, NativeContentFailureCode, NativeContentIslandId};
 use serde::Serialize;
 
-use crate::{HelperSnapshot, IsolatedContentRequest, IsolatedWindowError, IsolatedWindowSpec};
+use crate::{
+    HelperSnapshot, IsolatedContentRequest, IsolatedWindowError, IsolatedWindowSpec,
+    IsolatedWindowStartupPhase,
+};
 
 /// Exact bounded owner-process teardown outcome.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -44,7 +47,7 @@ pub enum IsolatedWindowRuntimeEventKind {
     /// Owner reports bounded startup progress.
     Progress {
         /// Consumer-defined bounded startup phase.
-        phase: String,
+        phase: IsolatedWindowStartupPhase,
     },
     /// Owner reports consumer-defined readiness and fresh state.
     Ready {

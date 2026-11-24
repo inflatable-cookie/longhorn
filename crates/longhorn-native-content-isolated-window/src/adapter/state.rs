@@ -6,7 +6,7 @@ use std::{
 };
 
 use longhorn_core::{NativeContentRequestId, PhysicalSize};
-use longhorn_native_content::AttachGeneration;
+use longhorn_native_content::{AttachGeneration, NativeContentIslandId, NativeContentRevision};
 
 use crate::{
     IsolatedContentRequest, IsolatedWindowAdapterEvent, IsolatedWindowRuntime, IsolatedWindowSpec,
@@ -17,14 +17,32 @@ pub(crate) const MAX_PENDING_CONTENT_REQUESTS: usize = 128;
 pub(crate) const MAX_RECENT_CONTENT_REQUEST_IDS: usize = 256;
 pub(crate) const MAX_TEARDOWN_REPORTS: usize = 128;
 
+/// A helper request bound to its island, generation, and desired revision at admission.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdmittedIsolatedContentRequest {
+    pub(super) island_id: NativeContentIslandId,
+    pub(super) generation: AttachGeneration,
+    pub(super) desired_revision: NativeContentRevision,
+    pub(super) request: IsolatedContentRequest,
+}
+
+impl AdmittedIsolatedContentRequest {
+    /// Returns the helper's correlation identity and request payload.
+    #[must_use]
+    pub const fn request(&self) -> &IsolatedContentRequest {
+        &self.request
+    }
+}
+
 pub(crate) struct Attachment<H> {
     pub(crate) generation: AttachGeneration,
+    pub(crate) desired_revision: NativeContentRevision,
     pub(crate) handle: Option<H>,
     pub(crate) ready: bool,
     pub(crate) detaching: bool,
     pub(crate) failed: bool,
     pub(crate) last_host_size: Option<PhysicalSize>,
-    pub(crate) requests: Vec<IsolatedContentRequest>,
+    pub(crate) requests: Vec<AdmittedIsolatedContentRequest>,
     pub(crate) recent_request_ids: VecDeque<NativeContentRequestId>,
 }
 

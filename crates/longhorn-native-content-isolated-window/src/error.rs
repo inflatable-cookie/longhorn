@@ -7,11 +7,11 @@ use longhorn_native_content::{
 /// Failure from isolated-window validation, execution, or evidence admission.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IsolatedWindowError {
-    /// The plan belongs to another island.
+    /// Work or evidence belongs to another island.
     ForeignIsland {
         /// Adapter island.
         expected: NativeContentIslandId,
-        /// Supplied plan island.
+        /// Supplied island.
         supplied: NativeContentIslandId,
     },
     /// The plan contains another native-content mechanism.
@@ -38,7 +38,7 @@ pub enum IsolatedWindowError {
     NotAttached,
     /// Owner launch is reserved but has not returned a usable handle.
     AttachInProgress,
-    /// The mapped host differs from the plan host.
+    /// The supplied host differs from the mapped host.
     HostBindingMismatch,
     /// Isolated native content requires native-direct input.
     UnsupportedInputMode,
@@ -110,10 +110,7 @@ impl fmt::Display for IsolatedWindowError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ForeignIsland { expected, supplied } => {
-                write!(
-                    formatter,
-                    "plan island {supplied} does not match {expected}"
-                )
+                write!(formatter, "island {supplied} does not match {expected}")
             }
             Self::WrongMechanism => formatter.write_str("plan is not isolated-window-only"),
             Self::StaleGeneration { current, supplied } => write!(

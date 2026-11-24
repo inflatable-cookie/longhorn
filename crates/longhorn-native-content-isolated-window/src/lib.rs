@@ -10,13 +10,14 @@ mod policy;
 mod protocol;
 mod runtime;
 
-pub use adapter::IsolatedWindowAdapter;
+pub use adapter::{AdmittedIsolatedContentRequest, IsolatedWindowAdapter};
 pub use error::IsolatedWindowError;
 pub use policy::{ISOLATED_WINDOW_CAPABILITIES, IsolatedWindowSpec};
 pub use protocol::{
     HelperCommand, HelperCommandKind, HelperMessage, HelperMessageKind, HelperSnapshot,
     ISOLATED_WINDOW_HELPER_PROTOCOL_VERSION, IsolatedContentRequest, IsolatedContentRequestKind,
-    IsolatedWindowHelperProtocolVersion,
+    IsolatedWindowHelperProtocolVersion, IsolatedWindowStartupPhase, MAX_STARTUP_PHASE_BYTES,
+    StartupPhaseTooLong,
 };
 pub use runtime::{
     IsolatedWindowAdapterEvent, IsolatedWindowRuntime, IsolatedWindowRuntimeEvent,

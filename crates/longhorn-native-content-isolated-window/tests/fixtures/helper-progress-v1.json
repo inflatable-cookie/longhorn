@@ -1,0 +1,8 @@
+{
+  "protocol_version": 1,
+  "generation": 3,
+  "message": {
+    "kind": "progress",
+    "phase": "owner_started"
+  }
+}

@@ -146,19 +146,22 @@ state unchanged.
 
 Every mechanism adapter enforces one shared generation rule, implemented once
 in `longhorn-native-content`: reject stale, future, retired, attaching, or
-absent generations before native work. Two extensions are mechanism-specific:
+absent generations before native work. Runtime callbacks for a foreign island
+return a typed island mismatch. Mechanism-specific lifecycle rules also apply:
 
 - backing-surface storage can outlive host invalidation inside the
   invalidate-then-detach window, so a retained attachment rejects further
   native work for its invalidated generation until detach settles;
-- an isolated-window owner can fail terminally while its island lives on, so
-  the failed generation rejects further work and yields only to exactly the
+- an isolated-window owner can fail terminally while its island lives on. The
+  failed generation stops admitting runtime events and yields only to the
   next generation.
 
 The isolated-window adapter admits up to 128 pending requests. It deduplicates
 all pending request IDs and the latest 256 accepted IDs per generation.
 Capacity refusals leave the ID available for retry. The teardown report
 snapshot retains the latest 128 reports in chronological order.
+Helper protocol v1 carries startup progress phases as UTF-8 strings of at
+most 128 bytes. The same bound applies to injected runtime progress events.
 
 Registration does not create content. Unregistration does not imply that a
 consumer-owned process, plugin, or renderer shut down successfully.
@@ -205,6 +208,10 @@ Mechanism mapping is explicit:
 A content-driven resize is a proposal tied to current island revision and
 attach generation. Consumer policy accepts, constrains, or rejects it. The
 adapter cannot directly rewrite durable desired geometry.
+The isolated-window adapter stamps requests at admission with the desired
+revision of its latest coordinator-validated plan for that generation. A
+resize decision rejects a request if that revision no longer matches current
+desired state, even if a newer plan arrived before the queue was drained.
 
 Fresh observation decides convergence. A successful mutation call does not
 fabricate observed bounds.
@@ -234,6 +241,12 @@ not call unsafe third-party unload paths to simulate a generic detach.
 Host-window destroy invalidates its island generations before later native
 events are admitted. Shutdown has a bounded timeout and returns unresolved
 islands explicitly.
+After the coordinator invalidates an isolated-window generation, the host
+calls the adapter's `host_destroyed` for that window and generation. The
+adapter retires it before bounded owner teardown. A timeout or runtime error
+keeps the owner available for teardown retry and blocks replacement until
+cleanup settles. If launch is in flight, its completion tears down the
+returned handle while the generation stays retired.
 
 ## Visibility And Occlusion
 

@@ -629,6 +629,34 @@ fn denied_stale_and_native_navigation_failures_preserve_attachment() {
 }
 
 #[test]
+fn runtime_event_distinguishes_a_foreign_island_from_a_foreign_child_label() {
+    let timeline = Arc::new(Mutex::new(Vec::new()));
+    let runtime = FakeRuntime::with_timeline(timeline.clone());
+    let adapter = adapter(runtime, timeline.clone());
+    let authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    let admitted = timeline.lock().unwrap().len();
+    let mut foreign = runtime_event(1, ChildViewRuntimeEventKind::PageLoadStarted);
+    foreign.island_id = NativeContentIslandId::new("island:other").unwrap();
+    assert_eq!(
+        adapter.admit_runtime_event(foreign.clone()),
+        Err(ChildViewError::ForeignIsland {
+            expected: island_id(),
+            supplied: foreign.island_id,
+        })
+    );
+    let mut wrong_label = runtime_event(1, ChildViewRuntimeEventKind::PageLoadStarted);
+    wrong_label.child_label = ChildViewLabel::new("other-child").unwrap();
+    assert_eq!(
+        adapter.admit_runtime_event(wrong_label),
+        Err(ChildViewError::NotAttached)
+    );
+    assert_eq!(timeline.lock().unwrap().len(), admitted);
+}
+
+#[test]
 fn close_replacement_and_host_destroy_retire_exact_generations() {
     let timeline = Arc::new(Mutex::new(Vec::new()));
     let runtime = FakeRuntime::with_timeline(timeline.clone());
