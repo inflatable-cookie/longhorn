@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::thread::{self, ThreadId};
 
 use longhorn_update::{
     ArtifactFetch, MAX_ARTIFACT_BYTES, UpdateApplyCommand, UpdateCancelCommand, UpdateCheckCommand,
@@ -19,10 +20,69 @@ use crate::{UpdateHostAuthority, UpdateHostError};
 /// same instance to the `UpdateController` it injects as authority.
 pub struct UpdateHandlerAssembly<A: ?Sized> {
     fetch: Arc<dyn ArtifactFetch + Send + Sync>,
-    // Commands serialize changes to the slot. A report holds only a Weak so
-    // invalidation never waits for the transfer or the progress sink.
-    active_progress: Mutex<Option<Arc<()>>>,
+    progress: ProgressDelivery,
     authority: Mutex<A>,
+}
+
+#[derive(Default)]
+struct ProgressDelivery {
+    state: Mutex<ProgressState>,
+    finished: Condvar,
+}
+
+#[derive(Default)]
+struct ProgressState {
+    active: Option<Arc<()>>,
+    publisher: Option<ThreadId>,
+}
+
+impl ProgressDelivery {
+    fn lock(&self) -> Result<MutexGuard<'_, ProgressState>, UpdateHostError> {
+        let thread = thread::current().id();
+        let state = self
+            .state
+            .lock()
+            .map_err(|_| UpdateHostError::state_unavailable())?;
+        self.finished
+            .wait_while(state, |state| {
+                state.publisher.is_some_and(|owner| owner != thread)
+            })
+            .map_err(|_| UpdateHostError::state_unavailable())
+    }
+
+    fn publish(&self, transfer: &Arc<()>, emit: impl FnOnce()) {
+        let Ok(mut state) = self.lock() else {
+            return;
+        };
+        if !state
+            .active
+            .as_ref()
+            .is_some_and(|active| Arc::ptr_eq(active, transfer))
+        {
+            return;
+        }
+        // A synchronous sink may call back into the assembly. Other threads
+        // wait for the outermost publication before changing authority.
+        let _publication = if state.publisher.is_none() {
+            state.publisher = Some(thread::current().id());
+            Some(Publication(self))
+        } else {
+            None
+        };
+        drop(state);
+        emit();
+    }
+}
+
+struct Publication<'a>(&'a ProgressDelivery);
+
+impl Drop for Publication<'_> {
+    fn drop(&mut self) {
+        if let Ok(mut state) = self.0.state.lock() {
+            state.publisher = None;
+            self.0.finished.notify_all();
+        }
+    }
 }
 
 impl<A> UpdateHandlerAssembly<A> {
@@ -32,7 +92,7 @@ impl<A> UpdateHandlerAssembly<A> {
     pub fn new(authority: A, fetch: Arc<dyn ArtifactFetch + Send + Sync>) -> Self {
         Self {
             fetch,
-            active_progress: Mutex::new(None),
+            progress: ProgressDelivery::default(),
             authority: Mutex::new(authority),
         }
     }
@@ -97,43 +157,36 @@ where
         command: UpdatePrepareCommand,
         progress: &mut dyn FnMut(UpdateProgressEvent),
     ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-        let mut progress_slot = self
-            .active_progress
-            .lock()
-            .map_err(|_| UpdateHostError::state_unavailable())?;
+        let mut progress_state = self.progress.lock()?;
         let start = self.with_authority(|authority| authority.begin_prepare(caller, command))??;
         let transfer = match start {
             UpdatePrepareStart::Refused(outcome) => return Ok(outcome),
             UpdatePrepareStart::Transfer(transfer) => transfer,
         };
-        let active = Arc::new(());
-        let report_token = Arc::downgrade(&active);
-        *progress_slot = Some(active);
-        drop(progress_slot);
+        let report_token = Arc::new(());
+        progress_state.active = Some(Arc::clone(&report_token));
+        drop(progress_state);
 
         let epoch = transfer.authority_epoch();
         let delivered = self
             .fetch
             .fetch(transfer.request(), MAX_ARTIFACT_BYTES, &mut |report| {
-                if report_token.strong_count() == 0 {
-                    return;
-                }
-                progress(UpdateProgressEvent {
-                    protocol_version: UpdateProtocolVersion::CURRENT,
-                    authority_epoch: epoch,
-                    progress: report.into(),
+                self.progress.publish(&report_token, || {
+                    progress(UpdateProgressEvent {
+                        protocol_version: UpdateProtocolVersion::CURRENT,
+                        authority_epoch: epoch,
+                        progress: report.into(),
+                    });
                 });
             });
 
-        let mut progress_slot = self
-            .active_progress
-            .lock()
-            .map_err(|_| UpdateHostError::state_unavailable())?;
-        if progress_slot
+        let mut progress_state = self.progress.lock()?;
+        if progress_state
+            .active
             .as_ref()
-            .is_some_and(|active| Arc::as_ptr(active) == report_token.as_ptr())
+            .is_some_and(|active| Arc::ptr_eq(active, &report_token))
         {
-            *progress_slot = None;
+            progress_state.active = None;
         }
         self.with_authority(|authority| authority.complete_prepare(caller, transfer, delivered))?
     }
@@ -160,13 +213,10 @@ where
         &self,
         action: impl FnOnce(&mut A) -> Result<UpdateOutcomeProjection, UpdateHostError>,
     ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
-        let mut progress_slot = self
-            .active_progress
-            .lock()
-            .map_err(|_| UpdateHostError::state_unavailable())?;
+        let mut progress_state = self.progress.lock()?;
         let outcome = self.with_authority(action)??;
         if matches!(outcome, UpdateOutcomeProjection::Committed { .. }) {
-            *progress_slot = None;
+            progress_state.active = None;
         }
         Ok(outcome)
     }

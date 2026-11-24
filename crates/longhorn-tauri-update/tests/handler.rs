@@ -379,6 +379,7 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
     let received = Arc::clone(&messages);
     let app = tauri::test::mock_builder()
         .invoke_handler(tauri::generate_handler![
+            longhorn_tauri_update::longhorn_update_snapshot,
             longhorn_tauri_update::longhorn_update_prepare
         ])
         .channel_interceptor(move |_, callback, _, body| {
@@ -402,11 +403,11 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
             .unwrap()
             .push(serde_json::from_str::<serde_json::Value>(event.payload()).unwrap());
     });
-    let invoke = |body| {
+    let invoke = |command: &str, body| {
         tauri::test::get_ipc_response(
             &window,
             tauri::webview::InvokeRequest {
-                cmd: "longhorn_update_prepare".into(),
+                cmd: command.into(),
                 callback: tauri::ipc::CallbackFn(1),
                 error: tauri::ipc::CallbackFn(2),
                 url: "tauri://localhost".parse().unwrap(),
@@ -416,16 +417,30 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
             },
         )
         .unwrap()
-        .deserialize::<UpdateOutcomeProjection>()
+        .deserialize::<serde_json::Value>()
         .unwrap()
     };
 
     assert_eq!(
-        invoke(serde_json::json!({
-            "command": fixture["prepareCommand"],
-            "onProgress": "__CHANNEL__:42"
-        })),
-        committed()
+        invoke("longhorn_update_snapshot", serde_json::json!({})),
+        serde_json::json!(snapshot())
+    );
+    assert_eq!(
+        invoke(
+            "longhorn_update_snapshot",
+            serde_json::json!({ "includeProgressCapabilities": true })
+        ),
+        serde_json::json!({ "snapshot": snapshot(), "scopedPrepareProgress": true })
+    );
+    assert_eq!(
+        invoke(
+            "longhorn_update_prepare",
+            serde_json::json!({
+                "command": fixture["prepareCommand"],
+                "onProgress": "__CHANNEL__:42"
+            })
+        ),
+        serde_json::json!(committed())
     );
     assert!(events.lock().unwrap().is_empty());
     assert_eq!(
@@ -434,8 +449,11 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
     );
 
     assert_eq!(
-        invoke(serde_json::json!({ "command": fixture["prepareCommand"] })),
-        committed()
+        invoke(
+            "longhorn_update_prepare",
+            serde_json::json!({ "command": fixture["prepareCommand"] })
+        ),
+        serde_json::json!(committed())
     );
     assert_eq!(*events.lock().unwrap(), [expected]);
     assert_eq!(messages.lock().unwrap().len(), 1);
@@ -559,6 +577,69 @@ fn the_authority_lock_is_not_held_across_the_transfer() {
         assert!(
             readable.expect("the authority lock is released during the transfer"),
             "the state is readable while the transfer runs"
+        );
+    });
+}
+
+#[test]
+fn an_in_flight_publication_finishes_before_cancel_commits() {
+    use std::sync::mpsc::{RecvTimeoutError, channel};
+    use std::time::Duration;
+
+    let calls = Arc::new(Mutex::new(Vec::new()));
+    let service = UpdateHandlerAssembly::new(
+        Authority::new(Arc::clone(&calls)),
+        Arc::new(Fetch::reporting(vec![FetchProgress::of(1, 2)])),
+    );
+    let entered = Signal::new();
+    let emit = Signal::new();
+    let cancelling = Signal::new();
+
+    std::thread::scope(|scope| {
+        let preparing = scope.spawn(|| {
+            service.prepare("settings", prepare_command(), &mut |_| {
+                entered.raise();
+                emit.wait();
+                calls.lock().unwrap().push("published".to_owned());
+            })
+        });
+        entered.wait();
+
+        let (finished, result) = channel();
+        let service = &service;
+        let cancelling = &cancelling;
+        let cancel = scope.spawn(move || {
+            cancelling.raise();
+            let outcome = service.cancel(
+                "settings",
+                UpdateCancelCommand {
+                    protocol_version: UpdateProtocolVersion::CURRENT,
+                    authority_epoch: 4,
+                },
+            );
+            finished.send(outcome).unwrap();
+        });
+        cancelling.wait();
+        let while_publishing = result.recv_timeout(Duration::from_millis(100));
+        emit.raise();
+
+        preparing.join().unwrap().unwrap();
+        cancel.join().unwrap();
+        assert_eq!(
+            while_publishing,
+            Err(RecvTimeoutError::Timeout),
+            "cancellation completed while the admitted report was paused in its sink"
+        );
+        assert_eq!(result.try_recv().unwrap().unwrap(), committed());
+        let calls = calls.lock().unwrap();
+        let published = calls.iter().position(|call| call == "published").unwrap();
+        let cancelled = calls
+            .iter()
+            .position(|call| call == "cancel:settings")
+            .unwrap();
+        assert!(
+            published < cancelled,
+            "publication must precede cancel: {calls:?}"
         );
     });
 }

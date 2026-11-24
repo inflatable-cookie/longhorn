@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { ok } from "node:assert/strict";
+import { UpdateController } from "@inflatable-cookie/longhorn/update";
 
 import { TauriTransport } from "../../src/transport/index.ts";
 import { createTauriUpdatePort } from "../../src/update.ts";
@@ -60,8 +62,49 @@ describe("Tauri update composition", () => {
     expect(port.prepareWithProgress).toBeUndefined();
   });
 
+  test("a host that returns a plain snapshot retains event-only progress", async () => {
+    const { notCheckedSnapshot, progressEvent, prepareCommand, stagedSnapshot } = fixture();
+    let report: ((event: unknown) => void) | undefined;
+    let finish: ((outcome: unknown) => void) | undefined;
+    class OlderHost extends TauriTransport {
+      override invoke(command: string, args: Record<string, unknown>): Promise<unknown> {
+        if (command === "longhorn_update_snapshot") {
+          expect(args).toEqual({ includeProgressCapabilities: true });
+          return Promise.resolve(notCheckedSnapshot);
+        }
+        expect(command).toBe("longhorn_update_prepare");
+        expect(args).toEqual({ command: prepareCommand });
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      }
+
+      listen(event: string, listener: (event: unknown) => void): () => void {
+        if (event === "longhorn://update/progress") {
+          report = listener;
+        }
+        return () => {};
+      }
+    }
+    const controller = new UpdateController({
+      port: createTauriUpdatePort({ transport: new OlderHost() }),
+    });
+    await controller.start();
+    const pending = controller.prepare(prepareCommand.version);
+    ok(report, "the renderer listens to the legacy progress event");
+    ok(finish, "the renderer invokes legacy prepare");
+    report(progressEvent);
+    expect(controller.progress).toEqual(progressEvent.progress);
+
+    finish({ status: "committed", snapshot: stagedSnapshot });
+    await pending;
+    report(progressEvent);
+    expect(controller.progress).toEqual(stagedSnapshot.progress);
+    await controller.stop();
+  });
+
   test("native progress channels are isolated and close with their invocation", async () => {
-    const { prepareCommand, progressEvent, stagedSnapshot } = fixture();
+    const { prepareCommand, progressEvent, snapshot, stagedSnapshot } = fixture();
     const callbacks = new Map<number, (message: unknown) => void>();
     const requests: Array<{
       readonly args: Record<string, unknown>;
@@ -69,6 +112,10 @@ describe("Tauri update composition", () => {
     }> = [];
     class PendingTransport extends TauriTransport {
       override invoke(command: string, args: Record<string, unknown>): Promise<unknown> {
+        if (command === "longhorn_update_snapshot") {
+          expect(args).toEqual({ includeProgressCapabilities: true });
+          return Promise.resolve({ snapshot, scopedPrepareProgress: true });
+        }
         expect(command).toBe("longhorn_update_prepare");
         return new Promise((resolve) => {
           requests.push({ args, resolve });
@@ -93,6 +140,7 @@ describe("Tauri update composition", () => {
     });
     try {
       const port = createTauriUpdatePort({ transport: new PendingTransport() });
+      expect(await port.snapshot()).toEqual(snapshot);
       const firstReports: Array<unknown> = [];
       const secondReports: Array<unknown> = [];
       const first = port.prepareWithProgress?.(prepareCommand, (value) => firstReports.push(value));

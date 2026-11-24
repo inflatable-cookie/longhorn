@@ -44,8 +44,27 @@ export function createTauriUpdatePort(options: {
   const events = isEventTransport(options.transport) ? options.transport : undefined;
   const transport = options.transport;
   const progress = hasProgress(transport) ? transport : undefined;
+  let scopedPrepareProgress = false;
   return {
-    snapshot: () => options.transport.invoke(UPDATE_SNAPSHOT_COMMAND, {}),
+    async snapshot() {
+      const response = await transport.invoke(
+        UPDATE_SNAPSHOT_COMMAND,
+        progress === undefined ? {} : { includeProgressCapabilities: true },
+      );
+      if (
+        progress !== undefined &&
+        typeof response === "object" &&
+        response !== null &&
+        "scopedPrepareProgress" in response &&
+        response.scopedPrepareProgress === true &&
+        "snapshot" in response
+      ) {
+        scopedPrepareProgress = true;
+        return response.snapshot;
+      }
+      scopedPrepareProgress = false;
+      return response;
+    },
     check: (command: UpdateCheckCommand) =>
       options.transport.invoke(UPDATE_CHECK_COMMAND, { command }),
     selectChannel: (command: UpdateSelectChannelCommand) =>
@@ -54,11 +73,12 @@ export function createTauriUpdatePort(options: {
       options.transport.invoke(UPDATE_DEFER_COMMAND, { command }),
     prepare: (command: UpdatePrepareCommand) =>
       options.transport.invoke(UPDATE_PREPARE_COMMAND, { command }),
-    prepareWithProgress:
-      progress === undefined
+    get prepareWithProgress(): UpdatePort["prepareWithProgress"] {
+      return !scopedPrepareProgress || progress === undefined
         ? undefined
         : (command, listener) =>
-            progress.invokeWithProgress(UPDATE_PREPARE_COMMAND, { command }, listener),
+            progress.invokeWithProgress(UPDATE_PREPARE_COMMAND, { command }, listener);
+    },
     apply: (command: UpdateApplyCommand) =>
       options.transport.invoke(UPDATE_APPLY_COMMAND, { command }),
     cancel: (command: UpdateCancelCommand) =>

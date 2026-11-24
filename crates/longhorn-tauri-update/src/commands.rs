@@ -52,12 +52,29 @@ async fn run_blocking<R: Runtime, T: Send + 'static>(
 }
 
 /// Returns caller-authorized update state.
-#[tauri::command]
 pub async fn longhorn_update_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
 ) -> Result<UpdateSnapshot, UpdateHostError> {
     run_blocking(state, &window, |assembly, label| assembly.snapshot(label)).await
+}
+
+// The IPC wrappers accept optional arguments while the direct Rust functions
+// retain their signatures and the same Tauri command names and permissions.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __cmd__longhorn_update_snapshot {
+    ($path:path, $invoke:ident) => {
+        $crate::dispatch_update($invoke)
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __tauri_command_name_longhorn_update_snapshot {
+    () => {
+        "longhorn_update_snapshot"
+    };
 }
 
 /// Asks the source for the channel's current manifest.
@@ -114,13 +131,11 @@ pub async fn longhorn_update_prepare<R: Runtime>(
     prepare(window, state, command, None).await
 }
 
-// Tauri's handler macro dispatches through the exported command wrapper. Keep
-// the three-argument Rust entry point while accepting an optional IPC channel.
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __cmd__longhorn_update_prepare {
     ($path:path, $invoke:ident) => {
-        $crate::dispatch_prepare($invoke)
+        $crate::dispatch_update($invoke)
     };
 }
 
@@ -132,19 +147,54 @@ macro_rules! __tauri_command_name_longhorn_update_prepare {
     };
 }
 
-pub use prepare_ipc::dispatch_prepare;
+pub use ipc::dispatch_update;
 
-mod prepare_ipc {
+mod ipc {
+    use serde::Serialize;
     use tauri::ipc::{Invoke, JavaScriptChannelId};
     use tauri::{Runtime, State, WebviewWindow};
 
-    use super::{TauriUpdateState, UpdateHostError, UpdateOutcomeProjection, UpdatePrepareCommand};
+    use super::{
+        TauriUpdateState, UpdateHostError, UpdateOutcomeProjection, UpdatePrepareCommand,
+        UpdateSnapshot,
+    };
 
     #[doc(hidden)]
-    /// Dispatches the prepare IPC command through Tauri's argument parser.
-    pub fn dispatch_prepare<R: Runtime>(invoke: Invoke<R>) -> bool {
-        let handle: fn(Invoke<R>) -> bool = tauri::generate_handler![self::longhorn_update_prepare];
+    /// Dispatches update IPC extensions through Tauri's argument parser.
+    pub fn dispatch_update<R: Runtime>(invoke: Invoke<R>) -> bool {
+        let handle: fn(Invoke<R>) -> bool = tauri::generate_handler![
+            self::longhorn_update_snapshot,
+            self::longhorn_update_prepare
+        ];
         handle(invoke)
+    }
+
+    #[derive(Serialize)]
+    #[serde(untagged)]
+    enum SnapshotReply {
+        Snapshot(UpdateSnapshot),
+        WithCapabilities {
+            snapshot: UpdateSnapshot,
+            #[serde(rename = "scopedPrepareProgress")]
+            scoped_prepare_progress: bool,
+        },
+    }
+
+    #[tauri::command]
+    async fn longhorn_update_snapshot<R: Runtime>(
+        window: WebviewWindow<R>,
+        state: State<'_, TauriUpdateState>,
+        include_progress_capabilities: Option<bool>,
+    ) -> Result<SnapshotReply, UpdateHostError> {
+        let snapshot = super::longhorn_update_snapshot(window, state).await?;
+        Ok(if include_progress_capabilities == Some(true) {
+            SnapshotReply::WithCapabilities {
+                snapshot,
+                scoped_prepare_progress: true,
+            }
+        } else {
+            SnapshotReply::Snapshot(snapshot)
+        })
     }
 
     #[tauri::command]

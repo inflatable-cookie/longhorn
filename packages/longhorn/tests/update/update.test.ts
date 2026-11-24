@@ -50,6 +50,7 @@ function committed(value: UpdateSnapshot = snapshot()): UpdateOutcomeProjection 
 class Port implements UpdatePort {
   calls: Array<string> = [];
   applied: Array<UpdateApplyCommand> = [];
+  #progressListener: ((event: unknown) => void) | undefined;
   constructor(
     private state: UpdateSnapshot = snapshot(),
     private outcome: (command: string) => UpdateOutcomeProjection = () => committed(this.state),
@@ -86,6 +87,16 @@ class Port implements UpdatePort {
   async listen(): Promise<() => void> {
     this.calls.push("listen");
     return () => {};
+  }
+  listenProgress(listener: (event: unknown) => void): () => void {
+    this.calls.push("listenProgress");
+    this.#progressListener = listener;
+    return () => {
+      this.#progressListener = undefined;
+    };
+  }
+  emitProgress(event: unknown): void {
+    this.#progressListener?.(event);
   }
 }
 
@@ -469,7 +480,14 @@ describe("update controller", () => {
     await controller.apply("1.4.0");
     await controller.cancel();
 
-    expect(port.calls).toEqual(["listen", "snapshot", "prepare", "apply", "cancel"]);
+    expect(port.calls).toEqual([
+      "listen",
+      "listenProgress",
+      "snapshot",
+      "prepare",
+      "apply",
+      "cancel",
+    ]);
     expect(port.applied).toEqual([
       {
         protocolVersion: UPDATE_PROTOCOL_VERSION,
@@ -528,6 +546,7 @@ describe("update controller", () => {
 
     const pending = controller.prepare("1.4.0");
     const transfer = port.transfer(0);
+    port.emitProgress(PROGRESS_EVENT);
     transfer.report({ ...PROGRESS_EVENT, authorityEpoch: 2 });
     expect(controller.progress).toEqual({ state: "idle" });
 
@@ -535,6 +554,33 @@ describe("update controller", () => {
     expect(controller.progress).toEqual(LIVE_PROGRESS);
     expect(controller.presence).toBe("quiet");
     transfer.complete(committed());
+    await pending;
+  });
+
+  test("an event-only port reports live bytes only during prepare and at its epoch", async () => {
+    const port = new Port();
+    let finish: ((outcome: UpdateOutcomeProjection) => void) | undefined;
+    port.prepare = () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      });
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    port.emitProgress(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+    const pending = controller.prepare("1.4.0");
+    port.emitProgress({ ...PROGRESS_EVENT, authorityEpoch: 2 });
+    expect(controller.progress).toEqual({ state: "idle" });
+
+    port.emitProgress(PROGRESS_EVENT);
+    expect(controller.progress).toEqual(LIVE_PROGRESS);
+    await controller.cancel();
+    port.emitProgress(PROGRESS_EVENT);
+    expect(controller.progress).toEqual({ state: "idle" });
+
+    ok(finish, "legacy prepare is pending");
+    finish(committed());
     await pending;
   });
 
