@@ -1,0 +1,1 @@
+Tool provisioning now decides version admission from the raw probe output instead of the redacted, field-truncated diagnostic string, and reads receipts through one bounded reader with distinct missing, invalid and oversized outcomes.

@@ -1,6 +1,7 @@
 //! Synchronous managed-tool installation and health (contract 027, part 4c).
 
 use std::{
+    borrow::Cow,
     collections::HashSet,
     fs::{self, File},
     io::{self, Read, Write},
@@ -25,6 +26,9 @@ use crate::{
 
 /// Maximum bytes read from a downloaded checksum file or sidecar.
 pub const MAX_DIGEST_METADATA_BYTES: usize = 64 * 1024;
+/// Maximum bytes read from a stored install receipt, for a snapshot or a
+/// health check. A larger file is not a receipt this crate wrote.
+pub const MAX_RECEIPT_BYTES: usize = 64 * 1024;
 /// Maximum bytes retained in each redacted probe output field.
 pub const MAX_PROBE_FIELD_BYTES: usize = 4096;
 /// Maximum bytes inspected from one runner output stream before decoding.
@@ -780,13 +784,16 @@ fn probe_version(
             program: binary.to_path_buf(),
             detail: bound_field(redactor, error.detail(), MAX_PROBE_FIELD_BYTES),
         })?;
+    // Admission reads the raw stream. Redaction and the 4 KiB field bound
+    // shape diagnostic evidence only: a consumer redactor that protects the
+    // printed version, or a bound that cuts it, must not decide the outcome.
+    let admitted = parse_version(&raw_probe_text(output.stdout()));
     let (stdout, stdout_truncated) =
         bounded_output(output.stdout(), output.stdout_truncated(), redactor);
     let (stderr, stderr_truncated) =
         bounded_output(output.stderr(), output.stderr_truncated(), redactor);
-    let parsed = parse_version(&stdout);
     if output.success()
-        && let Some(version) = parsed
+        && let Some(version) = admitted
     {
         return Ok(version);
     }
@@ -804,6 +811,21 @@ fn probe_version(
         },
     }
     .into())
+}
+
+/// The raw text a version decision reads: decoded, cut at the capture bound,
+/// and never a straddling token's prefix. Trimming back to the last complete
+/// token keeps a cut `1.2.3-alpha` from being admitted as `1.2.3-al`.
+fn raw_probe_text(bytes: &[u8]) -> Cow<'_, str> {
+    let bound = bytes.len().min(MAX_PROBE_CAPTURE_BYTES);
+    let end = match bytes.get(bound) {
+        Some(next) if !next.is_ascii_whitespace() => bytes[..bound]
+            .iter()
+            .rposition(|byte| byte.is_ascii_whitespace())
+            .unwrap_or(0),
+        _ => bound,
+    };
+    String::from_utf8_lossy(&bytes[..end])
 }
 
 fn bounded_output(bytes: &[u8], runner_truncated: bool, redactor: &Redactor) -> (String, bool) {
@@ -842,19 +864,25 @@ fn read_digest_text(path: &Path, asset: &str, sidecar: bool) -> Result<String, I
 
 fn snapshot_receipt(path: &Path) -> Result<ReceiptSnapshot, InstallError> {
     match fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_file() => Ok(ReceiptSnapshot {
-            bytes: Some(fs::read(path).map_err(|error| io_error(path, error))?),
-            obstructed: false,
-        }),
+        Ok(metadata) if metadata.file_type().is_file() => match read_receipt(path) {
+            Ok(ReceiptRead::Valid { bytes, .. } | ReceiptRead::Invalid(bytes)) => {
+                Ok(ReceiptSnapshot {
+                    bytes: Some(bytes),
+                    obstructed: false,
+                })
+            }
+            Ok(ReceiptRead::Missing) => Ok(ReceiptSnapshot {
+                bytes: None,
+                obstructed: false,
+            }),
+            Ok(ReceiptRead::Oversized) => Err(receipt_path_expectation()),
+            Err(error) => Err(io_error(path, error).into()),
+        },
         Ok(metadata) if metadata.file_type().is_dir() => Ok(ReceiptSnapshot {
             bytes: None,
             obstructed: true,
         }),
-        Ok(_) => Err(ProvisionError::Fault(crate::Fault::Usage {
-            detail: "the receipt path must be absent, a regular file, or a directory obstruction"
-                .to_owned(),
-        })
-        .into()),
+        Ok(_) => Err(receipt_path_expectation()),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(ReceiptSnapshot {
             bytes: None,
             obstructed: false,
@@ -864,11 +892,55 @@ fn snapshot_receipt(path: &Path) -> Result<ReceiptSnapshot, InstallError> {
 }
 
 fn read_stored_receipt(path: &Path) -> io::Result<Option<StoredReceipt>> {
-    match fs::read(path) {
-        Ok(bytes) => Ok(serde_json::from_slice(&bytes).ok()),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
-        Err(error) => Err(error),
+    match read_receipt(path)? {
+        ReceiptRead::Valid { receipt, .. } => Ok(Some(receipt)),
+        ReceiptRead::Missing | ReceiptRead::Invalid(_) | ReceiptRead::Oversized => Ok(None),
     }
+}
+
+/// One bounded receipt read, shared by the rollback snapshot and health.
+/// Missing, invalid and oversized distinct so each caller states its own
+/// policy instead of inferring it from an allocation.
+enum ReceiptRead {
+    /// Nothing exists at the path.
+    Missing,
+    /// The file is larger than [`MAX_RECEIPT_BYTES`] and is not read.
+    Oversized,
+    /// Bounded bytes that are not a receipt document; kept for a rollback.
+    Invalid(Vec<u8>),
+    /// A receipt document with the exact bytes it was decoded from.
+    Valid {
+        bytes: Vec<u8>,
+        receipt: StoredReceipt,
+    },
+}
+
+fn read_receipt(path: &Path) -> io::Result<ReceiptRead> {
+    let mut file = match File::open(path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(ReceiptRead::Missing),
+        Err(error) => return Err(error),
+    };
+    let mut bytes = Vec::new();
+    Read::by_ref(&mut file)
+        .take((MAX_RECEIPT_BYTES + 1) as u64)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() > MAX_RECEIPT_BYTES {
+        return Ok(ReceiptRead::Oversized);
+    }
+    Ok(match serde_json::from_slice(&bytes) {
+        Ok(receipt) => ReceiptRead::Valid { bytes, receipt },
+        Err(_) => ReceiptRead::Invalid(bytes),
+    })
+}
+
+fn receipt_path_expectation() -> InstallError {
+    ProvisionError::Fault(Fault::Usage {
+        detail: format!(
+            "the receipt path must be absent, a regular file of at most {MAX_RECEIPT_BYTES} bytes, or a directory obstruction"
+        ),
+    })
+    .into()
 }
 
 fn receipt_path(managed_root: &Path, name: &str) -> PathBuf {
@@ -1026,7 +1098,7 @@ impl From<InstallRefusal> for InstallError {
 
 #[cfg(test)]
 mod unit_tests {
-    use super::parse_version;
+    use super::{MAX_PROBE_CAPTURE_BYTES, parse_version, raw_probe_text};
     use semver::Version;
 
     #[test]
@@ -1042,5 +1114,24 @@ mod unit_tests {
             );
         }
         assert_eq!(parse_version("no version here"), None);
+    }
+
+    #[test]
+    fn raw_probe_text_keeps_a_version_inside_the_capture_bound() {
+        let mut bytes = b"tool 9.9.9\n".to_vec();
+        bytes.resize(MAX_PROBE_CAPTURE_BYTES + 16, b'x');
+        assert_eq!(
+            parse_version(&raw_probe_text(&bytes)),
+            Some(Version::parse("9.9.9").unwrap())
+        );
+    }
+
+    #[test]
+    fn raw_probe_text_drops_a_token_that_straddles_the_capture_bound() {
+        // The bound lands inside the pre-release identifier, where a prefix
+        // such as `1.2.3-al` would parse as a complete, wrong version.
+        let mut bytes = vec![b'x'; MAX_PROBE_CAPTURE_BYTES - 9];
+        bytes.extend_from_slice(b" 1.2.3-alphabeta\n");
+        assert_eq!(parse_version(&raw_probe_text(&bytes)), None);
     }
 }

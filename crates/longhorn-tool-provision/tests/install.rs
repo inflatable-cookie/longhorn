@@ -20,10 +20,10 @@ use std::{
 use fs4::FileExt;
 use longhorn_redact::{RedactionRules, Redactor};
 use longhorn_tool_provision::{
-    ArtifactShape, CommandRunner, DigestDeclaration, FixtureRoute, FixtureServer, HttpReleases,
-    InstallError, InstallFault, InstallRefusal, InstallStage, LoginPathCache, ProbePhase,
-    ProcessOutput, ProcessRunner, Release, ReleaseError, ReleaseQuery, ReleaseSource,
-    SignatureReport, SignatureVerifier, ToolDescription, ToolHealth, Version,
+    ArtifactShape, CommandRunner, DigestDeclaration, Fault, FixtureRoute, FixtureServer,
+    HttpReleases, InstallError, InstallFault, InstallRefusal, InstallStage, LoginPathCache,
+    ProbePhase, ProcessOutput, ProcessRunner, ProvisionError, Release, ReleaseError, ReleaseQuery,
+    ReleaseSource, SignatureReport, SignatureVerifier, ToolDescription, ToolHealth, Version,
     find_executable_on_path, install_tool, is_executable, parse_login_path_output, tool_health,
 };
 use secrecy::SecretString;
@@ -588,6 +588,61 @@ fn probe_output_is_redacted_and_bounded() {
 }
 
 #[test]
+fn admission_reads_the_raw_probe_stream_not_the_redacted_field() {
+    let binary = bytes("1.2.3");
+    let server = fixture(TAG, &[(ASSET, binary.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let pinned_digest = digest(&binary);
+    let tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned_digest));
+    // A consumer seeds the printed version as a secret. The redacted
+    // diagnostic field no longer holds a version token; admission still does.
+    let redactor = Redactor::new(vec!["1.2.3".to_owned()], RedactionRules::exact_only());
+
+    let receipt = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &version_runner(),
+        &redactor,
+        &mut |_| {},
+    )
+    .expect("a redacted version still admits the staged binary");
+    assert_eq!(receipt.version(), "1.2.3");
+}
+
+#[test]
+fn admission_reads_a_version_token_at_the_diagnostic_field_cut() {
+    let binary = bytes("1.2.3");
+    let server = fixture(TAG, &[(ASSET, binary.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let pinned_digest = digest(&binary);
+    let tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned_digest));
+    let field = longhorn_tool_provision::MAX_PROBE_FIELD_BYTES;
+    // The token starts four bytes before the 4 KiB field bound, so the
+    // bounded diagnostic field ends inside it.
+    let runner = TestRunner(move |_program: &Path, _arguments: &[OsString]| {
+        let mut stdout = vec![b'.'; field - 4];
+        stdout.extend_from_slice(b" v1.2.3\n");
+        Ok(ProcessOutput::new(stdout, Vec::new(), true, Some(0)))
+    });
+
+    let receipt = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &runner,
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect("a version token cut by the diagnostic bound still admits the binary");
+    assert_eq!(receipt.version(), "1.2.3");
+}
+
+#[test]
 fn health_reports_not_installed_installed_and_broken() {
     let root = tempfile::tempdir().expect("managed root");
     let digest_pin = "0".repeat(64);
@@ -611,6 +666,103 @@ fn health_reports_not_installed_installed_and_broken() {
         tool_health(&tool, root.path(), &version_runner(), &redactor),
         ToolHealth::Broken { .. }
     ));
+}
+
+#[test]
+fn receipt_reads_are_bounded_with_missing_and_invalid_outcomes() {
+    let root = tempfile::tempdir().expect("managed root");
+    let digest_pin = "0".repeat(64);
+    let tool = description(None, None, DigestDeclaration::Pinned(&digest_pin));
+    let redactor = redactor();
+    let binary = root.path().join("bin").join(BINARY);
+    fs::create_dir_all(binary.parent().unwrap()).unwrap();
+    fs::write(&binary, bytes("3.1.4")).unwrap();
+    let receipt = root.path().join("state/tool-provision/example-tool.json");
+    fs::create_dir_all(receipt.parent().unwrap()).unwrap();
+
+    assert!(matches!(
+        tool_health(&tool, root.path(), &version_runner(), &redactor),
+        ToolHealth::Installed {
+            receipt_version: None,
+            ..
+        }
+    ));
+
+    fs::write(&receipt, b"{ not a receipt").unwrap();
+    assert!(matches!(
+        tool_health(&tool, root.path(), &version_runner(), &redactor),
+        ToolHealth::Installed {
+            receipt_version: None,
+            ..
+        }
+    ));
+
+    let stored = serde_json::json!({
+        "name": NAME,
+        "version": "3.1.4",
+        "release_tag": TAG,
+        "asset": ASSET,
+        "sha256": "0".repeat(64),
+        "installed_at_unix": 0,
+    });
+    fs::write(&receipt, serde_json::to_vec(&stored).unwrap()).unwrap();
+    assert!(matches!(
+        tool_health(&tool, root.path(), &version_runner(), &redactor),
+        ToolHealth::Installed {
+            receipt_version: Some(version),
+            ..
+        } if version == "3.1.4"
+    ));
+
+    fs::write(
+        &receipt,
+        vec![b' '; longhorn_tool_provision::MAX_RECEIPT_BYTES + 1],
+    )
+    .unwrap();
+    assert!(matches!(
+        tool_health(&tool, root.path(), &version_runner(), &redactor),
+        ToolHealth::Installed {
+            receipt_version: None,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn an_oversized_receipt_is_refused_before_the_swap() {
+    let binary = bytes("1.2.3");
+    let server = fixture(TAG, &[(ASSET, binary.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let receipt = root.path().join("state/tool-provision/example-tool.json");
+    fs::create_dir_all(receipt.parent().unwrap()).unwrap();
+    fs::write(
+        &receipt,
+        vec![b' '; longhorn_tool_provision::MAX_RECEIPT_BYTES + 1],
+    )
+    .unwrap();
+    let pinned_digest = digest(&binary);
+    let tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned_digest));
+
+    let error = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &version_runner(),
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect_err("a receipt beyond the read bound is refused");
+    assert!(matches!(
+        error,
+        InstallError::Provision(ProvisionError::Fault(Fault::Usage { .. }))
+    ));
+    assert!(!root.path().join("bin").join(BINARY).exists());
+    assert_eq!(
+        fs::metadata(&receipt).unwrap().len(),
+        (longhorn_tool_provision::MAX_RECEIPT_BYTES + 1) as u64
+    );
 }
 
 #[test]
