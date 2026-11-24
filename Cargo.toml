@@ -187,11 +187,17 @@ rmcp = { version = "3.1.3", features = ["transport-streamable-http-server"] }
 # native-snapshot, grouped-restore, WAL, and storage-transition suites.
 # `bundled` means a version move swaps the embedded SQLite engine.
 # Longhorn's Cargo.lock is the tested set; every dependency refresh
-# reruns those suites. Consumers taking Longhorn by git tag can resolve
-# a compatible rusqlite 0.40.x, including the SQLite their graph needs.
-# The 0.3.0 dependency sweep took 0.40.2 through those suites green
-# (2026-09-27).
-rusqlite = { version = "0.40.2", features = ["backup", "bundled"] }
+# reruns those suites. rusqlite is a dev-dependency of longhorn-config only,
+# so the bundled engine serves the test suites and ships in no Longhorn
+# runtime code. 0.6.0 raises the requirement from 0.40.2 to 0.41.0, the
+# lowest 0.41 release on libsqlite3-sys 0.39 (RUSTSEC-2026-0459, SQLite
+# CVE-2026-119375; 0.40.x pins ^0.38). Tom ruled on 2026-11-23 (decision
+# 28232532) to take this as a Breaking change. The compatibility promise is
+# now a rusqlite 0.41.x range: a consumer that depends on rusqlite itself
+# must take 0.41.x too, since libsqlite3-sys declares `links = "sqlite3"` and
+# cargo resolves one copy per graph. The 0.3.0 sweep took 0.40.2 through
+# those suites green (2026-09-27); the 0.41.0 move reran them.
+rusqlite = { version = "0.41.0", features = ["backup", "bundled"] }
 # Pinned to rmcp 3.1.3's own schemars line: the derive must macro-match the
 # version rmcp's tool macros generate code against.
 schemars = "1.0"
