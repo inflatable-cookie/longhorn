@@ -32,32 +32,82 @@ export type ParityInputs = {
   readonly effigyToml: string;
 };
 
-function escapeRegExp(text: string): string {
-  return text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+export type WorkflowStep = { readonly if?: unknown; readonly run?: unknown };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-// Text of one job under `jobs:`, from its header to the next job header.
-export function parseWorkflowJob(workflow: string, job: string): string {
-  const header = new RegExp(`^  ${escapeRegExp(job)}:\\s*$`, "m").exec(workflow);
-  if (header === null) {
-    throw new Error(`ci.yml has no ${job} job`);
+// The steps of one job, read through a YAML parser so comments, names and
+// `uses:` entries are structure rather than text. A job-level `if` may skip
+// every step, so a guarded job yields no steps and nothing counts as run.
+export function jobSteps(workflow: string, job: string): Array<WorkflowStep> {
+  const parsed: unknown = Bun.YAML.parse(workflow);
+  const jobs = isRecord(parsed) ? parsed["jobs"] : undefined;
+  const target = isRecord(jobs) ? jobs[job] : undefined;
+  if (!isRecord(target) || !Array.isArray(target["steps"])) {
+    throw new Error(`ci.yml has no ${job} job with a steps list`);
   }
-  const rest = workflow.slice(header.index + header[0].length);
-  const next = /^ {2}[A-Za-z0-9_-]+:\s*$/m.exec(rest);
-  return next === null ? rest : rest.slice(0, next.index);
+  if (target["if"] !== undefined) {
+    return [];
+  }
+  return target["steps"].filter(isRecord);
 }
 
-// Distinct Effigy task names invoked in a workflow fragment. Comment lines are
-// skipped, so prose such as "Effigy runs the same selectors" is not a step.
-export function parseEffigyTasks(text: string): Array<string> {
+// Shell blocks whose bodies may not run. Each opener is closed by its closer.
+const BLOCK_OPENERS: ReadonlyArray<{ readonly opener: RegExp; readonly closer: RegExp }> = [
+  { opener: /^if\b/, closer: /^fi\b/ },
+  { opener: /^(?:for|while|until)\b/, closer: /^done\b/ },
+  { opener: /^case\b/, closer: /^esac\b/ },
+];
+
+// Effigy tasks a shell script certainly runs: command lines at the top level,
+// before any `exit`, and outside every conditional or loop body. A line starting
+// with `echo`, `false &&`, a comment, or anything else is not an invocation. A
+// single-line block such as `if x; then effigy y; fi` leaves the scan inside a
+// block, so later lines stop counting. Under-counting fails the check loudly;
+// over-counting would accept a step that never runs.
+function executedInScript(script: string): Array<string> {
   const tasks: Array<string> = [];
-  for (const line of text.split("\n")) {
-    if (line.trim().startsWith("#")) {
+  let depth = 0;
+  for (const raw of script.split("\n")) {
+    const line = raw.trim();
+    if (line === "" || line.startsWith("#")) {
       continue;
     }
-    for (const match of line.matchAll(/\beffigy\s+([A-Za-z][\w:.-]*)/g)) {
-      const task = match[1] ?? "";
-      if (task !== "" && !tasks.includes(task)) {
+    if (BLOCK_OPENERS.some(({ closer }) => closer.test(line))) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (BLOCK_OPENERS.some(({ opener }) => opener.test(line))) {
+      depth += 1;
+      continue;
+    }
+    if (depth > 0) {
+      continue;
+    }
+    if (/^exit\b/.test(line)) {
+      break;
+    }
+    const match = /^effigy\s+([A-Za-z][\w:.-]*)/.exec(line);
+    const task = match?.[1];
+    if (task !== undefined) {
+      tasks.push(task);
+    }
+  }
+  return tasks;
+}
+
+// Distinct Effigy tasks that the given steps certainly run. A step with an `if`
+// may be skipped, so it never counts as coverage.
+export function executedEffigyTasks(steps: ReadonlyArray<WorkflowStep>): Array<string> {
+  const tasks: Array<string> = [];
+  for (const step of steps) {
+    if (step.if !== undefined || typeof step.run !== "string") {
+      continue;
+    }
+    for (const task of executedInScript(step.run)) {
+      if (!tasks.includes(task)) {
         tasks.push(task);
       }
     }
@@ -85,7 +135,7 @@ export function parseQaTasks(effigyToml: string): Array<string> {
 }
 
 export function clientsParityProblems(inputs: ParityInputs): Array<string> {
-  const runs = parseEffigyTasks(parseWorkflowJob(inputs.workflow, CLIENTS_JOB));
+  const runs = executedEffigyTasks(jobSteps(inputs.workflow, CLIENTS_JOB));
   const qa = parseQaTasks(inputs.effigyToml);
   const family = qa.filter((task) => TYPESCRIPT_FAMILY.test(task));
   const problems: Array<string> = [];

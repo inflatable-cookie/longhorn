@@ -180,15 +180,24 @@ Not a substitute for dispatching `release.yml`. Run it before a release when
 The hosted `clients` job in `ci.yml` runs only part of `qa`'s TypeScript and
 Svelte family: `check:ts`, `test:ts`, `test:vitest`, `check:svelte` and
 `check:bindings`. `lint:ts`, `fmt:ts` and `check:knip` run through `qa`, which
-`release.yml` runs. `check:ci-static-parity` (`scripts/check-ci-static-parity.ts`)
-records that split and fails when the job and the `qa` list drift apart. Closing
-the gap in `ci.yml` needs Tom's approval, so it is recorded as a follow-up
-rather than changed here.
+`release.yml` runs. `check:ci-static-parity` (`scripts/check-ci-static-parity.ts`) records that split
+and fails when the job and the `qa` list drift apart. It reads the job's steps
+through a YAML parser and counts only commands that certainly run: a step with
+an `if`, an `echo` line, a step name, a comment, or code after a top-level
+`exit` or inside an `if`/loop body does not count. Closing the gap in `ci.yml`
+needs Tom's approval, so it is recorded as a follow-up rather than changed here.
 
 `check:markers` (`scripts/check-markers.ts`) is the critical tier of the retired
 `[scan.attention_markers]` table: `BUG` and `remove before release` in tracked
 files fail it, whole-word and case-sensitive. The high and warning tiers are
 reported as counts only.
+
+`check:generated-sources` (`scripts/check-generated-sources.ts`) is the current
+form of the retired `[scan.generated_in_src]` table. The generator header may
+appear only in generated output under `packages/*/src/**/generated/` and in the
+bindings generator sources under `crates/longhorn-bindings/src/`. Every file in
+a generated directory must be named by a generator, and every text file there
+must carry the header. JSON output is checked by its generator path alone.
 
 ## Escape hatches
 

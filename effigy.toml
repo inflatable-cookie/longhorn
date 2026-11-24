@@ -112,7 +112,7 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/check-generated-sources.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -186,6 +186,10 @@ include = ["config/release.toml"]
 # current form of the retired [scan.attention_markers] critical tier; see
 # scripts/check-markers.ts for the matching rule and the report-only tiers.
 "check:markers" = "bun scripts/check-markers.ts"
+# Generated-source detection: the generator header may appear only in generated
+# output and the bindings generator sources. The current form of the retired
+# [scan.generated_in_src] table; see scripts/check-generated-sources.ts.
+"check:generated-sources" = "bun scripts/check-generated-sources.ts"
 # The native Tauri injection bundle must remain generated from the TypeScript
 # entrypoint and shim. `--write` refreshes it after source edits.
 "check:agent-control-shim" = "bun scripts/agent-control-shim.ts"
@@ -354,6 +358,7 @@ health = [
   { task = "check:runner-tools" },
   { task = "check:release-gates" },
   { task = "check:markers" },
+  { task = "check:generated-sources" },
   { task = "check:agent-control-skill" },
 ]
 # The hosted clients job (ci.yml) runs check:ts, test:ts, test:vitest,
@@ -365,6 +370,7 @@ qa = [
   { task = "check:runner-tools" },
   { task = "check:release-gates" },
   { task = "check:markers" },
+  { task = "check:generated-sources" },
   { task = "bootstrap:deps" },
   { task = "lint:rust" },
   { task = "lint:rust:features" },
@@ -401,9 +407,10 @@ qa = [
 #
 # Effigy 0.15 retires [scan.attention_markers] and [scan.generated_in_src]; both
 # tables are removed. Their coverage moved out of doctor: the critical marker
-# tier is check:markers, and the committed generated output that the bindings
-# generators write (packages/longhorn/src/*/generated) is gated byte-for-byte by
-# check:bindings, so doctor needs no exclusion list for it. [scan.god_files] is
+# tier is check:markers; generated-source detection (the generator header may
+# appear only in generated output and the bindings generator sources) is
+# check:generated-sources; and the committed generated output that the bindings
+# generators write is gated byte-for-byte by check:bindings. [scan.god_files] is
 # not retired.
 
 # --- Host admission -----------------------------------------------------
