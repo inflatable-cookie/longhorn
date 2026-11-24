@@ -301,12 +301,12 @@ earlier single-call stance.
 
 ### Update outcome detail
 
-- A newer self-managed release without an artifact for the current target is reported as
-  unavailable for that target, not offered for installation.
+- `evaluate` takes the installation target. A newer release without its artifact
+  is unavailable for self-managed or undetermined installations; externally
+  managed installations still report their manager.
 - Installer rejections carry their supplied detail. Malformed artifacts are
   terminal, discarded from staging, and distinct from retryable replacement
-  failures. A failed swap
-  and rollback must report both faults and the retained bundle location.
+  failures. A failed swap and rollback must report both faults and the retained bundle location.
 - Deferring while a transfer runs preserves its download progress until the
   transfer completes or is cancelled.
 - Request debug output redacts URLs and headers; verified artifact debug output

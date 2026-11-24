@@ -1,7 +1,9 @@
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
-use crate::{BuildIdentity, ChannelManifest, InstallId, InstallManager, InstallProvenance};
+use crate::{
+    BuildIdentity, ChannelManifest, InstallId, InstallManager, InstallProvenance, TargetTriple,
+};
 
 /// Why an update check ran.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -131,6 +133,7 @@ pub fn evaluate(
     install: &InstallId,
     check: CheckKind,
     provenance: InstallProvenance,
+    target: &TargetTriple,
 ) -> UpdateAvailability {
     if manifest.version == build.version {
         return UpdateAvailability::UpToDate;
@@ -152,6 +155,12 @@ pub fn evaluate(
         return UpdateAvailability::ManagedElsewhere {
             version: manifest.version.clone(),
             manager,
+        };
+    }
+
+    if manifest.artifact(target).is_none() {
+        return UpdateAvailability::UnavailableForTarget {
+            version: manifest.version.clone(),
         };
     }
 

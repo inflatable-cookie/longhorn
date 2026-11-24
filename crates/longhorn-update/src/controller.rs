@@ -240,16 +240,14 @@ impl<'port> UpdateController<'port> {
             return self.reject(UpdateRejectionCode::ChannelMismatch);
         }
 
-        self.availability = evaluate(&self.build, manifest, &self.install, kind, self.provenance);
-        if matches!(
-            self.availability,
-            UpdateAvailability::Offer(_) | UpdateAvailability::WithheldByRollout { .. }
-        ) && manifest.artifact(&self.target).is_none()
-        {
-            self.availability = UpdateAvailability::UnavailableForTarget {
-                version: manifest.version.clone(),
-            };
-        }
+        self.availability = evaluate(
+            &self.build,
+            manifest,
+            &self.install,
+            kind,
+            self.provenance,
+            &self.target,
+        );
         self.manifest = Some(manifest.clone());
         self.commit()
     }

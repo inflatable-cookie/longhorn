@@ -1244,25 +1244,30 @@ impl UpdateInstaller for FailingInstall {
 fn install_failures_preserve_detail_and_terminal_classification() {
     for (failure, expected, detail) in [
         (
+            InstallFailure::SignatureRejected,
+            UpdateRejectionCode::SignatureRejected,
+            None,
+        ),
+        (
             InstallFailure::MalformedArtifact {
                 detail: "invalid archive".into(),
             },
             UpdateRejectionCode::MalformedArtifact,
-            "invalid archive",
+            Some("invalid archive"),
         ),
         (
             InstallFailure::Failed {
                 detail: "swap failed; rollback failed; old bundle at backup".into(),
             },
             UpdateRejectionCode::InstallFailed,
-            "swap failed; rollback failed; old bundle at backup",
+            Some("swap failed; rollback failed; old bundle at backup"),
         ),
         (
             InstallFailure::NotWritable {
                 detail: "read-only bundle".into(),
             },
             UpdateRejectionCode::NotWritable,
-            "read-only bundle",
+            Some("read-only bundle"),
         ),
     ] {
         let signing = Signing::new();
@@ -1275,15 +1280,18 @@ fn install_failures_preserve_detail_and_terminal_classification() {
         let result = controller.apply(&apply("1.4.0"), &gate, &FailingInstall(failure));
         let UpdateOutcomeProjection::Rejected {
             code,
-            detail: Some(actual),
+            detail: actual,
             snapshot,
         } = result
         else {
             panic!("expected installer rejection")
         };
         assert_eq!(code, expected);
-        assert_eq!(actual, detail);
-        if code == UpdateRejectionCode::MalformedArtifact {
+        assert_eq!(actual.as_deref(), detail);
+        if matches!(
+            code,
+            UpdateRejectionCode::MalformedArtifact | UpdateRejectionCode::SignatureRejected
+        ) {
             assert!(snapshot.staged.is_none());
             assert!(matches!(snapshot.progress, UpdateProgressProjection::Idle));
         } else {
