@@ -170,6 +170,37 @@ describe("notification pagination", () => {
     await controller.stop();
   });
 
+  test("an obsolete failed page does not replace live pagination status", async () => {
+    const records = ledgerOf(3);
+    const port = new PagedPort(records, 1);
+    const controller = new NotificationController({ port, pageSize: 2 });
+    await controller.start();
+
+    port.holdPages = true;
+    const more = controller.loadMore();
+    expect(controller.pagination).toEqual({ kind: "loading" });
+
+    port.publish([recordAt("notification:new", 10), ...records], 2);
+    await flush();
+    expect(controller.pagination).toEqual({ kind: "idle" });
+
+    const boom = new Error("obsolete page refused");
+    port.failHeld(boom);
+    await expect(more).rejects.toBe(boom);
+    expect(controller.pagination).toEqual({ kind: "idle" });
+
+    port.holdPages = false;
+    await controller.loadMore();
+    expect(ids(controller)).toEqual([
+      "notification:new",
+      "notification:0",
+      "notification:1",
+      "notification:2",
+    ]);
+    expect(controller.pagination).toEqual({ kind: "idle" });
+    await controller.stop();
+  });
+
   test("pagination exposes pending and failed states and recovers on retry", async () => {
     const records = ledgerOf(3);
     const port = new PagedPort(records, 1);

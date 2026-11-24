@@ -187,11 +187,12 @@ export class NotificationController {
     this.setPagination({ kind: "loading" });
     try {
       await load;
-      if (this.isCurrent(lifecycle)) {
+      if (this.pageLoad === load) {
         this.setPagination({ kind: "idle" });
       }
     } catch (error) {
-      if (this.isCurrent(lifecycle)) {
+      // A load that a newer snapshot or a stop has abandoned no longer owns status.
+      if (this.pageLoad === load) {
         this.setPagination({ kind: "failed", error });
       }
       throw error;
@@ -366,6 +367,12 @@ export class NotificationController {
     const previous = this.snapshot;
     this.snapshot = candidate;
     this.records = [...candidate.page.records];
+    if (this.pageLoad !== undefined) {
+      // The newer snapshot abandons the page request it was asked against. Clearing
+      // the load also withdraws that request's right to set pagination status.
+      this.pageLoad = undefined;
+      this.pagination = { kind: "idle" };
+    }
     if (previous !== undefined && this.toastSelector !== undefined) {
       const existing = new Set(this.toasts.map((toast) => toast.notificationId));
       const fresh = candidate.page.records.filter(

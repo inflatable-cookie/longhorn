@@ -141,8 +141,10 @@ does not reconstruct dismissed or unseen authority.
 
 A requested page applies only while the live lifecycle, authority, ledger
 revision and offset still match the request. A page that resolves after a
-newer update, a stop or a restart is discarded. A page answered against a
-moved ledger never replaces the first page: the client resyncs page zero.
+newer update, a stop or a restart is discarded, and a newer update abandons the
+pending page request, so that request's outcome, including a failure, cannot
+replace the live pagination status. A page answered against a moved ledger
+never replaces the first page: the client resyncs page zero.
 
 ## Svelte, Poodle, And Presentation
 
