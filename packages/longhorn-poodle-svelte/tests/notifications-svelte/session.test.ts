@@ -61,4 +61,28 @@ describe("notification Svelte and public Poodle adapters", () => {
     await Promise.resolve(first.unmount());
     await Promise.resolve(second.unmount());
   });
+
+  it("announces a failed older page and lets the reader retry", async () => {
+    const state = createMountedSession();
+    state.port.snapshotValue.page.hasMore = true;
+    let rejectPage!: (error: Error) => void;
+    state.port.pageGate = new Promise<void>((_resolve, reject) => {
+      rejectPage = reject;
+    });
+    const mounted = render(NotificationHarness, { props: { session: state.session } });
+    await waitFor(() => expect(state.session.status.kind).toBe("ready"));
+
+    await fireEvent.click(mounted.getByRole("button", { name: "Load older" }));
+    await waitFor(() => expect(state.session.pagination.kind).toBe("loading"));
+    expect(mounted.getByRole("button", { name: "Load older" }).hasAttribute("disabled")).toBe(true);
+    state.port.pageGate = undefined;
+    rejectPage(new Error("Page request failed"));
+    await waitFor(() => expect(state.session.pagination.kind).toBe("failed"));
+    expect(mounted.getByText("Page request failed")).toBeTruthy();
+
+    await fireEvent.click(mounted.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(state.session.pagination.kind).toBe("idle"));
+    expect(mounted.queryByText("Page request failed")).toBeNull();
+    await Promise.resolve(mounted.unmount());
+  });
 });

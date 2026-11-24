@@ -19,8 +19,13 @@ export class MountedNotificationPort implements NotificationPort {
   );
   request = 0;
   unlistenCount = 0;
+  pageGate: Promise<void> | undefined;
 
   async snapshot(query: NotificationSnapshotQuery): Promise<unknown> {
+    if (query.offset > 0 && this.pageGate !== undefined) {
+      await this.pageGate;
+      this.pageGate = undefined;
+    }
     return { requestId: query.requestId, snapshot: cloned(this.snapshotValue) };
   }
   async mutate(_command: NotificationMutationCommand): Promise<unknown> {
