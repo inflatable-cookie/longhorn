@@ -162,7 +162,10 @@ the host suppress feedback from its own mutations.
   capability policy to an injected factory. Longhorn requires only a neutral
   hidden, unmaximized result.
 - Retag changes managed host bookkeeping. It does not derive a `WindowId` from
-  a Tauri label.
+  a Tauri label. A GPUI retag first publishes the previous identity's staged
+  placements and is refused if that publication fails. It then moves the
+  window's pending deadlines and apply evidence to the new identity, so the
+  apply's own native events stay attributed after the change.
 - The host captures user move, resize, and scale changes only after settling.
   Debounce and attribution intervals are explicit policy inputs. Longhorn may
   publish an opt-in recommendation but does not apply it implicitly.
