@@ -27,6 +27,12 @@ toolchain setting are global even if they accompany a selector edit. Effigy
 matches the token supplied by the caller and does not inspect the diff for
 this distinction.
 
+Level-up round 3 (PR 179) edits the `health` and `qa` aggregates and the
+`typescript-static` group membership. The planner accepts
+those edits as global Effigy inputs for that task (ruling, 2026-11-24). They
+are covered by `typescript-static`, the `effigy doctor` scan run and
+`check:generated-sources`, not by a per-task selector.
+
 Include old and new paths for moves and the old path for deletions. Inspect
 staged, unstaged and relevant untracked inputs. Use the affected graph to
 discover candidate dependents. It cannot establish coverage for generated,
@@ -75,6 +81,13 @@ ignored or lockfile inputs.
   and test doubles. Rust-generated bindings use their separate byte check.
 - Oxfmt runs with Node and Svelte support enabled. The standalone Svelte
   formatting pass reports component coverage separately from TypeScript.
+- `check:ci-static-parity` checks the hosted clients job against this family.
+  That job runs `check:ts`, `test:ts`, `test:vitest`, `check:svelte` and
+  `check:bindings`; Oxlint, Oxfmt and Knip run only through `effigy qa`, which
+  `release.yml` runs. Only unconditional workflow commands count as run: a
+  guarded step or job, an `echo`, or code after an `exit` does not. The
+  release run of `effigy qa` is checked by the same rule. The check fails when
+  the job and the list drift apart.
 - `rust-dependencies` combines Machete's root Cargo workspace inventory
   with cargo-deny's bans, licenses and sources checks. Run it locally with
   both Cargo plugins installed. The release gate also checks live RustSec

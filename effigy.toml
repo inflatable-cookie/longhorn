@@ -112,10 +112,14 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/scanner-heuristics.test.ts scripts/check-generated-sources.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
+# The hosted clients job's TypeScript subset against the qa family; see
+# scripts/check-ci-static-parity.ts. Closing the lint:ts, fmt:ts and check:knip
+# gap in ci.yml needs Tom's approval, so the gap is declared there.
+"check:ci-static-parity" = "bun scripts/check-ci-static-parity.ts"
 "check:ts" = [
   { task = "check:bun-deps" },
   "sh -c 'for c in packages/longhorn/tsconfig.json packages/longhorn-tauri/tsconfig.json packages/longhorn-poodle-svelte/tsconfig.tsc.json tsconfig.json; do bun x tsc -p \"$c\" || result=1; done; exit \"${result:-0}\"'",
@@ -178,6 +182,16 @@ include = ["config/release.toml"]
 # requires an active resolution.
 "check:bun-links" = "bun scripts/check-bun-links.ts"
 "check:runner-tools" = "bun scripts/check-runner-tools.ts"
+# Attention markers: the retired [scan.attention_markers] scanner's rules, ported.
+# The critical tier (BUG, remove before release) fails the gate; the high and
+# warning tiers are reported. See scripts/check-markers.ts for scope, matching and
+# categories.
+"check:markers" = "bun scripts/check-markers.ts"
+# Generated-source detection: the retired [scan.generated_in_src] rules (generated
+# header, source maps, minified assets, generated file names, generated path
+# components) over the scanner's source roots, with generated output and the
+# bindings generator sources allowed. See scripts/check-generated-sources.ts.
+"check:generated-sources" = "bun scripts/check-generated-sources.ts"
 # The native Tauri injection bundle must remain generated from the TypeScript
 # entrypoint and shim. `--write` refreshes it after source edits.
 "check:agent-control-shim" = "bun scripts/agent-control-shim.ts"
@@ -339,17 +353,26 @@ include = ["config/release.toml"]
 # without compiling it. Formatting drift and a missing runner tool are exactly
 # that -- and runner-tools is the guard against the class that killed release
 # run 6, so having it fire early is worth more than having it fire late.
-# The floor stays where it earns its cost: a release gate.
+# The floor stays where it earns its cost: a release gate. `check:markers` is
+# the critical-marker tier that the retired [scan.attention_markers] table ran.
 health = [
   { task = "fmt:rust" },
   { task = "check:runner-tools" },
   { task = "check:release-gates" },
+  { task = "check:markers" },
+  { task = "check:generated-sources" },
   { task = "check:agent-control-skill" },
 ]
+# The hosted clients job (ci.yml) runs check:ts, test:ts, test:vitest,
+# check:svelte and check:bindings. lint:ts, fmt:ts and check:knip run only in
+# this aggregate, and release.yml runs `effigy qa`. check:ci-static-parity fails
+# when the workflow and the TypeScript family of this list drift apart.
 qa = [
   { task = "fmt:rust" },
   { task = "check:runner-tools" },
   { task = "check:release-gates" },
+  { task = "check:markers" },
+  { task = "check:generated-sources" },
   { task = "bootstrap:deps" },
   { task = "lint:rust" },
   { task = "lint:rust:features" },
@@ -361,6 +384,7 @@ qa = [
   { task = "lint:ts" },
   { task = "fmt:ts" },
   { task = "check:knip" },
+  { task = "check:ci-static-parity" },
   { task = "check:packages" },
   { task = "test:ts" },
   { task = "test:vitest" },
@@ -382,6 +406,13 @@ qa = [
 # Doctor's built-in scans previously ran on stock defaults that were never
 # calibrated to this repo. Each setting below is the triaged posture, with
 # the reason written down here instead of absorbed as red.
+#
+# Effigy 0.15 retires [scan.attention_markers] and [scan.generated_in_src]; both
+# tables are removed. Their coverage moved out of doctor: the critical marker
+# tier is check:markers; generated-source detection, the scanner's three rules
+# ported, is check:generated-sources; and the committed generated output that the bindings
+# generators write is gated byte-for-byte by check:bindings. [scan.god_files] is
+# not retired.
 
 # --- Host admission -----------------------------------------------------
 # Standalone heavy selectors take a host-wide Effigy admission lease, so
@@ -443,29 +474,6 @@ warn = 400
 high = 700
 critical = 1000
 exclude = ["crates/*/tests/**", "prototypes/**", "scripts/**", "examples/**"]
-
-[scan.generated_in_src]
-# ts-rs output is committed under packages/*/src/**/generated/ by design --
-# `check:bindings` gates drift byte-for-byte, so doctor re-flagging it is
-# noise. crates/*/bindings/ holds the per-type files ts-rs's `#[ts(export)]`
-# emits for the conformance suites -- equally intentional. And the generator
-# itself trips the content marker because it *writes* the marker;
-# longhorn-bindings/src is the one place allowed to.
-exclude = [
-  "packages/*/src/**/generated/**",
-  "crates/*/bindings/**",
-  "crates/longhorn-bindings/src/**",
-]
-
-[scan.attention_markers]
-# Matching is case-insensitive substring, so "SECURITY" matched the prose
-# "...security release is never withheld..." in update/src/decision.rs:142.
-# A repo that ships a security-release policy will always say "security" in
-# sentences; the scanner cannot express marker syntax, so the word leaves
-# the critical list. The rest of the stock lists stand.
-warning = ["TODO", "REVIEW", "NOTE", "placeholder"]
-high = ["FIXME", "HACK", "@deprecated", "workaround"]
-critical = ["BUG", "remove before release"]
 
 # --- Bounded QA groups -------------------------------------------------
 # These are deliberate worker checks, not replacements for qa or release
@@ -1279,6 +1287,16 @@ members = [
     targets = ["workspace:root"],
     covers = ["path:scripts/**"],
     limits = ["Runs script unit and routing tests"],
+  },
+  {
+    id = "ci-static-parity",
+    kind = "proof",
+    surface = "published",
+    task = "check:ci-static-parity",
+    args = [],
+    targets = ["workspace:root"],
+    covers = ["path:.github/workflows/ci.yml", "path:.github/workflows/release.yml", "path:effigy.toml", "path:scripts/check-ci-static-parity.ts"],
+    limits = ["Compares the hosted clients job's Effigy steps with the TypeScript qa family; does not run the workflow"],
   },
 ]
 

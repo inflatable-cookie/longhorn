@@ -251,11 +251,11 @@ history.
 Run:
 
 ```sh
-effigy proof:history-system-artifacts
-effigy proof:history-tree-artifacts
+effigy proof:artifacts
 ```
 
-Sources live in `examples/history-system-proof/` and
-`examples/history-tree-artifact-proof/`. Evidence is in
-the retired logs (Git history) and
-the retired logs (Git history).
+That heavy aggregate runs every artifact proof, including the two history
+members: `scripts/verify-history-system-artifacts.ts` (linear, from
+`examples/history-system-proof/`) and `scripts/verify-history-tree-artifacts.ts`
+(fork tree, from `examples/history-tree-artifact-proof/`). Each member prints
+its schema-tagged evidence JSON to stdout.
