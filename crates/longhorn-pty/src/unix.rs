@@ -78,7 +78,11 @@ fn open_master() -> Result<OwnedFd, Failure> {
         let flags = OpenptFlags::RDWR
             | OpenptFlags::NOCTTY
             | OpenptFlags::from_bits_retain(OFlags::CLOEXEC.bits());
-        openpt(flags).map_err(|errno| Failure::OpenPty {
+        #[cfg(target_os = "macos")]
+        let master = retry_macos_master_open(|| openpt(flags));
+        #[cfg(target_os = "illumos")]
+        let master = openpt(flags);
+        master.map_err(|errno| Failure::OpenPty {
             raw_os_error: errno.raw_os_error(),
         })
     }
@@ -98,6 +102,29 @@ fn open_master() -> Result<OwnedFd, Failure> {
         })?;
         Ok(master)
     }
+}
+
+// XNU can leak this kernel-private error after exhausting its own open retries.
+#[cfg(target_os = "macos")]
+const EREDRIVEOPEN: Errno = Errno::from_raw_os_error(-6);
+
+#[cfg(target_os = "macos")]
+fn retry_macos_master_open<T>(
+    mut open: impl FnMut() -> rustix::io::Result<T>,
+) -> rustix::io::Result<T> {
+    const RETRIES: usize = 3;
+    const RETRY_DELAY: Duration = Duration::from_millis(10);
+
+    for _ in 0..RETRIES {
+        match open() {
+            // A concurrent open can claim the selected slot (EREDRIVEOPEN),
+            // or a close can race with PTY table growth (ENXIO). ENXIO also
+            // covers a full pool, so preserve the OS error if it persists.
+            Err(EREDRIVEOPEN | Errno::NXIO) => thread::sleep(RETRY_DELAY),
+            result => return result,
+        }
+    }
+    open()
 }
 
 pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>), Failure> {
@@ -743,6 +770,43 @@ mod tests {
         assert!(
             flags.contains(rustix::io::FdFlags::CLOEXEC),
             "master descriptor has FD_CLOEXEC set: {flags:?}"
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_master_open_recovers_from_ptmx_races() {
+        let mut outcomes = [Err(EREDRIVEOPEN), Err(Errno::NXIO), Ok(())].into_iter();
+
+        assert_eq!(
+            retry_macos_master_open(|| outcomes.next().expect("one result per attempt")),
+            Ok(())
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_master_open_preserves_persistent_ptmx_errors() {
+        for errno in [EREDRIVEOPEN, Errno::NXIO] {
+            let mut attempts = 0;
+            let result = retry_macos_master_open::<()>(|| {
+                attempts += 1;
+                Err(errno)
+            });
+
+            assert_eq!(result, Err(errno));
+            assert_eq!(attempts, 4, "the retry budget is fixed for errno {errno}");
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_master_open_returns_other_errors_immediately() {
+        let mut outcomes = [Err(EREDRIVEOPEN), Err(Errno::MFILE)].into_iter();
+
+        assert_eq!(
+            retry_macos_master_open::<()>(|| outcomes.next().expect("one result per attempt")),
+            Err(Errno::MFILE)
         );
     }
 }

@@ -3,7 +3,7 @@
 Status: active compiled boundary
 Owner: Longhorn
 Tier: core
-Updated: 2026-11-22
+Updated: 2026-11-24
 
 ## Boundary
 
@@ -122,14 +122,20 @@ Every OS-backed `Failure` variant carries the numeric `raw_os_error` reported
 by the OS (`Failure::raw_os_error()`), and `Display` appends `(os error <code>)`
 when present. Because only the numeric errno is carried — never paths,
 environment values, or command arguments — errors remain typed and
-redaction-safe while distinguishing host pool exhaustion (`ENXIO` on macOS,
-`EAGAIN` on Linux) from process descriptor limits (`EMFILE`) or other causes.
-The measured signatures on the qualification host (macOS): a depleted host
-pseudo-terminal pool fails `openpt` with `ENXIO` (the pool is finite: 502
-concurrent masters opened before the next failed), while a process
-descriptor-table limit fails with `EMFILE`; concurrent open/close churn with
-free slots never failed. The sessions suite also probes the OS once on an open
-failure and reports that evidence in the failure panic; it never retries `open`.
+redaction-safe. The sessions suite probes the OS once after a failed session
+open and includes the probe outcome in its failure report.
+
+On macOS, concurrent master opens can race for the same `/dev/ptmx` slot.
+XNU may return its internal `EREDRIVEOPEN` (`-6`) after its own retries run
+out. A concurrent close can also race with PTY table growth and return
+`ENXIO` (`6`), which also reports a full host PTY pool. Longhorn retries
+only the master open and only for these two codes, up to three retries
+with a 10 ms delay before each. If allocation still fails, `Failure::OpenPty`
+carries the last raw error unchanged. Other failures, including `EMFILE`
+for a process descriptor limit, return immediately.
+[XNU PTY allocator](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/tty_ptmx.c#L322-L364),
+[PTY error mapping](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/tty_dev.c#L488-L497),
+[open retry loop](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/vfs/vfs_vnops.c#L763-L801).
 
 On supported Unix targets (`linux`, `macos`, `ios`, `freebsd`, `illumos`), the
 crate uses `rustix` for PTY allocation, descriptor duplication and
