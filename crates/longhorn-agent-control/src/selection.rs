@@ -266,6 +266,11 @@ impl SelectionRegistry {
     }
 
     /// Publish a pending request and return a waiter the JS caller awaits.
+    ///
+    /// Needs no Tokio runtime: the TTL timer is created on the waiter's first
+    /// poll, so awaiting it requires a runtime with timers enabled. If that
+    /// poll panics, the waiter is dropped during unwinding and cancels its
+    /// pending entry.
     pub fn begin(
         &self,
         request: BeginSelectionRequest,
@@ -294,7 +299,8 @@ impl SelectionRegistry {
         Ok(SelectionWait {
             id: id.clone(),
             registry: self.clone(),
-            timeout: Box::pin(tokio::time::sleep_until(deadline)),
+            deadline,
+            timeout: None,
             rx,
             settled: false,
         })
@@ -465,7 +471,9 @@ fn prune_tombstones(slots: &mut HashMap<SelectionId, SlotState>, now: Instant) {
 pub struct SelectionWait {
     id: SelectionId,
     registry: SelectionRegistry,
-    timeout: Pin<Box<tokio::time::Sleep>>,
+    deadline: Instant,
+    /// Created on the first poll, so `begin` never touches the Tokio timer.
+    timeout: Option<Pin<Box<tokio::time::Sleep>>>,
     rx: oneshot::Receiver<SelectionOutcome>,
     settled: bool,
 }
@@ -487,7 +495,11 @@ impl Future for SelectionWait {
             this.settled = true;
             return Poll::Ready(outcome.unwrap_or(SelectionOutcome::Cancelled));
         }
-        if Pin::new(&mut this.timeout).poll(cx).is_ready() {
+        let deadline = this.deadline;
+        let timeout = this
+            .timeout
+            .get_or_insert_with(|| Box::pin(tokio::time::sleep_until(deadline)));
+        if Pin::new(timeout).poll(cx).is_ready() {
             // Single expiry path on the shared Tokio clock: sweep() atomically
             // settles past-deadline slots and sends the authoritative outcome
             // on `tx` while holding the lock.
@@ -825,6 +837,34 @@ mod tests {
         assert_eq!(
             registry.answer(&id, &["/nope".to_owned()]).unwrap_err(),
             ToolError::ExpiredSelection { id }
+        );
+    }
+
+    #[test]
+    fn begin_needs_no_tokio_runtime() {
+        let registry = SelectionRegistry::new("app:1");
+        let wait = registry.begin(open_file_request()).unwrap();
+        assert_eq!(registry.pending().len(), 1);
+        drop(wait);
+        assert!(registry.pending().is_empty());
+    }
+
+    #[test]
+    fn waiter_panicking_on_a_timerless_runtime_leaves_nothing_pending() {
+        let registry = SelectionRegistry::new("app:1");
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            runtime.block_on(async {
+                let wait = registry.begin(open_file_request()).unwrap();
+                wait.await
+            })
+        }));
+        assert!(outcome.is_err(), "awaiting without timers must fail loudly");
+        assert!(
+            registry.pending().is_empty(),
+            "a waiter dropped by that panic must not leave a pending entry"
         );
     }
 }
