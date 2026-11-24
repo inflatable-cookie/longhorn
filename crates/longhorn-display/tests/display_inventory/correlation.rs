@@ -383,3 +383,156 @@ fn indistinguishable_new_observations_remain_unresolved_without_allocation() {
             ))
     );
 }
+
+#[test]
+fn disjoint_strong_identity_cannot_take_over_through_reused_adapter_id() {
+    let known_displays = registry([known(
+        "display:known",
+        facts("Known", 0, 2560, 1440, 2000, true),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:aaa"))
+            .with_adapter_key(adapter("gpui", "id:1")),
+    )]);
+    // Same adapter id, same geometry, different hardware UUID: a monitor
+    // swap reusing the adapter enumeration slot.
+    let takeover = observed(
+        "probe:takeover",
+        facts("Known", 0, 2560, 1440, 2000, true),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:bbb"))
+            .with_adapter_key(adapter("gpui", "id:1")),
+    );
+    let mut allocator = QueueAllocator::new(["display:new"]);
+
+    let result = reconcile_displays(&known_displays, [takeover], &mut allocator).unwrap();
+
+    assert_eq!(allocator.calls.len(), 1);
+    assert_eq!(result.registry().len(), 2);
+    assert_eq!(result.matches().len(), 1);
+    assert!(matches!(
+        result.matches()[0].association(),
+        AssociationKind::Allocated
+    ));
+    assert_eq!(result.matches()[0].display_id().as_str(), "display:new");
+    // The known identity keeps only its own UUID: no merge of the stranger.
+    let retained = result.registry().get(&DisplayId::new("display:known").unwrap()).unwrap();
+    assert_eq!(
+        retained.evidence().strong_keys().iter().collect::<Vec<_>>(),
+        vec![&strong("gpui", "uuid:aaa")]
+    );
+    assert!(matches!(
+        result.inventory().displays()[0].availability(),
+        DisplayAvailability::Missing
+    ));
+}
+
+#[test]
+fn disjoint_strong_identity_cannot_take_over_through_geometry_or_weak_keys() {
+    let known_displays = registry([known(
+        "display:known",
+        facts("Known", 0, 1920, 1080, 1000, false),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:aaa"))
+            .with_weak_key(weak("panel-model", "u2723qe")),
+    )]);
+    // Identical geometry and weak fingerprint, different hardware UUID.
+    let takeover = observed(
+        "probe:takeover",
+        facts("Known", 0, 1920, 1080, 1000, false),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:bbb"))
+            .with_weak_key(weak("panel-model", "u2723qe")),
+    );
+    let mut allocator = QueueAllocator::new(["display:new"]);
+
+    let result = reconcile_displays(&known_displays, [takeover], &mut allocator).unwrap();
+
+    assert_eq!(allocator.calls.len(), 1);
+    assert_eq!(result.matches()[0].display_id().as_str(), "display:new");
+    assert!(matches!(
+        result.matches()[0].association(),
+        AssociationKind::Allocated
+    ));
+}
+
+#[test]
+fn second_monitor_with_reused_adapter_id_allocates_beside_the_known_one() {
+    let known_displays = registry([known(
+        "display:known",
+        facts("Known", 0, 2560, 1440, 2000, true),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:aaa"))
+            .with_adapter_key(adapter("gpui", "id:1")),
+    )]);
+    let same = observed(
+        "probe:same",
+        facts("Known", 0, 2560, 1440, 2000, true),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:aaa"))
+            .with_adapter_key(adapter("gpui", "id:1")),
+    );
+    let other = observed(
+        "probe:other",
+        facts("Other", 2560, 1920, 1080, 1000, false),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:bbb"))
+            .with_adapter_key(adapter("gpui", "id:1")),
+    );
+    let mut allocator = QueueAllocator::new(["display:new"]);
+
+    let result =
+        reconcile_displays(&known_displays, [same, other], &mut allocator).unwrap();
+
+    assert_eq!(allocator.calls.len(), 1);
+    assert_eq!(result.registry().len(), 2);
+    assert!(result.inventory().unresolved_observations().is_empty());
+    let by_display = result
+        .matches()
+        .iter()
+        .map(|association| {
+            (
+                association.display_id().as_str().to_string(),
+                association.observation_id().as_str().to_string(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(by_display.contains(&("display:known".to_string(), "probe:same".to_string())));
+    assert!(by_display.contains(&("display:new".to_string(), "probe:other".to_string())));
+}
+
+#[test]
+fn retained_adapter_and_weak_evidence_follow_the_latest_observation() {
+    let known_displays = registry([known(
+        "display:known",
+        facts("Known", 0, 1920, 1080, 1000, false),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:aaa"))
+            .with_adapter_key(adapter("gpui", "id:stale"))
+            .with_weak_key(weak("panel-model", "stale")),
+    )]);
+    let observation = observed(
+        "probe:current",
+        facts("Known", 0, 1920, 1080, 1000, false),
+        DisplayEvidence::new()
+            .with_strong_key(strong("gpui", "uuid:aaa"))
+            .with_adapter_key(adapter("gpui", "id:current"))
+            .with_weak_key(weak("panel-model", "current")),
+    );
+    let mut allocator = unavailable_allocator();
+
+    let result = reconcile_displays(&known_displays, [observation], &mut allocator).unwrap();
+
+    assert!(allocator.calls.is_empty());
+    let retained = result.registry().get(&DisplayId::new("display:known").unwrap()).unwrap();
+    // Strong identity accumulates non-conflicting aliases; the current
+    // attachment description replaces the stale one instead of growing.
+    assert!(retained.evidence().strong_keys().contains(&strong("gpui", "uuid:aaa")));
+    assert_eq!(
+        retained.evidence().adapter_keys().iter().collect::<Vec<_>>(),
+        vec![&adapter("gpui", "id:current")]
+    );
+    assert_eq!(
+        retained.evidence().weak_keys().iter().collect::<Vec<_>>(),
+        vec![&weak("panel-model", "current")]
+    );
+}

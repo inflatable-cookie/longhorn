@@ -67,6 +67,15 @@ Every result records its confidence and evidence. Ambiguous weak matches do
 not bind automatically or overwrite remembered evidence. A consumer may ask
 the user to resolve ambiguity.
 
+A monitor carrying a different hardware identity never takes over a known
+display through a weaker tier: when both sides carry non-empty strong key
+sets with no key in common, adapter, exact-geometry-and-scale, and weak
+correlation are all vetoed, and the observation allocates a new identity.
+A reused adapter id or a same-geometry swap therefore cannot merge two
+UUIDs into one identity. Retained evidence unions non-conflicting strong
+keys and replaces adapter and weak keys with the latest observation, so
+stale attachment descriptions cannot widen later weaker-tier matches.
+
 New canonical ids come from an injected allocator after correlation. A
 platform id, hardware key, fingerprint, or adapter enumeration index never
 becomes canonical identity implicitly.

@@ -62,9 +62,17 @@ impl DisplayEvidence {
         &self.weak_keys
     }
 
+    /// Folds one matched observation into retained evidence.
+    ///
+    /// Strong keys union: they are stable identity memory, and correlation
+    /// vetoes disjoint strong identities before this runs, so only
+    /// non-conflicting hardware aliases accumulate here. Adapter and weak
+    /// keys describe the current attachment, so the latest observation
+    /// replaces them; retaining stale adapter ids or fingerprints would only
+    /// widen weaker-tier false matches.
     pub(crate) fn merge(&mut self, other: &Self) {
         self.strong_keys.extend(other.strong_keys.iter().cloned());
-        self.adapter_keys.extend(other.adapter_keys.iter().cloned());
-        self.weak_keys.extend(other.weak_keys.iter().cloned());
+        self.adapter_keys = other.adapter_keys.clone();
+        self.weak_keys = other.weak_keys.clone();
     }
 }

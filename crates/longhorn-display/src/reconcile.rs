@@ -280,7 +280,9 @@ fn resolve_tier(
             let known = registry
                 .get(display_id)
                 .expect("remaining known display must exist");
-            if tier.evidence([known], observation).is_some() {
+            if !strong_conflict(known, observation)
+                && tier.evidence([known], observation).is_some()
+            {
                 by_observation
                     .entry(observation_id.clone())
                     .or_default()
@@ -342,6 +344,24 @@ fn resolve_tier(
         matches,
         ambiguities,
     }
+}
+
+/// Reports whether a known display and an observation carry incompatible
+/// hardware identities.
+///
+/// A monitor with a different hardware UUID must never take over a known
+/// identity through a weaker tier: GPUI reports a reusable adapter `id:`
+/// beside a stable hardware `uuid:`, so a reused adapter id or a
+/// same-geometry swap would otherwise bind and merge both UUIDs into one
+/// identity. Disjoint non-empty strong key sets veto every tier below
+/// strong; the strong tier already requires overlap, so the veto is a
+/// no-op there. Either side carrying no strong keys is no conflict.
+fn strong_conflict(known: &KnownDisplay, observed: &ObservedDisplay) -> bool {
+    let known_keys = known.evidence().strong_keys();
+    let observed_keys = observed.evidence().strong_keys();
+    !known_keys.is_empty()
+        && !observed_keys.is_empty()
+        && known_keys.is_disjoint(observed_keys)
 }
 
 fn ambiguity_evidence(
