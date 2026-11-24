@@ -6,6 +6,7 @@ import type {
   NotificationControllerStatus,
   NotificationPendingCommand,
   NotificationPendingKind,
+  NotificationPaginationStatus,
   NotificationToastProjection,
 } from "@inflatable-cookie/longhorn/notifications";
 import type {
@@ -27,6 +28,7 @@ export class NotificationSession {
   pendingCommands = $state<Array<NotificationPendingCommand>>([]);
   commandRejection = $state<NotificationCommandRejection | undefined>();
   commandFailure = $state<NotificationCommandFailure | undefined>();
+  pagination = $state<NotificationPaginationStatus>({ kind: "idle" });
   hasMore = $state(false);
 
   constructor(options: NotificationControllerOptions) {
@@ -80,6 +82,7 @@ export class NotificationSession {
     this.pendingCommands = [...this.controller.pendingCommands];
     this.commandRejection = this.controller.commandRejection;
     this.commandFailure = this.controller.commandFailure;
+    this.pagination = this.controller.pagination;
     this.hasMore = this.controller.hasMore;
   }
 }

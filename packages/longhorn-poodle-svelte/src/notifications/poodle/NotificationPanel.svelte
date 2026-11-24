@@ -117,9 +117,27 @@
       {/snippet}
     </InlineListSection>
 
+    {#if session.pagination.kind === "failed"}
+      <Callout
+        tone="danger"
+        title="Older notifications couldn't be loaded"
+        message={errorMessage(session.pagination.error)}
+        announceMode="polite"
+      >
+        {#snippet actions()}
+          <Button variant="secondary" onClick={() => void session.loadMore().catch(() => undefined)}
+            >Retry</Button
+          >
+        {/snippet}
+      </Callout>
+    {/if}
+
     {#if session.hasMore}
-      <Button variant="secondary" onClick={() => void session.loadMore().catch(() => undefined)}
-        >Load older</Button
+      <Button
+        variant="secondary"
+        loading={session.pagination.kind === "loading"}
+        disabled={session.pagination.kind === "loading"}
+        onClick={() => void session.loadMore().catch(() => undefined)}>Load older</Button
       >
     {/if}
   {/if}
