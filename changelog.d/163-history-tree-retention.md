@@ -8,3 +8,5 @@
 
 - Pruning a branch tip retains its surviving continuation and branch reference.
 - Checking out a different branch at a shared node commits a stationary navigation.
+
+- Repair a stale native-content incompatibility fixture import on main; its five cases continue to check the v2 fixture.

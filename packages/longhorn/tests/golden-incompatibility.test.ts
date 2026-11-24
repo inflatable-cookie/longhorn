@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import history from "../../../fixtures/history/protocol-v1.json";
 import licence from "../../../fixtures/licence/protocol-v1.json";
-import nativeContent from "../../../fixtures/native-content/protocol-v1.json";
+import nativeContent from "../../../fixtures/native-content/protocol-v2.json";
 import notifications from "../../../fixtures/notifications/protocol-v1.json";
 import operation from "../../../fixtures/operation/protocol-v1.json";
 import update from "../../../fixtures/update/protocol-v1.json";
