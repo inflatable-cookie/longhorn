@@ -536,7 +536,7 @@ mod tests {
                 vec![self.descriptor.clone()],
                 vec![
                     DomainAuthorityDescriptor::new(
-                        DomainId::new("fixture.workspace").unwrap(),
+                        DomainId::new("test.workspace").unwrap(),
                         AuthorityScopeId::new("scope:workspace").unwrap(),
                         DomainAvailability::Available,
                         ReadAuthority::Authoritative,
@@ -563,7 +563,7 @@ mod tests {
 
     #[test]
     fn queued_hello_ticket_from_destroyed_window_cannot_clobber_reopened_same_label_session() {
-        let domain_id = DomainId::new("fixture.workspace").unwrap();
+        let domain_id = DomainId::new("test.workspace").unwrap();
         let descriptor = DomainCapabilityDescriptor::new(
             domain_id,
             vec![BridgeCapabilityId::new("workspace.read").unwrap()],
@@ -582,7 +582,7 @@ mod tests {
         let req = || {
             BridgeHelloRequest::new(
                 BridgeId::new("bridge:test").unwrap(),
-                vec![DomainId::new("fixture.workspace").unwrap()],
+                vec![DomainId::new("test.workspace").unwrap()],
             )
             .unwrap()
         };
