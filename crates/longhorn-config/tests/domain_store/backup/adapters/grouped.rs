@@ -23,6 +23,7 @@ enum FailureMode {
     EmptyTargetStage = 7,
     RollbackPayloadForAbsent = 8,
     ContradictArchivePresence = 9,
+    OversizedJournal = 10,
 }
 
 struct FileAdapter {
@@ -31,6 +32,7 @@ struct FileAdapter {
     path: PathBuf,
     failure: AtomicU8,
     verify_mismatch_pending: AtomicBool,
+    apply_started: AtomicBool,
 }
 
 impl FileAdapter {
@@ -62,6 +64,7 @@ impl FileAdapter {
             path,
             failure: AtomicU8::new(failure as u8),
             verify_mismatch_pending: AtomicBool::new(false),
+            apply_started: AtomicBool::new(false),
         }
     }
 
@@ -181,6 +184,15 @@ impl BackupAdapterGroupedRestore for FileAdapter {
         if self.mode() == FailureMode::EmptyTargetStage as u8 {
             target.clear();
         }
+        if self.mode() == FailureMode::OversizedJournal as u8 {
+            let prefix = "a".repeat(370);
+            target.extend((0..9_000).map(|index| {
+                BackupAdapterPayload::new(
+                    BackupAdapterRelativePath::new(format!("{prefix}-{index:04}")).unwrap(),
+                    Vec::new(),
+                )
+            }));
+        }
         if self.mode() == FailureMode::RollbackPayloadForAbsent as u8 {
             rollback.push(BackupAdapterPayload::new(
                 BackupAdapterRelativePath::new("contradictory.bin").unwrap(),
@@ -199,6 +211,7 @@ impl BackupAdapterGroupedRestore for FileAdapter {
         &self,
         request: BackupAdapterGroupedApplyRequest<'_>,
     ) -> Result<(), BackupAdapterError> {
+        self.apply_started.store(true, Ordering::SeqCst);
         if request.kind() == BackupAdapterGroupedApplyKind::Target {
             match self.mode() {
                 mode if mode == FailureMode::Apply as u8 => {
@@ -471,6 +484,43 @@ fn stage_stale_apply_and_verify_failures_never_leave_a_mixed_generation() {
 }
 
 #[test]
+fn oversized_grouped_journal_is_refused_before_live_mutation() {
+    let group = GroupFixture::new();
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let second = FileAdapter::new(group.second_path.clone(), FailureMode::OversizedJournal);
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &second).unwrap();
+    let inspection = inspect(&store, &catalog, &group.archive);
+    let plan = plan(&store, &inspection, &group);
+    let error = store
+        .execute_grouped_adapter_restore(
+            &catalog,
+            &group.archive,
+            &inspection,
+            &plan,
+            plan.confirmation_digest(),
+            group_options(),
+        )
+        .unwrap_err();
+    assert_eq!(
+        error.stage(),
+        RestoreAdapterGroupExecutionStage::PublishJournal
+    );
+    assert_eq!(error.terminal(), RestoreFailureTerminal::NoLiveMutation);
+    assert!(error.detail().contains("exceeds byte limit"), "{error}");
+    assert!(!first.apply_started.load(Ordering::SeqCst));
+    assert!(!second.apply_started.load(Ordering::SeqCst));
+    assert_eq!(fs::read(&group.first_path).unwrap(), b"old-first");
+    assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+    assert_eq!(
+        store.restore_operation_state(),
+        RestoreOperationState::Inactive
+    );
+}
+
+#[test]
 fn process_interruption_phases_block_writes_and_boot_recover_the_complete_group() {
     for mode in [
         FailureMode::PanicApply,
@@ -499,6 +549,10 @@ fn process_interruption_phases_block_writes_and_boot_recover_the_complete_group(
             }))
             .is_err()
         );
+        assert_eq!(fs::read(&group.first_path).unwrap(), b"new-first");
+        if matches!(mode, FailureMode::PanicApply) {
+            assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+        }
         assert_eq!(
             store.restore_operation_state(),
             RestoreOperationState::Active
@@ -746,6 +800,119 @@ fn changed_boot_catalog_and_corrupt_journal_fail_closed() {
             .recover_grouped_adapter_restore(&catalog, Duration::from_secs(2))
             .is_err()
     );
+}
+
+#[test]
+fn boot_recovery_refuses_grown_and_truncated_staged_payloads() {
+    let group = GroupFixture::new();
+    leave_interrupted_group(&group);
+    let rollback_path = group
+        .fixture
+        .temp
+        .path()
+        .join("data/.longhorn/grouped-adapter-restore/payloads/0001-rollback-0000.payload");
+    let original = fs::read(&rollback_path).unwrap();
+    let recorded_length = original.len() as u64;
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let second = FileAdapter::new(group.second_path.clone(), FailureMode::None);
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &second).unwrap();
+
+    for length in [recorded_length + 1024 * 1024, recorded_length - 1] {
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&rollback_path)
+            .unwrap()
+            .set_len(length)
+            .unwrap();
+        let error = store
+            .recover_grouped_adapter_restore(&catalog, Duration::from_secs(2))
+            .unwrap_err();
+        assert_eq!(error.domain(), Some(group.second.descriptor().id()));
+        assert!(
+            error.detail().contains(&format!(
+                "payload length changed: expected {recorded_length}, observed {length}"
+            )),
+            "{error}"
+        );
+        assert_eq!(
+            store.restore_operation_state(),
+            RestoreOperationState::RecoveryRequired
+        );
+        assert!(!first.apply_started.load(Ordering::SeqCst));
+        assert!(!second.apply_started.load(Ordering::SeqCst));
+        assert_eq!(fs::read(&group.first_path).unwrap(), b"new-first");
+        assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+    }
+
+    fs::write(rollback_path, original).unwrap();
+    let receipt = store
+        .recover_grouped_adapter_restore(&catalog, Duration::from_secs(2))
+        .unwrap();
+    assert_eq!(
+        receipt.outcome(),
+        RestoreAdapterGroupRecoveryOutcome::RolledBack
+    );
+    assert_eq!(fs::read(&group.first_path).unwrap(), b"old-first");
+    assert_eq!(fs::read(&group.second_path).unwrap(), b"old-second");
+    assert_eq!(
+        store.restore_operation_state(),
+        RestoreOperationState::Inactive
+    );
+}
+
+#[test]
+fn boot_recovery_refuses_journal_lengths_over_the_hard_limits() {
+    const MAX_DOMAIN_BYTES: u64 = 64 * 1024 * 1024;
+
+    let group = GroupFixture::new();
+    leave_interrupted_group(&group);
+    let journal_path = group
+        .fixture
+        .temp
+        .path()
+        .join("data/.longhorn/grouped-adapter-restore/journal.json");
+    let mut journal: Value = serde_json::from_slice(&fs::read(&journal_path).unwrap()).unwrap();
+    let mut entry = journal["entries"][0].clone();
+    let rollback_length = entry["rollbackPayloads"][0]["byteLength"].as_u64().unwrap();
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let second = FileAdapter::new(group.second_path.clone(), FailureMode::None);
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &second).unwrap();
+
+    entry["targetPayloads"][0]["byteLength"] = json!(MAX_DOMAIN_BYTES);
+    journal["entries"] = json!([entry.clone()]);
+    fs::write(&journal_path, serde_json::to_vec(&journal).unwrap()).unwrap();
+    let error = store
+        .recover_grouped_adapter_restore(&catalog, Duration::from_secs(2))
+        .unwrap_err();
+    assert!(error.detail().contains("exceeds domain payload byte limit"));
+
+    entry["targetPayloads"][0]["byteLength"] = json!(MAX_DOMAIN_BYTES - rollback_length);
+    journal["entries"] = Value::Array(
+        (0..5)
+            .map(|index| {
+                let mut entry = entry.clone();
+                entry["domain"] = json!(format!("group.fixture-{index}"));
+                entry
+            })
+            .collect(),
+    );
+    fs::write(&journal_path, serde_json::to_vec(&journal).unwrap()).unwrap();
+    let error = store
+        .recover_grouped_adapter_restore(&catalog, Duration::from_secs(2))
+        .unwrap_err();
+    assert!(error.detail().contains("exceeds total payload byte limit"));
+    assert_eq!(
+        store.restore_operation_state(),
+        RestoreOperationState::RecoveryRequired
+    );
+    assert!(!first.apply_started.load(Ordering::SeqCst));
+    assert!(!second.apply_started.load(Ordering::SeqCst));
 }
 
 #[test]

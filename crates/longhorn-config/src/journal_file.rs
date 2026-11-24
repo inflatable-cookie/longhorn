@@ -1,11 +1,9 @@
 //! Bounded journal document plumbing shared by restore flows.
 //!
-//! Load is bounded (a journal larger than `MAX_JOURNAL_BYTES` is rejected
-//! before it is read into memory), version-checked, and returns `None` for a
-//! missing journal. Publish uses the shared unique-temporary publication
-//! model from [`crate::atomic_file`]. The transition journal is not served
-//! here: its document model and error mapping differ enough that sharing
-//! would add indirection without removing duplication.
+//! Encoding and loading share the same byte limit. Load also checks the
+//! version and returns `None` for a missing journal. Publish uses the shared
+//! unique-temporary publication model from [`crate::atomic_file`]. The
+//! transition journal has a separate document model and error mapping.
 
 use std::{
     fs,
@@ -60,6 +58,31 @@ where
     Ok(Some(journal))
 }
 
+/// Encodes a journal with the same byte limit enforced by [`load`].
+pub(crate) fn encode<J: Serialize>(journal: &J, subject: &str) -> io::Result<Vec<u8>> {
+    let mut bytes = JournalBytes(Vec::new());
+    // Compact JSON leaves room for phase changes in older pretty-printed journals.
+    serde_json::to_writer(&mut bytes, journal)
+        .map_err(|error| io::Error::other(format!("cannot encode {subject}: {error}")))?;
+    Ok(bytes.0)
+}
+
+struct JournalBytes(Vec<u8>);
+
+impl io::Write for JournalBytes {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        if bytes.len() > MAX_JOURNAL_BYTES - self.0.len() {
+            return Err(io::Error::other("exceeds byte limit"));
+        }
+        self.0.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 /// Serializes and atomically publishes a journal document below `directory`,
 /// ensuring every ancestor from `directory` up to `sync_root` is durable.
 pub(crate) fn publish<J: Serialize>(
@@ -69,9 +92,8 @@ pub(crate) fn publish<J: Serialize>(
     journal: &J,
     subject: &str,
 ) -> io::Result<()> {
+    let bytes = encode(journal, subject)?;
     crate::dir_sync::create_dir_all_synced_to_root(sync_root, directory)?;
-    let bytes = serde_json::to_vec_pretty(journal)
-        .map_err(|error| io::Error::other(format!("cannot encode {subject}: {error}")))?;
     let mut temporary = UniqueTemporary::create(directory, file_name)?;
     temporary
         .write(&bytes)
@@ -81,4 +103,53 @@ pub(crate) fn publish<J: Serialize>(
         .map_err(|error| io::Error::other(format!("cannot publish {subject}: {error}")))?;
     crate::dir_sync::sync_ancestors_to_root(sync_root, directory)
         .map_err(|error| io::Error::other(format!("cannot sync ancestors for {subject}: {error}")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, PartialEq, serde::Deserialize, Serialize)]
+    struct TestJournal {
+        version: u32,
+        payload: String,
+    }
+
+    impl JournalVersioned for TestJournal {
+        fn version(&self) -> u32 {
+            self.version
+        }
+    }
+
+    #[test]
+    fn publication_and_load_share_the_inclusive_limit() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let root = temp.path();
+        let file = "journal.json";
+        let path = root.join(file);
+        let subject = "test journal";
+        let mut document = TestJournal {
+            version: 1,
+            payload: String::new(),
+        };
+        let padding = MAX_JOURNAL_BYTES - encode(&document, subject).unwrap().len();
+        document.payload = "x".repeat(padding);
+        publish(root, root, file, &document, subject).unwrap();
+        assert_eq!(fs::metadata(&path).unwrap().len(), MAX_JOURNAL_BYTES as u64);
+
+        document.payload.push('x');
+        let error = publish(root, root, file, &document, subject).unwrap_err();
+        assert!(error.to_string().contains("exceeds byte limit"), "{error}");
+
+        fs::write(
+            root.join("oversized.json"),
+            serde_json::to_vec(&document).unwrap(),
+        )
+        .unwrap();
+        let error = load::<TestJournal>(&root.join("oversized.json"), 1, subject).unwrap_err();
+        assert!(error.to_string().contains("exceeds byte limit"), "{error}");
+
+        document.payload.pop();
+        assert_eq!(load(&path, 1, subject).unwrap(), Some(document));
+    }
 }

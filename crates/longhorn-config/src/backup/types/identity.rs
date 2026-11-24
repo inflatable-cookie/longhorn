@@ -215,6 +215,11 @@ pub struct BackupLimits {
 }
 
 impl BackupLimits {
+    pub(crate) const HARD_MAXIMUM: Self = Self {
+        max_domain_bytes: HARD_MAX_DOMAIN_BYTES,
+        max_total_bytes: HARD_MAX_TOTAL_BYTES,
+    };
+
     /// Constructs limits within the hard in-memory safety ceiling.
     pub fn new(max_domain_bytes: usize, max_total_bytes: usize) -> Result<Self, BackupLimitsError> {
         if max_domain_bytes == 0 || max_total_bytes == 0 {

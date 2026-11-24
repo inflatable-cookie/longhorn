@@ -530,10 +530,16 @@ Execution:
 2. acquire the store-wide guard and recheck freshness
 3. capture exact current bytes and absence into a private rollback set
 4. publish and verify a policy-compliant safety backup
-5. durably publish a restore journal with every target, checksum, and phase
+5. check that every journal phase fits and durably publish the journal with
+   every target and checksum
 6. replace each domain through the existing single-file atomic publisher
 7. verify the complete target set
 8. mark success durably and clean rollback material
+
+Ordinary and grouped restore journals may occupy at most 4 MiB of serialized
+JSON. The same limit applies at admission, publication and boot reads. Both
+restore flows check every phase before applying any target so boot recovery can
+publish its rollback and recovery markers within the limit.
 
 Ordinary failure rolls back and verifies the complete selected set under the
 same guard. Unverified rollback retains the journal and enters
@@ -616,11 +622,20 @@ quiesced its external authorities:
 2. re-resolve every descriptor and adapter and re-inspect every target
 3. reject stale current evidence before staging
 4. stage the complete target and exact rollback payload set without live mutation
-5. validate size, path, uniqueness, target, and rollback evidence for every stage
+5. validate stage size, paths, uniqueness, target and rollback evidence, and
+   journal size in every phase
 6. durably publish the complete private payload set and grouped journal
 7. publish each target through its adapter
 8. independently verify the complete target set
 9. mark success durably, then remove private transaction material
+
+Grouped restore checks that every phase fits the
+[journal byte limit](#restore-transaction-and-recovery) before writing private
+payload files. The journal records the admitted length and digest of each
+staged file. Apply and boot recovery allocate at most the recorded length for
+each payload and require an exact file size and matching digest. Boot recovery
+also checks the recorded target and rollback lengths together against the hard
+per-domain and total backup limits.
 
 Any failure after journal publication rolls every selected adapter back,
 including adapters not yet published, and independently verifies the complete
