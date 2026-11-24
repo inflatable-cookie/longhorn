@@ -251,6 +251,48 @@ describe("clientsParityProblems", () => {
     ]);
   });
 
+  test("a guarded effigy qa step in release.yml does not cover the omissions", async () => {
+    const inputs = await realInputs();
+    const drifted = {
+      ...inputs,
+      releaseWorkflow: inputs.releaseWorkflow.replace(
+        "        run: effigy qa",
+        "        if: false\n        run: effigy qa",
+      ),
+    };
+    expect(clientsParityProblems(drifted)).toContain(
+      "release.yml no longer runs `effigy qa`, so the omitted gates have no covering run",
+    );
+  });
+
+  test("a job-level if on release.yml's job does not cover the omissions", async () => {
+    const inputs = await realInputs();
+    const drifted = {
+      ...inputs,
+      releaseWorkflow: inputs.releaseWorkflow.replace(
+        "\njobs:\n  release:\n",
+        "\njobs:\n  release:\n    if: false\n",
+      ),
+    };
+    expect(clientsParityProblems(drifted)).toContain(
+      "release.yml no longer runs `effigy qa`, so the omitted gates have no covering run",
+    );
+  });
+
+  test("an effigy qa line that is only echoed in release.yml does not cover the omissions", async () => {
+    const inputs = await realInputs();
+    const drifted = {
+      ...inputs,
+      releaseWorkflow: inputs.releaseWorkflow.replace(
+        "        run: effigy qa",
+        "        run: echo effigy qa",
+      ),
+    };
+    expect(clientsParityProblems(drifted)).toContain(
+      "release.yml no longer runs `effigy qa`, so the omitted gates have no covering run",
+    );
+  });
+
   test("release.yml that stops running effigy qa leaves the omissions uncovered", async () => {
     const inputs = await realInputs();
     const problems = clientsParityProblems({ ...inputs, releaseWorkflow: "name: release\n" });

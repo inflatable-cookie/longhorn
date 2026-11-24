@@ -115,6 +115,30 @@ export function executedEffigyTasks(steps: ReadonlyArray<WorkflowStep>): Array<s
   return tasks;
 }
 
+// Tasks that any job of a workflow certainly runs, with the same rules as the
+// clients job. A job without a steps list (a reusable-workflow call) runs none
+// of this file's steps.
+export function executedTasksAcrossJobs(workflow: string): Array<string> {
+  const parsed: unknown = Bun.YAML.parse(workflow);
+  const jobs = isRecord(parsed) ? parsed["jobs"] : undefined;
+  if (!isRecord(jobs)) {
+    return [];
+  }
+  const tasks: Array<string> = [];
+  for (const name of Object.keys(jobs)) {
+    const target = jobs[name];
+    if (!isRecord(target) || !Array.isArray(target["steps"])) {
+      continue;
+    }
+    for (const task of executedEffigyTasks(jobSteps(workflow, name))) {
+      if (!tasks.includes(task)) {
+        tasks.push(task);
+      }
+    }
+  }
+  return tasks;
+}
+
 // Task names of the `qa = [ ... ]` aggregate in effigy.toml, in order.
 export function parseQaTasks(effigyToml: string): Array<string> {
   const header = /^qa = \[\s*$/m.exec(effigyToml);
@@ -160,7 +184,7 @@ export function clientsParityProblems(inputs: ParityInputs): Array<string> {
       problems.push(`${task} is declared omitted, but qa no longer runs it`);
     }
   }
-  if (!/^\s*run:\s*effigy qa\s*$/m.test(inputs.releaseWorkflow)) {
+  if (!executedTasksAcrossJobs(inputs.releaseWorkflow).includes("qa")) {
     problems.push(
       "release.yml no longer runs `effigy qa`, so the omitted gates have no covering run",
     );

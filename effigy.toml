@@ -186,9 +186,10 @@ include = ["config/release.toml"]
 # current form of the retired [scan.attention_markers] critical tier; see
 # scripts/check-markers.ts for the matching rule and the report-only tiers.
 "check:markers" = "bun scripts/check-markers.ts"
-# Generated-source detection: the generator header may appear only in generated
-# output and the bindings generator sources. The current form of the retired
-# [scan.generated_in_src] table; see scripts/check-generated-sources.ts.
+# Generated-source detection: the retired [scan.generated_in_src] rules (generated
+# path components, generated file names, generated header markers) over the
+# source roots, with generated output and the bindings generator sources
+# allowed. See scripts/check-generated-sources.ts.
 "check:generated-sources" = "bun scripts/check-generated-sources.ts"
 # The native Tauri injection bundle must remain generated from the TypeScript
 # entrypoint and shim. `--write` refreshes it after source edits.
@@ -407,9 +408,8 @@ qa = [
 #
 # Effigy 0.15 retires [scan.attention_markers] and [scan.generated_in_src]; both
 # tables are removed. Their coverage moved out of doctor: the critical marker
-# tier is check:markers; generated-source detection (the generator header may
-# appear only in generated output and the bindings generator sources) is
-# check:generated-sources; and the committed generated output that the bindings
+# tier is check:markers; generated-source detection, the scanner's three rules
+# ported, is check:generated-sources; and the committed generated output that the bindings
 # generators write is gated byte-for-byte by check:bindings. [scan.god_files] is
 # not retired.
 

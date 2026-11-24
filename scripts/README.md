@@ -184,7 +184,8 @@ Svelte family: `check:ts`, `test:ts`, `test:vitest`, `check:svelte` and
 and fails when the job and the `qa` list drift apart. It reads the job's steps
 through a YAML parser and counts only commands that certainly run: a step with
 an `if`, an `echo` line, a step name, a comment, or code after a top-level
-`exit` or inside an `if`/loop body does not count. Closing the gap in `ci.yml`
+`exit` or inside an `if`/loop body does not count. `release.yml` must run
+`effigy qa` by the same rule, in any of its jobs. Closing the gap in `ci.yml`
 needs Tom's approval, so it is recorded as a follow-up rather than changed here.
 
 `check:markers` (`scripts/check-markers.ts`) is the critical tier of the retired
@@ -192,12 +193,18 @@ needs Tom's approval, so it is recorded as a follow-up rather than changed here.
 files fail it, whole-word and case-sensitive. The high and warning tiers are
 reported as counts only.
 
-`check:generated-sources` (`scripts/check-generated-sources.ts`) is the current
-form of the retired `[scan.generated_in_src]` table. The generator header may
-appear only in generated output under `packages/*/src/**/generated/` and in the
-bindings generator sources under `crates/longhorn-bindings/src/`. Every file in
-a generated directory must be named by a generator, and every text file there
-must carry the header. JSON output is checked by its generator path alone.
+`check:generated-sources` (`scripts/check-generated-sources.ts`) ports the three
+rules of the retired `[scan.generated_in_src]` scanner to the same source roots
+(`src`, `app`, `lib`, `crates`, `packages/*/src`, `services/*/src`): a generated
+path component, a generated file name, and a generated header marker in the
+first 24 lines, with string literals masked. Generated output under
+`packages/*/src/**/generated/`, the bindings output in `crates/*/bindings/`, and
+the bindings generator sources in `crates/longhorn-bindings/src/` are the
+allowed surface. Outside the source roots, the generator header may appear only
+on that allowed surface. Every file in a generated directory must be named by a
+generator, and every text file there must carry the header. JSON output is
+checked by its generator path alone. The port matched the stable scanner's
+findings exactly on this repository: 51 files, the same paths.
 
 ## Escape hatches
 

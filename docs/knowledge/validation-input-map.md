@@ -79,8 +79,9 @@ ignored or lockfile inputs.
   That job runs `check:ts`, `test:ts`, `test:vitest`, `check:svelte` and
   `check:bindings`; Oxlint, Oxfmt and Knip run only through `effigy qa`, which
   `release.yml` runs. Only unconditional workflow commands count as run: a
-  guarded step, an `echo`, or code after an `exit` does not. The check fails
-  when the job and the list drift apart.
+  guarded step or job, an `echo`, or code after an `exit` does not. The
+  release run of `effigy qa` is checked by the same rule. The check fails when
+  the job and the list drift apart.
 - `rust-dependencies` combines Machete's root Cargo workspace inventory
   with cargo-deny's bans, licenses and sources checks. Run it locally with
   both Cargo plugins installed. The release gate also checks live RustSec
