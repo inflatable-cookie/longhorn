@@ -659,9 +659,11 @@ directory under `managed_root/bin`, keeping replacement on the same volume.
 
 The fixed version program is the staged binary path and the arguments are the
 caller's vector. No shell parses caller data. The probe decides on the raw
-standard-output capture, decoded and cut at its 64 KiB bound before any
-redaction or diagnostic bound applies; a token straddling that cut is dropped
-whole, never half-parsed. The decision takes the first semantic-version token,
+standard-output capture, decoded before any redaction or diagnostic bound
+applies. The runner already caps that capture at 64 KiB and reports whether it
+cut the stream; a cut stream's retained last token is dropped whole, never
+half-parsed, so a cut `1.2.3-alpha` is not admitted as `1.2.3-al`. The
+decision takes the first semantic-version token,
 trims a leading `v`, trailing comma or `)`, and ignores build metadata after
 `+`. A versioned release must equal the staged version. The staged version
 must also meet the floor. An unversioned release is installable only when

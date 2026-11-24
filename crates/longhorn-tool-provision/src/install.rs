@@ -787,7 +787,7 @@ fn probe_version(
     // Admission reads the raw stream. Redaction and the 4 KiB field bound
     // shape diagnostic evidence only: a consumer redactor that protects the
     // printed version, or a bound that cuts it, must not decide the outcome.
-    let admitted = parse_version(&raw_probe_text(output.stdout()));
+    let admitted = parse_version(&raw_probe_text(output.stdout(), output.stdout_truncated()));
     let (stdout, stdout_truncated) =
         bounded_output(output.stdout(), output.stdout_truncated(), redactor);
     let (stderr, stderr_truncated) =
@@ -814,16 +814,23 @@ fn probe_version(
 }
 
 /// The raw text a version decision reads: decoded, cut at the capture bound,
-/// and never a straddling token's prefix. Trimming back to the last complete
-/// token keeps a cut `1.2.3-alpha` from being admitted as `1.2.3-al`.
-fn raw_probe_text(bytes: &[u8]) -> Cow<'_, str> {
+/// and never a straddling token's prefix. `truncated` is the runner's own cut
+/// signal: the stream is already capped at the capture bound, so the retained
+/// last token may be a prefix, and dropping it keeps a cut `1.2.3-alpha` from
+/// being admitted as `1.2.3-al`.
+fn raw_probe_text(bytes: &[u8], truncated: bool) -> Cow<'_, str> {
     let bound = bytes.len().min(MAX_PROBE_CAPTURE_BYTES);
-    let end = match bytes.get(bound) {
-        Some(next) if !next.is_ascii_whitespace() => bytes[..bound]
+    let ends_mid_token = truncated
+        || bytes
+            .get(bound)
+            .is_some_and(|next| !next.is_ascii_whitespace());
+    let end = if ends_mid_token {
+        bytes[..bound]
             .iter()
             .rposition(|byte| byte.is_ascii_whitespace())
-            .unwrap_or(0),
-        _ => bound,
+            .unwrap_or(0)
+    } else {
+        bound
     };
     String::from_utf8_lossy(&bytes[..end])
 }
@@ -1121,7 +1128,16 @@ mod unit_tests {
         let mut bytes = b"tool 9.9.9\n".to_vec();
         bytes.resize(MAX_PROBE_CAPTURE_BYTES + 16, b'x');
         assert_eq!(
-            parse_version(&raw_probe_text(&bytes)),
+            parse_version(&raw_probe_text(&bytes, true)),
+            Some(Version::parse("9.9.9").unwrap())
+        );
+    }
+
+    #[test]
+    fn raw_probe_text_keeps_the_last_token_of_an_untruncated_stream() {
+        let bytes = b"tool 9.9.9\n".to_vec();
+        assert_eq!(
+            parse_version(&raw_probe_text(&bytes, false)),
             Some(Version::parse("9.9.9").unwrap())
         );
     }
@@ -1132,6 +1148,14 @@ mod unit_tests {
         // such as `1.2.3-al` would parse as a complete, wrong version.
         let mut bytes = vec![b'x'; MAX_PROBE_CAPTURE_BYTES - 9];
         bytes.extend_from_slice(b" 1.2.3-alphabeta\n");
-        assert_eq!(parse_version(&raw_probe_text(&bytes)), None);
+        assert_eq!(parse_version(&raw_probe_text(&bytes, false)), None);
+        // A runner that cut the stream reports it, and the retained bytes fit
+        // the bound exactly, so only that flag can drop the straddling token.
+        let bytes = bytes[..MAX_PROBE_CAPTURE_BYTES].to_vec();
+        assert_eq!(parse_version(&raw_probe_text(&bytes, true)), None);
+        assert_eq!(
+            parse_version(&raw_probe_text(&bytes, false)),
+            Some(Version::parse("1.2.3-al").unwrap())
+        );
     }
 }

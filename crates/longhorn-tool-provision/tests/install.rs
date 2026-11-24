@@ -643,6 +643,47 @@ fn admission_reads_a_version_token_at_the_diagnostic_field_cut() {
 }
 
 #[test]
+fn admission_drops_a_token_cut_by_the_runner_capture_bound() {
+    let binary = bytes("1.2.3");
+    let server = fixture(TAG, &[(ASSET, binary.clone())]);
+    let source = source(&server);
+    let root = tempfile::tempdir().expect("managed root");
+    let pinned_digest = digest(&binary);
+    let tool = description(Some(TAG), None, DigestDeclaration::Pinned(&pinned_digest));
+    let capture = longhorn_tool_provision::MAX_PROCESS_OUTPUT_BYTES;
+    // `ProcessOutput` keeps exactly the capture bound and reports the cut, so
+    // the retained stream is `… 1.2.3-al`: a valid, wrong version. Only the
+    // runner's truncation flag can tell admission to drop it.
+    let runner = TestRunner(move |_program: &Path, _arguments: &[OsString]| {
+        let mut stdout = vec![b'.'; capture - 9];
+        stdout.extend_from_slice(b" 1.2.3-alphabeta\n");
+        Ok(ProcessOutput::new(stdout, Vec::new(), true, Some(0)))
+    });
+
+    let error = install_tool(
+        &tool,
+        root.path(),
+        &source,
+        &TeamVerifier,
+        &runner,
+        &redactor(),
+        &mut |_| {},
+    )
+    .expect_err("a version token cut by the capture bound is not admitted");
+    let InstallError::Fault(InstallFault::Probe {
+        detail,
+        stdout_truncated,
+        ..
+    }) = error
+    else {
+        panic!("expected a probe fault, got {error:?}");
+    };
+    assert_eq!(detail, "the process did not print a semantic version");
+    assert!(stdout_truncated);
+    assert!(!root.path().join("bin").join(BINARY).exists());
+}
+
+#[test]
 fn health_reports_not_installed_installed_and_broken() {
     let root = tempfile::tempdir().expect("managed root");
     let digest_pin = "0".repeat(64);
