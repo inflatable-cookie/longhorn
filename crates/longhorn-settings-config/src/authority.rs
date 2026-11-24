@@ -171,7 +171,7 @@ fn token(material: &impl Serialize) -> Result<SettingsAuthorityToken, SettingsCo
 #[cfg(test)]
 mod tests {
     use super::{AuthorityTracker, SettingsConfigError};
-    use longhorn_core::{SettingsAuthorityToken, SettingsScopeId};
+    use longhorn_core::{SettingsAuthorityToken, SettingsScopeId, WireCounter};
     use longhorn_settings::{SettingsRegistryGeneration, SettingsScopeRevision};
 
     #[test]
@@ -183,7 +183,7 @@ mod tests {
         let mut guard = tracker.lock().unwrap();
         let current = SettingsAuthorityToken::new("token:current").unwrap();
         guard.observe(current.clone()).unwrap();
-        guard.state.revision = SettingsScopeRevision::new(u64::MAX);
+        guard.state.revision = SettingsScopeRevision::new(WireCounter::MAX);
 
         assert!(matches!(
             guard.prepare(SettingsAuthorityToken::new("token:next").unwrap()),
@@ -192,7 +192,7 @@ mod tests {
             ))
         ));
         let unchanged = guard.observe(current.clone()).unwrap();
-        assert_eq!(unchanged.scope_revision.get(), u64::MAX);
+        assert_eq!(unchanged.scope_revision.get(), WireCounter::MAX);
         assert_eq!(unchanged.authority_token, current);
     }
 }

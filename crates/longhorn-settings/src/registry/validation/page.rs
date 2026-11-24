@@ -69,6 +69,17 @@ fn validate_navigation(
             "page keyword",
         )?;
     }
+    let folded_keywords: BTreeSet<_> = page
+        .keywords
+        .iter()
+        .map(|keyword| keyword.to_lowercase())
+        .collect();
+    if folded_keywords.len() != page.keywords.len() {
+        return Err(registry_error(
+            SettingsRegistryErrorCode::DuplicateItem,
+            format!("page {} contains duplicate search keywords", page.id),
+        ));
+    }
     validate_page_items(
         page.anchors.len(),
         builder.limits.maximum_anchors_per_page,
@@ -162,7 +173,7 @@ fn validate_reset_support(
         })
     {
         return Err(registry_error(
-            SettingsRegistryErrorCode::MissingReference,
+            SettingsRegistryErrorCode::InvalidPageFeatures,
             format!(
                 "page {} exposes reset without a reset-capable apply unit",
                 page.id

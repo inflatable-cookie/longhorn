@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-11-22
+Updated: 2026-11-24
 Evidence: `002-shared-desktop-systems-follow-up.md` (Git history);
 `012-settings-registry-and-transaction-boundary.md` (Git history)
 
@@ -30,8 +30,10 @@ Each page declares:
 - reset, import, backup, restore, and confirmation support
 
 Duplicate module, section, page, anchor, or apply-unit ids fail registration.
-Order is explicit with stable id as the deterministic tie-break. A section
-with no admitted pages disappears.
+A page also rejects search keywords that repeat after case folding, and a page
+that offers reset fails seal unless one of its writable apply units supports
+reset. Order is explicit with stable id as the deterministic tie-break. A
+section with no admitted pages disappears.
 
 The sealed registry is immutable for one host generation. Recomposition
 creates a new generation. Runtime availability changes page state, not

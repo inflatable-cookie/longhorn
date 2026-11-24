@@ -11,6 +11,8 @@ pub enum SettingsRegistryErrorCode {
     DuplicateId,
     /// An anchor id appeared on more than one page.
     DuplicateAnchor,
+    /// A declared list repeats one item.
+    DuplicateItem,
     /// A declaration references an unknown id.
     MissingReference,
     /// A declaration crosses an ownership boundary it may not cross.
@@ -19,6 +21,8 @@ pub enum SettingsRegistryErrorCode {
     EmptyText,
     /// A label or keyword exceeds its configured byte limit.
     TextTooLong,
+    /// A page's feature flags contradict its writable apply units.
+    InvalidPageFeatures,
     /// The composed capability set contains an unregistered capability.
     UnknownComposedCapability,
     /// Canonical registry encoding failed.

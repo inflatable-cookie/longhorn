@@ -1,5 +1,6 @@
 use std::{error::Error, fmt};
 
+use longhorn_core::WireCounter;
 use serde::{Deserialize, Deserializer, Serialize, de};
 
 /// Current settings wire protocol version.
@@ -46,29 +47,34 @@ impl<'de> Deserialize<'de> for SettingsProtocolVersion {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
-pub struct SettingsScopeRevision(u64);
+pub struct SettingsScopeRevision(WireCounter);
 
 impl SettingsScopeRevision {
     /// Initial revision for a new authoritative scope.
-    pub const INITIAL: Self = Self(0);
+    pub const INITIAL: Self = Self(WireCounter::ZERO);
 
     /// Constructs a revision from its serialized value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value exceeds [`WireCounter::MAX`]. Use deserialization or
+    /// [`Self::checked_next`] for values that may be out of range.
     #[must_use]
     pub const fn new(value: u64) -> Self {
-        Self(value)
+        Self(WireCounter::new(value))
     }
 
     /// Returns the serialized revision.
     #[must_use]
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 
-    /// Advances the revision without wrapping.
+    /// Advances the revision without wrapping past the wire bound.
     pub const fn checked_next(self) -> Result<Self, SettingsProtocolError> {
         match self.0.checked_add(1) {
-            Some(value) => Ok(Self(value)),
-            None => Err(SettingsProtocolError::ScopeRevisionOverflow),
+            Ok(value) => Ok(Self(value)),
+            Err(_) => Err(SettingsProtocolError::ScopeRevisionOverflow),
         }
     }
 }
@@ -76,16 +82,18 @@ impl SettingsScopeRevision {
 /// Settings protocol construction failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SettingsProtocolError {
-    /// A scope revision cannot advance beyond `u64::MAX`.
+    /// A scope revision cannot advance beyond the JavaScript safe integer bound.
     ScopeRevisionOverflow,
 }
 
 impl fmt::Display for SettingsProtocolError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ScopeRevisionOverflow => {
-                formatter.write_str("settings scope revision cannot advance beyond u64::MAX")
-            }
+            Self::ScopeRevisionOverflow => write!(
+                formatter,
+                "settings scope revision cannot advance beyond {}",
+                WireCounter::MAX
+            ),
         }
     }
 }
