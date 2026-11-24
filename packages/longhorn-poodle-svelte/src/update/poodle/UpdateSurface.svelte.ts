@@ -61,20 +61,22 @@ export function sampleUpdateController(getController: () => UpdateController) {
   return {
     get status() {
       void notify;
-      const availability = controller.availability;
-      if (availability?.state === "unavailableForTarget") {
-        return {
-          kind: "failed" as const,
-          error: `Version ${availability.version} has no update for this installation.`,
-        };
-      }
-      if (controller.lastRejection === "malformedArtifact") {
-        return {
-          kind: "failed" as const,
-          error: controller.lastRejectionDetail ?? "The update artifact is malformed.",
-        };
-      }
       return controller.status;
+    },
+    get special() {
+      void notify;
+      if (controller.pending) return undefined;
+      if (controller.lastRejection === "malformedArtifact") {
+        return { kind: "malformed" as const, detail: controller.lastRejectionDetail };
+      }
+      if (controller.availability?.state === "unavailableForTarget") {
+        return { kind: "unavailable" as const };
+      }
+      return undefined;
+    },
+    retryDownload(): void {
+      const version = actionableVersion(controller);
+      if (version !== undefined) void controller.prepare(version);
     },
     get availability() {
       void notify;

@@ -36,6 +36,7 @@
 
 use std::sync::Arc;
 
+use longhorn_redact::{RedactionRules, Redactor};
 use semver::Version;
 
 use crate::{
@@ -517,7 +518,11 @@ impl<'port> UpdateController<'port> {
                 };
                 UpdateOutcomeProjection::Rejected {
                     code,
-                    detail,
+                    detail: detail.map(|detail| {
+                        Redactor::new(std::iter::empty(), RedactionRules::common())
+                            .redact(&detail)
+                            .text
+                    }),
                     snapshot: self.snapshot(),
                 }
             }

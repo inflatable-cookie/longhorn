@@ -1301,6 +1301,32 @@ fn install_failures_preserve_detail_and_terminal_classification() {
 }
 
 #[test]
+fn installer_detail_redacts_common_credentials_before_projection() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+    let detail = format!("invalid archive; {}={}", "token", "sample-value");
+    let result = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &Granting),
+        &FailingInstall(InstallFailure::MalformedArtifact { detail }),
+    );
+    let UpdateOutcomeProjection::Rejected {
+        detail: Some(detail),
+        ..
+    } = result
+    else {
+        panic!("expected rejection")
+    };
+    assert!(detail.contains("invalid archive"));
+    assert!(!detail.contains("sample-value"));
+    assert!(detail.contains("[redacted]"));
+}
+
+#[test]
 fn debug_output_redacts_request_and_verified_bytes() {
     let request = SourceRequest::new(
         longhorn_update::EndpointUrl::new("https://example.test/path?private=value").unwrap(),

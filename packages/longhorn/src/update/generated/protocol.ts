@@ -291,7 +291,7 @@ snapshot: UpdateSnapshot, } | { "status": "rejected",
  */
 code: UpdateRejectionCode, 
 /**
- * Installer detail, when the installer supplied it.
+ * Installer detail with common credential shapes redacted, when supplied.
  */
 detail: string | null, 
 /**

@@ -473,7 +473,7 @@ pub enum UpdateOutcomeProjection {
     Rejected {
         /// What a surface should tell the operator.
         code: UpdateRejectionCode,
-        /// Installer detail, when the installer supplied it.
+        /// Installer detail with common credential shapes redacted, when supplied.
         detail: Option<String>,
         /// The state as it remains.
         snapshot: UpdateSnapshot,
