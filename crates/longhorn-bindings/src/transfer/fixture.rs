@@ -42,8 +42,8 @@ struct IncompatibilityFixture {
 }
 
 pub fn render(
-    transfer_error_codes: &[String],
-    panel_error_codes: &[String],
+    transfer_error_codes: &[&str],
+    panel_error_codes: &[&str],
 ) -> Result<String, Box<dyn Error>> {
     let session_id = DragSessionId::from_entropy([0xAB; 16]);
     let client_id = TransferClientId::new("client:main")?;
@@ -230,13 +230,13 @@ fn surface_zone() -> ClientDropZone {
 }
 
 fn aborts(
-    transfer_error_codes: &[String],
-    panel_error_codes: &[String],
+    transfer_error_codes: &[&str],
+    panel_error_codes: &[&str],
 ) -> Result<Vec<TransferAbort>, serde_json::Error> {
     transfer_error_codes
         .iter()
         .enumerate()
-        .map(|(index, code)| {
+        .map(|(index, &code)| {
             typed(json!({
                 "protocol_version": 1,
                 "request_id": format!("request:transfer-error-{index:02}"),
@@ -247,7 +247,7 @@ fn aborts(
                 "session_consumed": transfer_code_consumes_session(code),
             }))
         })
-        .chain(panel_error_codes.iter().enumerate().map(|(index, code)| {
+        .chain(panel_error_codes.iter().enumerate().map(|(index, &code)| {
             typed(json!({
                 "protocol_version": 1,
                 "request_id": format!("request:panel-error-{index:02}"),

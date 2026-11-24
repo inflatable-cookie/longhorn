@@ -31,7 +31,7 @@ struct IncompatibilityFixture {
     unknown_rejection_code: Value,
 }
 
-pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
+pub fn render(rejection_codes: &[&str]) -> Result<String, Box<dyn Error>> {
     let source = document();
     let requests = requests(source.revision());
     let registry = crate::layout::fixture::registry()?;
@@ -98,7 +98,7 @@ pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
 fn rejection_fixtures(
     source: &SurfaceDocument,
     stale_rejection: &SurfaceMutationRejection,
-    rejection_codes: &[String],
+    rejection_codes: &[&str],
 ) -> Result<Vec<SurfaceMutationRejection>, serde_json::Error> {
     rejection_codes
         .iter()

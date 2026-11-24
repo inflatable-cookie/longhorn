@@ -23,73 +23,35 @@ use longhorn_settings::{
 };
 use ts_rs::TS;
 
-use crate::generation::{
-    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
-    string_union_variants, tagged_variants, variant_field_map,
+use crate::{
+    generation::{
+        Artifact, DomainArtifacts, GENERATE_TASK, build_domain_artifacts, config,
+        exported_declaration, tagged_variants_json,
+    },
+    serde_shape::{enum_names, enum_names_json},
 };
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/longhorn/src/settings/generated/protocol.ts";
-const GENERATED_FIELDS: &str = "packages/longhorn/src/settings/generated/fields.ts";
-const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/settings/generated/variant-fields.ts";
-const GOLDEN_FIXTURE: &str = "fixtures/settings/protocol-v1.json";
+const ARTIFACTS: DomainArtifacts = DomainArtifacts {
+    protocol: "packages/longhorn/src/settings/generated/protocol.ts",
+    fields: "packages/longhorn/src/settings/generated/fields.ts",
+    fields_constant: "SETTINGS_FIELDS",
+    variant_fields: "packages/longhorn/src/settings/generated/variant-fields.ts",
+    variant_fields_constant: "SETTINGS_VARIANT_FIELDS",
+    fixture: "fixtures/settings/protocol-v1.json",
+};
 
-struct RenderedProtocol {
-    contents: String,
-    fields: String,
-    rejection_codes: Vec<String>,
-    variant_fields: String,
-}
-
-/// Generates or checks the settings bindings and golden fixtures.
-pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
-    let protocol = render_protocol()?;
-    let artifacts = [
-        Artifact {
-            relative_path: GENERATED_PROTOCOL,
-            contents: protocol.contents,
-        },
-        Artifact {
-            relative_path: GENERATED_FIELDS,
-            contents: protocol.fields,
-        },
-        Artifact {
-            relative_path: GENERATED_VARIANT_FIELDS,
-            contents: protocol.variant_fields,
-        },
-        Artifact {
-            relative_path: GOLDEN_FIXTURE,
-            contents: fixture::render(&protocol.rejection_codes)?,
-        },
-    ];
-    apply("settings", "generate:settings", mode, &artifacts)
-}
-
-fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
+/// Renders the settings bindings and golden fixtures.
+///
+/// # Errors
+///
+/// Returns an error if declaration inspection or fixture serialization fails.
+pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let durability = SettingsDurabilityEvidence::decl(config());
     let mutation_result = SettingsMutationResult::decl(config());
     let load_outcome = SettingsLoadOutcome::decl(config());
-    let rejection = SettingsRejectionCode::decl(config());
-    let mutation_timing = SettingsMutationTiming::decl(config());
-    let effective_source = SettingsEffectiveSource::decl(config());
-    let editability = SettingsEditability::decl(config());
-    let policy_effect = SettingsPolicyEffect::decl(config());
-    let recovery_code = SettingsRecoveryCode::decl(config());
-    let activation_state = SettingsActivationState::decl(config());
-    let mutation_outcome = SettingsMutationOutcome::decl(config());
-
-    let durability_kinds = tagged_variants(&durability, "kind")?;
-    let mutation_statuses = tagged_variants(&mutation_result, "status")?;
-    let load_statuses = tagged_variants(&load_outcome, "status")?;
-    let rejection_codes = string_union_variants(&rejection)?;
-    let mutation_timings = string_union_variants(&mutation_timing)?;
-    let effective_sources = string_union_variants(&effective_source)?;
-    let editabilities = string_union_variants(&editability)?;
-    let policy_effects = string_union_variants(&policy_effect)?;
-    let recovery_codes = string_union_variants(&recovery_code)?;
-    let activation_states = string_union_variants(&activation_state)?;
-    let mutation_outcomes = string_union_variants(&mutation_outcome)?;
+    let rejection_codes = enum_names::<SettingsRejectionCode>()?;
 
     let declarations = [
         SettingsModuleId::decl(config()),
@@ -116,20 +78,20 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         SettingsRendererDefinition::decl(config()),
         SettingsScopeDefinition::decl(config()),
         SettingsCapabilityDefinition::decl(config()),
-        mutation_timing,
+        SettingsMutationTiming::decl(config()),
         SettingsApplyUnitDefinition::decl(config()),
         SettingsAnchorDefinition::decl(config()),
         SettingsPageFeatures::decl(config()),
         SettingsPageDefinition::decl(config()),
-        effective_source,
-        editability,
-        policy_effect,
+        SettingsEffectiveSource::decl(config()),
+        SettingsEditability::decl(config()),
+        SettingsPolicyEffect::decl(config()),
         SettingsPolicyProjection::decl(config()),
         SettingsSourceDiagnostic::decl(config()),
         SettingsValueProjection::decl(config()),
-        recovery_code,
+        SettingsRecoveryCode::decl(config()),
         SettingsRecoveryState::decl(config()),
-        activation_state,
+        SettingsActivationState::decl(config()),
         SettingsActivationRequirement::decl(config()),
         SettingsAuthorityExpectation::decl(config()),
         SettingsScopeSnapshot::decl(config()),
@@ -139,14 +101,14 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         SettingsLoadCommand::decl(config()),
         SettingsApplyCommand::decl(config()),
         SettingsResetCommand::decl(config()),
-        mutation_outcome,
-        durability,
+        SettingsMutationOutcome::decl(config()),
+        durability.clone(),
         SettingsMutationReceipt::decl(config()),
         SettingsConflict::decl(config()),
-        rejection,
+        SettingsRejectionCode::decl(config()),
         SettingsRejection::decl(config()),
-        mutation_result,
-        load_outcome,
+        mutation_result.clone(),
+        load_outcome.clone(),
     ]
     .map(exported_declaration);
 
@@ -154,7 +116,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let hard_maximum_text_bytes = SettingsLimits::HARD_MAXIMUM_TEXT_BYTES;
     let hard_maximum_opaque_value_bytes = SettingsLimits::HARD_MAXIMUM_OPAQUE_VALUE_BYTES;
     let contents = format!(
-        "// @generated by `effigy generate:settings`; do not edit.\n\
+        "// @generated by `effigy {GENERATE_TASK}`; do not edit.\n\
          // Rust serde types are the wire authority.\n\n\
          export const SETTINGS_PROTOCOL_VERSION = {SETTINGS_PROTOCOL_VERSION} as const;\n\
          export const SETTINGS_HARD_MAXIMUM_TEXT_BYTES = {hard_maximum_text_bytes} as const;\n\
@@ -171,31 +133,24 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const SETTINGS_ACTIVATION_STATES = {} as const;\n\
          export const SETTINGS_MUTATION_OUTCOMES = {} as const;\n\n\
          {}\n",
-        serde_json::to_string(&durability_kinds)?,
-        serde_json::to_string(&mutation_statuses)?,
-        serde_json::to_string(&load_statuses)?,
-        serde_json::to_string(&rejection_codes)?,
-        serde_json::to_string(&mutation_timings)?,
-        serde_json::to_string(&effective_sources)?,
-        serde_json::to_string(&editabilities)?,
-        serde_json::to_string(&policy_effects)?,
-        serde_json::to_string(&recovery_codes)?,
-        serde_json::to_string(&activation_states)?,
-        serde_json::to_string(&mutation_outcomes)?,
+        tagged_variants_json(&durability)?,
+        tagged_variants_json(&mutation_result)?,
+        tagged_variants_json(&load_outcome)?,
+        serde_json::to_string(rejection_codes)?,
+        enum_names_json::<SettingsMutationTiming>()?,
+        enum_names_json::<SettingsEffectiveSource>()?,
+        enum_names_json::<SettingsEditability>()?,
+        enum_names_json::<SettingsPolicyEffect>()?,
+        enum_names_json::<SettingsRecoveryCode>()?,
+        enum_names_json::<SettingsActivationState>()?,
+        enum_names_json::<SettingsMutationOutcome>()?,
         declarations.join("\n\n")
     );
-    let (fields, _skipped) = field_map("generate:settings", "SETTINGS_FIELDS", &declarations);
 
-    let variant_fields = variant_field_map(
-        "generate:settings",
-        "SETTINGS_VARIANT_FIELDS",
-        &declarations,
-    )?;
-
-    Ok(RenderedProtocol {
-        variant_fields,
+    build_domain_artifacts(
+        &ARTIFACTS,
         contents,
-        fields,
-        rejection_codes,
-    })
+        &declarations,
+        fixture::render(rejection_codes)?,
+    )
 }

@@ -39,13 +39,13 @@ const NATIVE_CONTENT_PROTOCOL_FIXTURE =
 // was enforcing nothing. The generated TypeScript digest is unchanged, and the
 // navigation-absence check below is the substantive guard here — it still
 // passes over the new payload.
-// Rebaselined 2026-08-08 for Card 164. The generated file changed only in its
-// import header — `@inflatable-cookie/longhorn-core` became
-// `@inflatable-cookie/longhorn/core` — and `check:bindings` confirms it still
-// matches the Rust authority byte for byte. The constant exists to catch
-// unintended drift, so it is updated deliberately rather than relaxed.
+// Rebaselined 2026-11-24 for #160. The generated file changed only in its
+// header comment (`effigy generate:native-content` -> `effigy generate:bindings`),
+// and `check:bindings` confirms it still matches the Rust authority byte for
+// byte. The constant exists to catch unintended drift, so it is updated
+// deliberately rather than relaxed.
 const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
-  "1770327218ac9381fc59613d966040d550331c57eb25895d8c7e03dd4c06cd08";
+  "cb6fad9b088f9fa6b4bc17593defa7ec1b555e48e2e27edc21549447b2cdbca4";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "native-content-system-proof");
 const temporaryRoot = await stagingDirectory("longhorn-native-content-artifact-proof");

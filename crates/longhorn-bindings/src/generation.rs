@@ -20,7 +20,11 @@ pub fn config() -> &'static ts_rs::Config {
     &CONFIG
 }
 
+/// The Effigy task that regenerates all checked bindings and golden fixtures.
+pub const GENERATE_TASK: &str = "generate:bindings";
+
 /// Requested checked-artifact operation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GenerationMode {
     /// Replace changed generated artifacts.
     Write,
@@ -36,26 +40,109 @@ pub struct Artifact {
     pub contents: String,
 }
 
+/// Output paths and constant names for a standard bindings domain.
+pub struct DomainArtifacts {
+    /// Generated TypeScript protocol path relative to the repository root.
+    pub protocol: &'static str,
+    /// Generated flat field-map TypeScript path relative to the repository root.
+    pub fields: &'static str,
+    /// Exported constant name for the flat field map.
+    pub fields_constant: &'static str,
+    /// Generated tagged-union variant-field-map TypeScript path relative to the repository root.
+    pub variant_fields: &'static str,
+    /// Exported constant name for the variant field map.
+    pub variant_fields_constant: &'static str,
+    /// Golden protocol fixture path relative to the repository root.
+    pub fixture: &'static str,
+}
+
+/// Builds the standard `protocol.ts`, `fields.ts`, `variant-fields.ts`, and
+/// `protocol-v1.json` artifacts for one domain.
+///
+/// # Errors
+///
+/// Returns an error if a tagged-union declaration has no detectable
+/// discriminant when building `variant-fields.ts`.
+pub fn build_domain_artifacts(
+    spec: &DomainArtifacts,
+    protocol_contents: String,
+    declarations: &[String],
+    fixture_contents: String,
+) -> Result<Vec<Artifact>, Box<dyn Error>> {
+    let fields = field_map(GENERATE_TASK, spec.fields_constant, declarations);
+    let variant_fields =
+        variant_field_map(GENERATE_TASK, spec.variant_fields_constant, declarations)?;
+    Ok(vec![
+        Artifact {
+            relative_path: spec.protocol,
+            contents: protocol_contents,
+        },
+        Artifact {
+            relative_path: spec.fields,
+            contents: fields,
+        },
+        Artifact {
+            relative_path: spec.variant_fields,
+            contents: variant_fields,
+        },
+        Artifact {
+            relative_path: spec.fixture,
+            contents: fixture_contents,
+        },
+    ])
+}
+
 /// Writes or checks the generated artifacts for one domain.
 ///
-/// `generate_task` is the `effigy` task name stamped into failure messages, so
-/// a check-mode diff tells the operator exactly what to rerun.
+/// `domain` must be the canonical directory slug under
+/// `packages/longhorn/src/<domain>/generated/` and `fixtures/<domain>/`.
+///
+/// # Errors
+///
+/// Returns an error when a protocol module references undeclared types, when any
+/// artifact falls outside `domain`'s directories, or when write/check fails.
 pub fn apply(
     domain: &str,
-    generate_task: &str,
     mode: GenerationMode,
     artifacts: &[Artifact],
 ) -> Result<(), Box<dyn Error>> {
+    let root = repository_root();
+    apply_in(&root, domain, mode, artifacts)
+}
+
+fn apply_in(
+    root: &Path,
+    domain: &str,
+    mode: GenerationMode,
+    artifacts: &[Artifact],
+) -> Result<(), Box<dyn Error>> {
+    validate_domain_artifacts(domain, artifacts)?;
     for artifact in artifacts {
         if artifact.relative_path.ends_with("protocol.ts") {
             assert_protocol_references_resolve(domain, &artifact.contents)?;
         }
     }
-    let root = repository_root();
     match mode {
-        GenerationMode::Write => write_artifacts(&root, artifacts),
-        GenerationMode::Check => check_artifacts(&root, domain, generate_task, artifacts),
+        GenerationMode::Write => write_artifacts(root, artifacts),
+        GenerationMode::Check => check_artifacts(root, domain, artifacts),
     }
+}
+
+fn validate_domain_artifacts(domain: &str, artifacts: &[Artifact]) -> Result<(), Box<dyn Error>> {
+    let generated_prefix = format!("packages/longhorn/src/{domain}/generated/");
+    let fixtures_prefix = format!("fixtures/{domain}/");
+    for artifact in artifacts {
+        if !artifact.relative_path.starts_with(&generated_prefix)
+            && !artifact.relative_path.starts_with(&fixtures_prefix)
+        {
+            return Err(io::Error::other(format!(
+                "artifact `{}` does not match domain `{domain}` (`{generated_prefix}` or `{fixtures_prefix}`)",
+                artifact.relative_path
+            ))
+            .into());
+        }
+    }
+    Ok(())
 }
 
 /// Refuse to emit a protocol module that names a type it never declares.
@@ -98,13 +185,21 @@ pub fn exported_declaration(declaration: String) -> String {
         .map_or(declaration.clone(), |body| format!("export type {body}"))
 }
 
-/// Returns every discriminant value of a tagged union.
+/// Returns every discriminant value of a tagged union, detecting its
+/// discriminant key from the declaration.
 ///
-/// Fails when the declaration has no `{tag}` variants, so a generator that
-/// drifts from the shape it claims to read stops here instead of emitting an
-/// empty map.
-pub fn tagged_variants(declaration: &str, tag: &str) -> Result<Vec<String>, Box<dyn Error>> {
-    let values: Vec<String> = tagged_field_map(declaration, tag)
+/// Fails when no unique discriminant can be detected or when the declaration
+/// has no variants, so a generator that drifts from the shape it claims to
+/// read stops here instead of emitting an empty map.
+///
+/// # Errors
+///
+/// Returns an error if the declaration has no detectable discriminant or
+/// produces no tagged variants.
+pub fn tagged_variants(declaration: &str) -> Result<Vec<String>, Box<dyn Error>> {
+    let tag = detect_discriminant(declaration)
+        .ok_or_else(|| io::Error::other("generated declaration has no detectable discriminant"))?;
+    let values: Vec<String> = tagged_field_map(declaration, &tag)
         .into_iter()
         .map(|(variant, _)| variant)
         .collect();
@@ -113,6 +208,10 @@ pub fn tagged_variants(declaration: &str, tag: &str) -> Result<Vec<String>, Box<
     } else {
         Ok(values)
     }
+}
+
+pub(crate) fn tagged_variants_json(declaration: &str) -> Result<String, Box<dyn Error>> {
+    Ok(serde_json::to_string(&tagged_variants(declaration)?)?)
 }
 
 /// The discriminant key of a tagged union, read from the declaration.
@@ -379,7 +478,6 @@ fn write_artifacts(root: &Path, artifacts: &[Artifact]) -> Result<(), Box<dyn Er
 fn check_artifacts(
     root: &Path,
     domain: &str,
-    generate_task: &str,
     artifacts: &[Artifact],
 ) -> Result<(), Box<dyn Error>> {
     let drifted: Vec<_> = artifacts
@@ -404,7 +502,7 @@ fn check_artifacts(
         Ok(())
     } else {
         Err(io::Error::other(format!(
-            "generated {domain} artifacts drifted: {}; run `effigy {generate_task}`",
+            "generated {domain} artifacts drifted: {}; run `effigy {GENERATE_TASK}`",
             drifted.join(", ")
         ))
         .into())
@@ -669,11 +767,10 @@ pub fn variant_field_map(
 /// own.
 ///
 /// Only plain object declarations are emitted. A tagged union's fields depend
-/// on its discriminant, so one flat list would be wrong for it; unions are
-/// returned as skipped rather than guessed at, and the caller decides what to
-/// say about them.
+/// on its discriminant, so one flat list would be wrong for it; tagged unions
+/// are covered by [`variant_field_map`] instead.
 #[must_use]
-pub fn field_map(task: &str, constant: &str, declarations: &[String]) -> (String, Vec<String>) {
+pub fn field_map(task: &str, constant: &str, declarations: &[String]) -> String {
     let mut rendered = format!("// @generated by `effigy {task}`; do not edit.\n");
     rendered.push_str("// Allowed field names per protocol type, from the Rust structs.\n");
     rendered.push_str("// A `record()` given one of these rejects unknown and missing keys —\n");
@@ -682,12 +779,8 @@ pub fn field_map(task: &str, constant: &str, declarations: &[String]) -> (String
     rendered.push_str(constant);
     rendered.push_str(" = {\n");
 
-    let mut skipped = Vec::new();
     for declaration in declarations {
         let Some((name, body)) = plain_object(declaration) else {
-            if let Some(name) = tagged_union_name(declaration) {
-                skipped.push(name);
-            }
             continue;
         };
         let fields: Vec<String> = field_names(&body)
@@ -701,7 +794,7 @@ pub fn field_map(task: &str, constant: &str, declarations: &[String]) -> (String
         rendered.push_str("],\n");
     }
     rendered.push_str("} as const;\n");
-    (rendered, skipped)
+    rendered
 }
 
 /// Splits `export type Name = { .. };` into its name and body.
@@ -789,13 +882,6 @@ fn strip_ts_comments(input: &str) -> String {
         rendered.push(character);
     }
     rendered
-}
-
-fn tagged_union_name(declaration: &str) -> Option<String> {
-    let declaration = strip_doc_comments(declaration);
-    let rest = declaration.trim().strip_prefix("export type ")?;
-    let (name, remainder) = rest.split_once(" = ")?;
-    remainder.contains('|').then(|| name.trim().to_owned())
 }
 
 /// Field names at brace depth zero, before the first colon of each.
@@ -1169,7 +1255,7 @@ export type SurfaceSessionStartRequest = { surface_id: SurfaceId, document: Surf
 
         assert_eq!(detect_discriminant(&outer_decl).as_deref(), Some("kind"));
         assert_eq!(
-            tagged_variants(&outer_decl, "kind").unwrap(),
+            tagged_variants(&outer_decl).unwrap(),
             vec!["run".to_owned(), "retry".to_owned()]
         );
 
@@ -1241,7 +1327,7 @@ export type OuterCommand = { \
 
         assert_eq!(detect_discriminant(declaration).as_deref(), Some("kind"));
         assert_eq!(
-            tagged_variants(declaration, "kind").unwrap(),
+            tagged_variants(declaration).unwrap(),
             vec!["first".to_owned(), "second".to_owned()]
         );
         assert_eq!(
@@ -1285,5 +1371,218 @@ export type OuterCommand = { \
                 "x=y".to_owned(),
             ]
         );
+    }
+
+    struct TempDir {
+        path: PathBuf,
+    }
+
+    impl TempDir {
+        fn new(label: &str) -> Self {
+            use std::sync::atomic::{AtomicU64, Ordering};
+            static COUNTER: AtomicU64 = AtomicU64::new(0);
+            let id = COUNTER.fetch_add(1, Ordering::Relaxed);
+            let path = env::temp_dir().join(format!(
+                "longhorn-bindings-{label}-{}-{id}",
+                std::process::id()
+            ));
+            fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+
+        fn write(&self, relative_path: &str, contents: &str) {
+            let full = self.path.join(relative_path);
+            fs::create_dir_all(full.parent().unwrap()).unwrap();
+            fs::write(full, contents).unwrap();
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    #[test]
+    fn tagged_variants_detects_discriminant_or_fails_without_one() {
+        let by_status =
+            r#"export type Result = { "status": "ok" } | { "status": "err", why: string, };"#;
+        assert_eq!(
+            tagged_variants(by_status).unwrap(),
+            vec!["ok".to_owned(), "err".to_owned()]
+        );
+
+        let ambiguous = r#"export type Bad = { "a": "1", "b": "2" } | { "a": "3", "b": "4" };"#;
+        assert!(tagged_variants(ambiguous).is_err());
+    }
+
+    #[test]
+    fn field_map_emits_only_flat_objects_without_unused_skipped_list() {
+        let declarations = vec![
+            "export type Plain = { id: string, count: number, };".to_owned(),
+            r#"export type Union = { "kind": "a" } | { "kind": "b", extra: string, };"#.to_owned(),
+            r#"export type Tag = "one" | "two";"#.to_owned(),
+        ];
+        let rendered = field_map(GENERATE_TASK, "TEST_FIELDS", &declarations);
+        assert!(rendered.contains(&format!("@generated by `effigy {GENERATE_TASK}`")));
+        assert!(rendered.contains("\"Plain\": [\"id\", \"count\"]"));
+        assert!(!rendered.contains("Union"));
+        assert!(!rendered.contains("Tag"));
+    }
+
+    #[test]
+    fn unlisted_artifacts_detects_stale_files_in_generated_and_fixtures_and_ignores_hand_written() {
+        let dir = TempDir::new("unlisted");
+        dir.write(
+            "packages/longhorn/src/surfaces/generated/protocol.ts",
+            "export type A = string;\n",
+        );
+        dir.write(
+            "packages/longhorn/src/surfaces/generated/orphan.ts",
+            "export {};\n",
+        );
+        dir.write("fixtures/surfaces/protocol-v1.json", "{}\n");
+        dir.write("fixtures/surfaces/protocol-v2.json", "{}\n");
+        // Hand-written evidence fixture must not be flagged as stale.
+        dir.write(
+            "fixtures/surfaces/surface-bound-registered-authority-v1.json",
+            "{}\n",
+        );
+        // Layout also tracks *-conformance-v* fixtures.
+        dir.write(
+            "packages/longhorn/src/layout/generated/protocol.ts",
+            "export {};\n",
+        );
+        dir.write("fixtures/layout/protocol-v1.json", "{}\n");
+        dir.write("fixtures/layout/extra-conformance-v1.json", "{}\n");
+        dir.write(
+            "fixtures/layout/surface-bound-registered-authority-v1.json",
+            "{}\n",
+        );
+
+        let surfaces_artifacts = [
+            Artifact {
+                relative_path: "packages/longhorn/src/surfaces/generated/protocol.ts",
+                contents: String::new(),
+            },
+            Artifact {
+                relative_path: "fixtures/surfaces/protocol-v1.json",
+                contents: String::new(),
+            },
+        ];
+        let stale = unlisted_artifacts(&dir.path, "surfaces", &surfaces_artifacts).unwrap();
+        assert_eq!(
+            stale,
+            vec![
+                "fixtures/surfaces/protocol-v2.json",
+                "packages/longhorn/src/surfaces/generated/orphan.ts",
+            ]
+        );
+
+        let layout_artifacts = [
+            Artifact {
+                relative_path: "packages/longhorn/src/layout/generated/protocol.ts",
+                contents: String::new(),
+            },
+            Artifact {
+                relative_path: "fixtures/layout/protocol-v1.json",
+                contents: String::new(),
+            },
+        ];
+        let layout_stale = unlisted_artifacts(&dir.path, "layout", &layout_artifacts).unwrap();
+        assert_eq!(
+            layout_stale,
+            vec!["fixtures/layout/extra-conformance-v1.json"]
+        );
+    }
+
+    #[test]
+    fn apply_in_rejects_mismatched_domain_label_and_scans_surfaces_and_surface_transfer() {
+        let dir = TempDir::new("apply");
+        let protocol = "export type A = string;\n";
+        let artifacts = [
+            Artifact {
+                relative_path: "packages/longhorn/src/surfaces/generated/protocol.ts",
+                contents: protocol.to_owned(),
+            },
+            Artifact {
+                relative_path: "fixtures/surfaces/protocol-v1.json",
+                contents: "{}\n".to_owned(),
+            },
+        ];
+        let mismatch =
+            apply_in(&dir.path, "Surface", GenerationMode::Check, &artifacts).unwrap_err();
+        assert!(
+            mismatch
+                .to_string()
+                .contains("does not match domain `Surface`")
+        );
+
+        apply_in(&dir.path, "surfaces", GenerationMode::Write, &artifacts).unwrap();
+        dir.write(
+            "packages/longhorn/src/surfaces/generated/stale.ts",
+            "export {};\n",
+        );
+        let stale_err =
+            apply_in(&dir.path, "surfaces", GenerationMode::Check, &artifacts).unwrap_err();
+        assert!(
+            stale_err
+                .to_string()
+                .contains("stale generated surfaces artifacts")
+        );
+
+        let st_artifacts = [
+            Artifact {
+                relative_path: "packages/longhorn/src/surface-transfer/generated/protocol.ts",
+                contents: protocol.to_owned(),
+            },
+            Artifact {
+                relative_path: "fixtures/surface-transfer/protocol-v1.json",
+                contents: "{}\n".to_owned(),
+            },
+        ];
+        apply_in(
+            &dir.path,
+            "surface-transfer",
+            GenerationMode::Write,
+            &st_artifacts,
+        )
+        .unwrap();
+        dir.write(
+            "packages/longhorn/src/surface-transfer/generated/stale.ts",
+            "export {};\n",
+        );
+        let st_stale_err = apply_in(
+            &dir.path,
+            "surface-transfer",
+            GenerationMode::Check,
+            &st_artifacts,
+        )
+        .unwrap_err();
+        assert!(
+            st_stale_err
+                .to_string()
+                .contains("stale generated surface-transfer artifacts")
+        );
+    }
+
+    #[test]
+    fn check_artifacts_drift_message_names_generate_bindings() {
+        let dir = TempDir::new("drift");
+        dir.write(
+            "packages/longhorn/src/bridge/generated/protocol.ts",
+            "// old\n",
+        );
+        let artifacts = [Artifact {
+            relative_path: "packages/longhorn/src/bridge/generated/protocol.ts",
+            contents: "// new\n".to_owned(),
+        }];
+        let error = apply_in(&dir.path, "bridge", GenerationMode::Check, &artifacts).unwrap_err();
+        let message = error.to_string();
+        assert!(
+            message.contains("run `effigy generate:bindings`"),
+            "{message}"
+        );
+        assert!(!message.contains("generate:bridge"), "{message}");
     }
 }

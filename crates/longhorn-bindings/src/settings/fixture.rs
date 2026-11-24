@@ -48,7 +48,7 @@ struct IncompatibilityFixture {
     unknown_editability: Value,
 }
 
-pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
+pub fn render(rejection_codes: &[&str]) -> Result<String, Box<dyn Error>> {
     let limits = SettingsLimits::default();
     let registry = registry(limits);
     let current = authority(3, "authority:current");
@@ -56,9 +56,9 @@ pub fn render(rejection_codes: &[String]) -> Result<String, Box<dyn Error>> {
     let snapshot = snapshot(limits, current.clone());
     let rejected = rejection_codes
         .iter()
-        .map(|code| {
+        .map(|&code| {
             let code: SettingsRejectionCode =
-                serde_json::from_value(Value::String(code.clone())).expect("generated code");
+                serde_json::from_value(Value::String(code.to_owned())).expect("generated code");
             SettingsMutationResult::Rejected {
                 rejection: SettingsRejection {
                     code,

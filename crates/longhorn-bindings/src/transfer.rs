@@ -17,51 +17,31 @@ use longhorn_transfer::{
 };
 use ts_rs::TS;
 
-use crate::generation::{
-    Artifact, GenerationMode, apply, config, exported_declaration, field_map,
-    string_union_variants, tagged_variants, variant_field_map,
+use crate::{
+    generation::{
+        Artifact, DomainArtifacts, GENERATE_TASK, build_domain_artifacts, config,
+        exported_declaration, tagged_variants_json,
+    },
+    serde_shape::enum_names,
 };
 
 mod fixture;
 
-const GENERATED_PROTOCOL: &str = "packages/longhorn/src/transfer/generated/protocol.ts";
-const GENERATED_FIELDS: &str = "packages/longhorn/src/transfer/generated/fields.ts";
-const GENERATED_VARIANT_FIELDS: &str = "packages/longhorn/src/transfer/generated/variant-fields.ts";
-const GOLDEN_FIXTURE: &str = "fixtures/transfer/protocol-v1.json";
+const ARTIFACTS: DomainArtifacts = DomainArtifacts {
+    protocol: "packages/longhorn/src/transfer/generated/protocol.ts",
+    fields: "packages/longhorn/src/transfer/generated/fields.ts",
+    fields_constant: "TRANSFER_FIELDS",
+    variant_fields: "packages/longhorn/src/transfer/generated/variant-fields.ts",
+    variant_fields_constant: "TRANSFER_VARIANT_FIELDS",
+    fixture: "fixtures/transfer/protocol-v1.json",
+};
 
-struct RenderedProtocol {
-    contents: String,
-    fields: String,
-    transfer_error_codes: Vec<String>,
-    panel_error_codes: Vec<String>,
-    variant_fields: String,
-}
-
-/// Generates or checks the transfer bindings and golden fixtures.
-pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
-    let protocol = render_protocol()?;
-    let artifacts = [
-        Artifact {
-            relative_path: GENERATED_PROTOCOL,
-            contents: protocol.contents,
-        },
-        Artifact {
-            relative_path: GENERATED_FIELDS,
-            contents: protocol.fields,
-        },
-        Artifact {
-            relative_path: GENERATED_VARIANT_FIELDS,
-            contents: protocol.variant_fields,
-        },
-        Artifact {
-            relative_path: GOLDEN_FIXTURE,
-            contents: fixture::render(&protocol.transfer_error_codes, &protocol.panel_error_codes)?,
-        },
-    ];
-    apply("transfer", "generate:transfer", mode, &artifacts)
-}
-
-fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
+/// Renders the transfer bindings and golden fixtures.
+///
+/// # Errors
+///
+/// Returns an error if declaration inspection or fixture serialization fails.
+pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let target_binding = TransferTargetBinding::decl(config());
     let commit_selector = TransferCommitSelector::decl(config());
     let abort_source = TransferAbortSource::decl(config());
@@ -69,18 +49,8 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
     let lease_response = TransferLeaseResponse::decl(config());
     let cancel_response = TransferCancelResponse::decl(config());
     let panel_response = PanelTransferResponse::decl(config());
-    let transfer_errors = TransferErrorCode::decl(config());
-    let panel_errors = PanelTransferErrorCode::decl(config());
-
-    let target_kinds = tagged_variants(&target_binding, "kind")?;
-    let selector_kinds = tagged_variants(&commit_selector, "kind")?;
-    let abort_domains = tagged_variants(&abort_source, "domain")?;
-    let session_statuses = tagged_variants(&session_response, "status")?;
-    let lease_statuses = tagged_variants(&lease_response, "status")?;
-    let cancel_statuses = tagged_variants(&cancel_response, "status")?;
-    let panel_statuses = tagged_variants(&panel_response, "status")?;
-    let transfer_error_codes = string_union_variants(&transfer_errors)?;
-    let panel_error_codes = string_union_variants(&panel_errors)?;
+    let transfer_error_codes = enum_names::<TransferErrorCode>()?;
+    let panel_error_codes = enum_names::<PanelTransferErrorCode>()?;
 
     let declarations = [
         DomainId::decl(config()),
@@ -100,18 +70,18 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         InsertionPosition::decl(config()),
         TransferProtocolVersion::decl(config()),
         TransferCapability::decl(config()),
-        target_binding,
+        target_binding.clone(),
         TransferPayload::decl(config()),
         SessionCancellationStatus::decl(config()),
         TargetResolutionPath::decl(config()),
         PanelHostBindingKind::decl(config()),
-        transfer_errors,
-        panel_errors,
+        TransferErrorCode::decl(config()),
+        PanelTransferErrorCode::decl(config()),
         PanelSessionStartRequest::decl(config()),
         TransferCancelRequest::decl(config()),
         ClientDropZone::decl(config()),
         TransferLeaseRequest::decl(config()),
-        commit_selector,
+        commit_selector.clone(),
         PanelTransferCommand::decl(config()),
         TransferClientSnapshot::decl(config()),
         TransferSessionStarted::decl(config()),
@@ -119,17 +89,17 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         TransferCancelReceipt::decl(config()),
         TransferCommittedTarget::decl(config()),
         PanelTransferCompletion::decl(config()),
-        abort_source,
+        abort_source.clone(),
         TransferAbort::decl(config()),
-        session_response,
-        lease_response,
-        cancel_response,
-        panel_response,
+        session_response.clone(),
+        lease_response.clone(),
+        cancel_response.clone(),
+        panel_response.clone(),
     ]
     .map(exported_declaration);
 
     let contents = format!(
-        "// @generated by `effigy generate:transfer`; do not edit.\n\
+        "// @generated by `effigy {GENERATE_TASK}`; do not edit.\n\
          // Rust serde types are the wire authority.\n\n\
          import type {{ LayoutMutationRejectionCode, SurfaceId, SurfaceDocument, SurfaceRevision, PanelInstanceId, RegionId }} from \"@inflatable-cookie/longhorn/layout\";\n\n\
          export const TRANSFER_PROTOCOL_VERSION = {TRANSFER_PROTOCOL_VERSION} as const;\n\
@@ -143,30 +113,22 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          export const TRANSFER_ERROR_CODES = {} as const;\n\
          export const PANEL_TRANSFER_ERROR_CODES = {} as const;\n\n\
          {}\n",
-        serde_json::to_string(&target_kinds)?,
-        serde_json::to_string(&selector_kinds)?,
-        serde_json::to_string(&abort_domains)?,
-        serde_json::to_string(&session_statuses)?,
-        serde_json::to_string(&lease_statuses)?,
-        serde_json::to_string(&cancel_statuses)?,
-        serde_json::to_string(&panel_statuses)?,
-        serde_json::to_string(&transfer_error_codes)?,
-        serde_json::to_string(&panel_error_codes)?,
+        tagged_variants_json(&target_binding)?,
+        tagged_variants_json(&commit_selector)?,
+        tagged_variants_json(&abort_source)?,
+        tagged_variants_json(&session_response)?,
+        tagged_variants_json(&lease_response)?,
+        tagged_variants_json(&cancel_response)?,
+        tagged_variants_json(&panel_response)?,
+        serde_json::to_string(transfer_error_codes)?,
+        serde_json::to_string(panel_error_codes)?,
         declarations.join("\n\n")
     );
-    let (fields, _skipped) = field_map("generate:transfer", "TRANSFER_FIELDS", &declarations);
 
-    let variant_fields = variant_field_map(
-        "generate:transfer",
-        "TRANSFER_VARIANT_FIELDS",
-        &declarations,
-    )?;
-
-    Ok(RenderedProtocol {
-        variant_fields,
+    build_domain_artifacts(
+        &ARTIFACTS,
         contents,
-        fields,
-        transfer_error_codes,
-        panel_error_codes,
-    })
+        &declarations,
+        fixture::render(transfer_error_codes, panel_error_codes)?,
+    )
 }
