@@ -127,16 +127,12 @@ file is not empty and the line would take it over `max_bytes`, the log:
 
 With `retained` 0 it removes the live file. Every step runs even when an
 earlier one fails. A step that fails for any reason other than a missing path
-(a generation that is absent is normal, since a log may hold fewer rotations
-than `retained`) is a degraded rotation: a generation that could not shift is
-overwritten or lost, and the count goes to `degraded_rotations()` only. The
-line that triggered the rotation is still written if the live file moved, and
-is counted in `written` like any other whole line. `written` therefore does
-not show retention loss: a caller that checks `stats()` must also read
-`degraded_rotations()`, and a zero there is the only evidence that no
-retained generation was lost.
-If the live file is still over the bound after this, the line is dropped and
-counted in `failed`.
+is a degraded rotation. A missing path is normal, since a log may hold fewer
+rotations than `retained`. A degraded rotation may have overwritten or lost a
+retained generation, and it is counted in `degraded_rotations()`. It does not
+drop a line by itself: the line that triggered the rotation is written if the
+live file moved. If the live file is still over the bound after this, the line
+is dropped and counted in `failed`. See Counts below.
 
 The size check reads the path on every write, so the bound holds over a
 long-lived handle, after a restart that finds a full file, and after
@@ -162,9 +158,10 @@ or two processes, on one file are not supported.
   it. While the latch is set the log writes nothing: every later line is
   dropped and counted in `failed`, so no line can join onto the partial
   record. Clearing the latch needs a fresh `RotatingLog` after the repair.
-- An empty `directory` writes nothing and counts each line in `failed`. Use
-  `discarding()` for a log that writes nowhere; it opens no file and counts
-  nothing.
+- An empty `directory` writes nothing and counts each line that is not over
+  `max_bytes` in `failed`. Use `discarding()` for a log that writes nowhere;
+  it opens no file and counts nothing. The order of these checks is under
+  Counts.
 - A JSON record whose keys are equal after the transform is dropped whole,
   never written. The check runs on each key after redaction and the field
   bound, so identical keys, keys that redaction makes equal and keys that a
@@ -175,6 +172,43 @@ or two processes, on one file are not supported.
 - A poisoned lock is recovered, not propagated. Every update under a lock
   completes before the guard drops, so the recovered state still holds the
   bounds.
+
+## Counts
+
+Each line or JSON record that enters the log is counted once. The first step
+below that applies decides it, and the later steps do not run for it.
+
+1. A JSON record whose keys collide after redaction and bounding is dropped
+   whole and counted in `rejected_records()`. This runs before any size or
+   state check, so such a record is never counted as oversized or failed.
+2. While the repair latch is set, the line is dropped and counted in
+   `failed`. This runs before the size check, so a latched oversized line
+   counts as `failed`, as the latch rule under Failure rules requires.
+3. A line over `max_bytes` is dropped unwritten and counted in `oversized`.
+4. An empty `directory` drops the line and counts it in `failed`.
+5. A live file at the bound is rotated. A degraded rotation is counted in
+   `degraded_rotations()` and drops nothing by itself. If the live file is
+   still over the bound after rotation, the line is dropped and counted in
+   `failed`.
+6. A handle that cannot be created or opened drops the line and counts it in
+   `failed`.
+7. An append that fails drops the line and counts it in `failed`. If the
+   truncation after that failure also fails, the repair latch is set.
+8. Otherwise the line is written and counted in `written`. A line written
+   after a degraded rotation counts here like any other.
+
+The counters, then, mean:
+
+- `stats().written`, `oversized`, `failed` and `repair_required`: the outcomes
+  above, and nothing else. `stats()` does not include `rejected_records()` or
+  `degraded_rotations()`.
+- `degraded_rotations()`: the number of rotations since this instance opened in
+  which at least one step failed for a reason other than a missing path, each
+  such rotation counted once. A zero means no counted rotation-step failure
+  since this instance opened. It says nothing about normal eviction of the
+  oldest generation, a file removed outside the log, or any earlier or later
+  instance; those are not counted.
+- `rejected_records()`: step 1 only.
 
 ## Compatibility for consumers
 

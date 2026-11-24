@@ -30,19 +30,26 @@ pub struct RotatingLogConfig {
     pub field_bytes: usize,
 }
 
-/// What a [`RotatingLog`] did with its lines since it was opened.
+/// What a [`RotatingLog`] did with its lines since it was opened. Each line
+/// is counted once, by the first step that decides it, in this order: a
+/// repair latch (`failed`), then `max_bytes` (`oversized`), then an empty
+/// directory or an I/O failure (`failed`), otherwise a whole write
+/// (`written`). A JSON record dropped for colliding keys is counted in
+/// [`RotatingLog::rejected_records`] before any of these steps, and is not
+/// counted here. A degraded rotation is counted in
+/// [`RotatingLog::degraded_rotations`], not here.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct LogStats {
-    /// Lines written whole, including a line whose rotation degraded. This
-    /// count does not show retention loss; see
-    /// [`RotatingLog::degraded_rotations`].
+    /// Lines written whole. A line written after a degraded rotation counts
+    /// here like any other; this count does not show retention loss.
     pub written: u64,
-    /// Lines larger than `max_bytes`, dropped unwritten.
+    /// Lines larger than `max_bytes`, dropped unwritten. A latched line is
+    /// counted in `failed` instead.
     pub oversized: u64,
-    /// Lines dropped because a directory creation, open or write failed, or
-    /// the live file was still over the bound after rotation. A degraded
-    /// rotation alone does not drop a line; see
-    /// [`RotatingLog::degraded_rotations`].
+    /// Lines dropped by the repair latch, an empty directory, a directory
+    /// creation, open or write failure, or because the live file was still
+    /// over the bound after rotation. A degraded rotation alone drops no
+    /// line.
     pub failed: u64,
     /// Whether a failed write also failed to truncate back to the
     /// pre-append length, leaving a partial line the log cannot repair.
@@ -154,7 +161,10 @@ impl RotatingLog {
             .map(|sink| sink.config.directory.as_path())
     }
 
-    /// Counts since the log was opened. A discarding log counts nothing.
+    /// Line outcomes since the log was opened, in [`LogStats`]. Excludes
+    /// rejected JSON records ([`RotatingLog::rejected_records`]) and degraded
+    /// rotations ([`RotatingLog::degraded_rotations`]). A discarding log
+    /// counts nothing.
     #[must_use]
     pub fn stats(&self) -> LogStats {
         self.sink.as_ref().map_or_else(LogStats::default, |sink| {
@@ -165,9 +175,13 @@ impl RotatingLog {
         })
     }
 
-    /// Rotations since the log was opened that hit a filesystem failure other
-    /// than a missing path. Such a rotation may have overwritten or lost a
-    /// retained generation. The line that triggered it still counts in
+    /// The number of rotations since this instance opened in which at least
+    /// one step failed for a reason other than a missing path, each such
+    /// rotation counted once. Such a rotation may have overwritten or lost a
+    /// retained generation. Zero means no counted rotation-step failure since
+    /// this instance opened. Normal eviction of the oldest generation, a file
+    /// removed outside the log, and any other instance are not counted. The
+    /// line that triggered a degraded rotation still counts in
     /// [`LogStats::written`] if it lands. A discarding log counts nothing.
     #[must_use]
     pub fn degraded_rotations(&self) -> u64 {
@@ -179,9 +193,10 @@ impl RotatingLog {
         })
     }
 
-    /// JSON records dropped unwritten because two keys were equal after
-    /// redaction and bounding, so a reader could not tell them apart. A
-    /// discarding log counts nothing.
+    /// JSON records dropped whole because two keys were equal after redaction
+    /// and bounding, so a reader could not tell them apart. This check runs
+    /// before the size and state checks, and these records are not part of
+    /// [`RotatingLog::stats`]. A discarding log counts nothing.
     #[must_use]
     pub fn rejected_records(&self) -> u64 {
         self.sink.as_ref().map_or(0, |sink| {
@@ -578,6 +593,65 @@ mod tests {
         assert_eq!(state.stats.failed, 1);
         assert!(state.stats.repair_required);
         // No partial record is joined: nothing was opened or created.
+        assert!(!root.path().join("support.log").exists());
+    }
+
+    /// A log whose sink is built directly, so a test can latch it or point it
+    /// at an empty directory without a failing writer.
+    fn sink_in(directory: &Path, max_bytes: u64, latched: bool) -> RotatingLog {
+        use longhorn_redact::{RedactionRules, Redactor};
+
+        RotatingLog {
+            sink: Some(Sink {
+                redactor: Redactor::new(Vec::new(), RedactionRules::common()),
+                config: RotatingLogConfig {
+                    directory: directory.to_path_buf(),
+                    file_name: "support.log".to_owned(),
+                    max_bytes,
+                    retained: 2,
+                    field_bytes: 1024,
+                },
+                state: Mutex::new(State {
+                    stats: LogStats {
+                        repair_required: latched,
+                        ..LogStats::default()
+                    },
+                    ..State::default()
+                }),
+            }),
+        }
+    }
+
+    #[test]
+    fn a_latched_oversized_line_counts_as_failed_not_oversized() {
+        let root = tempfile::tempdir().unwrap();
+        let log = sink_in(root.path(), 64, true);
+        log.record_at(SystemTime::UNIX_EPOCH, "event", &"x".repeat(200));
+        let stats = log.stats();
+        assert_eq!((stats.failed, stats.oversized), (1, 0));
+        assert!(!root.path().join("support.log").exists());
+    }
+
+    #[test]
+    fn an_oversized_line_counts_as_oversized_before_the_empty_directory() {
+        let log = sink_in(Path::new(""), 64, false);
+        log.record_at(SystemTime::UNIX_EPOCH, "event", &"x".repeat(200));
+        let stats = log.stats();
+        assert_eq!((stats.oversized, stats.failed), (1, 0));
+    }
+
+    #[test]
+    fn a_colliding_record_is_rejected_before_the_latch_and_the_size_bound() {
+        let root = tempfile::tempdir().unwrap();
+        let log = sink_in(root.path(), 64, true);
+        log.record_json(
+            &JsonRecord::new()
+                .text("event", "a")
+                .text("event", &"x".repeat(200)),
+        );
+        assert_eq!(log.rejected_records(), 1);
+        let stats = log.stats();
+        assert_eq!((stats.failed, stats.oversized, stats.written), (0, 0, 0));
         assert!(!root.path().join("support.log").exists());
     }
 }

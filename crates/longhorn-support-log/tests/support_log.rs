@@ -200,6 +200,8 @@ fn a_retained_handle_still_enforces_the_bound_on_every_write() {
             repair_required: false
         }
     );
+    // Normal eviction of the oldest generation is not a degraded rotation.
+    assert_eq!(log.degraded_rotations(), 0);
 }
 
 #[test]
@@ -441,6 +443,25 @@ fn a_failed_intermediate_shift_is_reported_as_a_degraded_rotation() {
         fs::read(root.path().join(format!("{FILE}.1"))).unwrap(),
         vec![b'x'; 1000]
     );
+
+    // A fresh instance over the same files has observed no failure.
+    let fresh = RotatingLog::open(config(root.path(), max_bytes), redactor());
+    assert_eq!(fresh.degraded_rotations(), 0);
+}
+
+#[test]
+fn a_generation_removed_outside_the_log_is_not_a_degraded_rotation() {
+    let root = tempfile::tempdir().unwrap();
+    let max_bytes = 1024;
+    // Neither `.1` nor `.2` exists: something outside the log removed them,
+    // so each shift finds nothing to move.
+    fs::write(root.path().join(FILE), vec![b'x'; 1000]).unwrap();
+    let log = RotatingLog::open(config(root.path(), max_bytes), redactor());
+
+    log.record("event", "fits");
+
+    assert_eq!(log.stats().written, 1);
+    assert_eq!(log.degraded_rotations(), 0);
 }
 
 #[test]
