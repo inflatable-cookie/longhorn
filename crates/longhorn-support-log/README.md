@@ -13,7 +13,9 @@ behaviour.
 
 Every text goes through the caller's `longhorn_redact::Redactor` before any
 cut, so a cut never exposes part of a secret. Logging never panics and never
-fails its caller; a `RotatingLog` counts what it drops in `stats()`.
+fails its caller; a `RotatingLog` counts what it drops in `stats()`, the
+rotations it degraded in `degraded_rotations()` and the JSON records it
+rejected for colliding keys in `rejected_records()`.
 
 The app owns every product choice: capacities, bounds, the directory, file
 names, record fields, and any process-wide instance.

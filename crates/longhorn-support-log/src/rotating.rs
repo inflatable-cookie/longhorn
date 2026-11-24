@@ -1,5 +1,6 @@
 //! Size-bounded rotating line log on disk.
 
+use std::collections::HashSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -118,6 +119,8 @@ struct Sink {
 struct State {
     file: Option<File>,
     stats: LogStats,
+    degraded_rotations: u64,
+    rejected_records: u64,
 }
 
 impl RotatingLog {
@@ -158,6 +161,33 @@ impl RotatingLog {
         })
     }
 
+    /// Rotations since the log was opened that hit a filesystem failure other
+    /// than a missing path. Such a rotation may have overwritten or lost a
+    /// retained generation. The line that triggered it still counts in
+    /// [`LogStats::written`] if it lands. A discarding log counts nothing.
+    #[must_use]
+    pub fn degraded_rotations(&self) -> u64 {
+        self.sink.as_ref().map_or(0, |sink| {
+            sink.state
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .degraded_rotations
+        })
+    }
+
+    /// JSON records dropped unwritten because two keys were equal after
+    /// redaction and bounding, so a reader could not tell them apart. A
+    /// discarding log counts nothing.
+    #[must_use]
+    pub fn rejected_records(&self) -> u64 {
+        self.sink.as_ref().map_or(0, |sink| {
+            sink.state
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .rejected_records
+        })
+    }
+
     /// Writes `<timestamp> <event> <detail>` now.
     pub fn record(&self, event: &str, detail: &str) {
         self.record_at(SystemTime::now(), event, detail);
@@ -179,31 +209,59 @@ impl RotatingLog {
     }
 
     /// Writes `record` as one JSON object line. Keys and text values are
-    /// each redacted, then bounded, then escaped.
+    /// each redacted, then bounded, then escaped. A record whose keys are
+    /// equal after that transform is dropped whole and counted in
+    /// [`RotatingLog::rejected_records`].
     pub fn record_json(&self, record: &JsonRecord) {
         let Some(sink) = &self.sink else {
             return;
         };
-        let mut line = String::from("{");
-        for (index, (key, value)) in record.fields.iter().enumerate() {
-            if index > 0 {
-                line.push(',');
-            }
-            push_json_string(&mut line, &sink.field(key));
-            line.push(':');
-            match value {
-                JsonValue::Text(text) => push_json_string(&mut line, &sink.field(text)),
-                JsonValue::Integer(number) => line.push_str(&number.to_string()),
-            }
+        match sink.json_line(record) {
+            Some(line) => sink.write(&line),
+            None => sink.reject(),
         }
-        line.push_str("}\n");
-        sink.write(&line);
     }
 }
 
 impl Sink {
     fn field(&self, text: &str) -> String {
         bound_field(&self.redactor, text, self.config.field_bytes)
+    }
+
+    /// Serializes `record` as one JSON line, or `None` when two keys are
+    /// equal after redaction and bounding. Keys are checked after their
+    /// transform, so identical keys, keys redaction makes equal and keys a
+    /// bound cuts to the same head are all caught.
+    fn json_line(&self, record: &JsonRecord) -> Option<String> {
+        let mut seen = HashSet::new();
+        let mut fields = Vec::with_capacity(record.fields.len());
+        for (key, value) in &record.fields {
+            let key = self.field(key);
+            if !seen.insert(key.clone()) {
+                return None;
+            }
+            fields.push((key, value));
+        }
+        let mut line = String::from("{");
+        for (index, (key, value)) in fields.into_iter().enumerate() {
+            if index > 0 {
+                line.push(',');
+            }
+            push_json_string(&mut line, &key);
+            line.push(':');
+            match value {
+                JsonValue::Text(text) => push_json_string(&mut line, &self.field(text)),
+                JsonValue::Integer(number) => line.push_str(&number.to_string()),
+            }
+        }
+        line.push_str("}\n");
+        Some(line)
+    }
+
+    /// Counts a JSON record dropped for colliding keys. Nothing reaches disk.
+    fn reject(&self) {
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
+        state.rejected_records += 1;
     }
 
     /// Appends one whole line, rotating first when it would cross the bound.
@@ -231,7 +289,9 @@ impl Sink {
             // Drop the handle before the rename so the next write opens the
             // fresh file rather than appending to the rotated one.
             state.file = None;
-            self.rotate();
+            if !self.rotate() {
+                state.degraded_rotations += 1;
+            }
             if self.over_bound(&live, incoming, &mut state) {
                 state.stats.failed += 1;
                 return;
@@ -267,22 +327,37 @@ impl Sink {
     }
 
     /// Removes the oldest generation, shifts the rest up one, then moves the
-    /// live file to `.1`. With nothing retained, removes the live file.
-    fn rotate(&self) {
+    /// live file to `.1`. With nothing retained, removes the live file. Every
+    /// step runs even after an earlier one fails, because the later steps
+    /// still move what they can. Returns `false` when a step failed for a
+    /// reason other than a missing path. A generation that could not shift
+    /// is then overwritten by the one above it, so the caller records the
+    /// degradation.
+    fn rotate(&self) -> bool {
         let directory = &self.config.directory;
         let name = &self.config.file_name;
         let live = directory.join(name);
         let retained = self.config.retained;
         if retained == 0 {
-            let _ = fs::remove_file(live);
-            return;
+            return settled(fs::remove_file(live));
         }
         let rotated = |generation: u32| directory.join(format!("{name}.{generation}"));
-        let _ = fs::remove_file(rotated(retained));
+        let mut clean = settled(fs::remove_file(rotated(retained)));
         for generation in (1..retained).rev() {
-            let _ = fs::rename(rotated(generation), rotated(generation + 1));
+            clean &= settled(fs::rename(rotated(generation), rotated(generation + 1)));
         }
-        let _ = fs::rename(live, rotated(1));
+        // Computed before the `&&`, so the live file moves even after a failed shift.
+        let moved = settled(fs::rename(live, rotated(1)));
+        clean && moved
+    }
+}
+
+/// Whether a rotation step finished. A missing path is not a failure: a log
+/// with fewer rotations than `retained` has no older generation to move.
+fn settled(result: io::Result<()>) -> bool {
+    match result {
+        Ok(()) => true,
+        Err(error) => error.kind() == io::ErrorKind::NotFound,
     }
 }
 

@@ -56,7 +56,8 @@ no features, no TypeScript binding.
 - `RotatingLog::open(config, redactor)`, `RotatingLog::discarding()`;
   `record(event, detail)`, `record_at(at, event, detail)`,
   `record_json(&JsonRecord)`, `directory()`, `stats() -> LogStats { written,
-  oversized, failed, repair_required }`.
+  oversized, failed, repair_required }`, `degraded_rotations() -> u64`,
+  `rejected_records() -> u64`.
 - `JsonRecord::new()` with `text`, `optional_text`, `integer` (`i64`) and
   `optional_integer`. Fields keep the order the caller adds them.
 - `bound_field(&Redactor, text, max_bytes) -> String`.
@@ -124,8 +125,15 @@ file is not empty and the line would take it over `max_bytes`, the log:
    down to 1;
 4. renames the live file to `<file_name>.1`.
 
-With `retained` 0 it removes the live file. If the live file is still over
-the bound after this, the line is dropped and counted in `failed`.
+With `retained` 0 it removes the live file. Every step runs even when an
+earlier one fails. A step that fails for any reason other than a missing path
+(a generation that is absent is normal, since a log may hold fewer rotations
+than `retained`) is a degraded rotation: a generation that could not shift is
+overwritten or lost, and the count goes to `degraded_rotations()`. The line
+that triggered the rotation is still written if the live file moved, and is
+counted in `written`, so retention loss is never hidden inside a clean count.
+If the live file is still over the bound after this, the line is dropped and
+counted in `failed`.
 
 The size check reads the path on every write, so the bound holds over a
 long-lived handle, after a restart that finds a full file, and after
@@ -152,6 +160,13 @@ or two processes, on one file are not supported.
 - An empty `directory` writes nothing and counts each line in `failed`. Use
   `discarding()` for a log that writes nowhere; it opens no file and counts
   nothing.
+- A JSON record whose keys are equal after the transform is dropped whole,
+  never written. The check runs on each key after redaction and the field
+  bound, so identical keys, keys that redaction makes equal and keys that a
+  bound cuts to the same head all collide. A reader would keep one value and
+  silently discard the other. The drop is counted in `rejected_records()`,
+  not in `failed`, because no I/O failed. Text lines have no keys and are not
+  checked.
 - A poisoned lock is recovered, not propagated. Every update under a lock
   completes before the guard drops, so the recovered state still holds the
   bounds.
@@ -215,7 +230,11 @@ Against the Acowtancy donor at `89c8bf568`:
   failure, truncated back to the pre-append length; a failed truncation
   latches repair-required), a rotation that cannot clear the live file, and timestamps at
   fixed instants including a leap day, a non-leap century, a sub-millisecond
-  carry and pre-epoch time.
+  carry and pre-epoch time. Level-up round 3 adds a failed intermediate shift
+  (a non-empty directory in a retained slot) that must count as a degraded
+  rotation and keep the line written, identical keys, keys that redaction
+  makes equal and keys that truncation makes equal, each rejected whole, and
+  distinct keys that stay distinct after the bound, still written.
 
 ## Extraction state
 
