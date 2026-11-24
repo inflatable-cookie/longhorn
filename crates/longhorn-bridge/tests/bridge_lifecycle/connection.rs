@@ -179,6 +179,45 @@ fn never_retry_class_goes_offline_without_backoff() {
 }
 
 #[test]
+fn retry_forbidden_offline_refuses_a_retrying_reconnect() {
+    let clock = Clock::new(0);
+    let mut machine = BridgeConnectionMachine::new(BridgeRetryLimit::new(2).unwrap());
+    machine.connect(&clock).unwrap();
+    machine.transport_ready(&clock).unwrap();
+    machine
+        .reconnect(BridgeRetryClass::Never, &clock, &LinearBackoff)
+        .unwrap();
+    let forbidden = machine.status();
+
+    let error = machine
+        .reconnect(BridgeRetryClass::AfterBackoff, &clock, &LinearBackoff)
+        .unwrap_err();
+
+    assert_eq!(error.code(), BridgeLifecycleErrorCode::InvalidTransition);
+    assert_eq!(machine.status(), forbidden);
+    assert_eq!(machine.status().state(), BridgeConnectionState::Offline);
+    assert_eq!(
+        machine.status().reason(),
+        Some(BridgeConnectionReason::RetryForbidden)
+    );
+}
+
+#[test]
+fn connection_transition_receipt_exposes_its_time_and_previous_status() {
+    let clock = Clock::new(7);
+    let mut machine = BridgeConnectionMachine::new(BridgeRetryLimit::new(1).unwrap());
+
+    let transition = machine.connect(&clock).unwrap();
+
+    assert_eq!(transition.at().get(), 7);
+    assert_eq!(transition.previous().state(), BridgeConnectionState::Idle);
+    assert_eq!(
+        transition.current().state(),
+        BridgeConnectionState::Connecting
+    );
+}
+
+#[test]
 fn degrade_mismatch_unauthorized_failure_and_shutdown_paths_are_explicit() {
     let clock = Clock::new(0);
 

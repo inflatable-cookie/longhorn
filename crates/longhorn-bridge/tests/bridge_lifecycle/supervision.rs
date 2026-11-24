@@ -106,6 +106,30 @@ fn owned_local_spawn_readiness_restart_and_shutdown_are_receipted() {
 }
 
 #[test]
+fn service_receipt_exposes_generation_ownership_action_and_previous_state() {
+    let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
+    let mut supervisor = Supervisor {
+        outcomes: vec![BridgeServiceOutcome::Accepted],
+    };
+
+    let spawn = machine
+        .execute(
+            &mut supervisor,
+            BridgeServiceRequest::new(
+                BridgeServiceAction::Spawn,
+                Some(BridgeCredentialRef::new("credential:workspace").unwrap()),
+            ),
+        )
+        .unwrap();
+
+    assert_eq!(spawn.generation().get(), 1);
+    assert_eq!(spawn.ownership(), BridgeServiceOwnership::OwnedLocal);
+    assert_eq!(spawn.action(), BridgeServiceAction::Spawn);
+    assert_eq!(spawn.previous(), BridgeServiceState::Absent);
+    assert_eq!(spawn.current(), BridgeServiceState::Starting);
+}
+
+#[test]
 fn external_remote_attach_can_reconnect_but_cannot_stop_or_replace_host() {
     let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::ExternalRemote);
     let mut supervisor = Supervisor {

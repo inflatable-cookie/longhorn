@@ -63,7 +63,9 @@ The shared state model distinguishes:
 Transitions name their cause and whether reconnect is permitted. A client
 cannot project `ready` before negotiation and required domain authority checks
 complete. Reconnect with a `never` retry class goes offline with
-`retryForbidden` and invokes no backoff. An exhausted reconnect budget goes
+`retryForbidden` and invokes no backoff. A retrying reconnect from that state
+is refused as an invalid transition, never converted to another reason. An
+exhausted reconnect budget goes
 offline with `transportLost`. A refused transition leaves the current
 connection and authority intact.
 
@@ -109,6 +111,10 @@ semantics.
 - Duplicate and older events are ignored.
 - A gap or epoch change requires a fresh authoritative snapshot.
 - Superseded session or authority events cannot overwrite newer state.
+- A snapshot older than the accepted baseline is dropped as stale, whenever it
+  resolves. The stream keeps its current snapshot and stays live. A resync reply
+  that arrives late cannot move the baseline back, so an event already inside
+  the baseline is classified stale and does not apply again.
 - Events are live projections and invalidation hints, not durable delivery.
 - Request-correlated progress, cancellation, and terminal events are optional
   capabilities.

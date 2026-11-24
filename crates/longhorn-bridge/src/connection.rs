@@ -60,6 +60,53 @@ pub enum BridgeConnectionState {
     Closed,
 }
 
+impl BridgeConnectionState {
+    /// Which state transitions the lifecycle machine admits.
+    ///
+    /// Declared as data rather than pattern-matched, so Rust enforces it and
+    /// the binding generator emits the same table for TypeScript. Before this,
+    /// the rule lived in a `matches!` arm that `ts-rs` cannot see, and the
+    /// TypeScript runtime kept a hand-written copy. `Closed` is admitted from
+    /// every state except itself.
+    pub const ADMITTED_TRANSITIONS: &'static [(BridgeConnectionState, BridgeConnectionState)] = &[
+        (Self::Idle, Self::Connecting),
+        (Self::Connecting, Self::Negotiating),
+        (Self::Reconnecting, Self::Negotiating),
+        (Self::Negotiating, Self::Ready),
+        (Self::Degraded, Self::Ready),
+        (Self::Ready, Self::Degraded),
+        (Self::Connecting, Self::Reconnecting),
+        (Self::Connecting, Self::Offline),
+        (Self::Negotiating, Self::Reconnecting),
+        (Self::Negotiating, Self::Offline),
+        (Self::Ready, Self::Reconnecting),
+        (Self::Ready, Self::Offline),
+        (Self::Degraded, Self::Reconnecting),
+        (Self::Degraded, Self::Offline),
+        (Self::Reconnecting, Self::Reconnecting),
+        (Self::Reconnecting, Self::Offline),
+        (Self::Offline, Self::Reconnecting),
+        (Self::Negotiating, Self::Incompatible),
+        (Self::Negotiating, Self::Unauthorized),
+        (Self::Connecting, Self::Failed),
+        (Self::Negotiating, Self::Failed),
+        (Self::Ready, Self::Failed),
+        (Self::Degraded, Self::Failed),
+        (Self::Reconnecting, Self::Failed),
+        (Self::Offline, Self::Failed),
+        (Self::Idle, Self::Closed),
+        (Self::Connecting, Self::Closed),
+        (Self::Negotiating, Self::Closed),
+        (Self::Ready, Self::Closed),
+        (Self::Degraded, Self::Closed),
+        (Self::Reconnecting, Self::Closed),
+        (Self::Offline, Self::Closed),
+        (Self::Incompatible, Self::Closed),
+        (Self::Unauthorized, Self::Closed),
+        (Self::Failed, Self::Closed),
+    ];
+}
+
 /// Stable reason for the current bridge connection state.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]

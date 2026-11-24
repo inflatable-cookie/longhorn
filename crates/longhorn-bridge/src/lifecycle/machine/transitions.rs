@@ -68,56 +68,7 @@ impl BridgeConnectionMachine {
 
     fn require_transition(&self, next: BridgeConnectionState) -> Result<(), BridgeLifecycleError> {
         let current = self.status.state();
-        let admitted = matches!(
-            (current, next),
-            (
-                BridgeConnectionState::Idle,
-                BridgeConnectionState::Connecting
-            ) | (
-                BridgeConnectionState::Connecting | BridgeConnectionState::Reconnecting,
-                BridgeConnectionState::Negotiating
-            ) | (
-                BridgeConnectionState::Negotiating | BridgeConnectionState::Degraded,
-                BridgeConnectionState::Ready
-            ) | (
-                BridgeConnectionState::Ready,
-                BridgeConnectionState::Degraded
-            ) | (
-                BridgeConnectionState::Connecting
-                    | BridgeConnectionState::Negotiating
-                    | BridgeConnectionState::Ready
-                    | BridgeConnectionState::Degraded
-                    | BridgeConnectionState::Reconnecting,
-                BridgeConnectionState::Reconnecting | BridgeConnectionState::Offline
-            ) | (
-                BridgeConnectionState::Offline,
-                BridgeConnectionState::Reconnecting
-            ) | (
-                BridgeConnectionState::Negotiating,
-                BridgeConnectionState::Incompatible | BridgeConnectionState::Unauthorized
-            ) | (
-                BridgeConnectionState::Connecting
-                    | BridgeConnectionState::Negotiating
-                    | BridgeConnectionState::Ready
-                    | BridgeConnectionState::Degraded
-                    | BridgeConnectionState::Reconnecting
-                    | BridgeConnectionState::Offline,
-                BridgeConnectionState::Failed
-            ) | (
-                BridgeConnectionState::Idle
-                    | BridgeConnectionState::Connecting
-                    | BridgeConnectionState::Negotiating
-                    | BridgeConnectionState::Ready
-                    | BridgeConnectionState::Degraded
-                    | BridgeConnectionState::Reconnecting
-                    | BridgeConnectionState::Offline
-                    | BridgeConnectionState::Incompatible
-                    | BridgeConnectionState::Unauthorized
-                    | BridgeConnectionState::Failed,
-                BridgeConnectionState::Closed
-            )
-        );
-        if admitted {
+        if BridgeConnectionState::ADMITTED_TRANSITIONS.contains(&(current, next)) {
             Ok(())
         } else {
             Err(invalid_transition(current, next))

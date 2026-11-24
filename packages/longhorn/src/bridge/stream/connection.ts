@@ -62,6 +62,8 @@ export function connectBridgeStream<Snapshot, Event>(
       if (decision === "supersededSession" || decision === "wrongDomain") {
         throw new BridgeStreamAuthorityError(decision);
       }
+      // A stale reply is returned unchanged. The tracker kept its baseline, and
+      // the connection's isNewer check drops the reply, so the stream stays live.
       return snapshot;
     },
     handleEvent: (value, current) => {

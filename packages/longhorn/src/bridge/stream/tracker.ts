@@ -34,6 +34,11 @@ export class BridgeStreamTracker {
     if (cursor.domainId !== this.#domainId) {
       return "wrongDomain";
     }
+    // Checked before any state is written: an older snapshot must never move
+    // the accepted baseline back, or a redelivered event would apply twice.
+    if (this.#accepted !== undefined && newer(this.#accepted, cursor)) {
+      return "staleSnapshot";
+    }
     const pendingIsNewer = this.#pending !== undefined && newer(this.#pending, cursor);
     this.#accepted = cursor;
     this.#pending = undefined;

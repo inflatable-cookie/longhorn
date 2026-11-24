@@ -86,6 +86,34 @@ fn render_admitted_reasons() -> Result<String, Box<dyn Error>> {
     Ok(rendered)
 }
 
+/// Emits the state-to-state matrix from `BridgeConnectionState::ADMITTED_TRANSITIONS`.
+///
+/// Keys follow `BridgeConnectionStatus::ADMITTED_REASONS`, so every state
+/// appears as a key, including a state with no outgoing transition. The
+/// TypeScript runtime reads this table in place of a hand-written copy.
+fn render_admitted_transitions() -> Result<String, Box<dyn Error>> {
+    let mut rendered = String::from(
+        "export const BRIDGE_ADMITTED_CONNECTION_TRANSITIONS: Record<\n\
+         \u{20} BridgeConnectionState,\n\
+         \u{20} readonly BridgeConnectionState[]\n\
+         > = {\n",
+    );
+    for (state, _) in BridgeConnectionStatus::ADMITTED_REASONS {
+        let targets = BridgeConnectionState::ADMITTED_TRANSITIONS
+            .iter()
+            .filter(|(from, _)| *from == state)
+            .map(|(_, to)| serde_json::to_string(to))
+            .collect::<Result<Vec<_>, _>>()?
+            .join(", ");
+        rendered.push_str(&format!(
+            "  {}: [{targets}],\n",
+            serde_json::to_string(&state)?
+        ));
+    }
+    rendered.push_str("};\n");
+    Ok(rendered)
+}
+
 /// Renders the bridge bindings and golden fixtures.
 ///
 /// # Errors
@@ -248,6 +276,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const BRIDGE_PROGRESS_DECISIONS = {} as const;\n\
          export const BRIDGE_TERMINAL_DECISIONS = {} as const;\n\n\
          {}\n\
+         {}\n\
          {}\n",
         enum_names_json::<BridgeHostForm>()?,
         enum_names_json::<BridgeConnectionState>()?,
@@ -274,6 +303,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         enum_names_json::<BridgeJobTerminalDecision>()?,
         declarations.join("\n\n"),
         render_admitted_reasons()?,
+        render_admitted_transitions()?,
         domain_id_rule = serde_json::json!({
             "maximumBytes": DomainId::MAX_BYTES,
             "separator": DomainId::SEPARATOR,
