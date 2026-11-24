@@ -229,6 +229,7 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
          // Rust serde types are the wire authority.\n\n\
          export const BRIDGE_PROTOCOL_VERSION = {BRIDGE_PROTOCOL_VERSION} as const;\n\
          export const BRIDGE_MAXIMUM_OPAQUE_ID_BYTES = {MAX_OPAQUE_ID_BYTES} as const;\n\
+         export const BRIDGE_DOMAIN_ID_RULE = {domain_id_rule} as const;\n\
          // Wire-visible bounds. The Rust constants are the authority; a\n\
          // hand-copied literal in a validator is drift waiting to happen.\n\
          export const BRIDGE_MAXIMUM_REQUESTED_DOMAINS = {MAXIMUM_REQUESTED_DOMAINS} as const;\n\
@@ -291,7 +292,13 @@ fn render_protocol() -> Result<RenderedProtocol, Box<dyn Error>> {
         serde_json::to_string(&crate::serde_shape::enum_names::<BridgeProgressDecision>()?)?,
         serde_json::to_string(&crate::serde_shape::enum_names::<BridgeJobTerminalDecision>()?)?,
         declarations.join("\n\n"),
-        render_admitted_reasons()?
+        render_admitted_reasons()?,
+        domain_id_rule = serde_json::json!({
+            "maximumBytes": DomainId::MAX_BYTES,
+            "separator": DomainId::SEPARATOR,
+            "segmentInitial": DomainId::SEGMENT_INITIAL,
+            "segmentAdditional": DomainId::SEGMENT_ADDITIONAL,
+        }),
     );
     let (fields, _skipped) = field_map("generate:bridge", "BRIDGE_FIELDS", &declarations);
 

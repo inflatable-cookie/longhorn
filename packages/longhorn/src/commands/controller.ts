@@ -1,5 +1,5 @@
+import { disposeAll } from "../core/listeners.ts";
 import { CommandClient } from "./client.ts";
-import { disposeAll } from "./listeners.ts";
 import type {
   CommandInvocation,
   CommandKeymapMutationResult,

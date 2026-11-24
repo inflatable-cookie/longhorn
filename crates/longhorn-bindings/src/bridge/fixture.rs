@@ -140,6 +140,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
 
     let fixture = json!({
         "protocolVersion": 1,
+        "domainIds": domain_id_cases(),
         "hello": to_value(hello)?,
         "negotiation": to_value(&negotiation)?,
         "queryRequests": [to_value(&query_request)?],
@@ -413,6 +414,23 @@ fn session_id(value: &str) -> BridgeSessionId {
 
 fn job_id(value: &str) -> BridgeJobId {
     BridgeJobId::new(value).expect("fixture job id is valid")
+}
+
+fn domain_id_cases() -> Vec<Value> {
+    [
+        String::new(),
+        "workspace".into(),
+        "example.window_state-v2".into(),
+        "example.2workspace".into(),
+        "example..workspace".into(),
+        "example.workspace\n".into(),
+        "example.wörkspace".into(),
+        "a".repeat(DomainId::MAX_BYTES),
+        "a".repeat(DomainId::MAX_BYTES + 1),
+    ]
+    .into_iter()
+    .map(|value| json!({ "valid": DomainId::new(value.as_str()).is_ok(), "value": value }))
+    .collect()
 }
 
 fn domain_id(value: &str) -> DomainId {

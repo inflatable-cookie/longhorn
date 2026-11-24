@@ -71,6 +71,37 @@ class LivePort implements NotificationPort {
 }
 
 describe("notification controller", () => {
+  test("public reads and command results cannot modify controller state", async () => {
+    const port = new LivePort();
+    const controller = new NotificationController({ port });
+    await controller.start();
+    controller.select("notification:scan");
+
+    expect(Reflect.set(controller, "status", { kind: "idle" })).toBeFalse();
+    expect(Reflect.set(controller, "selectedNotificationId", "notification:unknown")).toBeFalse();
+    expect("pending" in controller).toBeFalse();
+    expect("subscription" in controller).toBeFalse();
+
+    const [record] = controller.records;
+    const selected = controller.selected;
+    const view = controller.snapshot;
+    expect(record && selected && view).toBeDefined();
+    record!.draft.title = "Edited renderer copy";
+    selected!.readState = "seen";
+    view!.page.records.length = 0;
+    expect(controller.selected?.readState).toBe("unseen");
+    expect(controller.records[0]?.draft.title).toBe(
+      port.snapshotValue.page.records[0]?.draft.title,
+    );
+    expect(controller.snapshot?.page.records).toHaveLength(1);
+
+    const result = await controller.markSeen("notification:scan");
+    result.snapshot.page.records.length = 0;
+    expect(controller.snapshot?.page.records).toHaveLength(1);
+    expect(controller.selected?.readState).toBe("seen");
+    await controller.stop();
+  });
+
   test("two renderer instances reconcile seen mutations without shared state", async () => {
     const port = new LivePort();
     const first = new NotificationController({ port });

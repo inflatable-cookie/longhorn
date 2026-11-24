@@ -1,14 +1,23 @@
 import assert from "node:assert/strict";
 import { describe, expect, test } from "bun:test";
 import { BridgeDomainClient, BridgeSession } from "@inflatable-cookie/longhorn/bridge";
-import type { BridgeOperationDescriptor } from "@inflatable-cookie/longhorn/bridge";
+import type { BridgeFailure, BridgeOperationDescriptor } from "@inflatable-cookie/longhorn/bridge";
 
 import {
+  BridgeOperationError,
   BridgeOperationJobCorrelation,
   createBridgeOperationPort,
 } from "../../src/operation/bridge.ts";
 import { OperationClient } from "../../src/operation/client.ts";
 import { fixture } from "./support.ts";
+
+const failure: BridgeFailure<null> = {
+  code: "operation:unavailable",
+  message: "The operation authority could not answer",
+  retryClass: "afterReconnect",
+  phase: "transport",
+  details: null,
+};
 
 describe("bridge operation composition", () => {
   test("converges with the operation trace while bridge ids remain correlation only", async () => {
@@ -83,7 +92,85 @@ describe("bridge operation composition", () => {
       }),
     ).toBeUndefined();
   });
+
+  test("query and cancellation rejections preserve the bridge failure", async () => {
+    const requestId = "bridge-request:1";
+    const client = clientReturning({
+      requestId,
+      outcome: { rejected: failure },
+    });
+    const expected = new BridgeOperationError({ kind: "rejected", requestId, failure });
+    await expect(client.snapshot()).rejects.toEqual(expected);
+    await expect(client.cancel(fixture.cancellationCommand)).rejects.toEqual(expected);
+  });
+
+  test("mutation rejection, indeterminate delivery and wrong correlation remain distinct", async () => {
+    const [command] = fixture.mutationCommands;
+    assert(command);
+    const requestId = "bridge-request:1";
+    for (const kind of ["rejected", "indeterminate"] as const) {
+      const client = clientReturning({
+        requestId,
+        authoritativeRevision: null,
+        outcome: { [kind]: failure },
+      });
+      await expect(client.mutate(command)).rejects.toBeInstanceOf(BridgeOperationError);
+      await expect(client.mutate(command)).rejects.toMatchObject({
+        outcome: { kind, requestId, failure },
+      });
+    }
+
+    const receivedRequestId = "bridge-request:other";
+    const foreign = clientReturning({
+      requestId: receivedRequestId,
+      authoritativeRevision: null,
+      outcome: { indeterminate: failure },
+    });
+    await expect(foreign.mutate(command)).rejects.toMatchObject({
+      outcome: { kind: "miscorrelated", requestId, receivedRequestId },
+    });
+  });
+
+  test("failed and cancelled terminals settle the job with typed errors", () => {
+    const requestId = "bridge-request:1";
+    const jobId = "bridge-job:1";
+    for (const outcome of [{ failed: failure }, "cancelled"] as const) {
+      const correlation = new BridgeOperationJobCorrelation({
+        bridgeRequestId: requestId,
+        bridgeJobId: jobId,
+        operationId: "operation:scan",
+      });
+      const event = { requestId, jobId, outcome };
+      expect(correlation.acceptTerminal({ ...event, jobId: "bridge-job:other" })).toBeUndefined();
+      let caught: unknown;
+      try {
+        correlation.acceptTerminal(event);
+      } catch (error) {
+        caught = error;
+      }
+      assert(caught instanceof BridgeOperationError);
+      expect(caught.outcome).toEqual(
+        outcome === "cancelled"
+          ? { kind: "cancelled", requestId, jobId }
+          : { kind: "failed", requestId, jobId, failure },
+      );
+      expect(correlation.acceptTerminal(event)).toBeUndefined();
+    }
+  });
 });
+
+function clientReturning(reply: unknown): OperationClient {
+  return new OperationClient(
+    createBridgeOperationPort({
+      client: new BridgeDomainClient(operationSession(), { invoke: async () => reply }),
+      domainId: "longhorn.operation",
+      sessionId: "session:operation",
+      authorityEpoch: 7,
+      nextBridgeRequestId: () => "bridge-request:1",
+      nextOperationRequestId: () => fixture.snapshotQuery.requestId,
+    }),
+  );
+}
 
 function operationSession(): BridgeSession {
   return new BridgeSession({

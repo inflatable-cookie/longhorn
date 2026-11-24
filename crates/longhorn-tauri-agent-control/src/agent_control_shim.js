@@ -44,7 +44,15 @@
     if (element === TRUNCATED_REF || element.length === 0) {
       return null;
     }
-    return document.querySelector(`[${REF_ATTR}="${element}"]`);
+    return findByAttribute(document.querySelectorAll(`[${REF_ATTR}]`), REF_ATTR, element);
+  }
+  function findByAttribute(candidates, attribute, value) {
+    for (const candidate of candidates) {
+      if (candidate.getAttribute(attribute) === value) {
+        return candidate;
+      }
+    }
+    return null;
   }
   function refPrefix(document) {
     const view = document.defaultView;
@@ -192,7 +200,7 @@
     const id = element.id;
     const document = element.ownerDocument;
     if (id) {
-      const label = document.querySelector(`label[for="${id}"]`);
+      const label = findByAttribute(document.querySelectorAll("label[for]"), "for", id);
       const text = label?.textContent?.replaceAll(/\s+/g, " ").trim();
       if (text) {
         return text;
