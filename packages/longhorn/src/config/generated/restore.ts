@@ -9,6 +9,10 @@ export const RESTORE_ADAPTER_PARTICIPATION_KINDS = ["excluded","separate","failu
 export const RESTORE_CURRENT_EVIDENCE_STATES = ["absent","present"] as const;
 export const RESTORE_INSPECT_STATUSES = ["ready","locked","rejected"] as const;
 export const RESTORE_PLAN_STATUSES = ["ready","rejected"] as const;
+export const RESTORE_EXECUTION_STAGES = ["validateSafetyBackup","recoverPrevious","recheckCurrent","captureRollback","captureSafetyBackup","encodeSafetyBackup","publishSafetyBackup","publishJournal","publishTarget","verifyTarget","rollback","cleanup"] as const;
+export const RESTORE_FAILURE_TERMINALS = ["noLiveMutation","rolledBack","recoveryRequired"] as const;
+export const RESTORE_ADAPTER_OUTCOMES = ["verified","rolledBack","recoveryRequired"] as const;
+export const RESTORE_RECOVERY_RESULTS = ["noRecoveryNeeded","rolledBack","terminalCleanup"] as const;
 export const RESTORE_EXECUTE_STATUSES = ["succeeded","rolledBack","recoveryRequired","rejected"] as const;
 export const RESTORE_ADAPTER_EXECUTE_STATUSES = ["completed","rejected"] as const;
 export const RESTORE_RECOVERY_STATUSES = ["recovered","recoveryRequired","rejected"] as const;
@@ -495,11 +499,15 @@ skippedDomainIds: Array<string>,
  */
 excludedDomainIds: Array<string>, };
 
+export type RestoreExecutionStageProjection = "validateSafetyBackup" | "recoverPrevious" | "recheckCurrent" | "captureRollback" | "captureSafetyBackup" | "encodeSafetyBackup" | "publishSafetyBackup" | "publishJournal" | "publishTarget" | "verifyTarget" | "rollback" | "cleanup";
+
+export type RestoreFailureTerminalProjection = "noLiveMutation" | "rolledBack" | "recoveryRequired";
+
 export type RestoreExecutionFailureProjection = { 
 /**
  * Failed journaled transaction phase.
  */
-stage: string, 
+stage: RestoreExecutionStageProjection, 
 /**
  * First affected domain when known.
  */
@@ -507,7 +515,7 @@ domainId: string | null,
 /**
  * Exact terminal guarantee established before return.
  */
-terminal: string, 
+terminal: RestoreFailureTerminalProjection, 
 /**
  * Safe failure detail.
  */
@@ -575,6 +583,8 @@ confirmationDigest: string,
  */
 requirement: RestoreAdapterRequirementProjection, };
 
+export type RestoreAdapterOutcomeProjection = "verified" | "rolledBack" | "recoveryRequired";
+
 export type RestoreAdapterReceiptProjection = { 
 /**
  * Restored custom domain.
@@ -595,7 +605,7 @@ confirmationDigest: string,
 /**
  * Verified, rolled-back, or recovery-required terminal.
  */
-outcome: string, 
+outcome: RestoreAdapterOutcomeProjection, 
 /**
  * Exact semantic evidence when supplied.
  */
@@ -625,11 +635,13 @@ protocolVersion: ConfigProtocolVersion,
  */
 requestId: ConfigRequestId, };
 
+export type RestoreRecoveryResultProjection = "noRecoveryNeeded" | "rolledBack" | "terminalCleanup";
+
 export type RestoreRecoveryReceiptProjection = { 
 /**
  * No-op, verified rollback, or terminal cleanup.
  */
-outcome: string, 
+outcome: RestoreRecoveryResultProjection, 
 /**
  * Journal domains considered by recovery.
  */

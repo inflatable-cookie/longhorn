@@ -3,10 +3,14 @@ import {
   BACKUP_ENCRYPTION_STATES,
   BACKUP_PENDING_STATES,
   CONFIG_OPERATION_CAPABILITIES,
+  RESTORE_ADAPTER_OUTCOMES,
   RESTORE_ADAPTER_PARTICIPATION_KINDS,
   RESTORE_CURRENT_EVIDENCE_STATES,
   RESTORE_DOMAIN_COMPATIBILITY_STATUSES,
+  RESTORE_EXECUTION_STAGES,
+  RESTORE_FAILURE_TERMINALS,
   RESTORE_IDENTITY_STATUSES,
+  RESTORE_RECOVERY_RESULTS,
   STORAGE_BOOTSTRAP_STATES,
 } from "../generated/protocol.ts";
 import type { ConfigOperationsSnapshot } from "../generated/protocol.ts";
@@ -141,19 +145,16 @@ export function assertRestoreExecutionReceipt(value: unknown, path: string): voi
 
 export function assertRestoreFailure(value: unknown, path: string): void {
   const failure = record(value, path, CONFIG_FIELDS.RestoreExecutionFailureProjection);
-  nonempty(failure.stage, `${path}.stage`);
+  discriminant(failure.stage, RESTORE_EXECUTION_STAGES, `${path}.stage`);
   nullableString(failure.domainId, `${path}.domainId`);
-  discriminant(
-    failure.terminal,
-    ["noLiveMutation", "rolledBack", "recoveryRequired"],
-    `${path}.terminal`,
-  );
+  discriminant(failure.terminal, RESTORE_FAILURE_TERMINALS, `${path}.terminal`);
   string(failure.detail, `${path}.detail`);
 }
 
 export function assertRestoreAdapterReceipt(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.RestoreAdapterReceiptProjection);
-  ["domainId", "adapter", "outcome"].forEach((key) => nonempty(receipt[key], `${path}.${key}`));
+  ["domainId", "adapter"].forEach((key) => nonempty(receipt[key], `${path}.${key}`));
+  discriminant(receipt.outcome, RESTORE_ADAPTER_OUTCOMES, `${path}.outcome`);
   participation(receipt.participation, `${path}.participation`);
   digest(receipt.confirmationDigest, `${path}.confirmationDigest`);
   nullableDigest(receipt.evidence, `${path}.evidence`);
@@ -161,11 +162,7 @@ export function assertRestoreAdapterReceipt(value: unknown, path: string): void 
 
 export function assertRestoreRecoveryReceipt(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.RestoreRecoveryReceiptProjection);
-  discriminant(
-    receipt.outcome,
-    ["noRecoveryNeeded", "rolledBack", "terminalCleanup"],
-    `${path}.outcome`,
-  );
+  discriminant(receipt.outcome, RESTORE_RECOVERY_RESULTS, `${path}.outcome`);
   stringArray(receipt.domainIds, `${path}.domainIds`);
 }
 

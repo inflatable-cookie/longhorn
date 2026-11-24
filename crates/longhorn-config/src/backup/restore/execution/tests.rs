@@ -6,11 +6,11 @@ use tempfile::TempDir;
 
 use crate::StorageRootsResolve;
 use crate::{
-    BackupApplication, BackupKind, BackupMetadata, BackupProducer, ConfigDomain,
-    CoordinationAuthority, DomainDescriptor, DomainFilePath, DomainIssue, DomainLocation,
-    DurabilityRequirement, LoadOutcome, MigrationStep, MutationError, MutationOptions,
-    RestoreCurrentEvidence, RestoreOperationState, RestoreRecoveryOptions, RestoreRecoveryOutcome,
-    Sha256Digest, StorageClass, UnavailableState,
+    BackupApplication, BackupCaptureError, BackupCaptureOptions, BackupKind, BackupLimits,
+    BackupMetadata, BackupProducer, ConfigDomain, CoordinationAuthority, DomainDescriptor,
+    DomainFilePath, DomainIssue, DomainLocation, DurabilityRequirement, LoadOutcome, MigrationStep,
+    MutationError, MutationOptions, RestoreCurrentEvidence, RestoreOperationState,
+    RestoreRecoveryOptions, RestoreRecoveryOutcome, Sha256Digest, StorageClass, UnavailableState,
 };
 use longhorn_storage_layout::StorageRoots;
 
@@ -165,6 +165,64 @@ fn operation_id_at_limit(fixture: &Fixture, phase: JournalPhase, old: &[u8], new
     state.phase = phase;
     let overhead = serde_json::to_vec(&state).unwrap().len();
     "x".repeat(MAX_JOURNAL_BYTES - overhead)
+}
+
+#[test]
+fn capture_refuses_active_and_recovery_required_restore_journals() {
+    for (phase, expected) in [
+        (JournalPhase::Applying, RestoreOperationState::Active),
+        (JournalPhase::Succeeded, RestoreOperationState::Active),
+        (
+            JournalPhase::RecoveryRequired,
+            RestoreOperationState::RecoveryRequired,
+        ),
+    ] {
+        let sample = Fixture::new();
+        sample.journal(phase, b"prior-state", b"partly-restored-state");
+        let mut catalog = BackupCatalog::new();
+        catalog.include(&sample.domain).unwrap();
+        let metadata = BackupMetadata::new(
+            "daily",
+            BackupKind::Operational,
+            "2026-01-01T00:00:00Z",
+            BackupApplication::new("com.example.desktop", "1").unwrap(),
+            BackupProducer::new("longhorn-config", "1").unwrap(),
+        )
+        .unwrap();
+        let result = sample.store.capture_backup(
+            &catalog,
+            &BackupScope::AllRegistered,
+            metadata,
+            BackupCaptureOptions::new(Duration::ZERO, BackupLimits::default()),
+        );
+        assert!(
+            matches!(result, Err(BackupCaptureError::RestoreUnavailable(state)) if state == expected)
+        );
+        assert_eq!(fs::read(&sample.target).unwrap(), b"partly-restored-state");
+        assert_eq!(sample.store.restore_operation_state(), expected);
+    }
+}
+
+#[test]
+fn ordinary_recovery_refuses_oversized_rollback_with_matching_evidence() {
+    let sample = Fixture::new();
+    let oversized = vec![b'x'; crate::store::load::max_live_domain_bytes() + 1];
+    sample.journal(JournalPhase::Applying, &oversized, b"current-state");
+    let error = sample
+        .store
+        .recover_restore(RestoreRecoveryOptions::new(Duration::ZERO))
+        .unwrap_err();
+    assert!(
+        error
+            .detail
+            .contains("rollback payload exceeds live domain byte limit"),
+        "{error}"
+    );
+    assert_eq!(fs::read(&sample.target).unwrap(), b"current-state");
+    assert_eq!(
+        sample.store.restore_operation_state(),
+        RestoreOperationState::RecoveryRequired
+    );
 }
 
 #[test]

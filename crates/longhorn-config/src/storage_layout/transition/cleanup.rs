@@ -1,11 +1,12 @@
-use std::{fs, path::Path, time::Duration};
+use std::time::Duration;
 
 use crate::StorageRootsResolve;
-use crate::{DomainLocation, StorageFileEvidence};
+use crate::{DomainLocation, ResolvedFile, StorageFileEvidence};
 
 use super::{
     StorageTransitionCleanupPlan, StorageTransitionCleanupReceipt, StorageTransitionError,
-    StorageTransitionOutcome, StorageTransitionReceipt, StorageTransitionRequest, execution, io,
+    StorageTransitionOutcome, StorageTransitionReceipt, StorageTransitionRequest, execution,
+    inventory, io,
 };
 use longhorn_storage_layout::locator_matches;
 
@@ -28,6 +29,7 @@ pub fn apply_storage_transition_cleanup(
         ));
     }
     let (_first, _second) = execution::acquire_store_guards(request, lock_timeout)?;
+    inventory::ensure_restore_inactive(request)?;
     let target_committed = locator_matches(
         &request.bootstrap,
         request.source_layout.identity().canonical_application_id(),
@@ -41,23 +43,22 @@ pub fn apply_storage_transition_cleanup(
         ));
     }
 
-    let targets = resolve_targets(request, plan)?;
-    for ((source, evidence), target) in plan.paths.iter().zip(&plan.evidence).zip(&targets) {
-        verify_evidence(target, evidence, "target")?;
-        if source.exists() {
-            verify_evidence(source, evidence, "source")?;
+    let files = resolve_files(request, plan)?;
+    let mut deleted_paths = Vec::new();
+    let mut already_absent_paths = Vec::new();
+    for ((source, target), evidence) in files.iter().zip(&plan.evidence) {
+        let bytes = execution::read_ordinary(target)?.ok_or_else(|| changed(target, "target"))?;
+        verify_evidence(target, &bytes, evidence, "target")?;
+        if let Some(bytes) = execution::read_ordinary(source)? {
+            verify_evidence(source, &bytes, evidence, "source")?;
+            deleted_paths.push(source.full_path().to_path_buf());
+        } else {
+            already_absent_paths.push(source.full_path().to_path_buf());
         }
     }
 
-    let mut deleted_paths = Vec::new();
-    let mut already_absent_paths = Vec::new();
-    for source in &plan.paths {
-        if source.exists() {
-            io::remove_file(source)?;
-            deleted_paths.push(source.clone());
-        } else {
-            already_absent_paths.push(source.clone());
-        }
+    for path in &deleted_paths {
+        io::remove_file(path)?;
     }
     Ok(StorageTransitionCleanupReceipt {
         transition_id: receipt.transition_id.clone(),
@@ -84,10 +85,10 @@ fn validate_binding(
     Ok(())
 }
 
-fn resolve_targets(
+fn resolve_files(
     request: &StorageTransitionRequest<'_>,
     plan: &StorageTransitionCleanupPlan,
-) -> Result<Vec<std::path::PathBuf>, StorageTransitionError> {
+) -> Result<Vec<(ResolvedFile, ResolvedFile)>, StorageTransitionError> {
     plan.paths
         .iter()
         .map(|source_path| {
@@ -114,8 +115,7 @@ fn resolve_targets(
                     else {
                         return None;
                     };
-                    (target.full_path() != source.full_path())
-                        .then(|| target.full_path().to_path_buf())
+                    (target.full_path() != source.full_path()).then_some((source, target))
                 })
                 .ok_or_else(|| {
                     StorageTransitionError::CleanupRefused(format!(
@@ -128,29 +128,24 @@ fn resolve_targets(
 }
 
 fn verify_evidence(
-    path: &Path,
+    file: &ResolvedFile,
+    bytes: &[u8],
     expected: &StorageFileEvidence,
     authority: &str,
 ) -> Result<(), StorageTransitionError> {
-    let observed = match fs::read(path) {
-        Ok(bytes) => StorageFileEvidence::Present {
-            byte_length: bytes.len(),
-            sha256: crate::Sha256Digest::from_bytes(&bytes),
-        },
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => StorageFileEvidence::Absent,
-        Err(error) => {
-            return Err(StorageTransitionError::Filesystem {
-                path: path.to_path_buf(),
-                detail: error.to_string(),
-            });
-        }
+    let observed = StorageFileEvidence::Present {
+        byte_length: bytes.len(),
+        sha256: crate::Sha256Digest::from_bytes(bytes),
     };
-    if &observed == expected {
-        Ok(())
-    } else {
-        Err(StorageTransitionError::CleanupRefused(format!(
-            "{authority} evidence changed at {}",
-            path.display()
-        )))
+    if &observed != expected {
+        return Err(changed(file, authority));
     }
+    Ok(())
+}
+
+fn changed(file: &ResolvedFile, authority: &str) -> StorageTransitionError {
+    StorageTransitionError::CleanupRefused(format!(
+        "{authority} evidence changed at {}",
+        file.full_path().display()
+    ))
 }

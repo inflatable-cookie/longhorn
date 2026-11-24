@@ -10,11 +10,11 @@ use longhorn_config::{
     BackupAdapterCaptureRequest, BackupAdapterConsistencyGroup, BackupAdapterError,
     BackupAdapterId, BackupAdapterInspectRequest, BackupAdapterPayload, BackupAdapterRelativePath,
     BackupAdapterRestoreOutcome, BackupAdapterRestoreParticipation, BackupAdapterRestorePreview,
-    BackupAdapterRestoreRequest, BackupAdapterStateEvidence, ConfigDomain, Sha256Digest,
-    StorageClass, StorageTransitionAction, StorageTransitionAdapter, StorageTransitionCatalog,
-    StorageTransitionExecutionOptions, StorageTransitionGuard, StorageTransitionOutcome,
-    StorageTransitionRequest, execute_storage_transition, inspect_storage_transition,
-    plan_storage_transition,
+    BackupAdapterRestoreRequest, BackupAdapterStateEvidence, ConfigDomain, RestoreOperationState,
+    Sha256Digest, StorageClass, StorageTransitionAction, StorageTransitionAdapter,
+    StorageTransitionCatalog, StorageTransitionError, StorageTransitionExecutionOptions,
+    StorageTransitionGuard, StorageTransitionOutcome, StorageTransitionRequest,
+    execute_storage_transition, inspect_storage_transition, plan_storage_transition,
 };
 use rusqlite::{Connection, MAIN_DB, OpenFlags, params};
 use tempfile::{TempDir, tempdir};
@@ -27,6 +27,7 @@ struct SqliteTransitionAdapter {
     database: PathBuf,
     authority: String,
     gate: Mutex<()>,
+    journal_on_guard: Mutex<Option<(PathBuf, Vec<u8>)>>,
 }
 
 impl SqliteTransitionAdapter {
@@ -43,6 +44,7 @@ impl SqliteTransitionAdapter {
             database,
             authority: authority.into(),
             gate: Mutex::new(()),
+            journal_on_guard: Mutex::new(None),
         }
     }
 
@@ -142,6 +144,10 @@ impl StorageTransitionAdapter for SqliteTransitionAdapter {
         _descriptor: &longhorn_config::DomainDescriptor,
         _timeout: Duration,
     ) -> Result<Box<dyn StorageTransitionGuard + '_>, BackupAdapterError> {
+        if let Some((path, journal)) = self.journal_on_guard.lock().unwrap().take() {
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, journal).unwrap();
+        }
         self.gate
             .lock()
             .map(|guard| Box::new(guard) as Box<dyn StorageTransitionGuard>)
@@ -217,14 +223,62 @@ fn sqlite_transition_uses_native_snapshot_and_never_copies_main_or_wal_files() {
         StorageTransitionAction::CustomAdapter { .. }
     ));
     let plan = plan_storage_transition(&preview).unwrap();
-    let receipt = execute_storage_transition(
-        &request,
-        &plan,
-        plan.confirmation_digest(),
-        StorageTransitionExecutionOptions::new("sqlite-transition", Duration::from_secs(2))
-            .unwrap(),
-    )
+    let bootstrap = fixture.bootstrap();
+    let execute = || {
+        execute_storage_transition(
+            &request,
+            &plan,
+            plan.confirmation_digest(),
+            StorageTransitionExecutionOptions::new("sqlite-transition", Duration::from_secs(2))
+                .unwrap(),
+        )
+    };
+
+    // A competing transition can leave a journal after the initial preflight.
+    let journal = serde_json::to_vec(&serde_json::json!({
+        "schemaVersion": 1,
+        "transitionId": "interrupted",
+        "phase": "prepared",
+        "sourceLayoutSha256": plan.confirmation_digest().as_str(),
+        "targetLayoutSha256": plan.confirmation_digest().as_str(),
+        "confirmationSha256": plan.confirmation_digest().as_str(),
+        "domains": [],
+    }))
     .unwrap();
+    *source_adapter.journal_on_guard.lock().unwrap() =
+        Some((bootstrap.journal().to_path_buf(), journal.clone()));
+    assert!(matches!(
+        execute(),
+        Err(StorageTransitionError::RecoveryRequired(_))
+    ));
+    assert_eq!(fs::read(bootstrap.journal()).unwrap(), journal);
+    assert!(!target_path.exists());
+    fs::remove_file(bootstrap.journal()).unwrap();
+
+    for layout in [&fixture.source, &fixture.target] {
+        let authority = layout.storage_roots().data().canonicalize().unwrap();
+        let restore_journal = authority.join(".longhorn/restore/journal.json");
+        // Leave unreadable recovery evidence while the transition acquires guards.
+        *source_adapter.journal_on_guard.lock().unwrap() = Some((
+            restore_journal.clone(),
+            b"incomplete restore journal".to_vec(),
+        ));
+        assert!(
+            matches!(execute(), Err(StorageTransitionError::RestoreUnavailable {
+            authority_root, state: RestoreOperationState::RecoveryRequired
+        }) if authority_root == authority)
+        );
+        assert!(
+            matches!(inspect_storage_transition(&request), Err(StorageTransitionError::RestoreUnavailable {
+            authority_root, state: RestoreOperationState::RecoveryRequired
+        }) if authority_root == authority)
+        );
+        assert!(!bootstrap.journal().exists());
+        assert!(!target_path.exists());
+        fs::remove_file(restore_journal).unwrap();
+    }
+
+    let receipt = execute().unwrap();
     assert_eq!(receipt.outcome(), StorageTransitionOutcome::TargetCommitted);
     assert_eq!(receipt.custom_domains(), [domain.descriptor().id().clone()]);
     assert!(receipt.copied_domains().is_empty());

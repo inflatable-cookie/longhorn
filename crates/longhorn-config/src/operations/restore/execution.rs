@@ -64,17 +64,61 @@ pub struct RestoreExecutionReceiptProjection {
     pub excluded_domain_ids: Vec<String>,
 }
 
+/// Failed phase of the ordinary restore transaction.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub enum RestoreExecutionStageProjection {
+    /// Check the pre-restore backup metadata.
+    ValidateSafetyBackup,
+    /// Recover an older unresolved restore.
+    RecoverPrevious,
+    /// Revalidate current domain evidence.
+    RecheckCurrent,
+    /// Capture exact rollback bytes.
+    CaptureRollback,
+    /// Capture the safety snapshot.
+    CaptureSafetyBackup,
+    /// Encode the safety archive.
+    EncodeSafetyBackup,
+    /// Publish or verify the safety archive.
+    PublishSafetyBackup,
+    /// Publish rollback material or the journal.
+    PublishJournal,
+    /// Replace or delete a live domain.
+    PublishTarget,
+    /// Verify the staged target set.
+    VerifyTarget,
+    /// Publish or verify exact rollback.
+    Rollback,
+    /// Clean up the terminal journal.
+    Cleanup,
+}
+
+/// Terminal state established when ordinary restore execution failed.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub enum RestoreFailureTerminalProjection {
+    /// No live target was touched.
+    NoLiveMutation,
+    /// Exact prior state was restored and verified.
+    RolledBack,
+    /// Recovery must finish before writes can resume.
+    RecoveryRequired,
+}
+
 /// Exact failed execution phase and terminal state.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RestoreExecutionFailureProjection {
     /// Failed journaled transaction phase.
-    pub stage: String,
+    pub stage: RestoreExecutionStageProjection,
     /// First affected domain when known.
     pub domain_id: Option<String>,
     /// Exact terminal guarantee established before return.
-    pub terminal: String,
+    pub terminal: RestoreFailureTerminalProjection,
     /// Safe failure detail.
     pub detail: String,
 }
@@ -148,6 +192,19 @@ pub struct RestoreAdapterExecuteCommand {
     pub requirement: RestoreAdapterRequirementProjection,
 }
 
+/// Terminal state reported by a single restore adapter.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub enum RestoreAdapterOutcomeProjection {
+    /// The target state was verified.
+    Verified,
+    /// The original state was verified.
+    RolledBack,
+    /// The adapter requires recovery.
+    RecoveryRequired,
+}
+
 /// Exact custom-adapter terminal receipt.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -162,7 +219,7 @@ pub struct RestoreAdapterReceiptProjection {
     /// Exact confirmed adapter preview.
     pub confirmation_digest: String,
     /// Verified, rolled-back, or recovery-required terminal.
-    pub outcome: String,
+    pub outcome: RestoreAdapterOutcomeProjection,
     /// Exact semantic evidence when supplied.
     pub evidence: Option<String>,
 }
@@ -201,13 +258,26 @@ pub struct RestoreRecoveryCommand {
     pub request_id: ConfigRequestId,
 }
 
+/// Verified result recorded in a restore recovery receipt.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub enum RestoreRecoveryResultProjection {
+    /// No journal was present.
+    NoRecoveryNeeded,
+    /// Exact prior state was restored and verified.
+    RolledBack,
+    /// A verified terminal journal was cleaned up.
+    TerminalCleanup,
+}
+
 /// Exact restore recovery receipt.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct RestoreRecoveryReceiptProjection {
     /// No-op, verified rollback, or terminal cleanup.
-    pub outcome: String,
+    pub outcome: RestoreRecoveryResultProjection,
     /// Journal domains considered by recovery.
     pub domain_ids: Vec<String>,
 }

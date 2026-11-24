@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use longhorn_core::DomainId;
 
 use crate::{
@@ -22,6 +24,10 @@ pub(crate) fn execute(
     confirmation: &Sha256Digest,
     requirement: RestoreAdapterRequirement,
 ) -> Result<RestoreAdapterReceipt, RestoreAdapterError> {
+    let _guard = store
+        .coordinator
+        .acquire(Duration::ZERO)
+        .map_err(RestoreAdapterError::Coordination)?;
     if store.restore_operation_state() != super::RestoreOperationState::Inactive {
         return Err(RestoreAdapterError::RestoreUnavailable);
     }

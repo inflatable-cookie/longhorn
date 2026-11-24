@@ -15,7 +15,7 @@ use serde::{Serialize, de::DeserializeOwned};
 
 use crate::atomic_file::UniqueTemporary;
 
-const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
+pub(crate) const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
 
 /// A journal document carrying a version field.
 pub(crate) trait JournalVersioned {

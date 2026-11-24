@@ -11,27 +11,28 @@ use longhorn_config::{
     BackupRetentionReasonProjection, CONFIG_OPERATIONS_PROTOCOL_VERSION, ConfigGeneration,
     ConfigOperationCapability, ConfigOperationRejection, ConfigOperationRejectionCode,
     ConfigOperationsSnapshot, ConfigProtocolVersion, ConfigSnapshotCommand, PendingBackupPolicy,
-    RestoreAdapterExecuteCommand, RestoreAdapterExecuteOutcome,
+    RestoreAdapterExecuteCommand, RestoreAdapterExecuteOutcome, RestoreAdapterOutcomeProjection,
     RestoreAdapterParticipationProjection, RestoreAdapterReceiptProjection,
     RestoreAdapterRequirementProjection, RestoreArchiveSelection, RestoreAuthenticityProjection,
     RestoreConflictChoiceProjection, RestoreConsistencyGroupProjection,
     RestoreCurrentEvidenceProjection, RestoreDomainChoice, RestoreDomainCompatibilityProjection,
     RestoreDomainInspectionProjection, RestoreExclusionProjection, RestoreExecuteCommand,
     RestoreExecuteOutcome, RestoreExecutionFailureProjection, RestoreExecutionReceiptProjection,
-    RestoreIdentityProjection, RestoreIdentityStatusProjection, RestoreInspectCommand,
-    RestoreInspectOutcome, RestoreInspectionProjection, RestoreInspectionReceiptProjection,
-    RestoreIntegrityProjection, RestoreOperationStateProjection, RestoreOperationsProjection,
-    RestorePlanCommand, RestorePlanEntryProjection, RestorePlanOutcome, RestorePlanProjection,
+    RestoreExecutionStageProjection, RestoreFailureTerminalProjection, RestoreIdentityProjection,
+    RestoreIdentityStatusProjection, RestoreInspectCommand, RestoreInspectOutcome,
+    RestoreInspectionProjection, RestoreInspectionReceiptProjection, RestoreIntegrityProjection,
+    RestoreOperationStateProjection, RestoreOperationsProjection, RestorePlanCommand,
+    RestorePlanEntryProjection, RestorePlanOutcome, RestorePlanProjection,
     RestorePlanReceiptProjection, RestoreRecoveryCommand, RestoreRecoveryOutcomeProjection,
-    RestoreRecoveryReceiptProjection, RestoreStagingReceiptProjection, StorageBootstrapProjection,
-    StorageCleanupCommand, StorageCleanupOutcome, StorageCleanupReceiptProjection,
-    StorageLayoutProjection, StorageLeafProvenanceProjection, StorageOperationsProjection,
-    StorageProfileId, StorageRecoveryCommand, StorageRecoveryOutcome,
-    StorageRecoveryReceiptProjection, StorageRootProjection, StorageTransitionConflictProjection,
-    StorageTransitionDomainProjection, StorageTransitionExecuteCommand,
-    StorageTransitionExecuteOutcome, StorageTransitionInspectCommand,
-    StorageTransitionInspectOutcome, StorageTransitionPreviewProjection,
-    StorageTransitionReceiptProjection,
+    RestoreRecoveryReceiptProjection, RestoreRecoveryResultProjection,
+    RestoreStagingReceiptProjection, StorageBootstrapProjection, StorageCleanupCommand,
+    StorageCleanupOutcome, StorageCleanupReceiptProjection, StorageLayoutProjection,
+    StorageLeafProvenanceProjection, StorageOperationsProjection, StorageProfileId,
+    StorageRecoveryCommand, StorageRecoveryOutcome, StorageRecoveryReceiptProjection,
+    StorageRootProjection, StorageTransitionConflictProjection, StorageTransitionDomainProjection,
+    StorageTransitionExecuteCommand, StorageTransitionExecuteOutcome,
+    StorageTransitionInspectCommand, StorageTransitionInspectOutcome,
+    StorageTransitionPreviewProjection, StorageTransitionReceiptProjection,
 };
 use longhorn_core::ConfigRequestId;
 use ts_rs::TS;
@@ -198,13 +199,17 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         RestoreExecuteCommand::decl(config()),
         RestoreStagingReceiptProjection::decl(config()),
         RestoreExecutionReceiptProjection::decl(config()),
+        RestoreExecutionStageProjection::decl(config()),
+        RestoreFailureTerminalProjection::decl(config()),
         RestoreExecutionFailureProjection::decl(config()),
         restore_execute.clone(),
         RestoreAdapterRequirementProjection::decl(config()),
         RestoreAdapterExecuteCommand::decl(config()),
+        RestoreAdapterOutcomeProjection::decl(config()),
         RestoreAdapterReceiptProjection::decl(config()),
         restore_adapter.clone(),
         RestoreRecoveryCommand::decl(config()),
+        RestoreRecoveryResultProjection::decl(config()),
         RestoreRecoveryReceiptProjection::decl(config()),
         restore_recovery.clone(),
     ]
@@ -274,6 +279,10 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
          export const RESTORE_CURRENT_EVIDENCE_STATES = {} as const;\n\
          export const RESTORE_INSPECT_STATUSES = {} as const;\n\
          export const RESTORE_PLAN_STATUSES = {} as const;\n\
+         export const RESTORE_EXECUTION_STAGES = {} as const;\n\
+         export const RESTORE_FAILURE_TERMINALS = {} as const;\n\
+         export const RESTORE_ADAPTER_OUTCOMES = {} as const;\n\
+         export const RESTORE_RECOVERY_RESULTS = {} as const;\n\
          export const RESTORE_EXECUTE_STATUSES = {} as const;\n\
          export const RESTORE_ADAPTER_EXECUTE_STATUSES = {} as const;\n\
          export const RESTORE_RECOVERY_STATUSES = {} as const;\n\n\
@@ -285,6 +294,18 @@ pub fn run(mode: GenerationMode) -> Result<(), Box<dyn Error>> {
         serde_json::to_string(&tagged_variants(&restore_current, "state")?)?,
         serde_json::to_string(&tagged_variants(&restore_inspect, "status")?)?,
         serde_json::to_string(&tagged_variants(&restore_plan, "status")?)?,
+        serde_json::to_string(&string_union_variants(
+            &RestoreExecutionStageProjection::decl(config())
+        )?)?,
+        serde_json::to_string(&string_union_variants(
+            &RestoreFailureTerminalProjection::decl(config())
+        )?)?,
+        serde_json::to_string(&string_union_variants(
+            &RestoreAdapterOutcomeProjection::decl(config())
+        )?)?,
+        serde_json::to_string(&string_union_variants(
+            &RestoreRecoveryResultProjection::decl(config())
+        )?)?,
         serde_json::to_string(&tagged_variants(&restore_execute, "status")?)?,
         serde_json::to_string(&tagged_variants(&restore_adapter, "status")?)?,
         serde_json::to_string(&tagged_variants(&restore_recovery, "status")?)?,

@@ -178,6 +178,24 @@ fn sqlite_external_snapshot_captures_wal_state_and_restores_only_with_explicit_a
     ));
     assert_eq!(database_value(&target_path), "keep-before-confirmation");
 
+    let blocked = target_store
+        .with_coordinated_load_set(Duration::ZERO, |_| {
+            target_store.execute_adapter_restore(
+                &target_catalog,
+                &archive,
+                &inspection,
+                target_database_domain.descriptor().id(),
+                &confirmation,
+                RestoreAdapterRequirement::AllowSeparate,
+            )
+        })
+        .unwrap();
+    assert!(
+        matches!(blocked, Err(RestoreAdapterError::Coordination(error))
+        if error.kind == longhorn_config::CoordinationFailureKind::Busy)
+    );
+    assert_eq!(database_value(&target_path), "keep-before-confirmation");
+
     let receipt = target_store
         .execute_adapter_restore(
             &target_catalog,

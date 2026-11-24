@@ -195,7 +195,20 @@ The implemented transition API inventories both layouts without mutation,
 binds confirmation to layout and file evidence, stages ordinary files, invokes
 schema-opaque custom adapters under their declared external guards, journals
 beside the fixed locator, and commits that locator last. Recovery verifies the
-authority selected by the locator. Cleanup accepts only exact registered
+authority selected by the locator. Read-only inspection refuses unresolved restore
+journals on either store. Execution rechecks both stores and any competing
+transition journal under both coordinators before staging. Recovery and
+receipt-bound cleanup also refuse unresolved restore journals under the
+coordinators.
+
+Ordinary transition reads resolve registered files below the store capability
+and obey the live document limit. Inventory also enforces its file and aggregate
+budgets. The journal and staged copies are read below the fixed bootstrap
+directory. A transition journal must fit 4 MiB in every phase and represent paths
+exactly as UTF-8 before staging. Staged copies must match the confirmed bytes
+before publication.
+
+Cleanup accepts only exact registered
 source paths and evidence carried by a committed receipt; it re-verifies target
 and source state under both store coordinators and remains idempotent.
 
@@ -545,6 +558,11 @@ Ordinary failure rolls back and verifies the complete selected set under the
 same guard. Unverified rollback retains the journal and enters
 `restore-recovery-required`.
 
+Coordinated backup capture refuses active and recovery-required restore states.
+Ordinary boot recovery bounds rollback reads by the recorded length and live
+document limit before checking the digest. Grouped boot recovery checks every
+payload filename against its domain index, phase role, and payload index.
+
 A crash leaves the journal and private rollback payloads. `ConfigStore::new`
 performs no I/O or recovery, and bare `ConfigStore::load` stays strictly
 read-only: it never acquires the coordinator or mutates the journal, returning
@@ -591,7 +609,8 @@ archive, adapter id, participation, semantic target evidence, and exact current
 semantic evidence into a confirmation digest. Custom domains never enter the
 ordinary file transaction by inference. The explicit adapter restore call can
 require failure atomicity or allow a separately receipted operation. It
-reinspects current evidence immediately before execution and rejects terminal
+tries the store coordinator without waiting and holds it through the restore
+journal check, adapter reinspection, and execution. The call rejects terminal
 evidence that contradicts the confirmed target or rollback claim.
 
 Adapter semantic evidence is an explicit state: `Absent`, or `Present` with a

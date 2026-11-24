@@ -101,6 +101,47 @@ describe("generated config operations fixture", () => {
     incompatible(() => assertValidRestoreInspectOutcome(compatibility));
   });
 
+  test("rejects unknown restore stages, terminals, and receipt outcomes", () => {
+    const {
+      unknownRestoreExecutionStage,
+      unknownRestoreFailureTerminal,
+      unknownRestoreAdapterOutcome,
+      unknownRestoreRecoveryResult,
+    } = fixture.incompatibility;
+    const rolledBack = fixture.restoreExecutionStates.find(
+      (outcome) => outcome.status === "rolledBack",
+    );
+    if (!rolledBack?.failure) {
+      throw new Error("missing rollback failure in config fixture");
+    }
+    const adapter = fixture.outcomes.executeAdapterRestore;
+    const recovery = fixture.outcomes.recoverRestore;
+    incompatible(() =>
+      assertValidRestoreExecuteOutcome({
+        ...rolledBack,
+        failure: { ...rolledBack.failure, stage: unknownRestoreExecutionStage },
+      }),
+    );
+    incompatible(() =>
+      assertValidRestoreExecuteOutcome({
+        ...rolledBack,
+        failure: { ...rolledBack.failure, terminal: unknownRestoreFailureTerminal },
+      }),
+    );
+    incompatible(() =>
+      assertValidRestoreAdapterExecuteOutcome({
+        ...adapter,
+        receipt: { ...adapter.receipt, outcome: unknownRestoreAdapterOutcome },
+      }),
+    );
+    incompatible(() =>
+      assertValidRestoreRecoveryOutcome({
+        ...recovery,
+        receipt: { ...recovery.receipt, outcome: unknownRestoreRecoveryResult },
+      }),
+    );
+  });
+
   test("rejects malformed confirmation and archive digests", () => {
     const request = structuredClone(fixture.commands.snapshot);
     request.requestId = "UPPERCASE";

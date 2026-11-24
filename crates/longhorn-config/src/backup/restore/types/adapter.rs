@@ -4,7 +4,7 @@ use longhorn_core::DomainId;
 
 use crate::{
     BackupAdapterError, BackupAdapterId, BackupAdapterRestoreOutcome,
-    BackupAdapterRestoreParticipation, Sha256Digest,
+    BackupAdapterRestoreParticipation, CoordinationFailure, Sha256Digest,
 };
 
 /// Minimum guarantee required by an explicit custom restore call.
@@ -79,6 +79,8 @@ impl RestoreAdapterReceipt {
 pub enum RestoreAdapterError {
     /// Another ordinary or grouped restore journal is active.
     RestoreUnavailable,
+    /// The store coordinator could not be acquired immediately.
+    Coordination(CoordinationFailure),
     /// Stable application or producer identity does not match.
     IdentityMismatch,
     /// Archive bytes differ from the inspected source.
@@ -143,6 +145,9 @@ pub enum RestoreAdapterError {
 impl fmt::Display for RestoreAdapterError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Coordination(error) => {
+                write!(formatter, "adapter restore coordination failed: {error}")
+            }
             Self::RestoreUnavailable => formatter
                 .write_str("custom restore is unavailable while restore recovery is active"),
             Self::IdentityMismatch => {
@@ -204,4 +209,11 @@ impl fmt::Display for RestoreAdapterError {
     }
 }
 
-impl Error for RestoreAdapterError {}
+impl Error for RestoreAdapterError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Coordination(error) => Some(error),
+            _ => None,
+        }
+    }
+}

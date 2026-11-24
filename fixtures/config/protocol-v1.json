@@ -3056,6 +3056,10 @@
     "unknownOutcomeStatus": {
       "status": "scheduled"
     },
+    "unknownRestoreExecutionStage": "publishEverything",
+    "unknownRestoreFailureTerminal": "retrying",
+    "unknownRestoreAdapterOutcome": "partiallyVerified",
+    "unknownRestoreRecoveryResult": "skippedVerification",
     "unknownRestoreCompatibility": {
       "status": "mergeAutomatically"
     }

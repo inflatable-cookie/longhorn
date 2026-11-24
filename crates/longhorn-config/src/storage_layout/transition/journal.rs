@@ -1,8 +1,8 @@
-use std::{fs, path::PathBuf};
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::Sha256Digest;
+use crate::{Sha256Digest, journal_file};
 use longhorn_storage_layout::StorageBootstrapPaths;
 
 use super::{
@@ -41,7 +41,10 @@ pub(super) struct JournalDomain {
 }
 
 impl TransitionJournal {
-    pub(super) fn from_plan(transition_id: String, plan: &StorageTransitionPlan) -> Self {
+    pub(super) fn from_plan(
+        transition_id: String,
+        plan: &StorageTransitionPlan,
+    ) -> Result<Self, StorageTransitionError> {
         let domains = plan
             .preview
             .domains
@@ -69,14 +72,18 @@ impl TransitionJournal {
                 })
             })
             .collect();
-        Self {
+        let mut journal = Self {
             transition_id,
-            phase: JournalPhase::Prepared,
+            phase: JournalPhase::LocatorCommitted,
             source_layout_digest: plan.preview.source_layout_digest.clone(),
             target_layout_digest: plan.preview.target_layout_digest.clone(),
             confirmation_digest: plan.preview.confirmation_digest.clone(),
             domains,
-        }
+        };
+        // Check the longest phase and exact path serialization before staging.
+        encode(&journal)?;
+        journal.phase = JournalPhase::Prepared;
+        Ok(journal)
     }
 }
 
@@ -84,6 +91,10 @@ pub(super) fn write(
     paths: &StorageBootstrapPaths,
     journal: &TransitionJournal,
 ) -> Result<(), StorageTransitionError> {
+    io::atomic_write(paths.journal(), &encode(journal)?)
+}
+
+fn encode(journal: &TransitionJournal) -> Result<Vec<u8>, StorageTransitionError> {
     let document = JournalDocument {
         schema_version: JOURNAL_SCHEMA_VERSION,
         transition_id: journal.transition_id.clone(),
@@ -97,18 +108,18 @@ pub(super) fn write(
             .map(JournalDomainDocument::from_domain)
             .collect(),
     };
-    let bytes = serde_json::to_vec(&document)
-        .map_err(|error| StorageTransitionError::Journal(error.to_string()))?;
-    io::atomic_write(paths.journal(), &bytes)
+    journal_file::encode(&document, "storage transition journal")
+        .map_err(|error| StorageTransitionError::Journal(error.to_string()))
 }
 
 pub(super) fn read(
     paths: &StorageBootstrapPaths,
 ) -> Result<Option<TransitionJournal>, StorageTransitionError> {
-    let bytes = match fs::read(paths.journal()) {
-        Ok(bytes) => bytes,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(StorageTransitionError::Journal(error.to_string())),
+    let relative = Path::new(paths.journal().file_name().expect("fixed journal name"));
+    let Some(bytes) = io::read(paths.directory(), relative, journal_file::MAX_JOURNAL_BYTES)
+        .map_err(|error| StorageTransitionError::Journal(error.to_string()))?
+    else {
+        return Ok(None);
     };
     let document: JournalDocument = serde_json::from_slice(&bytes)
         .map_err(|error| StorageTransitionError::Journal(error.to_string()))?;
@@ -159,8 +170,8 @@ struct JournalDocument {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct JournalDomainDocument {
     domain: String,
-    source_path: Option<String>,
-    target_path: Option<String>,
+    source_path: Option<PathBuf>,
+    target_path: Option<PathBuf>,
     source: Option<EvidenceDocument>,
     target_expected: Option<EvidenceDocument>,
     custom: bool,
@@ -172,14 +183,8 @@ impl JournalDomainDocument {
     fn from_domain(domain: &JournalDomain) -> Self {
         Self {
             domain: domain.domain.clone(),
-            source_path: domain
-                .source_path
-                .as_ref()
-                .map(|path| path.to_string_lossy().into_owned()),
-            target_path: domain
-                .target_path
-                .as_ref()
-                .map(|path| path.to_string_lossy().into_owned()),
+            source_path: domain.source_path.clone(),
+            target_path: domain.target_path.clone(),
             source: domain.source.as_ref().map(EvidenceDocument::from_evidence),
             target_expected: domain
                 .target_expected
@@ -193,8 +198,8 @@ impl JournalDomainDocument {
     fn into_domain(self) -> Result<JournalDomain, StorageTransitionError> {
         Ok(JournalDomain {
             domain: self.domain,
-            source_path: self.source_path.map(PathBuf::from),
-            target_path: self.target_path.map(PathBuf::from),
+            source_path: self.source_path,
+            target_path: self.target_path,
             source: self
                 .source
                 .map(EvidenceDocument::into_evidence)
@@ -265,5 +270,79 @@ impl EvidenceDocument {
                 "invalid transition evidence shape".into(),
             )),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use longhorn_storage_layout::{
+        PlatformDirectoryFacts, StorageIdentity, TargetPlatform, resolve_storage_bootstrap_paths,
+    };
+
+    fn journal() -> TransitionJournal {
+        let digest = Sha256Digest::from_bytes(b"layout");
+        TransitionJournal {
+            transition_id: "interrupted".into(),
+            phase: JournalPhase::Prepared,
+            source_layout_digest: digest.clone(),
+            target_layout_digest: digest.clone(),
+            confirmation_digest: digest,
+            domains: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn journal_read_and_write_enforce_the_same_byte_bound() {
+        let temp = tempfile::tempdir().unwrap();
+        let identity = StorageIdentity::new("com.example.transfer").unwrap();
+        let facts = PlatformDirectoryFacts::complete(
+            TargetPlatform::Linux,
+            temp.path().join("config"),
+            temp.path().join("data"),
+            temp.path().join("state"),
+            temp.path().join("cache"),
+            temp.path().join("log"),
+            temp.path().join("runtime"),
+        );
+        let paths = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+        let mut journal = journal();
+        journal.transition_id = "x".repeat(journal_file::MAX_JOURNAL_BYTES);
+        assert!(
+            matches!(write(&paths, &journal), Err(StorageTransitionError::Journal(detail))
+            if detail.contains("exceeds byte limit"))
+        );
+        assert!(!paths.journal().exists());
+
+        std::fs::create_dir_all(paths.directory()).unwrap();
+        std::fs::File::create(paths.journal())
+            .unwrap()
+            .set_len(journal_file::MAX_JOURNAL_BYTES as u64 + 1)
+            .unwrap();
+        assert!(
+            matches!(read(&paths), Err(StorageTransitionError::Journal(detail))
+            if detail.contains("bound exceeded"))
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn journal_refuses_paths_it_cannot_round_trip() {
+        use std::os::unix::ffi::OsStringExt;
+
+        let mut journal = journal();
+        journal.domains.push(JournalDomain {
+            domain: "example.path".into(),
+            source_path: Some(std::ffi::OsString::from_vec(vec![b'/', 0xff]).into()),
+            target_path: None,
+            source: Some(StorageFileEvidence::Absent),
+            target_expected: Some(StorageFileEvidence::Absent),
+            custom: false,
+            target_was_absent: false,
+        });
+        assert!(matches!(
+            encode(&journal),
+            Err(StorageTransitionError::Journal(_))
+        ));
     }
 }

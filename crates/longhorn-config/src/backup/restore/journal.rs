@@ -260,7 +260,28 @@ pub(super) fn read_rollback(
             "rollback payload name does not match domain",
         ));
     }
-    let bytes = fs::read(rollback_directory(authority_root).join(file_name))?;
+    let JournalEvidence::Present { byte_length, .. } = entry.old else {
+        return Err(io::Error::other(
+            "absent rollback evidence has a rollback payload",
+        ));
+    };
+    let bound = usize::try_from(byte_length)
+        .ok()
+        .filter(|length| *length <= crate::store::load::max_live_domain_bytes())
+        .ok_or_else(|| io::Error::other("rollback payload exceeds live domain byte limit"))?;
+    let relative = Path::new(STATE_DIRECTORY)
+        .join(ROLLBACK_DIRECTORY)
+        .join(file_name);
+    let bytes =
+        crate::store::load::read_bounded(authority_root, &relative, bound).map_err(|error| {
+            if error.kind() == io::ErrorKind::InvalidData {
+                io::Error::other(format!(
+                    "rollback payload length or digest does not match journal: {error}"
+                ))
+            } else {
+                error
+            }
+        })?;
     if !entry.old.matches(Some(&bytes)) {
         return Err(io::Error::other(
             "rollback payload length or digest does not match journal",

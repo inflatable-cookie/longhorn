@@ -864,6 +864,49 @@ fn boot_recovery_refuses_grown_and_truncated_staged_payloads() {
 }
 
 #[test]
+fn boot_recovery_refuses_a_renamed_grouped_rollback_payload() {
+    let group = GroupFixture::new();
+    leave_interrupted_group(&group);
+    let state = group
+        .fixture
+        .temp
+        .path()
+        .join("data/.longhorn/grouped-adapter-restore");
+    let journal_path = state.join("journal.json");
+    let mut journal: Value = serde_json::from_slice(&fs::read(&journal_path).unwrap()).unwrap();
+    let payload = &mut journal["entries"][0]["rollbackPayloads"][0];
+    let original_name = payload["fileName"].as_str().unwrap();
+    fs::copy(
+        state.join("payloads").join(original_name),
+        state.join("payloads/renamed.payload"),
+    )
+    .unwrap();
+    payload["fileName"] = json!("renamed.payload");
+    fs::write(&journal_path, serde_json::to_vec(&journal).unwrap()).unwrap();
+
+    let first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    let second = FileAdapter::new(group.second_path.clone(), FailureMode::None);
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &second).unwrap();
+    assert_eq!(
+        store.restore_operation_state(),
+        RestoreOperationState::RecoveryRequired
+    );
+    let error = store
+        .recover_grouped_adapter_restore(&catalog, Duration::ZERO)
+        .unwrap_err();
+    assert!(
+        error.detail().contains("payload name does not match"),
+        "{error}"
+    );
+    assert!(!first.apply_started.load(Ordering::SeqCst));
+    assert!(!second.apply_started.load(Ordering::SeqCst));
+    assert!(journal_path.is_file());
+}
+
+#[test]
 fn boot_recovery_refuses_journal_lengths_over_the_hard_limits() {
     const MAX_DOMAIN_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -898,6 +941,10 @@ fn boot_recovery_refuses_journal_lengths_over_the_hard_limits() {
             .map(|index| {
                 let mut entry = entry.clone();
                 entry["domain"] = json!(format!("group.fixture-{index}"));
+                entry["targetPayloads"][0]["fileName"] =
+                    json!(format!("{index:04}-target-0000.payload"));
+                entry["rollbackPayloads"][0]["fileName"] =
+                    json!(format!("{index:04}-rollback-0000.payload"));
                 entry
             })
             .collect(),
