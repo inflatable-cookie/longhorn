@@ -132,6 +132,18 @@ impl GpuiApplyOutcomeBundle {
     }
 }
 
+/// Why a lifecycle host could not complete an identity change.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum GpuiRetagError {
+    /// The lifecycle host did not move. The retag is refused, and the registry
+    /// stays where it was.
+    Refused(String),
+    /// The lifecycle host moved the window to its new identity, but some of its
+    /// pending deadlines could not be rescheduled. The registry follows the move,
+    /// and the attempt reports the failure.
+    Rescheduling(String),
+}
+
 /// Receives apply evidence before each native mutation.
 ///
 /// Native events a mutation causes arrive later and look exactly like user
@@ -153,15 +165,17 @@ pub trait GpuiApplyObserver {
     /// Moves lifecycle bookkeeping for `transport_handle` to `window_id`.
     ///
     /// Called only after the registry has validated the retag, and before the
-    /// registry commits it, so an error here leaves the registry unchanged.
+    /// registry commits it. A [`GpuiRetagError::Refused`] leaves the registry
+    /// unchanged. A [`GpuiRetagError::Rescheduling`] means the lifecycle host did
+    /// move, so the registry commits too.
     ///
     /// # Errors
-    /// An error refuses the retag.
+    /// See [`GpuiRetagError`].
     fn retag(
         &mut self,
         transport_handle: &HostWindowHandle,
         window_id: &WindowId,
-    ) -> Result<(), String>;
+    ) -> Result<(), GpuiRetagError>;
 }
 
 /// Executes one ordered nontransactional apply on the GPUI main thread.
@@ -411,25 +425,39 @@ fn execute_retag(
             registry_failure(GpuiWindowCall::RegistryRetag, &error),
         );
     }
-    if let Err(detail) = observer.retag(transport_handle, window_id) {
-        return failed(
-            generation,
-            window_id.clone(),
-            Some(transport_handle.clone()),
-            WindowOperationKind::Retag,
-            Vec::new(),
-            lifecycle_failure(detail),
-        );
-    }
+    let retag_failure = match observer.retag(transport_handle, window_id) {
+        Ok(()) => None,
+        Err(GpuiRetagError::Refused(detail)) => {
+            return failed(
+                generation,
+                window_id.clone(),
+                Some(transport_handle.clone()),
+                WindowOperationKind::Retag,
+                Vec::new(),
+                lifecycle_failure(detail),
+            );
+        }
+        Err(GpuiRetagError::Rescheduling(detail)) => Some(lifecycle_failure(detail)),
+    };
     registry.record_evidence(Some(transport_handle.clone()), operation.clone());
     match registry.retag(transport_handle, window_id.clone()) {
-        Ok(()) => succeeded(
-            generation,
-            window_id.clone(),
-            Some(transport_handle.clone()),
-            WindowOperationKind::Retag,
-            vec![GpuiWindowCall::RegistryRetag],
-        ),
+        Ok(()) => match retag_failure {
+            None => succeeded(
+                generation,
+                window_id.clone(),
+                Some(transport_handle.clone()),
+                WindowOperationKind::Retag,
+                vec![GpuiWindowCall::RegistryRetag],
+            ),
+            Some(failure) => failed(
+                generation,
+                window_id.clone(),
+                Some(transport_handle.clone()),
+                WindowOperationKind::Retag,
+                vec![GpuiWindowCall::RegistryRetag],
+                failure,
+            ),
+        },
         Err(error) => failed(
             generation,
             window_id.clone(),

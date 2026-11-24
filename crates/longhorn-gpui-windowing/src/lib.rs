@@ -27,7 +27,8 @@ mod scale;
 mod transfer;
 
 pub use apply::{
-    GpuiApplyObserver, GpuiApplyOutcomeBundle, GpuiDiagnosticDisposition, execute_gpui_window_apply,
+    GpuiApplyObserver, GpuiApplyOutcomeBundle, GpuiDiagnosticDisposition, GpuiRetagError,
+    execute_gpui_window_apply,
 };
 pub use backend::{GpuiWindowBackend, GpuiWindowCreateRequest, GpuiWindowError};
 pub use capabilities::{

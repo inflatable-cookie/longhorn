@@ -22,8 +22,9 @@
 use gpui::App;
 use longhorn_core::{ScreenPoint, ScreenSize, WindowId, WindowPlacement};
 use longhorn_gpui_windowing::{
-    GpuiApplyObserver, GpuiApplyOutcome, GpuiWindowBackend, GpuiWindowCreateRequest, GpuiWindowKey,
-    GpuiWindowRegistry, execute_gpui_window_apply, gpui_host_capabilities,
+    GpuiApplyObserver, GpuiApplyOutcome, GpuiRetagError, GpuiWindowBackend,
+    GpuiWindowCreateRequest, GpuiWindowKey, GpuiWindowRegistry, execute_gpui_window_apply,
+    gpui_host_capabilities,
 };
 use longhorn_gpui_windowing_prototype::GpuiAppBackend;
 use longhorn_windowing::{
@@ -67,7 +68,7 @@ impl GpuiApplyObserver for NoLifecycleHost {
         &mut self,
         _transport_handle: &HostWindowHandle,
         _window_id: &WindowId,
-    ) -> Result<(), String> {
+    ) -> Result<(), GpuiRetagError> {
         Ok(())
     }
 }

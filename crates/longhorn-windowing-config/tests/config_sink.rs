@@ -375,6 +375,62 @@ fn a_flush_whose_publication_outlasts_its_bound_reports_timed_out() {
 }
 
 #[test]
+fn a_caller_that_keeps_timing_out_is_refused_past_the_publication_bound() {
+    use std::sync::{Mutex, mpsc};
+
+    use longhorn_windowing::WindowFlushOutcome;
+
+    let (_temp, store) = store();
+    let (release_tx, release_rx) = mpsc::channel::<()>();
+    let gate = Mutex::new(Some(release_rx));
+    let sink = ConfigWindowPlacementSink::new(
+        store,
+        SessionDomain::new(),
+        MutationOptions::new(Duration::from_secs(2), DurabilityRequirement::Atomic),
+        move |session: &mut Session, captured| {
+            if let Some(release) = gate.lock().unwrap().take() {
+                release.recv_timeout(Duration::from_secs(5)).unwrap();
+            }
+            session
+                .placements
+                .insert("window:main".to_owned(), captured.clone());
+            Ok(())
+        },
+    )
+    .unwrap();
+    sink.stage(&placement("window:main", 800)).unwrap();
+
+    // Each timed-out caller leaves its publication running. Four are allowed
+    // in flight; the fifth is refused rather than starting another worker.
+    for _ in 0..4 {
+        assert_eq!(
+            longhorn_windowing::flush_window_placements(&sink, &request_within("window:main", 20)),
+            WindowFlushOutcome::TimedOut
+        );
+    }
+    assert!(matches!(
+        longhorn_windowing::flush_window_placements(&sink, &request_within("window:main", 20)),
+        WindowFlushOutcome::RequestFailed { .. }
+    ));
+
+    // Once the held publication finishes, the queued ones drain and a new
+    // flush is accepted again. Draining is asynchronous, so retry until the
+    // bound clears rather than assuming it has.
+    release_tx.send(()).unwrap();
+    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    let outcome = loop {
+        let outcome = longhorn_windowing::flush_window_placements(&sink, &request("window:main"));
+        if !matches!(outcome, WindowFlushOutcome::RequestFailed { .. })
+            || std::time::Instant::now() >= deadline
+        {
+            break outcome;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert_eq!(outcome, WindowFlushOutcome::Succeeded);
+}
+
+#[test]
 fn migrated_domain_rewrite_publishes_the_new_schema_with_a_safety_backup() {
     use longhorn_config::{
         BackupApplication, BackupArchiveFileName, BackupArchiveLimits, BackupCaptureOptions,

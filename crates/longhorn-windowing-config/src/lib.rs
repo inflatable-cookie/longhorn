@@ -6,7 +6,11 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    sync::{Arc, Mutex, mpsc},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+        mpsc,
+    },
     thread,
 };
 
@@ -20,6 +24,12 @@ use longhorn_windowing::{
     CapturedWindowPlacement, WindowFlushRequest, WindowPlacementFlushCompletion,
     WindowPlacementFlushTicket, WindowPlacementSink,
 };
+
+/// Publications that may still be in flight at once. A publication that
+/// outlives its caller keeps a worker blocked until it finishes, so a caller
+/// that keeps timing out is refused past this bound rather than piling up
+/// workers.
+const MAX_PENDING_PUBLICATIONS: usize = 4;
 
 type PlacementPatch<D> = dyn Fn(&mut <D as ConfigDomain>::Value, &CapturedWindowPlacement) -> Result<(), DomainIssue>
     + Send
@@ -47,6 +57,9 @@ where
     /// previous publication has finished.
     flush: Mutex<()>,
     staged: Mutex<BTreeMap<WindowId, CapturedWindowPlacement>>,
+    /// Publications started and not yet finished, including ones whose caller
+    /// has stopped waiting.
+    pending: AtomicUsize,
 }
 
 impl<D> ConfigWindowPlacementSink<D>
@@ -75,6 +88,7 @@ where
                 patch: Box::new(patch),
                 flush: Mutex::new(()),
                 staged: Mutex::new(BTreeMap::new()),
+                pending: AtomicUsize::new(0),
             }),
         })
     }
@@ -117,7 +131,7 @@ where
 
 impl<D> Shared<D>
 where
-    D: ConfigDomain + Send + Sync,
+    D: ConfigDomain,
 {
     fn stage(&self, placement: &CapturedWindowPlacement) -> Result<(), String> {
         self.staged
@@ -177,6 +191,15 @@ where
     }
 }
 
+/// One in-flight publication's claim on the pending count.
+struct PublicationSlot<'a>(&'a AtomicUsize);
+
+impl Drop for PublicationSlot<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
 impl<D> WindowPlacementSink for ConfigWindowPlacementSink<D>
 where
     D: ConfigDomain + Send + Sync + 'static,
@@ -209,20 +232,34 @@ where
             return Ok(WindowPlacementFlushTicket::completed());
         }
 
+        if self.shared.pending.fetch_add(1, Ordering::SeqCst) >= MAX_PENDING_PUBLICATIONS {
+            self.shared.pending.fetch_sub(1, Ordering::SeqCst);
+            return Err(format!(
+                "{MAX_PENDING_PUBLICATIONS} window placement publications are still in flight"
+            ));
+        }
         let (sender, receiver) = mpsc::channel();
         let shared = Arc::clone(&self.shared);
-        thread::Builder::new()
+        let spawned = thread::Builder::new()
             .name("longhorn-window-placement-flush".to_owned())
             .spawn(move || {
-                let completion = match shared.publish(&targets) {
-                    Ok(()) => WindowPlacementFlushCompletion::Succeeded,
-                    Err(detail) => WindowPlacementFlushCompletion::Failed(detail),
+                let completion = {
+                    // Released before the acknowledgement is sent, and on unwind
+                    // too, so a panicking patch cannot leak a slot.
+                    let _slot = PublicationSlot(&shared.pending);
+                    match shared.publish(&targets) {
+                        Ok(()) => WindowPlacementFlushCompletion::Succeeded,
+                        Err(detail) => WindowPlacementFlushCompletion::Failed(detail),
+                    }
                 };
                 // The caller may already have stopped waiting. A late
                 // acknowledgement then has no reader, which is fine.
                 let _ = sender.send(completion);
-            })
-            .map_err(|error| format!("could not start window placement flush: {error}"))?;
+            });
+        if let Err(error) = spawned {
+            self.shared.pending.fetch_sub(1, Ordering::SeqCst);
+            return Err(format!("could not start window placement flush: {error}"));
+        }
         Ok(WindowPlacementFlushTicket::new(receiver))
     }
 }

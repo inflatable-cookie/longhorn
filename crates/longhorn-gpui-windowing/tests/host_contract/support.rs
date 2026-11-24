@@ -4,8 +4,8 @@ use longhorn_core::{ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, WindowId, 
 use longhorn_display::DisplayBuiltinStatus;
 use longhorn_gpui_windowing::{
     GpuiApplyObserver, GpuiDisplayFacts, GpuiDisplayFactsSource, GpuiLogicalRect, GpuiLogicalSize,
-    GpuiWindowBackend, GpuiWindowBoundsState, GpuiWindowCreateRequest, GpuiWindowError,
-    GpuiWindowFacts, GpuiWindowKey,
+    GpuiRetagError, GpuiWindowBackend, GpuiWindowBoundsState, GpuiWindowCreateRequest,
+    GpuiWindowError, GpuiWindowFacts, GpuiWindowKey,
 };
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostCapabilities, HostWindowHandle, WindowDiffInput,
@@ -357,9 +357,9 @@ impl GpuiApplyObserver for RecordingApplyObserver {
         &mut self,
         transport_handle: &HostWindowHandle,
         window_id: &WindowId,
-    ) -> Result<(), String> {
+    ) -> Result<(), GpuiRetagError> {
         if let Some(detail) = &self.refusal {
-            return Err(detail.clone());
+            return Err(GpuiRetagError::Refused(detail.clone()));
         }
         self.retagged
             .push((transport_handle.clone(), window_id.clone()));

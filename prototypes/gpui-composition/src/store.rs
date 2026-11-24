@@ -203,8 +203,8 @@ pub fn persist_now(
     placement: &CapturedWindowPlacement,
 ) -> Result<Duration, String> {
     use longhorn_windowing::{
-        WindowFlushRequest, WindowFlushScope, WindowFlushTarget, WindowLifecycleDuration,
-        WindowPlacementSink as _,
+        WindowFlushOutcome, WindowFlushRequest, WindowFlushScope, WindowFlushTarget,
+        WindowLifecycleDuration, WindowPlacementSink as _, flush_window_placements,
     };
 
     let started = std::time::Instant::now();
@@ -215,7 +215,11 @@ pub fn persist_now(
         // Shutdown scope: this is the write a teardown depends on.
         WindowFlushScope::ApplicationShutdown,
     );
-    let ticket = sink.request_flush(&request)?;
-    drop(ticket);
-    Ok(started.elapsed())
+    // The publication runs on a worker, so the write is only done once the
+    // flush has acknowledged it. Anything other than success is an error,
+    // and the elapsed time is measured across the whole wait.
+    match flush_window_placements(sink, &request) {
+        WindowFlushOutcome::Succeeded => Ok(started.elapsed()),
+        outcome => Err(format!("{outcome:?}")),
+    }
 }

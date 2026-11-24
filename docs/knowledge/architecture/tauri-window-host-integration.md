@@ -65,7 +65,8 @@ for a consumer-owned `ConfigDomain`. It coalesces captures per window and
 publishes requested targets through one coordinated mutation, run on a flush
 worker. The caller's wait enforces the flush timeout. A publication that
 outlasts it reports `TimedOut` and still completes later, and placements stay
-staged until a publication succeeds. The consumer supplies only the projection
+staged until a publication succeeds. Four publications may be in flight at once;
+a request past that is refused with `RequestFailed`. The consumer supplies only the projection
 into its domain value.
 
 ## Geometry Scale

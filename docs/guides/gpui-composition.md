@@ -87,8 +87,9 @@ Pass your `GpuiWindowLifecycleHost` as `observer`. It implements
 call. Without that evidence, the resize and maximize events an apply causes
 arrive as user moves and are captured as user placements. A lifecycle refusal
 stops the operation before its native call, and the attempt reports
-`GpuiApplyFailureKind::Lifecycle`. A retag waits while its window has pending
-capture or flush work.
+`GpuiApplyFailureKind::Lifecycle`. A retag publishes the old identity's staged
+placements first and is refused if that fails. It then moves the window's
+pending work and apply evidence to the new identity.
 
 Read placement back with `observe_gpui_desktop(backend, registry, source)`.
 
