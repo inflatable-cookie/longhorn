@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import type { ConnectionFailure, EventTransport, Unlisten } from "@inflatable-cookie/longhorn/core";
+import { bridgeCodec } from "@inflatable-cookie/longhorn/bridge";
 import {
   connectBridgeStream,
   DirectBridgeStreamSource,
@@ -222,6 +223,129 @@ function tick(): Promise<void> {
     setTimeout(resolve, 0);
   });
 }
+
+// Two incompatible job shapes on one channel: this job's codecs accept only a
+// plain number, so a foreign job's object-shaped payloads fail them.
+const numberCodec = bridgeCodec<number>((value) => {
+  if (typeof value !== "number") {
+    throw new TypeError("expected a number");
+  }
+  return value;
+});
+
+test("another job's incompatible payloads never fail or reach the current job", async () => {
+  const transport = new RecordingEventTransport();
+  const failures: Array<ConnectionFailure> = [];
+  const progress: Array<unknown> = [];
+  const terminal: Array<unknown> = [];
+  const dispose = await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: numberCodec,
+      successCodec: numberCodec,
+      detailCodec: numberCodec,
+      progress: (event) => progress.push(event.progress),
+      terminal: (event) => terminal.push(event),
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+
+  transport.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "request:other",
+    jobId: "job:other",
+    progress: { percent: 10, extra: true },
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:other",
+    jobId: "job:other",
+    outcome: { succeeded: { rows: [1, 2] } },
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:other",
+    jobId: "job:other",
+    outcome: {
+      failed: {
+        code: "other.failed",
+        message: "other job failed",
+        retryClass: "never",
+        phase: "execution",
+        details: { reason: "not-a-number" },
+      },
+    },
+  });
+  transport.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    progress: 20,
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    outcome: { succeeded: 3 },
+  });
+  await tick();
+
+  expect(failures).toEqual([]);
+  expect(progress).toEqual([20]);
+  expect(terminal).toEqual([
+    {
+      requestId: "request:scan",
+      jobId: "job:scan",
+      outcome: { succeeded: 3 },
+    },
+  ]);
+  // Both listeners survive the foreign traffic and are released on disposal.
+  expect(transport.listeners.size).toBe(2);
+  await dispose();
+  expect(transport.listeners.size).toBe(0);
+});
+
+test("events after this job's terminal are neither decoded nor reported", async () => {
+  const transport = new RecordingEventTransport();
+  const failures: Array<ConnectionFailure> = [];
+  const progress: Array<unknown> = [];
+  const terminal: Array<unknown> = [];
+  const dispose = await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: numberCodec,
+      successCodec: numberCodec,
+      detailCodec: numberCodec,
+      progress: (event) => progress.push(event.progress),
+      terminal: (event) => terminal.push(event),
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    outcome: { succeeded: 3 },
+  });
+  // Late input for the settled job, malformed in both payload and envelope.
+  transport.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    progress: "late",
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    outcome: { succeeded: "late" },
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, "not-an-event");
+  await tick();
+
+  expect(failures).toEqual([]);
+  expect(progress).toEqual([]);
+  expect(terminal).toHaveLength(1);
+  expect(transport.listeners.size).toBe(2);
+  await dispose();
+});
 
 test("a malformed terminal event reaches onFailure and ends the job", async () => {
   const transport = new RecordingEventTransport();

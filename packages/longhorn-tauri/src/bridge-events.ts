@@ -7,6 +7,7 @@ import { TauriEventTransport } from "@inflatable-cookie/longhorn-tauri/events";
 
 import type { BridgeCodec } from "@inflatable-cookie/longhorn/bridge";
 import {
+  parseBridgeJobCorrelation,
   parseBridgeJobTerminalEvent,
   parseBridgeProgressEvent,
 } from "@inflatable-cookie/longhorn/bridge";
@@ -63,7 +64,7 @@ export interface BridgeJobListeners<Progress, Success, Detail> {
   readonly progress?: (event: BridgeProgressEvent<Progress>) => void;
   readonly terminal: (event: BridgeJobTerminalEvent<Success, Detail>) => void;
   /**
-   * Reports a malformed event or a teardown failure, mirroring
+   * Reports a malformed event for this job or a teardown failure, mirroring
    * `CheckedSnapshotConnection`. A malformed terminal event is the only way
    * the job would otherwise never terminate for the consumer, so one parse
    * failure reports `{ phase: "event" }` and tears both listeners down.
@@ -73,7 +74,9 @@ export interface BridgeJobListeners<Progress, Success, Detail> {
 
 /**
  * Installs request/job-correlated progress and terminal listeners.
- * Wrong-correlation and post-terminal messages never reach consumers.
+ * Wrong-correlation messages are dropped before their payload is decoded, and
+ * post-terminal messages are dropped without decoding, so neither can fail
+ * this job or reach consumers.
  *
  * Contract 010 makes events projections, not durable delivery, and the bridge
  * has no job-status query. A terminal that fires before its listener is
@@ -146,8 +149,20 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
     }
   };
 
+  // The channels are shared by every job, so correlation comes before any
+  // job-specific decode: another job's payload cannot fail this one. A value
+  // whose identifiers are unreadable belongs to no job and is malformed.
+  const admits = (value: unknown): boolean => {
+    try {
+      return tracker.correlates(parseBridgeJobCorrelation(value));
+    } catch (error) {
+      fail(error);
+      return false;
+    }
+  };
+
   const onProgress = (value: unknown): void => {
-    if (stopped) {
+    if (stopped || tracker.isTerminal() || !admits(value)) {
       return;
     }
     let event: BridgeProgressEvent<Progress>;
@@ -163,7 +178,9 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   };
 
   const onTerminal = (value: unknown): void => {
-    if (stopped) {
+    // After this job's terminal, input is not decoded at all: a late or
+    // malformed event cannot fail a job that has already settled.
+    if (stopped || tracker.isTerminal() || !admits(value)) {
       return;
     }
     let event: BridgeJobTerminalEvent<Success, Detail>;

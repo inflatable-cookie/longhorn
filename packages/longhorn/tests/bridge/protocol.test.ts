@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   BRIDGE_PROTOCOL_VERSION,
+  BridgeJobTracker,
   BridgeProtocolValidationError,
   assertBridgeProtocolVersion,
   parseBridgeCancellationReceipt,
@@ -11,6 +12,7 @@ import {
   parseBridgeDeduplicationSupport,
   parseBridgeEventEnvelope,
   parseBridgeHelloRequest,
+  parseBridgeJobCorrelation,
   parseBridgeJobTerminalEvent,
   parseBridgeNegotiationReceipt,
   parseBridgeProgressEvent,
@@ -153,3 +155,23 @@ function expectCode(run: () => unknown, code: BridgeProtocolValidationError["cod
     expect((error as BridgeProtocolValidationError).code).toBe(code);
   }
 }
+
+test("job correlation reads only the identifiers, whatever the payload", () => {
+  const foreign = {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    progress: { percent: 10, unknownField: true },
+  };
+  expect(parseBridgeJobCorrelation(foreign)).toEqual({
+    requestId: "request:scan",
+    jobId: "job:scan",
+  });
+
+  const tracker = new BridgeJobTracker("request:scan", "job:scan");
+  expect(tracker.correlates(parseBridgeJobCorrelation(foreign))).toBe(true);
+  const otherJob = parseBridgeJobCorrelation({ ...foreign, jobId: "job:other" });
+  expect(tracker.correlates(otherJob)).toBe(false);
+
+  expectCode(() => parseBridgeJobCorrelation(null), "invalid_object");
+  expectCode(() => parseBridgeJobCorrelation({ requestId: "request:scan" }), "invalid_id");
+});
