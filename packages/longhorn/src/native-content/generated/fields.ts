@@ -25,8 +25,8 @@ export const NATIVE_CONTENT_FIELDS = {
   "NativeContentCursor": ["authority_epoch", "client_epoch", "island_id", "attach_generation", "desired_revision", "observed_revision"],
   "NativeContentSnapshot": ["protocol_version", "cursor", "desired", "observed", "invalidated_generation"],
   "NativeContentConnectRequest": ["protocol_version", "request_id", "island_id"],
-  "NativeContentSnapshotRequest": ["protocol_version", "request_id", "island_id", "client_epoch"],
-  "NativeContentDesiredUpdateRequest": ["protocol_version", "request_id", "island_id", "client_epoch", "expected_desired_revision", "update"],
-  "NativeContentContentSizeDecisionRequest": ["protocol_version", "request_id", "island_id", "client_epoch", "proposal", "decision"],
+  "NativeContentSnapshotRequest": ["protocol_version", "request_id", "island_id", "authority_epoch", "client_epoch"],
+  "NativeContentDesiredUpdateRequest": ["protocol_version", "request_id", "island_id", "authority_epoch", "client_epoch", "expected_desired_revision", "update"],
+  "NativeContentContentSizeDecisionRequest": ["protocol_version", "request_id", "island_id", "authority_epoch", "client_epoch", "proposal", "decision"],
   "NativeContentChangedEvent": ["protocol_version", "cursor", "change"],
 } as const;

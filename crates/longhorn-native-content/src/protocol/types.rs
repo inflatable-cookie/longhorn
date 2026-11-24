@@ -72,6 +72,8 @@ pub struct NativeContentSnapshotRequest {
     pub request_id: NativeContentRequestId,
     /// Canonical island identity.
     pub island_id: NativeContentIslandId,
+    /// Host authority lifetime recorded by connect.
+    pub authority_epoch: NativeContentAuthorityEpoch,
     /// Current host-issued renderer session.
     pub client_epoch: NativeContentClientEpoch,
 }
@@ -87,6 +89,8 @@ pub struct NativeContentDesiredUpdateRequest {
     pub request_id: NativeContentRequestId,
     /// Canonical island identity.
     pub island_id: NativeContentIslandId,
+    /// Host authority lifetime recorded by connect.
+    pub authority_epoch: NativeContentAuthorityEpoch,
     /// Current host-issued renderer session.
     pub client_epoch: NativeContentClientEpoch,
     /// Desired revision checked atomically.
@@ -106,6 +110,8 @@ pub struct NativeContentContentSizeDecisionRequest {
     pub request_id: NativeContentRequestId,
     /// Canonical island identity.
     pub island_id: NativeContentIslandId,
+    /// Host authority lifetime recorded by connect.
+    pub authority_epoch: NativeContentAuthorityEpoch,
     /// Current host-issued renderer session.
     pub client_epoch: NativeContentClientEpoch,
     /// Exact proposal being decided.

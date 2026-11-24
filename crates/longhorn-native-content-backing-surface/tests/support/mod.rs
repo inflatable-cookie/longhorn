@@ -38,6 +38,7 @@ struct FakeState {
     pixels: PixelEvidence,
     calls: Vec<Call>,
     callback: Option<Arc<dyn Fn(BackingSurfaceRuntimeEvent) + Send + Sync>>,
+    before_attach_returns: Option<Box<dyn FnOnce() + Send>>,
     fail_clip: bool,
     detach_failures: usize,
 }
@@ -58,6 +59,7 @@ impl Default for FakeRuntime {
                 snapshot,
                 calls: Vec::new(),
                 callback: None,
+                before_attach_returns: None,
                 fail_clip: false,
                 detach_failures: 0,
             })),
@@ -66,6 +68,10 @@ impl Default for FakeRuntime {
 }
 
 impl FakeRuntime {
+    pub(crate) fn before_attach_returns(&self, callback: impl FnOnce() + Send + 'static) {
+        self.state.lock().unwrap().before_attach_returns = Some(Box::new(callback));
+    }
+
     pub(crate) fn calls(&self) -> Vec<Call> {
         self.state.lock().unwrap().calls.clone()
     }
@@ -162,6 +168,10 @@ impl BackingSurfaceRuntime for FakeRuntime {
                 sequence: snapshot.frame_sequence,
             },
         });
+        let before_return = self.state.lock().unwrap().before_attach_returns.take();
+        if let Some(before_return) = before_return {
+            before_return();
+        }
         Ok((handle, snapshot))
     }
 

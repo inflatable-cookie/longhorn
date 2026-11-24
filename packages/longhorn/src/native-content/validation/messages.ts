@@ -54,6 +54,7 @@ export function assertValidNativeContentSnapshotRequest(
 ): asserts value is NativeContentSnapshotRequest {
   const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentSnapshotRequest);
   requestEnvelope(object);
+  positive(object.authority_epoch, "$.authority_epoch");
   positive(object.client_epoch, "$.client_epoch");
 }
 
@@ -63,6 +64,7 @@ export function assertValidNativeContentDesiredUpdateRequest(
   assertProductPayloadFree(value);
   const object = exactObject(value, "$", NATIVE_CONTENT_FIELDS.NativeContentDesiredUpdateRequest);
   requestEnvelope(object);
+  positive(object.authority_epoch, "$.authority_epoch");
   positive(object.client_epoch, "$.client_epoch");
   natural(object.expected_desired_revision, "$.expected_desired_revision");
   assertValidDesiredUpdate(object.update);
@@ -78,6 +80,7 @@ export function assertValidNativeContentDecisionRequest(
     NATIVE_CONTENT_FIELDS.NativeContentContentSizeDecisionRequest,
   );
   requestEnvelope(object);
+  positive(object.authority_epoch, "$.authority_epoch");
   positive(object.client_epoch, "$.client_epoch");
   assertValidContentSizeProposal(object.proposal);
   assertValidContentSizeDecision(object.decision);

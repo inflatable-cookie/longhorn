@@ -2,11 +2,11 @@ use longhorn_core::{NativeContentRevision, WindowId};
 
 use crate::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, ContentSizeDecision,
-    ContentSizeProposal, ContentSizeProposalReceipt, CoordinationError, DesiredState,
-    DesiredUpdate, ObservationUpdate, ObservedState, ReceiptError, StepExecution,
+    ContentSizeProposal, ContentSizeProposalReceipt, CoordinationError, DesiredPresence,
+    DesiredState, DesiredUpdate, ObservationUpdate, ObservedState, ReceiptError, StepExecution,
 };
 use crate::{
-    plan::plan_transition,
+    plan::{plan_generation, plan_transition},
     proposal::{decide_content_size, validate_content_size_proposal},
 };
 
@@ -23,6 +23,7 @@ pub struct NativeContentCoordinator {
     pub(crate) desired: DesiredState,
     pub(crate) observed: ObservedState,
     pub(crate) invalidated_generation: Option<AttachGeneration>,
+    retired_generation: Option<AttachGeneration>,
 }
 
 impl NativeContentCoordinator {
@@ -34,6 +35,7 @@ impl NativeContentCoordinator {
             desired,
             observed,
             invalidated_generation: None,
+            retired_generation: None,
         }
     }
 
@@ -64,6 +66,11 @@ impl NativeContentCoordinator {
             .capabilities()
             .validate_input(update.input_routing())?;
         validate_desired_generation(&self.desired, &self.observed, &update)?;
+        if self.retired_generation == Some(update.generation())
+            && update.presence == DesiredPresence::Present
+        {
+            return Err(CoordinationError::TerminalGeneration(update.generation()));
+        }
         if update.generation() == self.desired.generation()
             && update.host_window_id() != self.desired.host_window_id()
         {
@@ -96,7 +103,21 @@ impl NativeContentCoordinator {
         update: ObservationUpdate,
     ) -> Result<ObservationReceipt, CoordinationError> {
         require_revision(self.observed.revision(), expected_revision)?;
-        compare_generation(self.desired.generation(), update.generation())?;
+        let generation = update.generation();
+        let lifecycle = update.lifecycle();
+        let same_observed_generation = self.observed.generation() == generation;
+        let detached = same_observed_generation
+            && lifecycle == AttachmentLifecycle::Absent
+            && self.desired.presence() == DesiredPresence::Absent
+            && self.observed.lifecycle() != AttachmentLifecycle::Absent;
+        // A detach of an older, failed generation still needs to settle after
+        // desired state has advanced. No other old evidence is admissible.
+        if !detached {
+            compare_generation(self.desired.generation(), generation)?;
+        }
+        if self.retired_generation == Some(generation) && lifecycle != AttachmentLifecycle::Absent {
+            return Err(CoordinationError::TerminalGeneration(generation));
+        }
         if self.invalidated_generation == Some(update.generation()) {
             return Err(CoordinationError::InvalidatedGeneration(
                 update.generation(),
@@ -104,8 +125,8 @@ impl NativeContentCoordinator {
         }
         validate_observation_capabilities(&self.desired, &update)?;
 
-        if self.observed.generation() == update.generation() {
-            if !legal_transition(self.observed.lifecycle(), update.lifecycle()) {
+        if same_observed_generation {
+            if !detached && !legal_transition(self.observed.lifecycle(), lifecycle) {
                 return Err(CoordinationError::IllegalLifecycleTransition {
                     current: self.observed.lifecycle(),
                     proposed: update.lifecycle(),
@@ -115,7 +136,9 @@ impl NativeContentCoordinator {
             if !matches!(
                 self.observed.lifecycle(),
                 AttachmentLifecycle::Absent | AttachmentLifecycle::Failed
-            ) {
+            ) || (self.observed.lifecycle() == AttachmentLifecycle::Failed
+                && self.desired.presence() == DesiredPresence::Absent)
+            {
                 return Err(CoordinationError::GenerationStillAttached(
                     self.observed.lifecycle(),
                 ));
@@ -139,8 +162,12 @@ impl NativeContentCoordinator {
             .revision()
             .checked_next()
             .map_err(|_| CoordinationError::RevisionOverflow)?;
-        let generation = update.generation();
-        let lifecycle = update.lifecycle();
+        if same_observed_generation
+            && lifecycle == AttachmentLifecycle::Absent
+            && self.observed.lifecycle() != AttachmentLifecycle::Absent
+        {
+            self.retired_generation = Some(generation);
+        }
         self.observed.replace(current_revision, update);
         Ok(ObservationReceipt {
             previous_revision: expected_revision,
@@ -194,13 +221,13 @@ impl NativeContentCoordinator {
     /// Plans current desired state against fresh observed evidence.
     pub fn plan(&self) -> Result<ApplyPlan, CoordinationError> {
         if self.invalidated_generation == Some(self.desired.generation())
-            && self.desired.presence() == crate::DesiredPresence::Present
+            && self.desired.presence() == DesiredPresence::Present
         {
             return Err(CoordinationError::InvalidatedGeneration(
                 self.desired.generation(),
             ));
         }
-        plan_transition(&self.desired, &self.observed)
+        plan_transition(&self.desired, &self.observed, self.retired_generation)
     }
 
     /// Reconciles sparse adapter reports only while their complete plan cursor is current.
@@ -259,11 +286,10 @@ impl NativeContentCoordinator {
                 supplied: plan.observed_revision(),
             });
         }
-        if plan.generation() != self.desired.generation()
-            || self.invalidated_generation == Some(plan.generation())
-        {
+        let current = plan_generation(&self.desired, &self.observed);
+        if plan.generation() != current || self.invalidated_generation == Some(plan.generation()) {
             return Err(ReceiptError::InvalidGeneration {
-                current: self.desired.generation(),
+                current,
                 supplied: plan.generation(),
             });
         }

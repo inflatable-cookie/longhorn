@@ -51,16 +51,16 @@ remain distinct from the viewport clip.
 ## Renderer Protocol
 
 Enable `bindings` only for checked Rust-to-TypeScript generation. The protocol
-uses exact version 1 and typed request, result, snapshot, event, proposal,
+uses exact version 2 and typed request, result, snapshot, event, proposal,
 decision, observation, and receipt shapes. `NativeContentProtocolHost` is one
 pure island-scoped authority seam for later adapters; it performs no native
 operation and emits no framework event itself.
 
-Every renderer connection receives a new `NativeContentClientEpoch`. This is
-not `AttachGeneration`: renderer remounts advance the former, while host
-replacement advances the latter. Mutations carry request identity, client
-epoch, island identity, and expected authority cursor. Stale sessions and
-revisions fail without mutation.
+Each connect issues a client epoch. Host replacement requires a fresh,
+increasing authority epoch supplied by the island owner. Connected requests
+echo both epochs and the island ID. Desired updates also carry an expected
+desired revision, and size decisions carry a revision-bound proposal. Attach
+generation tracks native attachment independently.
 
 The generated client lives in `@inflatable-cookie/longhorn/native-content`. Its optional Tauri
 assembly maps the same checked shapes over narrow injected commands and one

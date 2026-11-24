@@ -2,7 +2,7 @@ use longhorn_core::{
     NativeContentIslandId, NativeContentRevision, PhysicalRect, PhysicalSize, VisibilityReasonId,
     WindowId,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 
 use crate::{
     AttachGeneration, AttachmentLifecycle, CoordinationError, DesiredPresence, DesiredState,
@@ -80,10 +80,37 @@ pub enum NativeContentOperation {
 /// One ordered operation and its immediate dependency.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(try_from = "PlannedOperationWire")]
 pub struct PlannedOperation {
     step: PlanStepId,
     depends_on: Option<PlanStepId>,
     operation: NativeContentOperation,
+}
+
+#[derive(Deserialize)]
+struct PlannedOperationWire {
+    step: PlanStepId,
+    depends_on: Option<PlanStepId>,
+    operation: NativeContentOperation,
+}
+
+impl TryFrom<PlannedOperationWire> for PlannedOperation {
+    type Error = &'static str;
+
+    fn try_from(wire: PlannedOperationWire) -> Result<Self, Self::Error> {
+        let step = wire.step.get();
+        if step as usize > MAX_APPLY_PLAN_STEPS {
+            return Err("native-content plan step exceeds the plan bound");
+        }
+        if wire.depends_on.map(PlanStepId::get) != (step > 1).then_some(step - 1) {
+            return Err("native-content plan step must depend on its immediate predecessor");
+        }
+        Ok(Self {
+            step: wire.step,
+            depends_on: wire.depends_on,
+            operation: wire.operation,
+        })
+    }
 }
 
 impl PlannedOperation {
@@ -112,7 +139,47 @@ pub struct ApplyPlan {
     desired_revision: NativeContentRevision,
     observed_revision: NativeContentRevision,
     generation: AttachGeneration,
+    #[serde(deserialize_with = "deserialize_operations")]
     operations: Vec<PlannedOperation>,
+}
+
+fn deserialize_operations<'de, D>(deserializer: D) -> Result<Vec<PlannedOperation>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct Operations;
+
+    impl<'de> de::Visitor<'de> for Operations {
+        type Value = Vec<PlannedOperation>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                formatter,
+                "at most {MAX_APPLY_PLAN_STEPS} consecutive plan steps"
+            )
+        }
+
+        fn visit_seq<A: de::SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+            let mut operations = Vec::with_capacity(MAX_APPLY_PLAN_STEPS);
+            for index in 0..MAX_APPLY_PLAN_STEPS {
+                let Some(operation) = seq.next_element::<PlannedOperation>()? else {
+                    return Ok(operations);
+                };
+                if operation.step() != PlanStepId::from_plan_index(index) {
+                    return Err(de::Error::custom(
+                        "native-content plan step ids must start at one and be consecutive",
+                    ));
+                }
+                operations.push(operation);
+            }
+            if seq.next_element::<de::IgnoredAny>()?.is_some() {
+                return Err(de::Error::invalid_length(MAX_APPLY_PLAN_STEPS + 1, &self));
+            }
+            Ok(operations)
+        }
+    }
+
+    deserializer.deserialize_seq(Operations)
 }
 
 impl ApplyPlan {
@@ -151,6 +218,7 @@ impl ApplyPlan {
 pub(crate) fn plan_transition(
     desired: &DesiredState,
     observed: &ObservedState,
+    retired_generation: Option<AttachGeneration>,
 ) -> Result<ApplyPlan, CoordinationError> {
     if observed.generation() > desired.generation() {
         return Err(CoordinationError::FutureGeneration {
@@ -161,10 +229,7 @@ pub(crate) fn plan_transition(
 
     let mut builder = PlanBuilder::new(desired, observed);
     if desired.presence() == DesiredPresence::Absent {
-        if !matches!(
-            observed.lifecycle(),
-            AttachmentLifecycle::Absent | AttachmentLifecycle::Detaching
-        ) {
+        if needs_detach(desired, observed) {
             builder.push(NativeContentOperation::Detach {
                 policy: desired.capabilities().detach_policy(),
             });
@@ -172,6 +237,9 @@ pub(crate) fn plan_transition(
         return Ok(builder.finish());
     }
 
+    if retired_generation == Some(desired.generation()) {
+        return Err(CoordinationError::TerminalGeneration(desired.generation()));
+    }
     let old_generation = observed.generation() < desired.generation();
     if old_generation
         && !matches!(
@@ -234,20 +302,40 @@ pub(crate) fn plan_transition(
         });
     }
 
-    match desired.focus() {
-        FocusIntent::Unchanged => {}
-        FocusIntent::Request if needs_attach || observed.focus() != EffectiveFocus::Focused => {
-            builder.push(NativeContentOperation::RequestFocus)
+    if desired.capabilities().observes_focus() {
+        match desired.focus() {
+            FocusIntent::Request if needs_attach || observed.focus() != EffectiveFocus::Focused => {
+                builder.push(NativeContentOperation::RequestFocus);
+            }
+            FocusIntent::ReleaseIfOwned
+                if needs_attach || observed.focus() != EffectiveFocus::Unfocused =>
+            {
+                builder.push(NativeContentOperation::ReleaseFocusIfOwned);
+            }
+            _ => {}
         }
-        FocusIntent::ReleaseIfOwned
-            if needs_attach || observed.focus() != EffectiveFocus::Unfocused =>
-        {
-            builder.push(NativeContentOperation::ReleaseFocusIfOwned)
-        }
-        FocusIntent::Request | FocusIntent::ReleaseIfOwned => {}
     }
 
     Ok(builder.finish())
+}
+
+pub(crate) fn needs_detach(desired: &DesiredState, observed: &ObservedState) -> bool {
+    desired.presence() == DesiredPresence::Absent
+        && !matches!(
+            observed.lifecycle(),
+            AttachmentLifecycle::Absent | AttachmentLifecycle::Detaching
+        )
+}
+
+pub(crate) fn plan_generation(
+    desired: &DesiredState,
+    observed: &ObservedState,
+) -> AttachGeneration {
+    if needs_detach(desired, observed) {
+        observed.generation()
+    } else {
+        desired.generation()
+    }
 }
 
 fn geometry_operation(
@@ -301,7 +389,7 @@ impl PlanBuilder {
             island_id: desired.island_id().clone(),
             desired_revision: desired.revision(),
             observed_revision: observed.revision(),
-            generation: desired.generation(),
+            generation: plan_generation(desired, observed),
             operations: Vec::with_capacity(MAX_APPLY_PLAN_STEPS),
         }
     }

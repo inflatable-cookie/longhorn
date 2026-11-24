@@ -8,8 +8,8 @@ use longhorn_native_content::{
     AttachGeneration, AttachmentLifecycle, ContentSizeDecision, ContentSizeProposal,
     DesiredPresence, DesiredState, DesiredUpdate, DesiredVisibility, DetachPolicy, EffectiveFocus,
     EffectiveVisibility, FocusIntent, InputRoutingMode, MechanismCapabilities,
-    NativeContentAuthorityEpoch, NativeContentConnectRequest, NativeContentConnectResult,
-    NativeContentContentSizeDecisionRequest, NativeContentCoordinator,
+    NATIVE_CONTENT_PROTOCOL_VERSION, NativeContentAuthorityEpoch, NativeContentConnectRequest,
+    NativeContentConnectResult, NativeContentContentSizeDecisionRequest, NativeContentCoordinator,
     NativeContentDesiredUpdateRequest, NativeContentMechanism, NativeContentProtocolHost,
     NativeContentProtocolVersion, NativeContentSnapshotRequest, ObservationUpdate,
     ObservedGeometry, ObservedReadiness, PlanStepId, StepExecution,
@@ -23,26 +23,30 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         request_id: id("request:connect"),
         island_id: id("island:fixture"),
     });
-    let client_epoch = match &connect {
-        NativeContentConnectResult::Connected { snapshot, .. } => snapshot.cursor.client_epoch,
+    let cursor = match &connect {
+        NativeContentConnectResult::Connected { snapshot, .. } => &snapshot.cursor,
         NativeContentConnectResult::Rejected { rejection, .. } => {
             return Err(format!("fixture connect rejected: {rejection:?}").into());
         }
     };
-    let snapshot = host.snapshot(NativeContentSnapshotRequest {
+    let snapshot_request = NativeContentSnapshotRequest {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: id("request:snapshot"),
         island_id: id("island:fixture"),
-        client_epoch,
-    });
-    let update = host.update_desired(NativeContentDesiredUpdateRequest {
+        authority_epoch: cursor.authority_epoch,
+        client_epoch: cursor.client_epoch,
+    };
+    let snapshot = host.snapshot(snapshot_request.clone());
+    let update_request = NativeContentDesiredUpdateRequest {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: id("request:update"),
         island_id: id("island:fixture"),
-        client_epoch,
+        authority_epoch: cursor.authority_epoch,
+        client_epoch: cursor.client_epoch,
         expected_desired_revision: NativeContentRevision::INITIAL,
         update: desired_update(1, 24.0)?,
-    });
+    };
+    let update = host.update_desired(update_request.clone());
     let plan = host.coordinator().plan()?;
     let (_, apply_event) = host.complete_apply(
         id("request:apply"),
@@ -72,21 +76,24 @@ pub fn render() -> Result<String, Box<dyn Error>> {
     let proposal_event = host
         .publish_content_size_proposal(id("request:proposal"), proposal)?
         .ok_or("connected fixture host must project proposal")?;
-    let decision = host.decide_content_size(NativeContentContentSizeDecisionRequest {
+    let decision_request = NativeContentContentSizeDecisionRequest {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: id("request:decision"),
         island_id: id("island:fixture"),
-        client_epoch,
+        authority_epoch: cursor.authority_epoch,
+        client_epoch: cursor.client_epoch,
         proposal,
         decision: ContentSizeDecision::Constrained {
             size: ClientSize::new(768.0, 576.0)?,
         },
-    });
+    };
+    let decision = host.decide_content_size(decision_request.clone());
     let stale_revision = host.update_desired(NativeContentDesiredUpdateRequest {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: id("request:stale-revision"),
         island_id: id("island:fixture"),
-        client_epoch,
+        authority_epoch: cursor.authority_epoch,
+        client_epoch: cursor.client_epoch,
         expected_desired_revision: NativeContentRevision::INITIAL,
         update: desired_update(1, 48.0)?,
     });
@@ -99,9 +106,11 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         protocol_version: NativeContentProtocolVersion::CURRENT,
         request_id: id("request:stale-session"),
         island_id: id("island:fixture"),
-        client_epoch,
+        authority_epoch: cursor.authority_epoch,
+        client_epoch: cursor.client_epoch,
     });
-    let future_version: NativeContentProtocolVersion = serde_json::from_value(json!(2))?;
+    let future_version: NativeContentProtocolVersion =
+        serde_json::from_value(json!(NATIVE_CONTENT_PROTOCOL_VERSION + 1))?;
     let incompatible = host.connect(NativeContentConnectRequest {
         protocol_version: future_version,
         request_id: id("request:future-protocol"),
@@ -118,8 +127,11 @@ pub fn render() -> Result<String, Box<dyn Error>> {
     )?;
 
     let fixture = json!({
-        "protocolVersion": 1,
+        "protocolVersion": NATIVE_CONTENT_PROTOCOL_VERSION,
         "connect": to_value(connect)?,
+        "snapshotRequest": to_value(snapshot_request)?,
+        "desiredUpdateRequest": to_value(update_request)?,
+        "decisionRequest": to_value(decision_request)?,
         "snapshot": to_value(snapshot)?,
         "desiredUpdate": to_value(update)?,
         "applyEvent": to_value(apply_event)?,
@@ -132,7 +144,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         "incompatible": to_value(incompatible)?,
         "hostDestroy": to_value(host_destroy)?,
         "incompatibility": {
-            "futureProtocolVersion": 2,
+            "futureProtocolVersion": NATIVE_CONTENT_PROTOCOL_VERSION + 1,
             "unknownMechanism": "browser_plugin",
             "unknownChangeKind": "product_payload",
             "unknownUpdateStatus": "uncertain",

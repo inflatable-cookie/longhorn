@@ -11,6 +11,8 @@ pub enum NativeContentRejectionCode {
     UnsupportedProtocolVersion,
     /// Request named another island authority.
     IslandMismatch,
+    /// Request named a different host authority lifetime.
+    AuthorityEpochMismatch,
     /// Request belongs to an older renderer session.
     StaleClientEpoch,
     /// Request claims a renderer session not issued by this host.
@@ -33,7 +35,7 @@ pub enum NativeContentRejectionCode {
     HostBindingMismatch,
     /// Observed lifecycle transition is illegal.
     IllegalLifecycleTransition,
-    /// The generation failed terminally.
+    /// The generation failed or detached and cannot attach again.
     TerminalGeneration,
     /// Host destruction invalidated the generation.
     InvalidatedGeneration,
@@ -125,11 +127,17 @@ impl NativeContentProtocolRejection {
     }
 
     pub(super) fn admission(code: NativeContentRejectionCode, message: impl Into<String>) -> Self {
+        let retry = match code {
+            NativeContentRejectionCode::AuthorityEpochMismatch
+            | NativeContentRejectionCode::StaleClientEpoch
+            | NativeContentRejectionCode::FutureClientEpoch => NativeContentRetryClass::Refresh,
+            _ => NativeContentRetryClass::Never,
+        };
         Self {
             code,
             message: message.into(),
             phase: NativeContentFailurePhase::Admission,
-            retry: NativeContentRetryClass::Refresh,
+            retry,
         }
     }
 }
@@ -195,11 +203,22 @@ impl From<CoordinationError> for NativeContentProtocolRejection {
                 NativeContentRejectionCode::AttachGenerationExhausted
             }
         };
+        let retry = match code {
+            NativeContentRejectionCode::StaleRevision
+            | NativeContentRejectionCode::StaleAttachGeneration
+            | NativeContentRejectionCode::FutureAttachGeneration
+            | NativeContentRejectionCode::AttachGenerationGap
+            | NativeContentRejectionCode::GenerationStillAttached
+            | NativeContentRejectionCode::TerminalGeneration
+            | NativeContentRejectionCode::InvalidatedGeneration
+            | NativeContentRejectionCode::LifecycleBusy => NativeContentRetryClass::Refresh,
+            _ => NativeContentRetryClass::Never,
+        };
         Self {
             code,
             message: error.to_string(),
             phase: NativeContentFailurePhase::Coordination,
-            retry: NativeContentRetryClass::Refresh,
+            retry,
         }
     }
 }
@@ -225,11 +244,19 @@ impl From<ReceiptError> for NativeContentProtocolRejection {
                 NativeContentRejectionCode::ReceiptBlockedDependency
             }
         };
+        let retry = match code {
+            NativeContentRejectionCode::ReceiptStaleDesired
+            | NativeContentRejectionCode::ReceiptStaleObserved
+            | NativeContentRejectionCode::ReceiptInvalidGeneration => {
+                NativeContentRetryClass::Refresh
+            }
+            _ => NativeContentRetryClass::Never,
+        };
         Self {
             code,
             message: error.to_string(),
             phase: NativeContentFailurePhase::Coordination,
-            retry: NativeContentRetryClass::Refresh,
+            retry,
         }
     }
 }

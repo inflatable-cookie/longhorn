@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use longhorn_native_content::{
     ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
-    NativeContentMechanism, NativeContentOperation, check_attach_reservation, gate_attached,
-    gate_detach, validate_plan_generation,
+    NativeContentMechanism, NativeContentOperation, check_attach_reservation,
+    clear_attach_reservation, complete_reserved_attach, gate_attached, gate_detach,
+    validate_plan_generation,
 };
 
 use crate::{ChildViewAdapterEvent, ChildViewError, ChildViewRuntime, RuntimeAttachRequest};
@@ -104,10 +105,7 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
             NativeContentOperation::SetInputRouting { .. } => {
                 Err(ChildViewError::UnsupportedInputMode)
             }
-            NativeContentOperation::RequestFocus => {
-                let handle = self.handle(generation)?;
-                self.runtime.focus(&handle)
-            }
+            NativeContentOperation::RequestFocus => self.request_focus(generation),
             NativeContentOperation::ReleaseFocusIfOwned => {
                 Err(ChildViewError::UnsupportedFocusRelease)
             }
@@ -142,50 +140,54 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
             });
         }
 
-        self.emit(ChildViewAdapterEvent::ListenerInstalled { generation });
-        let callback_adapter = self.clone();
-        let callback = Arc::new(move |event| {
-            if let Err(error) = callback_adapter.admit_runtime_event(event) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.child-view.runtime-event",
-                    format_args!("{error:?}"),
-                );
-            }
-        });
-        self.emit(ChildViewAdapterEvent::AttachStarted { generation });
-        let handle = match self.runtime.attach(RuntimeAttachRequest {
-            generation,
-            spec: self.spec.clone(),
-            callback,
-        }) {
-            Ok(handle) => handle,
-            Err(error) => {
-                self.clear_reservation(generation)?;
-                return Err(error);
-            }
-        };
-
-        let retained = {
-            let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-            match state.attachment.as_mut() {
-                Some(attachment) if attachment.generation == generation => {
-                    attachment.handle = Some(handle.clone());
-                    true
+        complete_reserved_attach(
+            [
+                ChildViewAdapterEvent::ListenerInstalled { generation },
+                ChildViewAdapterEvent::AttachStarted { generation },
+                ChildViewAdapterEvent::Attached { generation },
+            ],
+            self.observer.as_ref(),
+            || {
+                let callback_adapter = self.clone();
+                let callback = Arc::new(move |event| {
+                    if let Err(error) = callback_adapter.admit_runtime_event(event) {
+                        longhorn_core::report_best_effort_failure(
+                            "native-content.child-view.runtime-event",
+                            format_args!("{error:?}"),
+                        );
+                    }
+                });
+                self.runtime.attach(RuntimeAttachRequest {
+                    generation,
+                    spec: self.spec.clone(),
+                    callback,
+                })
+            },
+            |handle| {
+                let retained = {
+                    let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
+                    if let Some(attachment) = state.attachment.as_mut()
+                        && attachment.generation == generation
+                    {
+                        attachment.handle = Some(handle.clone());
+                        true
+                    } else {
+                        false
+                    }
+                };
+                if retained {
+                    return Ok(());
                 }
-                _ => false,
-            }
-        };
-        if !retained {
-            if let Err(error) = self.runtime.close(&handle) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.child-view.close",
-                    format_args!("{error:?}"),
-                );
-            }
-            return Err(ChildViewError::NotAttached);
-        }
-        self.emit(ChildViewAdapterEvent::Attached { generation });
-        Ok(())
+                if let Err(error) = self.runtime.close(&handle) {
+                    longhorn_core::report_best_effort_failure(
+                        "native-content.child-view.close",
+                        format_args!("{error:?}"),
+                    );
+                }
+                Err(ChildViewError::NotAttached)
+            },
+            || self.clear_reservation(generation),
+        )
     }
 
     pub(crate) fn detach(&self, generation: AttachGeneration) -> Result<(), ChildViewError> {
@@ -210,7 +212,7 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
             attachment.detaching = true;
             handle
         };
-        self.emit(ChildViewAdapterEvent::DetachStarted { generation });
+        (self.observer)(ChildViewAdapterEvent::DetachStarted { generation });
         if let Err(error) = self.runtime.close(&handle) {
             let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
             if let Some(attachment) = state.attachment.as_mut()
@@ -231,7 +233,7 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
             }
             state.retired_generation = Some(generation);
         }
-        self.emit(ChildViewAdapterEvent::Detached { generation });
+        (self.observer)(ChildViewAdapterEvent::Detached { generation });
         Ok(())
     }
 
@@ -254,15 +256,9 @@ impl<R: ChildViewRuntime> ChildViewAdapter<R> {
         generation: AttachGeneration,
     ) -> Result<(), ChildViewError> {
         let mut state = self.state.lock().map_err(|_| ChildViewError::Poisoned)?;
-        if state.attachment.as_ref().is_some_and(|attachment| {
-            attachment.generation == generation && attachment.handle.is_none()
-        }) {
-            state.attachment = None;
-        }
+        clear_attach_reservation(&mut state.attachment, generation, |attachment| {
+            AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+        });
         Ok(())
-    }
-
-    pub(crate) fn emit(&self, event: ChildViewAdapterEvent) {
-        (self.observer)(event);
     }
 }

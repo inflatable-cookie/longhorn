@@ -3,7 +3,7 @@
 //!
 //! One predeclared host window carries one child webview whose initial
 //! document is a bundled local asset. The proof drives the ordinary
-//! coordinator plan lifecycle (attach, bounds, show, input, focus), then
+//! coordinator plan lifecycle (attach, bounds, show, input) and requests focus, then
 //! asserts, against the real native webview:
 //!
 //! - the observed source identity is the application asset protocol;
@@ -544,7 +544,7 @@ fn main() {
                         NativeContentKindId::new("proof:offline-document")
                             .expect("bounded kind id"),
                         CHILD_VIEW_CAPABILITIES,
-                        desired_update(generation, DesiredPresence::Present, FocusIntent::Request),
+                        desired_update(generation, DesiredPresence::Present, FocusIntent::Unchanged),
                     )
                     .expect("bounded desired state"),
                 ),
@@ -574,6 +574,12 @@ fn main() {
                     );
                     if applied != receipt.steps().len() {
                         guard.fail("the initial apply did not apply every step");
+                    } else {
+                        drop(guard);
+                        if let Err(error) = adapter.request_focus(generation) {
+                            let mut guard = ledger.lock().expect("proof ledger locks");
+                            guard.fail(format!("initial focus request failed: {error:?}"));
+                        }
                     }
                 }
                 Err(error) => {

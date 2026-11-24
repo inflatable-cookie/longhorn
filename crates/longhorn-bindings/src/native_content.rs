@@ -39,7 +39,7 @@ const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     fields_constant: "NATIVE_CONTENT_FIELDS",
     variant_fields: "packages/longhorn/src/native-content/generated/variant-fields.ts",
     variant_fields_constant: "NATIVE_CONTENT_VARIANT_FIELDS",
-    fixture: "fixtures/native-content/protocol-v1.json",
+    fixture: "fixtures/native-content/protocol-v2.json",
 };
 
 /// Renders the native-content bindings and golden fixtures.

@@ -144,9 +144,7 @@ impl<R: Runtime> ChildViewRuntime for TauriChildViewRuntime<R> {
                 TauriPhysicalSize::new(1, 1),
             )
             .map_err(|error| native_error("attach", error))?;
-        webview
-            .hide()
-            .map_err(|error| native_error("hide", error))?;
+        hide_new_child(|| webview.hide(), || webview.close())?;
         Ok(TauriChildViewHandle { webview })
     }
 
@@ -228,9 +226,55 @@ impl<R: Runtime> ChildViewRuntime for TauriChildViewRuntime<R> {
     }
 }
 
+fn hide_new_child(
+    hide: impl FnOnce() -> tauri::Result<()>,
+    close: impl FnOnce() -> tauri::Result<()>,
+) -> Result<(), ChildViewError> {
+    if let Err(error) = hide() {
+        if let Err(close_error) = close() {
+            longhorn_core::report_best_effort_failure(
+                "native-content.child-view.close",
+                format_args!("{close_error:?}"),
+            );
+        }
+        return Err(native_error("hide", error));
+    }
+    Ok(())
+}
+
 fn native_error(operation: &'static str, error: tauri::Error) -> ChildViewError {
     ChildViewError::Native {
         operation,
         detail: error.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ChildViewError, hide_new_child};
+
+    #[test]
+    fn failed_initial_hide_closes_child_and_preserves_hide_failure() {
+        let mut closes = 0;
+        let result = hide_new_child(
+            || Err(tauri::Error::Io(std::io::Error::other("hide failed"))),
+            || {
+                closes += 1;
+                Ok(())
+            },
+        );
+        assert!(matches!(
+            result,
+            Err(ChildViewError::Native {
+                operation: "hide",
+                ..
+            })
+        ));
+        assert_eq!(closes, 1);
+        hide_new_child(
+            || Ok(()),
+            || panic!("successful hide must retain the child"),
+        )
+        .unwrap();
     }
 }

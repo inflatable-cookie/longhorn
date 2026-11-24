@@ -27,6 +27,9 @@ pub struct NativeContentProtocolHost {
 
 impl NativeContentProtocolHost {
     /// Creates one protocol authority around an existing pure coordinator.
+    ///
+    /// The caller must give replacement authorities for the same island a fresh,
+    /// increasing epoch while old renderer requests can still reach the host.
     #[must_use]
     pub const fn new(
         authority_epoch: NativeContentAuthorityEpoch,
@@ -87,6 +90,7 @@ impl NativeContentProtocolHost {
         match self.validate_session(
             request.protocol_version,
             &request.island_id,
+            request.authority_epoch,
             request.client_epoch,
         ) {
             Ok(()) => NativeContentSnapshotResult::Ready {
@@ -109,6 +113,7 @@ impl NativeContentProtocolHost {
         if let Err(rejection) = self.validate_session(
             request.protocol_version,
             &request.island_id,
+            request.authority_epoch,
             request.client_epoch,
         ) {
             return NativeContentDesiredUpdateResult::Rejected {
@@ -149,6 +154,7 @@ impl NativeContentProtocolHost {
         if let Err(rejection) = self.validate_session(
             request.protocol_version,
             &request.island_id,
+            request.authority_epoch,
             request.client_epoch,
         ) {
             return NativeContentContentSizeDecisionResult::Rejected {
@@ -257,9 +263,16 @@ impl NativeContentProtocolHost {
         &self,
         version: NativeContentProtocolVersion,
         island_id: &NativeContentIslandId,
+        authority_epoch: NativeContentAuthorityEpoch,
         client_epoch: NativeContentClientEpoch,
     ) -> Result<(), NativeContentProtocolRejection> {
         self.validate_envelope(version, island_id)?;
+        if authority_epoch != self.authority_epoch {
+            return Err(NativeContentProtocolRejection::admission(
+                NativeContentRejectionCode::AuthorityEpochMismatch,
+                "request belongs to a different host authority lifetime",
+            ));
+        }
         let current = self.client_epoch.ok_or_else(|| {
             NativeContentProtocolRejection::admission(
                 NativeContentRejectionCode::FutureClientEpoch,
@@ -349,5 +362,68 @@ impl NativeContentProtocolHost {
             cursor: self.cursor(client_epoch),
             change,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use longhorn_core::{ClientPoint, ClientRect, ClientSize, RoundingMode, ScaleFactor};
+
+    use crate::{
+        AttachGeneration, DesiredPresence, DesiredState, DesiredUpdate, DesiredVisibility,
+        DetachPolicy, FocusIntent, InputRoutingMode, MechanismCapabilities, NativeContentMechanism,
+        NativeContentRetryClass,
+    };
+
+    use super::*;
+
+    #[test]
+    fn exhausted_client_epoch_rejects_connect_permanently() {
+        let desired = DesiredState::new(
+            "island:epoch".parse().unwrap(),
+            "proof:content".parse().unwrap(),
+            MechanismCapabilities::new(
+                NativeContentMechanism::ChildView,
+                InputRoutingMode::NativeDirect,
+                false,
+                DetachPolicy::Reversible,
+                false,
+                false,
+            ),
+            DesiredUpdate::new(
+                AttachGeneration::INITIAL,
+                "window:main".parse().unwrap(),
+                ClientRect::new(
+                    ClientPoint::new(0.0, 0.0).unwrap(),
+                    ClientSize::new(1.0, 1.0).unwrap(),
+                ),
+                ScaleFactor::from_thousandths(1000).unwrap(),
+                RoundingMode::Nearest,
+                DesiredPresence::Present,
+                DesiredVisibility::Visible,
+                FocusIntent::Unchanged,
+                InputRoutingMode::NativeDirect,
+            ),
+        )
+        .unwrap();
+        let island_id = desired.island_id().clone();
+        let mut host = NativeContentProtocolHost::new(
+            NativeContentAuthorityEpoch::new(1).unwrap(),
+            NativeContentCoordinator::new(desired),
+        );
+        let exhausted = NativeContentClientEpoch::new(u64::MAX).unwrap();
+        host.client_epoch = Some(exhausted);
+        let result = host.connect(NativeContentConnectRequest {
+            protocol_version: NativeContentProtocolVersion::CURRENT,
+            request_id: "request:exhausted".parse().unwrap(),
+            island_id,
+        });
+        assert!(matches!(
+            result,
+            NativeContentConnectResult::Rejected { rejection, .. }
+                if rejection.code == NativeContentRejectionCode::ClientEpochExhausted
+                    && rejection.retry == NativeContentRetryClass::Never
+        ));
+        assert_eq!(host.client_epoch(), Some(exhausted));
     }
 }

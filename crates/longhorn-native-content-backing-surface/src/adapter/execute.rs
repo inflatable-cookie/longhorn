@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use longhorn_native_content::{
     ApplyPlan, AttachGeneration, AttachmentGate, DetachPolicy, InputRoutingMode,
-    NativeContentMechanism, NativeContentOperation, check_attach_reservation, gate_detach,
-    validate_plan_generation,
+    NativeContentMechanism, NativeContentOperation, check_attach_reservation,
+    clear_attach_reservation, complete_reserved_attach, gate_detach, validate_plan_generation,
 };
 
 use crate::{
@@ -49,7 +49,7 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             .map(|attachment| attachment.generation);
         validate_plan_generation(
             state.latest_generation,
-            state.retired_generation,
+            state.invalidated_generation.or(state.retired_generation),
             attached,
             plan.generation(),
             plan.operations().iter().any(|planned| {
@@ -127,7 +127,7 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
                 .map_err(|_| BackingSurfaceError::Poisoned)?;
             if check_attach_reservation(
                 state.latest_generation,
-                state.retired_generation,
+                state.invalidated_generation.or(state.retired_generation),
                 state.attachment.as_ref().map(|attachment| {
                     AttachmentGate::new(attachment.generation, attachment.handle.is_some())
                 }),
@@ -147,78 +147,82 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             });
         }
 
-        self.emit(BackingSurfaceAdapterEvent::ListenerInstalled { generation });
-        let callback_adapter = self.clone();
-        let callback = Arc::new(move |event| {
-            if let Err(error) = callback_adapter.admit_runtime_event(event) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.backing-surface.runtime-event",
-                    format_args!("{error:?}"),
-                );
+        complete_reserved_attach(
+            [
+                BackingSurfaceAdapterEvent::ListenerInstalled { generation },
+                BackingSurfaceAdapterEvent::AttachStarted { generation },
+                BackingSurfaceAdapterEvent::Attached { generation },
+            ],
+            self.observer.as_ref(),
+            || {
+                let callback_adapter = self.clone();
+                let callback = Arc::new(move |event| {
+                    if let Err(error) = callback_adapter.admit_runtime_event(event) {
+                        longhorn_core::report_best_effort_failure(
+                            "native-content.backing-surface.runtime-event",
+                            format_args!("{error:?}"),
+                        );
+                    }
+                });
+                self.runtime.attach(RuntimeAttachRequest {
+                    generation,
+                    spec: self.spec.clone(),
+                    callback,
+                })
+            },
+            |(handle, snapshot)| self.retain_attach(generation, handle, snapshot),
+            || self.clear_reservation(generation),
+        )
+    }
+
+    fn retain_attach(
+        &self,
+        generation: AttachGeneration,
+        handle: R::Handle,
+        snapshot: BackingSurfaceSnapshot,
+    ) -> Result<(), BackingSurfaceError> {
+        let validation = validate_snapshot(&snapshot).and_then(|()| {
+            if snapshot.native_storage_attached {
+                Ok(())
+            } else {
+                Err(BackingSurfaceError::Runtime {
+                    operation: "attach",
+                    detail: "runtime returned detached native storage".to_string(),
+                })
             }
         });
-        self.emit(BackingSurfaceAdapterEvent::AttachStarted { generation });
-        let (handle, snapshot) = match self.runtime.attach(RuntimeAttachRequest {
-            generation,
-            spec: self.spec.clone(),
-            callback,
-        }) {
-            Ok(result) => result,
-            Err(error) => {
-                self.clear_reservation(generation)?;
-                return Err(error);
-            }
-        };
-        if let Err(error) = validate_snapshot(&snapshot) {
-            if let Err(error) = self.runtime.detach(&handle) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.backing-surface.detach",
-                    format_args!("{error:?}"),
-                );
-            }
-            self.clear_reservation(generation)?;
-            return Err(error);
-        }
-        if !snapshot.native_storage_attached {
-            if let Err(error) = self.runtime.detach(&handle) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.backing-surface.detach",
-                    format_args!("{error:?}"),
-                );
-            }
-            self.clear_reservation(generation)?;
-            return Err(BackingSurfaceError::Runtime {
-                operation: "attach",
-                detail: "runtime returned detached native storage".to_string(),
-            });
-        }
-
-        let retained = {
+        let invalidated = {
             let mut state = self
                 .state
                 .lock()
                 .map_err(|_| BackingSurfaceError::Poisoned)?;
-            let current = state.invalidated_generation != Some(generation);
-            match state.attachment.as_mut() {
-                Some(attachment) if attachment.generation == generation && current => {
-                    attachment.handle = Some(handle.clone());
-                    attachment.snapshot = Some(snapshot);
-                    true
-                }
-                _ => false,
+            let invalidated = state.invalidated_generation == Some(generation);
+            // A backing reservation stays in place through host destruction.
+            // Keep the returned handle until teardown succeeds, including on retry.
+            let attachment = state
+                .attachment
+                .as_mut()
+                .ok_or(BackingSurfaceError::NotAttached)?;
+            compare_generation(Some(attachment.generation), generation)?;
+            if invalidated || validation.is_ok() {
+                attachment.handle = Some(handle.clone());
+                attachment.snapshot = Some(snapshot);
             }
+            invalidated
         };
-        if !retained {
-            if let Err(error) = self.runtime.detach(&handle) {
-                longhorn_core::report_best_effort_failure(
-                    "native-content.backing-surface.detach",
-                    format_args!("{error:?}"),
-                );
-            }
+        if invalidated {
+            self.detach_generation(generation)?;
             return Err(BackingSurfaceError::GenerationInvalidated(generation));
         }
-        self.emit(BackingSurfaceAdapterEvent::Attached { generation });
-        Ok(())
+        if validation.is_err()
+            && let Err(error) = self.runtime.detach(&handle)
+        {
+            longhorn_core::report_best_effort_failure(
+                "native-content.backing-surface.detach",
+                format_args!("{error:?}"),
+            );
+        }
+        validation
     }
 
     pub(crate) fn detach_generation(
@@ -231,6 +235,10 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
                 .lock()
                 .map_err(|_| BackingSurfaceError::Poisoned)?;
             compare_generation(state.latest_generation, generation)?;
+            if state.attachment.is_none() && state.latest_generation == Some(generation) {
+                state.retired_generation = Some(generation);
+                return Ok(BackingSurfaceDetachOutcome::AlreadyDetached);
+            }
             let Some(attachment) = gate_detach(
                 state.retired_generation,
                 state.attachment.as_mut(),
@@ -242,6 +250,12 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             else {
                 return Ok(BackingSurfaceDetachOutcome::AlreadyDetached);
             };
+            if attachment.detaching {
+                return Err(BackingSurfaceError::Runtime {
+                    operation: "detach",
+                    detail: "storage detach is already in progress".to_string(),
+                });
+            }
             let handle = attachment
                 .handle
                 .clone()
@@ -249,14 +263,13 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             attachment.detaching = true;
             handle
         };
-        self.emit(BackingSurfaceAdapterEvent::DetachStarted { generation });
+        (self.observer)(BackingSurfaceAdapterEvent::DetachStarted { generation });
         if let Err(error) = self.runtime.detach(&handle) {
             let mut state = self
                 .state
                 .lock()
                 .map_err(|_| BackingSurfaceError::Poisoned)?;
-            if state.invalidated_generation != Some(generation)
-                && let Some(attachment) = state.attachment.as_mut()
+            if let Some(attachment) = state.attachment.as_mut()
                 && attachment.generation == generation
             {
                 attachment.detaching = false;
@@ -277,7 +290,7 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             }
             state.retired_generation = Some(generation);
         }
-        self.emit(BackingSurfaceAdapterEvent::Detached { generation });
+        (self.observer)(BackingSurfaceAdapterEvent::Detached { generation });
         Ok(BackingSurfaceDetachOutcome::Detached)
     }
 
@@ -331,15 +344,9 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             .state
             .lock()
             .map_err(|_| BackingSurfaceError::Poisoned)?;
-        if state.attachment.as_ref().is_some_and(|attachment| {
-            attachment.generation == generation && attachment.handle.is_none()
-        }) {
-            state.attachment = None;
-        }
+        clear_attach_reservation(&mut state.attachment, generation, |attachment| {
+            AttachmentGate::new(attachment.generation, attachment.handle.is_some())
+        });
         Ok(())
-    }
-
-    pub(crate) fn emit(&self, event: BackingSurfaceAdapterEvent) {
-        (self.observer)(event);
     }
 }

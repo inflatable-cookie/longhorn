@@ -1,18 +1,27 @@
 import { describe, expect, test } from "bun:test";
-import fixture from "../../../../fixtures/native-content/protocol-v1.json";
+import fixture from "../../../../fixtures/native-content/protocol-v2.json";
 
 import {
   NativeContentProtocolValidationError,
   assertValidNativeContentChangedEvent,
   assertValidNativeContentConnectResult,
+  assertValidNativeContentDecisionRequest,
   assertValidNativeContentDecisionResult,
+  assertValidNativeContentDesiredUpdateRequest,
   assertValidNativeContentDesiredUpdateResult,
+  assertValidNativeContentSnapshotRequest,
   assertValidNativeContentSnapshotResult,
   assertProductPayloadFree,
 } from "../../src/native-content/index.ts";
 import { clone } from "./support.ts";
 
 describe("Rust fixture parity", () => {
+  test("requires a positive authority epoch on every connected request", () => {
+    assertBoundRequest(fixture.snapshotRequest, assertValidNativeContentSnapshotRequest);
+    assertBoundRequest(fixture.desiredUpdateRequest, assertValidNativeContentDesiredUpdateRequest);
+    assertBoundRequest(fixture.decisionRequest, assertValidNativeContentDecisionRequest);
+  });
+
   test("accepts snapshots, observations, proposals, receipts, and rejections", () => {
     assertValidNativeContentConnectResult(fixture.connect);
     assertValidNativeContentSnapshotResult(fixture.snapshot);
@@ -51,7 +60,7 @@ describe("Rust fixture parity", () => {
   test("unknown variants and product payload fields fail closed", () => {
     const future = clone(fixture.connect) as Record<string, unknown>;
     const snapshot = future.snapshot as Record<string, unknown>;
-    snapshot.protocol_version = 2;
+    snapshot.protocol_version = fixture.incompatibility.futureProtocolVersion;
     expect(() => assertValidNativeContentConnectResult(future)).toThrow(
       NativeContentProtocolValidationError,
     );
@@ -67,3 +76,15 @@ describe("Rust fixture parity", () => {
     );
   });
 });
+
+function assertBoundRequest(
+  request: { authority_epoch: number },
+  validate: (value: unknown) => void,
+): void {
+  validate(request);
+  expect(() => validate({ ...request, authority_epoch: 0 })).toThrow(
+    NativeContentProtocolValidationError,
+  );
+  const { authority_epoch: _authorityEpoch, ...unbound } = request;
+  expect(() => validate(unbound)).toThrow(NativeContentProtocolValidationError);
+}

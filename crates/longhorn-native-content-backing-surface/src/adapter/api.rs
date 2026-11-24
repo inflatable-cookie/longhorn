@@ -1,10 +1,10 @@
 //! Public adapter operations.
 
-use longhorn_core::{NativeContentFailureCode, PhysicalPoint, WindowId};
+use longhorn_core::{PhysicalPoint, WindowId};
 use longhorn_native_content::{
     ApplyPlan, ApplyReceipt, AttachGeneration, AttachmentLifecycle, EffectiveFocus,
     EffectiveVisibility, InputRoutingMode, NativeContentCoordinator, ObservationUpdate,
-    ObservedGeometry, ObservedReadiness, StepExecution,
+    ObservedGeometry, ObservedReadiness, compare_generation_allow_next, execute_adapter_plan,
 };
 
 use crate::{
@@ -28,25 +28,13 @@ impl<R: crate::BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
         plan: &ApplyPlan,
     ) -> Result<ApplyReceipt, BackingSurfaceError> {
         self.validate_plan(plan)?;
-        authority.receipt(plan, std::iter::empty())?;
-
-        let mut executions = Vec::new();
-        for planned in plan.operations() {
-            match self.execute(plan.generation(), planned.operation()) {
-                Ok(()) => executions.push(StepExecution::Applied {
-                    step: planned.step(),
-                }),
-                Err(error) => {
-                    executions.push(StepExecution::Failed {
-                        step: planned.step(),
-                        code: NativeContentFailureCode::new(error.failure_code())
-                            .expect("adapter failure codes use the bounded grammar"),
-                    });
-                    break;
-                }
-            }
-        }
-        authority.receipt(plan, executions).map_err(Into::into)
+        execute_adapter_plan(
+            authority,
+            plan,
+            || Ok(()),
+            |planned| self.execute(plan.generation(), planned.operation()),
+            BackingSurfaceError::failure_code,
+        )
     }
 
     /// Reads fresh storage and render evidence without fabricating focus or visibility.
@@ -201,7 +189,7 @@ impl<R: crate::BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             }
             attachment.last_event_sequence = event.sequence;
         }
-        self.emit(BackingSurfaceAdapterEvent::Runtime {
+        (self.observer)(BackingSurfaceAdapterEvent::Runtime {
             generation,
             event: event.kind,
         });
@@ -222,7 +210,13 @@ impl<R: crate::BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
                 .state
                 .lock()
                 .map_err(|_| BackingSurfaceError::Poisoned)?;
-            compare_generation(state.latest_generation, generation)?;
+            if state.attachment.is_none() {
+                compare_generation_allow_next(state.latest_generation, generation)?;
+                state.latest_generation = Some(generation);
+                state.retired_generation = Some(generation);
+            } else {
+                compare_generation(state.latest_generation, generation)?;
+            }
             if state.invalidated_generation == Some(generation) {
                 BackingSurfaceHostDestroyOutcome::AlreadyInvalidated
             } else {
@@ -231,7 +225,7 @@ impl<R: crate::BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             }
         };
         if invalidation == BackingSurfaceHostDestroyOutcome::Invalidated {
-            self.emit(BackingSurfaceAdapterEvent::HostInvalidated { generation });
+            (self.observer)(BackingSurfaceAdapterEvent::HostInvalidated { generation });
         }
         let detach = self.detach_generation(generation)?;
         Ok(BackingSurfaceHostDestroyReceipt {

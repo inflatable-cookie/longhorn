@@ -32,20 +32,12 @@ const POODLE_RELEASE = poodleRelease();
 // Longhorn's own coordinated version. Poodle carries its own, released
 // separately, so the two cannot be one literal any more.
 const LONGHORN_VERSION = longhornVersion();
+// Protocol v2 binds connected requests to their host authority. Pin the
+// checked fixture and generated types alongside the navigation-absence check.
 const NATIVE_CONTENT_PROTOCOL_FIXTURE =
-  "bdfed54fc5f9c70d82485c5b572e3b2be3663c7bc37c6f565a8d4fc48196557e";
-// Rebaselined 2026-08-10 for Card 160. The fixture gained a `hostDestroy`
-// category because no category reached `HostDestroyReceipt`, so its field list
-// was enforcing nothing. The generated TypeScript digest is unchanged, and the
-// navigation-absence check below is the substantive guard here — it still
-// passes over the new payload.
-// Rebaselined 2026-11-24 for #160. The generated file changed only in its
-// header comment (`effigy generate:native-content` -> `effigy generate:bindings`),
-// and `check:bindings` confirms it still matches the Rust authority byte for
-// byte. The constant exists to catch unintended drift, so it is updated
-// deliberately rather than relaxed.
+  "0c07d5109e28454da978bd87c14df1b2d7f3a47f71395b858cbc20fa004edbd4";
 const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
-  "cb6fad9b088f9fa6b4bc17593defa7ec1b555e48e2e27edc21549447b2cdbca4";
+  "197e1d1d6412d8ff9db6b23d3e7e6692b7b4454630109fa551bbb1a780c3470d";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "native-content-system-proof");
 const temporaryRoot = await stagingDirectory("longhorn-native-content-artifact-proof");
@@ -180,7 +172,7 @@ try {
 }
 
 async function verifyProtocolIsolation() {
-  const fixturePath = join(repoRoot, "fixtures", "native-content", "protocol-v1.json");
+  const fixturePath = join(repoRoot, "fixtures", "native-content", "protocol-v2.json");
   const typescriptPath = join(
     repoRoot,
     "packages",
@@ -195,10 +187,10 @@ async function verifyProtocolIsolation() {
     typescript: await digest(typescriptPath),
   };
   if (digests.fixture !== NATIVE_CONTENT_PROTOCOL_FIXTURE) {
-    throw new Error("native-content protocol fixture changed during child navigation work");
+    throw new Error("native-content protocol fixture does not match its declared digest");
   }
   if (digests.typescript !== NATIVE_CONTENT_TYPESCRIPT_PROTOCOL) {
-    throw new Error("native-content generated TypeScript changed during child navigation work");
+    throw new Error("native-content generated TypeScript does not match its declared digest");
   }
   const commonProtocol = `${await readFile(fixturePath, "utf8")}\n${await readFile(typescriptPath, "utf8")}`;
   if (/navigate|current_url|requested_url/i.test(commonProtocol)) {

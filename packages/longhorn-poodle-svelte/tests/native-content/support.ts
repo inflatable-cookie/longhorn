@@ -1,4 +1,4 @@
-import fixture from "../../../../fixtures/native-content/protocol-v1.json";
+import fixture from "../../../../fixtures/native-content/protocol-v2.json";
 
 import { NATIVE_CONTENT_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/native-content";
 import type {
