@@ -75,6 +75,10 @@ ignored or lockfile inputs.
   and test doubles. Rust-generated bindings use their separate byte check.
 - Oxfmt runs with Node and Svelte support enabled. The standalone Svelte
   formatting pass reports component coverage separately from TypeScript.
+- `check:ci-static-parity` checks the hosted clients job against this family.
+  That job runs `check:ts`, `test:ts`, `test:vitest`, `check:svelte` and
+  `check:bindings`; Oxlint, Oxfmt and Knip run only through `effigy qa`, which
+  `release.yml` runs. The check fails when the job and the list drift apart.
 - `rust-dependencies` combines Machete's root Cargo workspace inventory
   with cargo-deny's bans, licenses and sources checks. Run it locally with
   both Cargo plugins installed. The release gate also checks live RustSec

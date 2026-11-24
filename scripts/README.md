@@ -177,6 +177,19 @@ defects from local `qa` during the first release runs:
 Not a substitute for dispatching `release.yml`. Run it before a release when
 `qa` is green and you want the clean-runner reading, not the developer one.
 
+The hosted `clients` job in `ci.yml` runs only part of `qa`'s TypeScript and
+Svelte family: `check:ts`, `test:ts`, `test:vitest`, `check:svelte` and
+`check:bindings`. `lint:ts`, `fmt:ts` and `check:knip` run through `qa`, which
+`release.yml` runs. `check:ci-static-parity` (`scripts/check-ci-static-parity.ts`)
+records that split and fails when the job and the `qa` list drift apart. Closing
+the gap in `ci.yml` needs Tom's approval, so it is recorded as a follow-up
+rather than changed here.
+
+`check:markers` (`scripts/check-markers.ts`) is the critical tier of the retired
+`[scan.attention_markers]` table: `BUG` and `remove before release` in tracked
+files fail it, whole-word and case-sensitive. The high and warning tiers are
+reported as counts only.
+
 ## Escape hatches
 
 - `KEEP_HISTORY_TREE_PROOF=1` retains the fork-history proof's disposable
