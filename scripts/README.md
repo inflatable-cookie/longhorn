@@ -188,23 +188,30 @@ an `if`, an `echo` line, a step name, a comment, or code after a top-level
 `effigy qa` by the same rule, in any of its jobs. Closing the gap in `ci.yml`
 needs Tom's approval, so it is recorded as a follow-up rather than changed here.
 
-`check:markers` (`scripts/check-markers.ts`) is the critical tier of the retired
-`[scan.attention_markers]` table: `BUG` and `remove before release` in tracked
-files fail it, whole-word and case-sensitive. The high and warning tiers are
-reported as counts only.
+`check:markers` (`scripts/check-markers.ts`) ports the retired
+`scan attention-markers` rules, with the marker lists the retired
+`[scan.attention_markers]` table set: scope by extension and path, generated
+artifacts skipped, a marker that starts a comment body, one finding per marker
+per line, and the deprecation, temporary and deferred categories. `BUG` and
+`remove before release` fail the gate. High and warning findings are counts.
 
-`check:generated-sources` (`scripts/check-generated-sources.ts`) ports the three
-rules of the retired `[scan.generated_in_src]` scanner to the same source roots
-(`src`, `app`, `lib`, `crates`, `packages/*/src`, `services/*/src`): a generated
-path component, a generated file name, and a generated header marker in the
-first 24 lines, with string literals masked. Generated output under
+`check:generated-sources` (`scripts/check-generated-sources.ts`) ports the
+retired `scan generated-in-src` rules over the scanner's source roots, in the
+scanner's order: a generated header, a `.map` suffix (source map), a `.min.` name
+(minified asset), a generated file name, and a `generated` or `gen` path
+component. Severity classes come from byte size. Generated output under
 `packages/*/src/**/generated/`, the bindings output in `crates/*/bindings/`, and
 the bindings generator sources in `crates/longhorn-bindings/src/` are the
 allowed surface. Outside the source roots, the generator header may appear only
 on that allowed surface. Every file in a generated directory must be named by a
 generator, and every text file there must carry the header. JSON output is
-checked by its generator path alone. The port matched the stable scanner's
-findings exactly on this repository: 51 files, the same paths.
+checked by its generator path alone.
+
+`scripts/scanner-heuristics.ts` holds the two helpers both ports share: the
+string-literal mask and the generated header test. Each rule has a synthetic
+fixture test. Each port was also checked against the stable scanners on one
+fixture that covers every rule: 15 of 15 generated-in-src findings and 19 of 19
+attention findings matched.
 
 ## Escape hatches
 

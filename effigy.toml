@@ -112,7 +112,7 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/check-generated-sources.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
+"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/scanner-heuristics.test.ts scripts/check-generated-sources.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -182,14 +182,15 @@ include = ["config/release.toml"]
 # requires an active resolution.
 "check:bun-links" = "bun scripts/check-bun-links.ts"
 "check:runner-tools" = "bun scripts/check-runner-tools.ts"
-# Critical attention markers (BUG, remove before release) in tracked files. The
-# current form of the retired [scan.attention_markers] critical tier; see
-# scripts/check-markers.ts for the matching rule and the report-only tiers.
+# Attention markers: the retired [scan.attention_markers] scanner's rules, ported.
+# The critical tier (BUG, remove before release) fails the gate; the high and
+# warning tiers are reported. See scripts/check-markers.ts for scope, matching and
+# categories.
 "check:markers" = "bun scripts/check-markers.ts"
 # Generated-source detection: the retired [scan.generated_in_src] rules (generated
-# path components, generated file names, generated header markers) over the
-# source roots, with generated output and the bindings generator sources
-# allowed. See scripts/check-generated-sources.ts.
+# header, source maps, minified assets, generated file names, generated path
+# components) over the scanner's source roots, with generated output and the
+# bindings generator sources allowed. See scripts/check-generated-sources.ts.
 "check:generated-sources" = "bun scripts/check-generated-sources.ts"
 # The native Tauri injection bundle must remain generated from the TypeScript
 # entrypoint and shim. `--write` refreshes it after source edits.
