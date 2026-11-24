@@ -1,7 +1,7 @@
 # Held Surface
 
 Status: checked
-Updated: 2026-11-22
+Updated: 2026-11-24
 
 Some Longhorn surface is built, tested, and contract-documented but not yet
 ready for consumer implementation. This register is the single source of
@@ -92,6 +92,7 @@ last checked against the listed evidence.
 | `HistoryNavigationLimits::maximum_recent_plans`, `MAXIMUM_RECENT_HISTORY_PLANS` | longhorn-history | bounded per-session ring that rejects duplicate plan ids at planning time | `../knowledge/architecture/history-composition.md` | 2026-11-22 |
 | `LinearHistory::with_navigation_limits`, `from_state_with_navigation_limits` | longhorn-history | constructor set for navigation limits, which also set the recent-plan ring | contract 008 § Limits And Pruning | 2026-11-22 |
 | `NativeSurfaceProvider`, `NativeSurfaceAction` | longhorn-agent-control | provider seam for GPUI and native content; no provider ships under the contract | contract 022 § Boundaries | 2026-11-22 |
+| `AgentControlShutdownError::AlreadyShutdown` | longhorn-tauri-agent-control | public variant of the shutdown error; no longer produced for a server thread that exited early, which now joins and reports its own result. Kept because removing a variant breaks the public enum | `../guides/agent-control-composition.md` § Hook Both `ExitRequested` And `Exit` | 2026-11-24 |
 | `ArtifactDigest` | longhorn-update | digest travels with the staged bytes and names the applied artifact | contract 018 § Staged Download And Install | 2026-11-22 |
 | `DecliningSystemBrowser` | longhorn-browser | browser port paired with `BrowserLaunchError::Declined`; rejection policy stays with the app | contract 020 § Delegated Capabilities | 2026-11-22 |
 | `native_platform_directory_fact*`, `resolve_storage_root`, `resolve_storage_bootstrap_paths` | longhorn-storage-layout | single-root resolver and one-fact provider; the bootstrap path join is the documented way in | contract 004 § Roots And Paths; `../guides/storage-configuration-backup.md` | 2026-11-22 |

@@ -154,8 +154,9 @@ impl Error for AgentControlMountError {
 /// serve run itself failed (including discovery removal on the way out).
 #[derive(Debug)]
 pub enum AgentControlShutdownError {
-    /// The server thread had already taken the shutdown signal — the handle
-    /// was used after shutdown began.
+    /// The handle had no server thread left to join. `shutdown` consumes the
+    /// handle, so this is not produced by a server that exited early: that
+    /// case joins and reports the thread's own result.
     AlreadyShutdown,
     /// The server thread panicked.
     ThreadPanicked,
@@ -200,16 +201,22 @@ impl AgentControlHandle {
     /// Signals graceful shutdown and joins the server thread, returning what
     /// the completed run bound and served.
     ///
+    /// Always joins. A startup failure, such as a bind on a port already in
+    /// use, ends the server thread before any shutdown is requested; the join
+    /// is how that original failure reaches the caller.
+    ///
     /// Blocks until the server finishes: axum's graceful shutdown drains
     /// in-flight requests, then the core removes the discovery file before
     /// the thread returns. Call this from the run-event callback — hook
     /// `RunEvent::Exit` (and `ExitRequested` where it fires) — before the
     /// process exits.
     pub fn shutdown(mut self) -> Result<ServeReceipt, AgentControlShutdownError> {
+        // The receiver is gone once the server thread has returned, so a
+        // failed send is expected after a startup failure. The join below
+        // reports the thread's real outcome, so the send result is not
+        // needed.
         if let Some(shutdown) = self.shutdown.take() {
-            shutdown
-                .send(())
-                .map_err(|()| AgentControlShutdownError::AlreadyShutdown)?;
+            let _ = shutdown.send(());
         }
         let thread = self
             .thread
@@ -262,9 +269,8 @@ pub fn mount_agent_control<R: Runtime>(
         discovery_dir,
         port: config.port,
     };
-    let (shutdown, signaled) = oneshot::channel::<()>();
     let registry_for_server = registry.clone();
-    let thread = thread::spawn(move || {
+    Ok(spawn_server(move |signaled| {
         let runtime = match tokio::runtime::Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
@@ -285,12 +291,23 @@ pub fn mount_agent_control<R: Runtime>(
                 let _ = signaled.await;
             },
         ))
-    });
+    }))
+}
 
-    Ok(AgentControlHandle {
+/// Spawns the server thread and pairs it with the handle that shuts it down.
+///
+/// `serve` runs on the thread and receives the shutdown signal. Whatever it
+/// returns, startup failure included, is what [`AgentControlHandle::shutdown`]
+/// reports once it joins the thread.
+fn spawn_server<Serve>(serve: Serve) -> AgentControlHandle
+where
+    Serve: FnOnce(oneshot::Receiver<()>) -> Result<ServeReceipt, ServeError> + Send + 'static,
+{
+    let (shutdown, signaled) = oneshot::channel::<()>();
+    AgentControlHandle {
         shutdown: Some(shutdown),
-        thread: Some(thread),
-    })
+        thread: Some(thread::spawn(move || serve(signaled))),
+    }
 }
 
 /// Reads the platform directory snapshot at the Tauri path edge.
@@ -338,4 +355,49 @@ fn lookup(
     result: Result<PathBuf, tauri::Error>,
 ) -> Result<PathBuf, AgentControlMountError> {
     result.map_err(|source| AgentControlMountError::Path { operation, source })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        io,
+        time::{Duration, Instant},
+    };
+
+    use super::*;
+
+    /// A bind failure ends the server thread before anyone asks it to stop.
+    /// `shutdown` must still join it and report the original failure, not an
+    /// already-shutdown error.
+    #[test]
+    fn shutdown_reports_startup_failure_after_the_thread_has_exited() {
+        let handle = spawn_server(|_signaled| {
+            Err(ServeError::Io(io::Error::new(
+                io::ErrorKind::AddrInUse,
+                "port taken",
+            )))
+        });
+        wait_for_thread_exit(&handle);
+
+        match handle.shutdown() {
+            Err(AgentControlShutdownError::Serve(ServeError::Io(source))) => {
+                assert_eq!(source.kind(), io::ErrorKind::AddrInUse);
+            }
+            other => panic!("expected the startup failure, got {other:?}"),
+        }
+    }
+
+    /// The serve future owns the shutdown receiver, so a closed sender means
+    /// the server thread has stopped serving.
+    fn wait_for_thread_exit(handle: &AgentControlHandle) {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !handle
+            .shutdown
+            .as_ref()
+            .is_some_and(|shutdown| shutdown.is_closed())
+        {
+            assert!(Instant::now() < deadline, "server thread did not exit");
+            thread::sleep(Duration::from_millis(5));
+        }
+    }
 }

@@ -19,9 +19,11 @@ use std::{
     time::{Duration, Instant},
 };
 
+use longhorn_agent_control::ServeError;
 use longhorn_core::CommandId;
 use longhorn_tauri_agent_control::{
-    AgentControlConfig, CommandBridge, NoCommandBridge, mount_agent_control,
+    AgentControlConfig, AgentControlShutdownError, CommandBridge, NoCommandBridge,
+    mount_agent_control,
 };
 use serde_json::{Value, json};
 use tauri::WebviewWindowBuilder;
@@ -723,5 +725,41 @@ fn child_webview_targeting_refusals_and_opt_in() {
     );
 
     handle.shutdown().unwrap();
+    drop(app);
+}
+
+/// Mount returns before the server thread binds. A port already in use ends
+/// the thread with the bind error, and `shutdown` must report that original
+/// failure rather than an already-shutdown error or a clean receipt.
+#[test]
+fn bind_failure_surfaces_at_shutdown() {
+    let app = tauri::test::mock_app();
+    let state_root = tempfile::tempdir().unwrap();
+    let occupied = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let port = occupied.local_addr().unwrap().port();
+
+    let handle = mount_agent_control(
+        app.handle(),
+        AgentControlConfig::new("longhorn-bind-failure-fixture")
+            .with_port(port)
+            .with_state_root(state_root.path().to_owned()),
+        Arc::new(RecordingBridge::default()),
+    )
+    .unwrap();
+
+    let error = handle.shutdown().unwrap_err();
+    assert!(
+        matches!(
+            &error,
+            AgentControlShutdownError::Serve(ServeError::Io(source))
+                if source.kind() == std::io::ErrorKind::AddrInUse
+        ),
+        "{error:?}"
+    );
+    assert!(
+        !state_root.path().join("agent-control").exists(),
+        "a failed bind must publish no discovery file"
+    );
+    drop(occupied);
     drop(app);
 }

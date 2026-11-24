@@ -360,6 +360,10 @@ macOS quit delivers `RunEvent::Exit` without a preceding `ExitRequested`.
 Hooking only `ExitRequested` strands the discovery file on clean quit.
 Hook both. `Option::take` makes the second fire a no-op.
 
+`mount_agent_control` returns before the server binds, so a startup failure
+such as a port already in use does not fail the mount. `shutdown` reports it
+instead as `AgentControlShutdownError::Serve`, after joining the server thread.
+
 ```rust
 app.run(|app, event| {
     #[cfg(feature = "agent-control")]
