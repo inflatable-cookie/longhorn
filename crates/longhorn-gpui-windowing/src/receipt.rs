@@ -30,6 +30,8 @@ pub enum GpuiWindowCall {
     Close,
     /// Discard a native window that failed admission.
     DiscardCreated,
+    /// Register apply evidence with, or re-key, the lifecycle host.
+    LifecycleBookkeeping,
 }
 
 /// Stable category for one failed operation.
@@ -43,6 +45,9 @@ pub enum GpuiApplyFailureKind {
     Native,
     /// Protected-primary policy refused close.
     ProtectedPrimary,
+    /// The lifecycle host refused the apply evidence or the identity change.
+    /// No native call was made for the operation.
+    Lifecycle,
 }
 
 /// Typed operation failure with the exact failed call.

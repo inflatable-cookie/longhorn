@@ -5,16 +5,17 @@
 //! This is where contract 020 bends, and the bends are GPUI-caused.
 
 use longhorn_gpui_windowing::{
-    GpuiApplyConvergence, GpuiApplyReadback, GpuiDiagnosticDisposition, GpuiLogicalRect,
-    GpuiLogicalSize, GpuiWindowKey, GpuiWindowRegistry, ManagedGpuiWindow, WITHHELD_CAPABILITIES,
-    execute_gpui_window_apply, gpui_host_capabilities,
+    GpuiApplyConvergence, GpuiApplyFailureKind, GpuiApplyOutcome, GpuiApplyReadback,
+    GpuiDiagnosticDisposition, GpuiLogicalRect, GpuiLogicalSize, GpuiWindowKey, GpuiWindowRegistry,
+    ManagedGpuiWindow, WITHHELD_CAPABILITIES, execute_gpui_window_apply, gpui_host_capabilities,
 };
 use longhorn_windowing::{
     HostCapability, LiveWindow, WindowDiffDiagnostic, WindowOperationKind, plan_window_diff,
 };
 
 use super::support::{
-    Call, FakeGpuiHost, SuppliedDisplayFacts, desired, handle_of, id, placement, plan,
+    Call, FakeGpuiHost, RecordingApplyObserver, SuppliedDisplayFacts, desired, handle_of, id,
+    placement, plan,
 };
 
 fn live_at(key: GpuiWindowKey, maximized: bool) -> LiveWindow {
@@ -54,6 +55,7 @@ fn placement_is_applied_at_creation_because_gpui_cannot_move_a_window_afterwards
         GpuiWindowRegistry::default(),
         &mut host,
         &mut displays,
+        &mut RecordingApplyObserver::default(),
     )
     .unwrap();
 
@@ -103,7 +105,14 @@ fn an_existing_window_is_resized_but_the_move_refusal_is_named() {
         1,
     )
     .with_live_windows([live_at(key, false)]);
-    let bundle = execute_gpui_window_apply(plan, registry, &mut host, &mut displays).unwrap();
+    let bundle = execute_gpui_window_apply(
+        plan,
+        registry,
+        &mut host,
+        &mut displays,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
 
     assert_eq!(host.calls, vec![Call::Resize(key)]);
     assert!(bundle.dispositions().iter().any(|disposition| matches!(
@@ -133,7 +142,14 @@ fn maximize_and_unmaximize_execute_against_a_toggle_only_host() {
 
     let plan = plan([desired("main", placement(0, 0, 800, 600), true, true)], 1)
         .with_live_windows([live_at(key, false)]);
-    let bundle = execute_gpui_window_apply(plan, registry, &mut host, &mut displays).unwrap();
+    let bundle = execute_gpui_window_apply(
+        plan,
+        registry,
+        &mut host,
+        &mut displays,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
 
     assert!(host.calls.contains(&Call::SetMaximized(key, true)));
     assert!(host.is_maximized(key));
@@ -165,7 +181,14 @@ fn a_maximize_that_succeeded_is_not_reported_as_unconverged() {
 
     let plan = plan([desired("main", placement(0, 0, 800, 600), true, true)], 1)
         .with_live_windows([live_at(key, false)]);
-    let bundle = execute_gpui_window_apply(plan, registry, &mut host, &mut displays).unwrap();
+    let bundle = execute_gpui_window_apply(
+        plan,
+        registry,
+        &mut host,
+        &mut displays,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
 
     // The call was made and reported successful.
     assert!(host.calls.contains(&Call::SetMaximized(key, true)));
@@ -260,7 +283,14 @@ fn a_window_desired_hidden_is_a_state_gpui_cannot_reach() {
         1,
     )
     .with_live_windows([live_at(key, false)]);
-    let bundle = execute_gpui_window_apply(plan, registry, &mut host, &mut displays).unwrap();
+    let bundle = execute_gpui_window_apply(
+        plan,
+        registry,
+        &mut host,
+        &mut displays,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
 
     assert!(bundle.dispositions().iter().any(|disposition| matches!(
         disposition,
@@ -270,4 +300,97 @@ fn a_window_desired_hidden_is_a_state_gpui_cannot_reach() {
         }
     )));
     assert!(!bundle.desired_state_reached());
+}
+
+#[test]
+fn a_resize_the_readback_does_not_see_is_not_a_reached_state() {
+    // The host accepted the resize, but the fresh readback still reports the
+    // old size, so the remaining diff still asks for it. Every operation
+    // attempted succeeded, and the readback itself completed, so only the
+    // remaining diff shows the gap. Contract 009: fresh readback decides
+    // convergence.
+    let (mut host, key) = FakeGpuiHost::new()
+        .with_inert_resize()
+        .with_existing_window(
+            GpuiLogicalRect::new(0.0, 0.0, 800.0, 600.0),
+            GpuiLogicalSize::new(800.0, 600.0),
+            false,
+        );
+    let mut displays = SuppliedDisplayFacts::new();
+    let registry =
+        GpuiWindowRegistry::new([ManagedGpuiWindow::new(key, Some(id("main")))], None).unwrap();
+
+    let plan = plan(
+        [desired("main", placement(0, 0, 1024, 768), false, true)],
+        1,
+    )
+    .with_live_windows([live_at(key, false)]);
+    let bundle = execute_gpui_window_apply(
+        plan,
+        registry,
+        &mut host,
+        &mut displays,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
+
+    assert!(host.calls.contains(&Call::Resize(key)));
+    let GpuiApplyReadback::Complete {
+        convergence: GpuiApplyConvergence::Planned(remaining),
+        ..
+    } = bundle.receipt().readback()
+    else {
+        panic!("expected a complete readback with a remaining diff");
+    };
+    assert!(
+        remaining
+            .operations()
+            .iter()
+            .any(|planned| planned.operation().kind() == WindowOperationKind::Resize),
+        "{:?}",
+        remaining.operations()
+    );
+    assert!(!bundle.desired_state_reached());
+}
+
+#[test]
+fn a_lifecycle_refusal_stops_the_native_call_and_names_the_refusal() {
+    // A lifecycle host that will not register the evidence must not see the
+    // mutation happen unattributed. The attempt fails before the native call.
+    let (mut host, key) = FakeGpuiHost::new().with_existing_window(
+        GpuiLogicalRect::new(0.0, 0.0, 800.0, 600.0),
+        GpuiLogicalSize::new(800.0, 600.0),
+        false,
+    );
+    let mut displays = SuppliedDisplayFacts::new();
+    let registry =
+        GpuiWindowRegistry::new([ManagedGpuiWindow::new(key, Some(id("main")))], None).unwrap();
+
+    let plan = plan(
+        [desired("main", placement(0, 0, 1024, 768), false, true)],
+        1,
+    )
+    .with_live_windows([live_at(key, false)]);
+    let mut observer = RecordingApplyObserver::refusing("apply generation 1 is older than 2");
+    let bundle =
+        execute_gpui_window_apply(plan, registry, &mut host, &mut displays, &mut observer).unwrap();
+
+    assert!(
+        !host
+            .calls
+            .iter()
+            .any(|call| matches!(call, Call::Resize(_)))
+    );
+    assert!(!bundle.desired_state_reached());
+    let refused = bundle
+        .receipt()
+        .attempts()
+        .iter()
+        .find(|attempt| attempt.operation() == WindowOperationKind::Resize)
+        .expect("a resize was planned and attempted");
+    let GpuiApplyOutcome::Failed { failure, .. } = refused.outcome() else {
+        panic!("the resize should be refused, not {:?}", refused.outcome());
+    };
+    assert_eq!(failure.kind(), GpuiApplyFailureKind::Lifecycle);
+    assert!(failure.detail().contains("older than 2"));
 }

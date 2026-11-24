@@ -13,6 +13,13 @@ pub fn capture_from_gpui_facts(
     facts: &crate::GpuiWindowFacts,
 ) -> Result<CapturedWindowPlacement, String> {
     let state = facts.bounds_state();
+    // Longhorn's placement vocabulary has no fullscreen state. The bounds
+    // GPUI reports for a fullscreen window are fullscreen geometry, and
+    // persisting them as a windowed placement would restore the window as an
+    // ordinary one at that size. Refuse here and let the caller decide.
+    if state.is_fullscreen() {
+        return Err("a fullscreen window has no windowed placement to persist".to_owned());
+    }
     let restore = state.restore_bounds();
 
     // Longhorn's normal placement wants an *inner* size, and gpui's bounds are

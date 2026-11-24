@@ -132,12 +132,16 @@ fn placement(window_id: &str, width: u32) -> CapturedWindowPlacement {
 }
 
 fn request(window_id: &str) -> WindowFlushRequest {
+    request_within(window_id, 2_000)
+}
+
+fn request_within(window_id: &str, timeout_millis: u64) -> WindowFlushRequest {
     WindowFlushRequest::new(
         vec![WindowFlushTarget::new(
             WindowId::new(window_id).unwrap(),
             None,
         )],
-        longhorn_windowing::WindowLifecycleDuration::from_millis(2_000),
+        longhorn_windowing::WindowLifecycleDuration::from_millis(timeout_millis),
         WindowFlushScope::ApplicationShutdown,
     )
 }
@@ -165,7 +169,10 @@ fn config_sink_coalesces_and_preserves_other_domain_fields() {
 
     WindowPlacementSink::stage(&sink, &placement("window:main", 800)).unwrap();
     WindowPlacementSink::stage(&sink, &placement("window:main", 1_200)).unwrap();
-    WindowPlacementSink::request_flush(&sink, &request("window:main")).unwrap();
+    assert_eq!(
+        longhorn_windowing::flush_window_placements(&sink, &request("window:main")),
+        longhorn_windowing::WindowFlushOutcome::Succeeded
+    );
 
     let LoadOutcome::Ready(loaded) = sink.load().unwrap() else {
         panic!("session should load");
@@ -198,7 +205,10 @@ fn flush_only_publishes_requested_windows() {
     WindowPlacementSink::stage(&sink, &placement("window:a", 800)).unwrap();
     WindowPlacementSink::stage(&sink, &placement("window:b", 900)).unwrap();
 
-    WindowPlacementSink::request_flush(&sink, &request("window:b")).unwrap();
+    assert_eq!(
+        longhorn_windowing::flush_window_placements(&sink, &request("window:b")),
+        longhorn_windowing::WindowFlushOutcome::Succeeded
+    );
 
     let LoadOutcome::Ready(loaded) = sink.load().unwrap() else {
         panic!("session should load");
@@ -305,6 +315,63 @@ fn placement_staged_during_flush_is_published_by_the_next_flush() {
         panic!("session should load after the second flush");
     };
     assert_eq!(loaded.value.placements["window:main"], newer);
+}
+
+#[test]
+fn a_flush_whose_publication_outlasts_its_bound_reports_timed_out() {
+    use std::sync::{Mutex, mpsc};
+
+    use longhorn_windowing::WindowFlushOutcome;
+
+    let (_temp, store) = store();
+    // The first publication blocks inside the patch until the test releases
+    // it. The gate is the only thing that holds it up.
+    let (release_tx, release_rx) = mpsc::channel::<()>();
+    let gate = Mutex::new(Some(release_rx));
+    let sink = ConfigWindowPlacementSink::new(
+        store,
+        SessionDomain::new(),
+        MutationOptions::new(Duration::from_secs(2), DurabilityRequirement::Atomic),
+        move |session: &mut Session, captured| {
+            if let Some(release) = gate.lock().unwrap().take() {
+                release.recv_timeout(Duration::from_secs(5)).unwrap();
+            }
+            session
+                .placements
+                .insert("window:main".to_owned(), captured.clone());
+            Ok(())
+        },
+    )
+    .unwrap();
+    let captured = placement("window:main", 800);
+    sink.stage(&captured).unwrap();
+
+    // The explicit bound is enforced, so the caller stops waiting after it.
+    let started = std::time::Instant::now();
+    assert_eq!(
+        longhorn_windowing::flush_window_placements(&sink, &request_within("window:main", 50)),
+        WindowFlushOutcome::TimedOut
+    );
+    assert!(started.elapsed() < Duration::from_secs(2));
+
+    // While that publication still holds the flush, a second flush is bounded
+    // too rather than queuing behind it.
+    assert_eq!(
+        longhorn_windowing::flush_window_placements(&sink, &request_within("window:main", 50)),
+        WindowFlushOutcome::TimedOut
+    );
+
+    // Releasing the publication lets it finish. Placements staged before the
+    // timeout are then durable, and a flush with room to wait confirms it.
+    release_tx.send(()).unwrap();
+    assert_eq!(
+        longhorn_windowing::flush_window_placements(&sink, &request("window:main")),
+        WindowFlushOutcome::Succeeded
+    );
+    let LoadOutcome::Ready(loaded) = sink.load().unwrap() else {
+        panic!("session should load after the delayed publication");
+    };
+    assert_eq!(loaded.value.placements["window:main"], captured);
 }
 
 #[test]

@@ -17,12 +17,14 @@ pub use translation::{GpuiWindowEvent, translate_gpui_window_event};
 
 use longhorn_core::{ScaleFactor, WindowId};
 use longhorn_windowing::{
-    CaptureGeneration, ScheduledWindowLifecycleWake, WindowFlushRequest, WindowFlushScope,
-    WindowFlushTarget, WindowLifecycleClock, WindowLifecycleCoordinator, WindowLifecycleDirective,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowUserCloseHandler, flush_window_placements,
+    ApplyGeneration, ApplyRegistrationOutcome, CaptureGeneration, HostWindowHandle,
+    ScheduledWindowLifecycleWake, WindowFlushRequest, WindowFlushScope, WindowFlushTarget,
+    WindowLifecycleClock, WindowLifecycleCoordinator, WindowLifecycleDirective,
+    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation, WindowUserCloseHandler,
+    flush_window_placements,
 };
 
-use crate::{GpuiWindowKey, GpuiWindowLifecycleError, scale_factor_from_gpui};
+use crate::{GpuiApplyObserver, GpuiWindowKey, GpuiWindowLifecycleError, scale_factor_from_gpui};
 
 /// Which counter one scheduling attempt raised, so a failure rolls back the
 /// right one.
@@ -431,5 +433,76 @@ where
             },
             Err(detail) => GpuiLifecycleAction::CaptureFailed { detail },
         }
+    }
+}
+
+/// Apply evidence and identity changes reach the lifecycle coordinator here,
+/// before each native call, so the events the call causes are attributed to
+/// the apply. Without this the coordinator has no way to know a resize or a
+/// maximize came from Longhorn, and captures it as a user placement.
+impl<C, S, B, U> GpuiApplyObserver for GpuiWindowLifecycleHost<C, S, B, U>
+where
+    C: WindowLifecycleClock,
+    S: GpuiLifecycleScheduler,
+    B: GpuiWindowCaptureBackend,
+    U: WindowUserCloseHandler,
+{
+    fn register_apply(
+        &mut self,
+        generation: ApplyGeneration,
+        operation: &WindowOperation,
+    ) -> Result<(), String> {
+        let at = self.services.clock.now();
+        match self
+            .coordinator
+            .register_apply(at, generation, operation)
+            .map_err(|error| error.to_string())?
+        {
+            ApplyRegistrationOutcome::Registered | ApplyRegistrationOutcome::Extended => Ok(()),
+            ApplyRegistrationOutcome::StaleGeneration { current } => Err(format!(
+                "apply generation {} is older than {}",
+                generation.get(),
+                current.get()
+            )),
+            ApplyRegistrationOutcome::StaleTimestamp { latest } => Err(format!(
+                "apply evidence timestamp precedes {}",
+                latest.get()
+            )),
+        }
+    }
+
+    fn retag(
+        &mut self,
+        transport_handle: &HostWindowHandle,
+        window_id: &WindowId,
+    ) -> Result<(), String> {
+        let Some(current) = self
+            .windows
+            .iter()
+            .find(|(_, installed)| installed.key.transport_handle() == *transport_handle)
+            .map(|(current, _)| current.clone())
+        else {
+            // A managed window this host never installed has no lifecycle
+            // state to move.
+            return Ok(());
+        };
+        if &current == window_id {
+            return Ok(());
+        }
+        if self.windows.contains_key(window_id) {
+            return Err(format!("window {window_id} is already installed"));
+        }
+        // Pending captures and flushes are keyed by the old identity. Moving
+        // the window under them would strand them, so the retag waits.
+        if self.outstanding_for(&current) > 0 {
+            return Err(format!(
+                "window {current} has outstanding lifecycle work; retag waits until it settles"
+            ));
+        }
+        if let Some(installed) = self.windows.remove(&current) {
+            self.windows.insert(window_id.clone(), installed);
+        }
+        self.outstanding.remove(&current);
+        Ok(())
     }
 }

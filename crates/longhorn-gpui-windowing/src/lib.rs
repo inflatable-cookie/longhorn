@@ -26,7 +26,9 @@ mod registry;
 mod scale;
 mod transfer;
 
-pub use apply::{GpuiApplyOutcomeBundle, GpuiDiagnosticDisposition, execute_gpui_window_apply};
+pub use apply::{
+    GpuiApplyObserver, GpuiApplyOutcomeBundle, GpuiDiagnosticDisposition, execute_gpui_window_apply,
+};
 pub use backend::{GpuiWindowBackend, GpuiWindowCreateRequest, GpuiWindowError};
 pub use capabilities::{
     WITHHELD_CAPABILITIES, WithheldCapability, gpui_deferred_settlement, gpui_host_capabilities,

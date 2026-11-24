@@ -62,8 +62,11 @@ the shared clock, capture records and placement sink from `longhorn-windowing`.
 `longhorn-tauri-windowing` stays independent of configuration.
 `longhorn-windowing-config::ConfigWindowPlacementSink` is the optional bridge
 for a consumer-owned `ConfigDomain`. It coalesces captures per window and
-publishes requested targets through one coordinated mutation. The consumer
-supplies only the projection into its domain value.
+publishes requested targets through one coordinated mutation, run on a flush
+worker. The caller's wait enforces the flush timeout. A publication that
+outlasts it reports `TimedOut` and still completes later, and placements stay
+staged until a publication succeeds. The consumer supplies only the projection
+into its domain value.
 
 ## Geometry Scale
 

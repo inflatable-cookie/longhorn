@@ -101,13 +101,23 @@ impl GpuiApplyOutcomeBundle {
     }
 
     /// Returns whether every desired window reached its desired state.
+    ///
+    /// Convergence is the fresh readback's remaining diff, after the host's
+    /// declared deferred operations are set aside. Any remaining operation or
+    /// diagnostic means the desired state is not there yet, and a readback
+    /// whose diff could not be computed proves nothing.
     #[must_use]
     pub fn desired_state_reached(&self) -> bool {
-        matches!(self.receipt.readback(), GpuiApplyReadback::Complete { .. })
-            && self
-                .dispositions
-                .iter()
-                .all(GpuiDiagnosticDisposition::is_reached)
+        matches!(
+            self.receipt.readback(),
+            GpuiApplyReadback::Complete {
+                convergence: GpuiApplyConvergence::Planned(remaining),
+                ..
+            } if remaining.is_empty()
+        ) && self
+            .dispositions
+            .iter()
+            .all(GpuiDiagnosticDisposition::is_reached)
             && self
                 .receipt
                 .attempts()
@@ -122,12 +132,47 @@ impl GpuiApplyOutcomeBundle {
     }
 }
 
+/// Receives apply evidence before each native mutation.
+///
+/// Native events a mutation causes arrive later and look exactly like user
+/// moves and resizes. The lifecycle coordinator tells them apart only from
+/// evidence registered before the call, so a host's lifecycle state must see
+/// this evidence. Tauri registers it through `ProgrammaticApplyObserver`. The
+/// GPUI lifecycle host implements this trait for the same purpose.
+pub trait GpuiApplyObserver {
+    /// Registers one operation before its native call runs.
+    ///
+    /// # Errors
+    /// An error refuses the operation. The adapter then makes no native call.
+    fn register_apply(
+        &mut self,
+        generation: ApplyGeneration,
+        operation: &WindowOperation,
+    ) -> Result<(), String>;
+
+    /// Moves lifecycle bookkeeping for `transport_handle` to `window_id`.
+    ///
+    /// Called only after the registry has validated the retag, and before the
+    /// registry commits it, so an error here leaves the registry unchanged.
+    ///
+    /// # Errors
+    /// An error refuses the retag.
+    fn retag(
+        &mut self,
+        transport_handle: &HostWindowHandle,
+        window_id: &WindowId,
+    ) -> Result<(), String>;
+}
+
 /// Executes one ordered nontransactional apply on the GPUI main thread.
 ///
 /// The caller owns the backend for the duration of the call, because a GPUI
 /// backend borrows the application context. There is no in-place variant that
 /// leaves the registry with the caller across a suspension point: on this host
 /// there is no suspension point to leave it across.
+///
+/// The observer receives each operation's evidence before its native call.
+/// Pass the lifecycle host that will see the resulting window events.
 ///
 /// The adapter reads desired state out of `input` because GPUI takes a
 /// window's bounds, maximized state, focus and display as creation-time
@@ -140,6 +185,7 @@ pub fn execute_gpui_window_apply(
     mut registry: GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
     displays: &mut impl GpuiDisplayFactsSource,
+    observer: &mut impl GpuiApplyObserver,
 ) -> Result<GpuiApplyOutcomeBundle, GpuiApplyError> {
     let input = input.with_capabilities(gpui_host_capabilities(backend.can_create()));
     let desired = desired_state(input.desired_windows());
@@ -147,6 +193,7 @@ pub fn execute_gpui_window_apply(
         registry: &mut registry,
         backend,
         displays,
+        observer,
         desired: &desired,
     };
     let run = apply_window_diff(&mut host, input, &gpui_deferred_settlement())?;
@@ -154,7 +201,7 @@ pub fn execute_gpui_window_apply(
         .plan
         .diagnostics()
         .iter()
-        .filter_map(|diagnostic| classify(diagnostic, &run.created, &desired))
+        .filter_map(|diagnostic| classify(diagnostic, &run.created))
         .collect();
     let readback = match run.readback {
         Ok((observation, convergence)) => GpuiApplyReadback::Complete {
@@ -173,14 +220,20 @@ pub fn execute_gpui_window_apply(
     })
 }
 
-struct GpuiApplyHost<'a, B, D> {
+struct GpuiApplyHost<'a, B, D, O> {
     registry: &'a mut GpuiWindowRegistry,
     backend: &'a mut B,
     displays: &'a mut D,
+    observer: &'a mut O,
     desired: &'a BTreeMap<WindowId, DesiredState>,
 }
 
-impl<B: GpuiWindowBackend, D: GpuiDisplayFactsSource> WindowApplyHost for GpuiApplyHost<'_, B, D> {
+impl<B, D, O> WindowApplyHost for GpuiApplyHost<'_, B, D, O>
+where
+    B: GpuiWindowBackend,
+    D: GpuiDisplayFactsSource,
+    O: GpuiApplyObserver,
+{
     type Attempt = GpuiApplyAttempt;
     type Observation = GpuiDesktopObservation;
     type ApplyError = GpuiApplyError;
@@ -201,6 +254,7 @@ impl<B: GpuiWindowBackend, D: GpuiDisplayFactsSource> WindowApplyHost for GpuiAp
         let attempt = execute_operation(
             self.registry,
             self.backend,
+            self.observer,
             self.desired,
             planned.generation(),
             planned.operation(),
@@ -242,7 +296,6 @@ impl From<WindowDiffError> for GpuiApplyError {
 struct DesiredState {
     placement: WindowPlacement,
     maximized: bool,
-    visible: bool,
 }
 
 fn desired_state(desired_windows: &[DesiredWindow]) -> BTreeMap<WindowId, DesiredState> {
@@ -254,7 +307,6 @@ fn desired_state(desired_windows: &[DesiredWindow]) -> BTreeMap<WindowId, Desire
                 DesiredState {
                     placement: desired.placement(),
                     maximized: desired.is_maximized(),
-                    visible: desired.is_visible(),
                 },
             )
         })
@@ -264,7 +316,6 @@ fn desired_state(desired_windows: &[DesiredWindow]) -> BTreeMap<WindowId, Desire
 fn classify(
     diagnostic: &WindowDiffDiagnostic,
     created: &BTreeSet<WindowId>,
-    desired: &BTreeMap<WindowId, DesiredState>,
 ) -> Option<GpuiDiagnosticDisposition> {
     let WindowDiffDiagnostic::UnsupportedOperation {
         operation,
@@ -287,13 +338,9 @@ fn classify(
             operation: *operation,
             reason: "a gpui window is on screen from creation",
         },
-        HostCapability::Hide if desired.get(window_id).is_some_and(|state| state.visible) => {
-            GpuiDiagnosticDisposition::AlreadyTrue {
-                window_id: window_id.clone(),
-                operation: *operation,
-                reason: "the window is desired visible, so nothing had to hide",
-            }
-        }
+        // A hide is planned only for a window desired hidden, so a hide
+        // diagnostic never has a visible target to call "already true". It
+        // falls through to unsatisfiable, which is what GPUI cannot do.
         capability => GpuiDiagnosticDisposition::Unsatisfiable {
             window_id: window_id.clone(),
             operation: *operation,
@@ -306,6 +353,7 @@ fn classify(
 fn execute_operation(
     registry: &mut GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
+    observer: &mut impl GpuiApplyObserver,
     desired: &BTreeMap<WindowId, DesiredState>,
     generation: ApplyGeneration,
     operation: &WindowOperation,
@@ -314,16 +362,24 @@ fn execute_operation(
         WindowOperation::Retag {
             window_id,
             transport_handle,
-        } => execute_retag(registry, generation, window_id, transport_handle, operation),
-        WindowOperation::Create { window_id } => {
-            execute_create(registry, backend, desired, generation, window_id, operation)
-        }
-        _ => execute_existing(registry, backend, generation, operation),
+        } => execute_retag(
+            registry,
+            observer,
+            generation,
+            window_id,
+            transport_handle,
+            operation,
+        ),
+        WindowOperation::Create { window_id } => execute_create(
+            registry, backend, observer, desired, generation, window_id, operation,
+        ),
+        _ => execute_existing(registry, backend, observer, generation, operation),
     }
 }
 
 fn execute_retag(
     registry: &mut GpuiWindowRegistry,
+    observer: &mut impl GpuiApplyObserver,
     generation: ApplyGeneration,
     window_id: &WindowId,
     transport_handle: &HostWindowHandle,
@@ -340,6 +396,29 @@ fn execute_retag(
                 GpuiWindowCall::ResolveManagedWindow,
                 &GpuiWindowRegistryError::UnknownTransportHandle(transport_handle.clone()),
             ),
+        );
+    }
+    // Validate both stores before either commits. The lifecycle host is
+    // re-keyed first, so a registry refusal found afterwards would leave the
+    // two disagreeing about which window is which.
+    if let Err(error) = registry.check_retag(transport_handle, window_id) {
+        return failed(
+            generation,
+            window_id.clone(),
+            Some(transport_handle.clone()),
+            WindowOperationKind::Retag,
+            Vec::new(),
+            registry_failure(GpuiWindowCall::RegistryRetag, &error),
+        );
+    }
+    if let Err(detail) = observer.retag(transport_handle, window_id) {
+        return failed(
+            generation,
+            window_id.clone(),
+            Some(transport_handle.clone()),
+            WindowOperationKind::Retag,
+            Vec::new(),
+            lifecycle_failure(detail),
         );
     }
     registry.record_evidence(Some(transport_handle.clone()), operation.clone());
@@ -365,6 +444,7 @@ fn execute_retag(
 fn execute_create(
     registry: &mut GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
+    observer: &mut impl GpuiApplyObserver,
     desired: &BTreeMap<WindowId, DesiredState>,
     generation: ApplyGeneration,
     window_id: &WindowId,
@@ -378,6 +458,18 @@ fn execute_create(
             WindowOperationKind::Create,
             Vec::new(),
             registry_failure(GpuiWindowCall::RegistryInsert, &error),
+        );
+    }
+    // Before the window exists, so the events its opening produces are
+    // attributed to this apply and not to the user.
+    if let Err(detail) = observer.register_apply(generation, operation) {
+        return failed(
+            generation,
+            window_id.clone(),
+            None,
+            WindowOperationKind::Create,
+            Vec::new(),
+            lifecycle_failure(detail),
         );
     }
     registry.record_evidence(None, operation.clone());
@@ -471,6 +563,7 @@ fn execute_create(
 fn execute_existing(
     registry: &mut GpuiWindowRegistry,
     backend: &mut impl GpuiWindowBackend,
+    observer: &mut impl GpuiApplyObserver,
     generation: ApplyGeneration,
     operation: &WindowOperation,
 ) -> GpuiApplyAttempt {
@@ -502,6 +595,18 @@ fn execute_existing(
                 GpuiApplyFailureKind::ProtectedPrimary,
                 "protected primary cannot be closed",
             ),
+        );
+    }
+    // Registered before the native call. A refused registration means the
+    // call never happens, so no effect is left unattributed.
+    if let Err(detail) = observer.register_apply(generation, operation) {
+        return failed(
+            generation,
+            window_id,
+            Some(handle),
+            kind,
+            Vec::new(),
+            lifecycle_failure(detail),
         );
     }
     registry.record_evidence(Some(handle.clone()), operation.clone());
@@ -630,10 +735,51 @@ fn failed(
     )
 }
 
+fn lifecycle_failure(detail: String) -> GpuiApplyFailure {
+    GpuiApplyFailure::new(
+        GpuiWindowCall::LifecycleBookkeeping,
+        GpuiApplyFailureKind::Lifecycle,
+        detail,
+    )
+}
+
 fn registry_failure(call: GpuiWindowCall, error: &GpuiWindowRegistryError) -> GpuiApplyFailure {
     GpuiApplyFailure::new(call, GpuiApplyFailureKind::Registry, error.to_string())
 }
 
 fn native_failure(call: GpuiWindowCall, error: &crate::GpuiWindowError) -> GpuiApplyFailure {
     GpuiApplyFailure::new(call, GpuiApplyFailureKind::Native, error.detail())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use longhorn_core::WindowId;
+    use longhorn_windowing::{HostCapability, WindowDiffDiagnostic, WindowOperationKind};
+
+    use super::{GpuiDiagnosticDisposition, classify};
+
+    #[test]
+    fn a_hide_the_host_cannot_make_is_unsatisfiable_never_already_true() {
+        // A hide is planned only for a window desired hidden, so no hide can
+        // ever be "already true" by being desired visible. The host cannot
+        // hide, and that is what the disposition must say.
+        let window_id = WindowId::new("main").unwrap();
+        let diagnostic = WindowDiffDiagnostic::UnsupportedOperation {
+            operation: WindowOperationKind::Hide,
+            window_id: window_id.clone(),
+            transport_handle: None,
+            required_capability: HostCapability::Hide,
+        };
+
+        assert_eq!(
+            classify(&diagnostic, &BTreeSet::new()),
+            Some(GpuiDiagnosticDisposition::Unsatisfiable {
+                window_id,
+                operation: WindowOperationKind::Hide,
+                capability: HostCapability::Hide,
+            })
+        );
+    }
 }
