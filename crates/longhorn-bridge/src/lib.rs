@@ -64,8 +64,8 @@ pub use replay::{
 };
 #[cfg(feature = "supervision")]
 pub use supervision::{
-    BridgeServiceAction, BridgeServiceAdmission, BridgeServiceFailureCode,
-    BridgeServiceGeneration, BridgeServiceMachine, BridgeServiceOutcome, BridgeServiceOwnership,
+    BridgeServiceAction, BridgeServiceAdmission, BridgeServiceFailureCode, BridgeServiceGeneration,
+    BridgeServiceIncarnation, BridgeServiceMachine, BridgeServiceOutcome, BridgeServiceOwnership,
     BridgeServiceRequest, BridgeServiceState, BridgeServiceSupervisor,
     BridgeServiceTransitionReceipt, BridgeSupervisionError,
 };

@@ -162,22 +162,46 @@ impl BridgeServiceGeneration {
     }
 }
 
-/// One admitted supervision action bound to the generation that admitted it.
+/// Monotonic service incarnation.
+///
+/// One incarnation covers one service attempt. It advances only when a commit
+/// starts an attempt (spawn, attach, restart or reconnect), never for a
+/// readiness observation of the running attempt and never for the attempt's
+/// end.
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+pub struct BridgeServiceIncarnation(WireCounter);
+
+impl BridgeServiceIncarnation {
+    fn next(self) -> Result<Self, BridgeSupervisionError> {
+        self.0
+            .checked_add(1)
+            .map(Self)
+            .map_err(|_| BridgeSupervisionError::GenerationExhausted)
+    }
+
+    /// Returns the incarnation counter value.
+    #[must_use]
+    pub const fn get(self) -> u64 {
+        self.0.get()
+    }
+}
+
+/// One admitted supervision action bound to the incarnation that admitted it.
 ///
 /// A machine-local token, not a wire shape: [`BridgeServiceMachine::begin`]
 /// returns it and [`BridgeServiceMachine::commit`] accepts its observation only
-/// while that generation is still current.
+/// while that incarnation is still current.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BridgeServiceAdmission {
-    generation: BridgeServiceGeneration,
+    incarnation: BridgeServiceIncarnation,
     action: BridgeServiceAction,
 }
 
 impl BridgeServiceAdmission {
-    /// Returns the generation that admitted the action.
+    /// Returns the service incarnation that admitted the action.
     #[must_use]
-    pub const fn generation(self) -> BridgeServiceGeneration {
-        self.generation
+    pub const fn incarnation(self) -> BridgeServiceIncarnation {
+        self.incarnation
     }
 
     /// Returns the admitted action.
@@ -220,6 +244,7 @@ pub struct BridgeServiceMachine {
     ownership: BridgeServiceOwnership,
     state: BridgeServiceState,
     generation: BridgeServiceGeneration,
+    incarnation: BridgeServiceIncarnation,
 }
 
 impl BridgeServiceMachine {
@@ -230,6 +255,7 @@ impl BridgeServiceMachine {
             ownership,
             state: BridgeServiceState::Absent,
             generation: BridgeServiceGeneration(WireCounter::ZERO),
+            incarnation: BridgeServiceIncarnation(WireCounter::ZERO),
         }
     }
 
@@ -252,38 +278,41 @@ impl BridgeServiceMachine {
 
     /// Admits one action whose observation arrives after the call returns.
     ///
-    /// The returned admission carries the admitting generation, so the
-    /// observation must be committed through [`Self::commit`]. A transition
-    /// that lands in between supersedes the admission and the delayed
-    /// observation is rejected instead of being reported for the later
-    /// service incarnation.
+    /// The returned admission carries the service incarnation that admitted it,
+    /// so the observation must be committed through [`Self::commit`]. A commit
+    /// that starts a new attempt in between supersedes the admission and the
+    /// delayed observation is rejected instead of being reported for the later
+    /// service incarnation. Readiness observations of one attempt share its
+    /// incarnation, so overlapping probes of that attempt all stay committable.
     pub fn begin(
         &self,
         action: BridgeServiceAction,
     ) -> Result<BridgeServiceAdmission, BridgeSupervisionError> {
         self.admit(action)?;
         Ok(BridgeServiceAdmission {
-            generation: self.generation,
+            incarnation: self.incarnation,
             action,
         })
     }
 
     /// Commits the observation for an action admitted by [`Self::begin`].
     ///
-    /// Rejects the observation when any transition committed after admission:
-    /// the observation then describes a service incarnation this machine has
-    /// already left behind.
+    /// Rejects the observation when a commit started a new service attempt
+    /// after admission, or when the action is no longer valid in the current
+    /// state. Neither a readiness observation nor the end of an attempt changes
+    /// the incarnation, so a probe and a shutdown admitted together both land.
     pub fn commit(
         &mut self,
         admission: BridgeServiceAdmission,
         outcome: BridgeServiceOutcome,
     ) -> Result<BridgeServiceTransitionReceipt, BridgeSupervisionError> {
-        if admission.generation != self.generation {
+        if admission.incarnation != self.incarnation {
             return Err(BridgeSupervisionError::StaleObservation {
-                admitted: admission.generation,
-                current: self.generation,
+                admitted: admission.incarnation,
+                current: self.incarnation,
             });
         }
+        self.admit(admission.action)?;
         self.apply(admission.action, outcome)
     }
 
@@ -308,6 +337,11 @@ impl BridgeServiceMachine {
     ) -> Result<BridgeServiceTransitionReceipt, BridgeSupervisionError> {
         let current = transition_state(action, outcome)?;
         let generation = self.generation.next()?;
+        let incarnation = if starts_incarnation(current) {
+            self.incarnation.next()?
+        } else {
+            self.incarnation
+        };
         let receipt = BridgeServiceTransitionReceipt {
             generation,
             ownership: self.ownership,
@@ -318,6 +352,7 @@ impl BridgeServiceMachine {
         };
         self.state = current;
         self.generation = generation;
+        self.incarnation = incarnation;
         Ok(receipt)
     }
 
@@ -420,6 +455,18 @@ fn transition_state(
     Ok(current)
 }
 
+/// Whether a committed state starts a fresh service attempt, and so a fresh
+/// incarnation. Readiness observations and an attempt's end do not.
+fn starts_incarnation(current: BridgeServiceState) -> bool {
+    matches!(
+        current,
+        BridgeServiceState::Starting
+            | BridgeServiceState::Attaching
+            | BridgeServiceState::Restarting
+            | BridgeServiceState::Reconnecting
+    )
+}
+
 /// Supervision ownership or transition failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeSupervisionError {
@@ -439,14 +486,15 @@ pub enum BridgeSupervisionError {
         /// Rejected observation.
         outcome: BridgeServiceOutcome,
     },
-    /// Supervision receipt generation exhausted its integer domain.
+    /// A supervision receipt generation or incarnation counter exhausted its
+    /// integer domain.
     GenerationExhausted,
-    /// The observation belongs to a generation a later transition superseded.
+    /// The observation belongs to an incarnation a later commit superseded.
     StaleObservation {
-        /// Generation that admitted the observation.
-        admitted: BridgeServiceGeneration,
-        /// Generation current when the observation arrived.
-        current: BridgeServiceGeneration,
+        /// Incarnation that admitted the observation.
+        admitted: BridgeServiceIncarnation,
+        /// Incarnation current when the observation arrived.
+        current: BridgeServiceIncarnation,
     },
 }
 
@@ -468,10 +516,12 @@ impl fmt::Display for BridgeSupervisionError {
                     "service outcome {outcome:?} is invalid for {action:?}"
                 )
             }
-            Self::GenerationExhausted => formatter.write_str("bridge service generation exhausted"),
+            Self::GenerationExhausted => {
+                formatter.write_str("bridge supervision counter exhausted")
+            }
             Self::StaleObservation { admitted, current } => write!(
                 formatter,
-                "service observation admitted at generation {} arrived at generation {}",
+                "service observation admitted at incarnation {} arrived at incarnation {}",
                 admitted.get(),
                 current.get()
             ),

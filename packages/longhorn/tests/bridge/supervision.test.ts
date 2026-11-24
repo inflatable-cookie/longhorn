@@ -73,7 +73,7 @@ test("a delayed readiness probe cannot report ready for a superseded service", a
   const probe = runtime.begin("checkReadiness");
   expect(runtime.observe("restart", "accepted").current).toBe("restarting");
   const afterRestart = runtime.begin("checkReadiness");
-  expect(afterRestart.generation).toBeGreaterThan(probe.generation);
+  expect(afterRestart.incarnation).toBeGreaterThan(probe.incarnation);
 
   expect(() => runtime.commit(probe, "ready")).toThrow(BridgeSupervisionError);
   expect(runtime.state).toBe("restarting");
@@ -104,6 +104,47 @@ test("a readiness probe awaiting its adapter cannot report ready after a restart
 
   await expect(pending).rejects.toBeInstanceOf(BridgeSupervisionError);
   expect(runtime.state).toBe("restarting");
+});
+
+test("overlapping readiness probes of one incarnation both commit", () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  runtime.observe("spawn", "accepted");
+  runtime.observe("checkReadiness", "ready");
+
+  const first = runtime.begin("checkReadiness");
+  const second = runtime.begin("checkReadiness");
+  expect(first.incarnation).toBe(second.incarnation);
+
+  expect(runtime.commit(first, "ready").current).toBe("ready");
+  expect(runtime.commit(second, "ready").current).toBe("ready");
+});
+
+test("a shutdown admitted beside a probe still stops the service", () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  runtime.observe("spawn", "accepted");
+  runtime.observe("checkReadiness", "ready");
+
+  const probe = runtime.begin("checkReadiness");
+  const shutdown = runtime.begin("shutdown");
+  expect(probe.incarnation).toBe(shutdown.incarnation);
+
+  // The probe reports first, then the shutdown that was already admitted.
+  expect(runtime.commit(probe, "ready").current).toBe("ready");
+  expect(runtime.commit(shutdown, "stopped").current).toBe("stopped");
+  expect(runtime.state).toBe("stopped");
+});
+
+test("a probe observation cannot resurrect a stopped service", () => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  runtime.observe("spawn", "accepted");
+  runtime.observe("checkReadiness", "ready");
+
+  const probe = runtime.begin("checkReadiness");
+  const shutdown = runtime.begin("shutdown");
+  expect(runtime.commit(shutdown, "stopped").current).toBe("stopped");
+
+  expect(() => runtime.commit(probe, "ready")).toThrow(BridgeSupervisionError);
+  expect(runtime.state).toBe("stopped");
 });
 
 test("admission checks the same ownership and state rules as execution", () => {

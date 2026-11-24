@@ -2,7 +2,6 @@ import type {
   BridgeCredentialRef,
   BridgeServiceAction,
   BridgeServiceFailureCode,
-  BridgeServiceGeneration,
   BridgeServiceOutcome,
   BridgeServiceOwnership,
   BridgeServiceRequest,
@@ -17,13 +16,23 @@ export interface BridgeServiceSupervisorPort {
 }
 
 /**
- * One admitted supervision action bound to the generation that admitted it.
+ * Monotonic service incarnation.
+ *
+ * One incarnation covers one service attempt. It advances only when a commit
+ * starts an attempt (spawn, attach, restart or reconnect), never for a
+ * readiness observation of the running attempt and never for the attempt's
+ * end.
+ */
+export type BridgeServiceIncarnation = number;
+
+/**
+ * One admitted supervision action bound to the incarnation that admitted it.
  *
  * A runtime-local token, not a wire shape: `begin` returns it and `commit`
- * accepts its observation only while that generation is still current.
+ * accepts its observation only while that incarnation is still current.
  */
 export interface BridgeServiceAdmission {
-  readonly generation: BridgeServiceGeneration;
+  readonly incarnation: BridgeServiceIncarnation;
   readonly action: BridgeServiceAction;
 }
 
@@ -46,6 +55,7 @@ export class BridgeServiceRuntime {
   readonly #ownership: BridgeServiceOwnership;
   #state: BridgeServiceState = "absent";
   #generation = 0;
+  #incarnation = 0;
 
   constructor(ownership: BridgeServiceOwnership) {
     if (!BRIDGE_SERVICE_OWNERSHIPS.includes(ownership)) {
@@ -80,27 +90,31 @@ export class BridgeServiceRuntime {
   /**
    * Admits one action whose observation arrives after the call returns.
    *
-   * The returned admission carries the admitting generation, so the
-   * observation must be committed through `commit`. A transition that lands in
-   * between supersedes the admission and the delayed observation is rejected
-   * instead of being reported for the later service incarnation.
+   * The returned admission carries the service incarnation that admitted it, so
+   * the observation must be committed through `commit`. A commit that starts a
+   * new attempt in between supersedes the admission and the delayed observation
+   * is rejected instead of being reported for the later service incarnation.
+   * Readiness observations of one attempt share its incarnation, so overlapping
+   * probes of that attempt all stay committable.
    */
   begin(action: BridgeServiceAction): BridgeServiceAdmission {
     this.#admit(action);
-    return { generation: this.#generation, action };
+    return { incarnation: this.#incarnation, action };
   }
 
   /**
    * Commits the observation for an action admitted by `begin`.
    *
-   * Rejects the observation when any transition committed after admission: the
-   * observation then describes a service incarnation this runtime has already
-   * left behind.
+   * Rejects the observation when a commit started a new service attempt after
+   * admission, or when the action is no longer valid in the current state.
+   * Neither a readiness observation nor the end of an attempt changes the
+   * incarnation, so a probe and a shutdown admitted together both land.
    */
   commit(admission: BridgeServiceAdmission, value: unknown): BridgeServiceTransitionReceipt {
-    if (admission.generation !== this.#generation) {
+    if (admission.incarnation !== this.#incarnation) {
       throw new BridgeSupervisionError("stale_observation");
     }
+    this.#admit(admission.action);
     return this.#apply(admission.action, value);
   }
 
@@ -119,7 +133,8 @@ export class BridgeServiceRuntime {
     const outcome = parseOutcome(value);
     const current = transitionState(action, outcome);
     const generation = this.#generation + 1;
-    if (!Number.isSafeInteger(generation)) {
+    const incarnation = startsIncarnation(current) ? this.#incarnation + 1 : this.#incarnation;
+    if (!Number.isSafeInteger(generation) || !Number.isSafeInteger(incarnation)) {
       throw new BridgeSupervisionError("invalid_transition");
     }
     const receipt = {
@@ -131,6 +146,7 @@ export class BridgeServiceRuntime {
       outcome,
     };
     this.#generation = generation;
+    this.#incarnation = incarnation;
     this.#state = current;
     return receipt;
   }
@@ -204,6 +220,10 @@ function transitionState(
     }
   }
   throw new BridgeSupervisionError("invalid_observation");
+}
+
+function startsIncarnation(state: BridgeServiceState): boolean {
+  return ["starting", "attaching", "restarting", "reconnecting"].includes(state);
 }
 
 function parseOutcome(value: unknown): BridgeServiceOutcome {

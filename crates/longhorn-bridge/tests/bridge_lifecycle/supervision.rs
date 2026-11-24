@@ -18,6 +18,28 @@ impl BridgeServiceSupervisor for Supervisor {
     }
 }
 
+/// A machine already running its first incarnation.
+fn ready_machine() -> BridgeServiceMachine {
+    let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
+    let mut supervisor = Supervisor {
+        outcomes: vec![BridgeServiceOutcome::Accepted, BridgeServiceOutcome::Ready],
+    };
+    machine
+        .execute(
+            &mut supervisor,
+            BridgeServiceRequest::new(BridgeServiceAction::Spawn, None),
+        )
+        .unwrap();
+    machine
+        .execute(
+            &mut supervisor,
+            BridgeServiceRequest::new(BridgeServiceAction::CheckReadiness, None),
+        )
+        .unwrap();
+    assert_eq!(machine.state(), BridgeServiceState::Ready);
+    machine
+}
+
 #[test]
 fn owned_local_spawn_readiness_restart_and_shutdown_are_receipted() {
     let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
@@ -174,10 +196,7 @@ fn external_local_attach_and_failure_are_observable() {
 fn delayed_readiness_cannot_report_ready_for_a_superseded_service() {
     let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
     let mut supervisor = Supervisor {
-        outcomes: vec![
-            BridgeServiceOutcome::Accepted,
-            BridgeServiceOutcome::Ready,
-        ],
+        outcomes: vec![BridgeServiceOutcome::Accepted, BridgeServiceOutcome::Ready],
     };
     machine
         .execute(
@@ -208,10 +227,12 @@ fn delayed_readiness_cannot_report_ready_for_a_superseded_service() {
 
     // The delayed probe cannot claim readiness for the earlier incarnation.
     assert_eq!(
-        machine.commit(probe, BridgeServiceOutcome::Ready).unwrap_err(),
+        machine
+            .commit(probe, BridgeServiceOutcome::Ready)
+            .unwrap_err(),
         BridgeSupervisionError::StaleObservation {
-            admitted: probe.generation(),
-            current: after_restart.generation(),
+            admitted: probe.incarnation(),
+            current: after_restart.incarnation(),
         }
     );
     assert_eq!(machine.state(), BridgeServiceState::Restarting);
@@ -230,10 +251,7 @@ fn delayed_readiness_cannot_report_ready_for_a_superseded_service() {
 fn delayed_shutdown_cannot_stop_a_service_restarted_after_admission() {
     let mut machine = BridgeServiceMachine::new(BridgeServiceOwnership::OwnedLocal);
     let mut supervisor = Supervisor {
-        outcomes: vec![
-            BridgeServiceOutcome::Accepted,
-            BridgeServiceOutcome::Ready,
-        ],
+        outcomes: vec![BridgeServiceOutcome::Accepted, BridgeServiceOutcome::Ready],
     };
     machine
         .execute(
@@ -258,6 +276,75 @@ fn delayed_shutdown_cannot_stop_a_service_restarted_after_admission() {
         Err(BridgeSupervisionError::StaleObservation { .. })
     ));
     assert_eq!(machine.state(), BridgeServiceState::Restarting);
+}
+
+#[test]
+fn overlapping_readiness_probes_of_one_incarnation_both_commit() {
+    let mut machine = ready_machine();
+    let first = machine.begin(BridgeServiceAction::CheckReadiness).unwrap();
+    let second = machine.begin(BridgeServiceAction::CheckReadiness).unwrap();
+    assert_eq!(first.incarnation(), second.incarnation());
+
+    assert_eq!(
+        machine
+            .commit(first, BridgeServiceOutcome::Ready)
+            .unwrap()
+            .current(),
+        BridgeServiceState::Ready
+    );
+    assert_eq!(
+        machine
+            .commit(second, BridgeServiceOutcome::Ready)
+            .unwrap()
+            .current(),
+        BridgeServiceState::Ready
+    );
+}
+
+#[test]
+fn a_shutdown_admitted_beside_a_probe_still_stops_the_service() {
+    let mut machine = ready_machine();
+    let probe = machine.begin(BridgeServiceAction::CheckReadiness).unwrap();
+    let shutdown = machine.begin(BridgeServiceAction::Shutdown).unwrap();
+    assert_eq!(probe.incarnation(), shutdown.incarnation());
+
+    // The probe reports first, then the shutdown that was already admitted.
+    assert_eq!(
+        machine
+            .commit(probe, BridgeServiceOutcome::Ready)
+            .unwrap()
+            .current(),
+        BridgeServiceState::Ready
+    );
+    assert_eq!(
+        machine
+            .commit(shutdown, BridgeServiceOutcome::Stopped)
+            .unwrap()
+            .current(),
+        BridgeServiceState::Stopped
+    );
+    assert_eq!(machine.state(), BridgeServiceState::Stopped);
+}
+
+#[test]
+fn a_probe_observation_cannot_resurrect_a_stopped_service() {
+    let mut machine = ready_machine();
+    let probe = machine.begin(BridgeServiceAction::CheckReadiness).unwrap();
+    let shutdown = machine.begin(BridgeServiceAction::Shutdown).unwrap();
+    machine
+        .commit(shutdown, BridgeServiceOutcome::Stopped)
+        .unwrap();
+
+    assert_eq!(
+        machine
+            .commit(probe, BridgeServiceOutcome::Ready)
+            .unwrap_err(),
+        BridgeSupervisionError::InvalidTransition {
+            state: BridgeServiceState::Stopped,
+            action: BridgeServiceAction::CheckReadiness,
+        }
+    );
+    assert_eq!(machine.state(), BridgeServiceState::Stopped);
 }
 
 #[test]

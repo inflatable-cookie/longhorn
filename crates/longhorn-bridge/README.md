@@ -15,7 +15,9 @@ a durable idempotency key and finite advertised deduplication.
 The optional `supervision` feature exposes only a consumer-injected local or
 remote lifecycle port, checked ownership, opaque credential references, and
 redacted coded observations. Each observation is bound to the service
-generation that admitted it, so a delayed readiness probe cannot report for a
-restart that landed in between. It supplies no executable, endpoint, credential
-provider, updater, or production network transport. The `bindings` feature
-includes this protocol slice for TypeScript generation.
+incarnation that admitted it, so a readiness probe cannot report for a service
+that was restarted in the meantime, while overlapping probes of one attempt and
+a shutdown admitted beside a probe keep their outcomes. It supplies no
+executable, endpoint, credential provider, updater, or production network
+transport. The `bindings` feature includes this protocol slice for TypeScript
+generation.
