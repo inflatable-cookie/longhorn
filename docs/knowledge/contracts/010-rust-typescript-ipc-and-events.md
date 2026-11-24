@@ -78,8 +78,9 @@ invalidation hints. Query-only domains do not require an event transport.
 
 A malformed event ends its subscription and is reported as an event failure.
 A job's listeners check its request and job identifiers before they decode the
-payload, so another job's event on the shared channel is dropped without a
-failure, and nothing after the job's terminal is decoded. A throwing consumer callback leaves the subscription active and any accepted
+payload. An event whose identifier reads as another request or job is dropped
+without a failure, even when its other identifier is unreadable, and nothing
+after the job's terminal is decoded. A throwing consumer callback leaves the subscription active and any accepted
 snapshot current. After registration and outside a snapshot query, the
 exception propagates to the event emitter. During registration or a snapshot
 query, the subscription contains it so the operation can finish. A job's

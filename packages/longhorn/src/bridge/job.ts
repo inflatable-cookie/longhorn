@@ -27,18 +27,28 @@ export class BridgeJobTracker {
 
   /**
    * Whether a raw progress or terminal event belongs to this job, read before
-   * any payload is decoded. The request id is checked first and a different
-   * request ends the check, so another job's event is refused whatever its job
-   * id or payload. Identifiers that cannot be read throw as malformed.
+   * any payload is decoded. An identifier that reads as another request or job
+   * makes the event foreign, whatever the other identifier is, so another job's
+   * event is refused without its payload being decoded. An event is admitted
+   * only when both identifiers read and match. One that names no other job and
+   * has an unreadable identifier throws as malformed.
    */
   admits(value: unknown): boolean {
     if (!isRecord(value)) {
       incompatible("invalid_object", value);
     }
-    if (opaqueId(value.requestId) !== this.#requestId) {
+    const requestId = readOpaqueId(value.requestId);
+    const jobId = readOpaqueId(value.jobId);
+    if (
+      (requestId !== undefined && requestId !== this.#requestId) ||
+      (jobId !== undefined && jobId !== this.#jobId)
+    ) {
       return false;
     }
-    return opaqueId(value.jobId) === this.#jobId;
+    if (requestId === undefined || jobId === undefined) {
+      incompatible("invalid_id", value);
+    }
+    return true;
   }
 
   #matches(event: BridgeJobCorrelation): boolean {
@@ -65,5 +75,14 @@ export class BridgeJobTracker {
 
   isTerminal(): boolean {
     return this.#terminal;
+  }
+}
+
+/** The identifier, or `undefined` when it is not a readable opaque id. */
+function readOpaqueId(value: unknown): string | undefined {
+  try {
+    return opaqueId(value);
+  } catch {
+    return undefined;
   }
 }

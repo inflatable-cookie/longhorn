@@ -415,6 +415,66 @@ test("a foreign request with an unreadable job id is dropped, not malformed", as
   expect(own.listeners.size).toBe(0);
 });
 
+test("a readable foreign job id is dropped even when the request id is unreadable", async () => {
+  const transport = new RecordingEventTransport();
+  const failures: Array<ConnectionFailure> = [];
+  const progress: Array<unknown> = [];
+  const dispose = await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: numberCodec,
+      successCodec: numberCodec,
+      detailCodec: numberCodec,
+      progress: (event) => progress.push(event.progress),
+      terminal: () => {},
+      onFailure: (failure) => failures.push(failure),
+    },
+    transport,
+  );
+
+  transport.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "Not A Request",
+    jobId: "job:other",
+    progress: { percent: 10 },
+  });
+  transport.emit(BRIDGE_TERMINAL_EVENT, {
+    requestId: "Not A Request",
+    jobId: "job:other",
+    outcome: { succeeded: { rows: [1] } },
+  });
+  await tick();
+
+  expect(failures).toEqual([]);
+  expect(progress).toEqual([]);
+  expect(transport.listeners.size).toBe(2);
+  await dispose();
+
+  // The same unreadable request id under this job's own job id is malformed.
+  const own = new RecordingEventTransport();
+  const ownFailures: Array<ConnectionFailure> = [];
+  await listenTauriBridgeJob(
+    "request:scan",
+    "job:scan",
+    {
+      progressCodec: numberCodec,
+      successCodec: numberCodec,
+      detailCodec: numberCodec,
+      terminal: () => {},
+      onFailure: (failure) => ownFailures.push(failure),
+    },
+    own,
+  );
+  own.emit(BRIDGE_PROGRESS_EVENT, {
+    requestId: "Not A Request",
+    jobId: "job:scan",
+    progress: 10,
+  });
+  await tick();
+  expect(ownFailures.map((failure) => failure.phase)).toEqual(["event"]);
+  expect(own.listeners.size).toBe(0);
+});
+
 test("events after this job's terminal are neither decoded nor reported", async () => {
   const transport = new RecordingEventTransport();
   const failures: Array<ConnectionFailure> = [];

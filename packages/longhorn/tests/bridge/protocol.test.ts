@@ -170,4 +170,7 @@ test("job admission reads the request id first and never decodes the payload", (
   expectCode(() => tracker.admits({ ...own, jobId: "Not An Id!" }), "invalid_id");
   expectCode(() => tracker.admits(null), "invalid_object");
   expectCode(() => tracker.admits({ jobId: "job:scan" }), "invalid_id");
+  // A readable foreign job id is foreign even when its request id is unreadable.
+  expect(tracker.admits({ ...own, requestId: "Not A Request", jobId: "job:other" })).toBe(false);
+  expectCode(() => tracker.admits({ ...own, requestId: "Not A Request" }), "invalid_id");
 });
