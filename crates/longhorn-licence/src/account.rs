@@ -1,7 +1,7 @@
 use core::fmt;
 use std::error::Error;
 
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use secrecy::{ExposeSecret, SecretString};
 use sha2::{Digest, Sha256};
 
@@ -198,7 +198,7 @@ impl AccountFlow {
 }
 
 /// What the authorization server sent back to the loopback redirect.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Callback {
     /// The state echoed back.
     pub state: String,
@@ -206,8 +206,18 @@ pub struct Callback {
     pub outcome: CallbackOutcome,
 }
 
+impl fmt::Debug for Callback {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Callback")
+            .field("state", &"[REDACTED]")
+            .field("outcome", &self.outcome)
+            .finish()
+    }
+}
+
 /// The result carried by a callback.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum CallbackOutcome {
     /// An authorization code to exchange.
     Code(String),
@@ -218,12 +228,35 @@ pub enum CallbackOutcome {
     },
 }
 
+impl fmt::Debug for CallbackOutcome {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Code(_) => formatter.debug_tuple("Code").field(&"[REDACTED]").finish(),
+            Self::Denied { reason } => formatter
+                .debug_struct("Denied")
+                .field("reason", reason)
+                .finish(),
+        }
+    }
+}
+
 /// An accepted callback, ready for the token exchange.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Authorization {
     code: String,
     verifier: CodeVerifier,
     redirect_uri: String,
+}
+
+impl fmt::Debug for Authorization {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Authorization")
+            .field("code", &"[REDACTED]")
+            .field("verifier", &"[REDACTED]")
+            .field("redirect_uri", &self.redirect_uri)
+            .finish()
+    }
 }
 
 impl Authorization {
@@ -393,6 +426,28 @@ mod tests {
     #[test]
     fn the_redirect_is_loopback() {
         assert_eq!(flow().redirect_uri(), "http://127.0.0.1:51234/callback");
+    }
+
+    #[test]
+    fn debug_redacts_callback_state_code_and_authorization_code() {
+        let flow = flow();
+        let state = flow.state().to_owned();
+        let code = "c".repeat(24);
+        let callback = Callback {
+            state: state.clone(),
+            outcome: CallbackOutcome::Code(code.clone()),
+        };
+        let callback_debug = format!("{callback:?}");
+        let authorization = flow
+            .accept_callback(&callback)
+            .expect("matching callback is accepted");
+        let authorization_debug = format!("{authorization:?}");
+
+        assert!(!callback_debug.contains(&state));
+        assert!(!callback_debug.contains(&code));
+        assert!(!authorization_debug.contains(&code));
+        assert!(callback_debug.contains("[REDACTED]"));
+        assert!(authorization_debug.contains("[REDACTED]"));
     }
 
     #[test]

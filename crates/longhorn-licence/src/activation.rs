@@ -2,11 +2,11 @@ use core::fmt;
 use std::error::Error;
 
 use ed25519_dalek::VerifyingKey;
-use longhorn_url::{EndpointClassificationError, LoopbackHttp, classify_endpoint};
+use longhorn_url::{classify_endpoint, EndpointClassificationError, LoopbackHttp};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
-use crate::{LicenceKey, SignedLicence, VerificationError, VerifiedLicence, verify};
+use crate::{verify, LicenceKey, SignedLicence, VerificationError, VerifiedLicence};
 
 /// A URL an activation request may be issued against.
 ///
@@ -140,7 +140,7 @@ pub enum Activation {
 }
 
 /// What a customer supplies to obtain a licence.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Credential {
     /// A redemption token typed by the customer.
     Key(LicenceKey),
@@ -151,6 +151,25 @@ pub enum Credential {
     AccountToken(SecretString),
     /// The bytes of a licence file the customer was sent.
     LicenceFile(Vec<u8>),
+}
+
+impl fmt::Debug for Credential {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Key(_) => formatter
+                .debug_tuple("Credential::Key")
+                .field(&"[REDACTED]")
+                .finish(),
+            Self::AccountToken(_) => formatter
+                .debug_tuple("Credential::AccountToken")
+                .field(&"[REDACTED]")
+                .finish(),
+            Self::LicenceFile(bytes) => formatter
+                .debug_struct("Credential::LicenceFile")
+                .field("byte_len", &bytes.len())
+                .finish(),
+        }
+    }
 }
 
 impl PartialEq for Credential {
@@ -166,6 +185,33 @@ impl PartialEq for Credential {
             (Self::LicenceFile(left), Self::LicenceFile(right)) => left == right,
             _ => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn debug_redacts_credentials_and_file_contents() {
+        let key = LicenceKey::from_body(&"0".repeat(crate::MINIMUM_KEY_SYMBOLS - 1))
+            .expect("creates a key for the debug check");
+        let key_text = key.as_str().to_owned();
+        let key_debug = format!("{:?}", Credential::Key(key));
+        let file_contents = String::from_utf8(vec![b'x'; 32]).expect("ASCII bytes are UTF-8");
+        let file_bytes = file_contents.as_bytes().to_vec();
+        let leaked_bytes = format!("{file_bytes:?}");
+        let file_debug = format!("{:?}", Credential::LicenceFile(file_bytes));
+        let token = "t".repeat(32);
+        let token_debug = format!(
+            "{:?}",
+            Credential::AccountToken(SecretString::from(token.clone()))
+        );
+
+        assert!(!key_debug.contains(&key_text));
+        assert!(!file_debug.contains(&leaked_bytes));
+        assert!(!token_debug.contains(&token));
+        assert!(file_debug.contains("byte_len"));
     }
 }
 

@@ -42,9 +42,18 @@ pub const MINIMUM_KEY_SYMBOLS: usize = 20;
 /// still fails redemption, and the point is to say "you mistyped that"
 /// instead of round-tripping to a server that replies "invalid key" and
 /// leaves the customer believing they were sold a dud.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct LicenceKey(String);
+
+impl fmt::Debug for LicenceKey {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_tuple("LicenceKey")
+            .field(&"[REDACTED]")
+            .finish()
+    }
+}
 
 impl From<LicenceKey> for String {
     fn from(value: LicenceKey) -> Self {
@@ -312,6 +321,16 @@ mod tests {
     }
 
     #[test]
+    fn debug_redacts_the_redemption_key() {
+        let key = LicenceKey::from_body(&"0".repeat(MINIMUM_KEY_SYMBOLS - 1))
+            .expect("creates a key for the debug check");
+        let debug = format!("{key:?}");
+
+        assert_eq!(debug, "LicenceKey(\"[REDACTED]\")");
+        assert!(!debug.contains(key.as_str()));
+    }
+
+    #[test]
     fn an_issued_key_parses_back() {
         let issued = key();
 
@@ -396,13 +415,11 @@ mod tests {
     fn both_failure_modes_read_as_typos_to_a_surface() {
         assert!(LicenceKeyError::CheckFailed.is_probably_a_typo());
         assert!(LicenceKeyError::UnexpectedSymbol { symbol: '!' }.is_probably_a_typo());
-        assert!(
-            !LicenceKeyError::TooShort {
-                minimum: MINIMUM_KEY_SYMBOLS,
-                actual: 0
-            }
-            .is_probably_a_typo()
-        );
+        assert!(!LicenceKeyError::TooShort {
+            minimum: MINIMUM_KEY_SYMBOLS,
+            actual: 0
+        }
+        .is_probably_a_typo());
     }
 
     #[test]
