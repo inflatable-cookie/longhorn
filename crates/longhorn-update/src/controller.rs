@@ -241,6 +241,15 @@ impl<'port> UpdateController<'port> {
         }
 
         self.availability = evaluate(&self.build, manifest, &self.install, kind, self.provenance);
+        if matches!(
+            self.availability,
+            UpdateAvailability::Offer(_) | UpdateAvailability::WithheldByRollout { .. }
+        ) && manifest.artifact(&self.target).is_none()
+        {
+            self.availability = UpdateAvailability::UnavailableForTarget {
+                version: manifest.version.clone(),
+            };
+        }
         self.manifest = Some(manifest.clone());
         self.commit()
     }
@@ -286,7 +295,9 @@ impl<'port> UpdateController<'port> {
             return self.reject(UpdateRejectionCode::NoOffer);
         };
         self.deferral = Some(Deferral::new(version, command.cause.clone()));
-        self.progress = UpdateProgressProjection::Idle;
+        if self.active_transfer.is_none() {
+            self.progress = UpdateProgressProjection::Idle;
+        }
         self.commit()
     }
 
@@ -479,19 +490,38 @@ impl<'port> UpdateController<'port> {
                 self.commit()
             }
             Err(failure) => {
-                // Replacement failed, not verification. The bytes are still
-                // verified and still staged, so a retry does not re-download.
-                self.progress = UpdateProgressProjection::ReadyToInstall {
-                    version: version.to_string(),
-                };
-                self.staged = Some(staged);
-                self.reject(match failure {
-                    InstallFailure::SignatureRejected => UpdateRejectionCode::SignatureRejected,
-                    InstallFailure::NotWritable { .. } => UpdateRejectionCode::NotWritable,
-                    InstallFailure::MalformedArtifact { .. } | InstallFailure::Failed { .. } => {
-                        UpdateRejectionCode::InstallFailed
+                // A malformed or rejected artifact cannot succeed on retry.
+                // Other failures retain the verified bytes for a later attempt.
+                if matches!(
+                    failure,
+                    InstallFailure::MalformedArtifact { .. } | InstallFailure::SignatureRejected
+                ) {
+                    self.progress = UpdateProgressProjection::Idle;
+                } else {
+                    self.progress = UpdateProgressProjection::ReadyToInstall {
+                        version: version.to_string(),
+                    };
+                    self.staged = Some(staged);
+                }
+                let (code, detail) = match failure {
+                    InstallFailure::SignatureRejected => {
+                        (UpdateRejectionCode::SignatureRejected, None)
                     }
-                })
+                    InstallFailure::NotWritable { detail } => {
+                        (UpdateRejectionCode::NotWritable, Some(detail))
+                    }
+                    InstallFailure::MalformedArtifact { detail } => {
+                        (UpdateRejectionCode::MalformedArtifact, Some(detail))
+                    }
+                    InstallFailure::Failed { detail } => {
+                        (UpdateRejectionCode::InstallFailed, Some(detail))
+                    }
+                };
+                UpdateOutcomeProjection::Rejected {
+                    code,
+                    detail,
+                    snapshot: self.snapshot(),
+                }
             }
         }
     }
@@ -536,6 +566,7 @@ impl<'port> UpdateController<'port> {
     fn reject(&self, code: UpdateRejectionCode) -> UpdateOutcomeProjection {
         UpdateOutcomeProjection::Rejected {
             code,
+            detail: None,
             snapshot: self.snapshot(),
         }
     }

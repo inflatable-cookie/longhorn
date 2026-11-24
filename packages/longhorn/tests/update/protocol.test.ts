@@ -24,6 +24,7 @@ describe("Rust-generated update protocol", () => {
     assertUpdateSnapshot(value.stagedSnapshot);
     assertUpdateSnapshot(value.aheadSnapshot);
     assertUpdateSnapshot(value.withheldSnapshot);
+    assertUpdateSnapshot(value.unavailableSnapshot);
     assertUpdateSnapshot(value.upToDateSnapshot);
     assertUpdateSnapshot(value.notCheckedSnapshot);
     expect(() => assertUpdateApplyCommand({ ...value.applyCommand, digest: "wrong" })).toThrow();
@@ -49,6 +50,7 @@ describe("Rust-generated update protocol", () => {
       [
         "channelMismatch",
         "installFailed",
+        "malformedArtifact",
         "noOffer",
         "notWritable",
         "signatureRejected",

@@ -197,9 +197,11 @@ describe("update validation", () => {
     const outcome: UpdateOutcomeProjection = {
       status: "rejected",
       code: "notWritable",
+      detail: null,
       snapshot: snapshot(),
     };
     expect(() => assertUpdateOutcome(outcome)).not.toThrow();
+    expect(() => assertUpdateOutcome({ ...outcome, detail: 42 })).toThrow(UpdateValidationError);
     expect(() => assertUpdateOutcome({ ...outcome, code: "invented" })).toThrow(
       UpdateValidationError,
     );
@@ -425,11 +427,12 @@ describe("update controller", () => {
     expect(controller.staged).toEqual(STAGED);
   });
 
-  test("a rejection is distinct from a deferral and carries its code", async () => {
+  test("a rejection carries installer detail to the caller", async () => {
     const controller = new UpdateController({
       port: new Port(snapshot({ staged: STAGED }), () => ({
         status: "rejected",
         code: "notWritable",
+        detail: "read-only bundle",
         snapshot: snapshot(),
       })),
     });
@@ -437,7 +440,12 @@ describe("update controller", () => {
     await controller.start();
     const result = await controller.apply("1.4.0");
 
-    expect(result).toEqual({ status: "rejected", code: "notWritable", snapshot: snapshot() });
+    expect(result).toEqual({
+      status: "rejected",
+      code: "notWritable",
+      detail: "read-only bundle",
+      snapshot: snapshot(),
+    });
     expect(controller.status).toEqual({ kind: "ready" });
     expect(controller.lastRejection).toBe("notWritable");
     expect(controller.deferral).toBeUndefined();
@@ -453,7 +461,7 @@ describe("update controller", () => {
           throw transportError;
         }
         return refuse
-          ? { status: "rejected", code: "unreachable", snapshot: snapshot() }
+          ? { status: "rejected", code: "unreachable", detail: null, snapshot: snapshot() }
           : committed();
       }),
     });
@@ -728,7 +736,12 @@ describe("update controller", () => {
     expect(controller.progress).toEqual({ state: "idle" });
     transfer.report(PROGRESS_EVENT);
     expect(controller.progress).toEqual({ state: "idle" });
-    transfer.complete({ status: "rejected", code: "staleAuthority", snapshot: state });
+    transfer.complete({
+      status: "rejected",
+      code: "staleAuthority",
+      detail: null,
+      snapshot: state,
+    });
     await pending;
   });
 });

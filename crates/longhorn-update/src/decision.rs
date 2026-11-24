@@ -76,6 +76,11 @@ pub enum UpdateAvailability {
     NotChecked,
     /// An update is available now.
     Offer(UpdateOffer),
+    /// A newer release has no artifact for this installation target.
+    UnavailableForTarget {
+        /// The release version.
+        version: Version,
+    },
     /// The install is already on the channel's current version.
     UpToDate,
     /// The install is ahead of the channel it selected.

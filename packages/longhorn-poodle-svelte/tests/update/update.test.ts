@@ -103,6 +103,44 @@ class Port implements UpdatePort {
 }
 
 describe("update surface bindings", () => {
+  it("explains a release without an artifact for this target", async () => {
+    const port = new Port();
+    port.state = snapshot({ availability: { state: "unavailableForTarget", version: "1.4.0" } });
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller } });
+    expect(mounted.container.textContent).toContain(
+      "Version 1.4.0 has no update for this installation.",
+    );
+    expect(mounted.container.textContent).not.toContain("Install and restart");
+    mounted.unmount();
+  });
+
+  it("shows malformed artifact detail instead of an install action", async () => {
+    class MalformedPort extends Port {
+      override async apply(): Promise<unknown> {
+        return {
+          status: "rejected",
+          code: "malformedArtifact",
+          detail: "invalid archive",
+          snapshot: snapshot({ availability: OFFER.availability }),
+        };
+      }
+    }
+    const port = new MalformedPort();
+    port.state = snapshot({
+      availability: OFFER.availability,
+      staged: { version: "1.4.0", channel: "production", digest: DIGEST },
+      progress: { state: "readyToInstall", version: "1.4.0" },
+    });
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller } });
+    await controller.apply("1.4.0");
+    await waitFor(() => expect(mounted.container.textContent).toContain("invalid archive"));
+    expect(mounted.container.textContent).not.toContain("Install and restart");
+    mounted.unmount();
+  });
   it("offers a check before reporting that the install is up to date", async () => {
     const port = new Port();
     port.state = snapshot({ availability: { state: "notChecked" } });

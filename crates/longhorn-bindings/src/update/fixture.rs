@@ -91,35 +91,48 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         // with no fixture is a code the TypeScript side could stop recognising
         // without anything failing.
         UpdateOutcomeProjection::Rejected {
+            detail: None,
             code: UpdateRejectionCode::StaleAuthority,
             snapshot: snapshot.clone(),
         },
         UpdateOutcomeProjection::Rejected {
+            detail: None,
             code: UpdateRejectionCode::NoOffer,
             snapshot: snapshot.clone(),
         },
         UpdateOutcomeProjection::Rejected {
+            detail: None,
             code: UpdateRejectionCode::Unavailable,
             snapshot: snapshot.clone(),
         },
         UpdateOutcomeProjection::Rejected {
+            detail: None,
             code: UpdateRejectionCode::ChannelMismatch,
             snapshot: snapshot.clone(),
         },
         UpdateOutcomeProjection::Rejected {
+            detail: None,
             code: UpdateRejectionCode::Unreachable,
             snapshot: snapshot.clone(),
         },
         UpdateOutcomeProjection::Rejected {
+            detail: None,
             code: UpdateRejectionCode::SignatureRejected,
             snapshot: snapshot.clone(),
         },
         UpdateOutcomeProjection::Rejected {
+            detail: None,
             code: UpdateRejectionCode::NotWritable,
             snapshot: snapshot.clone(),
         },
         UpdateOutcomeProjection::Rejected {
+            detail: Some("replacement and recovery failed".into()),
             code: UpdateRejectionCode::InstallFailed,
+            snapshot: snapshot.clone(),
+        },
+        UpdateOutcomeProjection::Rejected {
+            code: UpdateRejectionCode::MalformedArtifact,
+            detail: Some("invalid archive".into()),
             snapshot: snapshot.clone(),
         },
     ];
@@ -130,6 +143,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         "stagedSnapshot": to_value(staged_snapshot)?,
         "aheadSnapshot": to_value(ahead_snapshot)?,
         "withheldSnapshot": to_value(withheld_snapshot)?,
+        "unavailableSnapshot": to_value(UpdateSnapshot { availability: UpdateAvailabilityProjection::UnavailableForTarget { version: "1.3.0".into() }, ..snapshot.clone() })?,
         "notCheckedSnapshot": to_value(UpdateSnapshot {
             availability: UpdateAvailabilityProjection::NotChecked,
             deferral: None,

@@ -81,10 +81,19 @@ impl Error for ArtifactKeyError {}
 /// It carries the version it was fetched for. The version is **not** proved by
 /// the signature — see the module note on downgrade below — so this records
 /// what the controller asked for, not what the artifact claims to be.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct VerifiedArtifact {
     version: Version,
     bytes: Vec<u8>,
+}
+
+impl std::fmt::Debug for VerifiedArtifact {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VerifiedArtifact")
+            .field("version", &self.version)
+            .field("byte_len", &self.bytes.len())
+            .finish()
+    }
 }
 
 impl VerifiedArtifact {

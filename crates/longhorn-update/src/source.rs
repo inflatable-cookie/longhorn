@@ -88,10 +88,9 @@ impl Error for EndpointUrlError {}
 
 /// One HTTP request an update needs, as a description rather than a call.
 ///
-/// This crate never performs I/O. A request is handed to the Tauri updater,
-/// which fetches, verifies, and installs — so an adapter's whole job is to
-/// say *where* and *with what headers*.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+/// The host fetches this request; the controller verifies the artifact and
+/// hands it to the installer.
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SourceRequest {
     /// Where to send the request.
@@ -102,6 +101,15 @@ pub struct SourceRequest {
     /// URL alone: a private GitHub asset needs an `Accept` header and a
     /// bearer token, where a presigned S3 URL needs nothing.
     pub headers: Vec<(String, String)>,
+}
+
+impl fmt::Debug for SourceRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SourceRequest")
+            .field("url", &"[redacted]")
+            .field("headers", &"[redacted]")
+            .finish()
+    }
 }
 
 impl SourceRequest {

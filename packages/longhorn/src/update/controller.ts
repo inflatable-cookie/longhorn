@@ -35,6 +35,7 @@ export type UpdateCommandOutcome =
       readonly status: "rejected";
       readonly snapshot: UpdateSnapshot;
       readonly code: UpdateRejectionCode;
+      readonly detail: string | null;
     }
   | { readonly status: "failed"; readonly error: unknown };
 
@@ -74,6 +75,7 @@ export class UpdateController {
   #status: UpdateControllerStatus = { kind: "idle" };
   #snapshot?: UpdateSnapshot;
   #lastRejection: UpdateRejectionCode | undefined;
+  #lastRejectionDetail: string | null = null;
   #started = false;
   #lifecycle = 0;
   #commandSequence = 0;
@@ -141,6 +143,11 @@ export class UpdateController {
   /** The latest refusal, cleared as soon as the next command starts. */
   get lastRejection(): UpdateRejectionCode | undefined {
     return this.#lastRejection;
+  }
+
+  /** Installer detail from the latest rejection, when supplied. */
+  get lastRejectionDetail(): string | null {
+    return this.#lastRejectionDetail;
   }
 
   /**
@@ -346,7 +353,7 @@ export class UpdateController {
       async (client, snapshot) => {
         const staged = snapshot.staged;
         if (staged?.version !== version) {
-          return { status: "rejected", code: "noOffer", snapshot };
+          return { status: "rejected", code: "noOffer", detail: null, snapshot };
         }
         return client.apply({
           protocolVersion: UPDATE_PROTOCOL_VERSION,
@@ -376,6 +383,7 @@ export class UpdateController {
   ): Promise<UpdateCommandOutcome> {
     const commandSequence = ++this.#commandSequence;
     this.#lastRejection = undefined;
+    this.#lastRejectionDetail = null;
     const snapshot = this.#snapshot;
     if (snapshot === undefined) {
       // No snapshot means no epoch to send, and inventing one would have the
@@ -410,7 +418,12 @@ export class UpdateController {
       const outcome = await run(this.#client, snapshot, reportProgress);
       const result: UpdateCommandOutcome =
         outcome.status === "rejected"
-          ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
+          ? {
+              status: "rejected",
+              snapshot: outcome.snapshot,
+              code: outcome.code,
+              detail: outcome.detail,
+            }
           : options.committedMayDefer && outcome.snapshot.deferral !== null
             ? {
                 status: "committedWithDeferral",
@@ -425,6 +438,7 @@ export class UpdateController {
         this.#snapshot = outcome.snapshot;
         this.#liveProgress = undefined;
         this.#lastRejection = result.status === "rejected" ? result.code : undefined;
+        this.#lastRejectionDetail = result.status === "rejected" ? result.detail : null;
         this.#setStatus({ kind: "ready" });
       }
       return result;

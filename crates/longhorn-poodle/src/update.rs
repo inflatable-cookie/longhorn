@@ -26,6 +26,13 @@ pub fn availability_banner(availability: &UpdateAvailability, package: &str) -> 
         // every launch, and the check's result is available without one.
         UpdateAvailability::NotChecked | UpdateAvailability::UpToDate => None,
 
+        UpdateAvailability::UnavailableForTarget { version } => Some(
+            BannerSpec::new()
+                .with_tone(StatusTone::Info)
+                .with_title(format!("Version {version} is unavailable"))
+                .with_message("This release has no update for this installation."),
+        ),
+
         UpdateAvailability::Offer(offer) => Some(
             BannerSpec::new()
                 .with_tone(offer_tone(offer))
@@ -204,6 +211,19 @@ mod tests {
         let message = banner.message.expect("message");
         assert!(message.contains("1.3.0-nightly.4"), "{message}");
         assert!(message.contains("1.2.9"), "{message}");
+    }
+
+    #[test]
+    fn unavailable_target_explains_why_it_cannot_be_installed() {
+        let banner = availability_banner(
+            &UpdateAvailability::UnavailableForTarget {
+                version: version("1.3.0"),
+            },
+            "app",
+        )
+        .expect("banner");
+        assert!(banner.title.expect("title").contains("1.3.0"));
+        assert!(banner.message.expect("message").contains("no update"));
     }
 
     #[test]

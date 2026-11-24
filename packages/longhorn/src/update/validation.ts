@@ -73,6 +73,7 @@ export function assertUpdateOutcome(value: unknown): asserts value is UpdateOutc
   exact(root, "$", variantFields("UpdateOutcomeProjection", root, "$"));
   if (root.status === "rejected") {
     oneOf(root.code, "$.code", UPDATE_REJECTION_CODES);
+    optionalString(root.detail, "$.detail");
   }
   assertUpdateSnapshot(root.snapshot);
 }
@@ -166,6 +167,9 @@ function availability(value: unknown, path: string): void {
   if (root.state === "aheadOfChannel") {
     version(root.installed, `${path}.installed`);
     version(root.channel, `${path}.channel`);
+  }
+  if (root.state === "unavailableForTarget") {
+    version(root.version, `${path}.version`);
   }
   if (root.state === "withheldByRollout") {
     version(root.version, `${path}.version`);

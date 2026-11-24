@@ -57,6 +57,11 @@ pub enum UpdateAvailabilityProjection {
         /// Release notes, when published.
         notes: Option<String>,
     },
+    /// A newer release has no artifact for this installation target.
+    UnavailableForTarget {
+        /// The release version.
+        version: String,
+    },
     /// The install is on the channel's current version.
     UpToDate,
     /// The install is ahead of the channel it selected.
@@ -118,6 +123,9 @@ impl UpdateAvailabilityProjection {
                 version: offer.version.to_string(),
                 reason: offer.reason,
                 notes: offer.notes.clone(),
+            },
+            UpdateAvailability::UnavailableForTarget { version } => Self::UnavailableForTarget {
+                version: version.to_string(),
             },
             UpdateAvailability::UpToDate => Self::UpToDate,
             UpdateAvailability::AheadOfChannel { installed, channel } => Self::AheadOfChannel {
@@ -441,6 +449,8 @@ pub enum UpdateRejectionCode {
     /// The installation cannot be written -- a Homebrew cask, or an
     /// administrator-installed copy. The remedy is a manual download.
     NotWritable,
+    /// The artifact is malformed and cannot be retried.
+    MalformedArtifact,
     /// Replacement failed for another reason.
     InstallFailed,
 }
@@ -463,6 +473,8 @@ pub enum UpdateOutcomeProjection {
     Rejected {
         /// What a surface should tell the operator.
         code: UpdateRejectionCode,
+        /// Installer detail, when the installer supplied it.
+        detail: Option<String>,
         /// The state as it remains.
         snapshot: UpdateSnapshot,
     },

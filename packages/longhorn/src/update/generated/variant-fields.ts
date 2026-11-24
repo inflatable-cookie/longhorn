@@ -14,6 +14,7 @@ export const UPDATE_VARIANT_FIELDS: Record<string, Record<string, readonly strin
   "UpdateAvailabilityProjection": {
     "notChecked": ["state"],
     "offer": ["state", "version", "reason", "notes"],
+    "unavailableForTarget": ["state", "version"],
     "upToDate": ["state"],
     "aheadOfChannel": ["state", "installed", "channel"],
     "withheldByRollout": ["state", "version"],
@@ -32,7 +33,7 @@ export const UPDATE_VARIANT_FIELDS: Record<string, Record<string, readonly strin
   },
   "UpdateOutcomeProjection": {
     "committed": ["status", "snapshot"],
-    "rejected": ["status", "code", "snapshot"],
+    "rejected": ["status", "code", "detail", "snapshot"],
   },
 };
 
