@@ -284,6 +284,37 @@ describe("CommandController", () => {
     expect(state.keymap.listeners.size).toBe(0);
     expect(state.availability.listeners.size).toBe(0);
   });
+
+  test("start disposes earlier listeners when a later registration throws synchronously", async () => {
+    const state = harness();
+    const boom = new Error("keymap registration refused");
+    state.keymap.listen = () => {
+      throw boom;
+    };
+    await state.controller.start();
+    expect(state.controller.status).toEqual({ kind: "failed", error: boom });
+    expect(state.catalogue.listeners.size).toBe(0);
+    expect(state.catalogue.unlistenCount).toBe(1);
+  });
+
+  test("stop disposes every listener when an earlier unlisten throws synchronously", async () => {
+    const state = harness();
+    const boom = new Error("catalogue unlisten refused");
+    const register = state.catalogue.listen.bind(state.catalogue);
+    state.catalogue.listen = (listener) => {
+      const dispose = register(listener) as () => void;
+      return () => {
+        dispose();
+        throw boom;
+      };
+    };
+    await state.controller.start();
+    await state.controller.stop();
+    expect(state.catalogue.listeners.size).toBe(0);
+    expect(state.keymap.listeners.size).toBe(0);
+    expect(state.availability.listeners.size).toBe(0);
+    expect(state.availability.unlistenCount).toBe(1);
+  });
 });
 
 function searchAll(

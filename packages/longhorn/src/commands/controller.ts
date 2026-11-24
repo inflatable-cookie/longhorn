@@ -1,4 +1,5 @@
 import { CommandClient } from "./client.ts";
+import { disposeAll } from "./listeners.ts";
 import type {
   CommandInvocation,
   CommandKeymapMutationResult,
@@ -389,8 +390,4 @@ export class CommandControllerUnavailableError extends Error {
     super("command controller has no joined authoritative state");
     this.name = "CommandControllerUnavailableError";
   }
-}
-
-async function disposeAll(unlisten: ReadonlyArray<CommandUnlisten>): Promise<void> {
-  await Promise.allSettled(unlisten.map((dispose) => dispose()));
 }

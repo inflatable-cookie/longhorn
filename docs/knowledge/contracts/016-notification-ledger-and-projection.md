@@ -139,6 +139,11 @@ Clients listen before taking a current snapshot. Duplicate and stale events
 are ignored. Gaps and authority-epoch changes force refresh. Renderer memory
 does not reconstruct dismissed or unseen authority.
 
+A requested page applies only while the live lifecycle, authority, ledger
+revision and offset still match the request. A page that resolves after a
+newer update, a stop or a restart is discarded. A page answered against a
+moved ledger never replaces the first page: the client resyncs page zero.
+
 ## Svelte, Poodle, And Presentation
 
 The Svelte session is per-instance and owns subscription lifetime, paging,
