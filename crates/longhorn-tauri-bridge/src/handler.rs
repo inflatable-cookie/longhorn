@@ -20,6 +20,7 @@ use crate::{
 mod authorization;
 mod publication;
 
+pub(crate) use authorization::caller_torn_down;
 use authorization::{
     AuthorityNeed, RouteKind, authorize, invalid_authority, invalid_reply, invalid_session,
     unknown_route,
@@ -32,10 +33,66 @@ struct SessionRecord {
     receipt: BridgeNegotiationReceipt,
 }
 
+#[derive(Debug)]
+pub(crate) struct HelloTicket(u64);
+
+struct SessionStore {
+    sessions: BTreeMap<BridgeSessionId, SessionRecord>,
+    next_hello_id: u64,
+    in_flight_hellos: BTreeMap<u64, String>,
+}
+
+impl SessionStore {
+    const fn new() -> Self {
+        Self {
+            sessions: BTreeMap::new(),
+            next_hello_id: 0,
+            in_flight_hellos: BTreeMap::new(),
+        }
+    }
+
+    fn begin_hello(&mut self, caller: &str) -> Result<HelloTicket, BridgeHostError> {
+        let id = self.next_hello_id;
+        self.next_hello_id = self
+            .next_hello_id
+            .checked_add(1)
+            .ok_or_else(BridgeHostError::state_unavailable)?;
+        self.in_flight_hellos.insert(id, caller.to_owned());
+        Ok(HelloTicket(id))
+    }
+
+    fn is_hello_active(&self, caller: &str, ticket: &HelloTicket) -> bool {
+        self.in_flight_hellos.get(&ticket.0).map(String::as_str) == Some(caller)
+    }
+
+    fn abandon_hello(&mut self, ticket: HelloTicket) {
+        self.in_flight_hellos.remove(&ticket.0);
+    }
+
+    fn teardown(&mut self, caller: &str) {
+        self.sessions.retain(|_, record| record.caller != caller);
+        self.in_flight_hellos
+            .retain(|_, in_flight_caller| in_flight_caller != caller);
+    }
+}
+
+struct ActiveHelloGuard<'a, A: ?Sized> {
+    assembly: &'a BridgeHandlerAssembly<A>,
+    ticket: Option<HelloTicket>,
+}
+
+impl<A: ?Sized> Drop for ActiveHelloGuard<'_, A> {
+    fn drop(&mut self) {
+        if let Some(ticket) = self.ticket.take() {
+            self.assembly.abandon_hello(ticket);
+        }
+    }
+}
+
 /// Shared registered-domain assembly used by direct and Tauri mock/real hosts.
 pub struct BridgeHandlerAssembly<A: ?Sized> {
     registry: BridgeDomainRegistry,
-    sessions: Mutex<BTreeMap<BridgeSessionId, SessionRecord>>,
+    sessions: Mutex<SessionStore>,
     event_sink: Option<Arc<dyn BridgeEventSink>>,
     authority: Mutex<A>,
 }
@@ -49,7 +106,7 @@ where
     pub const fn new(authority: A, registry: BridgeDomainRegistry) -> Self {
         Self {
             registry,
-            sessions: Mutex::new(BTreeMap::new()),
+            sessions: Mutex::new(SessionStore::new()),
             event_sink: None,
             authority: Mutex::new(authority),
         }
@@ -64,9 +121,17 @@ where
     ) -> Self {
         Self {
             registry,
-            sessions: Mutex::new(BTreeMap::new()),
+            sessions: Mutex::new(SessionStore::new()),
             event_sink: Some(event_sink),
             authority: Mutex::new(authority),
+        }
+    }
+}
+
+impl<A: ?Sized> BridgeHandlerAssembly<A> {
+    pub(crate) fn abandon_hello(&self, ticket: HelloTicket) {
+        if let Ok(mut store) = self.sessions.lock() {
+            store.abandon_hello(ticket);
         }
     }
 }
@@ -81,6 +146,41 @@ where
         caller: &str,
         request: BridgeHelloRequest,
     ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+        let ticket = self.begin_hello(caller)?;
+        self.hello_with_ticket(caller, request, ticket)
+    }
+
+    pub(crate) fn begin_hello(&self, caller: &str) -> Result<HelloTicket, BridgeHostError> {
+        self.sessions
+            .lock()
+            .map_err(|_| BridgeHostError::state_unavailable())?
+            .begin_hello(caller)
+    }
+
+    pub(crate) fn hello_with_ticket(
+        &self,
+        caller: &str,
+        request: BridgeHelloRequest,
+        ticket: HelloTicket,
+    ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+        let mut guard = ActiveHelloGuard {
+            assembly: self,
+            ticket: Some(ticket),
+        };
+        let active = {
+            let ticket_ref = guard
+                .ticket
+                .as_ref()
+                .ok_or_else(BridgeHostError::state_unavailable)?;
+            self.sessions
+                .lock()
+                .map_err(|_| BridgeHostError::state_unavailable())?
+                .is_hello_active(caller, ticket_ref)
+        };
+        if !active {
+            return Err(caller_torn_down(caller));
+        }
+
         let domains: Vec<_> = self.registry.domains().cloned().collect();
         let receipt = self
             .authority
@@ -89,20 +189,41 @@ where
             .negotiate(caller, &request, &domains)?;
         self.validate_receipt(&request, &receipt)?;
 
-        let mut sessions = self
+        let ticket = guard
+            .ticket
+            .take()
+            .ok_or_else(BridgeHostError::state_unavailable)?;
+        self.commit_hello(caller, request, receipt, ticket)
+    }
+
+    fn commit_hello(
+        &self,
+        caller: &str,
+        request: BridgeHelloRequest,
+        receipt: BridgeNegotiationReceipt,
+        ticket: HelloTicket,
+    ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+        let mut store = self
             .sessions
             .lock()
             .map_err(|_| BridgeHostError::state_unavailable())?;
-        if sessions
+        if !store.is_hello_active(caller, &ticket) {
+            store.abandon_hello(ticket);
+            return Err(caller_torn_down(caller));
+        }
+        if store
+            .sessions
             .get(receipt.session_id())
             .is_some_and(|record| record.caller != caller)
         {
+            store.abandon_hello(ticket);
             return Err(invalid_authority(
                 "authority provider reused a session id for another caller",
             ));
         }
-        sessions.retain(|_, record| record.caller != caller);
-        sessions.insert(
+        store.abandon_hello(ticket);
+        store.sessions.retain(|_, record| record.caller != caller);
+        store.sessions.insert(
             receipt.session_id().clone(),
             SessionRecord {
                 caller: caller.to_owned(),
@@ -113,20 +234,20 @@ where
         Ok(receipt)
     }
 
-    /// Drops every session a caller owns.
+    /// Drops every session a caller owns and cancels any in-flight `hello`
+    /// negotiation for that caller.
     ///
     /// Sessions end with their window: `bridge_plugin` wires this from Tauri's
     /// window-destroyed hook by default. Without it a destroyed window's
     /// session stays valid indefinitely, and each distinct caller label grows
-    /// the map forever. Idempotent — tearing down a caller with no sessions is
-    /// not an error, because destroy ordering against in-flight hellos is the
-    /// host's to race.
+    /// the map forever. Idempotent — tearing down a caller with no active
+    /// session is not an error, and any in-flight `hello` that started before
+    /// teardown is fenced from inserting a session once negotiation returns.
     pub fn teardown(&self, caller: &str) -> Result<(), BridgeHostError> {
-        let mut sessions = self
-            .sessions
+        self.sessions
             .lock()
-            .map_err(|_| BridgeHostError::state_unavailable())?;
-        sessions.retain(|_, record| record.caller != caller);
+            .map_err(|_| BridgeHostError::state_unavailable())?
+            .teardown(caller);
         Ok(())
     }
 
@@ -149,11 +270,11 @@ where
             ));
         }
 
-        let mut sessions = self
+        let mut store = self
             .sessions
             .lock()
             .map_err(|_| BridgeHostError::state_unavailable())?;
-        let Some(record) = sessions.get_mut(session_id) else {
+        let Some(record) = store.sessions.get_mut(session_id) else {
             return Err(invalid_session(session_id));
         };
         if record.caller != caller {
@@ -363,8 +484,121 @@ where
         self.sessions
             .lock()
             .map_err(|_| BridgeHostError::state_unavailable())?
+            .sessions
             .get(session_id)
             .cloned()
             .ok_or_else(|| invalid_session(session_id))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use longhorn_bridge::{
+        AuthenticationPosture, AuthorityEpoch, AuthorityRevision, BridgeConnectionReason,
+        BridgeConnectionState, BridgeConnectionStatus, BridgeHelloRequest, BridgeHostDescriptor,
+        BridgeHostForm, BridgeNegotiationReceipt, DomainAuthorityDescriptor, DomainAvailability,
+        DomainCapabilityDescriptor, ExecutionAuthority, ReadAuthority, WriteAuthority,
+    };
+    use longhorn_core::{
+        AuthorityScopeId, BridgeCapabilityId, BridgeId, BridgeSessionId, DomainId, HostInstanceId,
+    };
+
+    use super::*;
+
+    struct SequentialAuthority {
+        next: AtomicUsize,
+        descriptor: DomainCapabilityDescriptor,
+    }
+
+    impl BridgeAuthorityProvider for SequentialAuthority {
+        fn negotiate(
+            &mut self,
+            _caller: &str,
+            _request: &BridgeHelloRequest,
+            _registered_domains: &[DomainCapabilityDescriptor],
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            let n = self.next.fetch_add(1, Ordering::SeqCst);
+            Ok(BridgeNegotiationReceipt::new(
+                BridgeHostDescriptor {
+                    host_instance_id: HostInstanceId::new("host:unit").unwrap(),
+                    form: BridgeHostForm::TauriLocal,
+                },
+                BridgeSessionId::new(format!("session:gen-{n}")).unwrap(),
+                BridgeConnectionStatus::new(
+                    BridgeConnectionState::Ready,
+                    Some(BridgeConnectionReason::NegotiationAccepted),
+                )
+                .unwrap(),
+                AuthenticationPosture::NotRequired,
+                Vec::new(),
+                vec![self.descriptor.clone()],
+                vec![
+                    DomainAuthorityDescriptor::new(
+                        DomainId::new("fixture.workspace").unwrap(),
+                        AuthorityScopeId::new("scope:workspace").unwrap(),
+                        DomainAvailability::Available,
+                        ReadAuthority::Authoritative,
+                        WriteAuthority::None,
+                        ExecutionAuthority::Executor,
+                        AuthorityEpoch::new(1).unwrap(),
+                        Some(AuthorityRevision::new(1)),
+                    )
+                    .unwrap(),
+                ],
+                Vec::new(),
+            )
+            .unwrap())
+        }
+
+        fn refresh(
+            &mut self,
+            _caller: &str,
+            current: &BridgeNegotiationReceipt,
+        ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+            Ok(current.clone())
+        }
+    }
+
+    #[test]
+    fn queued_hello_ticket_from_destroyed_window_cannot_clobber_reopened_same_label_session() {
+        let domain_id = DomainId::new("fixture.workspace").unwrap();
+        let descriptor = DomainCapabilityDescriptor::new(
+            domain_id,
+            vec![BridgeCapabilityId::new("workspace.read").unwrap()],
+        )
+        .unwrap();
+        let mut registry = BridgeDomainRegistry::new();
+        registry.register_domain(descriptor.clone()).unwrap();
+
+        let assembly = BridgeHandlerAssembly::new(
+            SequentialAuthority {
+                next: AtomicUsize::new(0),
+                descriptor,
+            },
+            registry,
+        );
+        let req = || {
+            BridgeHelloRequest::new(
+                BridgeId::new("bridge:test").unwrap(),
+                vec![DomainId::new("fixture.workspace").unwrap()],
+            )
+            .unwrap()
+        };
+
+        let stale_ticket = assembly.begin_hello("main").unwrap();
+        assembly.teardown("main").unwrap();
+
+        // A reopened window with the same label negotiates and owns "main".
+        let live_receipt = assembly.hello("main", req()).unwrap();
+        assert_eq!(live_receipt.session_id().as_str(), "session:gen-0");
+
+        // The stale ticket queued before teardown fails and leaves live_receipt intact.
+        let err = assembly
+            .hello_with_ticket("main", req(), stale_ticket)
+            .unwrap_err();
+        assert_eq!(err.code, BridgeHostErrorCode::InvalidSession);
+        assert!(assembly.session("main", live_receipt.session_id()).is_ok());
     }
 }

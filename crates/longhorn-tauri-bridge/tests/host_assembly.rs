@@ -1,8 +1,12 @@
 //! Registered bridge host rejection and Tauri mock-runtime proofs.
 
-use std::sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
+use std::{
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+        mpsc,
+    },
+    time::Duration,
 };
 
 use longhorn_bridge::{
@@ -864,4 +868,222 @@ fn handler_panic_poisons_route_and_reports_non_retryable_state_unavailable() {
         .unwrap_err();
     assert_eq!(error.code, BridgeHostErrorCode::StateUnavailable);
     assert!(!error.retryable);
+}
+
+struct BlockingFirstHelloAuthority {
+    receipt: BridgeNegotiationReceipt,
+    calls: AtomicUsize,
+    entered: Mutex<Option<mpsc::Sender<()>>>,
+    release: Mutex<Option<mpsc::Receiver<()>>>,
+    fail_first: bool,
+}
+
+impl BlockingFirstHelloAuthority {
+    fn blocking(receipt: BridgeNegotiationReceipt) -> (Self, mpsc::Receiver<()>, mpsc::Sender<()>) {
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        (
+            Self {
+                receipt,
+                calls: AtomicUsize::new(0),
+                entered: Mutex::new(Some(entered_tx)),
+                release: Mutex::new(Some(release_rx)),
+                fail_first: false,
+            },
+            entered_rx,
+            release_tx,
+        )
+    }
+
+    fn failing_first(receipt: BridgeNegotiationReceipt) -> Self {
+        Self {
+            receipt,
+            calls: AtomicUsize::new(0),
+            entered: Mutex::new(None),
+            release: Mutex::new(None),
+            fail_first: true,
+        }
+    }
+}
+
+impl BridgeAuthorityProvider for BlockingFirstHelloAuthority {
+    fn negotiate(
+        &mut self,
+        _caller: &str,
+        _request: &BridgeHelloRequest,
+        _registered_domains: &[DomainCapabilityDescriptor],
+    ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+        let call = self.calls.fetch_add(1, Ordering::SeqCst);
+        if call == 0 {
+            if let Some(entered) = self.entered.lock().unwrap().take() {
+                let _ = entered.send(());
+            }
+            if let Some(release) = self.release.lock().unwrap().take() {
+                release
+                    .recv_timeout(Duration::from_secs(5))
+                    .expect("test released blocked hello negotiation");
+            }
+            if self.fail_first {
+                return Err(BridgeHostError::authority("transient hello failure", true));
+            }
+        }
+        Ok(self.receipt.clone())
+    }
+
+    fn refresh(
+        &mut self,
+        _caller: &str,
+        _current: &BridgeNegotiationReceipt,
+    ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
+        Ok(self.receipt.clone())
+    }
+}
+
+#[test]
+fn in_flight_hello_fenced_by_interleaved_teardown_never_inserts_session() {
+    let dispatches = Arc::new(AtomicUsize::new(0));
+    let expected_receipt = authority_receipt(capabilities(), WriteAuthority::None);
+    let (authority, entered_rx, release_tx) =
+        BlockingFirstHelloAuthority::blocking(expected_receipt.clone());
+    let assembly = Arc::new(BridgeHandlerAssembly::new(
+        authority,
+        registered_domains(Arc::clone(&dispatches)),
+    ));
+
+    let worker_assembly = Arc::clone(&assembly);
+    let handle = std::thread::spawn(move || worker_assembly.hello("main", hello()));
+
+    entered_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("hello entered negotiate");
+    assembly.teardown("main").unwrap();
+    release_tx.send(()).unwrap();
+
+    let hello_err = handle.join().unwrap().unwrap_err();
+    assert_eq!(hello_err.code, BridgeHostErrorCode::InvalidSession);
+    assert!(!hello_err.retryable);
+
+    let query_err = assembly
+        .query(
+            "main",
+            "workspace.read",
+            query_request(
+                "request:after-destroy",
+                expected_receipt.session_id().as_str(),
+                DOMAIN,
+            ),
+        )
+        .unwrap_err();
+    assert_eq!(query_err.code, BridgeHostErrorCode::InvalidSession);
+    assert_eq!(dispatches.load(Ordering::SeqCst), 0);
+
+    // A later window with the same label can still negotiate a fresh session.
+    let reopened = assembly.hello("main", hello()).unwrap();
+    assembly
+        .query(
+            "main",
+            "workspace.read",
+            query_request("request:reopened", reopened.session_id().as_str(), DOMAIN),
+        )
+        .unwrap();
+    assert_eq!(dispatches.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn tauri_hello_blocked_in_negotiation_cannot_insert_after_window_teardown() {
+    let dispatches = Arc::new(AtomicUsize::new(0));
+    let expected_receipt = authority_receipt(capabilities(), WriteAuthority::None);
+    let (authority, entered_rx, release_tx) =
+        BlockingFirstHelloAuthority::blocking(expected_receipt.clone());
+    let assembly = Arc::new(BridgeHandlerAssembly::new(
+        authority,
+        registered_domains(Arc::clone(&dispatches)),
+    ));
+
+    let app = tauri::test::mock_builder()
+        .plugin(bridge_plugin(assembly))
+        .invoke_handler(tauri::generate_handler![
+            longhorn_tauri_bridge::longhorn_bridge_hello,
+            longhorn_tauri_bridge::longhorn_bridge_query
+        ])
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let webview = WebviewWindowBuilder::new(&app, "main", WebviewUrl::default())
+        .build()
+        .unwrap();
+
+    let ipc_webview = webview.clone();
+    let handle = std::thread::spawn(move || {
+        tauri::test::get_ipc_response(
+            &ipc_webview,
+            tauri::webview::InvokeRequest {
+                cmd: "longhorn_bridge_hello".into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: "tauri://localhost".parse().unwrap(),
+                body: tauri::ipc::InvokeBody::Json(json!({ "request": hello() })),
+                headers: Default::default(),
+                invoke_key: tauri::test::INVOKE_KEY.into(),
+            },
+        )
+    });
+
+    entered_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("tauri hello entered negotiate");
+    app.try_state::<TauriBridgeState>()
+        .unwrap()
+        .teardown_window("main")
+        .unwrap();
+    release_tx.send(()).unwrap();
+
+    let ipc_err: BridgeHostError =
+        serde_json::from_value(handle.join().unwrap().unwrap_err()).unwrap();
+    assert_eq!(ipc_err.code, BridgeHostErrorCode::InvalidSession);
+    assert!(!ipc_err.retryable);
+
+    let query_err_value = tauri::test::get_ipc_response(
+        &webview,
+        tauri::webview::InvokeRequest {
+            cmd: "longhorn_bridge_query".into(),
+            callback: tauri::ipc::CallbackFn(2),
+            error: tauri::ipc::CallbackFn(3),
+            url: "tauri://localhost".parse().unwrap(),
+            body: tauri::ipc::InvokeBody::Json(json!({
+                "route": "workspace.read",
+                "request": query_request("request:stale-tauri", expected_receipt.session_id().as_str(), DOMAIN)
+            })),
+            headers: Default::default(),
+            invoke_key: tauri::test::INVOKE_KEY.into(),
+        },
+    )
+    .unwrap_err();
+    let query_err: BridgeHostError = serde_json::from_value(query_err_value).unwrap();
+    assert_eq!(query_err.code, BridgeHostErrorCode::InvalidSession);
+    assert_eq!(dispatches.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn failed_hello_releases_in_flight_ownership_so_retry_succeeds() {
+    let dispatches = Arc::new(AtomicUsize::new(0));
+    let expected_receipt = authority_receipt(capabilities(), WriteAuthority::None);
+    let assembly = BridgeHandlerAssembly::new(
+        BlockingFirstHelloAuthority::failing_first(expected_receipt.clone()),
+        registered_domains(Arc::clone(&dispatches)),
+    );
+
+    let first_err = assembly.hello("main", hello()).unwrap_err();
+    assert_eq!(first_err.code, BridgeHostErrorCode::AuthorityUnavailable);
+    assert!(first_err.retryable);
+
+    let receipt = assembly.hello("main", hello()).unwrap();
+    assert_eq!(receipt, expected_receipt);
+    assembly
+        .query(
+            "main",
+            "workspace.read",
+            query_request("request:after-retry", receipt.session_id().as_str(), DOMAIN),
+        )
+        .unwrap();
+    assert_eq!(dispatches.load(Ordering::SeqCst), 1);
 }

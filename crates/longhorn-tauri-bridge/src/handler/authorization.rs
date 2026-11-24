@@ -107,6 +107,14 @@ pub(super) fn invalid_session(session_id: &BridgeSessionId) -> BridgeHostError {
     )
 }
 
+pub(crate) fn caller_torn_down(caller: &str) -> BridgeHostError {
+    BridgeHostError::new(
+        BridgeHostErrorCode::InvalidSession,
+        format!("bridge caller window was torn down during negotiation: {caller}"),
+        false,
+    )
+}
+
 pub(super) fn unknown_route(route: &str) -> BridgeHostError {
     BridgeHostError::new(
         BridgeHostErrorCode::UnknownRoute,
