@@ -47,7 +47,8 @@ pub use failure::{Fault, ProvisionError, Refusal};
 pub use fixture::{FixtureRoute, FixtureServer};
 pub use install::{
     DigestDeclaration, InstallReceipt, InstallStage, MAX_DIGEST_METADATA_BYTES,
-    MAX_PROBE_FIELD_BYTES, ToolDescription, ToolHealth, install_tool, parse_version, tool_health,
+    MAX_PROBE_FIELD_BYTES, MAX_RECEIPT_BYTES, ToolDescription, ToolHealth, install_tool,
+    parse_version, tool_health,
 };
 pub use install_failure::{InstallError, InstallFault, InstallRefusal, ProbePhase};
 pub use path::{

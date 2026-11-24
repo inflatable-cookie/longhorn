@@ -658,12 +658,17 @@ types. Extraction stages the caller's binary name in a unique temporary
 directory under `managed_root/bin`, keeping replacement on the same volume.
 
 The fixed version program is the staged binary path and the arguments are the
-caller's vector. No shell parses caller data. The probe takes the first
-semantic-version token, trims a leading `v`, trailing comma or `)`, and
-ignores build metadata after `+`. A versioned release must equal the staged
-version. The staged version must also meet the floor. An unversioned release
-is installable only when there is no floor; its probed version is recorded.
-The staged executable is probed before any current binary changes.
+caller's vector. No shell parses caller data. The probe decides on the raw
+standard-output capture, decoded before any redaction or diagnostic bound
+applies. The runner already caps that capture at 64 KiB and reports whether it
+cut the stream; a cut stream's retained last token is dropped whole, never
+half-parsed, so a cut `1.2.3-alpha` is not admitted as `1.2.3-al`. The
+decision takes the first semantic-version token,
+trims a leading `v`, trailing comma or `)`, and ignores build metadata after
+`+`. A versioned release must equal the staged version. The staged version
+must also meet the floor. An unversioned release is installable only when
+there is no floor; its probed version is recorded. The staged executable is
+probed before any current binary changes.
 
 ### Process output and failures
 
@@ -678,7 +683,10 @@ before the process starts, or output still open five seconds after the process
 exits, so a grandchild that holds the pipes cannot hold the caller. The
 pipeline decodes no more than that bound, runs the caller's `Redactor`, then uses
 `longhorn-support-log::bound_field` to retain no more than 4 KiB for each
-failure field. Debug output from `ProcessOutput` reports sizes and status,
+failure field. Redaction and the field bound shape diagnostic evidence only:
+they cannot remove, rewrite or cut the token that version admission reads, so
+a consumer redactor that protects the printed version changes what a fault
+shows, never whether a probe succeeds. Debug output from `ProcessOutput` reports sizes and status,
 never raw streams. The host runs this synchronous operation on its blocking
 executor; normal dependencies contain no `tokio`.
 
@@ -726,7 +734,11 @@ contains exactly `name`, `version`, `release_tag`, `asset`, `sha256` and
 `installed_at_unix`. The digest is recomputed from the installed binary.
 Receipt bytes are written and synced to a temporary file in the receipt
 directory, then atomically renamed over the receipt. An incomplete write
-cannot replace the prior receipt.
+cannot replace the prior receipt. The rollback snapshot and the health check
+read a receipt through one bounded reader, at most 64 KiB
+(`MAX_RECEIPT_BYTES`), with missing, invalid and oversized outcomes kept
+distinct. An existing receipt larger than the bound is refused before the
+swap rather than silently ignored or partially restored.
 
 ### Health and login-shell PATH
 
@@ -761,7 +773,8 @@ Against the donor at `93866f852`:
   checksum/asset templates and user-facing strings remain in the consumer.
 - The donor's direct `Command::output` version probe becomes the injected
   `ProcessRunner` with a production `CommandRunner`; commands use a binary path
-  and argument vector, and retained output is redacted before it is bounded.
+  and argument vector. Admission reads the raw capture, while retained
+  diagnostic output is redacted before it is bounded.
 - Stage names become `InstallStage` variants. The consumer maps them to its
   own labels.
 - Stage/final version mismatches and floor failures are typed refusals. Release
