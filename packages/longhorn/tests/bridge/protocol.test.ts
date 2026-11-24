@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   BRIDGE_PROTOCOL_VERSION,
+  BridgeJobTracker,
   BridgeProtocolValidationError,
   assertBridgeProtocolVersion,
   parseBridgeCancellationReceipt,
@@ -153,3 +154,23 @@ function expectCode(run: () => unknown, code: BridgeProtocolValidationError["cod
     expect((error as BridgeProtocolValidationError).code).toBe(code);
   }
 }
+
+test("job admission reads the request id first and never decodes the payload", () => {
+  const tracker = new BridgeJobTracker("request:scan", "job:scan");
+  const own = {
+    requestId: "request:scan",
+    jobId: "job:scan",
+    progress: { percent: 10, unknownField: true },
+  };
+  expect(tracker.admits(own)).toBe(true);
+  expect(tracker.admits({ ...own, jobId: "job:other" })).toBe(false);
+  // A foreign request is refused without reading its job id.
+  expect(tracker.admits({ ...own, requestId: "request:other", jobId: "Not An Id!" })).toBe(false);
+  // Under this job's own request, an unreadable job id is malformed.
+  expectCode(() => tracker.admits({ ...own, jobId: "Not An Id!" }), "invalid_id");
+  expectCode(() => tracker.admits(null), "invalid_object");
+  expectCode(() => tracker.admits({ jobId: "job:scan" }), "invalid_id");
+  // A readable foreign job id is foreign even when its request id is unreadable.
+  expect(tracker.admits({ ...own, requestId: "Not A Request", jobId: "job:other" })).toBe(false);
+  expectCode(() => tracker.admits({ ...own, requestId: "Not A Request" }), "invalid_id");
+});
