@@ -78,9 +78,18 @@ the last are shared; the middle is where the hosts differ.
 
 ## Windows
 
-`execute_gpui_window_apply(input, registry, backend, displays)` takes a
-`WindowDiffInput` and applies the plan. It sets the host capabilities itself
+`execute_gpui_window_apply(input, registry, backend, displays, observer)` takes
+a `WindowDiffInput` and applies the plan. It sets the host capabilities itself
 from `backend.can_create()`, so you do not declare them.
+
+Pass your `GpuiWindowLifecycleHost` as `observer`. It implements
+`GpuiApplyObserver` and receives each operation's evidence before the native
+call. Without that evidence, the resize and maximize events an apply causes
+arrive as user moves and are captured as user placements. A lifecycle refusal
+stops the operation before its native call, and the attempt reports
+`GpuiApplyFailureKind::Lifecycle`. A retag publishes the old identity's staged
+placements first and is refused if that fails. It then moves the window's
+pending work and apply evidence to the new identity.
 
 Read placement back with `observe_gpui_desktop(backend, registry, source)`.
 
@@ -96,7 +105,10 @@ Read placement back with `observe_gpui_desktop(backend, registry, source)`.
 
 `gpui_deferred_settlement()` names the two operations whose effect GPUI does
 not report immediately — maximize and unmaximize — so a post-apply readback
-does not reschedule work that already succeeded.
+does not reschedule work that already succeeded. The cost is that
+`desired_state_reached()` can report true while a deferred maximize has not
+yet shown in the window. Treat maximize as settling later, and read back again
+if it matters.
 
 ### Display facts are not free
 
@@ -138,6 +150,10 @@ window's own dispatch, so observing it there fails. A render has
 can keep the capture cache current.
 
 ## Lifecycle And Close
+
+`capture_from_gpui_facts` returns an error for a fullscreen window. Longhorn's
+placement has no fullscreen state, so the caller decides whether to skip the
+save.
 
 `GpuiWindowLifecycleHost::handle_gpui_event` takes a `GpuiWindowEvent` and
 translates it. One thing surprises people: a GPUI resize carries the scale, so

@@ -3,12 +3,13 @@ use std::collections::BTreeMap;
 use longhorn_core::{ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement};
 use longhorn_display::DisplayBuiltinStatus;
 use longhorn_gpui_windowing::{
-    GpuiDisplayFacts, GpuiDisplayFactsSource, GpuiLogicalRect, GpuiLogicalSize, GpuiWindowBackend,
-    GpuiWindowBoundsState, GpuiWindowCreateRequest, GpuiWindowError, GpuiWindowFacts,
-    GpuiWindowKey,
+    GpuiApplyObserver, GpuiDisplayFacts, GpuiDisplayFactsSource, GpuiLogicalRect, GpuiLogicalSize,
+    GpuiRetagError, GpuiWindowBackend, GpuiWindowBoundsState, GpuiWindowCreateRequest,
+    GpuiWindowError, GpuiWindowFacts, GpuiWindowKey,
 };
 use longhorn_windowing::{
     ApplyGeneration, DesiredWindow, HostCapabilities, HostWindowHandle, WindowDiffInput,
+    WindowOperation, WindowOperationKind,
 };
 
 pub(super) fn id(value: &str) -> WindowId {
@@ -77,6 +78,7 @@ pub(super) struct FakeGpuiHost {
     pub(super) calls: Vec<Call>,
     pub(super) fail_next_create: bool,
     lagging_maximize: bool,
+    inert_resize: bool,
 }
 
 impl FakeGpuiHost {
@@ -95,6 +97,7 @@ impl FakeGpuiHost {
             calls: Vec::new(),
             fail_next_create: false,
             lagging_maximize: false,
+            inert_resize: false,
         }
     }
 
@@ -119,6 +122,13 @@ impl FakeGpuiHost {
     /// while it animates the zoom.
     pub(super) fn with_lagging_maximize(mut self) -> Self {
         self.lagging_maximize = true;
+        self
+    }
+
+    /// Accepts a resize and keeps reporting the old size, so the readback
+    /// after the apply still sees the window as it was.
+    pub(super) fn with_inert_resize(mut self) -> Self {
+        self.inert_resize = true;
         self
     }
 
@@ -187,11 +197,14 @@ impl GpuiWindowBackend for FakeGpuiHost {
 
     fn resize(&mut self, key: GpuiWindowKey, size: GpuiLogicalSize) -> Result<(), GpuiWindowError> {
         self.calls.push(Call::Resize(key));
+        let inert = self.inert_resize;
         let window = self
             .windows
             .get_mut(&key.slot())
             .ok_or_else(|| GpuiWindowError::new("no such window"))?;
-        window.content_size = size;
+        if !inert {
+            window.content_size = size;
+        }
         Ok(())
     }
 
@@ -306,4 +319,50 @@ impl GpuiDisplayFactsSource for SuppliedDisplayFacts {
 
 pub(super) fn handle_of(key: GpuiWindowKey) -> HostWindowHandle {
     key.transport_handle()
+}
+
+/// Test observer that records what the adapter registered and accepts it,
+/// unless told to refuse. The lifecycle host is the real observer; this one
+/// exists so apply tests can see the evidence without a lifecycle host.
+#[derive(Default)]
+pub(super) struct RecordingApplyObserver {
+    pub(super) registered: Vec<WindowOperationKind>,
+    pub(super) retagged: Vec<(HostWindowHandle, WindowId)>,
+    pub(super) refusal: Option<String>,
+}
+
+impl RecordingApplyObserver {
+    pub(super) fn refusing(detail: &str) -> Self {
+        Self {
+            refusal: Some(detail.to_owned()),
+            ..Self::default()
+        }
+    }
+}
+
+impl GpuiApplyObserver for RecordingApplyObserver {
+    fn register_apply(
+        &mut self,
+        _generation: ApplyGeneration,
+        operation: &WindowOperation,
+    ) -> Result<(), String> {
+        if let Some(detail) = &self.refusal {
+            return Err(detail.clone());
+        }
+        self.registered.push(operation.kind());
+        Ok(())
+    }
+
+    fn retag(
+        &mut self,
+        transport_handle: &HostWindowHandle,
+        window_id: &WindowId,
+    ) -> Result<(), GpuiRetagError> {
+        if let Some(detail) = &self.refusal {
+            return Err(GpuiRetagError::Refused(detail.clone()));
+        }
+        self.retagged
+            .push((transport_handle.clone(), window_id.clone()));
+        Ok(())
+    }
 }

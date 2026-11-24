@@ -229,16 +229,33 @@ impl GpuiWindowRegistry {
             .ok_or_else(|| GpuiWindowRegistryError::UnknownWindowId(window_id.clone()))
     }
 
+    /// Validates a retag without changing anything.
+    pub(crate) fn check_retag(
+        &self,
+        handle: &HostWindowHandle,
+        window_id: &WindowId,
+    ) -> Result<(), GpuiWindowRegistryError> {
+        if !self.windows.contains_key(handle) {
+            return Err(GpuiWindowRegistryError::UnknownTransportHandle(
+                handle.clone(),
+            ));
+        }
+        if self.windows.iter().any(|(other_handle, managed)| {
+            other_handle != handle && managed.window_id() == Some(window_id)
+        }) {
+            return Err(GpuiWindowRegistryError::DuplicateWindowId(
+                window_id.clone(),
+            ));
+        }
+        Ok(())
+    }
+
     pub(crate) fn retag(
         &mut self,
         handle: &HostWindowHandle,
         window_id: WindowId,
     ) -> Result<(), GpuiWindowRegistryError> {
-        if self.windows.iter().any(|(other_handle, managed)| {
-            other_handle != handle && managed.window_id() == Some(&window_id)
-        }) {
-            return Err(GpuiWindowRegistryError::DuplicateWindowId(window_id));
-        }
+        self.check_retag(handle, &window_id)?;
         let managed = self
             .windows
             .get_mut(handle)

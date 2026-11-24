@@ -1,12 +1,17 @@
 //! Configuration-backed persistence for captured window placements.
 //!
 //! Consumers retain authority over their domain schema. This crate owns the
-//! repeated stage, coalesce, coordinated mutation, and synchronous flush
+//! repeated stage, coalesce, coordinated mutation, and asynchronous flush
 //! mechanics behind `WindowPlacementSink`.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    sync::Mutex,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+        mpsc,
+    },
+    thread,
 };
 
 use longhorn_config::{
@@ -16,8 +21,15 @@ use longhorn_config::{
 };
 use longhorn_core::WindowId;
 use longhorn_windowing::{
-    CapturedWindowPlacement, WindowFlushRequest, WindowPlacementFlushTicket, WindowPlacementSink,
+    CapturedWindowPlacement, WindowFlushRequest, WindowPlacementFlushCompletion,
+    WindowPlacementFlushTicket, WindowPlacementSink,
 };
+
+/// Publications that may still be in flight at once. A publication that
+/// outlives its caller keeps a worker blocked until it finishes, so a caller
+/// that keeps timing out is refused past this bound rather than piling up
+/// workers.
+const MAX_PENDING_PUBLICATIONS: usize = 4;
 
 type PlacementPatch<D> = dyn Fn(&mut <D as ConfigDomain>::Value, &CapturedWindowPlacement) -> Result<(), DomainIssue>
     + Send
@@ -28,12 +40,26 @@ pub struct ConfigWindowPlacementSink<D>
 where
     D: ConfigDomain,
 {
+    shared: Arc<Shared<D>>,
+}
+
+/// State a flush worker needs. Shared with the worker, so a publication can
+/// outlive the caller that stopped waiting for it.
+struct Shared<D>
+where
+    D: ConfigDomain,
+{
     store: ConfigStore,
     domain: D,
     mutation_options: MutationOptions,
     patch: Box<PlacementPatch<D>>,
+    /// Serializes publications: a waiting flush takes its snapshot after the
+    /// previous publication has finished.
     flush: Mutex<()>,
     staged: Mutex<BTreeMap<WindowId, CapturedWindowPlacement>>,
+    /// Publications started and not yet finished, including ones whose caller
+    /// has stopped waiting.
+    pending: AtomicUsize,
 }
 
 impl<D> ConfigWindowPlacementSink<D>
@@ -55,18 +81,21 @@ where
     {
         store.register(&domain)?;
         Ok(Self {
-            store,
-            domain,
-            mutation_options,
-            patch: Box::new(patch),
-            flush: Mutex::new(()),
-            staged: Mutex::new(BTreeMap::new()),
+            shared: Arc::new(Shared {
+                store,
+                domain,
+                mutation_options,
+                patch: Box::new(patch),
+                flush: Mutex::new(()),
+                staged: Mutex::new(BTreeMap::new()),
+                pending: AtomicUsize::new(0),
+            }),
         })
     }
 
     /// Loads the consumer-owned domain through the registered store.
     pub fn load(&self) -> Result<LoadOutcome<D::Value>, StoreError> {
-        self.store.load(&self.domain)
+        self.shared.store.load(&self.shared.domain)
     }
 
     /// Applies a consumer-owned mutation through the same registered domain.
@@ -74,8 +103,9 @@ where
     where
         F: FnOnce(&mut D::Value) -> Result<(), DomainIssue>,
     {
-        self.store
-            .mutate(&self.domain, self.mutation_options, patch)
+        self.shared
+            .store
+            .mutate(&self.shared.domain, self.shared.mutation_options, patch)
     }
 
     /// Rewrites an older migrated source through Longhorn's required safety backup.
@@ -85,27 +115,36 @@ where
     ) -> Result<MigrationRewriteReceipt, MigrationRewriteError> {
         let mut catalog = BackupCatalog::new();
         catalog
-            .include(&self.domain)
+            .include(&self.shared.domain)
             .map_err(|error| MigrationRewriteError::Preparation(error.to_string()))?;
-        self.store
-            .rewrite_migrated_domain(&catalog, &self.domain, options)
+        self.shared
+            .store
+            .rewrite_migrated_domain(&catalog, &self.shared.domain, options)
     }
 
     /// Returns the registered consumer domain.
     #[must_use]
-    pub const fn domain(&self) -> &D {
-        &self.domain
+    pub fn domain(&self) -> &D {
+        &self.shared.domain
+    }
+}
+
+impl<D> Shared<D>
+where
+    D: ConfigDomain,
+{
+    fn stage(&self, placement: &CapturedWindowPlacement) -> Result<(), String> {
+        self.staged
+            .lock()
+            .map_err(|_| "window placement staging lock is poisoned".to_string())?
+            .insert(placement.window_id().clone(), placement.clone());
+        Ok(())
     }
 
     fn staged_for(
         &self,
-        request: &WindowFlushRequest,
+        targets: &BTreeSet<WindowId>,
     ) -> Result<Vec<CapturedWindowPlacement>, String> {
-        let targets: BTreeSet<_> = request
-            .targets()
-            .iter()
-            .map(|target| target.window_id())
-            .collect();
         let staged = self
             .staged
             .lock()
@@ -115,6 +154,27 @@ where
             .filter(|(window_id, _)| targets.contains(window_id))
             .map(|(_, placement)| placement.clone())
             .collect())
+    }
+
+    /// Publishes the staged placements for `targets`. Runs on a flush worker.
+    fn publish(&self, targets: &BTreeSet<WindowId>) -> Result<(), String> {
+        let _flush = self
+            .flush
+            .lock()
+            .map_err(|_| "window placement flush lock is poisoned".to_string())?;
+        let placements = self.staged_for(targets)?;
+        if placements.is_empty() {
+            return Ok(());
+        }
+        self.store
+            .mutate(&self.domain, self.mutation_options, |value| {
+                for placement in &placements {
+                    (self.patch)(value, placement)?;
+                }
+                Ok(())
+            })
+            .map_err(|error| error.to_string())?;
+        self.clear_published(&placements)
     }
 
     fn clear_published(&self, placements: &[CapturedWindowPlacement]) -> Result<(), String> {
@@ -131,46 +191,75 @@ where
     }
 }
 
+/// One in-flight publication's claim on the pending count.
+struct PublicationSlot<'a>(&'a AtomicUsize);
+
+impl Drop for PublicationSlot<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
 impl<D> WindowPlacementSink for ConfigWindowPlacementSink<D>
 where
-    D: ConfigDomain + Send + Sync,
+    D: ConfigDomain + Send + Sync + 'static,
 {
     fn stage(&self, placement: &CapturedWindowPlacement) -> Result<(), String> {
-        self.staged
-            .lock()
-            .map_err(|_| "window placement staging lock is poisoned".to_string())?
-            .insert(placement.window_id().clone(), placement.clone());
-        Ok(())
+        self.shared.stage(placement)
     }
 
+    /// Starts one publication on a worker and returns its acknowledgement.
+    ///
+    /// The publication does not run on the caller's thread, so the caller's
+    /// wait is what bounds it. `flush_window_placements` waits on the ticket
+    /// for `request.timeout()` and reports `TimedOut` when the publication
+    /// outlasts that. The publication may still finish after the caller has
+    /// stopped waiting. Placements stay staged until a publication succeeds,
+    /// so a later flush publishes them again and nothing is lost.
     fn request_flush(
         &self,
         request: &WindowFlushRequest,
     ) -> Result<WindowPlacementFlushTicket, String> {
-        // A waiting flush must take its snapshot after the previous publication.
-        let _flush = self
-            .flush
-            .lock()
-            .map_err(|_| "window placement flush lock is poisoned".to_string())?;
-        let placements = self.staged_for(request)?;
-        if placements.is_empty() {
+        let targets: BTreeSet<WindowId> = request
+            .targets()
+            .iter()
+            .map(|target| target.window_id().clone())
+            .collect();
+        // Nothing staged for these targets means nothing to publish. A
+        // publication already in flight keeps its placements staged until it
+        // succeeds, so an empty answer here is not a missed write.
+        if self.shared.staged_for(&targets)?.is_empty() {
             return Ok(WindowPlacementFlushTicket::completed());
         }
 
-        let result = self
-            .store
-            .mutate(&self.domain, self.mutation_options, |value| {
-                for placement in &placements {
-                    (self.patch)(value, placement)?;
-                }
-                Ok(())
-            });
-        match result {
-            Ok(_) => {
-                self.clear_published(&placements)?;
-                Ok(WindowPlacementFlushTicket::completed())
-            }
-            Err(error) => Ok(WindowPlacementFlushTicket::failed(error.to_string())),
+        if self.shared.pending.fetch_add(1, Ordering::SeqCst) >= MAX_PENDING_PUBLICATIONS {
+            self.shared.pending.fetch_sub(1, Ordering::SeqCst);
+            return Err(format!(
+                "{MAX_PENDING_PUBLICATIONS} window placement publications are still in flight"
+            ));
         }
+        let (sender, receiver) = mpsc::channel();
+        let shared = Arc::clone(&self.shared);
+        let spawned = thread::Builder::new()
+            .name("longhorn-window-placement-flush".to_owned())
+            .spawn(move || {
+                let completion = {
+                    // Released before the acknowledgement is sent, and on unwind
+                    // too, so a panicking patch cannot leak a slot.
+                    let _slot = PublicationSlot(&shared.pending);
+                    match shared.publish(&targets) {
+                        Ok(()) => WindowPlacementFlushCompletion::Succeeded,
+                        Err(detail) => WindowPlacementFlushCompletion::Failed(detail),
+                    }
+                };
+                // The caller may already have stopped waiting. A late
+                // acknowledgement then has no reader, which is fine.
+                let _ = sender.send(completion);
+            });
+        if let Err(error) = spawned {
+            self.shared.pending.fetch_sub(1, Ordering::SeqCst);
+            return Err(format!("could not start window placement flush: {error}"));
+        }
+        Ok(WindowPlacementFlushTicket::new(receiver))
     }
 }

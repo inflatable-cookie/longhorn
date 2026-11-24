@@ -17,12 +17,17 @@ pub use translation::{GpuiWindowEvent, translate_gpui_window_event};
 
 use longhorn_core::{ScaleFactor, WindowId};
 use longhorn_windowing::{
-    CaptureGeneration, ScheduledWindowLifecycleWake, WindowFlushRequest, WindowFlushScope,
+    ApplyGeneration, ApplyRegistrationOutcome, CaptureGeneration, FlushReason, HostWindowHandle,
+    ScheduledWindowLifecycleWake, WindowFlushOutcome, WindowFlushRequest, WindowFlushScope,
     WindowFlushTarget, WindowLifecycleClock, WindowLifecycleCoordinator, WindowLifecycleDirective,
-    WindowLifecycleEvent, WindowLifecyclePolicy, WindowUserCloseHandler, flush_window_placements,
+    WindowLifecycleEvent, WindowLifecyclePolicy, WindowOperation, WindowUserCloseHandler,
+    flush_window_placements,
 };
 
-use crate::{GpuiWindowKey, GpuiWindowLifecycleError, scale_factor_from_gpui};
+use crate::{
+    GpuiApplyObserver, GpuiRetagError, GpuiWindowKey, GpuiWindowLifecycleError,
+    scale_factor_from_gpui,
+};
 
 /// Which counter one scheduling attempt raised, so a failure rolls back the
 /// right one.
@@ -431,5 +436,110 @@ where
             },
             Err(detail) => GpuiLifecycleAction::CaptureFailed { detail },
         }
+    }
+}
+
+/// Apply evidence and identity changes reach the lifecycle coordinator here,
+/// before each native call, so the events the call causes are attributed to
+/// the apply. Without this the coordinator has no way to know a resize or a
+/// maximize came from Longhorn, and captures it as a user placement.
+impl<C, S, B, U> GpuiApplyObserver for GpuiWindowLifecycleHost<C, S, B, U>
+where
+    C: WindowLifecycleClock,
+    S: GpuiLifecycleScheduler,
+    B: GpuiWindowCaptureBackend,
+    U: WindowUserCloseHandler,
+{
+    fn register_apply(
+        &mut self,
+        generation: ApplyGeneration,
+        operation: &WindowOperation,
+    ) -> Result<(), String> {
+        let at = self.services.clock.now();
+        match self
+            .coordinator
+            .register_apply(at, generation, operation)
+            .map_err(|error| error.to_string())?
+        {
+            ApplyRegistrationOutcome::Registered | ApplyRegistrationOutcome::Extended => Ok(()),
+            ApplyRegistrationOutcome::StaleGeneration { current } => Err(format!(
+                "apply generation {} is older than {}",
+                generation.get(),
+                current.get()
+            )),
+            ApplyRegistrationOutcome::StaleTimestamp { latest } => Err(format!(
+                "apply evidence timestamp precedes {}",
+                latest.get()
+            )),
+        }
+    }
+
+    fn retag(
+        &mut self,
+        transport_handle: &HostWindowHandle,
+        window_id: &WindowId,
+    ) -> Result<(), GpuiRetagError> {
+        let Some(previous) = self
+            .windows
+            .iter()
+            .find(|(_, installed)| installed.key.transport_handle() == *transport_handle)
+            .map(|(previous, _)| previous.clone())
+        else {
+            // A managed window this host never installed has no lifecycle
+            // state to move.
+            return Ok(());
+        };
+        if &previous == window_id {
+            return Ok(());
+        }
+        if self.windows.contains_key(window_id) {
+            return Err(GpuiRetagError::Refused(format!(
+                "window {window_id} is already installed"
+            )));
+        }
+        // Publish what the old identity staged before it becomes unreachable.
+        // Nothing names the old identity afterwards, so a placement left
+        // staged under it would never be written.
+        let request = WindowFlushRequest::new(
+            vec![WindowFlushTarget::new(previous.clone(), None)],
+            self.policy.flush_timeout(),
+            WindowFlushScope::Window {
+                reason: FlushReason::Explicit,
+            },
+        );
+        let outcome = flush_window_placements(&*self.services.sink, &request);
+        if outcome != WindowFlushOutcome::Succeeded {
+            return Err(GpuiRetagError::Refused(format!(
+                "window {previous} could not publish before retag: {outcome:?}"
+            )));
+        }
+
+        // The coordinator moves its state, including apply evidence and capture
+        // lineage, to the new identity, and returns the deadlines that were
+        // pending under the old one. Wakes already queued under the old
+        // identity will fail as unknown and count as superseded.
+        let directives = self
+            .coordinator
+            .retag(&previous, window_id)
+            .map_err(|error| GpuiRetagError::Refused(error.to_string()))?;
+        if let Some(installed) = self.windows.remove(&previous) {
+            self.windows.insert(window_id.clone(), installed);
+        }
+        // Re-issued deadlines rebuild this window's counters under the new
+        // identity, so the old counters are dropped rather than carried.
+        self.outstanding.remove(&previous);
+        let mut actions = Vec::with_capacity(directives.len());
+        // The move above is committed from here on. A failure now is a
+        // rescheduling failure, and the caller must still commit the registry.
+        self.execute_directives(directives, &mut actions, &mut None)
+            .map_err(|error| GpuiRetagError::Rescheduling(error.to_string()))?;
+        for action in actions {
+            if let GpuiLifecycleAction::ScheduleFailed { detail } = action {
+                return Err(GpuiRetagError::Rescheduling(format!(
+                    "window {window_id} was retagged, but a pending deadline could not be rescheduled: {detail}"
+                )));
+            }
+        }
+        Ok(())
     }
 }

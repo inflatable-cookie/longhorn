@@ -22,11 +22,15 @@
 use gpui::App;
 use longhorn_core::{ScreenPoint, ScreenSize, WindowId, WindowPlacement};
 use longhorn_gpui_windowing::{
-    GpuiApplyOutcome, GpuiWindowBackend, GpuiWindowCreateRequest, GpuiWindowKey,
-    GpuiWindowRegistry, execute_gpui_window_apply, gpui_host_capabilities,
+    GpuiApplyObserver, GpuiApplyOutcome, GpuiRetagError, GpuiWindowBackend,
+    GpuiWindowCreateRequest, GpuiWindowKey, GpuiWindowRegistry, execute_gpui_window_apply,
+    gpui_host_capabilities,
 };
 use longhorn_gpui_windowing_prototype::GpuiAppBackend;
-use longhorn_windowing::{ApplyGeneration, DesiredWindow, WindowDiffInput, WindowOperationKind};
+use longhorn_windowing::{
+    ApplyGeneration, DesiredWindow, HostWindowHandle, WindowDiffInput, WindowOperation,
+    WindowOperationKind,
+};
 
 mod facts {
     use longhorn_core::{ScaleFactor, ScreenRect};
@@ -44,6 +48,28 @@ mod facts {
         fn work_area(&mut self, _facts: &GpuiDisplayFacts) -> Option<ScreenRect> {
             None
         }
+    }
+}
+
+/// These harnesses run no lifecycle host, so apply evidence has no consumer
+/// and is accepted without being recorded.
+struct NoLifecycleHost;
+
+impl GpuiApplyObserver for NoLifecycleHost {
+    fn register_apply(
+        &mut self,
+        _generation: ApplyGeneration,
+        _operation: &WindowOperation,
+    ) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn retag(
+        &mut self,
+        _transport_handle: &HostWindowHandle,
+        _window_id: &WindowId,
+    ) -> Result<(), GpuiRetagError> {
+        Ok(())
     }
 }
 
@@ -125,6 +151,7 @@ fn drive(cx: &mut App) -> String {
         GpuiWindowRegistry::default(),
         &mut backend,
         &mut facts::Bare,
+        &mut NoLifecycleHost,
     ) {
         Ok(bundle) => bundle,
         Err(error) => return format!("{{\"ok\":false,\"stage\":\"apply\",\"error\":\"{error}\"}}"),

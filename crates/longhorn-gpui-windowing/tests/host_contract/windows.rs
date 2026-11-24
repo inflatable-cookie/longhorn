@@ -8,8 +8,8 @@ use longhorn_gpui_windowing::{
 use longhorn_windowing::WindowOperationKind;
 
 use super::support::{
-    BareDisplayFacts, Call, FakeGpuiHost, SuppliedDisplayFacts, desired, handle_of, id, placement,
-    plan,
+    BareDisplayFacts, Call, FakeGpuiHost, RecordingApplyObserver, SuppliedDisplayFacts, desired,
+    handle_of, id, placement, plan,
 };
 
 #[test]
@@ -21,13 +21,21 @@ fn a_window_is_created_placed_from_a_shared_plan_and_observed() {
         1,
     );
 
+    let mut observer = RecordingApplyObserver::default();
     let bundle = execute_gpui_window_apply(
         plan,
         GpuiWindowRegistry::default(),
         &mut host,
         &mut displays,
+        &mut observer,
     )
     .unwrap();
+    // Each native call is registered first, so the events its window opening
+    // produces are attributed to this apply.
+    assert_eq!(
+        observer.registered,
+        vec![WindowOperationKind::Create, WindowOperationKind::Resize]
+    );
 
     let created = bundle
         .receipt()
@@ -112,7 +120,14 @@ fn a_stale_window_is_destroyed_when_it_leaves_desired_state() {
     );
 
     let plan = plan([], 1).with_live_windows([live]);
-    let bundle = execute_gpui_window_apply(plan, registry, &mut host, &mut displays).unwrap();
+    let bundle = execute_gpui_window_apply(
+        plan,
+        registry,
+        &mut host,
+        &mut displays,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
 
     assert_eq!(host.calls, vec![Call::Close(key)]);
     assert!(!host.is_open(key));
@@ -130,6 +145,7 @@ fn a_host_that_cannot_create_says_so_rather_than_failing_the_apply() {
         GpuiWindowRegistry::default(),
         &mut host,
         &mut displays,
+        &mut RecordingApplyObserver::default(),
     )
     .unwrap();
 
@@ -182,8 +198,14 @@ fn failed_retag_blocks_creation_of_its_source_id() {
         window_id: id("target"),
     });
 
-    let bundle =
-        execute_gpui_window_apply(input, registry, &mut host, &mut BareDisplayFacts).unwrap();
+    let bundle = execute_gpui_window_apply(
+        input,
+        registry,
+        &mut host,
+        &mut BareDisplayFacts,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
     assert!(matches!(
         bundle.receipt().attempts()[0].outcome(),
         GpuiApplyOutcome::Failed { failure, .. } if failure.call() == GpuiWindowCall::RegistryRetag
@@ -216,8 +238,14 @@ fn a_new_native_window_is_discarded_when_its_key_collides_with_a_stale_registry_
         GpuiWindowRegistry::new([ManagedGpuiWindow::new(key, Some(id("stale")))], None).unwrap();
     let input = plan([desired("new", placement(0, 0, 800, 600), false, true)], 1);
 
-    let bundle =
-        execute_gpui_window_apply(input, registry, &mut host, &mut BareDisplayFacts).unwrap();
+    let bundle = execute_gpui_window_apply(
+        input,
+        registry,
+        &mut host,
+        &mut BareDisplayFacts,
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
 
     assert!(!host.is_open(key));
     assert_eq!(host.calls, vec![Call::Create(id("new")), Call::Close(key)]);

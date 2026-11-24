@@ -9,10 +9,10 @@ use std::sync::{
 
 use longhorn_core::WindowId;
 use longhorn_gpui_windowing::{
-    GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleScheduler, GpuiLogicalRect,
-    GpuiLogicalSize, GpuiWindowCaptureBackend, GpuiWindowEvent, GpuiWindowKey,
-    GpuiWindowLifecycleHost, GpuiWindowLifecycleServices, GpuiWindowQuiescenceProbe,
-    translate_gpui_window_event,
+    GpuiApplyObserver, GpuiCloseDecision, GpuiLifecycleAction, GpuiLifecycleScheduler,
+    GpuiLogicalRect, GpuiLogicalSize, GpuiRetagError, GpuiWindowCaptureBackend, GpuiWindowEvent,
+    GpuiWindowKey, GpuiWindowLifecycleHost, GpuiWindowLifecycleServices, GpuiWindowQuiescenceProbe,
+    GpuiWindowRegistry, ManagedGpuiWindow, execute_gpui_window_apply, translate_gpui_window_event,
 };
 use longhorn_update::{QuiescenceKind, QuiescenceProbe};
 use longhorn_windowing::{
@@ -21,7 +21,9 @@ use longhorn_windowing::{
     WindowLifecycleEvent, WindowLifecyclePolicy, WindowPlacementSink, WindowUserCloseHandler,
 };
 
-use super::support::{id, placement, scale};
+use super::support::{
+    Call, FakeGpuiHost, SuppliedDisplayFacts, desired, handle_of, id, placement, plan, scale,
+};
 
 struct FixedClock(AtomicU64);
 
@@ -34,10 +36,18 @@ impl WindowLifecycleClock for FixedClock {
 #[derive(Default)]
 struct RecordingScheduler {
     wakes: Vec<ScheduledWindowLifecycleWake>,
+    /// Refuse every deadline from this one on, counting the deadlines accepted.
+    refuse_after: Option<usize>,
 }
 
 impl GpuiLifecycleScheduler for RecordingScheduler {
     fn schedule(&mut self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
+        if self
+            .refuse_after
+            .is_some_and(|limit| self.wakes.len() >= limit)
+        {
+            return Err("scheduler refused the deadline".to_owned());
+        }
         self.wakes.push(wake);
         Ok(())
     }
@@ -105,6 +115,39 @@ fn host<U: WindowUserCloseHandler>(user_close: U) -> Host<U> {
             sink: Box::new(RecordingSink::default()),
         },
     )
+}
+
+fn host_with<U: WindowUserCloseHandler>(
+    user_close: U,
+    sink: Box<dyn WindowPlacementSink>,
+    scheduler: RecordingScheduler,
+) -> Host<U> {
+    GpuiWindowLifecycleHost::new(
+        WindowLifecyclePolicy::recommended(),
+        GpuiWindowLifecycleServices {
+            clock: FixedClock(AtomicU64::new(1_000)),
+            scheduler,
+            capture: FixedCapture,
+            user_close,
+            sink,
+        },
+    )
+}
+
+/// Refuses every flush, as a store that cannot be written would.
+struct RefusingSink;
+
+impl WindowPlacementSink for RefusingSink {
+    fn stage(&self, _placement: &CapturedWindowPlacement) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn request_flush(
+        &self,
+        _request: &longhorn_windowing::WindowFlushRequest,
+    ) -> Result<longhorn_windowing::WindowPlacementFlushTicket, String> {
+        Err("store is read-only".to_owned())
+    }
 }
 
 #[test]
@@ -335,4 +378,235 @@ fn a_maximized_capture_keeps_the_restore_extent() {
 
     assert!(capture.is_maximized());
     assert_eq!(capture.normal_placement().inner_size().height(), 592);
+}
+
+fn live_window(key: GpuiWindowKey, width: u32, height: u32) -> longhorn_windowing::LiveWindow {
+    longhorn_windowing::LiveWindow::new(
+        Some(id("main")),
+        handle_of(key),
+        longhorn_core::LiveWindowMetrics::new(
+            longhorn_core::ScreenRect::new(
+                longhorn_core::ScreenPoint::new(0, 0),
+                longhorn_core::ScreenSize::new(width, height),
+            ),
+            longhorn_core::ScreenSize::new(width, height),
+        ),
+        false,
+        true,
+        false,
+    )
+}
+
+fn scheduled_capture(receipts: &[longhorn_gpui_windowing::GpuiLifecycleReceipt]) -> bool {
+    receipts.iter().any(|receipt| {
+        receipt
+            .actions()
+            .iter()
+            .any(|action| matches!(action, GpuiLifecycleAction::Scheduled { .. }))
+    })
+}
+
+#[test]
+fn a_resize_the_apply_made_is_not_captured_as_a_user_placement() {
+    // Contract 009: programmatic apply events do not produce durable
+    // user-placement proposals. GPUI reports the resize Longhorn asked for
+    // through the same callback a user drag uses, so the lifecycle host must
+    // hold the apply evidence before that callback arrives.
+    let (mut backend, key) = FakeGpuiHost::new().with_existing_window(
+        GpuiLogicalRect::new(0.0, 0.0, 800.0, 600.0),
+        GpuiLogicalSize::new(800.0, 600.0),
+        false,
+    );
+    let mut displays = SuppliedDisplayFacts::new();
+    let registry =
+        GpuiWindowRegistry::new([ManagedGpuiWindow::new(key, Some(id("main")))], None).unwrap();
+    let input = plan(
+        [desired("main", placement(0, 0, 1024, 768), false, true)],
+        1,
+    )
+    .with_live_windows([live_window(key, 800, 600)]);
+    let mut lifecycle = host(NoopWindowUserCloseHandler);
+    lifecycle.install(id("main"), key);
+
+    execute_gpui_window_apply(input, registry, &mut backend, &mut displays, &mut lifecycle)
+        .unwrap();
+    assert!(backend.calls.contains(&Call::Resize(key)));
+
+    // The callback for the size the apply set is attributed to the apply.
+    let own = lifecycle
+        .handle_gpui_event(
+            &id("main"),
+            GpuiWindowEvent::Resized {
+                content_size: GpuiLogicalSize::new(1024.0, 768.0),
+                scale: 2.0,
+            },
+        )
+        .unwrap();
+    assert!(!scheduled_capture(&own));
+    assert!(own.iter().any(|receipt| {
+        receipt
+            .actions()
+            .iter()
+            .any(|action| matches!(action, GpuiLifecycleAction::Ignored { .. }))
+    }));
+
+    // A resize to any other size is still a user placement and is captured.
+    let user = lifecycle
+        .handle_gpui_event(
+            &id("main"),
+            GpuiWindowEvent::Resized {
+                content_size: GpuiLogicalSize::new(900.0, 700.0),
+                scale: 2.0,
+            },
+        )
+        .unwrap();
+    assert!(scheduled_capture(&user));
+}
+
+#[test]
+fn a_retag_moves_the_installed_window_to_its_new_identity() {
+    let mut lifecycle = host(NoopWindowUserCloseHandler);
+    let key = GpuiWindowKey::new(7);
+    lifecycle.install(id("old"), key);
+
+    GpuiApplyObserver::retag(&mut lifecycle, &handle_of(key), &id("new")).unwrap();
+
+    assert!(lifecycle.is_installed(&id("new")));
+    assert!(!lifecycle.is_installed(&id("old")));
+}
+
+#[test]
+fn a_retag_carries_pending_work_to_the_new_identity() {
+    // A pending capture is keyed by the old identity. The retag re-issues its
+    // deadline under the new one, so the work completes against the window
+    // that now exists rather than being stranded.
+    let mut lifecycle = host(NoopWindowUserCloseHandler);
+    let key = GpuiWindowKey::new(7);
+    lifecycle.install(id("old"), key);
+    lifecycle
+        .handle_lifecycle_event(WindowLifecycleEvent::Moved {
+            window_id: id("old"),
+            outer_origin: longhorn_core::ScreenPoint::new(10, 10),
+        })
+        .unwrap();
+    assert_eq!(lifecycle.outstanding_for(&id("old")), 1);
+
+    GpuiApplyObserver::retag(&mut lifecycle, &handle_of(key), &id("new")).unwrap();
+
+    assert!(lifecycle.is_installed(&id("new")));
+    assert!(!lifecycle.is_installed(&id("old")));
+    assert_eq!(lifecycle.outstanding_for(&id("old")), 0);
+    assert_eq!(lifecycle.outstanding_for(&id("new")), 1);
+}
+
+#[test]
+fn apply_evidence_for_the_old_identity_still_attributes_the_new_identitys_events() {
+    // An apply registers its resize under the old identity, then the window is
+    // retagged, then the native callback arrives under the new one. The
+    // expectation must follow the window, or the apply's own resize is captured
+    // as a user placement.
+    let mut lifecycle = host(NoopWindowUserCloseHandler);
+    let key = GpuiWindowKey::new(7);
+    lifecycle.install(id("old"), key);
+    GpuiApplyObserver::register_apply(
+        &mut lifecycle,
+        longhorn_windowing::ApplyGeneration::new(1),
+        &longhorn_windowing::WindowOperation::Resize {
+            window_id: id("old"),
+            transport_handle: Some(handle_of(key)),
+            inner_size: longhorn_core::ScreenSize::new(1024, 768),
+        },
+    )
+    .unwrap();
+    GpuiApplyObserver::retag(&mut lifecycle, &handle_of(key), &id("new")).unwrap();
+
+    let receipts = lifecycle
+        .handle_gpui_event(
+            &id("new"),
+            GpuiWindowEvent::Resized {
+                content_size: GpuiLogicalSize::new(1024.0, 768.0),
+                scale: 2.0,
+            },
+        )
+        .unwrap();
+
+    assert!(!scheduled_capture(&receipts), "{receipts:?}");
+    assert!(receipts.iter().any(|receipt| {
+        receipt
+            .actions()
+            .iter()
+            .any(|action| matches!(action, GpuiLifecycleAction::Ignored { .. }))
+    }));
+}
+
+#[test]
+fn a_retag_is_refused_when_the_old_identity_cannot_publish() {
+    // Nothing names the old identity after a retag, so a placement it could not
+    // publish would be stranded. The retag is refused and the window stays
+    // where it was.
+    let mut lifecycle = host_with(
+        NoopWindowUserCloseHandler,
+        Box::new(RefusingSink),
+        RecordingScheduler::default(),
+    );
+    let key = GpuiWindowKey::new(7);
+    lifecycle.install(id("old"), key);
+
+    let refused = GpuiApplyObserver::retag(&mut lifecycle, &handle_of(key), &id("new"));
+
+    assert!(refused.is_err(), "{refused:?}");
+    assert!(lifecycle.is_installed(&id("old")));
+    assert!(!lifecycle.is_installed(&id("new")));
+}
+
+#[test]
+fn a_retag_that_cannot_reschedule_its_deadlines_still_reports_the_move() {
+    // The move is committed before the deadlines are re-issued, so a refused
+    // deadline is reported as a rescheduling failure. The caller then commits
+    // the registry, which must match the lifecycle host.
+    let scheduler = RecordingScheduler {
+        refuse_after: Some(1),
+        ..RecordingScheduler::default()
+    };
+    let mut lifecycle = host_with(
+        NoopWindowUserCloseHandler,
+        Box::new(RecordingSink::default()),
+        scheduler,
+    );
+    let key = GpuiWindowKey::new(7);
+    lifecycle.install(id("old"), key);
+    lifecycle
+        .handle_lifecycle_event(WindowLifecycleEvent::Moved {
+            window_id: id("old"),
+            outer_origin: longhorn_core::ScreenPoint::new(10, 10),
+        })
+        .unwrap();
+
+    let result = GpuiApplyObserver::retag(&mut lifecycle, &handle_of(key), &id("new"));
+
+    assert!(
+        matches!(result, Err(GpuiRetagError::Rescheduling(_))),
+        "{result:?}"
+    );
+    assert!(lifecycle.is_installed(&id("new")));
+    assert!(!lifecycle.is_installed(&id("old")));
+}
+
+#[test]
+fn a_fullscreen_window_is_refused_rather_than_persisted_as_windowed() {
+    // The model surfaces fullscreen so a caller can refuse to persist it. The
+    // capture must not turn fullscreen geometry into a windowed placement.
+    let facts = longhorn_gpui_windowing::GpuiWindowFacts::new(
+        GpuiLogicalRect::new(0.0, 0.0, 1920.0, 1080.0),
+        GpuiLogicalSize::new(1920.0, 1080.0),
+        longhorn_gpui_windowing::GpuiWindowBoundsState::Fullscreen(GpuiLogicalRect::new(
+            120.0, 120.0, 560.0, 592.0,
+        )),
+        2.0,
+        false,
+    );
+
+    let refused = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts);
+
+    assert!(refused.is_err(), "{refused:?}");
 }
