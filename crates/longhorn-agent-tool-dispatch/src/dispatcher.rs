@@ -49,6 +49,7 @@ struct DispatcherState {
     results: usize,
     cancellations: usize,
     rejections: usize,
+    call_budget_refusal_recorded: bool,
 }
 
 impl DispatcherState {
@@ -61,6 +62,7 @@ impl DispatcherState {
             results: 0,
             cancellations: 0,
             rejections: 0,
+            call_budget_refusal_recorded: false,
         }
     }
 
@@ -74,6 +76,14 @@ impl DispatcherState {
     fn reject(&mut self, error: DispatchError) {
         self.rejections = self.rejections.saturating_add(1);
         self.record(DispatchEventKind::Rejected(error.kind()));
+    }
+
+    fn reject_exhausted_call_budget(&mut self, error: DispatchError) {
+        self.rejections = self.rejections.saturating_add(1);
+        if !self.call_budget_refusal_recorded {
+            self.record(DispatchEventKind::Rejected(error.kind()));
+            self.call_budget_refusal_recorded = true;
+        }
     }
 
     /// Records the first terminal failure for `call_id` without releasing
@@ -514,9 +524,13 @@ where
                     state.reject(error);
                     return Err(error);
                 }
-                if state.callbacks >= self.expected_registration.bounds().max_calls_per_binding()
-                    || state.in_flight.len()
-                        >= invocation.registration().bounds().max_outstanding_calls()
+                if state.callbacks >= self.expected_registration.bounds().max_calls_per_binding() {
+                    let error = DispatchError::new(DispatchErrorKind::LimitExceeded);
+                    state.reject_exhausted_call_budget(error);
+                    return Err(error);
+                }
+                if state.in_flight.len()
+                    >= invocation.registration().bounds().max_outstanding_calls()
                 {
                     let error = DispatchError::new(DispatchErrorKind::LimitExceeded);
                     state.reject(error);
@@ -635,7 +649,7 @@ where
         Ok(remaining)
     }
 
-    /// Returns ordered payload-free evidence.
+    /// Returns ordered payload-free evidence, sampling repeated call-budget refusals.
     #[must_use]
     pub fn events(&self) -> Vec<DispatchEvent> {
         locked(&self.state).events.clone()

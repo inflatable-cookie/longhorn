@@ -388,17 +388,30 @@ fn total_calls_are_bounded_by_the_producer_for_one_binding() {
         ))
         .expect("producer-admitted call settles");
     }
-    let error = block_on(dispatcher.dispatch(
-        invocation(
-            "bounded-3",
-            registration.clone(),
-            expected_binding(),
-            BindingStatus::Current,
-        ),
-        cancellation.clone(),
-    ))
-    .expect_err("producer lifetime bound must be enforced");
-    assert_eq!(error.kind(), DispatchErrorKind::LimitExceeded);
+    for call_number in 3..35 {
+        let error = block_on(dispatcher.dispatch(
+            invocation(
+                &format!("bounded-{call_number}"),
+                registration.clone(),
+                expected_binding(),
+                BindingStatus::Current,
+            ),
+            cancellation.clone(),
+        ))
+        .expect_err("producer lifetime bound must be enforced");
+        assert_eq!(error.kind(), DispatchErrorKind::LimitExceeded);
+    }
+    assert_eq!(dispatcher.metrics().rejections, 32);
+    assert_eq!(
+        dispatcher
+            .events()
+            .iter()
+            .filter(|event| event.kind()
+                == DispatchEventKind::Rejected(DispatchErrorKind::LimitExceeded))
+            .count(),
+        1,
+        "repeated call-budget refusals should be sampled"
+    );
     let duplicate = block_on(dispatcher.dispatch(
         invocation(
             "bounded-1",
@@ -411,6 +424,7 @@ fn total_calls_are_bounded_by_the_producer_for_one_binding() {
     .expect_err("retained identity must still prevent replay");
     assert_eq!(duplicate.kind(), DispatchErrorKind::DuplicateCall);
     assert_eq!(calls.load(Ordering::SeqCst), 2);
+    assert_eq!(dispatcher.metrics().rejections, 33);
 }
 
 #[test]
