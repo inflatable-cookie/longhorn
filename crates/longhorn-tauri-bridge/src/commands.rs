@@ -9,7 +9,10 @@ use longhorn_core::{BridgeSessionId, DomainId};
 use serde_json::Value;
 use tauri::{Manager, RunEvent, Runtime, State, WebviewWindow, WindowEvent, plugin::TauriPlugin};
 
-use crate::{BridgeAuthorityProvider, BridgeHandlerAssembly, BridgeHostError};
+use crate::{
+    BridgeAuthorityProvider, BridgeHandlerAssembly, BridgeHostError,
+    handler::{HelloTicket, caller_torn_down},
+};
 
 /// Type-erased bridge commands installed once in Tauri managed state.
 pub struct TauriBridgeState {
@@ -60,6 +63,51 @@ pub fn bridge_plugin<R: Runtime>(
         .build()
 }
 
+struct OwnedHelloGuard {
+    assembly: Arc<BridgeHandlerAssembly<dyn BridgeAuthorityProvider>>,
+    ticket: Option<HelloTicket>,
+}
+
+impl OwnedHelloGuard {
+    fn begin(
+        assembly: Arc<BridgeHandlerAssembly<dyn BridgeAuthorityProvider>>,
+        caller: &str,
+    ) -> Result<Self, BridgeHostError> {
+        let ticket = assembly.begin_hello(caller)?;
+        Ok(Self {
+            assembly,
+            ticket: Some(ticket),
+        })
+    }
+
+    fn take(&mut self) -> Result<HelloTicket, BridgeHostError> {
+        self.ticket
+            .take()
+            .ok_or_else(BridgeHostError::state_unavailable)
+    }
+}
+
+impl Drop for OwnedHelloGuard {
+    fn drop(&mut self) {
+        if let Some(ticket) = self.ticket.take() {
+            self.assembly.abandon_hello(ticket);
+        }
+    }
+}
+
+async fn run_blocking_with<T: Send + 'static>(
+    assembly: Arc<BridgeHandlerAssembly<dyn BridgeAuthorityProvider>>,
+    action: impl FnOnce(
+        &BridgeHandlerAssembly<dyn BridgeAuthorityProvider>,
+    ) -> Result<T, BridgeHostError>
+    + Send
+    + 'static,
+) -> Result<T, BridgeHostError> {
+    tauri::async_runtime::spawn_blocking(move || action(&assembly))
+        .await
+        .map_err(|_| BridgeHostError::state_unavailable())?
+}
+
 async fn run_blocking<R: Runtime, T: Send + 'static>(
     state: State<'_, TauriBridgeState>,
     window: &WebviewWindow<R>,
@@ -72,9 +120,7 @@ async fn run_blocking<R: Runtime, T: Send + 'static>(
 ) -> Result<T, BridgeHostError> {
     let assembly = Arc::clone(&state.assembly);
     let label = window.label().to_owned();
-    tauri::async_runtime::spawn_blocking(move || action(&assembly, &label))
-        .await
-        .map_err(|_| BridgeHostError::state_unavailable())?
+    run_blocking_with(assembly, move |assembly| action(assembly, &label)).await
 }
 
 /// Negotiates one bridge session for the invoking window.
@@ -84,8 +130,15 @@ pub async fn longhorn_bridge_hello<R: Runtime>(
     state: State<'_, TauriBridgeState>,
     request: BridgeHelloRequest,
 ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
-    run_blocking(state, &window, move |assembly, label| {
-        assembly.hello(label, request)
+    let label = window.label().to_owned();
+    let assembly = Arc::clone(&state.assembly);
+    let mut guard = OwnedHelloGuard::begin(Arc::clone(&assembly), &label)?;
+    if window.app_handle().get_webview_window(&label).is_none() {
+        return Err(caller_torn_down(&label));
+    }
+    run_blocking_with(assembly, move |assembly| {
+        let ticket = guard.take()?;
+        assembly.hello_with_ticket(&label, request, ticket)
     })
     .await
 }
