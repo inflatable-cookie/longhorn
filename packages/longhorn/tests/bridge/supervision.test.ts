@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
 
+import { BRIDGE_SERVICE_FAILURE_CODES } from "@inflatable-cookie/longhorn/bridge";
+import type { BridgeServiceOwnership } from "@inflatable-cookie/longhorn/bridge";
 import {
   BridgeServiceRuntime,
   BridgeSupervisionError,
@@ -19,6 +21,21 @@ class Port implements BridgeServiceSupervisorPort {
     return this.#outcomes.shift();
   }
 }
+
+test("rejects unknown ownership before any service transition", () => {
+  const ownership = "unknown" as string as BridgeServiceOwnership;
+  expect(() => new BridgeServiceRuntime(ownership)).toThrow(
+    new BridgeSupervisionError("invalid_ownership"),
+  );
+});
+
+test.each([...BRIDGE_SERVICE_FAILURE_CODES])("accepts the generated failure code %s", (code) => {
+  const runtime = new BridgeServiceRuntime("ownedLocal");
+  expect(() => runtime.observe("spawn", { failed: "unrecognizedFailure" })).toThrow(
+    new BridgeSupervisionError("invalid_observation"),
+  );
+  expect(runtime.observe("spawn", { failed: code }).outcome).toEqual({ failed: code });
+});
 
 test("owned local service spawn readiness restart and shutdown are receipted", async () => {
   const runtime = new BridgeServiceRuntime("ownedLocal");

@@ -102,6 +102,8 @@ last checked against the listed evidence.
 | `CredentialSlotError::NameTooLong` | longhorn-core | separate segment and total bounds, each with its own fixture | contract 021 § Contract | 2026-11-22 |
 | `./<domain>/protocol` subpath exports, `./package.json` | `@inflatable-cookie/longhorn` | wire-contract-only surface: generated types and compatibility guards alone, plus the package manifest every resolution reads | contract 012 § Boundary; `../knowledge/architecture/package-topology.md` | 2026-11-22 |
 | `./agent-control` export | `@inflatable-cookie/longhorn` | soundcheck composes the agent-control client entrypoint | contract 022 § Protocol; `../knowledge/architecture/repo-authority-map.md` | 2026-11-22 |
+| `NotificationController` | `@inflatable-cookie/longhorn` | keeps the renderer's observation and command surface while owning its subscription and pending state | contract 016 § Snapshot And Events | 2026-11-24 |
+| `DomainId::MAX_BYTES`, `DomainId::SEPARATOR`, `DomainId::SEGMENT_INITIAL`, `DomainId::SEGMENT_ADDITIONAL` | longhorn-core | Rust validation and TypeScript bindings share the declared grammar and byte bound | contract 010 § Boundary Validation Target | 2026-11-24 |
 | `evidence/` | `examples/agent-control-proof` | required evidence for the agent-control contract | contract 022 § Required Evidence | 2026-11-22 |
 
 Decision still deferred for the four `longhorn-config` migration and archive

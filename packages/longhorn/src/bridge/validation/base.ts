@@ -1,5 +1,5 @@
 import { isRecord } from "../../core/record.ts";
-import { BRIDGE_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/protocol.ts";
+import { BRIDGE_DOMAIN_ID_RULE, BRIDGE_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/protocol.ts";
 export type BridgeProtocolValidationCode =
   | "unsupported_protocol_version"
   | "invalid_object"
@@ -104,10 +104,21 @@ export function opaqueId(value: unknown): string {
 }
 
 export function domainId(value: unknown): string {
+  const { maximumBytes, separator, segmentInitial, segmentAdditional } = BRIDGE_DOMAIN_ID_RULE;
   if (
     typeof value !== "string" ||
-    new TextEncoder().encode(value).length > BRIDGE_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)*$/.test(value)
+    new TextEncoder().encode(value).length > maximumBytes ||
+    !value.split(separator).every((segment) => {
+      const [first, ...rest] = segment;
+      return (
+        first !== undefined &&
+        segmentInitial.includes(first) &&
+        rest.every(
+          (character) =>
+            segmentInitial.includes(character) || segmentAdditional.includes(character),
+        )
+      );
+    })
   ) {
     incompatible("invalid_domain_id", value);
   }

@@ -1,14 +1,13 @@
 import type {
   BridgeCredentialRef,
   BridgeServiceAction,
-  BridgeServiceFailureCode,
   BridgeServiceOutcome,
   BridgeServiceOwnership,
   BridgeServiceRequest,
   BridgeServiceState,
   BridgeServiceTransitionReceipt,
 } from "./generated/protocol.ts";
-import { BRIDGE_SERVICE_OWNERSHIPS } from "./generated/protocol.ts";
+import { BRIDGE_SERVICE_FAILURE_CODES, BRIDGE_SERVICE_OWNERSHIPS } from "./generated/protocol.ts";
 import { opaqueId } from "./validation/base.ts";
 
 export interface BridgeServiceSupervisorPort {
@@ -39,6 +38,7 @@ export interface BridgeServiceAdmission {
 export class BridgeSupervisionError extends Error {
   readonly code:
     | "lifecycle_not_owned"
+    | "invalid_ownership"
     | "invalid_transition"
     | "invalid_observation"
     | "stale_observation"
@@ -59,7 +59,7 @@ export class BridgeServiceRuntime {
 
   constructor(ownership: BridgeServiceOwnership) {
     if (!BRIDGE_SERVICE_OWNERSHIPS.includes(ownership)) {
-      throw new BridgeSupervisionError("invalid_transition");
+      throw new BridgeSupervisionError("invalid_ownership");
     }
     this.#ownership = ownership;
   }
@@ -235,25 +235,12 @@ function parseOutcome(value: unknown): BridgeServiceOutcome {
     value !== null &&
     !Array.isArray(value) &&
     Object.keys(value).length === 1 &&
-    "failed" in value &&
-    isFailureCode(value.failed)
+    "failed" in value
   ) {
-    return { failed: value.failed };
+    const failed = BRIDGE_SERVICE_FAILURE_CODES.find((code) => code === value.failed);
+    if (failed !== undefined) {
+      return { failed };
+    }
   }
   throw new BridgeSupervisionError("invalid_observation");
-}
-
-function isFailureCode(value: unknown): value is BridgeServiceFailureCode {
-  return (
-    typeof value === "string" &&
-    [
-      "spawnFailed",
-      "attachFailed",
-      "readinessFailed",
-      "serviceExited",
-      "restartFailed",
-      "reconnectFailed",
-      "shutdownFailed",
-    ].includes(value)
-  );
 }

@@ -3,7 +3,6 @@ import { BRIDGE_FIELDS } from "../generated/fields.ts";
 import {
   BRIDGE_MAXIMUM_DEDUPLICATION_ENTRIES,
   BRIDGE_MAXIMUM_FAILURE_MESSAGE_BYTES,
-  BRIDGE_MAXIMUM_OPAQUE_ID_BYTES,
   BRIDGE_FAILURE_PHASES,
   BRIDGE_RETRY_CLASSES,
 } from "../generated/protocol.ts";
@@ -17,7 +16,7 @@ import type {
   BridgeQueryReply,
   BridgeRequestContext,
 } from "../generated/protocol.ts";
-import { incompatible, integer, nullable, oneOf, opaqueId, record } from "./base.ts";
+import { domainId, incompatible, integer, nullable, oneOf, opaqueId, record } from "./base.ts";
 import type { BridgeCodec } from "./base.ts";
 
 export function parseBridgeRequestContext(value: unknown): BridgeRequestContext {
@@ -25,7 +24,7 @@ export function parseBridgeRequestContext(value: unknown): BridgeRequestContext 
   return {
     requestId: opaqueId(source.requestId),
     sessionId: opaqueId(source.sessionId),
-    domainId: parseDomainId(source.domainId),
+    domainId: domainId(source.domainId),
   };
 }
 
@@ -175,15 +174,4 @@ function variant(
     incompatible(code, value);
   }
   return source;
-}
-
-function parseDomainId(value: unknown): string {
-  if (
-    typeof value !== "string" ||
-    new TextEncoder().encode(value).length > BRIDGE_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)*$/.test(value)
-  ) {
-    incompatible("invalid_domain_id", value);
-  }
-  return value;
 }

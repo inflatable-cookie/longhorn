@@ -184,6 +184,48 @@ async function ready(state: LicenceSnapshot): Promise<LicenceController> {
 }
 
 describe("licence controller", () => {
+  test("an asynchronous unlisten failure leaves the controller idle", async () => {
+    const failure = new Error("licence unlisten failed");
+    let disposed = 0;
+    const port = new (class extends Port {
+      override async listen() {
+        return async () => {
+          disposed += 1;
+          throw failure;
+        };
+      }
+    })();
+    const controller = new LicenceController({ port });
+    await controller.start();
+
+    await expect(controller.stop()).rejects.toBe(failure);
+    expect(controller.status).toEqual({ kind: "idle" });
+    await controller.stop();
+    expect(disposed).toBe(1);
+  });
+
+  test("a late licence refresh cannot restore a deactivated licence", async () => {
+    const initial = snapshot();
+    const deactivated = snapshot(null);
+    let resolveRefresh!: (state: LicenceSnapshot) => void;
+    const slow = new Promise<LicenceSnapshot>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const port = new Port(initial, () => committed(deactivated));
+    const controller = new LicenceController({ port });
+    await controller.start();
+    port.snapshot = () => slow;
+
+    const refresh = controller.refresh();
+    expect(await controller.deactivate()).toEqual(committed(deactivated));
+    resolveRefresh(initial);
+    await refresh;
+
+    expect(controller.snapshot).toEqual(deactivated);
+    expect(controller.activated).toBeFalse();
+    await controller.stop();
+  });
+
   test("start reads the snapshot and reports ready", async () => {
     const controller = await ready(snapshot());
 

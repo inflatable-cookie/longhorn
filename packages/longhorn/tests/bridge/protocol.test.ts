@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { ok } from "node:assert/strict";
 
 import {
   BRIDGE_PROTOCOL_VERSION,
@@ -17,6 +18,7 @@ import {
   parseBridgeProgressEvent,
   parseBridgeQueryEnvelope,
   parseBridgeQueryReply,
+  parseBridgeRequestContext,
   parseBridgeSnapshotEnvelope,
   record,
 } from "@inflatable-cookie/longhorn/bridge";
@@ -32,6 +34,24 @@ import {
 } from "./support.ts";
 
 describe("Rust bridge protocol fixture", () => {
+  test("request contexts and hello use Rust's domain ID grammar", () => {
+    const hello = { protocolVersion: BRIDGE_PROTOCOL_VERSION, bridgeId: "bridge:test" };
+    const context = { requestId: "request:test", sessionId: "session:test" };
+    for (const sample of values(fixture.domainIds)) {
+      const { valid, value } = record(sample, ["valid", "value"]);
+      ok(typeof valid === "boolean" && typeof value === "string");
+      const requestContext = { ...context, domainId: value };
+      const helloRequest = { ...hello, requestedDomains: [value] };
+      if (valid === true) {
+        expect(parseBridgeRequestContext(requestContext).domainId).toBe(value);
+        expect(parseBridgeHelloRequest(helloRequest).requestedDomains).toEqual([value]);
+      } else {
+        expect(() => parseBridgeRequestContext(requestContext)).toThrow("invalid_domain_id");
+        expect(() => parseBridgeHelloRequest(helloRequest)).toThrow("invalid_domain_id");
+      }
+    }
+  });
+
   test("validates every generated payload category", () => {
     assertBridgeProtocolVersion(fixture.protocolVersion);
     expect(fixture.protocolVersion).toBe(BRIDGE_PROTOCOL_VERSION);

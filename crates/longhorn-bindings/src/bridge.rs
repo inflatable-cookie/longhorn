@@ -212,6 +212,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          // Rust serde types are the wire authority.\n\n\
          export const BRIDGE_PROTOCOL_VERSION = {BRIDGE_PROTOCOL_VERSION} as const;\n\
          export const BRIDGE_MAXIMUM_OPAQUE_ID_BYTES = {MAX_OPAQUE_ID_BYTES} as const;\n\
+         export const BRIDGE_DOMAIN_ID_RULE = {domain_id_rule} as const;\n\
          // Wire-visible bounds. The Rust constants are the authority; a\n\
          // hand-copied literal in a validator is drift waiting to happen.\n\
          export const BRIDGE_MAXIMUM_REQUESTED_DOMAINS = {MAXIMUM_REQUESTED_DOMAINS} as const;\n\
@@ -272,7 +273,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         enum_names_json::<BridgeProgressDecision>()?,
         enum_names_json::<BridgeJobTerminalDecision>()?,
         declarations.join("\n\n"),
-        render_admitted_reasons()?
+        render_admitted_reasons()?,
+        domain_id_rule = serde_json::json!({
+            "maximumBytes": DomainId::MAX_BYTES,
+            "separator": DomainId::SEPARATOR,
+            "segmentInitial": DomainId::SEGMENT_INITIAL,
+            "segmentAdditional": DomainId::SEGMENT_ADDITIONAL,
+        }),
     );
 
     build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)

@@ -1,3 +1,4 @@
+import { disposeAll } from "../core/listeners.ts";
 import { LicenceClient } from "./client.ts";
 import { LICENCE_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
@@ -63,6 +64,7 @@ export class LicenceController {
   #started = false;
   #lifecycle = 0;
   #commandSequence = 0;
+  #refreshRevision = 0;
   #pending = false;
   #unlisten: Array<LicenceUnlisten> = [];
 
@@ -182,7 +184,11 @@ export class LicenceController {
     const lifecycle = ++this.#lifecycle;
     this.#setStatus({ kind: "loading" });
     try {
-      const unlisten = await this.#client.listen(() => void this.refresh());
+      const unlisten = await this.#client.listen(() => {
+        if (lifecycle === this.#lifecycle) {
+          void this.refresh();
+        }
+      });
       if (!this.#started || lifecycle !== this.#lifecycle) {
         await unlisten();
         return;
@@ -198,26 +204,33 @@ export class LicenceController {
 
   async stop(): Promise<void> {
     this.#started = false;
-    this.#lifecycle += 1;
+    const lifecycle = ++this.#lifecycle;
+    this.#pending = false;
     const unlisten = this.#unlisten;
     this.#unlisten = [];
-    for (const stop of unlisten) {
-      await stop();
+    const results = await disposeAll(unlisten);
+    if (lifecycle === this.#lifecycle) {
+      this.#setStatus({ kind: "idle" });
     }
-    this.#setStatus({ kind: "idle" });
+    const failure = results.find((result) => result.status === "rejected");
+    if (failure !== undefined) {
+      throw failure.reason;
+    }
   }
 
   async refresh(): Promise<void> {
     const lifecycle = this.#lifecycle;
+    const revision = ++this.#refreshRevision;
+    const isCurrent = () => lifecycle === this.#lifecycle && revision === this.#refreshRevision;
     try {
       const snapshot = await this.#client.snapshot();
-      if (lifecycle !== this.#lifecycle) {
+      if (!isCurrent()) {
         return;
       }
       this.#snapshot = snapshot;
       this.#setStatus({ kind: "ready" });
     } catch (error) {
-      if (lifecycle === this.#lifecycle) {
+      if (isCurrent()) {
         this.#setStatus({ kind: "failed", error });
       }
     }
@@ -329,6 +342,7 @@ export class LicenceController {
           ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
           : { status: "committed", snapshot: outcome.snapshot };
       if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+        this.#refreshRevision += 1;
         this.#snapshot = outcome.snapshot;
         this.#lastRejection = result.status === "rejected" ? result.code : undefined;
         this.#setStatus({ kind: "ready" });
@@ -336,6 +350,7 @@ export class LicenceController {
       return result;
     } catch (error) {
       if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+        this.#refreshRevision += 1;
         this.#setStatus({ kind: "failed", error });
       }
       return { status: "failed", error };

@@ -2,8 +2,6 @@ use std::{error::Error, fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
-const MAX_DOMAIN_ID_BYTES: usize = 128;
-
 /// Stable, namespaced identifier for a registered Longhorn domain.
 ///
 /// Identifiers contain lowercase ASCII segments separated by dots. Each
@@ -15,6 +13,15 @@ const MAX_DOMAIN_ID_BYTES: usize = 128;
 pub struct DomainId(String);
 
 impl DomainId {
+    /// Maximum serialized byte length.
+    pub const MAX_BYTES: usize = 128;
+    /// Separator between identifier segments.
+    pub const SEPARATOR: char = '.';
+    /// The allowed first characters of a segment.
+    pub const SEGMENT_INITIAL: &'static str = "abcdefghijklmnopqrstuvwxyz";
+    /// Characters allowed within a segment in addition to the initial characters.
+    pub const SEGMENT_ADDITIONAL: &'static str = "0123456789_-";
+
     /// Validates and constructs a domain identifier.
     pub fn new(value: impl Into<String>) -> Result<Self, DomainIdError> {
         let value = value.into();
@@ -22,22 +29,21 @@ impl DomainId {
         if value.is_empty() {
             return Err(DomainIdError::Empty);
         }
-        if value.len() > MAX_DOMAIN_ID_BYTES {
+        if value.len() > Self::MAX_BYTES {
             return Err(DomainIdError::TooLong {
-                maximum: MAX_DOMAIN_ID_BYTES,
+                maximum: Self::MAX_BYTES,
                 actual: value.len(),
             });
         }
 
-        for (index, segment) in value.split('.').enumerate() {
+        for (index, segment) in value.split(Self::SEPARATOR).enumerate() {
             let mut characters = segment.chars();
             let valid_start = characters
                 .next()
-                .is_some_and(|character| character.is_ascii_lowercase());
+                .is_some_and(|character| Self::SEGMENT_INITIAL.contains(character));
             let valid_rest = characters.all(|character| {
-                character.is_ascii_lowercase()
-                    || character.is_ascii_digit()
-                    || matches!(character, '_' | '-')
+                Self::SEGMENT_INITIAL.contains(character)
+                    || Self::SEGMENT_ADDITIONAL.contains(character)
             });
 
             if !valid_start || !valid_rest {
@@ -141,10 +147,10 @@ mod tests {
     fn rejects_empty_or_invalid_segments() {
         assert_eq!(DomainId::new(""), Err(DomainIdError::Empty));
         assert_eq!(
-            DomainId::new(format!("a{}", "b".repeat(MAX_DOMAIN_ID_BYTES))),
+            DomainId::new(format!("a{}", "b".repeat(DomainId::MAX_BYTES))),
             Err(DomainIdError::TooLong {
-                maximum: MAX_DOMAIN_ID_BYTES,
-                actual: MAX_DOMAIN_ID_BYTES + 1,
+                maximum: DomainId::MAX_BYTES,
+                actual: DomainId::MAX_BYTES + 1,
             })
         );
         assert_eq!(

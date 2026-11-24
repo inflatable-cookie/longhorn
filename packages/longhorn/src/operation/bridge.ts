@@ -3,6 +3,7 @@ import {
   bridgeCodec,
   parseBridgeCommandEnvelope,
   parseBridgeCommandReply,
+  parseBridgeJobTerminalEvent,
   parseBridgeQueryEnvelope,
   parseBridgeQueryReply,
 } from "@inflatable-cookie/longhorn/bridge";
@@ -10,6 +11,7 @@ import type {
   BridgeCommandEnvelope,
   BridgeCommandReply,
   BridgeDomainClient,
+  BridgeFailure,
   BridgeJobId,
   BridgeJobTerminalEvent,
   BridgeOperationDescriptor,
@@ -51,6 +53,40 @@ export interface BridgeOperationPortOptions {
   readonly nextOperationRequestId: () => string;
 }
 
+export type BridgeOperationFailure =
+  | {
+      readonly kind: "rejected" | "indeterminate";
+      readonly requestId: BridgeRequestId;
+      readonly failure: BridgeFailure<null>;
+    }
+  | {
+      readonly kind: "miscorrelated";
+      readonly requestId: BridgeRequestId;
+      readonly receivedRequestId: BridgeRequestId;
+    }
+  | {
+      readonly kind: "failed";
+      readonly requestId: BridgeRequestId;
+      readonly jobId: BridgeJobId;
+      readonly failure: BridgeFailure<null>;
+    }
+  | {
+      readonly kind: "cancelled";
+      readonly requestId: BridgeRequestId;
+      readonly jobId: BridgeJobId;
+    };
+
+export class BridgeOperationError extends Error {
+  constructor(readonly outcome: BridgeOperationFailure) {
+    super(
+      "failure" in outcome
+        ? `operation bridge ${outcome.kind}: ${outcome.failure.message}`
+        : `operation bridge ${outcome.kind}`,
+    );
+    this.name = "BridgeOperationError";
+  }
+}
+
 export function createBridgeOperationPort(options: BridgeOperationPortOptions): OperationPort {
   return {
     snapshot: (query) => executeQuery(options, query),
@@ -64,10 +100,7 @@ async function executeQuery(options: BridgeOperationPortOptions, query: Operatio
   const context = nextContext(options);
   const descriptor = queryDescriptor(options.domainId);
   const reply = await options.client.execute(descriptor, { context, payload: query });
-  if (reply.requestId !== context.requestId || !("success" in reply.outcome)) {
-    throw new Error("operation bridge query was rejected or miscorrelated");
-  }
-  return reply.outcome.success;
+  return queryResult(context.requestId, reply);
 }
 
 async function executeCommand(
@@ -88,10 +121,20 @@ async function executeCommand(
     idempotencyKey: context.requestId,
     payload: command,
   });
-  if (reply.requestId !== context.requestId || !("applied" in reply.outcome)) {
-    throw new Error("operation bridge command was rejected, indeterminate, or miscorrelated");
+  const { requestId } = context;
+  checkCorrelation(requestId, reply.requestId);
+  const { outcome } = reply;
+  if ("rejected" in outcome) {
+    throw new BridgeOperationError({ kind: "rejected", requestId, failure: outcome.rejected });
   }
-  return reply.outcome.applied;
+  if ("indeterminate" in outcome) {
+    throw new BridgeOperationError({
+      kind: "indeterminate",
+      requestId,
+      failure: outcome.indeterminate,
+    });
+  }
+  return outcome.applied;
 }
 
 async function executeCancellation(
@@ -101,10 +144,25 @@ async function executeCancellation(
   const context = nextContext(options);
   const descriptor = cancellationDescriptor(options.domainId);
   const reply = await options.client.execute(descriptor, { context, payload: command });
-  if (reply.requestId !== context.requestId || !("success" in reply.outcome)) {
-    throw new Error("operation bridge cancellation was rejected or miscorrelated");
+  return queryResult(context.requestId, reply);
+}
+
+function queryResult<Result>(requestId: BridgeRequestId, reply: BridgeQueryReply<Result, null>) {
+  checkCorrelation(requestId, reply.requestId);
+  if ("rejected" in reply.outcome) {
+    throw new BridgeOperationError({
+      kind: "rejected",
+      requestId,
+      failure: reply.outcome.rejected,
+    });
   }
   return reply.outcome.success;
+}
+
+function checkCorrelation(requestId: BridgeRequestId, receivedRequestId: BridgeRequestId): void {
+  if (receivedRequestId !== requestId) {
+    throw new BridgeOperationError({ kind: "miscorrelated", requestId, receivedRequestId });
+  }
 }
 
 function nextContext(options: BridgeOperationPortOptions): BridgeRequestContext {
@@ -214,22 +272,24 @@ export class BridgeOperationJobCorrelation {
     return event.progress.operationId === this.#operationId ? event.progress : undefined;
   }
 
+  /** Returns a correlated success or throws for a correlated failed or cancelled job. */
   acceptTerminal(
     event: BridgeJobTerminalEvent<OperationChangedEvent, null>,
   ): OperationChangedEvent | undefined {
     if (this.#tracker.classifyTerminal(event) !== "accept") {
       return undefined;
     }
-    if (
-      typeof event.outcome !== "object" ||
-      event.outcome === null ||
-      !("succeeded" in event.outcome)
-    ) {
-      return undefined;
+    const { requestId, jobId, outcome } = parseBridgeJobTerminalEvent(
+      event,
+      codec(assertValidOperationChangedEvent),
+      noDetails,
+    );
+    if (outcome === "cancelled") {
+      throw new BridgeOperationError({ kind: "cancelled", requestId, jobId });
     }
-    assertValidOperationChangedEvent(event.outcome.succeeded);
-    return event.outcome.succeeded.operationId === this.#operationId
-      ? event.outcome.succeeded
-      : undefined;
+    if ("failed" in outcome) {
+      throw new BridgeOperationError({ kind: "failed", requestId, jobId, failure: outcome.failed });
+    }
+    return outcome.succeeded.operationId === this.#operationId ? outcome.succeeded : undefined;
   }
 }

@@ -79,6 +79,10 @@ Teardown attempts every registered unlisten. Registration keeps its original
 rejection if cleanup also fails. Events are best-effort projections and
 invalidation hints. Query-only domains do not require an event transport.
 
+Update and licence controllers return to idle after teardown and reject
+`stop()` with the first unlisten failure in registration order. An older
+refresh cannot replace a newer refresh or a settled command's state.
+
 A malformed event ends its subscription and is reported as an event failure.
 A job's listeners check its request and job identifiers before they decode the
 payload. An event whose identifier reads as another request or job is dropped
@@ -149,6 +153,10 @@ broadcast.
   authority are checked separately.
 - Domain clients expose indeterminate outcomes for uncertain non-idempotent
   writes.
+- The operation bridge reports rejected, indeterminate, and miscorrelated
+  replies through `BridgeOperationError.outcome`. Correlated failed and
+  cancelled job terminals also throw this error. Bridge failures retain
+  their code, message, retry class, phase, and details.
 
 ## Compatibility
 
@@ -187,6 +195,9 @@ authority, and derives that strictness from it.** Concretely:
   not types: the connection state/reason matrix lived in a `matches!` arm, was
   hand-copied into TypeScript, and agreed by maintenance rather than by
   construction until it was declared and emitted.
+  Bridge request contexts and session payloads share the validator for the
+  generated `DomainId` grammar and byte bound. Service supervision uses the
+  generated failure codes and reports unknown ownership as `invalid_ownership`.
 
 ### What this costs, stated plainly
 

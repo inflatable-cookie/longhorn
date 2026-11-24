@@ -1,3 +1,4 @@
+import { attempt, disposeAll } from "../core/listeners.ts";
 import {
   assertValidCommandAvailabilitySnapshot,
   assertValidCommandCatalogue,
@@ -18,7 +19,6 @@ import type {
   CommandKeymapPreviewResult,
   CommandKeymapReset,
 } from "./generated/protocol.ts";
-import { attempt, disposeAll } from "./listeners.ts";
 import type {
   CommandExecutionIntent,
   CommandExecutionOutcome,

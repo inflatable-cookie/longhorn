@@ -308,6 +308,53 @@ describe("update client", () => {
 });
 
 describe("update controller", () => {
+  test("stop attempts both unlistens and restores idle when the first throws", async () => {
+    const failure = new Error("update unlisten failed");
+    let progressDisposed = 0;
+    const port = new (class extends Port {
+      override async listen() {
+        return () => {
+          throw failure;
+        };
+      }
+      override listenProgress() {
+        return async () => {
+          progressDisposed += 1;
+        };
+      }
+    })();
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    await expect(controller.stop()).rejects.toBe(failure);
+    expect(progressDisposed).toBe(1);
+    expect(controller.status).toEqual({ kind: "idle" });
+    await controller.stop();
+    expect(progressDisposed).toBe(1);
+  });
+
+  test("a late update refresh cannot replace a command snapshot", async () => {
+    const initial = snapshot();
+    const updated = snapshot({ installedVersion: "1.4.0" });
+    let resolveRefresh!: (state: UpdateSnapshot) => void;
+    const slow = new Promise<UpdateSnapshot>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    const port = new Port(initial, () => committed(updated));
+    const controller = new UpdateController({ port });
+    await controller.start();
+    port.snapshot = () => slow;
+
+    const refresh = controller.refresh();
+    expect(await controller.check()).toEqual(committed(updated));
+    resolveRefresh(initial);
+    await refresh;
+
+    expect(controller.snapshot).toEqual(updated);
+    expect(controller.status).toEqual({ kind: "ready" });
+    await controller.stop();
+  });
+
   test("start reads the snapshot and reports ready", async () => {
     const controller = new UpdateController({ port: new Port() });
 

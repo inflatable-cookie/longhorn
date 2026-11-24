@@ -1,3 +1,4 @@
+import { disposeAll } from "../core/listeners.ts";
 import { UpdateClient } from "./client.ts";
 import { UPDATE_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
@@ -76,6 +77,7 @@ export class UpdateController {
   #started = false;
   #lifecycle = 0;
   #commandSequence = 0;
+  #refreshRevision = 0;
   #pending = false;
   #legacyProgress: ((event: UpdateProgressEvent) => void) | undefined;
   #unlisten: Array<UpdateUnlisten> = [];
@@ -215,7 +217,11 @@ export class UpdateController {
     const lifecycle = ++this.#lifecycle;
     this.#setStatus({ kind: "loading" });
     try {
-      const unlisten = await this.#client.listen(() => void this.refresh());
+      const unlisten = await this.#client.listen(() => {
+        if (lifecycle === this.#lifecycle) {
+          void this.refresh();
+        }
+      });
       // The listen resolved after a stop, or after a restart replaced this
       // lifetime. Contract 013: an adapter that outlives its owner keeps
       // writing into state nobody is reading.
@@ -244,23 +250,29 @@ export class UpdateController {
 
   async stop(): Promise<void> {
     this.#started = false;
-    this.#lifecycle += 1;
+    const lifecycle = ++this.#lifecycle;
     this.#pending = false;
     this.#legacyProgress = undefined;
     this.#liveProgress = undefined;
     const unlisten = this.#unlisten;
     this.#unlisten = [];
-    for (const stop of unlisten) {
-      await stop();
+    const results = await disposeAll(unlisten);
+    if (lifecycle === this.#lifecycle) {
+      this.#setStatus({ kind: "idle" });
     }
-    this.#setStatus({ kind: "idle" });
+    const failure = results.find((result) => result.status === "rejected");
+    if (failure !== undefined) {
+      throw failure.reason;
+    }
   }
 
   async refresh(): Promise<void> {
     const lifecycle = this.#lifecycle;
+    const revision = ++this.#refreshRevision;
+    const isCurrent = () => lifecycle === this.#lifecycle && revision === this.#refreshRevision;
     try {
       const snapshot = await this.#client.snapshot();
-      if (lifecycle !== this.#lifecycle) {
+      if (!isCurrent()) {
         return;
       }
       if (snapshot.authorityEpoch !== this.#snapshot?.authorityEpoch) {
@@ -269,7 +281,7 @@ export class UpdateController {
       this.#snapshot = snapshot;
       this.#setStatus({ kind: "ready" });
     } catch (error) {
-      if (lifecycle === this.#lifecycle) {
+      if (isCurrent()) {
         this.#setStatus({ kind: "failed", error });
       }
     }
@@ -409,6 +421,7 @@ export class UpdateController {
       if (isCurrent()) {
         this.#pending = false;
         this.#legacyProgress = undefined;
+        this.#refreshRevision += 1;
         this.#snapshot = outcome.snapshot;
         this.#liveProgress = undefined;
         this.#lastRejection = result.status === "rejected" ? result.code : undefined;
@@ -417,6 +430,7 @@ export class UpdateController {
       return result;
     } catch (error) {
       if (isCurrent()) {
+        this.#refreshRevision += 1;
         this.#pending = false;
         this.#legacyProgress = undefined;
         this.#liveProgress = undefined;

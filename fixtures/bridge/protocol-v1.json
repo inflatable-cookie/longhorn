@@ -68,6 +68,44 @@
       }
     }
   ],
+  "domainIds": [
+    {
+      "valid": false,
+      "value": ""
+    },
+    {
+      "valid": true,
+      "value": "workspace"
+    },
+    {
+      "valid": true,
+      "value": "example.window_state-v2"
+    },
+    {
+      "valid": false,
+      "value": "example.2workspace"
+    },
+    {
+      "valid": false,
+      "value": "example..workspace"
+    },
+    {
+      "valid": false,
+      "value": "example.workspace\n"
+    },
+    {
+      "valid": false,
+      "value": "example.wörkspace"
+    },
+    {
+      "valid": true,
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "valid": false,
+      "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
   "events": [
     {
       "cursor": {

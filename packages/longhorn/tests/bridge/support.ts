@@ -9,6 +9,7 @@ export const fixture = record(
   ),
   [
     "protocolVersion",
+    "domainIds",
     "hello",
     "negotiation",
     "queryRequests",

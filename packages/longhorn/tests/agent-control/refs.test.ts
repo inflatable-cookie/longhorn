@@ -4,6 +4,35 @@ import { REF_ATTR, REF_PREFIX_GLOBAL } from "../../src/agent-control/index.ts";
 import { findByName, install, openPage } from "./support.ts";
 
 describe("agent-control live-DOM refs", () => {
+  test("label association compares ids with quotes and backslashes literally", () => {
+    const window = openPage("<label>Search terms</label><input>");
+    const input = window.document.querySelector("input");
+    const label = window.document.querySelector("label");
+    const id = String.raw`search"\terms`;
+    input?.setAttribute("id", id);
+    label?.setAttribute("for", id);
+
+    const result = install(window).snapshot();
+    expect(result.ok && findByName(result.root, "Search terms")?.role).toBe("textbox");
+  });
+
+  test("punctuation in a ref is matched literally against the stamped value", () => {
+    const window = openPage("<button>Run</button>");
+    const ref = String.raw`view"\name:e1`;
+    window.document.querySelector("button")?.setAttribute(REF_ATTR, ref);
+    const api = install(window);
+
+    expect(api.waitFor({ predicate: "refResolve", element: ref })).toEqual({
+      ok: true,
+      holds: true,
+    });
+    const missing = `${ref}?`;
+    expect(api.click(missing)).toEqual({
+      ok: false,
+      error: { error: "unresolvedRef", element: missing },
+    });
+  });
+
   test("stamps refs onto elements and resolves them against the live DOM", () => {
     const window = openPage(`<button>Run</button>`);
     const api = install(window);

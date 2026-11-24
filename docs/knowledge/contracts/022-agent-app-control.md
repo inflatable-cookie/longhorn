@@ -104,7 +104,8 @@ agent can use while the app runs unfocused in the background.
   state) with stable element refs. Refs are stamped into the live DOM at
   snapshot time and resolved against the live DOM on use. No server-side
   ref table; a ref from any prior snapshot either resolves or fails
-  explicitly.
+  explicitly. Ref resolution and label association compare attribute values
+  literally, including punctuation in refs and HTML ids.
 - Semantic and input tools target the window's UI webview by default. An
   application may opt in named child-webview labels at mount; an opted-in
   child is a full semantic target addressed by an explicit webview
