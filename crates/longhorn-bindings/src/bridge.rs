@@ -312,7 +312,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         }),
     );
 
-    let mut artifacts = build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)?;
+    let mut artifacts =
+        build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)?;
     artifacts.push(crate::serde_shape::error_fixture(
         "fixtures/bridge/host-errors.json",
         &[

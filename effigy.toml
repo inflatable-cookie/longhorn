@@ -700,7 +700,7 @@ purpose = "Check the bridge topology proof, its artifact audit, and their exact 
 scope_policy = "required"
 coverage_gaps = []
 proof_limits = [
-  "Checks the bridge topology proof, the packed bridge crates and packages, bridge sources, and query-only capability",
+  "Checks the bridge topology proof, the packed bridge crates and packages, bridge sources, and bridge capability examples",
   "The artifact audit packs the Rust crates and TypeScript packages it names and does not check the other artifact proofs",
   "Does not cover root Cargo.toml or Cargo.lock changes; those are PR gap tokens covered by lint:rust",
   "Does not replace package typechecks, Rust tests, or other artifact proofs",
@@ -719,6 +719,7 @@ members = [
       "path:crates/longhorn-bridge/src/**",
       "path:crates/longhorn-tauri-bridge/src/**",
       "path:crates/longhorn-tauri-bridge/examples/capabilities/query-only.json",
+      "path:crates/longhorn-tauri-bridge/examples/capabilities/subscription.json",
       "bun-package:@inflatable-cookie/longhorn",
       "path:packages/longhorn/src/bridge/**",
       "path:package.json",
@@ -733,6 +734,7 @@ members = [
       "path:crates/longhorn-bridge/src/**",
       "path:crates/longhorn-tauri-bridge/src/**",
       "path:crates/longhorn-tauri-bridge/examples/capabilities/query-only.json",
+      "path:crates/longhorn-tauri-bridge/examples/capabilities/subscription.json",
       "bun-package:@inflatable-cookie/longhorn",
       "path:packages/longhorn/src/bridge/**",
       "path:package.json",

@@ -1,6 +1,6 @@
 # longhorn-tauri-bridge
 
-Narrow Tauri command and event assembly for the generic Longhorn bridge.
+Narrow Tauri command and renderer-local event assembly for the Longhorn bridge.
 Consumers inject domain registrations, typed handlers, and authority.
 
 Build a `BridgeDomainRegistry`, register domain-owned typed routes, then install
@@ -22,8 +22,9 @@ builder
 ```
 
 Use `BridgeHandlerAssembly::new` for invoke-only hosts. Use
-`with_event_sink` with `TauriBridgeEventSink` or a mock sink only when the app
-needs subscriptions. Tauri capabilities admit calls; negotiated bridge
-authority still controls dispatch.
+`with_event_sink` with `TauriBridgeEventSink` when the app needs subscriptions.
+The sink dispatches `CustomEvent` in the owning renderer. Bridge subscriptions
+use DOM listeners and require only the invoke permissions in the capability
+example. Negotiated bridge authority controls dispatch.
 
 Copy a minimal permission/capability pair from `examples/`.

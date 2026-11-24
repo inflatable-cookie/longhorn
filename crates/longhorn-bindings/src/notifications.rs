@@ -175,10 +175,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     artifacts.push(crate::serde_shape::error_fixture(
         "fixtures/notifications/host-errors.json",
         &[
-            host_error::NotificationHostError::authority(
-                "Host temporarily unavailable",
-                true,
-            ),
+            host_error::NotificationHostError::authority("Host temporarily unavailable", true),
             host_error::NotificationHostError::authority_state_unavailable(),
         ],
     )?);

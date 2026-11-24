@@ -53,7 +53,8 @@ execution payload.
   The bridge, command, config, history, history-tree, licence, notifications,
   operation, settings, transfer, and update Tauri adapters expose operational
   failures as `{code, message, retryable}` using their own camelCase code enum.
-  `TauriTransport` decodes the common rejection envelope as `TauriHostError`.
+  `TauriTransport` decodes a rejection as `TauriHostError` when its object has
+  exactly `code` and `message` strings and a `retryable` boolean.
   The transport preserves the code as an opaque string so consumers can use
   the domain's generated code types without losing diagnostic text at the
   shared boundary. Other native rejections keep their original value.
@@ -118,9 +119,12 @@ See Q-007.
   limits are validated after parse and before any effect, never after
   mutation.
 
-The Tauri bridge delivers domain, progress and terminal events directly to
-the webview window that owns the session. The renderer subscribes to local
-DOM events for all three. The Tauri event bus filters listener callbacks and
+The Tauri bridge dispatches domain, progress and terminal events as
+`CustomEvent` on the owning renderer's `window`. The host serializes the event
+name and encodes the payload as a JSON string literal before building the
+script. The script parses that string into `detail`, which the DOM listener
+reads. The subscription capability grants only invoke permissions. The
+Tauri event bus filters listener callbacks and
 can still send the payload to a nonmatching webview, so it cannot carry
 these full payloads across the authority boundary. The client also checks
 session cursors and job correlation. A product that needs cross-window
@@ -146,9 +150,9 @@ invalidation can use a distinct hint and an authorized refetch.
   window with `emit_to`. The client requests a `current-webview` subscription
   because Tauri's default `Any` subscription also matches targeted events.
 - **Broadcast hints:** history, history-tree, operation, licence,
-  notifications, update, and command keymap emit command hints app-wide via
-  `window.emit`. Settings emits app-wide via `app.emit`. The command
-  catalogue and trusted domain publishers also use `app.emit`. A window
+  notifications, settings, update, and command keymap emit command hints
+  app-wide via `window.emit`. The command catalogue and trusted domain
+  publishers use `app.emit`. A window
   receiver on a Rust `emit` call does not narrow delivery.
 - Domain packages own typed command, query, and subscription clients.
 - Command catalogue and keymap adapters may expose typed metadata, preview,

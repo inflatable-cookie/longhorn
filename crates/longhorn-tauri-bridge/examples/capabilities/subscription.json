@@ -1,11 +1,9 @@
 {
   "identifier": "longhorn-bridge-subscription",
-  "description": "Generic bridge admission with checked commands, cancellation, and events.",
+  "description": "Generic bridge admission for queries, checked commands, cancellation, and resync.",
   "windows": ["main", "workspace-*"],
   "permissions": [
     "allow-longhorn-bridge-query",
-    "allow-longhorn-bridge-mutate",
-    "core:event:allow-listen",
-    "core:event:allow-unlisten"
+    "allow-longhorn-bridge-mutate"
   ]
 }

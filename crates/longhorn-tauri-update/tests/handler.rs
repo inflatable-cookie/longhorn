@@ -397,7 +397,9 @@ fn ipc_prepare_reports_progress_only_to_the_request_channel() {
         .unwrap();
     let events = Arc::new(Mutex::new(Vec::new()));
     let received = Arc::clone(&events);
-    app.listen("longhorn://update/progress", move |event| {
+    // Watch the retired route without declaring it as a current event.
+    let (namespace, _) = UPDATE_CHANGED_EVENT.rsplit_once('/').unwrap();
+    app.listen(format!("{namespace}/progress"), move |event| {
         received
             .lock()
             .unwrap()

@@ -113,7 +113,7 @@ fn permission_examples_dispatch_through_registered_tauri_commands() {
 }
 
 #[test]
-fn query_only_capability_has_no_event_or_mutation_admission() {
+fn bridge_capabilities_grant_only_their_invoke_permissions() {
     let query_only = json_file("examples/capabilities/query-only.json");
     let subscription = json_file("examples/capabilities/subscription.json");
 
@@ -125,9 +125,7 @@ fn query_only_capability_has_no_event_or_mutation_admission() {
         subscription["permissions"],
         json!([
             "allow-longhorn-bridge-query",
-            "allow-longhorn-bridge-mutate",
-            "core:event:allow-listen",
-            "core:event:allow-unlisten"
+            "allow-longhorn-bridge-mutate"
         ])
     );
 }

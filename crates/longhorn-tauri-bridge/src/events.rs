@@ -66,14 +66,20 @@ impl<R: Runtime> BridgeEventSink for TauriBridgeEventSink<R> {
         })?;
         // Tauri's filtered events can still evaluate the payload in other
         // webviews. Deliver directly to the owning webview instead.
-        let event = serde_json::to_string(event).map_err(publication_error)?;
-        let payload = serde_json::to_string(&payload.to_string()).map_err(publication_error)?;
         webview
-            .eval(format!(
-                "window.dispatchEvent(new CustomEvent({event}, {{ detail: JSON.parse({payload}) }}))"
-            ))
+            .eval(renderer_event_script(event, &payload).map_err(publication_error)?)
             .map_err(publication_error)
     }
+}
+
+fn renderer_event_script(event: &str, payload: &Value) -> serde_json::Result<String> {
+    let event = serde_json::to_string(event)?;
+    let payload = serde_json::to_string(&payload.to_string())?;
+    Ok(format!(
+        "window.dispatchEvent(new CustomEvent({event}, {{ detail: JSON.parse({payload}) }}))"
+    )
+    .replace('\u{2028}', r"\u2028")
+    .replace('\u{2029}', r"\u2029"))
 }
 
 fn publication_error(error: impl ToString) -> BridgeHostError {
@@ -95,6 +101,15 @@ mod tests {
     use tauri::{Listener, WebviewUrl, WebviewWindowBuilder};
 
     use super::*;
+
+    #[test]
+    fn dispatch_script_supplies_parsed_json_as_custom_event_detail() {
+        let payload = json!({ "text": "\"\\<tag>\u{2028}\u{2029}" });
+        assert_eq!(
+            renderer_event_script(BRIDGE_DOMAIN_EVENT, &payload).unwrap(),
+            r#"window.dispatchEvent(new CustomEvent("longhorn://bridge/domain", { detail: JSON.parse("{\"text\":\"\\\"\\\\<tag>\u2028\u2029\"}") }))"#,
+        );
+    }
 
     #[test]
     fn publishes_only_to_a_live_webview_and_skips_the_tauri_event_bus() {

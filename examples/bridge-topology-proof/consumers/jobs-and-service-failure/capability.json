@@ -4,8 +4,6 @@
   "windows": ["main", "settings"],
   "permissions": [
     "allow-longhorn-bridge-query",
-    "allow-longhorn-bridge-mutate",
-    "core:event:allow-listen",
-    "core:event:allow-unlisten"
+    "allow-longhorn-bridge-mutate"
   ]
 }

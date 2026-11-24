@@ -94,12 +94,8 @@ async function verifyConsumer(context: ProofContext, shape: ShapeName) {
     imports,
     requireStrings(declaration.imports, "declared imports"),
   );
-  const hasEvents = imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events");
-  const hasEventPermissions =
-    capability.permissions.includes("core:event:allow-listen") &&
-    capability.permissions.includes("core:event:allow-unlisten");
-  if (hasEvents !== hasEventPermissions) {
-    throw new Error(`${shape} event imports and permissions diverged`);
+  if (capability.permissions.some((permission) => permission.startsWith("core:event:"))) {
+    throw new Error(`${shape} grants Tauri event permissions for renderer-local subscriptions`);
   }
   const hasSupervision = imports.includes("@inflatable-cookie/longhorn/bridge/supervision");
   if (hasSupervision !== (declaration.serviceOwnership !== null)) {
