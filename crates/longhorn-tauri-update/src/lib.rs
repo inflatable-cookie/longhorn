@@ -19,8 +19,8 @@ pub use authority::UpdateHostAuthority;
 #[doc(hidden)]
 pub use commands::dispatch_update;
 pub use commands::{
-    TauriUpdateState, UPDATE_CHANGED_EVENT, UPDATE_PROGRESS_EVENT, longhorn_update_apply,
-    longhorn_update_cancel, longhorn_update_check, longhorn_update_defer, longhorn_update_prepare,
+    TauriUpdateState, UPDATE_CHANGED_EVENT, longhorn_update_apply, longhorn_update_cancel,
+    longhorn_update_check, longhorn_update_defer, longhorn_update_prepare,
     longhorn_update_select_channel, longhorn_update_snapshot, publish_update_changed,
     update_changed_event,
 };

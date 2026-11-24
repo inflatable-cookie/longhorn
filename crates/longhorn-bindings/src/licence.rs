@@ -20,6 +20,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-licence/src/error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/licence/generated/protocol.ts",
     fields: "packages/longhorn/src/licence/generated/fields.ts",
@@ -46,6 +51,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let credential = LicenceCredentialProjection::decl(config());
     let outcome = LicenceOutcomeProjection::decl(config());
 
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::LicenceHostErrorCode>(
+            host_error::LicenceHostError::state_unavailable(),
+            "LicenceHostError",
+            "LicenceHostErrorCode",
+        )?;
+
     let declarations = [
         LicenceProtocolVersion::decl(config()),
         Timestamp::decl(config()),
@@ -65,6 +77,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         outcome.clone(),
         LicenceChangedKind::decl(config()),
         LicenceChangedEvent::decl(config()),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -101,5 +115,12 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         relative_path: GENERATED_KEY_CONFORMANCE,
         contents: key_conformance,
     });
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/licence/host-errors.json",
+        &[
+            host_error::LicenceHostError::authority("Host temporarily unavailable", true),
+            host_error::LicenceHostError::state_unavailable(),
+        ],
+    )?);
     Ok(artifacts)
 }

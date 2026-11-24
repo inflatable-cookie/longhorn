@@ -20,6 +20,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-update/src/error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/update/generated/protocol.ts",
     fields: "packages/longhorn/src/update/generated/fields.ts",
@@ -40,6 +45,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let progress = UpdateProgressProjection::decl(config());
     let authorization = UpdateInstallAuthorizationProjection::decl(config());
     let outcome = UpdateOutcomeProjection::decl(config());
+
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::UpdateHostErrorCode>(
+            host_error::UpdateHostError::state_unavailable(),
+            "UpdateHostError",
+            "UpdateHostErrorCode",
+        )?;
 
     let declarations = [
         UpdateProtocolVersion::decl(config()),
@@ -64,6 +76,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         outcome.clone(),
         UpdateChangedKind::decl(config()),
         UpdateChangedEvent::decl(config()),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -96,5 +110,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         declarations.join("\n\n"),
     );
 
-    build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)
+    let mut artifacts = build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)?;
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/update/host-errors.json",
+        &[
+            host_error::UpdateHostError::authority("Host temporarily unavailable", true),
+            host_error::UpdateHostError::state_unavailable(),
+        ],
+    )?);
+    Ok(artifacts)
 }

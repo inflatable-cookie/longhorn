@@ -1,0 +1,12 @@
+[
+  {
+    "code": "runtimeUnavailable",
+    "message": "Transfer runtime temporarily unavailable",
+    "retryable": true
+  },
+  {
+    "code": "stateUnavailable",
+    "message": "transfer handler state is unavailable",
+    "retryable": false
+  }
+]

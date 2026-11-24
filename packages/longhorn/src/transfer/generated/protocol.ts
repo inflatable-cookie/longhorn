@@ -169,3 +169,7 @@ completion: PanelTransferCompletion, } | { "status": "aborted",
  * Typed rejection and consumption evidence.
  */
 abort: TransferAbort, };
+
+export type TransferHostErrorCode = "runtimeUnavailable" | "stateUnavailable" | "inactive" | "identityExhausted" | "invalidIssuedClientId" | "clientBinding" | "invalidCallerHandle";
+
+export type TransferHostError = { "code": TransferHostErrorCode, "message": string, "retryable": boolean, };

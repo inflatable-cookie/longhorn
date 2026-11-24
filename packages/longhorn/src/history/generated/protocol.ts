@@ -387,3 +387,7 @@ committedRevision: HistoryRevision,
  * Coarse transition category.
  */
 kind: HistoryChangedKind, };
+
+export type HistoryHostErrorCode = "authorityUnavailable" | "stateUnavailable" | "eventPublication";
+
+export type HistoryHostError = { "code": HistoryHostErrorCode, "message": string, "retryable": boolean, };

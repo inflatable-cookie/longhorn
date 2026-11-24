@@ -1,5 +1,13 @@
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { TauriTransport } from "@inflatable-cookie/longhorn-tauri";
+import {
+  createTauriOperationPort,
+  OPERATION_CANCEL_COMMAND,
+  OPERATION_SNAPSHOT_COMMAND,
+} from "@inflatable-cookie/longhorn-tauri/operation";
+
+import hostErrors from "../../../../fixtures/operation/host-errors.json";
 
 import OperationPanelHarness from "./OperationPanelHarness.svelte";
 import { OperationSession } from "../../src/operation/svelte.ts";
@@ -93,28 +101,44 @@ describe("operation Svelte and public Poodle adapters", () => {
     expect(port.unlistenCount).toBe(2);
   });
 
-  it("closes the cancellation dialog when the request fails and shows the failure", async () => {
-    const loophole = createMountedSession(loopholeSnapshot());
-    loophole.port.cancel = async () => {
-      throw new Error("host refused cancellation");
-    };
+  it("shows a typed Tauri cancellation refusal and closes the dialog", async () => {
+    const refusal = hostErrors[0];
+    if (refusal === undefined) {
+      throw new Error("missing host error sample");
+    }
+    const invoke = vi.fn(async (command: string, args: { query?: { requestId: string } }) => {
+      if (command === OPERATION_SNAPSHOT_COMMAND) {
+        return { requestId: args.query?.requestId, snapshot: loopholeSnapshot() };
+      }
+      if (command === OPERATION_CANCEL_COMMAND) {
+        throw refusal;
+      }
+      throw new Error(`unexpected command ${command}`);
+    });
+    vi.stubGlobal("__TAURI_INTERNALS__", { invoke });
+    const session = new OperationSession({
+      port: createTauriOperationPort({
+        transport: new TauriTransport(),
+        nextRequestId: () => "request:test",
+      }),
+    });
     const renderPanel = render(OperationPanelHarness, {
-      props: { session: loophole.session, shape: "loophole" },
-    });
-    await waitFor(() => {
-      expect(loophole.session.status.kind).toBe("ready");
+      props: { session, shape: "loophole" },
     });
 
-    await fireEvent.click(
-      renderPanel.getByRole("button", { name: "Cancel Render final sequence" }),
-    );
-    await fireEvent.click(renderPanel.getByRole("button", { name: "Request cancellation" }));
-    await waitFor(() => {
-      expect(renderPanel.getByText("host refused cancellation")).toBeTruthy();
-      expect(renderPanel.queryByRole("alertdialog", { name: "Cancel operation?" })).toBeNull();
-    });
-
-    await Promise.resolve(renderPanel.unmount());
+    try {
+      await fireEvent.click(
+        await renderPanel.findByRole("button", { name: "Cancel Render final sequence" }),
+      );
+      await fireEvent.click(renderPanel.getByRole("button", { name: "Request cancellation" }));
+      await waitFor(() => {
+        expect(renderPanel.getByText(refusal.message)).toBeTruthy();
+        expect(renderPanel.queryByRole("alertdialog", { name: "Cancel operation?" })).toBeNull();
+      });
+    } finally {
+      await Promise.resolve(renderPanel.unmount());
+      vi.unstubAllGlobals();
+    }
   });
 
   it("projects Soundcheck and Loophole through the same controlled panel", async () => {

@@ -33,6 +33,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-settings/src/error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/settings/generated/protocol.ts",
     fields: "packages/longhorn/src/settings/generated/fields.ts",
@@ -52,6 +57,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let mutation_result = SettingsMutationResult::decl(config());
     let load_outcome = SettingsLoadOutcome::decl(config());
     let rejection_codes = enum_names::<SettingsRejectionCode>()?;
+
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::SettingsHostErrorCode>(
+            host_error::SettingsHostError::state_unavailable(),
+            "SettingsHostError",
+            "SettingsHostErrorCode",
+        )?;
 
     let declarations = [
         SettingsModuleId::decl(config()),
@@ -109,6 +121,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         SettingsRejection::decl(config()),
         mutation_result.clone(),
         load_outcome.clone(),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -147,10 +161,18 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         declarations.join("\n\n")
     );
 
-    build_domain_artifacts(
+    let mut artifacts = build_domain_artifacts(
         &ARTIFACTS,
         contents,
         &declarations,
         fixture::render(rejection_codes)?,
-    )
+    )?;
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/settings/host-errors.json",
+        &[
+            host_error::SettingsHostError::authority("Host temporarily unavailable", true),
+            host_error::SettingsHostError::state_unavailable(),
+        ],
+    )?);
+    Ok(artifacts)
 }

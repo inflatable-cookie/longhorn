@@ -28,6 +28,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-notifications/src/error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/notifications/generated/protocol.ts",
     fields: "packages/longhorn/src/notifications/generated/fields.ts",
@@ -88,6 +93,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let mutation = NotificationMutationCommand::decl(config());
     let receipt = NotificationMutationReceiptProjection::decl(config());
     let result = NotificationMutationResult::decl(config());
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::NotificationHostErrorCode>(
+            host_error::NotificationHostError::authority_state_unavailable(),
+            "NotificationHostError",
+            "NotificationHostErrorCode",
+        )?;
+
     let declarations = [
         NotificationActionReferenceId::decl(config()),
         NotificationAuthorityId::decl(config()),
@@ -121,6 +133,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         result.clone(),
         NotificationChangedKind::decl(config()),
         NotificationChangedEvent::decl(config()),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -158,5 +172,15 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         relative_path: GENERATED_LABELS,
         contents: render_labels(),
     });
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/notifications/host-errors.json",
+        &[
+            host_error::NotificationHostError::authority(
+                "Host temporarily unavailable",
+                true,
+            ),
+            host_error::NotificationHostError::authority_state_unavailable(),
+        ],
+    )?);
     Ok(artifacts)
 }

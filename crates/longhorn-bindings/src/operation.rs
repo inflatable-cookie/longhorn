@@ -29,6 +29,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-operation/src/error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/operation/generated/protocol.ts",
     fields: "packages/longhorn/src/operation/generated/fields.ts",
@@ -69,6 +74,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let mutation_result = OperationMutationResult::decl(config());
     let executor_dispatch = OperationExecutorDispatchProjection::decl(config());
     let cancellation_result = OperationCancellationResult::decl(config());
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::OperationHostErrorCode>(
+            host_error::OperationHostError::authority_state_unavailable(),
+            "OperationHostError",
+            "OperationHostErrorCode",
+        )?;
+
     let declarations = [
         OperationAuthorityId::decl(config()),
         OperationId::decl(config()),
@@ -106,6 +118,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         cancellation_result.clone(),
         OperationChangedKind::decl(config()),
         OperationChangedEvent::decl(config()),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -151,5 +165,12 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         relative_path: GENERATED_LABELS,
         contents: render_labels(),
     });
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/operation/host-errors.json",
+        &[
+            host_error::OperationHostError::authority("Host temporarily unavailable", true),
+            host_error::OperationHostError::authority_state_unavailable(),
+        ],
+    )?);
     Ok(artifacts)
 }

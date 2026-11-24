@@ -712,3 +712,7 @@ snapshot: ConfigOperationsSnapshot, } | { "status": "rejected",
  * Typed refusal.
  */
 rejection: ConfigOperationRejection, };
+
+export type ConfigOperationsHostErrorCode = "authorityUnavailable" | "stateUnavailable" | "hostInteraction";
+
+export type ConfigOperationsHostError = { "code": ConfigOperationsHostErrorCode, "message": string, "retryable": boolean, };

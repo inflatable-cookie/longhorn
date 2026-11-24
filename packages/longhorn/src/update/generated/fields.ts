@@ -15,4 +15,5 @@ export const UPDATE_FIELDS = {
   "UpdateApplyCommand": ["protocolVersion", "authorityEpoch", "version", "digest"],
   "UpdateCancelCommand": ["protocolVersion", "authorityEpoch"],
   "UpdateChangedEvent": ["protocolVersion", "authorityEpoch", "kind"],
+  "UpdateHostError": ["code", "message", "retryable"],
 } as const;

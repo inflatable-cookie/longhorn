@@ -27,6 +27,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-history/src/error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/history/generated/protocol.ts",
     fields: "packages/longhorn/src/history/generated/fields.ts",
@@ -45,6 +50,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let target = HistoryNavigationTargetProjection::decl(config());
     let navigation_result = HistoryNavigationResult::decl(config());
     let page_floor = HistoryPageFloorProjection::decl(config());
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::HistoryHostErrorCode>(
+            host_error::HistoryHostError::state_unavailable(),
+            "HistoryHostError",
+            "HistoryHostErrorCode",
+        )?;
+
     let declarations = [
         HistoryId::decl(config()),
         HistoryEntryId::decl(config()),
@@ -74,6 +86,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         navigation_result.clone(),
         HistoryChangedKind::decl(config()),
         HistoryChangedEvent::decl(config()),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -103,5 +117,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         declarations.join("\n\n")
     );
 
-    build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)
+    let mut artifacts = build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)?;
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/history/host-errors.json",
+        &[
+            host_error::HistoryHostError::authority("Host temporarily unavailable", true),
+            host_error::HistoryHostError::state_unavailable(),
+        ],
+    )?);
+    Ok(artifacts)
 }

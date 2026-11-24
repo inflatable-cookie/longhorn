@@ -309,3 +309,7 @@ authorityEpoch: number,
  * Coarse invalidation category.
  */
 kind: UpdateChangedKind, };
+
+export type UpdateHostErrorCode = "authorityUnavailable" | "stateUnavailable" | "eventPublication";
+
+export type UpdateHostError = { "code": UpdateHostErrorCode, "message": string, "retryable": boolean, };

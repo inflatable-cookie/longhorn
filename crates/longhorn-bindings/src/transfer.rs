@@ -27,6 +27,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-transfer/src/host_error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/transfer/generated/protocol.ts",
     fields: "packages/longhorn/src/transfer/generated/fields.ts",
@@ -51,6 +56,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let panel_response = PanelTransferResponse::decl(config());
     let transfer_error_codes = enum_names::<TransferErrorCode>()?;
     let panel_error_codes = enum_names::<PanelTransferErrorCode>()?;
+
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::TransferHostErrorCode>(
+            host_error::TransferHostError::state_unavailable(),
+            "TransferHostError",
+            "TransferHostErrorCode",
+        )?;
 
     let declarations = [
         DomainId::decl(config()),
@@ -95,6 +107,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         lease_response.clone(),
         cancel_response.clone(),
         panel_response.clone(),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -125,10 +139,22 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         declarations.join("\n\n")
     );
 
-    build_domain_artifacts(
+    let mut artifacts = build_domain_artifacts(
         &ARTIFACTS,
         contents,
         &declarations,
         fixture::render(transfer_error_codes, panel_error_codes)?,
-    )
+    )?;
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/transfer/host-errors.json",
+        &[
+            host_error::TransferHostError {
+                code: host_error::TransferHostErrorCode::RuntimeUnavailable,
+                message: "Transfer runtime temporarily unavailable".into(),
+                retryable: true,
+            },
+            host_error::TransferHostError::state_unavailable(),
+        ],
+    )?);
+    Ok(artifacts)
 }

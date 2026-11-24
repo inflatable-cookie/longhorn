@@ -520,3 +520,7 @@ affectedNotificationIds: Array<NotificationId>,
  * Change source.
  */
 kind: NotificationChangedKind, };
+
+export type NotificationHostErrorCode = "authorityUnavailable" | "authorityStateUnavailable" | "eventPublication";
+
+export type NotificationHostError = { "code": NotificationHostErrorCode, "message": string, "retryable": boolean, };

@@ -741,3 +741,7 @@ committedRevision: HistoryRevision,
  * Coarse invalidation category.
  */
 kind: ForkChangedKind, };
+
+export type ForkHistoryHostErrorCode = "authorityUnavailable" | "stateUnavailable" | "eventPublication";
+
+export type ForkHistoryHostError = { "code": ForkHistoryHostErrorCode, "message": string, "retryable": boolean, };

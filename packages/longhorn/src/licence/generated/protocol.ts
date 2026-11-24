@@ -247,3 +247,7 @@ authorityEpoch: number,
  * Coarse invalidation category.
  */
 kind: LicenceChangedKind, };
+
+export type LicenceHostErrorCode = "authorityUnavailable" | "stateUnavailable" | "eventPublication";
+
+export type LicenceHostError = { "code": LicenceHostErrorCode, "message": string, "retryable": boolean, };

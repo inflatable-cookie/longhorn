@@ -671,3 +671,7 @@ snapshot: SettingsScopeSnapshot, } | { "status": "rejected",
  * Typed rejection.
  */
 rejection: SettingsRejection, };
+
+export type SettingsHostErrorCode = "authorityUnavailable" | "stateUnavailable" | "eventPublication";
+
+export type SettingsHostError = { "code": SettingsHostErrorCode, "message": string, "retryable": boolean, };

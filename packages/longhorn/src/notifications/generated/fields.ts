@@ -16,4 +16,5 @@ export const NOTIFICATIONS_FIELDS = {
   "NotificationRemovalProjection": ["record", "reason"],
   "NotificationRejection": ["code", "detail", "refreshRequired"],
   "NotificationChangedEvent": ["protocolVersion", "requestId", "authority", "previousLedgerRevision", "committedLedgerRevision", "affectedNotificationIds", "kind"],
+  "NotificationHostError": ["code", "message", "retryable"],
 } as const;

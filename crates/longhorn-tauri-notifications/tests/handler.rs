@@ -1,5 +1,7 @@
 //! Injected notification handler contract tests.
 
+use std::sync::{Arc, Mutex};
+
 use longhorn_core::NotificationAuthorityId;
 use longhorn_notifications::{
     NotificationAuthorityEpoch, NotificationLedger, NotificationLedgerLimits,
@@ -7,9 +9,11 @@ use longhorn_notifications::{
     NotificationSnapshotResponse,
 };
 use longhorn_tauri_notifications::{
-    NotificationHandlerAssembly, NotificationHostAuthority, NotificationHostError,
+    NOTIFICATION_CHANGED_EVENT, NotificationHandlerAssembly, NotificationHostAuthority,
+    NotificationHostError, TauriNotificationState, longhorn_notifications_mutate,
     notification_mutation_changed_event,
 };
+use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
 struct Authority {
     ledger: NotificationLedger,
@@ -85,6 +89,53 @@ fn rejected_results_never_emit_commit_hints() {
     }))
     .expect("result is valid");
     assert!(notification_mutation_changed_event(&result).is_none());
+}
+
+#[test]
+fn committed_mutation_broadcasts_the_invalidation_hint_to_other_windows() {
+    let authority = Authority {
+        ledger: NotificationLedger::new(
+            id("authority:fixture"),
+            NotificationAuthorityEpoch::new(7).unwrap(),
+            NotificationLedgerLimits::DEFAULT,
+        ),
+        callers: Vec::new(),
+    };
+    let app = tauri::test::mock_builder()
+        .manage(TauriNotificationState::new(Arc::new(
+            NotificationHandlerAssembly::new(authority),
+        )))
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let caller = WebviewWindowBuilder::new(&app, "main", WebviewUrl::default())
+        .build()
+        .unwrap();
+    let observer = WebviewWindowBuilder::new(&app, "other", WebviewUrl::default())
+        .build()
+        .unwrap();
+    let received = Arc::new(Mutex::new(Vec::new()));
+    let hints = Arc::clone(&received);
+    observer.listen(NOTIFICATION_CHANGED_EVENT, move |event| {
+        hints.lock().unwrap().push(
+            serde_json::from_str::<longhorn_notifications::NotificationChangedEvent>(
+                event.payload(),
+            )
+            .unwrap(),
+        );
+    });
+    let protocol: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../fixtures/notifications/protocol-v1.json"
+    ))
+    .unwrap();
+    let command = serde_json::from_value(protocol["mutationCommands"][0].clone()).unwrap();
+    let result =
+        tauri::async_runtime::block_on(longhorn_notifications_mutate(caller, app.state(), command))
+            .unwrap();
+
+    assert_eq!(
+        *received.lock().unwrap(),
+        [notification_mutation_changed_event(&result).unwrap()]
+    );
 }
 
 fn id<T>(value: &str) -> T

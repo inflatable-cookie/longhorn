@@ -4,8 +4,17 @@ export interface InvokeTransport {
   invoke(command: string, arguments_: Record<string, unknown>): Promise<unknown>;
 }
 
+export interface EventListenOptions {
+  /** Selects a host-targeted event or an event delivered inside this renderer. */
+  readonly scope: "current-webview" | "renderer-local";
+}
+
 export interface EventTransport extends InvokeTransport {
-  listen(event: string, listener: (payload: unknown) => void): Promise<Unlisten>;
+  listen(
+    event: string,
+    listener: (payload: unknown) => void,
+    options?: EventListenOptions,
+  ): Promise<Unlisten>;
 }
 
 export function isEventTransport(transport: InvokeTransport): transport is EventTransport {

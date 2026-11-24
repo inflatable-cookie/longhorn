@@ -1,0 +1,12 @@
+[
+  {
+    "code": "authorityUnavailable",
+    "message": "Host temporarily unavailable",
+    "retryable": true
+  },
+  {
+    "code": "authorityStateUnavailable",
+    "message": "notification authority state is unavailable",
+    "retryable": false
+  }
+]

@@ -25,8 +25,9 @@ execution payload.
 ## Type Authority
 
 - Rust `serde` types are authoritative for Longhorn payloads.
-- `ts-rs` generates TypeScript into the owning domain package. The bridge and
-  command host error types are generated from their adapter Serde definitions.
+- `ts-rs` generates TypeScript into the owning domain package. All Tauri
+  operational host errors with a `{code, message, retryable}` envelope are
+  generated from their adapter Serde definitions into the owning domain.
 - Generated files are checked in for package consumers.
 - CI regenerates and fails on drift.
 - Consumer-owned product payloads remain consumer-owned and may use their own
@@ -49,8 +50,13 @@ execution payload.
   current snapshot.
 - Errors have stable code, message, retry class, failure phase, and optional
   structured details. Bare strings are adapter failures, not protocol errors.
-  Every `longhorn-tauri-*` adapter exposes operational failures as typed
-  `{code, message, retryable}` wire errors using its own camelCase code enum.
+  The bridge, command, config, history, history-tree, licence, notifications,
+  operation, settings, transfer, and update Tauri adapters expose operational
+  failures as `{code, message, retryable}` using their own camelCase code enum.
+  `TauriTransport` decodes the common rejection envelope as `TauriHostError`.
+  The transport preserves the code as an opaque string so consumers can use
+  the domain's generated code types without losing diagnostic text at the
+  shared boundary. Other native rejections keep their original value.
   A poisoned mutex or failed blocking-task join is permanently unavailable
   (`retryable: false`); adapters never recover a poisoned lock with
   `into_inner` or silently skip teardown on poison.
@@ -112,14 +118,13 @@ See Q-007.
   limits are validated after parse and before any effect, never after
   mutation.
 
-Event delivery is scoped to the window that owns the publishing session
-(`emit_to` the session's caller, never app-wide). A full payload crosses only
-to a window whose session carries read authority for the domain; the client
-drops foreign-session cursors, so targeting changes no consumer behavior and
-removes the one channel where read authority was advisory. Cross-window
-invalidation is not a current property — if a product needs it, it is a
-designed channel (hint events plus authorized refetch), not an accident of
-broadcast.
+The Tauri bridge delivers domain, progress and terminal events directly to
+the webview window that owns the session. The renderer subscribes to local
+DOM events for all three. The Tauri event bus filters listener callbacks and
+can still send the payload to a nonmatching webview, so it cannot carry
+these full payloads across the authority boundary. The client also checks
+session cursors and job correlation. A product that needs cross-window
+invalidation can use a distinct hint and an authorized refetch.
 
 ## Handler And Client Shape
 
@@ -138,10 +143,13 @@ broadcast.
     `JoinError`) maps to a typed `*StateUnavailable` error with
     `retryable: false`.
 - **Transfer client-change hints:** the host targets the invoking webview
-  window with `emit_to`. The renderer subscribes to its own webview because
-  Tauri's default `Any` subscription also matches targeted events. History,
-  history-tree, notifications, and settings still broadcast command hints
-  through `window.emit`.
+  window with `emit_to`. The client requests a `current-webview` subscription
+  because Tauri's default `Any` subscription also matches targeted events.
+- **Broadcast hints:** history, history-tree, operation, licence,
+  notifications, update, and command keymap emit command hints app-wide via
+  `window.emit`. Settings emits app-wide via `app.emit`. The command
+  catalogue and trusted domain publishers also use `app.emit`. A window
+  receiver on a Rust `emit` call does not narrow delivery.
 - Domain packages own typed command, query, and subscription clients.
 - Command catalogue and keymap adapters may expose typed metadata, preview,
   and mutation queries. They expose no generic product command executor.
@@ -247,7 +255,8 @@ authority.
 - late listener registration can be disposed without leaking
 - progress, cancellation, terminal, and indeterminate-write fixtures remain
   request-correlated
-- typed error fixtures round-trip between Rust and TypeScript
+- typed error fixtures round-trip through Rust Serde and decode through the
+  TypeScript Tauri transport, including a rejected invoke shown by a panel
 - no Longhorn Svelte component calls raw Tauri IPC
 
 ## Implemented Evidence

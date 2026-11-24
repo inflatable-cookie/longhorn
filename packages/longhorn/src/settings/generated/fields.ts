@@ -31,4 +31,5 @@ export const SETTINGS_FIELDS = {
   "SettingsMutationReceipt": ["requestId", "pageId", "applyUnitId", "scopeId", "previousAuthority", "committedAuthority", "outcome", "durability", "activationRequirements"],
   "SettingsConflict": ["expected", "actual"],
   "SettingsRejection": ["code", "diagnostic"],
+  "SettingsHostError": ["code", "message", "retryable"],
 } as const;
