@@ -195,51 +195,55 @@ bump wrote instead of folding an unrelated re-resolution into its diff.
 
 The 0.6.0 advisory update is a bounded lock change. Tom approved it on
 2026-11-23 in the T3 planning thread ("Approve"): targeted updates of rmcp,
-cookie, rustix, url and libsqlite3-sys, plus a documented chrono allowance,
-to clear the RustSec advisories that block the release gate. Root lock: cookie
-0.18.2 → 0.18.3 (RUSTSEC-2026-0594); rustix 1.1.5 → 1.1.6 (RUSTSEC-2026-0486),
-whose own `windows-sys` edge moves 0.52.0 → 0.59.0 because 1.1.6 requires it;
-url 2.5.8 → 2.5.9 (RUSTSEC-2026-0592) with its dependency form_urlencoded
-1.2.2 → 1.2.3; rmcp 3.4.1 → 3.9.0 (RUSTSEC-2026-0457, -0461, -0462; 3.9.0 is
-the lowest release that clears all three) with rmcp-macros 3.4.1 → 3.9.0,
-because rmcp 3.9.0 requires `^3.9.0` and an unpinned resolution chose 3.11.0.
-rmcp 3.9.0 adds edges to `libc` and `sha2` 0.11.0, both already locked. No
-package is added or removed in the root lock, and no manifest requirement
-changes. The six prototype locks that carry these crates move the same way.
-agent-control also gains block-buffer 0.12.1, const-oid 0.10.3, crypto-common
-0.2.2, digest 0.11.3, hybrid-array 0.4.15 and sha2 0.11.1 (rmcp 3.9.0's
-`sha2 ^0.11` requirement), and the qualifiers on digest, sha2, tauri-codegen
-and wry change where two sha2 or digest versions now coexist. gpui-composition
-and gpui-windowing also drop the `longhorn-licence` → `longhorn-core` edge: the
-base lock predates the crate's current manifest, and `--locked` refused it.
-That is a Longhorn path edge, not third-party movement. The targeted updates
-also re-derived unrelated `windows-sys`, `getrandom` and `syn` edges; each was
-reverted to its base edge, so the diff carries only the packages above.
+cookie, rustix, url and libsqlite3-sys, plus a documented chrono allowance, to
+clear the RustSec advisories that block the release gate. Operator decision
+28232532 (2026-11-23, option A) takes the libsqlite3-sys move through a rusqlite
+0.41 raise, recorded as a Breaking change.
+
+Root `Cargo.lock`: eight package versions moved. cookie 0.18.2 → 0.18.3
+(RUSTSEC-2026-0594); form_urlencoded 1.2.2 → 1.2.3 (url 2.5.9's dependency);
+libsqlite3-sys 0.38.2 → 0.39.0 (RUSTSEC-2026-0459), the lowest release the 0.41
+line accepts; rmcp 3.4.1 → 3.9.0 (RUSTSEC-2026-0457, -0461, -0462; 3.9.0 is the
+lowest release that clears all three); rmcp-macros 3.4.1 → 3.9.0 (rmcp 3.9.0
+requires `^3.9.0`); rusqlite 0.40.2 → 0.41.0 (manifest requirement, with
+`bundled` and `backup` kept); rustix 1.1.5 → 1.1.6 (RUSTSEC-2026-0486); url
+2.5.8 → 2.5.9 (RUSTSEC-2026-0592). No package is added or removed. The only
+dependency edges that change are rmcp 3.9.0's new edges to `libc` and `sha2`
+0.11.0, both already locked. rustix 1.1.6 keeps its base `windows-sys` 0.52.0
+edge, which its requirement still accepts.
+
+Prototype locks. agent-control moves cookie, form_urlencoded, rmcp, rmcp-macros
+and url the same way, and adds block-buffer 0.12.1, const-oid 0.10.3,
+crypto-common 0.2.2, digest 0.11.3, hybrid-array 0.4.15 and sha2 0.11.1 (rmcp
+3.9.0 requires `sha2 ^0.11`). Its rmcp edge gains `libc` and `sha2 0.11.1`. The
+digest, sha2, tauri-codegen and wry edges change only by version qualifier,
+because two versions of each now coexist. gpui-composition and gpui-windowing
+move form_urlencoded, rustix and url. They also drop the `longhorn-licence` →
+`longhorn-core` edge: the base lock predates that crate's current manifest, and
+`--locked` refused it. This is a Longhorn path edge, not third-party movement.
+native-content-backing-surface, native-content-child-webview and
+native-content-isolated-window move cookie, form_urlencoded and url, with no
+edge change.
+
+The targeted updates also re-derived unrelated `windows-sys`, `getrandom` and
+`syn` edges. Each was reverted to its base edge, so none appears in this diff.
 
 The chrono allowance is RUSTSEC-2026-0543 (chrono 0.4.45, unmaintained, all
 versions affected). chrono is reached through rmcp 3.9.0 and schemars 1.2.2
 under longhorn-agent-control, and no safe upgrade exists. Follow-up: prefer
 jiff or time once rmcp and schemars move off chrono upstream.
 
-The SQLite engine moves too. Every 0.40.x rusqlite requires libsqlite3-sys
-`^0.38`, and the first rusqlite on libsqlite3-sys 0.39 is 0.41.0, so
-RUSTSEC-2026-0459 (SQLite CVE-2026-119375, bundled) cannot be cleared by a
-lock-only move. Tom ruled on 2026-11-23 (decision 28232532): raise rusqlite to
-0.41 as a v0.6.0 Breaking entry, keep `bundled`, and rerun the frozen SQLite
-suites. The requirement in `Cargo.toml` moves from `0.40.2` to `0.41.1`, which
-replaces the 0.40.x promise there; the lock moves rusqlite 0.40.2 → 0.41.1 and
-libsqlite3-sys 0.38.2 → 0.39.1. No package is added or removed, and no
-dependency edge moves beyond the two packages' own edges. rusqlite is a
-dev-dependency of `longhorn-config` only, so the bundled engine serves the test
-suites and ships in no Longhorn runtime code. 0.41 changed the `backup` progress
-callback's type inference, so two test call sites (`transition_sqlite.rs` in
-the storage_layout tests, and `support.rs` in the domain_store backup tests)
-name the progress type; no Longhorn source changed. The frozen native-snapshot,
-grouped-restore, WAL and storage-transition suites passed on 0.41.1: `cargo test
--p longhorn-config --locked` ran 149 tests with none failing, including 4
-snapshot, 12 grouped-restore, 5 WAL and 16 storage-transition cases. A consumer
-that depends on rusqlite 0.40.x directly must move to 0.41.x as well, because
-libsqlite3-sys declares `links = "sqlite3"` and cargo resolves one copy.
+rusqlite is a dev-dependency of `longhorn-config` only, so the bundled engine
+serves the test suites and ships in no Longhorn runtime code. rusqlite 0.41
+can no longer infer the `backup` progress callback's type from `None`, so two
+test call sites (`transition_sqlite.rs` in the storage_layout tests and
+`support.rs` in the domain_store backup tests) name it. No Longhorn source
+changed. The frozen native-snapshot, grouped-restore, WAL and storage-transition
+suites pass on 0.41.0: `cargo test -p longhorn-config --locked` runs 149 tests
+with none failing, including 4 snapshot, 12 grouped-restore, 5 WAL and 16
+storage-transition cases. A consumer that depends on rusqlite 0.40.x directly
+must move to 0.41.x as well, because libsqlite3-sys declares
+`links = "sqlite3"` and cargo resolves one copy.
 
 ## 0.6.0 release
 
