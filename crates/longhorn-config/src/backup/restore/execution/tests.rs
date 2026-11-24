@@ -1,4 +1,4 @@
-use std::{fs, path::Path, time::Duration};
+use std::{fs, io, time::Duration};
 
 use longhorn_core::{DomainId, SchemaVersion};
 use serde_json::Value;
@@ -9,8 +9,8 @@ use crate::{
     BackupApplication, BackupKind, BackupMetadata, BackupProducer, ConfigDomain,
     CoordinationAuthority, DomainDescriptor, DomainFilePath, DomainIssue, DomainLocation,
     DurabilityRequirement, LoadOutcome, MigrationStep, MutationError, MutationOptions,
-    RestoreCurrentEvidence, RestoreOperationState, RestoreRecoveryOutcome, Sha256Digest,
-    StorageClass, UnavailableState,
+    RestoreCurrentEvidence, RestoreOperationState, RestoreRecoveryOptions, RestoreRecoveryOutcome,
+    Sha256Digest, StorageClass, UnavailableState,
 };
 use longhorn_storage_layout::StorageRoots;
 
@@ -65,7 +65,7 @@ impl ConfigDomain for TestDomain {
 }
 
 struct Fixture {
-    _temp: TempDir,
+    temp: TempDir,
     store: ConfigStore,
     domain: TestDomain,
     target: std::path::PathBuf,
@@ -102,7 +102,7 @@ impl Fixture {
         };
         fs::create_dir_all(file.full_path().parent().unwrap()).unwrap();
         Self {
-            _temp: temp,
+            temp,
             target: file.full_path().to_path_buf(),
             store,
             domain,
@@ -111,6 +111,20 @@ impl Fixture {
 
     fn journal(&self, phase: JournalPhase, old: &[u8], new: &[u8]) {
         fs::write(&self.target, old).unwrap();
+        let mut state = self
+            .prepare_journal("test-operation".into(), old, new)
+            .unwrap();
+        state.phase = phase;
+        journal::publish(self.store.coordinator.authority_root(), &state).unwrap();
+        fs::write(&self.target, new).unwrap();
+    }
+
+    fn prepare_journal(
+        &self,
+        operation_id: String,
+        old: &[u8],
+        new: &[u8],
+    ) -> io::Result<RestoreJournal> {
         let staged = StagedDomain {
             domain: self.domain.descriptor.id().clone(),
             action: RestoreAction::Replace,
@@ -122,9 +136,8 @@ impl Fixture {
             schema_version: Some(SchemaVersion::new(1).unwrap()),
             bytes: Some(new.to_vec()),
         };
-        let authority = self.store.coordinator.authority_root();
-        let mut state = journal::persist_rollback(
-            authority,
+        journal::persist_rollback(
+            self.store.coordinator.authority_root(),
             std::slice::from_ref(&staged),
             &[RollbackEntry {
                 domain: staged.domain.clone(),
@@ -136,17 +149,85 @@ impl Fixture {
                 relative_path: "restore/state.json".into(),
             }],
             JournalSeed {
-                operation_id: "test-operation".into(),
+                operation_id,
                 plan_digest: Sha256Digest::from_bytes(b"plan"),
-                safety_path: Path::new("/tmp/safety.longhorn-backup").into(),
+                safety_path: self.temp.path().join("safety.longhorn-backup"),
                 safety_sha256: Sha256Digest::from_bytes(b"safety"),
             },
         )
-        .unwrap();
-        state.phase = phase;
-        journal::publish(authority, &state).unwrap();
-        fs::write(&self.target, new).unwrap();
     }
+}
+
+const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
+
+fn operation_id_at_limit(fixture: &Fixture, phase: JournalPhase, old: &[u8], new: &[u8]) -> String {
+    let mut state = fixture.prepare_journal(String::new(), old, new).unwrap();
+    state.phase = phase;
+    let overhead = serde_json::to_vec(&state).unwrap().len();
+    "x".repeat(MAX_JOURNAL_BYTES - overhead)
+}
+
+#[test]
+fn ordinary_restore_rejects_admission_when_only_the_shorter_phase_fits() {
+    let fixture = Fixture::new();
+    let old = b"old-state";
+    let new = b"new-state";
+    fs::write(&fixture.target, old).unwrap();
+    let operation_id = operation_id_at_limit(&fixture, JournalPhase::Applying, old, new);
+
+    let Err(error) = fixture.prepare_journal(operation_id, old, new) else {
+        panic!("restore admitted a journal whose recovery phase exceeds the byte limit");
+    };
+    assert!(error.to_string().contains("exceeds byte limit"), "{error}");
+    assert_eq!(fs::read(&fixture.target).unwrap(), old);
+    assert_eq!(
+        fixture.store.restore_operation_state(),
+        RestoreOperationState::Inactive
+    );
+}
+
+#[test]
+fn interrupted_ordinary_restore_recovers_at_the_journal_limit() {
+    let fixture = Fixture::new();
+    let old = b"old-state";
+    let new = b"new-state";
+    let operation_id = operation_id_at_limit(&fixture, JournalPhase::RecoveryRequired, old, new);
+    let mut state = fixture.prepare_journal(operation_id, old, new).unwrap();
+    let authority = fixture.store.coordinator.authority_root();
+    state.phase = JournalPhase::Applying;
+    journal::publish(authority, &state).unwrap();
+    fs::write(&fixture.target, new).unwrap();
+
+    let rollback = authority.join(".longhorn/restore/rollback/test.restore.rollback");
+    fs::write(&rollback, b"wrong-old").unwrap();
+    let options = RestoreRecoveryOptions::new(Duration::from_secs(1));
+    let error = fixture.store.recover_restore(options).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("rollback payload length or digest"),
+        "{error}"
+    );
+    assert_eq!(
+        fixture.store.restore_operation_state(),
+        RestoreOperationState::RecoveryRequired
+    );
+    assert_eq!(fs::read(&fixture.target).unwrap(), new);
+    assert_eq!(
+        fs::metadata(journal::journal_path(authority))
+            .unwrap()
+            .len(),
+        MAX_JOURNAL_BYTES as u64
+    );
+
+    fs::write(rollback, old).unwrap();
+    let receipt = fixture.store.recover_restore(options).unwrap();
+    assert_eq!(receipt.outcome(), RestoreRecoveryOutcome::RolledBack);
+    assert_eq!(fs::read(&fixture.target).unwrap(), old);
+    assert_eq!(
+        fixture.store.restore_operation_state(),
+        RestoreOperationState::Inactive
+    );
 }
 
 #[test]

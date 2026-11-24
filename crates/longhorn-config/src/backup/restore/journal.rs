@@ -17,6 +17,7 @@ const STATE_DIRECTORY: &str = ".longhorn/restore";
 const ROLLBACK_DIRECTORY: &str = "rollback";
 const JOURNAL_FILE: &str = "journal.json";
 const JOURNAL_VERSION: u32 = 1;
+const JOURNAL_SUBJECT: &str = "restore journal";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -37,22 +38,21 @@ impl JournalVersioned for RestoreJournal {
 }
 
 impl RestoreJournal {
-    pub(super) fn new(
-        operation_id: String,
-        plan_digest: Sha256Digest,
-        safety_path: PathBuf,
-        safety_sha256: Sha256Digest,
-        entries: Vec<JournalEntry>,
-    ) -> Self {
-        Self {
+    fn prepare(seed: JournalSeed, entries: Vec<JournalEntry>) -> io::Result<Self> {
+        let mut journal = Self {
             version: JOURNAL_VERSION,
-            operation_id,
-            plan_digest,
-            safety_path,
-            safety_sha256,
-            phase: JournalPhase::Prepared,
+            operation_id: seed.operation_id,
+            plan_digest: seed.plan_digest,
+            safety_path: seed.safety_path,
+            safety_sha256: seed.safety_sha256,
+            phase: JournalPhase::RecoveryRequired,
             entries,
-        }
+        };
+        // Only the phase changes after preparation, and recovery-required has
+        // the longest serialized name.
+        journal_file::encode(&journal, JOURNAL_SUBJECT)?;
+        journal.phase = JournalPhase::Prepared;
+        Ok(journal)
     }
 }
 
@@ -187,7 +187,7 @@ pub(super) fn load(authority_root: &Path) -> io::Result<Option<RestoreJournal>> 
     journal_file::load(
         &journal_path(authority_root),
         JOURNAL_VERSION,
-        "restore journal",
+        JOURNAL_SUBJECT,
     )
 }
 
@@ -197,7 +197,7 @@ pub(super) fn publish(authority_root: &Path, journal: &RestoreJournal) -> io::Re
         &state_directory(authority_root),
         JOURNAL_FILE,
         journal,
-        "restore journal",
+        JOURNAL_SUBJECT,
     )
 }
 
@@ -240,13 +240,7 @@ pub(super) fn persist_rollback(
         });
     }
     crate::dir_sync::sync_ancestors_to_root(authority_root, &rollback_path)?;
-    Ok(RestoreJournal::new(
-        seed.operation_id,
-        seed.plan_digest,
-        seed.safety_path,
-        seed.safety_sha256,
-        entries,
-    ))
+    RestoreJournal::prepare(seed, entries)
 }
 
 pub(super) fn read_rollback(
