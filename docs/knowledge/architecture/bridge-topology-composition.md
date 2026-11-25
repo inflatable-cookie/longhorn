@@ -2,7 +2,8 @@
 
 Status: promoted  
 Owner: Tom  
-Updated: 2026-07-30  
+Updated: 2026-11-25
+
 Contracts: `../contracts/007-optional-backend-topology.md`,
 `../contracts/010-rust-typescript-ipc-and-events.md`, and
 `../contracts/012-distribution-and-compatibility.md`
@@ -15,14 +16,14 @@ reach it.
 | Need | Rust | TypeScript | Tauri capability |
 | --- | --- | --- | --- |
 | Direct in-process domain | `longhorn-bridge` | `@inflatable-cookie/longhorn/bridge` | none |
-| Tauri-local query | `longhorn-tauri-bridge` | root plus `/tauri` | query |
-| Ordered Tauri projection | same host | add `/stream` and `/tauri-events` | query, listen, unlisten |
-| Correlated Tauri job | same host | add `/tauri-events` | query/mutate as registered, listen, unlisten |
-| Injected service lifecycle | `longhorn-bridge/supervision` | add `/supervision` | none from supervision |
+| Tauri-local query | `longhorn-tauri-bridge` | add `@inflatable-cookie/longhorn-tauri/bridge` | query |
+| Ordered Tauri projection | same host | add `/bridge/stream` and Tauri `/bridge-events` | query |
+| Correlated Tauri job | same host | add Tauri `/bridge-events` | query and mutate as registered |
+| Injected service lifecycle | `longhorn-bridge/supervision` | add `/bridge/supervision` | none from supervision |
 
-`@inflatable-cookie/longhorn/bridge` depends on `@inflatable-cookie/longhorn/core` and `@inflatable-cookie/longhorn-tauri`.
-The Tauri package carries one `@tauri-apps/api` peer. Event support is a
-subpath import, not an automatic capability grant.
+The Tauri package carries one `@tauri-apps/api` peer. Its `/bridge-events`
+subpath subscribes to DOM events in the owning webview. Bridge capabilities
+grant invoke access to the registered commands.
 
 Rust service supervision is feature-gated. `longhorn-tauri-bridge` is a
 separate adapter crate. A query-only Rust consumer can compile with
@@ -33,8 +34,8 @@ separate adapter crate. A query-only Rust consumer can compile with
 | Shape | Host form | Optional imports | Permissions | Service owner | Query retries |
 | --- | --- | --- | --- | --- | ---: |
 | `minimal-shell` proof | Tauri-local | none | query | none | 0 |
-| Jetstream | direct, Tauri-local | stream, Tauri events | query, listen, unlisten | none | 1 |
-| Soundcheck | Tauri-local, local service | supervision, Tauri events | query, mutate, listen, unlisten | external local | 2 |
+| Jetstream | direct, Tauri-local | stream, renderer-local events | query | none | 1 |
+| Soundcheck | Tauri-local, local service | supervision, renderer-local events | query, mutate | external local | 2 |
 | Nucleus | direct, optional local service | supervision | query, mutate | external local | 2 |
 | Loophole | local-first, remote attach | supervision | query, mutate | external remote | 3 |
 

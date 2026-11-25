@@ -1,7 +1,7 @@
 # Compose Desktop Systems
 
 Status: checked private adoption guidance
-Updated: 2026-09-28
+Updated: 2026-11-25
 Governing contracts: [002-017](../knowledge/contracts/contract-index.md)
 
 ## Why This Matters
@@ -44,7 +44,7 @@ snapshot becomes durable or product authority.
 | Surface | optional host/container topology and lifecycle | product Surface definitions and presence policy | persistence and window projection |
 | transfer | bounded sessions, leases, target resolution, checked commit | eligibility, product drag affordance, direct-window policy | optional whole-Surface feature |
 | commands | sealed registry, search, keymap resolution, fresh admission | catalogue, availability, authorization, typed execution | config, Tauri metadata, Svelte/Poodle/settings |
-| bridge | session, compatibility, authority descriptors, ordering, retry classes | domain operations, payloads, transport/security/service policy | Tauri events and injected supervision |
+| bridge | session, compatibility, authority descriptors, ordering, retry classes | domain operations, payloads, transport/security/service policy | renderer-local events and injected supervision |
 | history | linear structure, navigation plans, retention, metadata | payloads, atomic apply, codec, snapshot/journal, project versions | Tauri metadata and Svelte/Poodle panel |
 | operations | finite lifecycle, progress, cancellation receipts, retry lineage | executor, scheduler, work payload, durable restart | Tauri or typed bridge transport |
 | notifications | retained ledger, seen/dismiss/replace/prune, bounded projection | wording, publication policy, semantic actions | optional operation observation |
