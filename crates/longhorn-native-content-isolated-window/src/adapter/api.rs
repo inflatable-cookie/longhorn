@@ -11,7 +11,7 @@ use longhorn_native_content::{
 use crate::{
     AdmittedIsolatedContentRequest, HelperSnapshot, IsolatedContentRequestKind,
     IsolatedWindowAdapterEvent, IsolatedWindowError, IsolatedWindowRuntimeEvent,
-    IsolatedWindowRuntimeEventKind, TeardownOutcome,
+    IsolatedWindowRuntimeEventKind, IsolatedWindowRuntimeOperation, TeardownOutcome,
 };
 
 use super::{
@@ -180,7 +180,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             f64::from(size.height()) * 1000.0 / scale,
         )
         .map_err(|error| IsolatedWindowError::Runtime {
-            operation: "size",
+            operation: IsolatedWindowRuntimeOperation::Size,
             detail: error.to_string(),
         })?;
         authority

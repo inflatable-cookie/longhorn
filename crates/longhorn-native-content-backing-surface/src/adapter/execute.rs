@@ -9,8 +9,8 @@ use longhorn_native_content::{
 };
 
 use crate::{
-    BackingSurfaceAdapterEvent, BackingSurfaceError, BackingSurfaceRuntime, BackingSurfaceSnapshot,
-    RuntimeAttachRequest,
+    BackingSurfaceAdapterEvent, BackingSurfaceError, BackingSurfaceRuntime,
+    BackingSurfaceRuntimeOperation, BackingSurfaceSnapshot, RuntimeAttachRequest,
 };
 
 use super::{
@@ -186,7 +186,7 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
                 Ok(())
             } else {
                 Err(BackingSurfaceError::Runtime {
-                    operation: "attach",
+                    operation: BackingSurfaceRuntimeOperation::Attach,
                     detail: "runtime returned detached native storage".to_string(),
                 })
             }
@@ -252,7 +252,7 @@ impl<R: BackingSurfaceRuntime> BackingSurfaceAdapter<R> {
             };
             if attachment.detaching {
                 return Err(BackingSurfaceError::Runtime {
-                    operation: "detach",
+                    operation: BackingSurfaceRuntimeOperation::Detach,
                     detail: "storage detach is already in progress".to_string(),
                 });
             }

@@ -11,7 +11,7 @@ use longhorn_native_content::{
 use longhorn_native_content_backing_surface::{
     BackingSurfaceAdapterEvent, BackingSurfaceDetachOutcome, BackingSurfaceError,
     BackingSurfaceHostDestroyOutcome, BackingSurfaceRuntimeEvent, BackingSurfaceRuntimeEventKind,
-    InputAdmission, InputRejection,
+    BackingSurfaceRuntimeOperation, InputAdmission, InputRejection,
 };
 
 use support::{
@@ -251,7 +251,7 @@ fn host_destroy_invalidates_before_retryable_reversible_detach() {
     assert!(matches!(
         adapter.host_destroyed(&host_window_id(), attach_generation(1)),
         Err(BackingSurfaceError::Runtime {
-            operation: "detach",
+            operation: BackingSurfaceRuntimeOperation::Detach,
             ..
         })
     ));

@@ -18,12 +18,13 @@ use longhorn_native_content::{
     ObservedReadiness, OperationOutcome,
 };
 use longhorn_native_content_isolated_window::{
-    HelperCommand, HelperCommandKind, HelperMessage, HelperMessageKind, HelperSnapshot,
-    ISOLATED_WINDOW_CAPABILITIES, IsolatedContentRequest, IsolatedContentRequestKind,
-    IsolatedWindowAdapter, IsolatedWindowAdapterEvent, IsolatedWindowError,
-    IsolatedWindowHelperProtocolVersion, IsolatedWindowRuntime, IsolatedWindowRuntimeEvent,
-    IsolatedWindowRuntimeEventKind, IsolatedWindowSpec, IsolatedWindowStartupPhase,
-    MAX_STARTUP_PHASE_BYTES, RuntimeAttachRequest, TeardownOutcome,
+    HelperAcknowledgementOutcome, HelperCommand, HelperCommandKind, HelperMessage,
+    HelperMessageKind, HelperSnapshot, ISOLATED_WINDOW_CAPABILITIES, IsolatedContentRequest,
+    IsolatedContentRequestKind, IsolatedWindowAdapter, IsolatedWindowAdapterEvent,
+    IsolatedWindowError, IsolatedWindowHelperProtocolVersion, IsolatedWindowRuntime,
+    IsolatedWindowRuntimeEvent, IsolatedWindowRuntimeEventKind, IsolatedWindowRuntimeOperation,
+    IsolatedWindowSpec, IsolatedWindowStartupPhase, MAX_STARTUP_PHASE_BYTES, RuntimeAttachRequest,
+    TeardownOutcome,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -148,7 +149,7 @@ impl IsolatedWindowRuntime for FakeRuntime {
             size,
         });
         if state.fail_size {
-            return Err(runtime_error("size"));
+            return Err(runtime_error(IsolatedWindowRuntimeOperation::Size));
         }
         state.snapshot.content_size = size;
         Ok(())
@@ -218,7 +219,7 @@ impl IsolatedWindowRuntime for FakeRuntime {
         if let Some(during_teardown) = during_teardown {
             during_teardown();
         }
-        outcome.ok_or_else(|| runtime_error("teardown"))
+        outcome.ok_or_else(|| runtime_error(IsolatedWindowRuntimeOperation::Teardown))
     }
 }
 
@@ -529,6 +530,25 @@ fn helper_loss_is_terminal_and_stale_generation_cannot_mutate_replacement() {
     let second = coordinator(2);
     adapter.apply(&second, &second.plan().unwrap()).unwrap();
     assert_eq!(
+        adapter.teardown_reports().unwrap(),
+        vec![(
+            generation(1),
+            TeardownOutcome::Completed {
+                exit_status: Some(0),
+            },
+        )]
+    );
+    assert!(runtime.calls().windows(2).any(|calls| {
+        calls
+            == [
+                Call::Teardown(1),
+                Call::Attach {
+                    handle: 2,
+                    generation: 2,
+                },
+            ]
+    }));
+    assert_eq!(
         adapter.admit_runtime_event(runtime_event(
             1,
             IsolatedWindowRuntimeEventKind::VisibilityChanged { visible: false }
@@ -539,6 +559,74 @@ fn helper_loss_is_terminal_and_stale_generation_cannot_mutate_replacement() {
         })
     );
     assert!(adapter.is_attached(generation(2)).unwrap());
+}
+
+#[test]
+fn failed_owner_blocks_replacement_until_teardown_succeeds() {
+    let runtime = FakeRuntime::default();
+    let adapter = adapter(runtime.clone(), Arc::default());
+    let mut authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+    runtime.emit(
+        1,
+        IsolatedWindowRuntimeEventKind::HelperLost {
+            code: NativeContentFailureCode::new("isolated:transport-lost").unwrap(),
+            exit_status: None,
+        },
+    );
+    authority
+        .admit_observation(
+            authority.observed().revision(),
+            adapter.observe(generation(1)).unwrap(),
+        )
+        .unwrap();
+    authority
+        .update_desired(
+            authority.desired().revision(),
+            desired_update(2, DesiredPresence::Present),
+        )
+        .unwrap();
+    let replacement = authority.plan().unwrap();
+    let attach = Call::Attach {
+        handle: 2,
+        generation: 2,
+    };
+
+    let timeout = TeardownOutcome::TimedOut { timeout_millis: 25 };
+    // No queued outcome simulates a runtime error. A queued timeout is reported.
+    for outcomes in [vec![], vec![timeout.clone()]] {
+        runtime.set_teardown(outcomes.clone());
+        let receipt = adapter.apply(&authority, &replacement).unwrap();
+        let OperationOutcome::Failed { code } = receipt.steps()[0].outcome() else {
+            panic!("expected teardown failure on the replacement's attach step");
+        };
+        assert_eq!(code.as_str(), "isolated:teardown-failed");
+        assert!(!runtime.calls().contains(&attach));
+        assert_eq!(
+            adapter.observe(generation(1)).unwrap().lifecycle(),
+            AttachmentLifecycle::Failed
+        );
+        let expected_reports: Vec<_> = outcomes
+            .into_iter()
+            .map(|outcome| (generation(1), outcome))
+            .collect();
+        assert_eq!(adapter.teardown_reports().unwrap(), expected_reports);
+    }
+
+    let terminated = TeardownOutcome::OwnerProcessTerminated {
+        exit_status: Some(9),
+    };
+    runtime.set_teardown([terminated.clone()]);
+    let receipt = adapter.apply(&authority, &replacement).unwrap();
+    assert_eq!(receipt.steps()[0].outcome(), &OperationOutcome::Applied);
+    assert!(adapter.is_attached(generation(2)).unwrap());
+    assert!(runtime.calls().contains(&attach));
+    assert_eq!(
+        adapter.teardown_reports().unwrap(),
+        vec![(generation(1), timeout), (generation(1), terminated)]
+    );
 }
 
 #[test]
@@ -647,18 +735,14 @@ fn host_destroy_retires_before_teardown_and_retries_an_unresolved_owner() {
             callback_adapter.admit_runtime_event(runtime_event(1, ready_event())),
             Err(IsolatedWindowError::GenerationRetired(generation(1)))
         );
-        assert!(matches!(
-            callback_adapter.detach(generation(1)),
-            Err(IsolatedWindowError::Runtime {
-                operation: "teardown",
-                ..
-            })
-        ));
+        let error = callback_adapter.detach(generation(1)).unwrap_err();
+        assert_eq!(error, IsolatedWindowError::DetachInProgress);
+        assert_eq!(error.failure_code(), "isolated:detach-in-progress");
     }));
     assert!(matches!(
         adapter.host_destroyed(&host_window_id(), generation(1)),
         Err(IsolatedWindowError::Runtime {
-            operation: "teardown",
+            operation: IsolatedWindowRuntimeOperation::Teardown,
             ..
         })
     ));
@@ -845,8 +929,7 @@ fn helper_protocol_round_trips_bounded_correlation_without_outer_position() {
         generation: generation(3),
         message: HelperMessageKind::Acknowledged {
             request_id: request_id("owner:command-3"),
-            applied: true,
-            failure: None,
+            outcome: HelperAcknowledgementOutcome::Applied,
             snapshot: Some(snapshot()),
         },
     };
@@ -865,6 +948,47 @@ fn helper_protocol_round_trips_bounded_correlation_without_outer_position() {
         serde_json::from_str::<HelperCommand>(&encoded.replace("{", "{\"unexpected\":true,"))
             .is_err()
     );
+}
+
+#[test]
+fn helper_acknowledgements_keep_the_wire_shape_and_reject_contradictions() {
+    let [applied, rejected]: [serde_json::Value; 2] =
+        serde_json::from_str(include_str!("fixtures/helper-acknowledgements-v1.json")).unwrap();
+    for (wire, expected) in [
+        (applied.clone(), HelperAcknowledgementOutcome::Applied),
+        (
+            rejected.clone(),
+            HelperAcknowledgementOutcome::Rejected {
+                failure: Some(NativeContentFailureCode::new("isolated:focus-failed").unwrap()),
+            },
+        ),
+    ] {
+        let message = serde_json::from_value::<HelperMessage>(wire.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&message).unwrap(), wire);
+        let HelperMessageKind::Acknowledged { outcome, .. } = message.message else {
+            panic!("expected a helper acknowledgement");
+        };
+        assert_eq!(outcome, expected);
+    }
+
+    let mut contradictory = rejected.clone();
+    contradictory["message"]["applied"] = true.into();
+    assert!(serde_json::from_value::<HelperMessage>(contradictory).is_err());
+
+    for (mut wire, expected) in [
+        (applied, HelperAcknowledgementOutcome::Applied),
+        (
+            rejected,
+            HelperAcknowledgementOutcome::Rejected { failure: None },
+        ),
+    ] {
+        wire["message"].as_object_mut().unwrap().remove("failure");
+        let message = serde_json::from_value::<HelperMessage>(wire).unwrap();
+        let HelperMessageKind::Acknowledged { outcome, .. } = message.message else {
+            panic!("expected a helper acknowledgement");
+        };
+        assert_eq!(outcome, expected);
+    }
 }
 
 #[test]
@@ -1014,7 +1138,7 @@ fn host_window_id() -> WindowId {
     WindowId::new("window:isolated-proof").unwrap()
 }
 
-fn runtime_error(operation: &'static str) -> IsolatedWindowError {
+fn runtime_error(operation: IsolatedWindowRuntimeOperation) -> IsolatedWindowError {
     IsolatedWindowError::Runtime {
         operation,
         detail: "injected failure".into(),

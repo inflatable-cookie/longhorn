@@ -154,7 +154,10 @@ return a typed island mismatch. Mechanism-specific lifecycle rules also apply:
   native work for its invalidated generation until detach settles;
 - an isolated-window owner can fail terminally while its island lives on. The
   failed generation stops admitting runtime events, remains eligible for
-  teardown, and yields only to the next generation.
+  teardown, and yields only to the next generation. Attaching that successor
+  first runs bounded teardown on the failed owner. A timeout or runtime error
+  keeps the owner available for retry and blocks the successor from launching.
+  Teardown reports name the failed generation.
 
 The isolated-window adapter admits up to 128 pending requests. It deduplicates
 all pending request IDs and the latest 256 accepted IDs per generation.
@@ -162,6 +165,8 @@ Capacity refusals leave the ID available for retry. The teardown report
 snapshot retains the latest 128 reports in chronological order.
 Helper protocol v1 carries startup progress phases as UTF-8 strings of at
 most 128 bytes. The same bound applies to injected runtime progress events.
+An acknowledgement with `applied: true` requires `failure` to be null or
+omitted. An acknowledgement with `applied: false` may carry a failure code.
 
 Registration does not create content. Unregistration does not imply that a
 consumer-owned process, plugin, or renderer shut down successfully.
@@ -246,6 +251,8 @@ An island that has never attached can still use its initial generation.
 Detach is idempotent. When safe in-process detach is unavailable, an adapter
 may require owner-process termination and report that policy. Longhorn does
 not call unsafe third-party unload paths to simulate a generic detach.
+An overlapping isolated-window detach returns `DetachInProgress`. Native
+failures use typed operation categories for stable receipt codes.
 
 Host-window destroy invalidates its island generations before later native
 events are admitted. Shutdown has a bounded timeout and returns unresolved

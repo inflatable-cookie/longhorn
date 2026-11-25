@@ -4,6 +4,48 @@ use longhorn_native_content::{
     AttachGeneration, CoordinationError, GenerationRejection, NativeContentIslandId, ReceiptError,
 };
 
+/// Operation category for an isolated-window runtime failure.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IsolatedWindowRuntimeOperation {
+    /// Launch the owner and attach its content.
+    Attach,
+    /// Set the native content size.
+    Size,
+    /// Show the native content.
+    Show,
+    /// Hide the native content.
+    Hide,
+    /// Request native focus.
+    Focus,
+    /// Release owned native focus.
+    ReleaseFocus,
+    /// Set the native resize capability hint.
+    ResizeHint,
+    /// Read the owner's current native state.
+    Observe,
+    /// Tear down the owner process.
+    Teardown,
+    /// Report a runtime-specific operation with its label in the detail.
+    Other,
+}
+
+impl fmt::Display for IsolatedWindowRuntimeOperation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Attach => "attach",
+            Self::Size => "size",
+            Self::Show => "show",
+            Self::Hide => "hide",
+            Self::Focus => "focus",
+            Self::ReleaseFocus => "release_focus",
+            Self::ResizeHint => "resize_hint",
+            Self::Observe => "observe",
+            Self::Teardown => "teardown",
+            Self::Other => "other",
+        })
+    }
+}
+
 /// Failure from isolated-window validation, execution, or evidence admission.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IsolatedWindowError {
@@ -38,6 +80,8 @@ pub enum IsolatedWindowError {
     NotAttached,
     /// Owner launch is reserved but has not returned a usable handle.
     AttachInProgress,
+    /// Owner teardown is already running for this generation.
+    DetachInProgress,
     /// The supplied host differs from the mapped host.
     HostBindingMismatch,
     /// Isolated native content requires native-direct input.
@@ -55,7 +99,7 @@ pub enum IsolatedWindowError {
     /// An injected runtime operation failed.
     Runtime {
         /// Stable operation category.
-        operation: &'static str,
+        operation: IsolatedWindowRuntimeOperation,
         /// Adapter-local diagnostic detail.
         detail: String,
     },
@@ -80,6 +124,7 @@ impl IsolatedWindowError {
             Self::GenerationRetired(_) => "isolated:generation-retired",
             Self::NotAttached => "isolated:not-attached",
             Self::AttachInProgress => "isolated:attach-in-progress",
+            Self::DetachInProgress => "isolated:detach-in-progress",
             Self::HostBindingMismatch => "isolated:host-binding",
             Self::UnsupportedInputMode => "isolated:input-mode",
             Self::UnsupportedDetachPolicy => "isolated:detach-policy",
@@ -87,17 +132,17 @@ impl IsolatedWindowError {
             Self::DuplicateCorrelation => "isolated:duplicate-correlation",
             Self::RequestCapacity => "isolated:request-capacity",
             Self::NotResizeRequest => "isolated:not-resize-request",
-            Self::Runtime { operation, .. } => match *operation {
-                "attach" => "isolated:attach-failed",
-                "size" => "isolated:size-failed",
-                "show" => "isolated:show-failed",
-                "hide" => "isolated:hide-failed",
-                "focus" => "isolated:focus-failed",
-                "release_focus" => "isolated:release-focus-failed",
-                "resize_hint" => "isolated:resize-hint-failed",
-                "observe" => "isolated:observe-failed",
-                "teardown" => "isolated:teardown-failed",
-                _ => "isolated:runtime-failed",
+            Self::Runtime { operation, .. } => match operation {
+                IsolatedWindowRuntimeOperation::Attach => "isolated:attach-failed",
+                IsolatedWindowRuntimeOperation::Size => "isolated:size-failed",
+                IsolatedWindowRuntimeOperation::Show => "isolated:show-failed",
+                IsolatedWindowRuntimeOperation::Hide => "isolated:hide-failed",
+                IsolatedWindowRuntimeOperation::Focus => "isolated:focus-failed",
+                IsolatedWindowRuntimeOperation::ReleaseFocus => "isolated:release-focus-failed",
+                IsolatedWindowRuntimeOperation::ResizeHint => "isolated:resize-hint-failed",
+                IsolatedWindowRuntimeOperation::Observe => "isolated:observe-failed",
+                IsolatedWindowRuntimeOperation::Teardown => "isolated:teardown-failed",
+                IsolatedWindowRuntimeOperation::Other => "isolated:runtime-failed",
             },
             Self::Coordination(_) => "isolated:coordination-rejected",
             Self::Receipt(_) => "isolated:receipt-rejected",
@@ -137,6 +182,7 @@ impl fmt::Display for IsolatedWindowError {
             }
             Self::NotAttached => formatter.write_str("isolated content is not attached"),
             Self::AttachInProgress => formatter.write_str("isolated owner launch is in progress"),
+            Self::DetachInProgress => formatter.write_str("isolated owner teardown is in progress"),
             Self::HostBindingMismatch => formatter.write_str("host binding does not match mapping"),
             Self::UnsupportedInputMode => {
                 formatter.write_str("isolated content requires native-direct input")

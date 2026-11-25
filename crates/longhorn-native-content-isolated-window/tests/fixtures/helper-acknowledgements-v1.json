@@ -1,0 +1,28 @@
+[
+  {
+    "protocol_version": 1,
+    "generation": 3,
+    "message": {
+      "kind": "acknowledged",
+      "request_id": "owner:command-3",
+      "applied": true,
+      "failure": null,
+      "snapshot": {
+        "content_size": { "width": 640, "height": 400 },
+        "visible": false,
+        "focused": false
+      }
+    }
+  },
+  {
+    "protocol_version": 1,
+    "generation": 3,
+    "message": {
+      "kind": "acknowledged",
+      "request_id": "owner:command-3",
+      "applied": false,
+      "failure": "isolated:focus-failed",
+      "snapshot": null
+    }
+  }
+]

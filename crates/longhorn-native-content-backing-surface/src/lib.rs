@@ -13,7 +13,7 @@ pub use adapter::{
     BackingSurfaceAdapter, BackingSurfaceDetachOutcome, BackingSurfaceDetachReceipt,
     BackingSurfaceHostDestroyOutcome, BackingSurfaceHostDestroyReceipt,
 };
-pub use error::BackingSurfaceError;
+pub use error::{BackingSurfaceError, BackingSurfaceRuntimeOperation};
 pub use policy::{BACKING_SURFACE_CAPABILITIES, BackingSurfaceSpec};
 pub use runtime::{
     BackingSurfaceAdapterEvent, BackingSurfaceRuntime, BackingSurfaceRuntimeEvent,

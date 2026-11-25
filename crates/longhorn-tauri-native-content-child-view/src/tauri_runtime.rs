@@ -8,8 +8,8 @@ use tauri::{
 };
 
 use crate::{
-    ChildViewError, ChildViewPolicyEvent, ChildViewRuntime, ChildViewRuntimeEvent,
-    ChildViewRuntimeEventKind, ChildViewSource, RuntimeAttachRequest,
+    ChildViewError, ChildViewNativeOperation, ChildViewPolicyEvent, ChildViewRuntime,
+    ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSource, RuntimeAttachRequest,
 };
 
 /// Opaque retained child handle. The underlying Tauri webview stays private.
@@ -59,7 +59,7 @@ impl<R: Runtime> ChildViewRuntime for TauriChildViewRuntime<R> {
             .app
             .get_window(request.spec.host_window_label().as_str())
             .ok_or_else(|| ChildViewError::Native {
-                operation: "attach",
+                operation: ChildViewNativeOperation::Attach,
                 detail: "mapped host window is unavailable".to_string(),
             })?;
 
@@ -143,7 +143,7 @@ impl<R: Runtime> ChildViewRuntime for TauriChildViewRuntime<R> {
                 PhysicalPosition::new(0, 0),
                 TauriPhysicalSize::new(1, 1),
             )
-            .map_err(|error| native_error("attach", error))?;
+            .map_err(|error| native_error(ChildViewNativeOperation::Attach, error))?;
         hide_new_child(|| webview.hide(), || webview.close())?;
         Ok(TauriChildViewHandle { webview })
     }
@@ -165,60 +165,60 @@ impl<R: Runtime> ChildViewRuntime for TauriChildViewRuntime<R> {
                     bounds.size().height(),
                 )),
             })
-            .map_err(|error| native_error("bounds", error))
+            .map_err(|error| native_error(ChildViewNativeOperation::Bounds, error))
     }
 
     fn show(&self, handle: &Self::Handle) -> Result<(), ChildViewError> {
         handle
             .webview
             .show()
-            .map_err(|error| native_error("show", error))
+            .map_err(|error| native_error(ChildViewNativeOperation::Show, error))
     }
 
     fn hide(&self, handle: &Self::Handle) -> Result<(), ChildViewError> {
         handle
             .webview
             .hide()
-            .map_err(|error| native_error("hide", error))
+            .map_err(|error| native_error(ChildViewNativeOperation::Hide, error))
     }
 
     fn focus(&self, handle: &Self::Handle) -> Result<(), ChildViewError> {
         handle
             .webview
             .set_focus()
-            .map_err(|error| native_error("focus", error))
+            .map_err(|error| native_error(ChildViewNativeOperation::Focus, error))
     }
 
     fn current_url(&self, handle: &Self::Handle) -> Result<tauri::Url, ChildViewError> {
         handle
             .webview
             .url()
-            .map_err(|error| native_error("current-url", error))
+            .map_err(|error| native_error(ChildViewNativeOperation::CurrentUrl, error))
     }
 
     fn navigate(&self, handle: &Self::Handle, url: tauri::Url) -> Result<(), ChildViewError> {
         handle
             .webview
             .navigate(url)
-            .map_err(|error| native_error("navigate", error))
+            .map_err(|error| native_error(ChildViewNativeOperation::Navigate, error))
     }
 
     fn close(&self, handle: &Self::Handle) -> Result<(), ChildViewError> {
         handle
             .webview
             .close()
-            .map_err(|error| native_error("close", error))
+            .map_err(|error| native_error(ChildViewNativeOperation::Close, error))
     }
 
     fn bounds(&self, handle: &Self::Handle) -> Result<PhysicalRect, ChildViewError> {
         let position = handle
             .webview
             .position()
-            .map_err(|error| native_error("observe", error))?;
+            .map_err(|error| native_error(ChildViewNativeOperation::Observe, error))?;
         let size = handle
             .webview
             .size()
-            .map_err(|error| native_error("observe", error))?;
+            .map_err(|error| native_error(ChildViewNativeOperation::Observe, error))?;
         Ok(PhysicalRect::new(
             PhysicalPoint::new(position.x, position.y),
             PhysicalSize::new(size.width, size.height),
@@ -237,12 +237,12 @@ fn hide_new_child(
                 format_args!("{close_error:?}"),
             );
         }
-        return Err(native_error("hide", error));
+        return Err(native_error(ChildViewNativeOperation::Hide, error));
     }
     Ok(())
 }
 
-fn native_error(operation: &'static str, error: tauri::Error) -> ChildViewError {
+fn native_error(operation: ChildViewNativeOperation, error: tauri::Error) -> ChildViewError {
     ChildViewError::Native {
         operation,
         detail: error.to_string(),
@@ -251,7 +251,7 @@ fn native_error(operation: &'static str, error: tauri::Error) -> ChildViewError 
 
 #[cfg(test)]
 mod tests {
-    use super::{ChildViewError, hide_new_child};
+    use super::{ChildViewError, ChildViewNativeOperation, hide_new_child};
 
     #[test]
     fn failed_initial_hide_closes_child_and_preserves_hide_failure() {
@@ -266,7 +266,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(ChildViewError::Native {
-                operation: "hide",
+                operation: ChildViewNativeOperation::Hide,
                 ..
             })
         ));

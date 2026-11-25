@@ -4,6 +4,39 @@ use longhorn_native_content::{
     AttachGeneration, GenerationRejection, NativeContentIslandId, ReceiptError,
 };
 
+/// Operation category for a backing surface failure.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BackingSurfaceRuntimeOperation {
+    /// Attach native backing storage.
+    Attach,
+    /// Update the viewport clip.
+    Clip,
+    /// Update backing surface presentation.
+    Presentation,
+    /// Update backing surface input routing.
+    Input,
+    /// Read the backing surface state.
+    Observe,
+    /// Detach native backing storage.
+    Detach,
+    /// Report a runtime-specific operation with its label in the detail.
+    Other,
+}
+
+impl fmt::Display for BackingSurfaceRuntimeOperation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Attach => "attach",
+            Self::Clip => "clip",
+            Self::Presentation => "presentation",
+            Self::Input => "input",
+            Self::Observe => "observe",
+            Self::Detach => "detach",
+            Self::Other => "other",
+        })
+    }
+}
+
 /// Failure from backing-surface validation, execution, or evidence admission.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BackingSurfaceError {
@@ -65,7 +98,7 @@ pub enum BackingSurfaceError {
     /// An injected storage or renderer operation failed.
     Runtime {
         /// Stable operation category.
-        operation: &'static str,
+        operation: BackingSurfaceRuntimeOperation,
         /// Adapter-local diagnostic detail.
         detail: String,
     },
@@ -95,14 +128,14 @@ impl BackingSurfaceError {
             Self::UnsupportedInputMode => "backing:input-mode",
             Self::UnsupportedFocusOperation => "backing:focus-operation",
             Self::UnsupportedDetachPolicy => "backing:detach-policy",
-            Self::Runtime { operation, .. } => match *operation {
-                "attach" => "backing:attach-failed",
-                "clip" => "backing:clip-failed",
-                "presentation" => "backing:presentation-failed",
-                "input" => "backing:input-failed",
-                "observe" => "backing:observe-failed",
-                "detach" => "backing:detach-failed",
-                _ => "backing:runtime-failed",
+            Self::Runtime { operation, .. } => match operation {
+                BackingSurfaceRuntimeOperation::Attach => "backing:attach-failed",
+                BackingSurfaceRuntimeOperation::Clip => "backing:clip-failed",
+                BackingSurfaceRuntimeOperation::Presentation => "backing:presentation-failed",
+                BackingSurfaceRuntimeOperation::Input => "backing:input-failed",
+                BackingSurfaceRuntimeOperation::Observe => "backing:observe-failed",
+                BackingSurfaceRuntimeOperation::Detach => "backing:detach-failed",
+                BackingSurfaceRuntimeOperation::Other => "backing:runtime-failed",
             },
             Self::Receipt(_) => "backing:receipt-rejected",
             Self::Poisoned => "backing:poisoned",

@@ -10,8 +10,8 @@ use longhorn_native_content::{
 };
 
 use crate::{
-    IsolatedWindowAdapterEvent, IsolatedWindowError, IsolatedWindowRuntime, RuntimeAttachRequest,
-    TeardownOutcome,
+    IsolatedWindowAdapterEvent, IsolatedWindowError, IsolatedWindowRuntime,
+    IsolatedWindowRuntimeOperation, RuntimeAttachRequest, TeardownOutcome,
 };
 
 use super::{Attachment, IsolatedWindowAdapter, compare_generation, state::MAX_TEARDOWN_REPORTS};
@@ -162,22 +162,27 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 .state
                 .lock()
                 .map_err(|_| IsolatedWindowError::Poisoned)?;
+            let retired = state.retired_generation;
+            // Claim teardown before releasing the lock. The failed owner stays
+            // in the slot until teardown confirms it is gone.
+            if let Some(attachment) = state.attachment.as_mut()
+                && attachment.failed
+                && retired != Some(attachment.generation)
+                && attachment.generation.checked_next().ok() == Some(generation)
+            {
+                let predecessor = attachment.generation;
+                let handle = Self::begin_teardown(attachment)?;
+                drop(state);
+                self.teardown_owner(predecessor, &handle)?;
+                state = self
+                    .state
+                    .lock()
+                    .map_err(|_| IsolatedWindowError::Poisoned)?;
+            }
             if state.latest_generation == Some(generation)
                 && state.retired_generation == Some(generation)
             {
                 return Err(IsolatedWindowError::GenerationRetired(generation));
-            }
-            // Mechanism-specific extension (contract 017): a terminally failed
-            // owner retires when exactly the next generation attaches.
-            if state.attachment.as_ref().is_some_and(|attachment| {
-                attachment.failed
-                    && state.retired_generation != Some(attachment.generation)
-                    && !attachment.detaching
-                    && attachment.generation.checked_next().ok() == Some(generation)
-            }) {
-                let retired = state.attachment.as_ref().map(|value| value.generation);
-                state.attachment = None;
-                state.retired_generation = retired;
             }
             if check_attach_reservation(
                 state.latest_generation,
@@ -283,21 +288,32 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             else {
                 return Ok(());
             };
-            if attachment.detaching {
-                return Err(IsolatedWindowError::Runtime {
-                    operation: "teardown",
-                    detail: "owner teardown is already in progress".into(),
-                });
-            }
-            let handle = attachment
-                .handle
-                .clone()
-                .ok_or(IsolatedWindowError::AttachInProgress)?;
-            attachment.detaching = true;
-            handle
+            Self::begin_teardown(attachment)?
         };
+        self.teardown_owner(generation, &handle)
+    }
+
+    fn begin_teardown(
+        attachment: &mut Attachment<R::Handle>,
+    ) -> Result<R::Handle, IsolatedWindowError> {
+        if attachment.detaching {
+            return Err(IsolatedWindowError::DetachInProgress);
+        }
+        let handle = attachment
+            .handle
+            .clone()
+            .ok_or(IsolatedWindowError::AttachInProgress)?;
+        attachment.detaching = true;
+        Ok(handle)
+    }
+
+    fn teardown_owner(
+        &self,
+        generation: AttachGeneration,
+        handle: &R::Handle,
+    ) -> Result<(), IsolatedWindowError> {
         (self.observer)(IsolatedWindowAdapterEvent::DetachStarted { generation });
-        let outcome = match self.runtime.teardown(&handle, self.spec.teardown_timeout()) {
+        let outcome = match self.runtime.teardown(handle, self.spec.teardown_timeout()) {
             Ok(outcome) => outcome,
             Err(error) => {
                 self.clear_detaching(generation)?;
@@ -338,7 +354,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         });
         if matches!(outcome, TeardownOutcome::TimedOut { .. }) {
             return Err(IsolatedWindowError::Runtime {
-                operation: "teardown",
+                operation: IsolatedWindowRuntimeOperation::Teardown,
                 detail: "owner missed bounded teardown deadline".to_string(),
             });
         }
