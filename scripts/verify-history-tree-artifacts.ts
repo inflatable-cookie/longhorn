@@ -311,7 +311,9 @@ async function packAndRunRustArtifacts(): Promise<{
   // since task 099 added policy-weight/migration-error, near-ceiling prune,
   // pinned-spine protected-lineage, and lazy branch-page projection tests.
   // 68 includes task 163 retention, navigation, record, and legacy-load regressions.
-  if (testCount !== 68) {
+  // 70 since task 177 added the imported single-child redo and tagged wire
+  // unknown-field regressions.
+  if (testCount !== 70) {
     throw new Error(`artifact tree test count mismatch: ${testCount}`);
   }
 
