@@ -1,0 +1,12 @@
+[
+  {
+    "code": "authorityUnavailable",
+    "message": "Host temporarily unavailable",
+    "retryable": true
+  },
+  {
+    "code": "stateUnavailable",
+    "message": "update handler state is unavailable",
+    "retryable": false
+  }
+]

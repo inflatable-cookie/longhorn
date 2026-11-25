@@ -30,6 +30,7 @@ export const CONFIG_FIELDS = {
   "ConfigOperationRejection": ["code", "detail", "snapshot"],
   "BackupCaptureReceiptProjection": ["selectedDomains", "capturedDomains", "absentDomains", "sourcePreservedDomains", "excludedDomains", "customDomains", "externalConsistencyGroups", "totalPayloadBytes", "flushedPendingPublication"],
   "BackupPublicationReceiptProjection": ["path", "destination", "archiveSha256", "durability", "replacedExisting"],
+  "ConfigOperationsHostError": ["code", "message", "retryable"],
   "RestoreOperationsProjection": ["state", "safetyBackupSha256"],
   "RestoreIdentityProjection": ["application", "producer"],
   "RestoreConsistencyGroupProjection": ["id", "mode", "authority"],

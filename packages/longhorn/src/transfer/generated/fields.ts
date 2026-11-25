@@ -20,4 +20,5 @@ export const TRANSFER_FIELDS = {
   "TransferCommittedTarget": ["path", "window_id", "drop_zone_id", "insertion_position", "binding"],
   "PanelTransferCompletion": ["protocol_version", "request_id", "session_id", "source_host_binding_id", "target_host_binding_id", "source_binding_kind", "target_binding_kind", "previous_revision", "committed_revision", "authoritative_document", "target"],
   "TransferAbort": ["protocol_version", "request_id", "source", "layout_code", "message", "retryable", "session_consumed"],
+  "TransferHostError": ["code", "message", "retryable"],
 } as const;

@@ -35,12 +35,8 @@ for (const shape of shapes) {
     }
   }
   const imports = requireValue(importGraph[shape], "importGraph[shape]");
-  const hasEvents = imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events");
-  const hasEventAdmission = fixture.tauriPermissions.some((permission) =>
-    permission.startsWith("core:event:"),
-  );
-  if (hasEvents !== hasEventAdmission) {
-    throw new Error(`${shape} event imports and permissions diverge`);
+  if (fixture.tauriPermissions.some((permission) => permission.startsWith("core:event:"))) {
+    throw new Error(`${shape} grants Tauri event permissions for renderer-local subscriptions`);
   }
   const hasService = imports.includes("@inflatable-cookie/longhorn/bridge/supervision");
   if (hasService !== (fixture.serviceOwnership !== null)) {
@@ -58,6 +54,17 @@ assertEqualSet(
   "Minimal shell query-only Tauri admission",
   queryCapability.permissions,
   declaration("minimal-shell").tauriPermissions,
+);
+const subscriptionCapability = readPermissions(
+  await readFile(
+    join(repoRoot, "crates/longhorn-tauri-bridge/examples/capabilities/subscription.json"),
+    "utf8",
+  ),
+);
+assertEqualSet(
+  "Bridge subscription invoke permissions",
+  subscriptionCapability.permissions,
+  declaration("jobs-and-service-failure").tauriPermissions,
 );
 
 const rootBarrel = await readFile(join(repoRoot, "packages/longhorn/src/bridge/index.ts"), "utf8");

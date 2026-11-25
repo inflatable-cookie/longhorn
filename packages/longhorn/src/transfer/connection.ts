@@ -24,7 +24,8 @@ export class TransferClientConnection {
     onFailure?: ConnectionFailureReporter,
   ) {
     this.#connection = new CheckedSnapshotConnection({
-      listen: (receive) => transport.listen(TRANSFER_CLIENT_CHANGED_EVENT, receive),
+      listen: (receive) =>
+        transport.listen(TRANSFER_CLIENT_CHANGED_EVENT, receive, { scope: "current-webview" }),
       loadSnapshot,
       validateSnapshot: parseTransferClientSnapshot,
       handleEvent: (value) => ({ kind: "snapshot", value }),

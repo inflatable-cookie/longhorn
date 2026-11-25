@@ -54,7 +54,7 @@ pub async fn longhorn_notifications_snapshot<R: Runtime>(
     .await
 }
 
-/// Applies one caller-authorized notification mutation and emits its hint to the invoking window.
+/// Applies one caller-authorized notification mutation and broadcasts its commit hint.
 #[tauri::command]
 pub async fn longhorn_notifications_mutate<R: Runtime>(
     window: WebviewWindow<R>,

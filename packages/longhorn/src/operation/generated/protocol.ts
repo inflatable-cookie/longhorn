@@ -760,3 +760,7 @@ operationId: OperationId | null,
  * Change source.
  */
 kind: OperationChangedKind, };
+
+export type OperationHostErrorCode = "authorityUnavailable" | "authorityStateUnavailable" | "executorStateUnavailable" | "eventPublication";
+
+export type OperationHostError = { "code": OperationHostErrorCode, "message": string, "retryable": boolean, };

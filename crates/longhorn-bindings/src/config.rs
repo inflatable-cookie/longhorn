@@ -47,6 +47,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-config/src/error.rs"]
+mod host_error;
+
 const GENERATED_PROTOCOL: &str = "packages/longhorn/src/config/generated/protocol.ts";
 const GENERATED_BASE_PROTOCOL: &str = "packages/longhorn/src/config/generated/base.ts";
 const GENERATED_RESTORE_PROTOCOL: &str = "packages/longhorn/src/config/generated/restore.ts";
@@ -126,6 +131,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let restore_adapter = RestoreAdapterExecuteOutcome::decl(config());
     let restore_recovery = RestoreRecoveryOutcomeProjection::decl(config());
 
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::ConfigOperationsHostErrorCode>(
+            host_error::ConfigOperationsHostError::state_unavailable(),
+            "ConfigOperationsHostError",
+            "ConfigOperationsHostErrorCode",
+        )?;
+
     let base_declarations = [
         ConfigProtocolVersion::decl(config()),
         ConfigGeneration::decl(config()),
@@ -173,6 +185,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         create.clone(),
         export.clone(),
         retention.clone(),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
     let restore_declarations = [
@@ -337,5 +351,15 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
             relative_path: GOLDEN_FIXTURE,
             contents: fixture::render()?,
         },
+        crate::serde_shape::error_fixture(
+            "fixtures/config/host-errors.json",
+            &[
+                host_error::ConfigOperationsHostError::authority(
+                    "Host temporarily unavailable",
+                    true,
+                ),
+                host_error::ConfigOperationsHostError::state_unavailable(),
+            ],
+        )?,
     ])
 }

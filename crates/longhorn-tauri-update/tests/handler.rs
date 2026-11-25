@@ -4,10 +4,10 @@ use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 
 use longhorn_tauri_update::{
-    TauriUpdateState, UPDATE_CHANGED_EVENT, UPDATE_PROGRESS_EVENT, UpdateHandlerAssembly,
-    UpdateHostAuthority, UpdateHostError, longhorn_update_apply, longhorn_update_cancel,
-    longhorn_update_check, longhorn_update_defer, longhorn_update_prepare,
-    longhorn_update_select_channel, longhorn_update_snapshot, update_changed_event,
+    TauriUpdateState, UPDATE_CHANGED_EVENT, UpdateHandlerAssembly, UpdateHostAuthority,
+    UpdateHostError, longhorn_update_apply, longhorn_update_cancel, longhorn_update_check,
+    longhorn_update_defer, longhorn_update_prepare, longhorn_update_select_channel,
+    longhorn_update_snapshot, update_changed_event,
 };
 use longhorn_update::{
     ArtifactFetch, Channel, DeferralCause, EndpointUrl, FetchError, FetchProgress,
@@ -368,7 +368,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
 }
 
 #[test]
-fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
+fn ipc_prepare_reports_progress_only_to_the_request_channel() {
     let fixture: serde_json::Value =
         serde_json::from_str(include_str!("../../../fixtures/update/protocol-v1.json")).unwrap();
     let expected = fixture["progressEvent"].clone();
@@ -398,7 +398,9 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
         .unwrap();
     let events = Arc::new(Mutex::new(Vec::new()));
     let received = Arc::clone(&events);
-    app.listen(UPDATE_PROGRESS_EVENT, move |event| {
+    // Watch the retired route without declaring it as a current event.
+    let (namespace, _) = UPDATE_CHANGED_EVENT.rsplit_once('/').unwrap();
+    app.listen(format!("{namespace}/progress"), move |event| {
         received
             .lock()
             .unwrap()
@@ -428,13 +430,6 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
     );
     assert_eq!(
         invoke(
-            "longhorn_update_snapshot",
-            serde_json::json!({ "includeProgressCapabilities": true })
-        ),
-        serde_json::json!({ "snapshot": snapshot(), "scopedPrepareProgress": true })
-    );
-    assert_eq!(
-        invoke(
             "longhorn_update_prepare",
             serde_json::json!({
                 "command": fixture["prepareCommand"],
@@ -446,7 +441,7 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
     assert!(events.lock().unwrap().is_empty());
     assert_eq!(
         *messages.lock().unwrap(),
-        [(tauri::ipc::CallbackFn(42), expected.clone())]
+        [(tauri::ipc::CallbackFn(42), expected)]
     );
 
     assert_eq!(
@@ -456,7 +451,7 @@ fn ipc_prepare_uses_the_request_channel_and_preserves_the_legacy_event() {
         ),
         serde_json::json!(committed())
     );
-    assert_eq!(*events.lock().unwrap(), [expected]);
+    assert!(events.lock().unwrap().is_empty());
     assert_eq!(messages.lock().unwrap().len(), 1);
 }
 

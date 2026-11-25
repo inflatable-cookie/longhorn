@@ -13,14 +13,6 @@ use crate::{UpdateHandlerAssembly, UpdateHostAuthority, UpdateHostError};
 /// Non-durable committed update invalidation hint.
 pub const UPDATE_CHANGED_EVENT: &str = "longhorn://update/changed";
 
-/// Live byte progress, published while a transfer runs.
-///
-/// Separate from `UPDATE_CHANGED_EVENT` because it carries a value rather than
-/// an invalidation: a snapshot read during the transfer still shows the
-/// retained state, so this is the only channel that reports bytes as they
-/// arrive.
-pub const UPDATE_PROGRESS_EVENT: &str = "longhorn://update/progress";
-
 /// Type-erased update host installed once in Tauri managed state.
 pub struct TauriUpdateState {
     assembly: Arc<UpdateHandlerAssembly<dyn UpdateHostAuthority>>,
@@ -52,29 +44,12 @@ async fn run_blocking<R: Runtime, T: Send + 'static>(
 }
 
 /// Returns caller-authorized update state.
+#[tauri::command]
 pub async fn longhorn_update_snapshot<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
 ) -> Result<UpdateSnapshot, UpdateHostError> {
     run_blocking(state, &window, |assembly, label| assembly.snapshot(label)).await
-}
-
-// The IPC wrappers accept optional arguments while the direct Rust functions
-// retain their signatures and the same Tauri command names and permissions.
-#[doc(hidden)]
-#[macro_export]
-macro_rules! __cmd__longhorn_update_snapshot {
-    ($path:path, $invoke:ident) => {
-        $crate::dispatch_update($invoke)
-    };
-}
-
-#[doc(hidden)]
-#[macro_export]
-macro_rules! __tauri_command_name_longhorn_update_snapshot {
-    () => {
-        "longhorn_update_snapshot"
-    };
 }
 
 /// Asks the source for the channel's current manifest.
@@ -121,8 +96,8 @@ pub async fn longhorn_update_defer<R: Runtime>(
 
 /// Fetches, verifies and retains an update for a later apply.
 ///
-/// Runs on a blocking thread so the transfer does not hold the main thread,
-/// and byte progress leaves through `UPDATE_PROGRESS_EVENT` while it runs.
+/// Runs on a blocking thread so the transfer does not hold the main thread.
+/// IPC callers can supply an `onProgress` channel to receive live byte progress.
 pub async fn longhorn_update_prepare<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriUpdateState>,
@@ -150,51 +125,16 @@ macro_rules! __tauri_command_name_longhorn_update_prepare {
 pub use ipc::dispatch_update;
 
 mod ipc {
-    use serde::Serialize;
     use tauri::ipc::{Invoke, JavaScriptChannelId};
     use tauri::{Runtime, State, WebviewWindow};
 
-    use super::{
-        TauriUpdateState, UpdateHostError, UpdateOutcomeProjection, UpdatePrepareCommand,
-        UpdateSnapshot,
-    };
+    use super::{TauriUpdateState, UpdateHostError, UpdateOutcomeProjection, UpdatePrepareCommand};
 
     #[doc(hidden)]
     /// Dispatches update IPC extensions through Tauri's argument parser.
     pub fn dispatch_update<R: Runtime>(invoke: Invoke<R>) -> bool {
-        let handle: fn(Invoke<R>) -> bool = tauri::generate_handler![
-            self::longhorn_update_snapshot,
-            self::longhorn_update_prepare
-        ];
+        let handle: fn(Invoke<R>) -> bool = tauri::generate_handler![self::longhorn_update_prepare];
         handle(invoke)
-    }
-
-    #[derive(Serialize)]
-    #[serde(untagged)]
-    enum SnapshotReply {
-        Snapshot(UpdateSnapshot),
-        WithCapabilities {
-            snapshot: UpdateSnapshot,
-            #[serde(rename = "scopedPrepareProgress")]
-            scoped_prepare_progress: bool,
-        },
-    }
-
-    #[tauri::command]
-    async fn longhorn_update_snapshot<R: Runtime>(
-        window: WebviewWindow<R>,
-        state: State<'_, TauriUpdateState>,
-        include_progress_capabilities: Option<bool>,
-    ) -> Result<SnapshotReply, UpdateHostError> {
-        let snapshot = super::longhorn_update_snapshot(window, state).await?;
-        Ok(if include_progress_capabilities == Some(true) {
-            SnapshotReply::WithCapabilities {
-                snapshot,
-                scoped_prepare_progress: true,
-            }
-        } else {
-            SnapshotReply::Snapshot(snapshot)
-        })
     }
 
     #[tauri::command]
@@ -217,14 +157,11 @@ async fn prepare<R: Runtime>(
 ) -> Result<UpdateOutcomeProjection, UpdateHostError> {
     let assembly = Arc::clone(&state.assembly);
     let label = window.label().to_owned();
-    let emit_window = window.clone();
     let outcome = tauri::async_runtime::spawn_blocking(move || {
         assembly.prepare(&label, command, &mut |event| {
-            let result = match &progress {
-                Some(channel) => channel.send(event),
-                None => emit_window.emit(UPDATE_PROGRESS_EVENT, event),
-            };
-            if let Err(error) = result {
+            if let Some(channel) = &progress
+                && let Err(error) = channel.send(event)
+            {
                 longhorn_core::report_best_effort_failure("update.progress-emit", error);
             }
         })

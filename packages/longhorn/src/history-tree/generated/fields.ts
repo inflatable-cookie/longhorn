@@ -24,4 +24,5 @@ export const HISTORY_TREE_FIELDS = {
   "ForkNavigationReceiptProjection": ["historyId", "planId", "previousRevision", "committedRevision", "sourceEntryId", "targetEntryId", "targetBranchId", "movedEntryIds"],
   "ForkNavigationRejectionProjection": ["code", "detail", "refreshRequired"],
   "ForkChangedEvent": ["protocolVersion", "authorityEpoch", "historyId", "previousRevision", "committedRevision", "kind"],
+  "ForkHistoryHostError": ["code", "message", "retryable"],
 } as const;

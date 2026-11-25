@@ -34,9 +34,7 @@
         "@inflatable-cookie/longhorn-tauri/bridge-events"
       ],
       "tauriPermissions": [
-        "allow-longhorn-bridge-query",
-        "core:event:allow-listen",
-        "core:event:allow-unlisten"
+        "allow-longhorn-bridge-query"
       ],
       "serviceOwnership": null,
       "maximumQueryRetries": 1,
@@ -71,9 +69,7 @@
       ],
       "tauriPermissions": [
         "allow-longhorn-bridge-query",
-        "allow-longhorn-bridge-mutate",
-        "core:event:allow-listen",
-        "core:event:allow-unlisten"
+        "allow-longhorn-bridge-mutate"
       ],
       "serviceOwnership": "externalLocal",
       "maximumQueryRetries": 2,

@@ -1,5 +1,6 @@
 import type {
   ConnectionFailureReporter,
+  EventListenOptions,
   EventTransport,
   Unlisten,
 } from "@inflatable-cookie/longhorn/core";
@@ -25,6 +26,7 @@ import { TauriBridgeAdapter } from "./bridge.ts";
 export const BRIDGE_DOMAIN_EVENT = "longhorn://bridge/domain";
 export const BRIDGE_PROGRESS_EVENT = "longhorn://bridge/progress";
 export const BRIDGE_TERMINAL_EVENT = "longhorn://bridge/terminal";
+const bridgeDelivery = { scope: "renderer-local" } satisfies EventListenOptions;
 
 /**
  * Event-capable stream source. `connectBridgeStream` installs `listen` before
@@ -48,7 +50,7 @@ export class TauriBridgeStreamSource implements BridgeStreamSource {
   }
 
   listen(listener: (value: unknown) => void): Promise<Unlisten> {
-    return this.#transport.listen(BRIDGE_DOMAIN_EVENT, listener);
+    return this.#transport.listen(BRIDGE_DOMAIN_EVENT, listener, bridgeDelivery);
   }
 
   loadSnapshot(): Promise<unknown> {
@@ -201,8 +203,8 @@ export async function listenTauriBridgeJob<Progress, Success, Detail>(
   };
 
   try {
-    await adopt(await transport.listen(BRIDGE_PROGRESS_EVENT, onProgress));
-    await adopt(await transport.listen(BRIDGE_TERMINAL_EVENT, onTerminal));
+    await adopt(await transport.listen(BRIDGE_PROGRESS_EVENT, onProgress, bridgeDelivery));
+    await adopt(await transport.listen(BRIDGE_TERMINAL_EVENT, onTerminal, bridgeDelivery));
     registered = true;
   } catch (error) {
     stopped = true;

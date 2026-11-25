@@ -17,4 +17,5 @@ export const OPERATION_FIELDS = {
   "OperationRejection": ["code", "detail", "refreshRequired"],
   "OperationCancellationReceiptProjection": ["operationId", "outcome", "previousState", "committedState", "previousOperationRevision", "committedOperationRevision", "previousCatalogueRevision", "committedCatalogueRevision", "evicted"],
   "OperationChangedEvent": ["protocolVersion", "requestId", "authority", "previousCatalogueRevision", "committedCatalogueRevision", "operationId", "kind"],
+  "OperationHostError": ["code", "message", "retryable"],
 } as const;

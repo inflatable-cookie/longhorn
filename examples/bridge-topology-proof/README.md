@@ -6,7 +6,7 @@ without donor writes or production networking.
 | Shape | Required seam | Optional seam |
 | --- | --- | --- |
 | Minimal shell | query-only Tauri invoke | none |
-| Jetstream | listener-first snapshot stream | Tauri events |
+| Jetstream | listener-first snapshot stream | Renderer-local events |
 | Soundcheck | correlated job and cancellation | external local service |
 | Nucleus | per-domain capability and authority | external local host |
 | Loophole | stable authority across host forms | remote attach |

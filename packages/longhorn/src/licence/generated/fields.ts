@@ -14,4 +14,5 @@ export const LICENCE_FIELDS = {
   "LicenceReleaseSeatCommand": ["protocolVersion", "authorityEpoch", "machineId"],
   "LicenceRenameSeatCommand": ["protocolVersion", "authorityEpoch", "machineId", "label"],
   "LicenceChangedEvent": ["protocolVersion", "authorityEpoch", "kind"],
+  "LicenceHostError": ["code", "message", "retryable"],
 } as const;

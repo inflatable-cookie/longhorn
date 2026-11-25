@@ -15,4 +15,5 @@ export const HISTORY_FIELDS = {
   "HistoryNavigationReceiptProjection": ["historyId", "planId", "previousRevision", "committedRevision", "direction", "movedEntryIds", "sourcePosition", "authoritativePosition"],
   "HistoryNavigationRejectionProjection": ["code", "detail", "refreshRequired"],
   "HistoryChangedEvent": ["protocolVersion", "authorityEpoch", "historyId", "previousRevision", "committedRevision", "kind"],
+  "HistoryHostError": ["code", "message", "retryable"],
 } as const;

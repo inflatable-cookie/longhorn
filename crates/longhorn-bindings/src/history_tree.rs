@@ -28,6 +28,11 @@ use crate::{
 
 mod fixture;
 
+// Compile the adapter's wire declarations without linking the Tauri runtime.
+#[allow(dead_code)]
+#[path = "../../longhorn-tauri-history-tree/src/error.rs"]
+mod host_error;
+
 const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     protocol: "packages/longhorn/src/history-tree/generated/protocol.ts",
     fields: "packages/longhorn/src/history-tree/generated/fields.ts",
@@ -50,6 +55,13 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let delete_result = ForkDeleteResult::decl(config());
     let retention_code = ForkRetentionRejectionCode::decl(config());
     let prune_result = ForkPruneResult::decl(config());
+    let [host_error_code, host_error] =
+        crate::serde_shape::error_declarations::<_, host_error::ForkHistoryHostErrorCode>(
+            host_error::ForkHistoryHostError::state_unavailable(),
+            "ForkHistoryHostError",
+            "ForkHistoryHostErrorCode",
+        )?;
+
     let declarations = [
         HistoryId::decl(config()),
         HistoryEntryId::decl(config()),
@@ -92,6 +104,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         navigation_result.clone(),
         ForkChangedKind::decl(config()),
         ForkChangedEvent::decl(config()),
+        host_error_code,
+        host_error,
     ]
     .map(exported_declaration);
 
@@ -124,5 +138,14 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         declarations.join("\n\n"),
     );
 
-    build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)
+    let mut artifacts =
+        build_domain_artifacts(&ARTIFACTS, contents, &declarations, fixture::render()?)?;
+    artifacts.push(crate::serde_shape::error_fixture(
+        "fixtures/history-tree/host-errors.json",
+        &[
+            host_error::ForkHistoryHostError::authority("Host temporarily unavailable", true),
+            host_error::ForkHistoryHostError::state_unavailable(),
+        ],
+    )?);
+    Ok(artifacts)
 }

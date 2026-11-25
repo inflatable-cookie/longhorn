@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-11-23
+Updated: 2026-11-24
 Architecture: `../architecture/system-architecture.md`
 Research: `019-application-update-and-release-channels.md` (Git history)
 
@@ -201,17 +201,15 @@ earlier single-call stance.
   retains it, an explicit cancel discards it, and a failure reports a typed
   error. A refused install is still deferred, never cancelled.
 - Progress is observable **while the transfer runs**, out of band from the
-  controller lock, so a surface renders byte progress rather than waiting for a
-  long call to return. A Tauri renderer can request `includeProgressCapabilities`
-  on snapshot. Hosts that return `{ snapshot, scopedPrepareProgress: true }`
-  support the optional `onProgress` IPC channel on prepare. The channel is
-  scoped to that invoke and carries the existing `UpdateProgressEvent` payload.
+  controller lock. Tauri prepare takes an optional `onProgress` IPC channel
+  carrying `UpdateProgressEvent` for that invocation. A prepare without a
+  channel completes without live byte reports. Tauri snapshot always returns
+  the plain snapshot.
 - The TypeScript controller accepts scoped reports for its pending prepare
-  and current authority epoch. Event-only ports and older Tauri hosts use
-  the shared progress event, gated on a pending prepare and matching epoch.
-  That event cannot distinguish a queued report from a cancelled transfer
-  from one for its same-epoch replacement. Strict correlation for all hosts
-  is follow-up for the next minor release.
+  and current authority epoch. Custom event-only `UpdatePort` implementations
+  can still supply epoch-gated progress. Those ports need invocation-scoped
+  progress to distinguish a queued report from a cancelled prepare from one
+  for its same-epoch replacement.
 - Committed Tauri command hints distinguish checks, channel selection,
   deferrals, and install progress.
 

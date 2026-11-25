@@ -5,6 +5,8 @@ use std::{error::Error, fmt};
 use serde::{Deserialize, Deserializer, Serialize, de, forward_to_deserialize_any};
 use serde_json::Value;
 
+use crate::generation::Artifact;
+
 #[derive(Debug)]
 enum Shape {
     Variants(&'static [&'static str]),
@@ -99,4 +101,18 @@ pub(crate) fn error_declarations<T: Serialize, C: for<'de> Deserialize<'de>>(
         format!("type {code_name} = {};", variants.join(" | ")),
         format!("type {name} = {{ {} }};", fields.join(" ")),
     ])
+}
+
+pub(crate) fn error_fixture<T: Serialize + for<'de> Deserialize<'de> + Eq>(
+    relative_path: &'static str,
+    samples: &[T],
+) -> Result<Artifact, Box<dyn Error>> {
+    let json = serde_json::to_string_pretty(samples)?;
+    if serde_json::from_str::<Vec<T>>(&json)? != samples {
+        return Err(format!("host errors in {relative_path} must round-trip through Serde").into());
+    }
+    Ok(Artifact {
+        relative_path,
+        contents: format!("{json}\n"),
+    })
 }

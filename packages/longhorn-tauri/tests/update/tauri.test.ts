@@ -1,13 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { ok } from "node:assert/strict";
-import { UpdateController } from "@inflatable-cookie/longhorn/update";
 
 import { TauriTransport } from "../../src/transport/index.ts";
 import { createTauriUpdatePort } from "../../src/update.ts";
 import { fixture } from "../../../longhorn/tests/update/support.ts";
 
 describe("Tauri update composition", () => {
-  test("uses seven narrow commands and two events", async () => {
+  test("uses seven narrow commands and one committed-change event", async () => {
     const {
       checkCommand,
       selectChannelCommand,
@@ -37,7 +35,6 @@ describe("Tauri update composition", () => {
     await port.apply(applyCommand);
     await port.cancel(cancelCommand);
     await port.listen?.(() => {});
-    await port.listenProgress?.(() => {});
     expect(calls).toEqual([
       ["longhorn_update_snapshot", {}],
       ["longhorn_update_check", { command: checkCommand }],
@@ -47,7 +44,8 @@ describe("Tauri update composition", () => {
       ["longhorn_update_apply", { command: applyCommand }],
       ["longhorn_update_cancel", { command: cancelCommand }],
     ]);
-    expect(listened).toEqual(["longhorn://update/changed", "longhorn://update/progress"]);
+    expect(listened).toEqual(["longhorn://update/changed"]);
+    expect(port.listenProgress).toBeUndefined();
   });
 
   test("an invoke-only transport leaves the port silent", async () => {
@@ -62,47 +60,6 @@ describe("Tauri update composition", () => {
     expect(port.prepareWithProgress).toBeUndefined();
   });
 
-  test("a host that returns a plain snapshot retains event-only progress", async () => {
-    const { notCheckedSnapshot, progressEvent, prepareCommand, stagedSnapshot } = fixture();
-    let report: ((event: unknown) => void) | undefined;
-    let finish: ((outcome: unknown) => void) | undefined;
-    class OlderHost extends TauriTransport {
-      override invoke(command: string, args: Record<string, unknown>): Promise<unknown> {
-        if (command === "longhorn_update_snapshot") {
-          expect(args).toEqual({ includeProgressCapabilities: true });
-          return Promise.resolve(notCheckedSnapshot);
-        }
-        expect(command).toBe("longhorn_update_prepare");
-        expect(args).toEqual({ command: prepareCommand });
-        return new Promise((resolve) => {
-          finish = resolve;
-        });
-      }
-
-      listen(event: string, listener: (event: unknown) => void): () => void {
-        if (event === "longhorn://update/progress") {
-          report = listener;
-        }
-        return () => {};
-      }
-    }
-    const controller = new UpdateController({
-      port: createTauriUpdatePort({ transport: new OlderHost() }),
-    });
-    await controller.start();
-    const pending = controller.prepare(prepareCommand.version);
-    ok(report, "the renderer listens to the legacy progress event");
-    ok(finish, "the renderer invokes legacy prepare");
-    report(progressEvent);
-    expect(controller.progress).toEqual(progressEvent.progress);
-
-    finish({ status: "committed", snapshot: stagedSnapshot });
-    await pending;
-    report(progressEvent);
-    expect(controller.progress).toEqual(stagedSnapshot.progress);
-    await controller.stop();
-  });
-
   test("native progress channels are isolated and close with their invocation", async () => {
     const { prepareCommand, progressEvent, snapshot, stagedSnapshot } = fixture();
     const callbacks = new Map<number, (message: unknown) => void>();
@@ -113,8 +70,8 @@ describe("Tauri update composition", () => {
     class PendingTransport extends TauriTransport {
       override invoke(command: string, args: Record<string, unknown>): Promise<unknown> {
         if (command === "longhorn_update_snapshot") {
-          expect(args).toEqual({ includeProgressCapabilities: true });
-          return Promise.resolve({ snapshot, scopedPrepareProgress: true });
+          expect(args).toEqual({});
+          return Promise.resolve(snapshot);
         }
         expect(command).toBe("longhorn_update_prepare");
         return new Promise((resolve) => {
