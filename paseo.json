@@ -1,7 +1,6 @@
 {
   "worktree": {
-    "setup": "nucleus worktree prepare && effigy bootstrap:deps && nucleus worktree link",
-    "teardown": "nucleus worktree unlink"
+    "setup": "effigy bootstrap:deps"
   },
   "scripts": {
     "qa": { "command": "effigy qa" },
