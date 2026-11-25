@@ -21,6 +21,7 @@
   }
 
   let { controller, confirmInstall = true }: Props = $props();
+  const channelId = $props.id();
 
   const update = sampleUpdateController(() => controller);
 
@@ -48,12 +49,12 @@
 
 <Stack gap="lg">
   <Field
-    id="longhorn-update-channel"
+    id={channelId}
     label="Release channel"
     description={selected === undefined ? null : CHANNEL_HINTS[selected]}
   >
     <Select
-      id="longhorn-update-channel"
+      id={channelId}
       {options}
       value={selected ?? null}
       disabled={update.pending || selected === undefined}

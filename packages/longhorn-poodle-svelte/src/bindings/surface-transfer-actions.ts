@@ -126,7 +126,9 @@ export function surfaceTransferDrag(
 
   return {
     update(nextOptions) {
-      cancel();
+      if (nextOptions.state !== options.state) {
+        cancel();
+      }
       options = nextOptions;
     },
     destroy() {

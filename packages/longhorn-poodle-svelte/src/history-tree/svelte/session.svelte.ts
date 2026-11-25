@@ -1,35 +1,59 @@
 import { ForkHistoryController } from "@inflatable-cookie/longhorn/history-tree";
-import type {
-  ForkHistoryControllerOptions,
-  ForkHistoryControllerStatus,
-} from "@inflatable-cookie/longhorn/history-tree";
+import type { ForkHistoryControllerOptions } from "@inflatable-cookie/longhorn/history-tree";
 import type {
   ForkBranchId,
-  ForkBranchPageSnapshot,
   ForkContinuationPageSnapshot,
-  ForkEntryRecord,
   ForkPruneResult,
   ForkDeleteResult,
   ForkNavigationResult,
   ForkPathPageSnapshot,
-  ForkSnapshot,
 } from "@inflatable-cookie/longhorn/history-tree/protocol";
+import { freezeProjection } from "../../bindings/freeze-projection.ts";
+
 export class ForkHistorySession {
   readonly #controller: ForkHistoryController;
   readonly #unobserve: () => void;
-  status = $state<ForkHistoryControllerStatus>({ kind: "idle" });
-  snapshot = $state<ForkSnapshot>();
-  path = $state<ForkPathPageSnapshot>();
-  branches = $state<ForkBranchPageSnapshot>();
-  entries = $state<Array<ForkEntryRecord>>([]);
-  navigationPending = $state(false);
-  canUndo = $state(false);
-  canRedo = $state(false);
+  #projection: ReturnType<typeof project>;
+
   constructor(options: ForkHistoryControllerOptions) {
     this.#controller = new ForkHistoryController(options);
-    this.#unobserve = this.#controller.observe(() => this.#sync());
-    this.#sync();
+    this.#projection = $state.raw(project(this.#controller));
+    this.#unobserve = this.#controller.observe(() => {
+      this.#projection = project(this.#controller);
+    });
   }
+  get status() {
+    return this.#projection.status;
+  }
+
+  get snapshot() {
+    return this.#projection.snapshot;
+  }
+
+  get path() {
+    return this.#projection.path;
+  }
+
+  get branches() {
+    return this.#projection.branches;
+  }
+
+  get entries() {
+    return this.#projection.entries;
+  }
+
+  get navigationPending() {
+    return this.#projection.navigationPending;
+  }
+
+  get canUndo() {
+    return this.#projection.canUndo;
+  }
+
+  get canRedo() {
+    return this.#projection.canRedo;
+  }
+
   start() {
     return this.#controller.start();
   }
@@ -88,14 +112,17 @@ export class ForkHistorySession {
   checkoutContinuation(entryId: string): Promise<ForkNavigationResult> {
     return this.#controller.checkoutContinuation(entryId);
   }
-  #sync() {
-    this.status = this.#controller.status;
-    this.snapshot = this.#controller.snapshot;
-    this.path = this.#controller.path;
-    this.branches = this.#controller.branches;
-    this.entries = [...this.#controller.entries];
-    this.navigationPending = this.#controller.navigationPending;
-    this.canUndo = this.#controller.canUndo;
-    this.canRedo = this.#controller.canRedo;
-  }
+}
+
+function project(controller: ForkHistoryController) {
+  return {
+    status: Object.freeze({ ...controller.status }),
+    snapshot: freezeProjection(structuredClone(controller.snapshot)),
+    path: freezeProjection(structuredClone(controller.path)),
+    branches: freezeProjection(structuredClone(controller.branches)),
+    entries: freezeProjection(structuredClone(controller.entries)),
+    navigationPending: controller.navigationPending,
+    canUndo: controller.canUndo,
+    canRedo: controller.canRedo,
+  };
 }

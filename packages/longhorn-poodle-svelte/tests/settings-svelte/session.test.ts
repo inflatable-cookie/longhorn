@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
 import parity from "../../../../fixtures/parity/projection-v1.json";
 
 import {
@@ -6,6 +7,7 @@ import {
   SettingsPageApplyAmbiguityError,
   SettingsSession,
 } from "../../src/settings/svelte.ts";
+import { SettingsScopeState } from "../../src/settings/svelte/scope.svelte.ts";
 import {
   deferred,
   FakeSettingsTransport,
@@ -22,6 +24,53 @@ const intent = {
 };
 
 describe("SettingsSession", () => {
+  it("supersedes a start queued behind settings document teardown", async () => {
+    const transport = new FakeSettingsTransport();
+    const session = new SettingsSession({
+      client: transport.client(),
+      nextRequestId: requestIds("restart"),
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
+    });
+    await session.start(() => renderer());
+    const gate = transport.deferNextScopeUnlisten();
+    const stop = session.stop();
+    await gate.entered;
+    const restart = session.start(() => renderer());
+    const finalStop = session.stop();
+    gate.release();
+    await Promise.all([stop, restart, finalStop]);
+
+    expect(transport.activeListenerCount()).toBe(0);
+    expect(session.registry).toBeUndefined();
+    expect(session.status.kind).toBe("idle");
+  });
+
+  it("supersedes a start queued behind a settings scope stop", async () => {
+    const transport = new FakeSettingsTransport();
+    const page = transport.registryValue.pages[0];
+    const scopeId = page?.readableScopeIds[0];
+    assert.ok(page && scopeId);
+    const scope = new SettingsScopeState({
+      client: transport.client(),
+      registry: transport.registryValue,
+      pageId: page.id,
+      scopeId,
+      nextRequestId: requestIds("scope-restart"),
+    });
+    await scope.start();
+    const gate = transport.deferNextScopeUnlisten();
+    const stop = scope.stop();
+    await gate.entered;
+    const restart = scope.start();
+    const finalStop = scope.stop();
+    gate.release();
+    await Promise.all([stop, restart, finalStop]);
+
+    expect(transport.activeListenerCount()).toBe(0);
+    expect(scope.snapshot).toBeUndefined();
+    expect(scope.status.kind).toBe("idle");
+  });
+
   it("uses the host folding policy for page and anchor search", async () => {
     for (const testCase of parity.settingsSearch) {
       const transport = new FakeSettingsTransport();

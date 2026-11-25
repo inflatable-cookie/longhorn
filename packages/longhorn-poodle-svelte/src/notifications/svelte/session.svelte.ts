@@ -1,88 +1,121 @@
 import { NotificationController } from "@inflatable-cookie/longhorn/notifications";
 import type {
-  NotificationCommandFailure,
-  NotificationCommandRejection,
   NotificationControllerOptions,
-  NotificationControllerStatus,
-  NotificationPendingCommand,
   NotificationPendingKind,
-  NotificationPaginationStatus,
-  NotificationToastProjection,
 } from "@inflatable-cookie/longhorn/notifications";
 import type {
   NotificationId,
   NotificationMutationResult,
-  NotificationRecordProjection,
-  NotificationSnapshot,
 } from "@inflatable-cookie/longhorn/notifications/protocol";
 
+import { freezeProjection } from "../../bindings/freeze-projection.ts";
+
 export class NotificationSession {
-  readonly controller: NotificationController;
-  readonly unobserve: () => void;
-  status = $state<NotificationControllerStatus>({ kind: "idle" });
-  snapshot = $state<NotificationSnapshot | undefined>();
-  records = $state<Array<NotificationRecordProjection>>([]);
-  toasts = $state<Array<NotificationToastProjection>>([]);
-  selectedNotificationId = $state<NotificationId | undefined>();
-  selected = $state<NotificationRecordProjection | undefined>();
-  pendingCommands = $state<Array<NotificationPendingCommand>>([]);
-  commandRejection = $state<NotificationCommandRejection | undefined>();
-  commandFailure = $state<NotificationCommandFailure | undefined>();
-  pagination = $state<NotificationPaginationStatus>({ kind: "idle" });
-  hasMore = $state(false);
+  readonly #controller: NotificationController;
+  readonly #unobserve: () => void;
+  #projection: ReturnType<typeof project>;
 
   constructor(options: NotificationControllerOptions) {
-    this.controller = new NotificationController(options);
-    this.unobserve = this.controller.observe(() => this.sync());
-    this.sync();
+    this.#controller = new NotificationController(options);
+    this.#projection = $state.raw(project(this.#controller));
+    this.#unobserve = this.#controller.observe(() => {
+      this.#projection = project(this.#controller);
+    });
+  }
+
+  get status() {
+    return this.#projection.status;
+  }
+
+  get snapshot() {
+    return this.#projection.snapshot;
+  }
+
+  get records() {
+    return this.#projection.records;
+  }
+
+  get toasts() {
+    return this.#projection.toasts;
+  }
+
+  get selectedNotificationId() {
+    return this.#projection.selectedNotificationId;
+  }
+
+  get selected() {
+    return this.#projection.selected;
+  }
+
+  get pendingCommands() {
+    return this.#projection.pendingCommands;
+  }
+
+  get commandRejection() {
+    return this.#projection.commandRejection;
+  }
+
+  get commandFailure() {
+    return this.#projection.commandFailure;
+  }
+
+  get pagination() {
+    return this.#projection.pagination;
+  }
+
+  get hasMore() {
+    return this.#projection.hasMore;
   }
 
   start(): Promise<void> {
-    return this.controller.start();
+    return this.#controller.start();
   }
   stop(): Promise<void> {
-    return this.controller.stop();
+    return this.#controller.stop();
   }
   async dispose(): Promise<void> {
-    this.unobserve();
-    await this.controller.stop();
+    this.#unobserve();
+    await this.#controller.stop();
   }
   observe(observer: () => void): () => void {
-    return this.controller.observe(observer);
+    return this.#controller.observe(observer);
   }
   select(notificationId: NotificationId | undefined): void {
-    this.controller.select(notificationId);
+    this.#controller.select(notificationId);
   }
   loadMore(): Promise<void> {
-    return this.controller.loadMore();
+    return this.#controller.loadMore();
   }
   markSeen(notificationId: NotificationId): Promise<NotificationMutationResult> {
-    return this.controller.markSeen(notificationId);
+    return this.#controller.markSeen(notificationId);
   }
   dismiss(notificationId: NotificationId): Promise<NotificationMutationResult> {
-    return this.controller.dismiss(notificationId);
+    return this.#controller.dismiss(notificationId);
   }
   dismissToast(id: string): void {
-    this.controller.dismissToast(id);
+    this.#controller.dismissToast(id);
   }
   invokeAction(notificationId: NotificationId, referenceId: string): Promise<void> {
-    return this.controller.invokeAction(notificationId, referenceId);
+    return this.#controller.invokeAction(notificationId, referenceId);
   }
   isPending(notificationId: NotificationId, kind: NotificationPendingKind): boolean {
-    return this.controller.isPending(notificationId, kind);
+    return this.#controller.isPending(notificationId, kind);
   }
+}
 
-  private sync(): void {
-    this.status = this.controller.status;
-    this.snapshot = this.controller.snapshot;
-    this.records = [...this.controller.records];
-    this.toasts = [...this.controller.toasts];
-    this.selectedNotificationId = this.controller.selectedNotificationId;
-    this.selected = this.controller.selected;
-    this.pendingCommands = [...this.controller.pendingCommands];
-    this.commandRejection = this.controller.commandRejection;
-    this.commandFailure = this.controller.commandFailure;
-    this.pagination = this.controller.pagination;
-    this.hasMore = this.controller.hasMore;
-  }
+function project(controller: NotificationController) {
+  const failure = controller.commandFailure;
+  return {
+    status: Object.freeze({ ...controller.status }),
+    snapshot: freezeProjection(controller.snapshot),
+    records: freezeProjection(controller.records),
+    toasts: freezeProjection(controller.toasts),
+    selectedNotificationId: controller.selectedNotificationId,
+    selected: freezeProjection(controller.selected),
+    pendingCommands: freezeProjection(controller.pendingCommands),
+    commandRejection: freezeProjection(controller.commandRejection),
+    commandFailure: failure === undefined ? undefined : Object.freeze({ ...failure }),
+    pagination: Object.freeze({ ...controller.pagination }),
+    hasMore: controller.hasMore,
+  };
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
 import { UPDATE_PROTOCOL_VERSION, UpdateController } from "@inflatable-cookie/longhorn/update";
@@ -8,6 +8,7 @@ import type {
   UpdateSnapshot,
 } from "@inflatable-cookie/longhorn/update";
 
+import { UpdateSettings } from "../../src/update/poodle.ts";
 import ObserveOnlyHarness from "./ObserveOnlyHarness.svelte";
 import UpdateHarness from "./UpdateHarness.svelte";
 import {
@@ -103,6 +104,24 @@ class Port implements UpdatePort {
 }
 
 describe("update surface bindings", () => {
+  it("associates each release channel label with its own control", async () => {
+    const controller = new UpdateController({ port: new Port() });
+    await controller.start();
+    const first = render(UpdateSettings, { props: { controller } });
+    const second = render(UpdateSettings, { props: { controller } });
+    const firstLabel = first.container.querySelector("label");
+    const secondLabel = second.container.querySelector("label");
+
+    expect(firstLabel?.htmlFor).toBe(within(first.container).getByLabelText("Release channel").id);
+    expect(secondLabel?.htmlFor).toBe(
+      within(second.container).getByLabelText("Release channel").id,
+    );
+    expect(firstLabel?.htmlFor).not.toBe(secondLabel?.htmlFor);
+    first.unmount();
+    second.unmount();
+    await controller.stop();
+  });
+
   it("explains a release without an artifact for this target", async () => {
     const port = new Port();
     port.state = snapshot({ availability: { state: "unavailableForTarget", version: "1.4.0" } });

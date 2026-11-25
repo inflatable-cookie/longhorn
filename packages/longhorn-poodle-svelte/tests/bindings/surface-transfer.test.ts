@@ -58,6 +58,28 @@ describe("SurfaceTransferState", () => {
     expect(state.preparation.status).toBe("idle");
   });
 
+  it("resets local state and remains destroyed when cancelling fails", async () => {
+    const failure = new Error("cancel failed");
+    const state = new SurfaceTransferState({
+      client: new SurfaceTransferClient({
+        async invoke() {
+          return fixture.session_responses[0];
+        },
+      }),
+      async cancelSession() {
+        throw failure;
+      },
+    });
+    await state.start();
+    await state.prepare(fixture.session_requests[0] as SurfaceSessionStartRequest);
+
+    await expect(state.destroy()).rejects.toBe(failure);
+    expect(state.status.kind).toBe("idle");
+    expect(state.preparation.status).toBe("idle");
+    await state.stop();
+    await expect(state.start()).rejects.toThrow(/destroyed/);
+  });
+
   it("arms a Surface synchronously and commits a checked screen point", async () => {
     const commands: Array<SurfaceTransferCommand> = [];
     const errors: Array<unknown> = [];
@@ -83,11 +105,12 @@ describe("SurfaceTransferState", () => {
     const source = document.createElement("div");
     const target = document.createElement("div");
     document.body.append(source, target);
-    const dragAction = surfaceTransferDrag(source, {
+    const dragOptions = {
       state,
       makeStartRequest: () => fixture.session_requests[0] as SurfaceSessionStartRequest,
-      reportError: (error) => errors.push(error),
-    });
+      reportError: (error: unknown) => errors.push(error),
+    };
+    const dragAction = surfaceTransferDrag(source, dragOptions);
     let terminal = 0;
     const dropAction = surfaceTransferDrop(target, {
       state,
@@ -102,7 +125,9 @@ describe("SurfaceTransferState", () => {
 
     await fireEvent.pointerDown(source, { button: 0 });
     await waitFor(() => expect(state.preparation.status).toBe("prepared"));
+    dragAction.update({ ...dragOptions, reportError: (error) => errors.push(error) });
     source.dispatchEvent(dragEvent("dragstart", dataTransfer));
+    dragAction.update({ ...dragOptions, reportError: (error) => errors.push(error) });
     target.dispatchEvent(dragEvent("dragover", dataTransfer));
     target.dispatchEvent(dragEvent("drop", dataTransfer, { screenX: 800, screenY: 420 }));
 

@@ -25,6 +25,74 @@ function connection(
 }
 
 describe("ReactiveClientState", () => {
+  it.each(["stop", "destroy"] as const)("lets %s supersede a queued start", async (end) => {
+    const disposal = deferred<void>();
+    let connections = 0;
+    let disposals = 0;
+    const state = new ReactiveClientState({
+      capability: {
+        kind: "supported",
+        connect: () => {
+          connections += 1;
+          return connection(
+            () => "snapshot",
+            Promise.resolve(),
+            () => {
+              disposals += 1;
+              return disposal.promise;
+            },
+          );
+        },
+      },
+    });
+    await state.start();
+    const firstStop = state.stop();
+    const restart = state.start();
+    const finalStop = state[end]();
+    disposal.resolve();
+    await Promise.all([firstStop, restart, finalStop]);
+
+    expect(connections).toBe(1);
+    expect(disposals).toBe(1);
+    expect(state.status.kind).toBe("idle");
+    expect(state.snapshot).toBeUndefined();
+    if (end === "destroy") {
+      await expect(state.start()).rejects.toThrow(/destroyed/);
+    }
+  });
+
+  it("does not let a superseded ready rejection dispose the replacement", async () => {
+    const firstReady = deferred<void>();
+    let connections = 0;
+    const disposals: Array<number> = [];
+    const state = new ReactiveClientState({
+      capability: {
+        kind: "supported",
+        connect: () => {
+          const id = ++connections;
+          return connection(
+            () => `snapshot:${id}`,
+            id === 1 ? firstReady.promise : Promise.resolve(),
+            async () => {
+              disposals.push(id);
+            },
+          );
+        },
+      },
+    });
+    const start = state.start();
+    const rejected = expect(start).rejects.toThrow("old ready failed");
+    const stop = state.stop();
+    const restart = state.start();
+    await Promise.all([stop, restart]);
+    firstReady.reject(new Error("old ready failed"));
+    await rejected;
+    expect(state.snapshot).toBe("snapshot:2");
+    expect(disposals).toEqual([1]);
+    await state.stop();
+    expect(disposals).toEqual([1, 2]);
+  });
+
   it("keeps two window instances isolated", async () => {
     const first = new ReactiveClientState({
       capability: {

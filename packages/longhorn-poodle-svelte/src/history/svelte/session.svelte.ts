@@ -1,37 +1,71 @@
 import { HistoryController } from "@inflatable-cookie/longhorn/history";
-import type {
-  HistoryControllerOptions,
-  HistoryControllerStatus,
-} from "@inflatable-cookie/longhorn/history";
+import type { HistoryControllerOptions } from "@inflatable-cookie/longhorn/history";
 import type {
   HistoryEntryId,
-  HistoryEntryRecord,
-  HistoryNavigationRejectionProjection,
   HistoryNavigationResult,
-  HistoryPageSnapshot,
-  HistorySnapshot,
 } from "@inflatable-cookie/longhorn/history/protocol";
+
+import { freezeProjection } from "../../bindings/freeze-projection.ts";
 
 export class HistorySession {
   readonly #controller: HistoryController;
   readonly #unobserve: () => void;
-  status = $state<HistoryControllerStatus>({ kind: "idle" });
-  snapshot = $state<HistorySnapshot | undefined>();
-  pageSnapshot = $state<HistoryPageSnapshot | undefined>();
-  entries = $state<Array<HistoryEntryRecord>>([]);
-  rejection = $state<HistoryNavigationRejectionProjection | undefined>();
-  filter = $state("");
-  page = $state(1);
-  pageSize = $state(50);
-  totalEntries = $state(0);
-  navigationPending = $state(false);
-  canUndo = $state(false);
-  canRedo = $state(false);
+  #projection: ReturnType<typeof project>;
 
   constructor(options: HistoryControllerOptions) {
     this.#controller = new HistoryController(options);
-    this.#unobserve = this.#controller.observe(() => this.#sync());
-    this.#sync();
+    this.#projection = $state.raw(project(this.#controller));
+    this.#unobserve = this.#controller.observe(() => {
+      this.#projection = project(this.#controller);
+    });
+  }
+
+  get status() {
+    return this.#projection.status;
+  }
+
+  get snapshot() {
+    return this.#projection.snapshot;
+  }
+
+  get pageSnapshot() {
+    return this.#projection.pageSnapshot;
+  }
+
+  get entries() {
+    return this.#projection.entries;
+  }
+
+  get rejection() {
+    return this.#projection.rejection;
+  }
+
+  get filter() {
+    return this.#projection.filter;
+  }
+
+  get page() {
+    return this.#projection.page;
+  }
+
+  get pageSize() {
+    return this.#projection.pageSize;
+  }
+
+  get totalEntries() {
+    return this.#projection.totalEntries;
+  }
+
+  get navigationPending() {
+    return this.#projection.navigationPending;
+  }
+
+  get canUndo() {
+    return this.#projection.canUndo;
+  }
+
+  get canRedo() {
+    return this.#projection.canRedo;
   }
 
   start(): Promise<void> {
@@ -79,19 +113,21 @@ export class HistorySession {
   checkoutRoot(): Promise<HistoryNavigationResult> {
     return this.#controller.checkoutRoot();
   }
+}
 
-  #sync(): void {
-    this.status = this.#controller.status;
-    this.snapshot = this.#controller.snapshot;
-    this.pageSnapshot = this.#controller.pageSnapshot;
-    this.entries = [...this.#controller.entries];
-    this.rejection = this.#controller.rejection;
-    this.filter = this.#controller.filter;
-    this.page = this.#controller.page;
-    this.pageSize = this.#controller.pageSize;
-    this.totalEntries = this.#controller.totalEntries;
-    this.navigationPending = this.#controller.navigationPending;
-    this.canUndo = this.#controller.canUndo;
-    this.canRedo = this.#controller.canRedo;
-  }
+function project(controller: HistoryController) {
+  return {
+    status: Object.freeze({ ...controller.status }),
+    snapshot: freezeProjection(structuredClone(controller.snapshot)),
+    pageSnapshot: freezeProjection(structuredClone(controller.pageSnapshot)),
+    entries: freezeProjection(structuredClone(controller.entries)),
+    rejection: freezeProjection(structuredClone(controller.rejection)),
+    filter: controller.filter,
+    page: controller.page,
+    pageSize: controller.pageSize,
+    totalEntries: controller.totalEntries,
+    navigationPending: controller.navigationPending,
+    canUndo: controller.canUndo,
+    canRedo: controller.canRedo,
+  };
 }

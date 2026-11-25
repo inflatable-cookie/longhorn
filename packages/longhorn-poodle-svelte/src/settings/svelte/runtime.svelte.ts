@@ -6,6 +6,8 @@ import type {
   SettingsRequestId,
 } from "@inflatable-cookie/longhorn/settings/protocol";
 import type { SettingsSubscription } from "@inflatable-cookie/longhorn/settings";
+import { StartStop } from "../../bindings/start-stop.ts";
+import { throwTeardownFailures } from "../../bindings/teardown.ts";
 import { SettingsRendererResolverUnavailableError } from "./errors.ts";
 import { SettingsSessionDocument } from "./document.svelte.ts";
 import type { SettingsRendererResolver, SettingsRoute, SettingsSessionStatus } from "./types.ts";
@@ -23,13 +25,11 @@ export class SettingsSessionRuntime {
   #status = $state.raw<SettingsSessionStatus>({ kind: "idle" });
   #subscription: SettingsSubscription<SettingsRegistrySnapshot> | undefined;
   #resolver: SettingsRendererResolver | undefined;
-  #startTask: Promise<void> | undefined;
-  #stopTask: Promise<void> | undefined;
+  readonly #lifecycle = new StartStop();
   #installTask: Promise<void> | undefined;
   #installTurn = 0;
   #pendingRegistry: SettingsRegistrySnapshot | undefined;
   #requestedGeneration = 0;
-  #generation = 0;
 
   constructor(options: SettingsRuntimeOptions) {
     this.#options = options;
@@ -46,94 +46,92 @@ export class SettingsSessionRuntime {
   }
 
   start(resolver: SettingsRendererResolver): Promise<void> {
-    if (this.#startTask !== undefined) {
-      return this.#startTask;
-    }
-    this.#resolver = resolver;
-    const afterStop = this.#stopTask;
-    this.#startTask = afterStop === undefined ? this.#begin() : afterStop.then(() => this.#begin());
-    return this.#startTask;
+    return this.#lifecycle.start((generation) => {
+      this.#resolver = resolver;
+      return this.#begin(generation);
+    });
   }
 
   stop(): Promise<void> {
-    if (this.#stopTask !== undefined) {
-      return this.#stopTask;
-    }
+    return this.#lifecycle.stop(async () => {
+      const priorFailure = this.#status.kind === "failed" ? this.#status.error : undefined;
+      this.#pendingRegistry = undefined;
+      this.#requestedGeneration = 0;
+      // An obsolete install turn cannot block or drain the next session's queue.
+      this.#installTask = undefined;
+      this.#installTurn += 1;
+      this.#status = { kind: "idle" };
+      throwTeardownFailures(
+        await Promise.allSettled([this.#disposeSubscription(priorFailure), this.document.stop()]),
+      );
+    });
+  }
+
+  async #disposeSubscription(priorFailure: unknown): Promise<void> {
+    await Promise.resolve();
     const subscription = this.#subscription;
-    const priorFailure = this.#status.kind === "failed" ? this.#status.error : undefined;
     this.#subscription = undefined;
-    this.#startTask = undefined;
-    this.#pendingRegistry = undefined;
-    this.#requestedGeneration = 0;
-    // The install turn belongs to the session this call ends. Abandoning it
-    // here is what lets a restarted session queue its own turn: its completion
-    // can never be handed back to the stopped session's drain.
-    this.#installTask = undefined;
-    this.#installTurn += 1;
-    ++this.#generation;
-    this.#status = { kind: "idle" };
-    this.#stopTask = (async () => {
-      try {
-        await Promise.all([
-          subscription?.dispose().catch((error: unknown) => {
-            if (error !== priorFailure) {
-              throw error;
-            }
-          }),
-          this.document.stop(),
-        ]);
-      } finally {
-        this.#stopTask = undefined;
+    try {
+      await subscription?.dispose();
+    } catch (error) {
+      if (error !== priorFailure) {
+        throw error;
       }
-    })();
-    return this.#stopTask;
+    }
   }
 
   async reconnect(): Promise<void> {
     const resolver = this.#requiredResolver();
     const registry = this.document.registry;
     if (registry === undefined) {
-      await this.stop();
+      void this.stop().catch(() => undefined);
       await this.start(resolver);
       return;
     }
+    const generation = this.#lifecycle.generation;
     // A reconnect is a replacement of the same generation, so it shares the
     // one install queue rather than clearing authority beside it.
     try {
       await this.#queueInstall(registry);
     } catch (error) {
-      this.#fail(error);
+      if (generation === this.#lifecycle.generation) {
+        this.#fail(error);
+      }
       throw error;
     }
   }
 
-  async #begin(): Promise<void> {
-    const generation = ++this.#generation;
+  async #begin(generation: number): Promise<void> {
     this.#status = { kind: "loading" };
-    const subscription = this.#options.client.connectRegistry(
-      (registry) => {
-        if (generation === this.#generation && this.#acceptsRegistry(registry)) {
-          void this.#queueInstall(registry).catch((error: unknown) => {
-            if (generation === this.#generation) {
-              this.#fail(error);
-            }
-          });
-        }
-      },
-      (failure: ConnectionFailure) => {
-        if (generation === this.#generation) {
-          this.#fail(failure.error);
-        }
-      },
-    );
-    this.#subscription = subscription;
     try {
+      const subscription = this.#options.client.connectRegistry(
+        (registry) => {
+          if (generation === this.#lifecycle.generation && this.#acceptsRegistry(registry)) {
+            void this.#queueInstall(registry).catch((error: unknown) => {
+              if (generation === this.#lifecycle.generation) {
+                this.#fail(error);
+              }
+            });
+          }
+        },
+        (failure: ConnectionFailure) => {
+          if (generation === this.#lifecycle.generation) {
+            this.#fail(failure.error);
+          }
+        },
+      );
+      this.#subscription = subscription;
       const registry = await subscription.ready;
-      if (generation === this.#generation) {
-        await this.#install(registry, this.#requiredResolver(), this.#options.initialRoute);
+      if (generation === this.#lifecycle.generation) {
+        await this.#install(
+          generation,
+          registry,
+          this.#requiredResolver(),
+          this.#options.initialRoute,
+        );
       }
     } catch (error) {
-      if (generation === this.#generation) {
+      if (generation === this.#lifecycle.generation) {
         this.#fail(error);
       }
       throw error;
@@ -192,7 +190,7 @@ export class SettingsSessionRuntime {
       return running;
     }
     this.#status = { kind: "reconnecting" };
-    const generation = this.#generation;
+    const generation = this.#lifecycle.generation;
     const turn = (this.#installTurn += 1);
     const completion = this.#drainInstalls(generation).finally(() => {
       // A turn that a stop abandoned, or one a later turn replaced, owns
@@ -203,7 +201,7 @@ export class SettingsSessionRuntime {
       this.#installTask = undefined;
       if (this.#pendingRegistry !== undefined) {
         void this.#drain().catch((error: unknown) => {
-          if (generation === this.#generation) {
+          if (generation === this.#lifecycle.generation) {
             this.#fail(error);
           }
         });
@@ -214,12 +212,12 @@ export class SettingsSessionRuntime {
   }
 
   async #drainInstalls(generation: number): Promise<void> {
-    while (this.#pendingRegistry !== undefined && generation === this.#generation) {
+    while (this.#pendingRegistry !== undefined && generation === this.#lifecycle.generation) {
       const registry = this.#pendingRegistry;
       this.#pendingRegistry = undefined;
       const route = this.document.route;
       await this.document.clearAuthority();
-      if (generation !== this.#generation) {
+      if (generation !== this.#lifecycle.generation) {
         return;
       }
       // A newer change arrived while this one was clearing. Installing it would
@@ -228,17 +226,21 @@ export class SettingsSessionRuntime {
       if (this.#pendingRegistry !== undefined) {
         continue;
       }
-      await this.#install(registry, this.#requiredResolver(), route);
+      await this.#install(generation, registry, this.#requiredResolver(), route);
     }
   }
 
   async #install(
+    generation: number,
     registry: SettingsRegistrySnapshot,
     resolver: SettingsRendererResolver,
     route?: SettingsRoute,
   ): Promise<void> {
     this.#requestedGeneration = Math.max(this.#requestedGeneration, registry.generation);
     const result = await this.document.installRegistry(registry, resolver, route);
+    if (generation !== this.#lifecycle.generation) {
+      return;
+    }
     this.#status =
       result === "ready"
         ? { kind: "ready" }

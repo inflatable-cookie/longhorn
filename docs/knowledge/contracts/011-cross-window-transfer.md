@@ -112,6 +112,11 @@ Renderer client geometry reaches `ScreenDip` only through an explicit checked
 projection at the host boundary. A renderer cannot relabel its lease as
 another window.
 
+Renderer stop drains admitted transfers, attempts cancellation and lease
+release, then disposes its subscription even if the host rejects cleanup.
+Stop reports failures and resets local transfer state. When lease release fails
+or is unavailable, the host still owns expiry and window-destruction cleanup.
+
 Publishing a newer generation replaces the prior lease atomically. Window
 destroy, client-epoch change, or expiry invalidates it. Drop zones are not a
 durable event stream.

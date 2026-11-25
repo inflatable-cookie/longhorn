@@ -31,6 +31,7 @@
     nextRequestId = () => `config:${crypto.randomUUID()}`,
     onSnapshot,
   }: ConfigOperationsPageProps = $props();
+  const profileId = $props.id();
 
   const initialSnapshotValue = (() => initialSnapshot)();
   const initialProfileValue = (() => initialSnapshot?.storage?.layout.profile ?? null)();
@@ -301,11 +302,11 @@
 
       {#if canTransition}
         <Surface asRole="region" label="Change storage profile">
-          <Field id="longhorn-storage-profile" label="Storage profile">
+          <Field id={profileId} label="Storage profile">
             <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
               <Stack>
                 <Select
-                  id="longhorn-storage-profile"
+                  id={profileId}
                   value={selectedProfile}
                   options={profileOptions}
                   native={true}

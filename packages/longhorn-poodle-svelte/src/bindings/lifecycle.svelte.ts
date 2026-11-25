@@ -5,6 +5,8 @@ import type {
   ConnectionFailureReporter,
 } from "@inflatable-cookie/longhorn/core";
 
+import { StartStop } from "./start-stop.ts";
+
 export type ClientStatus =
   | { readonly kind: "idle" }
   | { readonly kind: "loading" }
@@ -47,9 +49,7 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
   #status = $state.raw<ClientStatus>({ kind: "idle" });
   #snapshot = $state.raw<Snapshot | undefined>(undefined);
   #connection: ReactiveConnection<Snapshot> | undefined;
-  #startTask: Promise<void> | undefined;
-  #stopTask: Promise<void> | undefined;
-  #generation = 0;
+  readonly #lifecycle = new StartStop();
   #destroyed = false;
 
   constructor(options: ReactiveClientStateOptions<Snapshot>) {
@@ -68,14 +68,7 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
     if (this.#destroyed) {
       return Promise.reject(new ClientStateDestroyedError());
     }
-    if (this.#startTask !== undefined) {
-      return this.#startTask;
-    }
-
-    const afterStop = this.#stopTask;
-    this.#startTask =
-      afterStop === undefined ? this.#begin(false) : afterStop.then(() => this.#begin(false));
-    return this.#startTask;
+    return this.#lifecycle.start((generation) => this.#begin(generation, false));
   }
 
   reconnect(): Promise<void> {
@@ -86,9 +79,8 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
       return Promise.resolve();
     }
 
-    const task = this.#stop(false).then(() => this.#begin(true));
-    this.#startTask = task;
-    return task;
+    void this.#stop(false).catch(() => undefined);
+    return this.#lifecycle.start((generation) => this.#begin(generation, true));
   }
 
   stop(): Promise<void> {
@@ -96,10 +88,6 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
   }
 
   async destroy(): Promise<void> {
-    if (this.#destroyed) {
-      await this.#stopTask;
-      return;
-    }
     this.#destroyed = true;
     await this.#stop(true);
   }
@@ -110,7 +98,7 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
     }
   }
 
-  async #begin(reconnecting: boolean): Promise<void> {
+  async #begin(generation: number, reconnecting: boolean): Promise<void> {
     const capability = this.#options.capability;
     if (capability.kind === "unsupported") {
       this.#status = {
@@ -120,7 +108,6 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
       return;
     }
 
-    const generation = ++this.#generation;
     this.#status =
       reconnecting || this.#snapshot !== undefined ? { kind: "reconnecting" } : { kind: "loading" };
 
@@ -128,26 +115,28 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
     try {
       connection = capability.connect(
         (snapshot) => {
-          if (generation === this.#generation && !this.#destroyed) {
+          if (generation === this.#lifecycle.generation && !this.#destroyed) {
             this.#accept(snapshot);
           }
         },
         (failure) => {
-          if (generation === this.#generation && !this.#destroyed) {
+          if (generation === this.#lifecycle.generation && !this.#destroyed) {
             this.#status = { kind: "failed", error: failure.error };
             this.#options.onFailure?.(failure);
           }
         },
       );
     } catch (error) {
-      this.#status = { kind: "failed", error };
+      if (generation === this.#lifecycle.generation) {
+        this.#status = { kind: "failed", error };
+      }
       throw error;
     }
     this.#connection = connection;
 
     try {
       await connection.ready;
-      if (generation !== this.#generation || this.#destroyed) {
+      if (generation !== this.#lifecycle.generation || this.#destroyed) {
         return;
       }
       const snapshot = connection.current();
@@ -160,13 +149,14 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
         this.#status = { kind: "ready" };
       }
     } catch (error) {
-      if (generation === this.#generation && !this.#destroyed) {
+      if (generation === this.#lifecycle.generation) {
         this.#status = { kind: "failed", error };
-      }
-      try {
-        await connection.dispose();
-      } catch {
-        // The connection retains exact teardown failure evidence.
+        this.#connection = undefined;
+        try {
+          await connection.dispose();
+        } catch {
+          // The connection retains exact teardown failure evidence.
+        }
       }
       throw error;
     }
@@ -179,30 +169,23 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
   }
 
   #stop(clearSnapshot: boolean): Promise<void> {
-    if (this.#stopTask !== undefined) {
-      return this.#stopTask;
-    }
-
-    const connection = this.#connection;
-    this.#connection = undefined;
-    this.#startTask = undefined;
-    ++this.#generation;
     if (clearSnapshot) {
       this.#snapshot = undefined;
     }
-    this.#status = { kind: "idle" };
-
-    this.#stopTask = (async () => {
+    return this.#lifecycle.stop(async () => {
+      this.#status = { kind: "idle" };
+      // A synchronous connect callback can call stop before connect returns.
+      // Capture its connection after that call has finished publishing it.
+      await Promise.resolve();
+      const connection = this.#connection;
+      this.#connection = undefined;
       try {
         await connection?.dispose();
       } catch (error) {
         this.#status = { kind: "failed", error };
         throw error;
-      } finally {
-        this.#stopTask = undefined;
       }
-    })();
-    return this.#stopTask;
+    });
   }
 }
 

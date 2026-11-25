@@ -1,11 +1,59 @@
 import { fireEvent, render, waitFor, within } from "@testing-library/svelte";
 import { describe, expect, it, vi } from "vitest";
 
+import { NotificationToastHost } from "../../src/notifications/poodle.ts";
 import NotificationHarness from "./NotificationHarness.svelte";
 import { NotificationSession } from "../../src/notifications/svelte.ts";
 import { createMountedSession, MountedNotificationPort, withNewRecord } from "./support.ts";
 
 describe("notification Svelte and public Poodle adapters", () => {
+  it("keeps notification authority behind commands and observation", async () => {
+    const { session } = createMountedSession();
+    await session.start();
+    expect(Reflect.has(session, "controller")).toBe(false);
+    expect(Reflect.has(session, "unobserve")).toBe(false);
+    expect(Reflect.set(session, "selectedNotificationId", "notification:scan")).toBe(false);
+    expect(Object.isFrozen(session.records[0]?.draft)).toBe(true);
+
+    const observed = vi.fn();
+    const unobserve = session.observe(observed);
+    session.select("notification:scan");
+    expect(session.selected?.notificationId).toBe("notification:scan");
+    expect(observed).toHaveBeenCalledTimes(1);
+    unobserve();
+    await session.dispose();
+    expect(observed).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves toast presentation and dismissal to the replacement session", async () => {
+    const first = createMountedSession();
+    const second = createMountedSession();
+    await Promise.all([first.session.start(), second.session.start()]);
+    first.port.publish(withNewRecord(first.port.snapshotValue));
+    const mounted = render(NotificationToastHost, {
+      props: { session: first.session, autoDismissMs: 0 },
+    });
+    await mounted.findByText("New notification");
+
+    const replacement = withNewRecord(second.port.snapshotValue);
+    const record = replacement.page.records[0];
+    if (record === undefined) {
+      throw new Error("missing notification record");
+    }
+    record.draft.title = "Replacement notification";
+    second.port.publish(replacement);
+    await waitFor(() => expect(second.session.toasts).toHaveLength(1));
+    await mounted.rerender({ session: second.session });
+
+    expect(mounted.queryByText("New notification")).toBeNull();
+    expect(await mounted.findByText("Replacement notification")).toBeTruthy();
+    await fireEvent.click(mounted.getByRole("button", { name: /dismiss/i }));
+    expect(second.session.toasts).toHaveLength(0);
+    expect(first.session.toasts).toHaveLength(1);
+    mounted.unmount();
+    await Promise.all([first.session.dispose(), second.session.dispose()]);
+  });
+
   it("expires only transient toast presentation", async () => {
     vi.useFakeTimers();
     const state = createMountedSession();

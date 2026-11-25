@@ -9,6 +9,8 @@ import type { DragSessionId } from "@inflatable-cookie/longhorn/transfer";
 
 import { UnsupportedCapabilityError } from "./index.ts";
 import type { ClientStatus } from "./index.ts";
+import { StartStop } from "./start-stop.ts";
+import { throwTeardownFailures } from "./teardown.ts";
 
 export type SurfaceTransferPreparationState =
   | { readonly status: "idle" }
@@ -48,8 +50,8 @@ export class SurfaceTransferState {
   });
   #activeSessionId: DragSessionId | undefined;
   #generation = 0;
-  #tasks = new Set<Promise<unknown>>();
-  #stopTask: Promise<void> | undefined;
+  readonly #tasks = new Set<Promise<unknown>>();
+  readonly #lifetime = new StartStop();
   #stopped = true;
   #destroyed = false;
 
@@ -71,24 +73,36 @@ export class SurfaceTransferState {
 
   async start(): Promise<void> {
     this.#assertAlive();
-    this.#stopped = false;
-    this.#status =
-      this.#options.client === undefined
-        ? {
-            kind: "unsupported",
-            reason: this.#options.unsupportedReason ?? "Surface transfer capability is unavailable",
-          }
-        : { kind: "ready" };
+    if (!this.#stopped && this.#status.kind === "failed") {
+      this.#status = { kind: "ready" };
+    }
+    await this.#lifetime.start(async () => {
+      this.#stopped = false;
+      this.#status =
+        this.#options.client === undefined
+          ? {
+              kind: "unsupported",
+              reason:
+                this.#options.unsupportedReason ?? "Surface transfer capability is unavailable",
+            }
+          : { kind: "ready" };
+    });
   }
 
   async prepare(request: SurfaceSessionStartRequest): Promise<SurfaceSessionResponse> {
     this.#assertRunning();
-    const client = this.#requireClient();
-    await this.#cancelActive();
-    const generation = ++this.#generation;
-    this.#preparation = { status: "preparing", request };
+    return this.#track(this.#prepare(request));
+  }
 
-    const task = client
+  async #prepare(request: SurfaceSessionStartRequest): Promise<SurfaceSessionResponse> {
+    const client = this.#requireClient();
+    const generation = ++this.#generation;
+    await this.#cancelActive();
+    if (generation === this.#generation) {
+      this.#preparation = { status: "preparing", request };
+    }
+
+    return client
       .start(request)
       .then(async (response) => {
         if (generation !== this.#generation || this.#stopped) {
@@ -112,12 +126,14 @@ export class SurfaceTransferState {
         }
         throw error;
       });
-    this.#track(task);
-    return task;
   }
 
   async commit(request: SurfaceTransferCommand): Promise<SurfaceTransferResponse> {
     this.#assertRunning();
+    return this.#track(this.#commit(request));
+  }
+
+  async #commit(request: SurfaceTransferCommand): Promise<SurfaceTransferResponse> {
     const client = this.#requireClient();
     this.#completion = { status: "committing", request };
     try {
@@ -126,7 +142,10 @@ export class SurfaceTransferState {
         status: response.status === "committed" ? "committed" : "aborted",
         response,
       };
-      if (response.status === "committed" || response.abort.session_consumed) {
+      if (
+        this.#activeSessionId === request.session_id &&
+        (response.status === "committed" || response.abort.session_consumed)
+      ) {
         this.#activeSessionId = undefined;
       }
       return response;
@@ -138,56 +157,48 @@ export class SurfaceTransferState {
   }
 
   cancelPreparation(): Promise<void> {
-    ++this.#generation;
-    return this.#cancelActive();
-  }
-
-  stop(): Promise<void> {
-    if (this.#stopTask !== undefined) {
-      return this.#stopTask;
-    }
     if (this.#stopped) {
       return Promise.resolve();
     }
-    this.#stopTask = this.#performStop().finally(() => {
-      this.#stopTask = undefined;
-    });
-    return this.#stopTask;
+    ++this.#generation;
+    return this.#track(this.#cancelActive());
   }
 
-  async #performStop(): Promise<void> {
-    this.#stopped = true;
-    ++this.#generation;
-    await this.#cancelActive();
-    await Promise.allSettled(this.#tasks);
-    this.#status = { kind: "idle" };
-    this.#preparation = { status: "idle" };
-    this.#completion = { status: "idle" };
+  stop(): Promise<void> {
+    return this.#lifetime.stop(async () => {
+      this.#stopped = true;
+      ++this.#generation;
+      this.#status = { kind: "idle" };
+      const results = await Promise.allSettled([this.#cancelActive(), ...this.#tasks]);
+      this.#status = { kind: "idle" };
+      this.#preparation = { status: "idle" };
+      this.#completion = { status: "idle" };
+      throwTeardownFailures(results);
+    });
   }
 
   async destroy(): Promise<void> {
-    if (!this.#destroyed) {
-      await this.stop();
-      this.#destroyed = true;
-    }
+    this.#destroyed = true;
+    await this.stop();
   }
 
   async #cancelActive(): Promise<void> {
     const sessionId = this.#activeSessionId;
     this.#activeSessionId = undefined;
+    this.#preparation = { status: "idle" };
     if (sessionId !== undefined) {
       await this.#options.cancelSession(sessionId);
     }
-    this.#preparation = { status: "idle" };
   }
 
-  #track(task: Promise<unknown>): void {
+  #track<Result>(task: Promise<Result>): Promise<Result> {
     this.#tasks.add(task);
     void task
       .finally(() => {
         this.#tasks.delete(task);
       })
       .catch(() => undefined);
+    return task;
   }
 
   #requireClient(): SurfaceTransferClient {

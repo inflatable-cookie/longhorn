@@ -20,7 +20,8 @@ primitives without copying component source or durable state.
 - Module import is safe without `window` or a running Tauri host.
 - Start attaches listeners before querying the current snapshot.
 - Stop is idempotent and handles listener-registration promises that resolve
-  after teardown.
+  after teardown. A start queued behind stop runs only if it is still current
+  when teardown finishes. A later stop or destroy supersedes that start.
 - Window destruction releases listeners, timers, drag leases, and pending
   optimistic projections.
 - Transport and scheduler dependencies are injectable for tests.
@@ -32,7 +33,11 @@ primitives without copying component source or durable state.
 ## Reactive State
 
 - Epoch and revision determine snapshot freshness.
-- Renderer projections never become durable fallback truth.
+- Renderer projections never become durable fallback truth. History, fork
+  history, notification, and operation Svelte sessions expose read-only
+  projections. Use session commands to change selection, filters, or pages.
+- Surface mutation feedback retains pending requests and the 32 most recently
+  settled operations within the session. Stop clears it.
 - Optimistic mutations are keyed by request id, reconciled to the host result,
   and rolled back or resynced on failure.
 - Errors, loading, reconnecting, and unsupported capability states are

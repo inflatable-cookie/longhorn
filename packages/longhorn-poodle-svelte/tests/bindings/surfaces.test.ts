@@ -107,6 +107,41 @@ describe("SurfaceState", () => {
     await state.destroy();
   });
 
+  it("bounds settled operation feedback and keeps pending requests until stop", async () => {
+    const delayed = deferred<SurfaceMutationResponse>();
+    const state = new SurfaceState({
+      client: new SurfaceClient({
+        async listen() {
+          return () => undefined;
+        },
+        async invoke(command, arguments_) {
+          if (command === SURFACE_SNAPSHOT_COMMAND) {
+            return fixture.snapshots[0];
+          }
+          const request = arguments_.request as SurfaceMutationRequest;
+          return request.request_id === "request:delayed" ? delayed.promise : fixture.responses[0];
+        },
+      }),
+    });
+    await state.start();
+    const request = fixture.commands[0] as SurfaceMutationRequest;
+    const pending = state.mutate({ ...request, request_id: "request:delayed" }, (doc) => doc);
+    for (let index = 0; index < 35; index++) {
+      await state.mutate({ ...request, request_id: `request:recent-${index}` }, (doc) => doc);
+    }
+    expect(state.operations.map(({ requestId }) => requestId)).toEqual([
+      "request:delayed",
+      ...Array.from({ length: 32 }, (_, index) => `request:recent-${index + 3}`),
+    ]);
+    expect(state.pendingRequestIds).toEqual(["request:delayed"]);
+
+    await state.stop();
+    delayed.resolve(fixture.responses[0] as SurfaceMutationResponse);
+    await pending;
+    expect(state.operations).toEqual([]);
+    expect(state.status.kind).toBe("idle");
+  });
+
   it("does not leak late listener registration after unmount", async () => {
     const registration = deferred<() => void>();
     let snapshots = 0;

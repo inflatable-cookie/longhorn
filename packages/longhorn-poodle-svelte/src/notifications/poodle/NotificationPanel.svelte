@@ -66,7 +66,7 @@
 
     <InlineListSection
       {title}
-      items={session.records}
+      items={[...session.records]}
       count={session.snapshot?.retainedCount ?? session.records.length}
       {emptyMessage}
       framed={false}

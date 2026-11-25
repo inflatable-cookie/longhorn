@@ -19,6 +19,19 @@ import {
 } from "./support.ts";
 
 describe("operation Svelte and public Poodle adapters", () => {
+  it("keeps operation projections read-only while session commands update selection", async () => {
+    const { session } = createMountedSession();
+    await session.start();
+    expect(Reflect.set(session, "selectedOperationId", "operation:scan")).toBe(false);
+    expect(Object.isFrozen(session.active)).toBe(true);
+    expect(Object.isFrozen(session.active[0])).toBe(true);
+    expect(session.selected).toBeUndefined();
+
+    session.select("operation:scan");
+    expect(session.selected?.operationId).toBe("operation:scan");
+    await session.dispose();
+  });
+
   it("keeps windows independent and unmounts without cancelling host work", async () => {
     const first = createMountedSession();
     const second = createMountedSession();

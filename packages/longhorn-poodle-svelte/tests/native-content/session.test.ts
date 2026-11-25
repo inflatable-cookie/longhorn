@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { render, waitFor } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   NativeContentSession,
@@ -31,6 +31,29 @@ function session(
 }
 
 describe("NativeContentSession", () => {
+  it("supersedes a start queued behind native-content teardown", async () => {
+    const client = new ScriptedClient();
+    const state = session(client, new ResizeObserverTrace());
+    await state.start();
+    const active = client.connections[0];
+    assert.ok(active);
+    const dispose = active.dispose.bind(active);
+    const gate = deferred<void>();
+    vi.spyOn(active, "dispose").mockImplementationOnce(async () => {
+      await gate.promise;
+      await dispose();
+    });
+    const stop = state.stop();
+    const restart = state.start();
+    const finalStop = state.stop();
+    gate.resolve();
+    await Promise.all([stop, restart, finalStop]);
+
+    expect(client.connections).toHaveLength(1);
+    expect(active.disposeCount).toBe(1);
+    expect(state.status.kind).toBe("idle");
+  });
+
   it("keeps child-view and backing-surface instances isolated", async () => {
     const childClient = new ScriptedClient();
     const backingClient = new ScriptedClient();
