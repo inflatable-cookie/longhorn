@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-11-24
+Updated: 2026-11-25
 Architecture: `../architecture/system-architecture.md`
 Research: `019-application-update-and-release-channels.md` (Git history)
 
@@ -99,7 +99,14 @@ terms as the macOS path.
   tree. The signature covers the archive bytes, and a tree staged where the
   user can write is mutable between unpack and the privileged move. An
   escalation implementor extracts the artifact itself, into protected
-  staging, with the same bounded extraction (`extract_bundle`).
+  staging, with the same bounded extraction (`extract_bundle`), and reports
+  its failures in the contract's installation classes rather than as one
+  opaque error: `MalformedArtifact` when that extraction refuses the artifact,
+  `NotWritable` when escalation is declined or refused, and `Failed` naming
+  both faults and the retained bundle's location when a partial privileged
+  replacement could not be completed. The port is the one step the
+  installer cannot observe, so it is also the only one that can say which
+  outcome the user is left with.
 - An update whose signature does not verify is not an error to be reported
   and retried. It is discarded.
 
@@ -307,6 +314,17 @@ earlier single-call stance.
   Malformed artifacts are
   terminal, discarded from staging, and distinct from retryable replacement
   failures. A failed swap and rollback must report both faults and the retained bundle location.
+- A signed archive that will not decompress or unpack — truncated, corrupt,
+  or structurally incomplete — is malformed, not a replacement failure. The
+  bytes are the fault, so retrying replays them; extraction classifies the
+  archive itself rather than the IO error a short write and a short stream
+  both produce.
+- Reclaiming the previous bundle after a published swap is bookkeeping, but
+  it is reported rather than dropped: a bundle left beside the target would
+  make every later apply refuse to start. The next apply reclaims it, because
+  the workspace receipt and the publication marker identify it. A bundle a
+  failed rollback retained is never reclaimed that way — it is somebody's
+  only copy.
 - Deferring while a transfer runs preserves its download progress until the
   transfer completes or is cancelled.
 - Request debug output redacts URLs and headers; verified artifact debug output

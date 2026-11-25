@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Longhorn's host-independent update installer: minisign verification, bounded extraction, atomic bundle replacement"
+description = "Longhorn's host-independent update installer: bounded extraction, atomic bundle replacement, and an injected privileged-replacement port (verification is longhorn-update's)"
 publish = false
 
 [dependencies]

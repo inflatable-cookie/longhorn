@@ -101,8 +101,8 @@ impl ExtractionQuota {
 ///
 /// Injected because escalation is host and platform policy, and because
 /// Longhorn constructing privileged shell commands from paths is how command
-/// injection happens. A host that cannot escalate returns `NotWritable` and
-/// the surface offers a manual download.
+/// injection happens. A host that cannot escalate reports
+/// [`InstallFailure::NotWritable`] and the surface offers a manual download.
 ///
 /// # The artifact, not a staged path
 ///
@@ -114,10 +114,25 @@ impl ExtractionQuota {
 /// unprivileged path gets) and moves the result onto the target. A
 /// privileged move of user-writable content is the exact hole this shape
 /// closes.
+///
+/// # The failure is the contract's, not a string
+///
+/// Escalated replacement is the one path this crate cannot observe, so the
+/// port says which of contract 018's classes its failure belongs to. A string
+/// would flatten all three into one, and the controller acts on the
+/// difference: malformed is terminal and discarded from staging, `NotWritable`
+/// needs a manual download, and a partial replacement is retryable.
 pub trait PrivilegedReplace {
     /// Replaces the `target` entry with `artifact`, with elevated privileges.
     /// The parent is resolved and locked. A final symlink is replaced as an entry.
-    fn replace(&self, artifact: &VerifiedArtifact, target: &Path) -> Result<(), String>;
+    ///
+    /// Returns [`InstallFailure::MalformedArtifact`] when the implementor's own
+    /// bounded extraction refuses the artifact (terminal — the controller
+    /// discards the staged bytes rather than replaying them),
+    /// [`InstallFailure::NotWritable`] when escalation is declined or refused,
+    /// and [`InstallFailure::Failed`] naming both faults and the retained
+    /// bundle's location when a partial replacement could not be completed.
+    fn replace(&self, artifact: &VerifiedArtifact, target: &Path) -> Result<(), InstallFailure>;
 }
 
 /// Escalation that always declines.
@@ -129,8 +144,10 @@ pub trait PrivilegedReplace {
 pub struct NoPrivilegedReplace;
 
 impl PrivilegedReplace for NoPrivilegedReplace {
-    fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
-        Err("privileged replacement is not configured".to_owned())
+    fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), InstallFailure> {
+        Err(InstallFailure::NotWritable {
+            detail: "privileged replacement is not configured".to_owned(),
+        })
     }
 }
 
@@ -271,8 +288,8 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
 
         match rename(staged, target) {
             Ok(()) => {
-                if displaced && backup.clear_receipt() {
-                    drop(fs::remove_dir_all(&backup.bundle));
+                if displaced {
+                    backup.retire()?;
                 }
                 Ok(())
             }
@@ -296,15 +313,14 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
     }
 
     /// Escalation re-extracts from the verified artifact in the privileged
-    /// context — the user-writable staging tree is never what gets moved.
+    /// context — the user-writable staging tree is never what gets moved, and
+    /// the port reports its own failure class so a terminal one stays terminal.
     fn escalated_swap(
         &self,
         target: &Path,
         artifact: &VerifiedArtifact,
     ) -> Result<(), InstallFailure> {
-        self.escalate
-            .replace(artifact, target)
-            .map_err(|detail| InstallFailure::NotWritable { detail })
+        self.escalate.replace(artifact, target)
     }
 }
 
@@ -455,7 +471,7 @@ fn unpack_within(
         // should be unreachable, and it is refused rather than trusted.
         if !entry
             .unpack_in(staging)
-            .map_err(|error| classify(&error, &destination))?
+            .map_err(|error| classify_entry(&error, &destination, artifact))?
         {
             return Err(InstallFailure::MalformedArtifact {
                 detail: format!("archive entry was skipped as unsafe: {}", path.display()),
@@ -535,6 +551,56 @@ fn classify(error: &std::io::Error, path: &Path) -> InstallFailure {
     }
 }
 
+/// [`classify`] for a failure inside `unpack_in`, which reads and writes in
+/// one call.
+///
+/// Tar's error kinds do not say which side failed: a payload that ends before
+/// its header declares is an `Other` fault, a broken deflate stream is
+/// `InvalidData`, and a write to staging carries the filesystem's own kind.
+/// The contract needs the answer, because the two are not the same outcome —
+/// malformed bytes are terminal and discarded, a replacement fault is
+/// retryable, and reporting a truncated archive as retryable replays the same
+/// bytes on every attempt.
+///
+/// So the archive is judged on its own: it is already in memory, and reading
+/// it again without a destination costs a second decode only after an
+/// extraction has failed. Bytes that read to the end of every declared
+/// payload are intact, and the fault was staging's.
+fn classify_entry(error: &std::io::Error, path: &Path, artifact: &[u8]) -> InstallFailure {
+    if error.kind() == std::io::ErrorKind::PermissionDenied || archive_is_intact(artifact) {
+        return classify(error, path);
+    }
+    InstallFailure::MalformedArtifact {
+        detail: format!("{}: {error}", path.display()),
+    }
+}
+
+/// Returns whether every entry's declared payload is present in `artifact`.
+///
+/// A tar stream that ends early is not an error to `Read`: the copy simply
+/// returns fewer bytes, which is why tar compares the copy against the size
+/// the header declared. This does the same comparison with no destination, so
+/// a truncated archive is recognised as input rather than as a fault of the
+/// directory it was unpacked into.
+fn archive_is_intact(artifact: &[u8]) -> bool {
+    let mut archive = tar::Archive::new(GzDecoder::new(artifact));
+    let Ok(entries) = archive.entries() else {
+        return false;
+    };
+    for entry in entries {
+        let Ok(mut entry) = entry else {
+            return false;
+        };
+        let Ok(declared) = entry.header().size() else {
+            return false;
+        };
+        if !io::copy(&mut entry, &mut io::sink()).is_ok_and(|read| read == declared) {
+            return false;
+        }
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use flate2::{Compression, write::GzEncoder};
@@ -561,6 +627,31 @@ mod tests {
                 .unwrap();
         }
         builder.into_inner().unwrap().finish().unwrap()
+    }
+
+    /// A gzip tar whose one entry declares more bytes than the stream carries.
+    ///
+    /// The gzip member itself is complete, so nothing but the tar structure is
+    /// wrong: exactly what an interrupted transfer leaves.
+    fn truncated_archive() -> Vec<u8> {
+        use std::io::Write as _;
+
+        let payload = vec![b'x'; 4096];
+        let mut builder = tar::Builder::new(Vec::new());
+        let mut header = tar::Header::new_gnu();
+        header.set_size(payload.len() as u64);
+        header.set_mode(0o644);
+        header.set_entry_type(tar::EntryType::Regular);
+        header.set_cksum();
+        builder
+            .append_data(&mut header, "Example.app/0", &payload[..])
+            .unwrap();
+        let mut plain = builder.into_inner().unwrap();
+        plain.truncate(plain.len() - 3000);
+
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::fast());
+        encoder.write_all(&plain).unwrap();
+        encoder.finish().unwrap()
     }
 
     fn signed_archive() -> VerifiedArtifact {
@@ -901,5 +992,113 @@ mod tests {
         };
 
         unpack_within(&archive_of(8), staging.path(), quota).expect("unpack at the quota");
+    }
+
+    /// Tar reports a short payload and a short write the same way, so the
+    /// class comes from reading the archive, not from tar's error kind.
+    #[test]
+    fn an_extraction_failure_is_malformed_only_when_the_archive_is_broken() {
+        let intact = archive_of(1);
+        let broken = truncated_archive();
+        let path = Path::new("Example.app/0");
+        let short_write = io::Error::other("failed to write entire file");
+
+        assert!(archive_is_intact(&intact));
+        assert!(!archive_is_intact(&broken));
+        assert!(matches!(
+            classify_entry(&short_write, path, &intact),
+            InstallFailure::Failed { .. }
+        ));
+        // The same fault against a short stream is malformed input: terminal,
+        // discarded, never retried with the same bytes.
+        assert!(matches!(
+            classify_entry(&short_write, path, &broken),
+            InstallFailure::MalformedArtifact { .. }
+        ));
+        assert!(matches!(
+            classify_entry(
+                &io::Error::from(io::ErrorKind::PermissionDenied),
+                path,
+                &intact
+            ),
+            InstallFailure::NotWritable { .. }
+        ));
+    }
+
+    /// A cleanup that fails after publication is reported, and the next apply
+    /// reclaims the leftover instead of refusing to start forever.
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_cleanup_is_reported_and_the_next_apply_reclaims_the_leftover() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        let artifact = signed_archive();
+        let workspace = directory
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join(".--.longhorn-install-Example.app");
+        let previous = workspace.join("previous");
+        let locked = previous.join("locked");
+
+        let error = installer
+            .apply_with_rename(&artifact, |from, to| {
+                fs::rename(from, to)?;
+                if to == previous {
+                    // A directory the removal cannot empty: the swap itself
+                    // still succeeds.
+                    fs::create_dir(&locked)?;
+                    fs::write(locked.join("child"), b"kept")?;
+                    fs::set_permissions(&locked, fs::Permissions::from_mode(0o555))?;
+                }
+                Ok(())
+            })
+            .expect_err("a failed cleanup is reported, not dropped");
+
+        let detail = error.to_string();
+        assert!(matches!(error, InstallFailure::Failed { .. }), "{detail}");
+        assert!(detail.contains("could not be removed"), "{detail}");
+        assert!(detail.contains(&*previous.to_string_lossy()), "{detail}");
+        // The new bundle is published; the displaced one is still here.
+        assert!(installer.target().join("0").is_file());
+        assert!(workspace.join("previous.published").is_file());
+
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
+        installer
+            .apply(&artifact)
+            .expect("the next apply reclaims the leftover and installs");
+
+        assert!(installer.target().join("0").is_file());
+        assert!(!previous.exists());
+        assert!(!workspace.join("previous.identity").exists());
+        assert!(!workspace.join("previous.published").exists());
+    }
+
+    /// A bundle a failed rollback left for recovery keeps its identity and is
+    /// never reclaimed, even once the target is occupied again.
+    #[cfg(unix)]
+    #[test]
+    fn a_rollback_bundle_is_not_reclaimed_when_the_target_is_occupied() {
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        let artifact = signed_archive();
+        drop(fail_swap_and_rollback(&installer, &artifact));
+        fs::create_dir(installer.target()).unwrap();
+
+        let error = installer
+            .apply(&artifact)
+            .expect_err("a recovery bundle needs a human");
+
+        assert!(error.to_string().contains("Inspect and move"), "{error}");
+        assert!(
+            installer
+                .target()
+                .parent()
+                .unwrap()
+                .join(".--.longhorn-install-Example.app/previous/original")
+                .is_file()
+        );
     }
 }

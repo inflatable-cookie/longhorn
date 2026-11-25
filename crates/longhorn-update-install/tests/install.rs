@@ -184,6 +184,30 @@ fn bundle() -> Vec<u8> {
     archive("Example.app", &[("Contents/marker", b"new")])
 }
 
+/// A signed archive whose stream ends before the payload its header declares.
+///
+/// The gzip member is intact, so the decoder reports no fault: only the tar
+/// structure is short, which is the shape a transfer that stopped early
+/// leaves behind.
+fn truncated_archive() -> Vec<u8> {
+    let payload = vec![b'x'; 4096];
+    let mut builder = tar::Builder::new(Vec::new());
+    let mut header = tar::Header::new_gnu();
+    header.set_size(payload.len() as u64);
+    header.set_mode(0o644);
+    header.set_entry_type(tar::EntryType::Regular);
+    header.set_cksum();
+    builder
+        .append_data(&mut header, "Example.app/Contents/marker", &payload[..])
+        .unwrap();
+    let mut plain = builder.into_inner().unwrap();
+    plain.truncate(plain.len() - 3000);
+
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    std::io::Write::write_all(&mut encoder, &plain).unwrap();
+    encoder.finish().unwrap()
+}
+
 struct Fixtures {
     pair: KeyPair,
 }
@@ -442,6 +466,60 @@ fn matching_workspace_names_do_not_authorize_recovery_of_an_unrelated_directory(
 }
 
 #[test]
+fn a_signed_truncated_archive_is_malformed_not_retryable() {
+    // A signed archive is still untrusted input, and a truncated one is
+    // terminal: reporting it as a retryable failure replays the same bad bytes
+    // on every attempt and keeps its staged copy forever.
+    let fixture = Fixture::new();
+    let truncated = truncated_archive();
+    let signature = sign(&fixture.fixtures.pair, &truncated);
+
+    let outcome = fixture
+        .installer()
+        .apply(&verified(&fixture, truncated, &signature));
+
+    assert!(
+        matches!(outcome, Err(InstallFailure::MalformedArtifact { .. })),
+        "expected a malformed-artifact refusal, found {outcome:?}"
+    );
+    assert_eq!(fixture.marker(), "old");
+}
+
+#[test]
+fn a_signed_archive_with_a_truncated_stream_is_malformed_not_retryable() {
+    // The stream ends inside an entry's data, after its header has been read:
+    // the decoder faults while the entry is being written, which is the shape
+    // a transfer that stopped early leaves. The payload is incompressible so
+    // the cut lands inside the deflate body rather than after it.
+    let mut state = 0x2545_f491_4f6c_dd1du64;
+    let filler: Vec<u8> = (0..256 * 1024)
+        .map(|_| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state as u8
+        })
+        .collect();
+    let fixture = Fixture::new();
+    let mut cut = archive(
+        "Example.app",
+        &[("Contents/marker", b"new"), ("Contents/filler", &filler)],
+    );
+    cut.truncate(cut.len() * 6 / 10);
+    let signature = sign(&fixture.fixtures.pair, &cut);
+
+    let outcome = fixture
+        .installer()
+        .apply(&verified(&fixture, cut, &signature));
+
+    assert!(
+        matches!(outcome, Err(InstallFailure::MalformedArtifact { .. })),
+        "expected a malformed-artifact refusal, found {outcome:?}"
+    );
+    assert_eq!(fixture.marker(), "old");
+}
+
+#[test]
 fn an_archive_overstaying_the_extraction_quota_is_refused() {
     // The quota reads declared sizes, so a header claiming five gigabytes for
     // a four-byte payload trips it before a byte is unpacked.
@@ -499,7 +577,11 @@ fn escalation_is_not_attempted_when_the_target_is_writable() {
     struct Forbidden;
 
     impl PrivilegedReplace for Forbidden {
-        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+        fn replace(
+            &self,
+            _artifact: &VerifiedArtifact,
+            _target: &Path,
+        ) -> Result<(), InstallFailure> {
             panic!("escalation must not be attempted on a writable target");
         }
     }
@@ -519,11 +601,61 @@ fn the_default_escalation_declines_rather_than_prompting() {
     let fixture = Fixture::new();
     let (bytes, signature) = fixture.fixtures.valid();
     let artifact = verified(&fixture, bytes, &signature);
-    assert!(
-        NoPrivilegedReplace
-            .replace(&artifact, Path::new("/target"))
-            .is_err()
-    );
+    assert!(matches!(
+        NoPrivilegedReplace.replace(&artifact, Path::new("/target")),
+        Err(InstallFailure::NotWritable { .. })
+    ));
+}
+
+/// An escalated swap says which class it failed in, because the controller
+/// acts on the difference: a malformed artifact is terminal and its staged
+/// bytes are discarded, a partial replacement is retryable and names what it
+/// kept.
+#[cfg(unix)]
+#[test]
+fn escalation_failures_keep_their_contract_class() {
+    use std::os::unix::fs::PermissionsExt;
+
+    struct Reports(InstallFailure);
+
+    impl PrivilegedReplace for Reports {
+        fn replace(
+            &self,
+            _artifact: &VerifiedArtifact,
+            _target: &Path,
+        ) -> Result<(), InstallFailure> {
+            Err(self.0.clone())
+        }
+    }
+
+    let fixture = Fixture::new();
+    let (bytes, signature) = fixture.fixtures.valid();
+    let artifact = verified(&fixture, bytes, &signature);
+    let malformed = InstallFailure::MalformedArtifact {
+        detail: "protected extraction refused the archive".to_owned(),
+    };
+    let partial = InstallFailure::Failed {
+        detail: "could not move the new bundle (permission denied). Rollback failed \
+                 (permission denied). Previous bundle preserved at /protected/previous"
+            .to_owned(),
+    };
+
+    // An unwritable install directory: the escalated path is the one taken.
+    let parent = fixture.target.parent().unwrap();
+    let permissions = fs::metadata(parent).unwrap().permissions();
+    fs::set_permissions(parent, fs::Permissions::from_mode(0o555)).unwrap();
+    let malformed_outcome = fixture
+        .installer()
+        .with_escalation(Reports(malformed.clone()))
+        .apply(&artifact);
+    let partial_outcome = fixture
+        .installer()
+        .with_escalation(Reports(partial.clone()))
+        .apply(&artifact);
+    fs::set_permissions(parent, permissions).unwrap();
+
+    assert_eq!(malformed_outcome, Err(malformed));
+    assert_eq!(partial_outcome, Err(partial));
 }
 
 /// The escalation contract: the port receives the verified artifact, never a
@@ -536,15 +668,23 @@ fn escalation_receives_the_verified_artifact_not_a_staged_path() {
     struct Spy;
 
     impl PrivilegedReplace for Spy {
-        fn replace(&self, artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+        fn replace(
+            &self,
+            artifact: &VerifiedArtifact,
+            _target: &Path,
+        ) -> Result<(), InstallFailure> {
             // The implementor's side of the contract: extract the artifact
             // itself, into its own protected staging, via the same bounded
             // extraction the unprivileged path gets.
-            let protected = TempDir::new().map_err(|error| error.to_string())?;
-            let root = longhorn_update_install::extract_bundle(artifact, protected.path())
-                .map_err(|error| error.to_string())?;
-            let marker = fs::read_to_string(root.join("Contents/marker"))
-                .map_err(|error| error.to_string())?;
+            let protected = TempDir::new().map_err(|error| InstallFailure::Failed {
+                detail: error.to_string(),
+            })?;
+            let root = longhorn_update_install::extract_bundle(artifact, protected.path())?;
+            let marker = fs::read_to_string(root.join("Contents/marker")).map_err(|error| {
+                InstallFailure::Failed {
+                    detail: error.to_string(),
+                }
+            })?;
             assert_eq!(marker, "new", "the artifact extracts under the port");
             assert_eq!(artifact.version(), &Version::parse("1.3.0").unwrap());
             Ok(())
@@ -580,18 +720,30 @@ fn an_unwritable_parent_serializes_escalation_without_a_workspace() {
     struct Paused(mpsc::Sender<()>, mpsc::Receiver<()>);
 
     impl PrivilegedReplace for Paused {
-        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
-            self.0.send(()).map_err(|error| error.to_string())?;
+        fn replace(
+            &self,
+            _artifact: &VerifiedArtifact,
+            _target: &Path,
+        ) -> Result<(), InstallFailure> {
+            self.0.send(()).map_err(|error| InstallFailure::Failed {
+                detail: error.to_string(),
+            })?;
             self.1
                 .recv_timeout(Duration::from_secs(5))
-                .map_err(|error| error.to_string())
+                .map_err(|error| InstallFailure::Failed {
+                    detail: error.to_string(),
+                })
         }
     }
 
     struct AllowsReplacement;
 
     impl PrivilegedReplace for AllowsReplacement {
-        fn replace(&self, _artifact: &VerifiedArtifact, _target: &Path) -> Result<(), String> {
+        fn replace(
+            &self,
+            _artifact: &VerifiedArtifact,
+            _target: &Path,
+        ) -> Result<(), InstallFailure> {
             Ok(())
         }
     }
