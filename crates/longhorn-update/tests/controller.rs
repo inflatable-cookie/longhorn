@@ -1181,3 +1181,175 @@ fn apply_refuses_a_digest_for_different_bytes_at_the_same_version() {
     assert_eq!(rejection(&outcome), UpdateRejectionCode::NoOffer);
     assert_eq!(controller.snapshot(), staged);
 }
+
+#[test]
+fn missing_target_artifact_is_not_offered() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, mut manifest) = check(&signing);
+    manifest.artifacts.clear();
+    let result = controller.check(&command, &manifest, CheckKind::UserInitiated);
+    assert!(matches!(
+        committed(&result).availability,
+        longhorn_update::UpdateAvailabilityProjection::UnavailableForTarget { .. }
+    ));
+    assert_eq!(
+        rejection(&prepare_quietly(&mut controller, &prepare("1.4.0"))),
+        UpdateRejectionCode::NoOffer
+    );
+    manifest.rollout = Some(longhorn_update::Rollout::new(
+        longhorn_update::RolloutFraction::NONE,
+        "release",
+    ));
+    let automatic = controller.check(&command, &manifest, CheckKind::Automatic);
+    assert!(matches!(
+        committed(&automatic).availability,
+        longhorn_update::UpdateAvailabilityProjection::UnavailableForTarget { .. }
+    ));
+}
+
+#[test]
+fn deferring_during_transfer_preserves_download_progress() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    let started = transfer(&mut controller, &prepare("1.4.0"));
+    let outcome = controller.defer(&UpdateDeferCommand {
+        protocol_version: UpdateProtocolVersion::CURRENT,
+        authority_epoch: 1,
+        version: "1.4.0".into(),
+        cause: DeferralCause::UserPostponed,
+    });
+    assert!(matches!(
+        committed(&outcome).progress,
+        UpdateProgressProjection::Downloading { .. }
+    ));
+    assert!(matches!(
+        controller.complete_prepare(&started, Ok(ARTIFACT.to_vec())),
+        UpdateOutcomeProjection::Committed { .. }
+    ));
+}
+
+struct FailingInstall(InstallFailure);
+impl UpdateInstaller for FailingInstall {
+    fn apply(&self, _: &VerifiedArtifact) -> Result<Applied, InstallFailure> {
+        Err(self.0.clone())
+    }
+}
+
+#[test]
+fn install_failures_preserve_detail_and_terminal_classification() {
+    for (failure, expected, detail) in [
+        (
+            InstallFailure::SignatureRejected,
+            UpdateRejectionCode::SignatureRejected,
+            None,
+        ),
+        (
+            InstallFailure::MalformedArtifact {
+                detail: "invalid archive".into(),
+            },
+            UpdateRejectionCode::MalformedArtifact,
+            Some("invalid archive"),
+        ),
+        (
+            InstallFailure::Failed {
+                detail: "swap failed; rollback failed; old bundle at backup".into(),
+            },
+            UpdateRejectionCode::InstallFailed,
+            Some("swap failed; rollback failed; old bundle at backup"),
+        ),
+        (
+            InstallFailure::NotWritable {
+                detail: "read-only bundle".into(),
+            },
+            UpdateRejectionCode::NotWritable,
+            Some("read-only bundle"),
+        ),
+    ] {
+        let signing = Signing::new();
+        let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+        let mut controller = controller(&signing, &source, &fetch, writable());
+        let (command, manifest) = check(&signing);
+        controller.check(&command, &manifest, CheckKind::UserInitiated);
+        prepare_quietly(&mut controller, &prepare("1.4.0"));
+        let gate = UpdateGate::new(Vec::new(), &Granting);
+        let result = controller.apply(&apply("1.4.0"), &gate, &FailingInstall(failure));
+        let UpdateOutcomeProjection::Rejected {
+            code,
+            detail: actual,
+            snapshot,
+        } = result
+        else {
+            panic!("expected installer rejection")
+        };
+        assert_eq!(code, expected);
+        assert_eq!(actual.as_deref(), detail);
+        if matches!(
+            code,
+            UpdateRejectionCode::MalformedArtifact | UpdateRejectionCode::SignatureRejected
+        ) {
+            assert!(snapshot.staged.is_none());
+            assert!(matches!(snapshot.progress, UpdateProgressProjection::Idle));
+        } else {
+            assert!(snapshot.staged.is_some());
+        }
+    }
+}
+
+#[test]
+fn installer_detail_redacts_common_credentials_before_projection() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+    let detail = format!("invalid archive; {}={}", "token", "sample-value");
+    let result = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &Granting),
+        &FailingInstall(InstallFailure::MalformedArtifact { detail }),
+    );
+    let UpdateOutcomeProjection::Rejected {
+        detail: Some(detail),
+        ..
+    } = result
+    else {
+        panic!("expected rejection")
+    };
+    assert!(detail.contains("invalid archive"));
+    assert!(!detail.contains("sample-value"));
+    assert!(detail.contains("[redacted]"));
+}
+
+#[test]
+fn debug_output_redacts_request_and_verified_bytes() {
+    let request = SourceRequest::new(
+        longhorn_update::EndpointUrl::new("https://example.test/path?private=value").unwrap(),
+    )
+    .with_header("Authorization", "sensitive-value");
+    let transfer = longhorn_update::PreparedTransfer::new(1, version("1.4.0"), request);
+    for debug in [
+        format!("{:?}", transfer.request()),
+        format!("{transfer:?}"),
+        format!("{:?}", UpdatePrepareStart::Transfer(transfer.clone())),
+    ] {
+        assert!(!debug.contains("private=value"));
+        assert!(!debug.contains("sensitive-value"));
+    }
+    let signing = Signing::new();
+    let verified = longhorn_update::verify_artifact(
+        &signing.key(),
+        &version("1.4.0"),
+        ARTIFACT.to_vec(),
+        &signing.signature(ARTIFACT),
+    )
+    .unwrap();
+    let debug = format!("{verified:?}");
+    assert!(!debug.contains("97, 32, 115"));
+    assert!(debug.contains("byte_len"));
+}

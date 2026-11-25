@@ -7,10 +7,10 @@ export const UPDATE_CHANNELS = ["production","beta","nightly"] as const;
 export const UPDATE_OFFER_REASONS = ["staged","belowMinimumVersion","userInitiated"] as const;
 export const UPDATE_INSTALL_MANAGERS = ["macAppStore","homebrewCask","flatpak","snap","appImage","nix","linuxDistribution"] as const;
 export const UPDATE_DEFERRAL_CAUSES = ["userPostponed","workInFlight","installationNotWritable","externallyManaged","installFailed"] as const;
-export const UPDATE_AVAILABILITY_STATES = ["notChecked","offer","upToDate","aheadOfChannel","withheldByRollout","managedElsewhere"] as const;
+export const UPDATE_AVAILABILITY_STATES = ["notChecked","offer","unavailableForTarget","upToDate","aheadOfChannel","withheldByRollout","managedElsewhere"] as const;
 export const UPDATE_PROGRESS_STATES = ["idle","downloading","verifying","readyToInstall","installing"] as const;
 export const UPDATE_INSTALL_AUTHORIZATION_STATUSES = ["held","deferred"] as const;
-export const UPDATE_REJECTION_CODES = ["staleAuthority","noOffer","unavailable","channelMismatch","unreachable","signatureRejected","notWritable","installFailed"] as const;
+export const UPDATE_REJECTION_CODES = ["staleAuthority","noOffer","unavailable","channelMismatch","unreachable","signatureRejected","notWritable","malformedArtifact","installFailed"] as const;
 export const UPDATE_OUTCOME_STATUSES = ["committed","rejected"] as const;
 export const UPDATE_CHANGED_KINDS = ["checked","channelSelected","deferred","progressed"] as const;
 
@@ -56,7 +56,11 @@ reason: OfferReason,
 /**
  * Release notes, when published.
  */
-notes: string | null, } | { "state": "upToDate" } | { "state": "aheadOfChannel", 
+notes: string | null, } | { "state": "unavailableForTarget", 
+/**
+ * The release version.
+ */
+version: string, } | { "state": "upToDate" } | { "state": "aheadOfChannel", 
 /**
  * What is installed.
  */
@@ -275,7 +279,7 @@ export type UpdateInstallAuthorizationProjection = { "status": "held" } | { "sta
  */
 cause: DeferralCause, };
 
-export type UpdateRejectionCode = "staleAuthority" | "noOffer" | "unavailable" | "channelMismatch" | "unreachable" | "signatureRejected" | "notWritable" | "installFailed";
+export type UpdateRejectionCode = "staleAuthority" | "noOffer" | "unavailable" | "channelMismatch" | "unreachable" | "signatureRejected" | "notWritable" | "malformedArtifact" | "installFailed";
 
 export type UpdateOutcomeProjection = { "status": "committed", 
 /**
@@ -286,6 +290,10 @@ snapshot: UpdateSnapshot, } | { "status": "rejected",
  * What a surface should tell the operator.
  */
 code: UpdateRejectionCode, 
+/**
+ * Installer detail with common credential shapes redacted, when supplied.
+ */
+detail: string | null, 
 /**
  * The state as it remains.
  */

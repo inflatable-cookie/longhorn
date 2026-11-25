@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/svelte";
+import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
 import { UPDATE_PROTOCOL_VERSION, UpdateController } from "@inflatable-cookie/longhorn/update";
@@ -103,6 +103,99 @@ class Port implements UpdatePort {
 }
 
 describe("update surface bindings", () => {
+  it("explains a release without an artifact for this target", async () => {
+    const port = new Port();
+    port.state = snapshot({ availability: { state: "unavailableForTarget", version: "1.4.0" } });
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller } });
+    expect(mounted.getByText("No update available for this system")).toBeDefined();
+    expect(mounted.container.querySelector(".poodle-callout")?.getAttribute("data-tone")).toBe(
+      "info",
+    );
+    expect(mounted.queryAllByRole("button")).toHaveLength(0);
+    expect(mounted.container.textContent).not.toContain("Update check failed");
+    mounted.unmount();
+  });
+
+  it("shows the unavailable state in the update centre without retry actions", async () => {
+    const port = new Port();
+    port.state = snapshot({ availability: { state: "unavailableForTarget", version: "1.4.0" } });
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller, centre: true } });
+    await fireEvent.click(mounted.getByRole("button", { name: "Update" }));
+    const label = await waitFor(() => mounted.getByText("No update available for this system"));
+    expect(label.closest(".poodle-callout")?.getAttribute("data-tone")).toBe("info");
+    expect(mounted.queryByRole("button", { name: /retry|check|download/i })).toBeNull();
+    mounted.unmount();
+  });
+
+  it("shows malformed artifact detail instead of an install action", async () => {
+    class MalformedPort extends Port {
+      override async apply(): Promise<unknown> {
+        return {
+          status: "rejected",
+          code: "malformedArtifact",
+          detail: "invalid archive",
+          snapshot: snapshot({ availability: OFFER.availability }),
+        };
+      }
+    }
+    const port = new MalformedPort();
+    port.state = snapshot({
+      availability: OFFER.availability,
+      staged: { version: "1.4.0", channel: "production", digest: DIGEST },
+      progress: { state: "readyToInstall", version: "1.4.0" },
+    });
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller } });
+    await controller.apply("1.4.0");
+    await waitFor(() => expect(mounted.container.textContent).toContain("invalid archive"));
+    expect(mounted.getByText("The downloaded update was invalid")).toBeDefined();
+    expect(mounted.container.querySelector(".poodle-callout")?.getAttribute("data-tone")).toBe(
+      "warning",
+    );
+    expect(mounted.container.textContent).not.toContain("Update check failed");
+    expect(mounted.queryAllByRole("button").map((button) => button.textContent?.trim())).toEqual([
+      "Download again",
+    ]);
+    await fireEvent.click(mounted.getByRole("button", { name: "Download again" }));
+    await waitFor(() => expect(port.calls).toContainEqual({ name: "prepare", version: "1.4.0" }));
+    mounted.unmount();
+  });
+  it("shows invalid artifact detail and a download action in the update centre", async () => {
+    class MalformedPort extends Port {
+      override async apply(): Promise<unknown> {
+        return {
+          status: "rejected",
+          code: "malformedArtifact",
+          detail: "invalid archive",
+          snapshot: snapshot({ availability: OFFER.availability }),
+        };
+      }
+    }
+    const port = new MalformedPort();
+    port.state = snapshot({
+      availability: OFFER.availability,
+      staged: { version: "1.4.0", channel: "production", digest: DIGEST },
+      progress: { state: "readyToInstall", version: "1.4.0" },
+    });
+    const controller = new UpdateController({ port });
+    await controller.start();
+    const mounted = render(UpdateHarness, { props: { controller, centre: true } });
+    await controller.apply("1.4.0");
+    await waitFor(() => expect(mounted.getByRole("button", { name: "Update" })).toBeDefined());
+    await fireEvent.click(mounted.getByRole("button", { name: "Update" }));
+    const label = await waitFor(() => mounted.getByText("The downloaded update was invalid"));
+    expect(label.closest(".poodle-callout")?.getAttribute("data-tone")).toBe("warning");
+    expect(mounted.getByText("invalid archive")).toBeDefined();
+    expect(mounted.queryByText("Update check failed")).toBeNull();
+    await fireEvent.click(mounted.getByRole("button", { name: "Download again" }));
+    await waitFor(() => expect(port.calls).toContainEqual({ name: "prepare", version: "1.4.0" }));
+    mounted.unmount();
+  });
   it("offers a check before reporting that the install is up to date", async () => {
     const port = new Port();
     port.state = snapshot({ availability: { state: "notChecked" } });

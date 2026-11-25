@@ -298,3 +298,18 @@ earlier single-call stance.
   replacement, and server-side rollout orchestration are out of scope for the
   compiled boundary.
 - Longhorn publishes no update server.
+
+### Update outcome detail
+
+- `evaluate` takes the installation target. A newer release without its artifact
+  is unavailable for self-managed or undetermined installations; externally
+  managed installations still report their manager.
+- Installer rejections carry supplied detail after common credential-shape
+  redaction (contract 024). Hosts must still avoid including other secrets.
+  Malformed artifacts are
+  terminal, discarded from staging, and distinct from retryable replacement
+  failures. A failed swap and rollback must report both faults and the retained bundle location.
+- Deferring while a transfer runs preserves its download progress until the
+  transfer completes or is cancelled.
+- Request debug output redacts URLs and headers; verified artifact debug output
+  includes its length, never its bytes.

@@ -3477,6 +3477,7 @@ name = "longhorn-update"
 version = "0.6.0"
 dependencies = [
  "longhorn-core",
+ "longhorn-redact",
  "longhorn-url",
  "minisign",
  "minisign-verify",

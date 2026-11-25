@@ -42,6 +42,13 @@ impl AdmissionLease for GrantedLease {}
 
 const GRANTING_ADMISSION: GrantingAdmission = GrantingAdmission;
 
+fn target() -> TargetTriple {
+    TargetTriple::new("aarch64-apple-darwin").unwrap()
+}
+fn artifact() -> Artifact {
+    Artifact::new("https://updates.example/app", "signature")
+}
+
 /// Produces the update-flow evidence record.
 ///
 /// Every claim is asserted inline: a regression fails the harness loudly
@@ -60,7 +67,8 @@ pub fn update_evidence() -> Value {
             &up_to_date,
             &install,
             CheckKind::Automatic,
-            InstallProvenance::SelfManaged
+            InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::UpToDate
     ));
@@ -72,34 +80,41 @@ pub fn update_evidence() -> Value {
             &ahead,
             &install,
             CheckKind::Automatic,
-            InstallProvenance::SelfManaged
+            InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::AheadOfChannel { .. }
     ));
 
     let below_minimum = ChannelManifest::new(Channel::Production, version_1_1_0.clone())
-        .with_minimum_version(Version::new(1, 2, 0));
+        .with_minimum_version(Version::new(1, 2, 0))
+        .with_artifact(target(), artifact());
     assert!(matches!(
         evaluate(
             &build,
             &below_minimum,
             &install,
             CheckKind::Automatic,
-            InstallProvenance::SelfManaged
+            InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::Offer(_)
     ));
 
-    let withheld = ChannelManifest::new(Channel::Production, version_1_1_0.clone()).with_rollout(
-        Rollout::new(RolloutFraction::new(0.0).unwrap(), "proof-seed"),
-    );
+    let withheld = ChannelManifest::new(Channel::Production, version_1_1_0.clone())
+        .with_rollout(Rollout::new(
+            RolloutFraction::new(0.0).unwrap(),
+            "proof-seed",
+        ))
+        .with_artifact(target(), artifact());
     assert!(matches!(
         evaluate(
             &build,
             &withheld,
             &install,
             CheckKind::Automatic,
-            InstallProvenance::SelfManaged
+            InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::WithheldByRollout { .. }
     ));
@@ -109,7 +124,8 @@ pub fn update_evidence() -> Value {
             &withheld,
             &install,
             CheckKind::UserInitiated,
-            InstallProvenance::SelfManaged
+            InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::Offer(_)
     ));
@@ -129,7 +145,8 @@ pub fn update_evidence() -> Value {
             &full_rollout,
             &install,
             CheckKind::Automatic,
-            InstallProvenance::SelfManaged
+            InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::Offer(_)
     ));

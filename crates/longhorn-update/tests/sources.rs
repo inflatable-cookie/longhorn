@@ -3,7 +3,7 @@
 use longhorn_update::{
     Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, EndpointUrl, InstallId,
     InstallProvenance, Rollout, RolloutFraction, SourceError, SourceRequest, StaticJsonSource,
-    UpdateAvailability, UpdateSource, evaluate,
+    TargetTriple, UpdateAvailability, UpdateSource, evaluate,
 };
 use semver::Version;
 
@@ -32,6 +32,10 @@ impl UpdateSource for ProxiedPrivateSource {
             .with_header("Accept", "application/octet-stream")
             .with_header("Authorization", format!("Bearer {}", self.token)))
     }
+}
+
+fn target() -> TargetTriple {
+    TargetTriple::new("aarch64-apple-darwin").unwrap()
 }
 
 fn version(value: &str) -> Version {
@@ -68,8 +72,12 @@ fn a_consumer_adapter_inherits_policy_with_no_extra_wiring() {
         .find(|candidate| !rollout.includes(candidate))
         .expect("a half rollout must exclude someone");
 
-    let manifest =
-        ChannelManifest::new(Channel::Production, version("1.3.0")).with_rollout(rollout);
+    let manifest = ChannelManifest::new(Channel::Production, version("1.3.0"))
+        .with_artifact(
+            target(),
+            Artifact::new("https://updates.example/app", "signature"),
+        )
+        .with_rollout(rollout);
     let build = BuildIdentity::new(Channel::Production, version("1.2.9"));
 
     assert_eq!(
@@ -78,7 +86,8 @@ fn a_consumer_adapter_inherits_policy_with_no_extra_wiring() {
             &manifest,
             &excluded,
             CheckKind::Automatic,
-            InstallProvenance::SelfManaged
+            InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::WithheldByRollout {
             version: version("1.3.0")

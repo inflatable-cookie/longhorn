@@ -1,11 +1,21 @@
 //! Update policy acceptance evidence.
 
 use longhorn_update::{
-    BuildIdentity, Channel, ChannelManifest, CheckKind, Deferral, DeferralCause, InstallId,
-    InstallManager, InstallProvenance, OfferReason, Rollout, RolloutFraction, UpdateAvailability,
-    evaluate,
+    Artifact, BuildIdentity, Channel, ChannelManifest, CheckKind, Deferral, DeferralCause,
+    InstallId, InstallManager, InstallProvenance, OfferReason, Rollout, RolloutFraction,
+    TargetTriple, UpdateAvailability, evaluate,
 };
 use semver::Version;
+
+fn target() -> TargetTriple {
+    TargetTriple::new("aarch64-apple-darwin").unwrap()
+}
+fn manifest(channel: Channel, version: Version) -> ChannelManifest {
+    ChannelManifest::new(channel, version).with_artifact(
+        target(),
+        Artifact::new("https://updates.example/app", "signature"),
+    )
+}
 
 fn version(value: &str) -> Version {
     Version::parse(value).unwrap()
@@ -43,10 +53,11 @@ fn included_install(rollout: &Rollout) -> InstallId {
 fn a_matching_version_is_up_to_date() {
     let availability = evaluate(
         &build(Channel::Production, "1.2.9"),
-        &ChannelManifest::new(Channel::Production, version("1.2.9")),
+        &manifest(Channel::Production, version("1.2.9")),
         &install("any"),
         CheckKind::Automatic,
         InstallProvenance::SelfManaged,
+        &target(),
     );
 
     assert_eq!(availability, UpdateAvailability::UpToDate);
@@ -54,8 +65,7 @@ fn a_matching_version_is_up_to_date() {
 
 #[test]
 fn a_newer_channel_version_is_offered() {
-    let manifest =
-        ChannelManifest::new(Channel::Production, version("1.3.0")).with_notes("fixes things");
+    let manifest = manifest(Channel::Production, version("1.3.0")).with_notes("fixes things");
 
     let availability = evaluate(
         &build(Channel::Production, "1.2.9"),
@@ -63,6 +73,7 @@ fn a_newer_channel_version_is_offered() {
         &install("any"),
         CheckKind::Automatic,
         InstallProvenance::SelfManaged,
+        &target(),
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -80,10 +91,11 @@ fn an_install_ahead_of_its_channel_is_distinct_from_up_to_date() {
     // nothing at all reads as a broken updater.
     let availability = evaluate(
         &build(Channel::Production, "1.3.0-nightly.4"),
-        &ChannelManifest::new(Channel::Production, version("1.2.9")),
+        &manifest(Channel::Production, version("1.2.9")),
         &install("any"),
         CheckKind::Automatic,
         InstallProvenance::SelfManaged,
+        &target(),
     );
 
     assert_eq!(
@@ -102,10 +114,11 @@ fn a_prerelease_rejoins_its_channel_when_the_release_lands() {
     // rejoin needs no special handling at all -- it is the ordinary offer path.
     let availability = evaluate(
         &build(Channel::Production, "1.3.0-nightly.4"),
-        &ChannelManifest::new(Channel::Production, version("1.3.0")),
+        &manifest(Channel::Production, version("1.3.0")),
         &install("any"),
         CheckKind::Automatic,
         InstallProvenance::SelfManaged,
+        &target(),
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -118,8 +131,7 @@ fn a_prerelease_rejoins_its_channel_when_the_release_lands() {
 fn rollout_withholds_from_installs_outside_the_stage() {
     let rollout = Rollout::new(fraction(0.5), "1.3.0");
     let excluded = excluded_install(&rollout);
-    let manifest =
-        ChannelManifest::new(Channel::Production, version("1.3.0")).with_rollout(rollout.clone());
+    let manifest = manifest(Channel::Production, version("1.3.0")).with_rollout(rollout.clone());
 
     assert_eq!(
         evaluate(
@@ -128,6 +140,7 @@ fn rollout_withholds_from_installs_outside_the_stage() {
             &excluded,
             CheckKind::Automatic,
             InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::WithheldByRollout {
             version: version("1.3.0")
@@ -142,6 +155,7 @@ fn rollout_withholds_from_installs_outside_the_stage() {
             &included,
             CheckKind::Automatic,
             InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::Offer(_)
     ));
@@ -151,8 +165,7 @@ fn rollout_withholds_from_installs_outside_the_stage() {
 fn a_user_initiated_check_bypasses_rollout() {
     let rollout = Rollout::new(fraction(0.5), "1.3.0");
     let excluded = excluded_install(&rollout);
-    let manifest =
-        ChannelManifest::new(Channel::Production, version("1.3.0")).with_rollout(rollout);
+    let manifest = manifest(Channel::Production, version("1.3.0")).with_rollout(rollout);
 
     let availability = evaluate(
         &build(Channel::Production, "1.2.9"),
@@ -160,6 +173,7 @@ fn a_user_initiated_check_bypasses_rollout() {
         &excluded,
         CheckKind::UserInitiated,
         InstallProvenance::SelfManaged,
+        &target(),
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -174,7 +188,7 @@ fn the_minimum_version_floor_overrides_rollout() {
     // not the stage has reached it.
     let rollout = Rollout::new(fraction(0.5), "1.3.0");
     let excluded = excluded_install(&rollout);
-    let manifest = ChannelManifest::new(Channel::Production, version("1.3.0"))
+    let manifest = manifest(Channel::Production, version("1.3.0"))
         .with_rollout(rollout)
         .with_minimum_version(version("1.2.4"));
 
@@ -184,6 +198,7 @@ fn the_minimum_version_floor_overrides_rollout() {
         &excluded,
         CheckKind::Automatic,
         InstallProvenance::SelfManaged,
+        &target(),
     );
 
     let UpdateAvailability::Offer(offer) = availability else {
@@ -197,7 +212,7 @@ fn the_minimum_version_floor_overrides_rollout() {
 fn an_install_at_the_floor_is_still_subject_to_rollout() {
     let rollout = Rollout::new(fraction(0.5), "1.3.0");
     let excluded = excluded_install(&rollout);
-    let manifest = ChannelManifest::new(Channel::Production, version("1.3.0"))
+    let manifest = manifest(Channel::Production, version("1.3.0"))
         .with_rollout(rollout)
         .with_minimum_version(version("1.2.4"));
 
@@ -208,6 +223,7 @@ fn an_install_at_the_floor_is_still_subject_to_rollout() {
             &excluded,
             CheckKind::Automatic,
             InstallProvenance::SelfManaged,
+            &target(),
         ),
         UpdateAvailability::WithheldByRollout {
             version: version("1.3.0")
@@ -223,8 +239,7 @@ fn faster_channels_are_never_staged() {
     let excluded = excluded_install(&rollout);
 
     for channel in [Channel::Beta, Channel::Nightly] {
-        let manifest =
-            ChannelManifest::new(channel, version("1.3.0")).with_rollout(rollout.clone());
+        let manifest = manifest(channel, version("1.3.0")).with_rollout(rollout.clone());
 
         assert!(
             matches!(
@@ -234,6 +249,7 @@ fn faster_channels_are_never_staged() {
                     &excluded,
                     CheckKind::Automatic,
                     InstallProvenance::SelfManaged,
+                    &target(),
                 ),
                 UpdateAvailability::Offer(_)
             ),
@@ -245,8 +261,7 @@ fn faster_channels_are_never_staged() {
 #[test]
 fn evaluation_is_deterministic_for_the_same_inputs() {
     let rollout = Rollout::new(fraction(0.37), "1.3.0");
-    let manifest =
-        ChannelManifest::new(Channel::Production, version("1.3.0")).with_rollout(rollout);
+    let manifest = manifest(Channel::Production, version("1.3.0")).with_rollout(rollout);
     let build = build(Channel::Production, "1.2.9");
 
     for index in 0..200 {
@@ -257,6 +272,7 @@ fn evaluation_is_deterministic_for_the_same_inputs() {
             &install,
             CheckKind::Automatic,
             InstallProvenance::SelfManaged,
+            &target(),
         );
         let second = evaluate(
             &build,
@@ -264,6 +280,7 @@ fn evaluation_is_deterministic_for_the_same_inputs() {
             &install,
             CheckKind::Automatic,
             InstallProvenance::SelfManaged,
+            &target(),
         );
         assert_eq!(first, second);
     }
@@ -309,12 +326,13 @@ fn an_externally_managed_install_is_told_where_to_update_not_offered_one() {
     // manager's database describing a version no longer on disk.
     let availability = evaluate(
         &build(Channel::Production, "1.2.9"),
-        &ChannelManifest::new(Channel::Production, version("1.3.0")),
+        &manifest(Channel::Production, version("1.3.0")),
         &install("any"),
         CheckKind::Automatic,
         InstallProvenance::ExternallyManaged {
             manager: InstallManager::HomebrewCask,
         },
+        &target(),
     );
 
     assert_eq!(
@@ -331,8 +349,8 @@ fn even_a_mandatory_release_is_not_self_installed_over_a_package_manager() {
     // The floor exists so a security release is never withheld. It still is
     // not withheld — the user is told where to get it — but urgency does not
     // make it safe to desync the manager, so the answer is not an offer.
-    let manifest = ChannelManifest::new(Channel::Production, version("1.3.0"))
-        .with_minimum_version(version("1.2.10"));
+    let manifest =
+        manifest(Channel::Production, version("1.3.0")).with_minimum_version(version("1.2.10"));
 
     let availability = evaluate(
         &build(Channel::Production, "1.2.9"),
@@ -342,6 +360,7 @@ fn even_a_mandatory_release_is_not_self_installed_over_a_package_manager() {
         InstallProvenance::ExternallyManaged {
             manager: InstallManager::LinuxDistribution,
         },
+        &target(),
     );
 
     assert!(matches!(
@@ -356,10 +375,11 @@ fn an_undetermined_provenance_still_offers_so_ordinary_installs_do_not_regress()
     // blocked updates, this card would have broken more than it fixed.
     let availability = evaluate(
         &build(Channel::Production, "1.2.9"),
-        &ChannelManifest::new(Channel::Production, version("1.3.0")),
+        &manifest(Channel::Production, version("1.3.0")),
         &install("any"),
         CheckKind::Automatic,
         InstallProvenance::Undetermined,
+        &target(),
     );
 
     assert!(matches!(availability, UpdateAvailability::Offer(_)));
@@ -379,4 +399,49 @@ fn an_external_deferral_is_not_retryable_and_names_the_command() {
         cause.to_string(),
         "installed by Homebrew; update with `brew upgrade --cask soundcheck`"
     );
+}
+
+#[test]
+fn evaluate_never_offers_a_release_without_the_target_artifact() {
+    let build = build(Channel::Production, "1.2.9");
+    let mut release = manifest(Channel::Production, version("1.3.0"));
+    release.artifacts.clear();
+    for check in [CheckKind::Automatic, CheckKind::UserInitiated] {
+        assert!(matches!(
+            evaluate(
+                &build,
+                &release,
+                &install("any"),
+                check,
+                InstallProvenance::SelfManaged,
+                &target()
+            ),
+            UpdateAvailability::UnavailableForTarget { .. }
+        ));
+    }
+    assert!(matches!(
+        evaluate(
+            &build,
+            &release,
+            &install("any"),
+            CheckKind::Automatic,
+            InstallProvenance::ExternallyManaged {
+                manager: InstallManager::HomebrewCask
+            },
+            &target()
+        ),
+        UpdateAvailability::ManagedElsewhere { .. }
+    ));
+    release.rollout = Some(Rollout::new(RolloutFraction::NONE, "release"));
+    assert!(matches!(
+        evaluate(
+            &build,
+            &release,
+            &install("any"),
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged,
+            &target()
+        ),
+        UpdateAvailability::UnavailableForTarget { .. }
+    ));
 }

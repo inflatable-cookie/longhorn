@@ -21,6 +21,7 @@ export interface UpdateFixture {
   readonly stagedSnapshot: UpdateSnapshot;
   readonly aheadSnapshot: UpdateSnapshot;
   readonly withheldSnapshot: UpdateSnapshot;
+  readonly unavailableSnapshot: UpdateSnapshot;
   readonly notCheckedSnapshot: UpdateSnapshot;
   readonly upToDateSnapshot: UpdateSnapshot;
   readonly checkCommand: UpdateCheckCommand;

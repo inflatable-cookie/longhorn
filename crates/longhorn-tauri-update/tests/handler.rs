@@ -214,6 +214,7 @@ fn committed() -> UpdateOutcomeProjection {
 fn rejected() -> UpdateOutcomeProjection {
     UpdateOutcomeProjection::Rejected {
         code: UpdateRejectionCode::NotWritable,
+        detail: None,
         snapshot: snapshot(),
     }
 }

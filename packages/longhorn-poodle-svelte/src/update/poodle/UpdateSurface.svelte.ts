@@ -63,10 +63,27 @@ export function sampleUpdateController(getController: () => UpdateController) {
       void notify;
       return controller.status;
     },
+    get special() {
+      void notify;
+      if (controller.pending) return undefined;
+      if (controller.lastRejection === "malformedArtifact") {
+        return { kind: "malformed" as const, detail: controller.lastRejectionDetail };
+      }
+      if (controller.availability?.state === "unavailableForTarget") {
+        return { kind: "unavailable" as const };
+      }
+      return undefined;
+    },
+    retryDownload(): void {
+      const version = actionableVersion(controller);
+      if (version !== undefined) void controller.prepare(version);
+    },
     get availability() {
       void notify;
       const availability = controller.availability;
-      return availability?.state === "notChecked" ? undefined : availability;
+      return availability?.state === "notChecked" || availability?.state === "unavailableForTarget"
+        ? undefined
+        : availability;
     },
     get progress() {
       void notify;
@@ -86,7 +103,9 @@ export function sampleUpdateController(getController: () => UpdateController) {
     },
     get lastRejection() {
       void notify;
-      return controller.lastRejection;
+      return controller.lastRejection === "malformedArtifact"
+        ? undefined
+        : controller.lastRejection;
     },
     get aheadOfChannel() {
       void notify;

@@ -1,7 +1,9 @@
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
-use crate::{BuildIdentity, ChannelManifest, InstallId, InstallManager, InstallProvenance};
+use crate::{
+    BuildIdentity, ChannelManifest, InstallId, InstallManager, InstallProvenance, TargetTriple,
+};
 
 /// Why an update check ran.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -76,6 +78,11 @@ pub enum UpdateAvailability {
     NotChecked,
     /// An update is available now.
     Offer(UpdateOffer),
+    /// A newer release has no artifact for this installation target.
+    UnavailableForTarget {
+        /// The release version.
+        version: Version,
+    },
     /// The install is already on the channel's current version.
     UpToDate,
     /// The install is ahead of the channel it selected.
@@ -126,6 +133,7 @@ pub fn evaluate(
     install: &InstallId,
     check: CheckKind,
     provenance: InstallProvenance,
+    target: &TargetTriple,
 ) -> UpdateAvailability {
     if manifest.version == build.version {
         return UpdateAvailability::UpToDate;
@@ -147,6 +155,12 @@ pub fn evaluate(
         return UpdateAvailability::ManagedElsewhere {
             version: manifest.version.clone(),
             manager,
+        };
+    }
+
+    if manifest.artifact(target).is_none() {
+        return UpdateAvailability::UnavailableForTarget {
+            version: manifest.version.clone(),
         };
     }
 
