@@ -76,7 +76,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         ],
         // Nothing pruned, so the page's floor is the origin -- the state the
         // operator started from, which no entry names.
-        floor: HistoryPageFloorProjection::Origin,
+        floor: HistoryPageFloorProjection::Origin {},
         truncated_before: false,
         truncated_after: true,
         retained_baseline: baseline,
@@ -87,7 +87,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         history_id: history_id.clone(),
         plan_id: id::<HistoryPlanId>("plan:undo"),
         expected_revision: HistoryRevision::new(11),
-        target: HistoryNavigationTargetProjection::Undo,
+        target: HistoryNavigationTargetProjection::Undo {},
     };
     let position = HistoryNavigationPositionProjection {
         applied_depth: 2,

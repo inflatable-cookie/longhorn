@@ -98,7 +98,7 @@ impl ForkHistoryHostAuthority for Authority {
                     .unwrap(),
             });
         }
-        Ok(ForkPruneResult::Unchanged)
+        Ok(ForkPruneResult::Unchanged {})
     }
 
     fn navigate(
@@ -208,7 +208,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
             prune_command()
         ))
         .unwrap(),
-        ForkPruneResult::Unchanged
+        ForkPruneResult::Unchanged {}
     );
     assert_eq!(
         tauri::async_runtime::block_on(longhorn_history_tree_navigate(

@@ -295,6 +295,9 @@ A production tree layer must preserve these rules:
 - switching branches at a shared position commits a stationary navigation
 - preferred redo is deterministic and changes only through committed record
   or navigation
+- a parent with exactly one child and no recorded preference redoes to that
+  child; redo and checkout of that continuation read the same answer as
+  `preferred_child_id`, so an imported graph can perform every redo it shows
 - checkout plans inverse steps to the lowest common ancestor, then forward
   steps to the target, through one atomic consumer transaction
 - current and pinned lineage is protected from pruning; a name alone does

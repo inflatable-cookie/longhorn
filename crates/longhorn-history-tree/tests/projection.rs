@@ -567,7 +567,7 @@ fn the_default_path_reports_the_origin_even_after_a_prune() {
         ForkPathPageSnapshot::from_page(HistoryAuthorityEpoch::new(1).unwrap(), &page).unwrap();
     assert_eq!(
         snapshot.floor,
-        longhorn_history_tree::ForkPathFloorProjection::Origin
+        longhorn_history_tree::ForkPathFloorProjection::Origin {}
     );
 }
 

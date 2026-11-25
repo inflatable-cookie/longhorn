@@ -241,7 +241,7 @@ impl<P> ForkHistory<P> {
         self.retained_encoded_weight = removal.retained_encoded_weight;
         // Recomputed after the removal, not carried through it: pruning can
         // take a branch with it, which changes what is protected.
-        let remaining_share = self.unprotected_share(&self.protected_lineage()?)?;
+        let remaining_share = self.remaining_unprotected_share();
         Ok(ForkPruningOutcome::Pruned(ForkPruningReceipt {
             previous_revision: expected_revision,
             committed_revision,
@@ -351,7 +351,7 @@ impl<P> ForkHistory<P> {
         let removal = self.remove_in_leaf_order(order);
         self.revision = committed_revision;
         self.retained_encoded_weight = removal.retained_encoded_weight;
-        let remaining_share = self.unprotected_share(&self.protected_lineage()?)?;
+        let remaining_share = self.remaining_unprotected_share();
         Ok(ForkPruningReceipt {
             previous_revision: expected_revision,
             committed_revision,
@@ -582,6 +582,20 @@ impl<P> ForkHistory<P> {
                 .checked_sub(protected_weight)
                 .expect("protected lineage weight cannot exceed retained encoded weight"),
         })
+    }
+
+    /// The unprotected share after a removal has already committed.
+    ///
+    /// Infallible by construction: a refusal here would report a failure for a
+    /// change that is already durable. The walks below only fail on topology
+    /// that a validated graph cannot hold, and removing whole subtrees keeps it
+    /// valid, so an error here is a broken invariant, not an operator outcome.
+    fn remaining_unprotected_share(&self) -> UnprotectedShare {
+        let protected = self
+            .protected_lineage()
+            .expect("a committed removal keeps the graph topology valid");
+        self.unprotected_share(&protected)
+            .expect("a committed removal keeps protected weight within retained weight")
     }
 
     fn protected_weight(

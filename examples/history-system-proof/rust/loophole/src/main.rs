@@ -858,7 +858,7 @@ fn tauri_proof(
         history_id: initial_snapshot.summary.history_id.clone(),
         plan_id: HistoryPlanId::new("plan:tauri-proof").unwrap(),
         expected_revision: initial_snapshot.summary.revision,
-        target: HistoryNavigationTargetProjection::Undo,
+        target: HistoryNavigationTargetProjection::Undo {},
     };
     assert_eq!(service.snapshot("history").unwrap(), initial_snapshot);
     assert_eq!(service.page("history", page_command).unwrap(), initial_page);
