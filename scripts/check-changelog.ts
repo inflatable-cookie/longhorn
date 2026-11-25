@@ -54,8 +54,24 @@ function parseEnvelope(stdout: string) {
   }
 }
 
-function stringList(value: unknown): Array<string> {
-  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+/**
+ * The blockers Effigy listed, or `undefined` when it named none.
+ *
+ * A refused `release status` with no named blocker cannot justify a pass: the
+ * empty `[Unreleased]` gap always arrives as one blocker, so an absent, empty
+ * or non-string list means the cause is unknown, not that the changelog parsed.
+ */
+function blockerList(details: unknown): Array<string> | undefined {
+  if (!isRecord(details)) {
+    return undefined;
+  }
+  const blockers = details.blockers;
+  if (!Array.isArray(blockers) || blockers.length === 0) {
+    return undefined;
+  }
+  return blockers.every((blocker): blocker is string => typeof blocker === "string")
+    ? blockers
+    : undefined;
 }
 
 /** The parse result for CHANGELOG.md, or `undefined` when Effigy reported none. */
@@ -80,12 +96,11 @@ export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
   }
   const error = isRecord(envelope.error) ? envelope.error : undefined;
   const details = error?.details;
-  if (changelogParse(details)?.valid === true) {
+  const blockers = blockerList(details);
+  if (changelogParse(details)?.valid === true && blockers !== undefined) {
     // Every blocker other than the empty section has to be release Run state;
     // anything else means the parse context, not just the journal, is broken.
-    const unrelated = stringList(isRecord(details) ? details.blockers : undefined).filter(
-      (blocker) => blocker !== EMPTY_UNRELEASED,
-    );
+    const unrelated = blockers.filter((blocker) => blocker !== EMPTY_UNRELEASED);
     const onlyRunState = unrelated.every(isReleaseRunStateGap);
     if (onlyRunState) {
       const empty =
@@ -100,12 +115,16 @@ export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
       };
     }
   }
+  const reason =
+    typeof error?.message === "string"
+      ? error.message
+      : "effigy release status failed without a message";
   return {
     outcome: "fail",
     reason:
-      typeof error?.message === "string"
-        ? error.message
-        : "effigy release status failed without a message",
+      blockers === undefined
+        ? `${reason} (no blocker named, so the changelog parse cannot be trusted)`
+        : `${reason}: ${blockers.join("; ")}`,
   };
 }
 

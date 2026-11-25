@@ -1,0 +1,1 @@
+Fork history metadata protocol is version 2. Upgrade host authorities and clients together. Delete, including `ForkHistorySession.deleteContinuation`, returns `ForkDeleteResult` with `deleted` or `rejected`; prune can return `rejected`. Match those results and refresh when a rejection requests it.

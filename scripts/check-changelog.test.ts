@@ -245,6 +245,32 @@ describe("judgeReleaseStatus", () => {
     expect(judgeReleaseStatus(stdout).outcome).toBe("fail");
   });
 
+  // A refused status that names no cause cannot vouch for the changelog. The
+  // empty-section gap always arrives as a blocker, so `every()` over an absent,
+  // empty or non-string list is not a pass (review of longhorn#174).
+  test.each([
+    ["absent", undefined],
+    ["empty", []],
+    ["non-string", [{ message: "gates failed" }]],
+  ])("fails %s blockers even when the changelog parsed", (_case, blockers) => {
+    const parsed = {
+      changelog: { diagnostic_count: 0, diagnostics: [], path: "CHANGELOG.md", valid: true },
+      unreleased: { counts: {}, empty: true, entry_count: 0 },
+    };
+    const details = blockers === undefined ? parsed : { ...parsed, blockers };
+    const stdout = JSON.stringify({
+      ok: false,
+      error: {
+        kind: "RunnerError",
+        message: "command failed (json output available)",
+        details,
+      },
+    });
+    const verdict = judgeReleaseStatus(stdout);
+    expect(verdict.outcome).toBe("fail");
+    expect(verdict.outcome === "fail" && verdict.reason).toContain("no blocker named");
+  });
+
   test("does not read a parse error without details as the empty gap", () => {
     const stdout = JSON.stringify({
       ok: false,

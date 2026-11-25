@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { releaseFixtureScratch } from "./fixture-scratch.ts";
@@ -361,3 +362,19 @@ async function fixtureRepo(version: string): Promise<string> {
   await writeFile(join(root, "docs/reference/api-surface.md"), `generated ${version}\n`);
   return root;
 }
+
+describe("release fixture scratch", () => {
+  // The leak this guards recurred in two milestone QA rounds, so the failure
+  // path is asserted, not just the cleanup the other suites rely on.
+  test("removes what it created and names a same-prefix leak", async () => {
+    const tracker = await releaseFixtureScratch();
+    const own = await tracker.create("longhorn-release-bump-");
+    const leak = await mkdtemp(join(tmpdir(), "longhorn-release-bump-"));
+    try {
+      await expect(tracker.settle()).rejects.toThrow(`longhorn-release-bump-`);
+      await expect(access(own)).rejects.toThrow();
+    } finally {
+      await rm(leak, { recursive: true, force: true });
+    }
+  });
+});
