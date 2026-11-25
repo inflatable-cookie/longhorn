@@ -1,7 +1,9 @@
-import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
+import { releaseFixtureScratch } from "./fixture-scratch.ts";
+import type { ReleaseFixtureScratch } from "./fixture-scratch.ts";
 
 import { compareSemver, parseSemver, parseWorkspacePackageVersion } from "./longhorn-version.ts";
 import {
@@ -23,6 +25,13 @@ age = { version = "=0.12.1", default-features = false }
 longhorn-core = { path = "crates/longhorn-core", version = "0.2.1" }
 longhorn-bridge = { path = "crates/longhorn-bridge", version = "0.2.1" }
 `;
+
+// One tracker per file: every fixture it creates is removed, and the suite
+// fails if a `longhorn-release-*` directory is left behind (longhorn#174).
+let scratch: ReleaseFixtureScratch | undefined;
+afterAll(async () => {
+  await scratch?.settle();
+});
 
 describe("longhorn version source", () => {
   test("reads workspace.package.version", () => {
@@ -309,7 +318,8 @@ async function snapshotTracked(root: string): Promise<Record<string, string>> {
 }
 
 async function fixtureRepo(version: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "longhorn-release-bump-"));
+  scratch ??= await releaseFixtureScratch();
+  const root = await scratch.create("longhorn-release-bump-");
   await mkdir(join(root, "packages/longhorn"), { recursive: true });
   await mkdir(join(root, "packages/longhorn-tauri"), { recursive: true });
   await mkdir(join(root, "packages/longhorn-poodle-svelte"), { recursive: true });

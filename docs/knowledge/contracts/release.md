@@ -37,6 +37,23 @@ To bump the pinned toolchain:
 3. Dispatch `ci.yml` and confirm the run logs `rustc --version` at the new
    channel.
 
+## Changelog fragments
+
+Unreleased changes are one fragment per entry, in
+`changelog.d/<task-or-PR>-<slug>.<type>.md`. `type` is `added`, `changed`,
+`fixed`, `removed` or `security`: a public-API break is `changed`, and a
+credential or data leak fix is `security`. The stem carries a task or PR
+reference and a short slug so branches never collide. A fragment holds one
+paragraph without list markers; split the change into another fragment instead
+of adding a blank line. `effigy skill run northstar-docs/changelog -- check`
+is the check; the release fold reads the same parser. Folding rewrites them
+into `CHANGELOG.md` under the typed headings and deletes them.
+
+`scripts/check-changelog.ts` judges `CHANGELOG.md` alone, with Effigy's release
+parser, in a staged copy. It reports a refused release Run as a note rather
+than a changelog failure: release Run state lives in Effigy machine state
+outside this repository (longhorn#174).
+
 ## Steps
 
 1. **Bump.** `effigy release:bump -- <version>` updates the workspace version

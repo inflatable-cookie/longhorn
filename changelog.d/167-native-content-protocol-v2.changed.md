@@ -1,0 +1,1 @@
+**Native-content renderer protocol v2.** Upgrade the Rust host and generated TypeScript client together. Custom snapshot, desired-update, and content-size decision requests must carry the `authority_epoch` returned by connect. Give each replacement host a fresh, increasing epoch. Handle the new `AuthorityEpochMismatch` rejection by reconnecting.

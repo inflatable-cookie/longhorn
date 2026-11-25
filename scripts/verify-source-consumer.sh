@@ -12,21 +12,27 @@ cd "$release_repo_root"
 source release-baselines/rust-toolchains.env
 release_msrv="${LONGHORN_GENERAL_MSRV%.*}"
 
-release_tmp=$(mktemp -d)
-
 # The throwaway consumer's own Cargo workspace is not this checkout's, so its
 # one lease is `rust-command.sh exec` over that workspace's manifest. Final
 # outputs go to a private directory on external build scratch; the
-# intermediates keep the build directory the lease supplies. Hosted CI keeps its
-# runner-owned temporary storage.
+# intermediates keep the build directory the lease supplies. The consumer, the
+# source snapshot and the metadata live in a second owned directory, also
+# allocated by the scratch rule: a bare `mktemp -d` ignored it and landed under
+# /var/folders even with TMPDIR on run scratch (longhorn#174). Hosted CI keeps
+# its runner-owned temporary storage.
+release_tmp=
 release_scratch=
 release_cleanup() {
   if [[ -n "$release_scratch" ]]; then
     rm -rf "$release_scratch"
   fi
-  rm -rf "$release_tmp"
+  if [[ -n "$release_tmp" ]]; then
+    rm -rf "$release_tmp"
+  fi
 }
 trap release_cleanup EXIT
+
+release_tmp=$(bash scripts/external-scratch.sh longhorn-source-consumer-tmp)
 
 release_consumer_root="$release_tmp/consumer"
 mkdir -p "$release_consumer_root/src"

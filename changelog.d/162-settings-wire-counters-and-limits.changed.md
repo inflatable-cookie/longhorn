@@ -1,0 +1,1 @@
+Settings registry generations and scope revisions are now `WireCounter` newtypes, so a host can no longer stamp a value above `2^53 - 1` that its own TypeScript client refuses as an unsafe integer, and seal now refuses the two contradictory page declarations it used to accept or drop. `SettingsLimits` rejects unknown fields on the wire.

@@ -1,0 +1,1 @@
+**`SettingsRegistryGeneration::checked_next` returns `Result<Self, WireCounterOverflow>`.** It returned `Option<Self>`. Migration: `?` or `map_err` the error where a host advances a generation, or `.ok()` where only "advanced or not" was used.

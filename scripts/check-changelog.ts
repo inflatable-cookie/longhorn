@@ -14,6 +14,14 @@ import { parseJsonRecord } from "./proof-json.ts";
 // true`, and that one blocker. Released Effigy 0.14.1 and the local build print
 // that shape alike (`effigy.release.status.v1`); they differ on which changelog
 // text they accept, which is why `EFFIGY_BIN` exists.
+//
+// The verdict is the parse result, never the release Run. `release status`
+// resolves release state by walking up from the working directory, so a staged
+// copy under a checkout that carries an Effigy release journal refuses with
+// "release Run state is unreadable" while the same `details` report
+// `changelog.valid: true` (longhorn#174). A run state outside this repository
+// is not a changelog problem: it is named in the note and does not red the
+// docs check. Every other blocker is still a failure.
 
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -22,6 +30,8 @@ import { parseWorkspacePackageVersion } from "./longhorn-version.ts";
 
 const defaultRepoRoot = resolve(import.meta.dir, "..");
 const EMPTY_UNRELEASED = "unreleased changelog section has no entries";
+// Effigy's wording for its own release journal, not for CHANGELOG.md.
+const UNREADABLE_RELEASE_RUN_STATE = "release Run state is unreadable";
 
 export type ChangelogVerdict =
   | { outcome: "pass"; note: string }
@@ -44,17 +54,20 @@ function parseEnvelope(stdout: string) {
   }
 }
 
-function isEmptyUnreleasedGap(details: unknown): boolean {
-  return (
-    isRecord(details) &&
-    isRecord(details.changelog) &&
-    details.changelog.valid === true &&
-    isRecord(details.unreleased) &&
-    details.unreleased.empty === true &&
-    Array.isArray(details.blockers) &&
-    details.blockers.length > 0 &&
-    details.blockers.every((blocker) => blocker === EMPTY_UNRELEASED)
-  );
+function stringList(value: unknown): Array<string> {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+}
+
+/** The parse result for CHANGELOG.md, or `undefined` when Effigy reported none. */
+function changelogParse(details: unknown): { valid: boolean } | undefined {
+  if (!isRecord(details) || !isRecord(details.changelog)) {
+    return undefined;
+  }
+  return { valid: details.changelog.valid === true };
+}
+
+function isReleaseRunStateGap(blocker: string): boolean {
+  return blocker.startsWith(UNREADABLE_RELEASE_RUN_STATE);
 }
 
 export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
@@ -66,8 +79,26 @@ export function judgeReleaseStatus(stdout: string): ChangelogVerdict {
     return { outcome: "pass", note: "Effigy's release parser accepts CHANGELOG.md" };
   }
   const error = isRecord(envelope.error) ? envelope.error : undefined;
-  if (isEmptyUnreleasedGap(error?.details)) {
-    return { outcome: "pass", note: "CHANGELOG.md parses; [Unreleased] is empty" };
+  const details = error?.details;
+  if (changelogParse(details)?.valid === true) {
+    // Every blocker other than the empty section has to be release Run state;
+    // anything else means the parse context, not just the journal, is broken.
+    const unrelated = stringList(isRecord(details) ? details.blockers : undefined).filter(
+      (blocker) => blocker !== EMPTY_UNRELEASED,
+    );
+    const onlyRunState = unrelated.every(isReleaseRunStateGap);
+    if (onlyRunState) {
+      const empty =
+        isRecord(details) && isRecord(details.unreleased) && details.unreleased.empty === true;
+      const note = empty ? "CHANGELOG.md parses; [Unreleased] is empty" : "CHANGELOG.md parses";
+      return {
+        outcome: "pass",
+        note:
+          unrelated.length === 0
+            ? note
+            : `${note}. Effigy also refused release run state outside this changelog: ${unrelated.join("; ")}`,
+      };
+    }
   }
   return {
     outcome: "fail",

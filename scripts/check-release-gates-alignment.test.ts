@@ -1,6 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -10,6 +9,15 @@ import {
   parseReleaseGates,
   parseReleaseGatesSelector,
 } from "./check-release-gates-alignment.ts";
+import { releaseFixtureScratch } from "./fixture-scratch.ts";
+import type { ReleaseFixtureScratch } from "./fixture-scratch.ts";
+
+// One tracker per file: every fixture it creates is removed, and the suite
+// fails if a `longhorn-release-*` directory is left behind (longhorn#174).
+let scratch: ReleaseFixtureScratch | undefined;
+afterAll(async () => {
+  await scratch?.settle();
+});
 
 const releaseToml = `
 [release]
@@ -77,7 +85,8 @@ describe("release:gates alignment", () => {
     const live = checkReleaseGatesAlignment();
     expect(live.actual).toEqual(live.expected);
 
-    const root = await mkdtemp(join(tmpdir(), "longhorn-release-gates-"));
+    scratch ??= await releaseFixtureScratch();
+    const root = await scratch.create("longhorn-release-gates-");
     await mkdir(join(root, "config"), { recursive: true });
     await writeFile(join(root, "config/release.toml"), releaseToml);
     await writeFile(join(root, "effigy.toml"), `"release:gates" = [{ task = "release:floor" }]\n`);

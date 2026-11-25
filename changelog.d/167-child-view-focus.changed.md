@@ -1,0 +1,1 @@
+**Child-view focus is explicit.** Plan focus intent applies to mechanisms that declare observable focus. For a Tauri child view, call `ChildViewAdapter::request_focus(generation)` after attach when focus is needed, and submit `FocusIntent::Unchanged` in the plan.

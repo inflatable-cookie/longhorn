@@ -33,6 +33,13 @@ those edits as global Effigy inputs for that task (ruling, 2026-11-24). They
 are covered by `typescript-static`, the `effigy doctor` scan run and
 `check:generated-sources`, not by a per-task selector.
 
+When `longhorn-bindings` refuses a changed crate as a transitive generator
+input, split the change into three recorded parts instead of planning against
+the refusal (planner ruling, round 4, 2026-11-24): the bindings group on the
+changed fixture and generated paths, the crate's own `test:rust` and
+`lint:rust`, and `effigy check:bindings`. Record all three as one task's
+evidence; none of them replaces the other two.
+
 Include old and new paths for moves and the old path for deletions. Inspect
 staged, unstaged and relevant untracked inputs. Use the affected graph to
 discover candidate dependents. It cannot establish coverage for generated,
