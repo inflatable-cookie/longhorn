@@ -3,7 +3,7 @@
 Status: active compiled boundary
 Owner: Longhorn
 Tier: core
-Updated: 2026-11-24
+Updated: 2026-11-25
 
 ## Boundary
 
@@ -53,6 +53,8 @@ the child's own slave copies still hold the slave open, so last close still
 cannot precede the child's own end.
 
 `write`, `resize`, close, and child status polling share one lifecycle lock.
+Once the PTY accepts the last byte of a write, that write succeeds even if the
+child exits immediately.
 The child is reaped once by rustix `waitpid`; the cached result closes the
 session to further operations. A later write, resize, or close returns
 `Failure::Ended` and sends no signal. A signal already serialized before a
@@ -127,13 +129,12 @@ open and includes the probe outcome in its failure report.
 
 On macOS, concurrent master opens can race for the same `/dev/ptmx` slot.
 XNU may return its internal `EREDRIVEOPEN` (`-6`) after its own retries run
-out. A concurrent close can also race with PTY table growth and return
-`ENXIO` (`6`), which also reports a full host PTY pool. Longhorn retries
-only the master open and only for these two codes, up to three retries
-with a 10 ms delay before each. If allocation still fails, `Failure::OpenPty`
-carries the last raw error unchanged. Other failures, including `EMFILE`
-for a process descriptor limit, return immediately.
-[XNU PTY allocator](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/tty_ptmx.c#L322-L364),
+out. Longhorn retries the master open only for `EREDRIVEOPEN`, up to three
+times with a 10 ms delay before each retry. If allocation still fails,
+`Failure::OpenPty` carries the last raw error unchanged. Positive `ENXIO`
+(`6`), which can indicate a full host PTY pool, and `EMFILE`, which
+indicates a process descriptor limit, return immediately.
+[XNU PTY allocator](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/tty_ptmx.c#L310-L364),
 [PTY error mapping](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/kern/tty_dev.c#L488-L497),
 [open retry loop](https://github.com/apple-oss-distributions/xnu/blob/f6217f891ac0bb64f3d375211650a4c1ff8ca1ea/bsd/vfs/vfs_vnops.c#L763-L801).
 
