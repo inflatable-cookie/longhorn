@@ -44,10 +44,17 @@ fn agent_control_plugin<R: Runtime>(registry: SelectionRegistry) -> tauri::plugi
         // `Started` fires at navigation commit so evaluating on every load
         // event installs the ring before document scripts finish; `Finished`
         // covers any late context and `installAgentControlShim` is idempotent.
-        .on_page_load(|webview, _payload| {
-            let _ = webview.eval(SHIM_SOURCE);
-        })
+        .on_page_load(|webview, _payload| inject_shim(webview))
         .build()
+}
+
+fn inject_shim<R: Runtime>(webview: &tauri::Webview<R>) {
+    if let Err(error) = webview.eval(SHIM_SOURCE) {
+        longhorn_core::report_best_effort_failure(
+            "agent-control.shim-injection",
+            format_args!("webview {:?}: {error}", webview.label()),
+        );
+    }
 }
 
 /// What one mount needs from the composing app.
@@ -259,7 +266,7 @@ pub fn mount_agent_control<R: Runtime>(
     // adoption finding, 2026-08-20).
     for (_, window) in app.windows() {
         for webview in window.webviews() {
-            let _ = webview.eval(SHIM_SOURCE);
+            inject_shim(&webview);
         }
     }
 

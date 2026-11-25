@@ -9,6 +9,8 @@
 
 use rmcp::model::Resource;
 
+use crate::PageEvent;
+
 /// Console messages captured by the in-page shim.
 pub const CONSOLE_URI: &str = "longhorn://agent-control/console";
 /// Uncaught page errors and unhandled rejections.
@@ -42,22 +44,10 @@ pub fn known_uri(uri: &str) -> bool {
     )
 }
 
-pub fn kind_for_uri(uri: &str) -> Option<&'static str> {
-    match uri {
-        CONSOLE_URI => Some("console"),
-        ERROR_URI => Some("error"),
-        NAVIGATION_URI => Some("navigation"),
-        SELECTION_URI => Some("selection"),
-        _ => None,
-    }
-}
-
-pub fn uri_for_kind(kind: &str) -> Option<&'static str> {
-    match kind {
-        "console" => Some(CONSOLE_URI),
-        "error" => Some(ERROR_URI),
-        "navigation" => Some(NAVIGATION_URI),
-        "selection" => Some(SELECTION_URI),
-        _ => None,
+pub fn event_uri(event: &PageEvent) -> &'static str {
+    match event {
+        PageEvent::Console { .. } => CONSOLE_URI,
+        PageEvent::Error { .. } => ERROR_URI,
+        PageEvent::Navigation { .. } => NAVIGATION_URI,
     }
 }

@@ -1654,6 +1654,8 @@ scope_policy = "required"
 # when the closure moves.
 coverage_gaps = [
   { input = "input:bindings-generator-transitive-compile-dependencies", reason = "The generator's full transitive compile dependency closure is not mapped" },
+  { input = "cargo-package:longhorn-agent-control", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
+  { input = "path:crates/longhorn-agent-control/**", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "cargo-package:longhorn-bridge", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "path:crates/longhorn-bridge/**", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "cargo-package:longhorn-command", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
@@ -1678,6 +1680,8 @@ coverage_gaps = [
   { input = "path:crates/longhorn-operation/**", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "cargo-package:longhorn-settings", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "path:crates/longhorn-settings/**", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
+  { input = "cargo-package:longhorn-storage-layout", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
+  { input = "path:crates/longhorn-storage-layout/**", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "cargo-package:longhorn-surface-transfer", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "path:crates/longhorn-surface-transfer/**", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
   { input = "cargo-package:longhorn-surfaces", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
@@ -1692,7 +1696,7 @@ coverage_gaps = [
   { input = "path:crates/longhorn-url/**", reason = "The generator compiles this crate transitively; a change here is unresolved for narrowing" },
 ]
 proof_limits = [
-  "Runs all fifteen registered binding domains",
+  "Runs all registered binding domains",
   "Does not diff committed ts-rs binding files under crates/*/bindings/**",
 ]
 members = [

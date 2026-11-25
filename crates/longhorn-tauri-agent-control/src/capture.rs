@@ -46,6 +46,7 @@ use objc2_app_kit::{
     NSBitmapImageFileType, NSBitmapImageRep, NSCalibratedRGBColorSpace, NSCompositingOperation,
     NSGraphicsContext, NSImage,
 };
+use objc2_core_foundation::{CFType, kCFBooleanFalse, kCFBooleanTrue};
 use objc2_foundation::{
     NSArray, NSData, NSDictionary, NSError, NSNumber, NSPoint, NSRect, NSSize, NSString,
 };
@@ -57,8 +58,8 @@ use tokio::sync::oneshot;
 use longhorn_agent_control::ToolError;
 
 /// Runs `js` in the window's webview and returns the JSON-shaped result:
-/// strings as strings, numbers as numbers, `undefined`/`null` (both reported
-/// as nil by `WKWebView`) as null, anything else via its ObjC `description`.
+/// strings, numbers, and booleans keep their types. `undefined` and `null` (both reported
+/// as nil by `WKWebView`) become null. Other values use their ObjC `description`.
 pub(crate) async fn evaluate_webview<R: Runtime>(
     webview_handle: &Webview<R>,
     js: String,
@@ -384,6 +385,14 @@ fn json_result(result: *mut AnyObject) -> Value {
         return Value::String(string.to_string());
     }
     if let Some(number) = object.downcast_ref::<NSNumber>() {
+        // SAFETY: the CFBoolean singletons are immutable framework constants.
+        let booleans = unsafe { [kCFBooleanTrue, kCFBooleanFalse] };
+        for boolean in booleans.into_iter().flatten() {
+            let value: &CFType = boolean;
+            if std::ptr::eq(object, value.as_ref()) {
+                return Value::Bool(boolean.value());
+            }
+        }
         return serde_json::Number::from_f64(number.as_f64())
             .map_or_else(|| Value::String(number.to_string()), Value::Number);
     }
@@ -412,10 +421,37 @@ fn encode_png(rep: &NSBitmapImageRep) -> Result<Vec<u8>, ToolError> {
     Ok(png.to_vec())
 }
 
-/// The vocabulary's closest fit for a capture-side failure: the surface
-/// could not serve this request, with the reason in the message.
 fn capture_failed(message: impl Into<String>) -> ToolError {
-    ToolError::Unsupported {
+    ToolError::HostFailure {
         message: format!("screenshot capture failed: {}", message.into()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn evaluate_keeps_booleans_distinct_from_numeric_zero_and_one() {
+        for value in [false, true] {
+            let boolean = NSNumber::new_bool(value);
+            let number = NSNumber::new_i32(i32::from(value));
+            assert_eq!(
+                json_result(Retained::as_ptr(&boolean).cast_mut().cast()),
+                Value::Bool(value)
+            );
+            assert_eq!(
+                json_result(Retained::as_ptr(&number).cast_mut().cast()).as_f64(),
+                Some(f64::from(i32::from(value)))
+            );
+        }
+    }
+
+    #[test]
+    fn encoding_failure_is_a_host_failure() {
+        assert!(matches!(
+            capture_failed("PNG encoding returned nil"),
+            ToolError::HostFailure { .. }
+        ));
     }
 }

@@ -26,9 +26,10 @@ use rmcp::{
 use super::args::{ResizeWindowArgs, invalid_params};
 use crate::{
     AnswerSelectionRequest, AnswerSelectionResult, ClickRequest, CommandRequest, ControlHandler,
-    DragRequest, EvaluateRequest, EvaluateResult, PressRequest, RejectSelectionRequest,
-    RejectSelectionResult, ScreenshotRequest, ScrollRequest, SelectionRegistry,
-    SetFileInputRequest, SnapshotRequest, ToolError, TypeRequest, WaitForRequest,
+    DragRequest, EvaluateRequest, EvaluateResult, PageEvent, PageEventBatch, PressRequest,
+    RejectSelectionRequest, RejectSelectionResult, ScreenshotRequest, ScrollRequest,
+    SelectionRegistry, SetFileInputRequest, SnapshotRequest, ToolError, TypeRequest,
+    WaitForRequest,
 };
 
 use super::events;
@@ -49,15 +50,6 @@ const PAGE_EVENT_POLL_INTERVAL: Duration = Duration::from_millis(50);
 /// cancellation and selection pushes.
 const PAGE_EVENT_EVAL_TIMEOUT: Duration = Duration::from_secs(2);
 
-/// One batch returned by the in-page shim's `readEvents(sinceSeq, sinceEpoch)`.
-#[derive(Debug, Eq, PartialEq)]
-struct EventBatch {
-    epoch: Option<String>,
-    events: Vec<serde_json::Value>,
-    next_seq: u64,
-    dropped: u64,
-}
-
 /// Cursor tracking one listener's position across document reloads.
 #[derive(Debug, Default, Eq, PartialEq)]
 struct ListenCursor {
@@ -66,31 +58,16 @@ struct ListenCursor {
 }
 
 impl ListenCursor {
-    /// Updates the cursor from `batch`.
-    ///
-    /// Returns `true` when the document epoch changed while `events` was empty
-    /// and a non-zero prior cursor was passed (a 1-argument shim/stub that
-    /// ignored `sinceEpoch` and filtered with the old `seq`), signaling the
-    /// caller to immediately re-read from `seq = 0`.
-    fn apply(&mut self, batch: &EventBatch) -> bool {
-        let epoch_changed = match (&self.epoch, &batch.epoch) {
-            (Some(prev), Some(curr)) => prev != curr,
-            _ => false,
-        };
-        if batch.epoch.is_some() {
-            self.epoch = batch.epoch.clone();
+    fn apply(&mut self, batch: &PageEventBatch) {
+        if self.epoch.as_deref() != Some(&batch.epoch) {
+            self.seq = 0;
+            self.epoch = Some(batch.epoch.clone());
         }
-        if epoch_changed {
-            let had_cursor = self.seq > 0;
-            self.seq = advance_listen_cursor(0, &batch.events);
-            return had_cursor && batch.events.is_empty() && batch.next_seq > 1;
+        // nextSeq is the number of the next push. Advancing to it would
+        // skip that event because the ring filters with seq > sinceSeq.
+        if let Some(sequence) = batch.events.iter().map(PageEvent::sequence).max() {
+            self.seq = self.seq.max(sequence);
         }
-        // Cursor is the last delivered event seq, not `nextSeq`. The ring
-        // assigns `nextSeq` to the *next* push and filters `seq > sinceSeq`,
-        // so using `nextSeq` as the cursor drops the first event after
-        // subscribe (Card 237).
-        self.seq = advance_listen_cursor(self.seq, &batch.events);
-        false
     }
 }
 
@@ -313,89 +290,20 @@ where
     ) -> Result<CallToolResult, ErrorData> {
         json_result::<RejectSelectionResult>(
             self.registry
-                .reject(&request.id)
+                .reject(&request.id, request.reason)
                 .map(|()| RejectSelectionResult {}),
         )
     }
 
-    async fn read_events(
-        &self,
-        since_seq: u64,
-        since_epoch: Option<&str>,
-    ) -> Result<EventBatch, ToolError> {
-        let args = match since_epoch {
-            Some(epoch) => format!(
-                "{since_seq}, {}",
-                serde_json::Value::String(epoch.to_owned())
-            ),
-            None => format!("{since_seq}"),
-        };
-        let value = self
-            .handler
-            .evaluate(EvaluateRequest {
-                window: None,
-                webview: None,
-                js: format!(
-                    "JSON.stringify(globalThis.__longhornAgentControl ? globalThis.__longhornAgentControl.readEvents({args}) : {{events:[], nextSeq:{since_seq}, dropped:0}})"
-                ),
-            })
-            .await?
-            .value;
-        let parsed = match value {
-            serde_json::Value::String(text) => {
-                serde_json::from_str(&text).map_err(|error| ToolError::EvaluationFailed {
-                    message: format!("readEvents JSON did not parse: {error}"),
-                })?
-            }
-            other => other,
-        };
-        let epoch = parsed
-            .get("epoch")
-            .and_then(serde_json::Value::as_str)
-            .map(str::to_owned);
-        let events = parsed
-            .get("events")
-            .and_then(serde_json::Value::as_array)
-            .cloned()
-            .unwrap_or_default();
-        let next_seq = parsed
-            .get("nextSeq")
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(since_seq);
-        let dropped = parsed
-            .get("dropped")
-            .and_then(serde_json::Value::as_u64)
-            .unwrap_or(0);
-        Ok(EventBatch {
-            epoch,
-            events,
-            next_seq,
-            dropped,
-        })
-    }
-
     async fn read_event_resource(&self, uri: &str) -> Result<String, ErrorData> {
-        let kind = events::kind_for_uri(uri).ok_or_else(|| {
-            ErrorData::resource_not_found(format!("unknown resource {uri}"), None)
-        })?;
-        let batch = self
-            .read_events(0, None)
+        let mut batch = self
+            .handler
+            .read_page_events(0, None)
             .await
             .map_err(|error| ErrorData::internal_error(error.to_string(), None))?;
-        let filtered: Vec<_> = batch
-            .events
-            .into_iter()
-            .filter(|event| event.get("kind").and_then(serde_json::Value::as_str) == Some(kind))
-            .collect();
-        let mut body = serde_json::json!({
-            "events": filtered,
-            "nextSeq": batch.next_seq,
-            "dropped": batch.dropped,
-        });
-        if let Some(epoch) = batch.epoch {
-            body["epoch"] = serde_json::Value::String(epoch);
-        }
-        Ok(body.to_string())
+        batch.events.retain(|event| events::event_uri(event) == uri);
+        serde_json::to_string(&batch)
+            .map_err(|error| ErrorData::internal_error(error.to_string(), None))
     }
 }
 
@@ -491,7 +399,7 @@ where
         );
         page_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         let mut pending_eval: Option<
-            Pin<Box<dyn Future<Output = Option<EventBatch>> + Send + '_>>,
+            Pin<Box<dyn Future<Output = Option<PageEventBatch>> + Send + '_>>,
         > = None;
 
         loop {
@@ -510,29 +418,9 @@ where
                         // stream alive; the next tick retries.
                         continue;
                     };
-                    if cursor.apply(&batch) {
-                        // 1-arg shim/stub ignored sinceEpoch and filtered with
-                        // the old seq; immediately schedule a fresh seq=0 read.
-                        let epoch = cursor.epoch.clone();
-                        pending_eval = Some(Box::pin(async move {
-                            tokio::time::timeout(
-                                PAGE_EVENT_EVAL_TIMEOUT,
-                                self.read_events(0, epoch.as_deref()),
-                            )
-                            .await
-                            .ok()
-                            .and_then(Result::ok)
-                        }));
-                        continue;
-                    }
+                    cursor.apply(&batch);
                     for event in batch.events {
-                        let Some(uri) = event
-                            .get("kind")
-                            .and_then(serde_json::Value::as_str)
-                            .and_then(events::uri_for_kind)
-                        else {
-                            continue;
-                        };
+                        let uri = events::event_uri(&event);
                         let subscribed = accepted
                             .resource_subscriptions
                             .as_ref()
@@ -548,7 +436,7 @@ where
                     pending_eval = Some(Box::pin(async move {
                         tokio::time::timeout(
                             PAGE_EVENT_EVAL_TIMEOUT,
-                            self.read_events(seq, epoch.as_deref()),
+                            self.handler.read_page_events(seq, epoch.as_deref()),
                         )
                         .await
                         .ok()
@@ -561,89 +449,33 @@ where
     }
 }
 
-/// Advance the listen cursor past events already delivered.
-///
-/// `nextSeq` from the ring is the next seq to assign, not a since-cursor.
-/// An empty batch leaves `previous` unchanged so a later first event is
-/// still `seq > previous`.
-fn advance_listen_cursor(previous: u64, events: &[serde_json::Value]) -> u64 {
-    events
-        .iter()
-        .filter_map(|event| event.get("seq").and_then(serde_json::Value::as_u64))
-        .max()
-        .unwrap_or(previous)
-}
-
 #[cfg(test)]
 mod cursor_tests {
-    use super::{EventBatch, ListenCursor, advance_listen_cursor};
-    use serde_json::json;
+    use super::{ListenCursor, PageEvent, PageEventBatch};
 
     #[test]
-    fn empty_batch_keeps_the_previous_cursor() {
-        assert_eq!(advance_listen_cursor(0, &[]), 0);
-        assert_eq!(advance_listen_cursor(3, &[]), 3);
-    }
-
-    #[test]
-    fn cursor_is_the_last_delivered_seq_not_next_seq() {
-        let events = vec![
-            json!({"seq": 1, "kind": "navigation"}),
-            json!({"seq": 2, "kind": "navigation"}),
-        ];
-        // nextSeq would be 3 here; using it would drop the next event.
-        assert_eq!(advance_listen_cursor(0, &events), 2);
-    }
-
-    #[test]
-    fn epoch_change_resets_cursor_for_reloaded_document() {
+    fn cursor_tracks_delivered_events_and_resets_on_reload() {
         let mut cursor = ListenCursor::default();
-        let initial = EventBatch {
-            epoch: Some("doc-1".to_owned()),
-            events: vec![
-                json!({"seq": 1, "kind": "console"}),
-                json!({"seq": 5, "kind": "console"}),
-            ],
+        let mut batch = PageEventBatch {
+            epoch: "doc-1".to_owned(),
+            events: vec![PageEvent::Navigation {
+                seq: 5,
+                url: "https://app.example/".to_owned(),
+            }],
             next_seq: 6,
             dropped: 0,
         };
-        assert!(!cursor.apply(&initial));
-        assert_eq!(cursor.epoch.as_deref(), Some("doc-1"));
+        cursor.apply(&batch);
         assert_eq!(cursor.seq, 5);
 
-        // Reload with an event at seq 1 already returned via sinceEpoch mismatch.
-        let reloaded = EventBatch {
-            epoch: Some("doc-2".to_owned()),
-            events: vec![json!({"seq": 1, "kind": "navigation"})],
-            next_seq: 2,
-            dropped: 0,
-        };
-        assert!(!cursor.apply(&reloaded));
+        batch.events.clear();
+        cursor.apply(&batch);
+        assert_eq!(cursor.seq, 5);
+
+        batch.epoch = "doc-2".to_owned();
+        batch.next_seq = 1;
+        cursor.apply(&batch);
         assert_eq!(cursor.epoch.as_deref(), Some("doc-2"));
-        assert_eq!(cursor.seq, 1);
-
-        // Reload with no events yet resets seq to 0 so the next seq 1 event is not dropped.
-        let empty_reload = EventBatch {
-            epoch: Some("doc-3".to_owned()),
-            events: vec![],
-            next_seq: 1,
-            dropped: 0,
-        };
-        assert!(!cursor.apply(&empty_reload));
-        assert_eq!(cursor.epoch.as_deref(), Some("doc-3"));
-        assert_eq!(cursor.seq, 0);
-
-        // Reload against a 1-arg stub that ignored sinceEpoch and filtered out seq 1:
-        // signals immediate re-read from seq 0.
-        cursor.seq = 4;
-        let filtered_reload = EventBatch {
-            epoch: Some("doc-4".to_owned()),
-            events: vec![],
-            next_seq: 2,
-            dropped: 0,
-        };
-        assert!(cursor.apply(&filtered_reload));
-        assert_eq!(cursor.epoch.as_deref(), Some("doc-4"));
         assert_eq!(cursor.seq, 0);
     }
 }

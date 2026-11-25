@@ -4,6 +4,7 @@
 //! opens. Human-originated calls pass the original options to the plugin
 //! unchanged. Origin is the in-page shim, not an active-server flag.
 
+import type { BeginSelectionArgs, SelectionFilter } from "./generated/protocol.ts";
 import { SHIM_GLOBAL } from "./shim.ts";
 import type { AgentControlApi } from "./shim.ts";
 
@@ -22,10 +23,7 @@ export const SELECTION_ORIGIN_HUMAN = "human";
 /** Serializable origin a consumer passes into its own command arguments. */
 export type SelectionOrigin = typeof SELECTION_ORIGIN_AGENT | typeof SELECTION_ORIGIN_HUMAN;
 
-export type DialogFilter = {
-  name: string;
-  extensions: Array<string>;
-};
+export type DialogFilter = SelectionFilter;
 
 export type OpenDialogOptions = {
   title?: string;
@@ -72,15 +70,19 @@ export function currentSelectionOrigin(world: object = globalThis): SelectionOri
   return isAgentOriginated(world) ? SELECTION_ORIGIN_AGENT : SELECTION_ORIGIN_HUMAN;
 }
 
-function beginOptions(kind: "open" | "save", options: OpenDialogOptions | undefined) {
+function beginOptions(
+  kind: BeginSelectionArgs["kind"],
+  options: OpenDialogOptions | undefined,
+): BeginSelectionArgs {
   const open = kind === "open" ? options : undefined;
+  const { filters = [], title, defaultPath } = options ?? {};
   return {
     kind,
     directory: open?.directory ?? false,
     multiple: open?.multiple ?? false,
-    filters: options?.filters ?? [],
-    title: options?.title,
-    defaultPath: options?.defaultPath,
+    filters,
+    ...(title === undefined ? {} : { title }),
+    ...(defaultPath === undefined ? {} : { defaultPath }),
   };
 }
 

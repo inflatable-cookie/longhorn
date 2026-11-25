@@ -8,7 +8,6 @@
 //! so the JS caller is never left awaiting indefinitely.
 
 use std::{
-    collections::HashMap,
     fmt, fs,
     future::Future,
     path::Path,
@@ -22,6 +21,7 @@ use std::{
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use tokio::{
     sync::{oneshot, watch},
@@ -44,6 +44,7 @@ const MAX_TOMBSTONES: usize = 256;
 
 /// Dialog filter copied from the caller's picker options.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SelectionFilter {
     /// Filter display name.
@@ -54,12 +55,37 @@ pub struct SelectionFilter {
 
 /// Open vs save. Directory intent is [`BeginSelectionRequest::directory`].
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub enum SelectionKind {
     /// Tauri JS `open`.
     Open,
     /// Tauri JS `save`. Longhorn never writes the chosen path.
     Save,
+}
+
+/// Renderer options accepted by the begin-selection command.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct BeginSelectionArgs {
+    /// Open or save.
+    pub kind: SelectionKind,
+    /// Directory intent; only meaningful for open.
+    #[serde(default)]
+    pub directory: bool,
+    /// Multiple paths; only meaningful for open.
+    #[serde(default)]
+    pub multiple: bool,
+    /// Optional extension filters. Hints for the agent; not enforced.
+    #[serde(default)]
+    pub filters: Vec<SelectionFilter>,
+    /// Dialog title, when the caller supplied one.
+    #[cfg_attr(feature = "bindings", ts(optional = nullable))]
+    pub title: Option<String>,
+    /// Default-path hint, never an answer.
+    #[cfg_attr(feature = "bindings", ts(optional = nullable))]
+    pub default_path: Option<String>,
 }
 
 /// What one picker call wants before it is assigned an id.
@@ -139,7 +165,10 @@ pub enum SelectionOutcome {
     /// Agent supplied paths. Plugin-compatible delivery is the host's job.
     Answered(Vec<String>),
     /// Explicit reject: the plugin's cancellation result (`null`).
-    Rejected,
+    Rejected {
+        /// Agent-supplied reason, available to the host waiter only.
+        reason: String,
+    },
     /// TTL elapsed before settlement.
     Expired,
     /// The JS waiter was dropped, or the host cancelled.
@@ -165,18 +194,24 @@ impl fmt::Display for BeginSelectionError {
 
 impl std::error::Error for BeginSelectionError {}
 
+impl From<BeginSelectionError> for ToolError {
+    fn from(error: BeginSelectionError) -> Self {
+        Self::HostFailure {
+            message: error.to_string(),
+        }
+    }
+}
+
+struct PendingSlot {
+    spec: PendingSelection,
+    tx: oneshot::Sender<SelectionOutcome>,
+    deadline: Instant,
+}
+
 enum SlotState {
-    Pending {
-        spec: PendingSelection,
-        tx: oneshot::Sender<SelectionOutcome>,
-        deadline: Instant,
-    },
-    Settled {
-        settled_at: Instant,
-    },
-    Expired {
-        settled_at: Instant,
-    },
+    Pending(PendingSlot),
+    Settled { settled_at: Instant },
+    Expired { settled_at: Instant },
 }
 
 struct Inner {
@@ -184,7 +219,7 @@ struct Inner {
     ttl: Duration,
     generation: AtomicU64,
     generation_tx: watch::Sender<u64>,
-    slots: Mutex<HashMap<SelectionId, SlotState>>,
+    slots: Mutex<IndexMap<SelectionId, SlotState>>,
 }
 
 /// Per-instance pending-selection registry.
@@ -221,7 +256,7 @@ impl SelectionRegistry {
                 ttl,
                 generation: AtomicU64::new(0),
                 generation_tx,
-                slots: Mutex::new(HashMap::new()),
+                slots: Mutex::new(IndexMap::new()),
             }),
         }
     }
@@ -243,7 +278,7 @@ impl SelectionRegistry {
         self.inner.generation_tx.subscribe()
     }
 
-    /// Still-pending requests, after sweeping expired ones.
+    /// Still-pending requests in publication order, newest last.
     #[must_use]
     pub fn pending(&self) -> Vec<PendingSelection> {
         self.sweep();
@@ -251,7 +286,7 @@ impl SelectionRegistry {
         slots
             .values()
             .filter_map(|slot| match slot {
-                SlotState::Pending { spec, .. } => Some(spec.clone()),
+                SlotState::Pending(pending) => Some(pending.spec.clone()),
                 SlotState::Settled { .. } | SlotState::Expired { .. } => None,
             })
             .collect()
@@ -293,9 +328,12 @@ impl SelectionRegistry {
         let deadline = Instant::now() + self.inner.ttl;
         {
             let mut slots = self.inner.slots.lock().expect("selection registry mutex");
-            slots.insert(id.clone(), SlotState::Pending { spec, tx, deadline });
+            slots.insert(
+                id.clone(),
+                SlotState::Pending(PendingSlot { spec, tx, deadline }),
+            );
+            self.bump();
         }
-        self.bump();
         Ok(SelectionWait {
             id: id.clone(),
             registry: self.clone(),
@@ -308,64 +346,56 @@ impl SelectionRegistry {
 
     /// Agent answer: validate cardinality and path kind, then settle once.
     pub fn answer(&self, id: &SelectionId, paths: &[String]) -> Result<(), ToolError> {
-        self.sweep();
-        let now = Instant::now();
-        let mut slots = self.inner.slots.lock().expect("selection registry mutex");
-        match slots.get(id) {
-            None => {
-                return Err(ToolError::UnknownSelection { id: id.clone() });
-            }
-            Some(SlotState::Settled { .. }) => {
-                return Err(ToolError::SettledSelection { id: id.clone() });
-            }
-            Some(SlotState::Expired { .. }) => {
-                return Err(ToolError::ExpiredSelection { id: id.clone() });
-            }
-            Some(SlotState::Pending { spec, .. }) => {
-                validate_answer(spec, paths)?;
-            }
-        }
-        let Some(SlotState::Pending { tx, .. }) =
-            slots.insert(id.clone(), SlotState::Settled { settled_at: now })
-        else {
-            return Err(ToolError::UnknownSelection { id: id.clone() });
-        };
-        // Publish the authoritative outcome while holding the lock so a racing
-        // waiter wakeup cannot observe a missing slot before `rx` is ready.
-        let _ = tx.send(SelectionOutcome::Answered(paths.to_vec()));
-        prune_tombstones(&mut slots, now);
-        drop(slots);
-        self.bump();
-        Ok(())
+        self.answer_with(id, paths, validate_answer)
     }
 
-    /// Explicit reject: the JS call resolves as plugin-compatible `null`.
-    pub fn reject(&self, id: &SelectionId) -> Result<(), ToolError> {
-        self.settle_terminal(id, SelectionOutcome::Rejected, false)
+    fn answer_with(
+        &self,
+        id: &SelectionId,
+        paths: &[String],
+        validate: impl FnOnce(SelectionKind, bool, bool, &[String]) -> Result<(), ToolError>,
+    ) -> Result<(), ToolError> {
+        let (kind, directory, multiple) = {
+            let mut slots = self.inner.slots.lock().expect("selection registry mutex");
+            self.sweep_locked(&mut slots, Instant::now());
+            let slot = slots
+                .get(id)
+                .ok_or_else(|| ToolError::UnknownSelection { id: id.clone() })?;
+            let spec = &slot.pending(id)?.spec;
+            (spec.kind, spec.directory, spec.multiple)
+        };
+
+        let outcome = validate(kind, directory, multiple, paths)
+            .map(|()| SelectionOutcome::Answered(paths.to_vec()));
+        // Recheck after filesystem I/O for concurrent settlement or expiry.
+        self.settle_terminal(id, outcome)
+    }
+
+    /// Explicit reject: the host receives the reason and the JS call resolves as null.
+    pub fn reject(&self, id: &SelectionId, reason: String) -> Result<(), ToolError> {
+        self.settle_terminal(id, Ok(SelectionOutcome::Rejected { reason }))
     }
 
     /// Cancel a still-pending waiter (host drop, not an MCP reject).
     pub fn cancel(&self, id: &SelectionId) {
-        let _ = self.settle_terminal(id, SelectionOutcome::Cancelled, false);
+        let _ = self.settle_terminal(id, Ok(SelectionOutcome::Cancelled));
     }
 
     /// Settle every pending request. Idempotent.
     pub fn shutdown(&self) {
         let now = Instant::now();
         let mut slots = self.inner.slots.lock().expect("selection registry mutex");
-        let ids: Vec<_> = slots.keys().cloned().collect();
         let mut bumped = false;
-        for id in ids {
-            if matches!(slots.get(&id), Some(SlotState::Pending { .. }))
-                && let Some(SlotState::Pending { tx, .. }) =
-                    slots.insert(id, SlotState::Settled { settled_at: now })
+        for slot in slots.values_mut() {
+            if matches!(slot, SlotState::Pending(_))
+                && let SlotState::Pending(PendingSlot { tx, .. }) =
+                    std::mem::replace(slot, SlotState::Settled { settled_at: now })
             {
                 let _ = tx.send(SelectionOutcome::Shutdown);
                 bumped = true;
             }
         }
         prune_tombstones(&mut slots, now);
-        drop(slots);
         if bumped {
             self.bump();
         }
@@ -374,58 +404,43 @@ impl SelectionRegistry {
     fn settle_terminal(
         &self,
         id: &SelectionId,
-        outcome: SelectionOutcome,
-        expired: bool,
+        outcome: Result<SelectionOutcome, ToolError>,
     ) -> Result<(), ToolError> {
-        self.sweep();
-        let now = Instant::now();
         let mut slots = self.inner.slots.lock().expect("selection registry mutex");
-        match slots.get(id) {
-            None => return Err(ToolError::UnknownSelection { id: id.clone() }),
-            Some(SlotState::Settled { .. }) => {
-                return Err(ToolError::SettledSelection { id: id.clone() });
-            }
-            Some(SlotState::Expired { .. }) => {
-                return Err(ToolError::ExpiredSelection { id: id.clone() });
-            }
-            Some(SlotState::Pending { .. }) => {}
+        let now = Instant::now();
+        self.sweep_locked(&mut slots, now);
+        let slot = slots
+            .get_mut(id)
+            .ok_or_else(|| ToolError::UnknownSelection { id: id.clone() })?;
+        slot.pending(id)?;
+        let outcome = outcome?;
+        if let SlotState::Pending(PendingSlot { tx, .. }) =
+            std::mem::replace(slot, SlotState::Settled { settled_at: now })
+        {
+            let _ = tx.send(outcome);
         }
-        let tombstone = if expired {
-            SlotState::Expired { settled_at: now }
-        } else {
-            SlotState::Settled { settled_at: now }
-        };
-        let Some(SlotState::Pending { tx, .. }) = slots.insert(id.clone(), tombstone) else {
-            return Err(ToolError::UnknownSelection { id: id.clone() });
-        };
-        let _ = tx.send(outcome);
         prune_tombstones(&mut slots, now);
-        drop(slots);
         self.bump();
         Ok(())
     }
 
     fn sweep(&self) {
-        let now = Instant::now();
         let mut slots = self.inner.slots.lock().expect("selection registry mutex");
-        let expired: Vec<_> = slots
-            .iter()
-            .filter_map(|(id, slot)| match slot {
-                SlotState::Pending { deadline, .. } if *deadline <= now => Some(id.clone()),
-                _ => None,
-            })
-            .collect();
+        self.sweep_locked(&mut slots, Instant::now());
+    }
+
+    fn sweep_locked(&self, slots: &mut IndexMap<SelectionId, SlotState>, now: Instant) {
         let mut bumped = false;
-        for id in expired {
-            if let Some(SlotState::Pending { tx, .. }) =
-                slots.insert(id, SlotState::Expired { settled_at: now })
+        for slot in slots.values_mut() {
+            if matches!(slot, SlotState::Pending(PendingSlot { deadline, .. }) if *deadline <= now)
+                && let SlotState::Pending(PendingSlot { tx, .. }) =
+                    std::mem::replace(slot, SlotState::Expired { settled_at: now })
             {
                 let _ = tx.send(SelectionOutcome::Expired);
                 bumped = true;
             }
         }
-        prune_tombstones(&mut slots, now);
-        drop(slots);
+        prune_tombstones(slots, now);
         if bumped {
             self.bump();
         }
@@ -437,11 +452,21 @@ impl SelectionRegistry {
     }
 }
 
+impl SlotState {
+    fn pending(&self, id: &SelectionId) -> Result<&PendingSlot, ToolError> {
+        match self {
+            Self::Pending(slot) => Ok(slot),
+            Self::Settled { .. } => Err(ToolError::SettledSelection { id: id.clone() }),
+            Self::Expired { .. } => Err(ToolError::ExpiredSelection { id: id.clone() }),
+        }
+    }
+}
+
 /// Removes tombstones older than [`TOMBSTONE_RETENTION`] and evicts the oldest
 /// tombstones when more than [`MAX_TOMBSTONES`] remain.
-fn prune_tombstones(slots: &mut HashMap<SelectionId, SlotState>, now: Instant) {
+fn prune_tombstones(slots: &mut IndexMap<SelectionId, SlotState>, now: Instant) {
     slots.retain(|_, slot| match slot {
-        SlotState::Pending { .. } => true,
+        SlotState::Pending(_) => true,
         SlotState::Settled { settled_at } | SlotState::Expired { settled_at } => {
             now.saturating_duration_since(*settled_at) < TOMBSTONE_RETENTION
         }
@@ -452,14 +477,14 @@ fn prune_tombstones(slots: &mut HashMap<SelectionId, SlotState>, now: Instant) {
             SlotState::Settled { settled_at } | SlotState::Expired { settled_at } => {
                 Some((id.clone(), *settled_at))
             }
-            SlotState::Pending { .. } => None,
+            SlotState::Pending(_) => None,
         })
         .collect();
     if tombstones.len() > MAX_TOMBSTONES {
         tombstones.sort_by_key(|(_, settled_at)| *settled_at);
         let excess = tombstones.len() - MAX_TOMBSTONES;
         for (id, _) in tombstones.into_iter().take(excess) {
-            slots.remove(&id);
+            slots.shift_remove(&id);
         }
     }
 }
@@ -528,7 +553,12 @@ fn generate_id() -> Result<SelectionId, BeginSelectionError> {
         .map_err(|_| BeginSelectionError::EntropyUnavailable)
 }
 
-fn validate_answer(spec: &PendingSelection, paths: &[String]) -> Result<(), ToolError> {
+fn validate_answer(
+    kind: SelectionKind,
+    directory: bool,
+    multiple: bool,
+    paths: &[String],
+) -> Result<(), ToolError> {
     if paths
         .iter()
         .any(|path| path.is_empty() || path.contains('\0'))
@@ -537,9 +567,9 @@ fn validate_answer(spec: &PendingSelection, paths: &[String]) -> Result<(), Tool
             message: "paths must be non-empty and must not contain NUL".to_owned(),
         });
     }
-    match spec.kind {
+    match kind {
         SelectionKind::Save => {
-            if spec.multiple || paths.len() != 1 {
+            if multiple || paths.len() != 1 {
                 return Err(ToolError::MalformedSelection {
                     message: "save accepts exactly one path".to_owned(),
                 });
@@ -553,7 +583,7 @@ fn validate_answer(spec: &PendingSelection, paths: &[String]) -> Result<(), Tool
             Ok(())
         }
         SelectionKind::Open => {
-            if spec.multiple {
+            if multiple {
                 if paths.is_empty() {
                     return Err(ToolError::MalformedSelection {
                         message: "multiple open requires at least one path".to_owned(),
@@ -568,7 +598,7 @@ fn validate_answer(spec: &PendingSelection, paths: &[String]) -> Result<(), Tool
                 let meta = fs::metadata(path).map_err(|_| ToolError::MalformedSelection {
                     message: format!("open path {path:?} does not exist"),
                 })?;
-                if spec.directory {
+                if directory {
                     if !meta.is_dir() {
                         return Err(ToolError::MalformedSelection {
                             message: format!("open directory path {path:?} is not a directory"),
@@ -607,7 +637,7 @@ pub fn plugin_result(
                 ))
             }
         }
-        SelectionOutcome::Rejected => Ok(serde_json::Value::Null),
+        SelectionOutcome::Rejected { .. } => Ok(serde_json::Value::Null),
         SelectionOutcome::Expired => Err(ToolError::ExpiredSelection { id: id.clone() }),
         SelectionOutcome::Cancelled | SelectionOutcome::Shutdown => {
             Err(ToolError::CancelledSelection { id: id.clone() })
@@ -642,6 +672,60 @@ mod tests {
         }
     }
 
+    #[test]
+    fn pending_is_in_publication_order_after_settlement() {
+        let registry = SelectionRegistry::new("app:1");
+        let waits: Vec<_> = (0..16)
+            .map(|_| registry.begin(open_file_request()).unwrap())
+            .collect();
+        registry.cancel(waits[3].id());
+        let expected: Vec<_> = waits
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index != 3)
+            .map(|(_, wait)| wait.id().clone())
+            .collect();
+        assert_eq!(
+            registry
+                .pending()
+                .into_iter()
+                .map(|spec| spec.id)
+                .collect::<Vec<_>>(),
+            expected
+        );
+    }
+
+    #[tokio::test]
+    async fn validation_releases_the_lock_and_cannot_overwrite_a_concurrent_reject() {
+        let registry = SelectionRegistry::new("app:1");
+        let wait = registry.begin(open_file_request()).unwrap();
+        let id = wait.id().clone();
+        let result = registry.answer_with(&id, &["report.txt".to_owned()], |_, _, _, _| {
+            assert!(registry.inner.slots.try_lock().is_ok());
+            registry.reject(&id, "cancelled".to_owned())?;
+            Ok(())
+        });
+        assert_eq!(result, Err(ToolError::SettledSelection { id }));
+        assert!(matches!(wait.await, SelectionOutcome::Rejected { .. }));
+    }
+
+    #[tokio::test]
+    async fn answer_expiring_during_validation_cannot_settle_as_answered() {
+        let registry = SelectionRegistry::new("app:1");
+        let wait = registry.begin(open_file_request()).unwrap();
+        let id = wait.id().clone();
+        let result = registry.answer_with(&id, &["report.txt".to_owned()], |_, _, _, _| {
+            let mut slots = registry.inner.slots.lock().unwrap();
+            let Some(SlotState::Pending(slot)) = slots.get_mut(&id) else {
+                panic!("expected a pending request");
+            };
+            slot.deadline = Instant::now();
+            Ok(())
+        });
+        assert_eq!(result, Err(ToolError::ExpiredSelection { id }));
+        assert_eq!(wait.await, SelectionOutcome::Expired);
+    }
+
     #[tokio::test]
     async fn answer_resolves_the_waiter_with_the_path() {
         let dir = TempDir::new().unwrap();
@@ -668,10 +752,18 @@ mod tests {
         let registry = SelectionRegistry::new("app:1");
         let wait = registry.begin(open_file_request()).unwrap();
         let id = wait.id().clone();
-        registry.reject(&id).unwrap();
-        assert_eq!(wait.await, SelectionOutcome::Rejected);
+        registry
+            .reject(&id, "cancelled by test".to_owned())
+            .unwrap();
+        let outcome = wait.await;
         assert_eq!(
-            plugin_result(&id, false, &SelectionOutcome::Rejected).unwrap(),
+            outcome,
+            SelectionOutcome::Rejected {
+                reason: "cancelled by test".to_owned()
+            }
+        );
+        assert_eq!(
+            plugin_result(&id, false, &outcome).unwrap(),
             serde_json::Value::Null
         );
     }
@@ -696,7 +788,9 @@ mod tests {
         drop(wait);
         assert!(registry.pending().is_empty());
         assert_eq!(
-            registry.reject(&id).unwrap_err(),
+            registry
+                .reject(&id, "cancelled by test".to_owned())
+                .unwrap_err(),
             ToolError::SettledSelection { id }
         );
     }
@@ -805,7 +899,9 @@ mod tests {
         for _ in 0..(MAX_TOMBSTONES + 16) {
             let wait = registry.begin(open_file_request()).unwrap();
             let id = wait.id().clone();
-            registry.reject(&id).unwrap();
+            registry
+                .reject(&id, "cancelled by test".to_owned())
+                .unwrap();
             let _ = wait.await;
             ids.push(id);
         }
@@ -822,7 +918,9 @@ mod tests {
         // Most recent tombstone is still remembered.
         let latest = ids.last().unwrap();
         assert_eq!(
-            registry.reject(latest).unwrap_err(),
+            registry
+                .reject(latest, "cancelled by test".to_owned())
+                .unwrap_err(),
             ToolError::SettledSelection { id: latest.clone() }
         );
     }
