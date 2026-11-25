@@ -449,7 +449,7 @@ fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock()
         EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
         PanelInstance, PanelInstancePolicy, ParticipatingWindow, PlacementSelector,
         RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
-        SurfaceRecord,
+        SurfaceRecord, normalize_document,
     };
     use longhorn_surfaces_config::{
         NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy,
@@ -690,7 +690,7 @@ fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock()
             Some(DomainFilePath::new("workspace/layout.json").unwrap()),
         )
         .unwrap(),
-        initial_document,
+        normalize_document(&registry, &initial_document).unwrap(),
         registry,
         NoSurfaceMigration,
         SurfaceBackupPolicy::Include,

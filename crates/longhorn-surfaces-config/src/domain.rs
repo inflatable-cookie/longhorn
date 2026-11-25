@@ -7,7 +7,7 @@ use longhorn_config::{
 use longhorn_core::SchemaVersion;
 use longhorn_surfaces::{
     LayoutDefinitionRegistry, SurfaceDocument, SurfaceLimits, SurfaceValidationCode,
-    normalize_document, validate_document,
+    validate_document, validate_normalized_document,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -73,10 +73,14 @@ where
 {
     /// Constructs a domain from complete consumer-supplied authority.
     ///
+    /// The default must already be canonical. A non-canonical default is
+    /// refused rather than re-sorted, so the registered arrangement is exactly
+    /// the one the consumer wrote.
+    ///
     /// # Errors
     ///
     /// Returns [`RegisteredSurfaceDomainError::InvalidDefault`] if `default` fails
-    /// whole-document validation against `registry`, or
+    /// validation against `registry` or is not in canonical structural order, or
     /// [`RegisteredSurfaceDomainError::RegistryEncoding`] if the registry cannot
     /// be serialized for digesting.
     pub fn new(
@@ -86,7 +90,7 @@ where
         migration: M,
         backup_policy: SurfaceBackupPolicy,
     ) -> Result<Self, RegisteredSurfaceDomainError> {
-        let default = normalize_document(&registry, &default).map_err(|error| {
+        validate_normalized_document(&registry, &default).map_err(|error| {
             RegisteredSurfaceDomainError::InvalidDefault {
                 code: error.code(),
                 detail: error.detail().to_owned(),
@@ -229,7 +233,13 @@ where
     }
 }
 
-fn surface_validation_issue(error: longhorn_surfaces::SurfaceValidationError) -> DomainIssue {
+/// Maps a Surface validation failure onto the configuration issue shape.
+///
+/// Shared by every path that validates a Surface document for a domain, so the
+/// same failure reports the same stable code wherever it is found.
+pub(crate) fn surface_validation_issue(
+    error: longhorn_surfaces::SurfaceValidationError,
+) -> DomainIssue {
     DomainIssue::new(
         format!("surface-validation-{:?}", error.code()).to_ascii_lowercase(),
         error.detail(),

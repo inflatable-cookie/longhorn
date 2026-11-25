@@ -4,32 +4,69 @@ use longhorn_config::{
     ConfigStore, DebounceClock, DebouncePolicy, DebounceStrategy, DebouncedMutation, DomainIssue,
     StoreError,
 };
+use longhorn_core::LayoutRequestId;
 use longhorn_surfaces::{
     LayoutDefinitionRegistry, LayoutMutationCommand, LayoutMutationEngine, LayoutMutationRequest,
 };
 
 use crate::{RegisteredSurfaceDomain, SurfaceMigration, mutation::layout_rejection_issue};
 
-/// One or more ordered sizing/collapse requests staged for a single flush.
+/// One sizing or collapse command staged in a presentation intent.
+///
+/// It names no expected revision. A presentation intent applies to whatever
+/// value the flush reads under the store guard, so a structural publish that
+/// lands while the intent is pending cannot strand it.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LayoutPresentationRequest {
+    request_id: LayoutRequestId,
+    command: LayoutMutationCommand,
+}
+
+impl LayoutPresentationRequest {
+    /// Returns the request identity recorded on the receipt.
+    #[must_use]
+    pub const fn request_id(&self) -> &LayoutRequestId {
+        &self.request_id
+    }
+
+    /// Returns the sizing or collapse command.
+    #[must_use]
+    pub const fn command(&self) -> &LayoutMutationCommand {
+        &self.command
+    }
+}
+
+/// Ordered sizing/collapse commands staged for a single flush.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LayoutPresentationIntent {
-    requests: Vec<LayoutMutationRequest>,
+    requests: Vec<LayoutPresentationRequest>,
 }
 
 impl LayoutPresentationIntent {
-    /// Starts an intent from one sizing or collapse request.
-    pub fn new(request: LayoutMutationRequest) -> Result<Self, LayoutPresentationIntentError> {
-        if !is_presentation(request.command()) {
+    /// Starts an intent from one sizing or collapse command.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LayoutPresentationIntentError::StructuralCommand`] for any
+    /// command other than a sizing or collapse change.
+    pub fn new(
+        request_id: LayoutRequestId,
+        command: LayoutMutationCommand,
+    ) -> Result<Self, LayoutPresentationIntentError> {
+        if !is_presentation(&command) {
             return Err(LayoutPresentationIntentError::StructuralCommand);
         }
         Ok(Self {
-            requests: vec![request],
+            requests: vec![LayoutPresentationRequest {
+                request_id,
+                command,
+            }],
         })
     }
 
-    /// Returns the complete ordered pending request sequence.
+    /// Returns the complete ordered pending command sequence.
     #[must_use]
-    pub fn requests(&self) -> &[LayoutMutationRequest] {
+    pub fn requests(&self) -> &[LayoutPresentationRequest] {
         self.requests.as_slice()
     }
 }
@@ -116,9 +153,16 @@ where
     ) -> Result<(), DomainIssue> {
         let engine = LayoutMutationEngine::new(self.registry);
         let mut candidate = value.clone();
-        for request in &intent.requests {
+        for staged in &intent.requests {
+            // Each command is bound to the revision the flush is reading, not to
+            // one staged earlier: the store guard makes that read current.
+            let request = LayoutMutationRequest::new(
+                staged.request_id().clone(),
+                candidate.revision(),
+                staged.command().clone(),
+            );
             let receipt = engine
-                .apply(&candidate, request)
+                .apply(&candidate, &request)
                 .map_err(|rejection| layout_rejection_issue(&rejection))?;
             candidate = receipt.authoritative_document().clone();
         }

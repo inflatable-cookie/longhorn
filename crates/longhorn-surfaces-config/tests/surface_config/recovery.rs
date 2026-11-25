@@ -1,8 +1,33 @@
-use longhorn_config::{ConfigDomain, LoadOutcome};
-use longhorn_surfaces_config::{LayoutFallback, load_or_default};
+use std::fs;
+
+use longhorn_config::{ConfigDomain, LoadOutcome, UnavailableState};
+use longhorn_surfaces_config::{LayoutFallback, LayoutLoadError, load_or_default};
 use serde_json::json;
 
-use crate::support::{Fixture, document, domain, envelope};
+use crate::support::{Fixture, document, domain, envelope, write_unreadable_restore_journal};
+
+/// A restore owns the stored state. Defaulting past it would let a later save
+/// overwrite what the restore is about to publish or roll back, so the load is
+/// refused and the file is left as it was.
+#[test]
+fn a_restore_owned_document_is_not_defaulted_past() {
+    let fixture = Fixture::new();
+    let mut store = fixture.store();
+    let domain = domain();
+    store.register(&domain).unwrap();
+    let encoded = domain.encode(&document()).unwrap();
+    fixture.write(&domain, &envelope("surfaces.workspace", 1, encoded));
+    write_unreadable_restore_journal(&fixture);
+    let stored_before = fs::read(fixture.path(&domain)).unwrap();
+
+    let error = load_or_default(&store, &domain).unwrap_err();
+
+    assert_eq!(
+        error,
+        LayoutLoadError::Restore(UnavailableState::RestoreRecoveryRequired)
+    );
+    assert_eq!(fs::read(fixture.path(&domain)).unwrap(), stored_before);
+}
 
 #[test]
 fn a_readable_document_is_returned_unchanged() {

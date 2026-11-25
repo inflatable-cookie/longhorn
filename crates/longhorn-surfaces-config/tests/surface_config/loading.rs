@@ -6,19 +6,55 @@ use longhorn_config::{
     ConfigDomain, DomainIssue, LoadOutcome, LoadedOrigin, MigrationRewriteOptions, MigrationStep,
     RecoveryKind, RestoreSafetyBackupOptions, Sha256Digest, inspect_backup_archive,
 };
-use longhorn_core::{LayoutSchemaId, SchemaVersion};
+use longhorn_core::{LayoutSchemaId, SchemaVersion, SurfaceRevision};
 use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
-    RegionDefinition,
+    ParticipatingWindow, RegionDefinition, SurfaceDocument, SurfaceValidationCode,
 };
 use longhorn_surfaces_config::{
     LayoutRegistryDigest, LegacySurfaceFormatMigration, NoSurfaceMigration,
-    RegisteredSurfaceDomain, SurfaceBackupPolicy, SurfaceMigration, SurfaceMigrationTarget,
+    RegisteredSurfaceDomain, RegisteredSurfaceDomainError, SurfaceBackupPolicy, SurfaceMigration,
+    SurfaceMigrationTarget,
 };
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use crate::support::{Fixture, descriptor, document, domain, envelope, limits, registry};
+use crate::support::{
+    Fixture, descriptor, document, domain, envelope, limits, registry, surface, surface_id,
+    window_id,
+};
+
+/// The compiled default is the arrangement a consumer ships. Re-sorting it would
+/// make the registered value differ from the source, so it is refused instead.
+#[test]
+fn a_non_canonical_default_is_refused_rather_than_resorted() {
+    let unsorted = SurfaceDocument::new(
+        SurfaceRevision::new(7),
+        [surface("surface:b", "B", 1), surface("surface:a", "A", 0)],
+        [],
+        [ParticipatingWindow::new(
+            window_id("window:main"),
+            Some(surface_id("surface:a")),
+        )],
+    );
+
+    let error = RegisteredSurfaceDomain::new(
+        descriptor(1),
+        unsorted,
+        registry(),
+        NoSurfaceMigration,
+        SurfaceBackupPolicy::Include,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        RegisteredSurfaceDomainError::InvalidDefault {
+            code: SurfaceValidationCode::NonCanonicalDocument,
+            ..
+        }
+    ));
+}
 
 #[test]
 fn missing_corrupt_future_and_incompatible_sources_remain_distinct() {
