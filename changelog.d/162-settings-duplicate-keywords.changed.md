@@ -1,0 +1,1 @@
+**Seal rejects duplicate page search keywords.** A `SettingsPageDefinition` whose `keywords` repeat after case folding used to seal with the duplicates silently dropped; it now fails with `DuplicateItem`. Migration: remove the repeated keyword from the page declaration. The sealed snapshot for a page with distinct keywords is unchanged.

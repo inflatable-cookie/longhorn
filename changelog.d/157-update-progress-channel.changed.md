@@ -1,0 +1,1 @@
+Use `TauriTransport` with `createTauriUpdatePort`, or pass an `onProgress` Tauri channel when invoking prepare directly. The update adapter no longer exports or publishes `UPDATE_PROGRESS_EVENT`. Snapshot callers should read the plain snapshot and drop `includeProgressCapabilities` and `scopedPrepareProgress`.

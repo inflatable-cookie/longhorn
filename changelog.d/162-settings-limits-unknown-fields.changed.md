@@ -1,0 +1,1 @@
+**`SettingsLimits` rejects unknown fields.** A snapshot's `limits` object now accepts the twelve declared fields and nothing else, matching the TypeScript field map that already refused extra keys. Migration: send only the declared limit fields; a payload that carried extra keys was already refused by every TypeScript client.

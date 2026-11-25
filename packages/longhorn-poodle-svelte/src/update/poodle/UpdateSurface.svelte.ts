@@ -65,7 +65,9 @@ export function sampleUpdateController(getController: () => UpdateController) {
     },
     get special() {
       void notify;
-      if (controller.pending) return undefined;
+      if (controller.pending) {
+        return undefined;
+      }
       if (controller.lastRejection === "malformedArtifact") {
         return { kind: "malformed" as const, detail: controller.lastRejectionDetail };
       }
@@ -76,7 +78,9 @@ export function sampleUpdateController(getController: () => UpdateController) {
     },
     retryDownload(): void {
       const version = actionableVersion(controller);
-      if (version !== undefined) void controller.prepare(version);
+      if (version !== undefined) {
+        void controller.prepare(version);
+      }
     },
     get availability() {
       void notify;

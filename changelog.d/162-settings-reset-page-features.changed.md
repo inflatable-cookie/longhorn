@@ -1,0 +1,1 @@
+**Reset without a reset-capable writable unit reports `InvalidPageFeatures`.** The refusal itself is unchanged — a page with `features.reset` and no writable unit declaring `reset_supported` still fails seal — but its code was `MissingReference`. Migration: match the new code where that case was caught; nothing that sealed before changes.

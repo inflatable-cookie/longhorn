@@ -1,0 +1,1 @@
+Tauri host failures display their diagnostic message in Longhorn panels. The domain protocols now export generated host error types. Bridge domain, progress, and terminal events stay in the webview that owns the session.

@@ -229,11 +229,17 @@ crates. They pass under `oxide`.
 - During a redaction sweep, treat `scripts/` as executable code. A placeholder
   that reads well in prose can be a runtime failure.
 - When a small, solvable execution hurdle appears, file it in Nucleus as a
-  papercut and carry on: run `nucleus papercut.add -` with the JSON payload on
-  stdin:
-  `repository: {origin: "inflatable-cookie/longhorn", path}`, `title`,
-  `happened`, `impact`, and optional `area` and `fix`. Do not stop or fix it
-  unless the current scope includes the fix.
+  papercut and carry on: run `nucleus item.add papercut "<title>"` with the
+  Markdown body on stdin, naming the repository (`inflatable-cookie/longhorn`
+  and the path), what happened, the impact, and optionally the area and a
+  suggested fix. A worker without engine credentials records the same papercut
+  in the PR body and the planner files it (Nucleus papercut `i-b00a333d`).
+  Do not stop or fix it unless the current scope includes the fix.
+- Changelog fragments are `changelog.d/<task-or-PR>-<slug>.<type>.md`, with
+  `type` one of `added`, `changed`, `fixed`, `removed` or `security`; breaking
+  content is `changed`, and one fragment holds one entry. Check them with
+  `effigy skill run northstar-docs/changelog -- check`. Owner:
+  [release](docs/knowledge/contracts/release.md#changelog-fragments).
 
 ## Validate
 

@@ -204,6 +204,31 @@ describe("judgeReleaseStatus", () => {
     });
   });
 
+  test("passes when release run state is unreadable but the changelog parses", () => {
+    // Reproduced shape (longhorn#174): the staged copy sits under a checkout
+    // that carries an Effigy release journal, so `release status` refuses the
+    // Run while its `details` still report the changelog parse.
+    const stdout = JSON.stringify({
+      ok: false,
+      error: {
+        kind: "RunnerError",
+        message: "command failed (json output available)",
+        details: {
+          blockers: [
+            "unreleased changelog section has no entries",
+            "release Run state is unreadable: release checkout state: journal exists without its checkout identity",
+          ],
+          changelog: { diagnostic_count: 0, diagnostics: [], path: "CHANGELOG.md", valid: true },
+          unreleased: { counts: {}, empty: true, entry_count: 0 },
+        },
+      },
+    });
+    expect(judgeReleaseStatus(stdout)).toEqual({
+      outcome: "pass",
+      note: "CHANGELOG.md parses; [Unreleased] is empty. Effigy also refused release run state outside this changelog: release Run state is unreadable: release checkout state: journal exists without its checkout identity",
+    });
+  });
+
   test("does not read a non-changelog runner failure as the empty gap", () => {
     const stdout = JSON.stringify({
       ok: false,
@@ -218,6 +243,32 @@ describe("judgeReleaseStatus", () => {
       },
     });
     expect(judgeReleaseStatus(stdout).outcome).toBe("fail");
+  });
+
+  // A refused status that names no cause cannot vouch for the changelog. The
+  // empty-section gap always arrives as a blocker, so `every()` over an absent,
+  // empty or non-string list is not a pass (review of longhorn#174).
+  test.each([
+    ["absent", undefined],
+    ["empty", []],
+    ["non-string", [{ message: "gates failed" }]],
+  ])("fails %s blockers even when the changelog parsed", (_case, blockers) => {
+    const parsed = {
+      changelog: { diagnostic_count: 0, diagnostics: [], path: "CHANGELOG.md", valid: true },
+      unreleased: { counts: {}, empty: true, entry_count: 0 },
+    };
+    const details = blockers === undefined ? parsed : { ...parsed, blockers };
+    const stdout = JSON.stringify({
+      ok: false,
+      error: {
+        kind: "RunnerError",
+        message: "command failed (json output available)",
+        details,
+      },
+    });
+    const verdict = judgeReleaseStatus(stdout);
+    expect(verdict.outcome).toBe("fail");
+    expect(verdict.outcome === "fail" && verdict.reason).toContain("no blocker named");
   });
 
   test("does not read a parse error without details as the empty gap", () => {
