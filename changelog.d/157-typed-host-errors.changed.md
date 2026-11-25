@@ -1,0 +1,1 @@
+Catch `TauriHostError` from `TauriTransport.invoke` for typed host failures. `message`, `code`, and `retryable` are available on the error instance. Migrate checks that expect a plain rejection object or enumerate its fields.
