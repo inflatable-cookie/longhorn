@@ -78,7 +78,11 @@ fn open_master() -> Result<OwnedFd, Failure> {
         let flags = OpenptFlags::RDWR
             | OpenptFlags::NOCTTY
             | OpenptFlags::from_bits_retain(OFlags::CLOEXEC.bits());
-        openpt(flags).map_err(|errno| Failure::OpenPty {
+        #[cfg(target_os = "macos")]
+        let master = retry_macos_master_open(|| openpt(flags));
+        #[cfg(target_os = "illumos")]
+        let master = openpt(flags);
+        master.map_err(|errno| Failure::OpenPty {
             raw_os_error: errno.raw_os_error(),
         })
     }
@@ -98,6 +102,27 @@ fn open_master() -> Result<OwnedFd, Failure> {
         })?;
         Ok(master)
     }
+}
+
+// XNU can leak this kernel-private error after exhausting its own open retries.
+#[cfg(target_os = "macos")]
+const EREDRIVEOPEN: Errno = Errno::from_raw_os_error(-6);
+
+#[cfg(target_os = "macos")]
+fn retry_macos_master_open<T>(
+    mut open: impl FnMut() -> rustix::io::Result<T>,
+) -> rustix::io::Result<T> {
+    const RETRIES: usize = 3;
+    const RETRY_DELAY: Duration = Duration::from_millis(10);
+
+    for _ in 0..RETRIES {
+        match open() {
+            // A concurrent open can claim the selected PTY slot.
+            Err(EREDRIVEOPEN) => thread::sleep(RETRY_DELAY),
+            result => return result,
+        }
+    }
+    open()
 }
 
 pub(crate) fn open(spec: CommandSpec) -> Result<(PtySession, Receiver<PtyEvent>), Failure> {
@@ -472,6 +497,14 @@ fn read_output(
 }
 
 pub(crate) fn write(session: &PtySession, bytes: &[u8]) -> Result<(), Failure> {
+    write_with(session, bytes, File::write)
+}
+
+fn write_with(
+    session: &PtySession,
+    bytes: &[u8],
+    mut write_chunk: impl FnMut(&mut File, &[u8]) -> std::io::Result<usize>,
+) -> Result<(), Failure> {
     let shared = &session.inner.shared;
     let mut written = 0;
     loop {
@@ -479,7 +512,7 @@ pub(crate) fn write(session: &PtySession, bytes: &[u8]) -> Result<(), Failure> {
         if !poll_exit(&mut process, &shared.changed)? {
             return Err(Failure::Ended);
         }
-        if written == bytes.len() {
+        if bytes.is_empty() {
             return Ok(());
         }
         let result = {
@@ -487,11 +520,16 @@ pub(crate) fn write(session: &PtySession, bytes: &[u8]) -> Result<(), Failure> {
             let Some(master) = control_master.as_mut() else {
                 return Err(Failure::Ended);
             };
-            master.write(&bytes[written..])
+            write_chunk(master, &bytes[written..])
         };
         match result {
             Ok(0) => return Err(Failure::WriteInput { raw_os_error: None }),
-            Ok(length) => written += length,
+            Ok(length) => {
+                written += length;
+                if written == bytes.len() {
+                    return Ok(());
+                }
+            }
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 drop(process);
@@ -658,6 +696,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn complete_write_succeeds_when_the_child_exits() {
+        let (session, _events) = PtySession::open(CommandSpec {
+            program: "/bin/sh".into(),
+            arguments: vec!["-c".into(), "IFS= read -r line".into()],
+            environment: Default::default(),
+            working_directory: "/".into(),
+            size: crate::api::DEFAULT_SIZE,
+        })
+        .expect("the shell starts and waits for input");
+        let child = process_lock(&session.inner.shared).process_group;
+
+        let result = write_with(&session, b"complete\n", |master, input| {
+            let accepted = master.write(input)?;
+            assert_eq!(accepted, input.len(), "the master accepted the full input");
+            // The writer owns the lifecycle lock. Observe exit without
+            // reaping so the next lifecycle check would see it.
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while !leader_exited_uncollected(child).expect("child status is readable") {
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "the child did not exit after reading the input"
+                );
+                thread::sleep(REAPER_POLL_INTERVAL);
+            }
+            Ok(accepted)
+        });
+
+        assert_eq!(result, Ok(()), "the completed write succeeds");
+        assert_eq!(session.write(b"late"), Err(Failure::Ended));
+        assert_eq!(session.write(b""), Err(Failure::Ended));
+    }
+
+    #[test]
     fn a_live_leader_that_refuses_a_group_signal_is_a_signal_failure() {
         let mut child = Command::new("/bin/sleep")
             .arg("30")
@@ -744,5 +815,44 @@ mod tests {
             flags.contains(rustix::io::FdFlags::CLOEXEC),
             "master descriptor has FD_CLOEXEC set: {flags:?}"
         );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_master_open_recovers_from_ptmx_races() {
+        let mut outcomes = [Err(EREDRIVEOPEN), Err(EREDRIVEOPEN), Ok(())].into_iter();
+
+        assert_eq!(
+            retry_macos_master_open(|| outcomes.next().expect("one result per attempt")),
+            Ok(())
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_master_open_preserves_persistent_ptmx_errors() {
+        let mut attempts = 0;
+        let result = retry_macos_master_open::<()>(|| {
+            attempts += 1;
+            Err(EREDRIVEOPEN)
+        });
+
+        assert_eq!(result, Err(EREDRIVEOPEN));
+        assert_eq!(attempts, 4, "the retry budget is fixed");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_master_open_returns_other_errors_immediately() {
+        for errno in [Errno::NXIO, Errno::MFILE] {
+            let mut attempts = 0;
+            let result = retry_macos_master_open::<()>(|| {
+                attempts += 1;
+                Err(errno)
+            });
+
+            assert_eq!(result, Err(errno));
+            assert_eq!(attempts, 1, "errno {errno} returns on the first attempt");
+        }
     }
 }
