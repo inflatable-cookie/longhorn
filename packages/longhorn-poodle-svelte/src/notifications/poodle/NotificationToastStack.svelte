@@ -1,29 +1,14 @@
 <script lang="ts">
   import { ToastStack } from "@inflatable-cookie/poodle-svelte";
-  import type { ToastItem } from "@inflatable-cookie/poodle-svelte";
-
   import type { NotificationSession } from "../svelte/session.svelte.ts";
+  import { invokeToastAction, projectToasts } from "./toasts.ts";
 
   let { session }: { session: NotificationSession } = $props();
-
-  const items = $derived<Array<ToastItem>>(
-    session.toasts.map((toast) => ({
-      id: toast.id,
-      title: toast.title,
-      message: toast.description,
-      tone: toast.tone,
-      actionLabel: toast.action?.label ?? null,
-    })),
-  );
-
-  function act(id: string): void {
-    const toast = session.toasts.find((candidate) => candidate.id === id);
-    if (toast?.action !== undefined) {
-      void session
-        .invokeAction(toast.notificationId, toast.action.referenceId)
-        .catch(() => undefined);
-    }
-  }
+  const items = $derived(projectToasts(session));
 </script>
 
-<ToastStack {items} onDismiss={(id) => session.dismissToast(id)} onAction={act} />
+<ToastStack
+  {items}
+  onDismiss={(id) => session.dismissToast(id)}
+  onAction={(id) => invokeToastAction(session, id)}
+/>

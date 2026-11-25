@@ -46,6 +46,7 @@
     nextRequestId = () => `config:${crypto.randomUUID()}`,
     onSnapshot,
   }: ConfigOperationsPageProps = $props();
+  const archiveId = $props.id();
 
   const initialSnapshotValue = (() => initialSnapshot)();
   let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshotValue);
@@ -375,11 +376,11 @@
       </Callout>
     {:else}
       <Surface asRole="region" label="Select restore archive">
-        <Field id="longhorn-restore-archive" label="Backup archive">
+        <Field id={archiveId} label="Backup archive">
           <Grid columns="minmax(12rem, 1fr) auto" gap="sm">
             <Stack>
               <Select
-                id="longhorn-restore-archive"
+                id={archiveId}
                 value={selection}
                 options={archiveOptions}
                 native={true}

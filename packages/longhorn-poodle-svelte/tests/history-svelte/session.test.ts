@@ -5,6 +5,20 @@ import HistoryPanelHarness from "./HistoryPanelHarness.svelte";
 import { createMountedSession } from "./support.ts";
 
 describe("history Svelte and public Poodle adapters", () => {
+  it("exposes read-only history projections and controls filtering through the session", async () => {
+    const { session } = createMountedSession();
+    await session.start();
+    expect(Reflect.set(session, "filter", "rename")).toBe(false);
+    expect(Object.isFrozen(session.snapshot?.summary)).toBe(true);
+    expect(Object.isFrozen(session.entries)).toBe(true);
+    expect(session.filter).toBe("");
+
+    session.setFilter("rename");
+    expect(session.filter).toBe("rename");
+    expect(session.entries.map(({ entryId }) => entryId)).toEqual(["entry:future"]);
+    await session.dispose();
+  });
+
   it("keeps mounted sessions independent and tears down listeners", async () => {
     const first = createMountedSession();
     const second = createMountedSession();

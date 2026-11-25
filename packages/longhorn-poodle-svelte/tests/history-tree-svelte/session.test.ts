@@ -36,6 +36,8 @@ it("mounts public Poodle composition, loads branches explicitly, and tears down"
   const mounted = render(Harness, { props: { session } });
   await waitFor(() => expect(session.status.kind).toBe("ready"));
   expect(session.branches).toBeUndefined();
+  expect(Reflect.set(session, "canUndo", false)).toBe(false);
+  expect(Object.isFrozen(session.path?.entries)).toBe(true);
   await fireEvent.click(mounted.getByRole("button", { name: "Branches" }));
   await waitFor(() => expect(session.branches?.branches).toHaveLength(2));
   await Promise.resolve(mounted.unmount());

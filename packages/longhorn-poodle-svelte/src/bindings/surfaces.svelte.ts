@@ -30,6 +30,8 @@ export interface SurfaceStateOptions {
   readonly unsupportedReason?: string;
 }
 
+const RECENT_OPERATION_LIMIT = 32;
+
 export class SurfaceState {
   readonly #client: SurfaceClient | undefined;
   readonly #lifecycle: ReactiveClientState<SurfaceSnapshot>;
@@ -109,16 +111,20 @@ export class SurfaceState {
 
     const epoch = this.#epoch;
     this.#projection.begin(request.request_id, project);
-    this.#setOperation({
+    const pending = {
       requestId: request.request_id,
       status: "pending",
-    });
+    } satisfies SurfaceMutationOperation;
+    this.#setOperation(pending);
     try {
       const response = await client.mutate(request);
       const document =
         response.status === "committed"
           ? response.receipt.authoritative_document
           : response.rejection.authoritative_document;
+      if (!this.#operations.includes(pending)) {
+        return response;
+      }
       if (epoch !== undefined && this.#epoch === epoch) {
         this.#projection.settle(request.request_id, document);
       } else {
@@ -131,13 +137,11 @@ export class SurfaceState {
       });
       return response;
     } catch (error) {
-      this.#projection.cancel(request.request_id);
-      this.#setOperation({
-        requestId: request.request_id,
-        status: "failed",
-        error,
-      });
-      this.#lifecycle.fail(error);
+      if (this.#operations.includes(pending)) {
+        this.#projection.cancel(request.request_id);
+        this.#setOperation({ requestId: request.request_id, status: "failed", error });
+        this.#lifecycle.fail(error);
+      }
       throw error;
     }
   }
@@ -165,9 +169,15 @@ export class SurfaceState {
   }
 
   #setOperation(operation: SurfaceMutationOperation): void {
-    this.#operations = [
+    const operations = [
       ...this.#operations.filter(({ requestId }) => requestId !== operation.requestId),
       operation,
     ];
+    const settled = operations.filter(({ status }) => status !== "pending");
+    if (settled.length > RECENT_OPERATION_LIMIT) {
+      const oldest = operations.findIndex(({ status }) => status !== "pending");
+      operations.splice(oldest, 1);
+    }
+    this.#operations = operations;
   }
 }

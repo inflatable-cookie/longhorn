@@ -1,36 +1,60 @@
 import { OperationController } from "@inflatable-cookie/longhorn/operation";
-import type {
-  OperationCommandFailure,
-  OperationCommandRejection,
-  OperationControllerOptions,
-  OperationControllerStatus,
-  OperationPendingCommand,
-} from "@inflatable-cookie/longhorn/operation";
+import type { OperationControllerOptions } from "@inflatable-cookie/longhorn/operation";
 import type {
   OperationCancellationResult,
-  OperationEntryProjection,
   OperationId,
   OperationMutationResult,
-  OperationSnapshot,
 } from "@inflatable-cookie/longhorn/operation/protocol";
+
+import { freezeProjection } from "../../bindings/freeze-projection.ts";
 
 export class OperationSession {
   readonly #controller: OperationController;
   readonly #unobserve: () => void;
-  status = $state<OperationControllerStatus>({ kind: "idle" });
-  snapshot = $state<OperationSnapshot | undefined>();
-  active = $state<Array<OperationEntryProjection>>([]);
-  recent = $state<Array<OperationEntryProjection>>([]);
-  selectedOperationId = $state<OperationId | undefined>();
-  selected = $state<OperationEntryProjection | undefined>();
-  pendingCommands = $state<Array<OperationPendingCommand>>([]);
-  commandRejection = $state<OperationCommandRejection | undefined>();
-  commandFailure = $state<OperationCommandFailure | undefined>();
+  #projection: ReturnType<typeof project>;
 
   constructor(options: OperationControllerOptions) {
     this.#controller = new OperationController(options);
-    this.#unobserve = this.#controller.observe(() => this.#sync());
-    this.#sync();
+    this.#projection = $state.raw(project(this.#controller));
+    this.#unobserve = this.#controller.observe(() => {
+      this.#projection = project(this.#controller);
+    });
+  }
+
+  get status() {
+    return this.#projection.status;
+  }
+
+  get snapshot() {
+    return this.#projection.snapshot;
+  }
+
+  get active() {
+    return this.#projection.active;
+  }
+
+  get recent() {
+    return this.#projection.recent;
+  }
+
+  get selectedOperationId() {
+    return this.#projection.selectedOperationId;
+  }
+
+  get selected() {
+    return this.#projection.selected;
+  }
+
+  get pendingCommands() {
+    return this.#projection.pendingCommands;
+  }
+
+  get commandRejection() {
+    return this.#projection.commandRejection;
+  }
+
+  get commandFailure() {
+    return this.#projection.commandFailure;
   }
 
   start(): Promise<void> {
@@ -65,16 +89,19 @@ export class OperationSession {
   isDismissalPending(operationId: OperationId): boolean {
     return this.#controller.isDismissalPending(operationId);
   }
+}
 
-  #sync(): void {
-    this.status = this.#controller.status;
-    this.snapshot = this.#controller.snapshot;
-    this.active = [...this.#controller.active];
-    this.recent = [...this.#controller.recent];
-    this.selectedOperationId = this.#controller.selectedOperationId;
-    this.selected = this.#controller.selected;
-    this.pendingCommands = [...this.#controller.pendingCommands];
-    this.commandRejection = this.#controller.commandRejection;
-    this.commandFailure = this.#controller.commandFailure;
-  }
+function project(controller: OperationController) {
+  const failure = controller.commandFailure;
+  return {
+    status: Object.freeze({ ...controller.status }),
+    snapshot: freezeProjection(structuredClone(controller.snapshot)),
+    active: freezeProjection(structuredClone(controller.active)),
+    recent: freezeProjection(structuredClone(controller.recent)),
+    selectedOperationId: controller.selectedOperationId,
+    selected: freezeProjection(structuredClone(controller.selected)),
+    pendingCommands: freezeProjection(structuredClone(controller.pendingCommands)),
+    commandRejection: freezeProjection(structuredClone(controller.commandRejection)),
+    commandFailure: failure === undefined ? undefined : Object.freeze({ ...failure }),
+  };
 }

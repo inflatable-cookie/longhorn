@@ -9,6 +9,7 @@ import type {
   SettingsScopeSnapshot,
 } from "@inflatable-cookie/longhorn/settings/protocol";
 import type { SettingsSubscription } from "@inflatable-cookie/longhorn/settings";
+import { StartStop } from "../../bindings/start-stop.ts";
 import type { SettingsScopeStatus } from "./types.ts";
 
 export interface SettingsScopeStateOptions {
@@ -25,9 +26,7 @@ export class SettingsScopeState {
   #status = $state.raw<SettingsScopeStatus>({ kind: "idle" });
   #snapshot = $state.raw<SettingsScopeSnapshot | undefined>(undefined);
   #subscription: SettingsSubscription<SettingsScopeSnapshot> | undefined;
-  #startTask: Promise<void> | undefined;
-  #stopTask: Promise<void> | undefined;
-  #generation = 0;
+  readonly #lifecycle = new StartStop();
 
   constructor(options: SettingsScopeStateOptions) {
     this.#options = options;
@@ -46,12 +45,7 @@ export class SettingsScopeState {
   }
 
   start(): Promise<void> {
-    if (this.#startTask !== undefined) {
-      return this.#startTask;
-    }
-    const afterStop = this.#stopTask;
-    this.#startTask = afterStop === undefined ? this.#begin() : afterStop.then(() => this.#begin());
-    return this.#startTask;
+    return this.#lifecycle.start((generation) => this.#begin(generation));
   }
 
   accept(snapshot: SettingsScopeSnapshot): void {
@@ -60,60 +54,50 @@ export class SettingsScopeState {
   }
 
   stop(): Promise<void> {
-    if (this.#stopTask !== undefined) {
-      return this.#stopTask;
-    }
-    const subscription = this.#subscription;
-    const priorFailure = this.#status.kind === "failed" ? this.#status.error : undefined;
-    this.#subscription = undefined;
-    this.#startTask = undefined;
-    ++this.#generation;
-    this.#snapshot = undefined;
-    this.#status = { kind: "idle" };
-    this.#stopTask = (async () => {
+    return this.#lifecycle.stop(async () => {
+      const priorFailure = this.#status.kind === "failed" ? this.#status.error : undefined;
+      this.#snapshot = undefined;
+      this.#status = { kind: "idle" };
+      await Promise.resolve();
+      const subscription = this.#subscription;
+      this.#subscription = undefined;
       try {
-        try {
-          await subscription?.dispose();
-        } catch (error) {
-          if (error !== priorFailure) {
-            throw error;
-          }
+        await subscription?.dispose();
+      } catch (error) {
+        if (error !== priorFailure) {
+          throw error;
         }
-      } finally {
-        this.#stopTask = undefined;
       }
-    })();
-    return this.#stopTask;
+    });
   }
 
-  async #begin(): Promise<void> {
-    const generation = ++this.#generation;
+  async #begin(generation: number): Promise<void> {
     this.#status = { kind: "loading" };
-    const subscription = this.#options.client.connectScope({
-      registry: this.#options.registry,
-      pageId: this.#options.pageId,
-      scopeId: this.#options.scopeId,
-      nextRequestId: this.#options.nextRequestId,
-      onSnapshot: (snapshot) => {
-        if (generation === this.#generation) {
-          this.accept(snapshot);
-        }
-      },
-      onFailure: (failure) => {
-        if (generation === this.#generation) {
-          this.#status = { kind: "failed", error: failure.error };
-          this.#options.onFailure?.(failure);
-        }
-      },
-    });
-    this.#subscription = subscription;
     try {
+      const subscription = this.#options.client.connectScope({
+        registry: this.#options.registry,
+        pageId: this.#options.pageId,
+        scopeId: this.#options.scopeId,
+        nextRequestId: this.#options.nextRequestId,
+        onSnapshot: (snapshot) => {
+          if (generation === this.#lifecycle.generation) {
+            this.accept(snapshot);
+          }
+        },
+        onFailure: (failure) => {
+          if (generation === this.#lifecycle.generation) {
+            this.#status = { kind: "failed", error: failure.error };
+            this.#options.onFailure?.(failure);
+          }
+        },
+      });
+      this.#subscription = subscription;
       const snapshot = await subscription.ready;
-      if (generation === this.#generation) {
+      if (generation === this.#lifecycle.generation) {
         this.accept(snapshot);
       }
     } catch (error) {
-      if (generation === this.#generation) {
+      if (generation === this.#lifecycle.generation) {
         this.#status = { kind: "failed", error };
       }
       throw error;

@@ -145,7 +145,7 @@
 
     <InlineListSection
       title={activeTitle}
-      items={session.active}
+      items={[...session.active]}
       count={session.active.length}
       emptyMessage={activeEmptyMessage}
       framed={false}
@@ -157,7 +157,7 @@
 
     <InlineListSection
       title={recentTitle}
-      items={session.recent}
+      items={[...session.recent]}
       count={session.recent.length}
       emptyMessage={recentEmptyMessage}
       framed={false}

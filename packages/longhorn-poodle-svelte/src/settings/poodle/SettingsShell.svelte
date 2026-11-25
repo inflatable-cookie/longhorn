@@ -6,6 +6,10 @@
     FormActions,
     SettingsShell as PoodleSettingsShell,
   } from "@inflatable-cookie/poodle-svelte";
+  import type {
+    SettingsRecoveryCode,
+    SettingsRejectionCode,
+  } from "@inflatable-cookie/longhorn/settings/protocol";
   import { tick } from "svelte";
 
   import { errorMessage, reportFailure } from "../../failures.ts";
@@ -50,6 +54,25 @@
     ariaLabel = null,
     onOpenChange,
   }: Props = $props();
+
+  const recoveryMessages: Record<SettingsRecoveryCode, string> = {
+    corrupt: "The saved settings could not be read.",
+    futureSchema: "These settings were saved by a newer version of the app.",
+    authorityUnavailable: "The app can’t access these settings right now.",
+    recoveryInProgress: "Wait for settings recovery to finish before making changes.",
+    recoveryRequired: "Recover these settings before making changes.",
+  };
+
+  const rejectionMessages: Record<SettingsRejectionCode, string> = {
+    invalidIntent: "Review the values in your draft before trying again.",
+    policyBlocked: "This change is blocked by policy.",
+    readOnly: "This setting is read-only.",
+    hidden: "This setting is no longer available on this page.",
+    unsupported: "This change is unavailable in the current setup.",
+    recoveryRequired: "Recover these settings before making changes.",
+    unauthorized: "You don’t have permission to make this change.",
+    registryChanged: "The available settings changed. Reopen the page and review your draft.",
+  };
 
   let searchQuery = $state("");
   let focusTarget = $state<HTMLElement | null>(null);
@@ -294,7 +317,7 @@
           <Callout
             tone="danger"
             title="Recovery required"
-            message={session.recovery.code}
+            message={recoveryMessages[session.recovery.code]}
             announceMode="assertive"
           />
         {/if}
@@ -303,7 +326,7 @@
           <Callout
             tone="info"
             title="Activation required"
-            message={pendingActivation.map(({ targetId }) => targetId).join(", ")}
+            message="Some saved changes still need to be activated."
             announceMode="polite"
           />
         {/if}
@@ -323,7 +346,7 @@
           <Callout
             tone="danger"
             title="Change rejected"
-            message={unitStatus.rejection.code}
+            message={rejectionMessages[unitStatus.rejection.code]}
             announceMode="assertive"
           />
         {:else if unitStatus.kind === "failed"}

@@ -1,0 +1,1 @@
+Svelte adapter teardown supersedes queued starts and releases transfer listeners when host cleanup fails. Notification toasts follow their current session, settings and keybinding messages use readable labels, and Surface drag preparation survives option updates for the same state.

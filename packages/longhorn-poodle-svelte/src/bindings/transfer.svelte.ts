@@ -12,8 +12,14 @@ import type {
   TransferSessionResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 
-import { ReactiveClientState, UnsupportedCapabilityError } from "./index.ts";
+import {
+  ClientStateDestroyedError,
+  ReactiveClientState,
+  UnsupportedCapabilityError,
+} from "./index.ts";
 import type { ClientStatus } from "./index.ts";
+import { StartStop } from "./start-stop.ts";
+import { throwTeardownFailures } from "./teardown.ts";
 import { systemTimerScheduler } from "./scheduler.ts";
 import {
   InvalidLeaseReleaseRequestError,
@@ -39,13 +45,15 @@ export class TransferState {
   readonly #lifecycle: ReactiveClientState<TransferClientSnapshot>;
   #preparation = $state.raw<TransferPreparationState>({ status: "idle" });
   #lease = $state.raw<TransferLeaseState>({ status: "idle" });
+  #publishedLease: Extract<TransferLeaseResponse, { status: "published" }>["lease"] | undefined;
   #completion = $state.raw<TransferCompletionState>({ status: "idle" });
   #cancellation = $state.raw<TransferCancellationState>({ status: "idle" });
   #activeSessionId: DragSessionId | undefined;
   #preparationGeneration = 0;
   #preparationTimer: unknown;
-  #preparationTasks = new Set<Promise<unknown>>();
-  #stopTask: Promise<void> | undefined;
+  readonly #tasks = new Set<Promise<unknown>>();
+  readonly #lifetime = new StartStop();
+  #destroyed = false;
   #stopped = true;
 
   constructor(options: TransferStateOptions) {
@@ -90,36 +98,62 @@ export class TransferState {
     return this.#cancellation;
   }
 
-  async start(): Promise<void> {
-    this.#stopped = false;
-    try {
-      await this.#lifecycle.start();
-    } catch (error) {
-      this.#stopped = true;
-      throw error;
-    }
+  start(): Promise<void> {
+    return this.#start(false);
   }
 
-  async reconnect(): Promise<void> {
+  reconnect(): Promise<void> {
+    return this.#stopped ? this.#start(true) : this.#connect(this.#lifetime.generation, true);
+  }
+
+  #start(reconnect: boolean): Promise<void> {
+    if (this.#destroyed) {
+      return Promise.reject(new ClientStateDestroyedError());
+    }
+    return this.#lifetime.start((generation) => this.#connect(generation, reconnect), true);
+  }
+
+  async #connect(generation: number, reconnect: boolean): Promise<void> {
     this.#stopped = false;
     try {
-      await this.#lifecycle.reconnect();
+      await (reconnect ? this.#lifecycle.reconnect() : this.#lifecycle.start());
     } catch (error) {
-      this.#stopped = true;
+      if (!reconnect && generation === this.#lifetime.generation) {
+        this.#stopped = true;
+      }
       throw error;
     }
   }
 
   async preparePanel(request: PanelSessionStartRequest): Promise<TransferSessionResponse> {
     this.#assertRunning();
+    const timeoutMs = this.#options.preparationTimeoutMs;
+    if (timeoutMs !== undefined && (!Number.isFinite(timeoutMs) || timeoutMs < 0)) {
+      throw new RangeError("preparation timeout must be finite and non-negative");
+    }
+    return this.#track(this.#preparePanel(request, timeoutMs));
+  }
+
+  async #preparePanel(
+    request: PanelSessionStartRequest,
+    timeoutMs: number | undefined,
+  ): Promise<TransferSessionResponse> {
     const client = this.#requireClient();
-    await this.#supersedePreparation();
+    const lifetime = this.#lifetime.generation;
+    const superseded = this.#supersedePreparation();
+    const generation = this.#preparationGeneration;
+    await superseded;
+    if (lifetime === this.#lifetime.generation && generation === this.#preparationGeneration) {
+      this.#preparation = { status: "preparing", request };
+      try {
+        this.#schedulePreparationTimeout(generation, request.request_id, timeoutMs);
+      } catch (error) {
+        this.#preparation = { status: "failed", error };
+        throw error;
+      }
+    }
 
-    const generation = ++this.#preparationGeneration;
-    this.#preparation = { status: "preparing", request };
-    this.#schedulePreparationTimeout(generation, request.request_id);
-
-    const task = client
+    return client
       .startPanel(request)
       .then(async (response) => {
         if (generation !== this.#preparationGeneration || this.#stopped) {
@@ -146,20 +180,27 @@ export class TransferState {
         }
         throw error;
       });
-    this.#trackPreparation(task);
-    return task;
   }
 
   async publishLease(request: TransferLeaseRequest): Promise<TransferLeaseResponse> {
     this.#assertRunning();
+    return this.#track(this.#publishLease(request));
+  }
+
+  async #publishLease(request: TransferLeaseRequest): Promise<TransferLeaseResponse> {
     const client = this.#requireClient();
     this.#lease = { status: "publishing", request };
     try {
       const response = await client.publishLease(request);
-      this.#lease =
-        response.status === "published"
-          ? { status: "published", response }
-          : { status: "aborted", response };
+      if (response.status === "published") {
+        const prior = this.#publishedLease;
+        if (prior === undefined || response.lease.generation >= prior.generation) {
+          this.#publishedLease = response.lease;
+        }
+        this.#lease = { status: "published", response };
+      } else {
+        this.#lease = { status: "aborted", response };
+      }
       return response;
     } catch (error) {
       this.#lease = { status: "failed", error };
@@ -170,6 +211,10 @@ export class TransferState {
 
   async commitPanel(request: PanelTransferCommand): Promise<PanelTransferResponse> {
     this.#assertRunning();
+    return this.#track(this.#commitPanel(request));
+  }
+
+  async #commitPanel(request: PanelTransferCommand): Promise<PanelTransferResponse> {
     const client = this.#requireClient();
     this.#completion = { status: "committing", request };
     try {
@@ -178,7 +223,10 @@ export class TransferState {
         response.status === "committed"
           ? { status: "committed", response }
           : { status: "aborted", response };
-      if (response.status === "committed" || response.abort.session_consumed) {
+      if (
+        this.#activeSessionId === request.session_id &&
+        (response.status === "committed" || response.abort.session_consumed)
+      ) {
         this.#activeSessionId = undefined;
       }
       return response;
@@ -191,53 +239,59 @@ export class TransferState {
 
   async cancel(request: TransferCancelRequest): Promise<TransferCancelResponse> {
     this.#assertRunning();
-    return this.#cancelRequest(request);
+    return this.#track(this.#cancelRequest(request));
   }
 
   cancelPreparation(): Promise<void> {
-    return this.#supersedePreparation();
+    return this.#stopped ? Promise.resolve() : this.#track(this.#supersedePreparation());
   }
 
   releaseLease(): Promise<void> {
-    return this.#releaseLease();
+    return this.#stopped ? Promise.resolve() : this.#track(this.#releaseLease());
   }
 
   stop(): Promise<void> {
-    if (this.#stopTask !== undefined) {
-      return this.#stopTask;
-    }
-    if (this.#stopped && this.#lifecycle.status.kind === "idle") {
-      return Promise.resolve();
-    }
-    this.#stopTask = this.#performStop().finally(() => {
-      this.#stopTask = undefined;
-    });
-    return this.#stopTask;
+    return this.#lifetime.stop(() => this.#performStop());
   }
 
   async #performStop(): Promise<void> {
+    if (this.#stopped && this.#lifecycle.status.kind === "idle") {
+      return;
+    }
     this.#stopped = true;
     ++this.#preparationGeneration;
-    this.#clearPreparationTimer();
 
     const sessionId = this.#activeSessionId;
     this.#activeSessionId = undefined;
-    if (sessionId !== undefined) {
-      await this.#cancelSession(sessionId);
-    }
-    await Promise.allSettled(this.#preparationTasks);
-    await this.#releaseLease();
-    await this.#lifecycle.stop();
+    const results = await Promise.allSettled([this.#cancelForStop(sessionId), ...this.#tasks]);
+    const lease = await Promise.allSettled([this.#releaseLease()]);
+    const subscription = await Promise.allSettled([this.#lifecycle.stop()]);
 
     this.#preparation = { status: "idle" };
     this.#lease = { status: "idle" };
+    this.#publishedLease = undefined;
     this.#completion = { status: "idle" };
     this.#cancellation = { status: "idle" };
+    throwTeardownFailures([...results, ...lease, ...subscription]);
+  }
+
+  async #cancelForStop(sessionId: DragSessionId | undefined): Promise<void> {
+    try {
+      this.#clearPreparationTimer();
+    } finally {
+      if (sessionId !== undefined) {
+        await this.#cancelSession(sessionId);
+      }
+    }
   }
 
   async destroy(): Promise<void> {
-    await this.stop();
-    await this.#lifecycle.destroy();
+    this.#destroyed = true;
+    try {
+      await this.stop();
+    } finally {
+      await this.#lifecycle.destroy();
+    }
   }
 
   async #supersedePreparation(): Promise<void> {
@@ -245,19 +299,19 @@ export class TransferState {
     this.#clearPreparationTimer();
     const sessionId = this.#activeSessionId;
     this.#activeSessionId = undefined;
+    this.#preparation = { status: "idle" };
     if (sessionId !== undefined) {
       await this.#cancelSession(sessionId);
     }
-    this.#preparation = { status: "idle" };
   }
 
-  #schedulePreparationTimeout(generation: number, requestId: string): void {
-    const timeoutMs = this.#options.preparationTimeoutMs;
+  #schedulePreparationTimeout(
+    generation: number,
+    requestId: string,
+    timeoutMs: number | undefined,
+  ): void {
     if (timeoutMs === undefined) {
       return;
-    }
-    if (!Number.isFinite(timeoutMs) || timeoutMs < 0) {
-      throw new RangeError("preparation timeout must be finite and non-negative");
     }
     const scheduler = this.#options.scheduler ?? systemTimerScheduler;
     this.#preparationTimer = scheduler.set(timeoutMs, () => {
@@ -275,17 +329,19 @@ export class TransferState {
       return;
     }
     const scheduler = this.#options.scheduler ?? systemTimerScheduler;
-    scheduler.clear(this.#preparationTimer);
+    const timer = this.#preparationTimer;
     this.#preparationTimer = undefined;
+    scheduler.clear(timer);
   }
 
-  #trackPreparation(task: Promise<unknown>): void {
-    this.#preparationTasks.add(task);
+  #track<Result>(task: Promise<Result>): Promise<Result> {
+    this.#tasks.add(task);
     void task
       .finally(() => {
-        this.#preparationTasks.delete(task);
+        this.#tasks.delete(task);
       })
       .catch(() => undefined);
+    return task;
   }
 
   #cancelSession(sessionId: DragSessionId): Promise<TransferCancelResponse> {
@@ -301,7 +357,10 @@ export class TransferState {
         response.status === "cancelled"
           ? { status: "cancelled", response }
           : { status: "aborted", response };
-      if (response.status === "cancelled" || response.abort.session_consumed) {
+      if (
+        this.#activeSessionId === request.session_id &&
+        (response.status === "cancelled" || response.abort.session_consumed)
+      ) {
         this.#activeSessionId = undefined;
       }
       return response;
@@ -313,19 +372,19 @@ export class TransferState {
   }
 
   async #releaseLease(): Promise<void> {
-    if (this.#lease.status !== "published") {
+    const receipt = this.#publishedLease;
+    if (receipt === undefined) {
+      return;
+    }
+    if (receipt.zone_count === 0) {
+      this.#publishedLease = undefined;
+      this.#lease = { status: "idle" };
       return;
     }
     const makeRequest = this.#options.makeLeaseReleaseRequest;
     const snapshot = this.#lifecycle.snapshot;
     if (makeRequest === undefined || snapshot === undefined) {
       throw new LeaseReleaseUnavailableError();
-    }
-
-    const receipt = this.#lease.response.lease;
-    if (receipt.zone_count === 0) {
-      this.#lease = { status: "idle" };
-      return;
     }
     const request = makeRequest(snapshot, receipt);
     if (request.zones.length !== 0 || request.generation <= receipt.generation) {
@@ -336,7 +395,10 @@ export class TransferState {
       this.#lease = { status: "aborted", response };
       throw new LeaseReleaseRejectedError();
     }
-    this.#lease = { status: "idle" };
+    if (this.#publishedLease === receipt) {
+      this.#publishedLease = undefined;
+      this.#lease = { status: "idle" };
+    }
   }
 
   #requireClient(): TransferClient {

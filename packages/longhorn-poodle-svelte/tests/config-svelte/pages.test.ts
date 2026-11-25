@@ -19,6 +19,26 @@ import { assertValidConfigOperationsSnapshot } from "../../../longhorn/src/confi
 import { fixture, pageFixture } from "./support.ts";
 
 describe("public Poodle config pages", () => {
+  test.each([
+    ["Storage profile", StorageSettingsPage],
+    ["Backup archive", RestoreSettingsPage],
+  ] as const)("associates each instance's %s label with its own control", (label, Page) => {
+    const { client, snapshot } = pageFixture();
+    const props = { client, initialSnapshot: snapshot, nextRequestId: () => "request:labels" };
+    const first = render(Page, props);
+    const second = render(Page, props);
+    const firstControl = within(first.container).getByLabelText(label);
+    const secondControl = within(second.container).getByLabelText(label);
+    const labelFor = (container: HTMLElement) =>
+      [...container.querySelectorAll("label")].find(
+        ({ textContent }) => textContent?.trim() === label,
+      )?.htmlFor;
+
+    expect(labelFor(first.container)).toBe(firstControl.id);
+    expect(labelFor(second.container)).toBe(secondControl.id);
+    expect(firstControl.id).not.toBe(secondControl.id);
+  });
+
   test("mounts exact storage identity, roots, and conflict evidence", async () => {
     const { client, snapshot, transport } = pageFixture();
     const mounted = render(StorageSettingsPage, {

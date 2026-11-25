@@ -13,6 +13,7 @@ import {
   resolveSettingsDeepLink,
 } from "@inflatable-cookie/longhorn/settings";
 import type { SettingsRegistryProjection } from "@inflatable-cookie/longhorn/settings";
+import { throwTeardownFailures } from "../../bindings/teardown.ts";
 import {
   MissingSettingsRendererError,
   SettingsRegistryUnavailableError,
@@ -147,15 +148,16 @@ export class SettingsSessionDocument {
     this.#pages.clear();
     const scopes = [...this.#scopes.values()].flatMap((pageScopes) => [...pageScopes.values()]);
     this.#scopes.clear();
-    await Promise.all(scopes.map((scope) => scope.stop()));
+    throwTeardownFailures(await Promise.allSettled(scopes.map((scope) => scope.stop())));
   }
 
   async stop(): Promise<void> {
-    await this.clearAuthority();
+    const cleanup = this.clearAuthority();
     this.#registry = undefined;
     this.#projection = undefined;
     this.#route = undefined;
     this.#renderers.clear();
+    await cleanup;
   }
 
   requiredRegistry(): SettingsRegistrySnapshot {

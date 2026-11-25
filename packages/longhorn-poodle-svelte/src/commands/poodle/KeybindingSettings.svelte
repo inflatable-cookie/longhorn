@@ -43,6 +43,21 @@
     onReset = undefined,
   }: Props = $props();
 
+  const platformLabels = { macOs: "macOS", windows: "Windows", linux: "Linux" };
+
+  function bindingLabel(
+    record: CommandSettingsRecord,
+    binding: CommandSettingsRecord["bindings"][number],
+  ): string {
+    const shortcut = record.shortcuts.find(({ bindingId }) => bindingId === binding.id);
+    if (shortcut !== undefined) {
+      return `Change ${shortcut.label}`;
+    }
+    return binding.platform === "any"
+      ? "Change shortcut"
+      : `Change shortcut for ${platformLabels[binding.platform]}`;
+  }
+
   let visible = $derived(
     query.trim().length === 0
       ? records
@@ -70,8 +85,9 @@
 
     {#if conflicts.length > 0}
       <Callout tone="warning">
-        {conflicts.length} unresolved keybinding
-        {conflicts.length === 1 ? " conflict" : " conflicts"}
+        {conflicts.length === 1
+          ? "1 unresolved keybinding conflict"
+          : `${conflicts.length} unresolved keybinding conflicts`}
       </Callout>
     {/if}
 
@@ -101,8 +117,14 @@
             </Stack>
             <Stack direction="row" gap="sm" wrap={true}>
               {#each record.bindings as binding (binding.id)}
-                <Button variant="secondary" disabled={busy} onClick={() => onCapture?.(binding.id)}>
-                  Change {binding.id}
+                {@const label = bindingLabel(record, binding)}
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  ariaLabel={`${label} for ${record.label}`}
+                  onClick={() => onCapture?.(binding.id)}
+                >
+                  {label}
                 </Button>
               {/each}
             </Stack>

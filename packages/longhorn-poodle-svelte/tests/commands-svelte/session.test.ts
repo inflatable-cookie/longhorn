@@ -1,6 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
+import type { CommandKeymapConflict } from "@inflatable-cookie/longhorn/commands/protocol";
 import CommandSessionHarness from "./CommandSessionHarness.svelte";
 import KeybindingHarness from "./KeybindingHarness.svelte";
 import { createSession } from "./support.ts";
@@ -66,11 +67,29 @@ describe("command Svelte and public Poodle adapters", () => {
   it("binds keybinding records through public controlled callbacks", async () => {
     const state = createSession();
     await state.session.start();
+    const openRecord = state.session.settingsRecords.find(({ id }) => id === "app:open");
+    const shortcut = openRecord?.shortcuts[0];
+    if (shortcut === undefined) {
+      throw new Error("missing open shortcut");
+    }
+    const conflict: CommandKeymapConflict = {
+      platform: "macOs",
+      chord: shortcut.chord,
+      contextId: shortcut.contextId,
+      bindingIds: [shortcut.bindingId, "custom:open"],
+      invocations: [
+        { commandId: "app:open", arguments: {} },
+        { commandId: "app:close", arguments: {} },
+      ],
+    };
     let captured = "";
     let applied = 0;
     const mounted = render(KeybindingHarness, {
       props: {
-        records: state.session.settingsRecords,
+        records: state.session.settingsRecords.map((record) =>
+          record === openRecord ? { ...record, label: "Open file" } : record,
+        ),
+        conflicts: [conflict],
         onCapture: (bindingId: string) => {
           captured = bindingId;
         },
@@ -79,7 +98,13 @@ describe("command Svelte and public Poodle adapters", () => {
         },
       },
     });
-    await fireEvent.click(mounted.getByRole("button", { name: "Change base:open" }));
+    expect(mounted.getByText("1 unresolved keybinding conflict").textContent?.trim()).toBe(
+      "1 unresolved keybinding conflict",
+    );
+    const open = mounted.getByRole("button", { name: "Change ⌘O for Open file" });
+    expect(open.textContent?.trim()).toBe("Change ⌘O");
+    expect(mounted.queryByText("Change base:open")).toBeNull();
+    await fireEvent.click(open);
     await fireEvent.click(mounted.getByRole("button", { name: "Apply" }));
     expect(captured).toBe("base:open");
     expect(applied).toBe(1);

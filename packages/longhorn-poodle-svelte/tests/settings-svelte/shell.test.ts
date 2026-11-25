@@ -217,6 +217,43 @@ describe("SettingsShell", () => {
     await session.stop();
   });
 
+  it("explains recovery, activation, and rejected changes in plain language", async () => {
+    const transport = new FakeSettingsTransport();
+    transport.scopeValue.recovery = { code: "futureSchema", diagnostic: null };
+    transport.scopeValue.activationRequirements = [{ targetId: "app:restart", state: "pending" }];
+    const mounted = render(SettingsShellHarness, {
+      props: { session: createSession(transport) },
+    });
+
+    expect(
+      await mounted.findByText("These settings were saved by a newer version of the app."),
+    ).toBeTruthy();
+    expect(mounted.getByText("Some saved changes still need to be activated.")).toBeTruthy();
+    expect(mounted.queryByText("futureSchema")).toBeNull();
+    expect(mounted.queryByText("app:restart")).toBeNull();
+    mounted.unmount();
+  });
+
+  it("explains a policy rejection without exposing its code", async () => {
+    const transport = new FakeSettingsTransport();
+    const rejected = fixture.mutationResults.find(
+      (result) => result.status === "rejected" && result.rejection?.code === "policyBlocked",
+    );
+    if (rejected === undefined) {
+      throw new Error("missing policy rejection");
+    }
+    transport.mutationValue = rejected as typeof transport.mutationValue;
+    const mounted = render(SettingsShellHarness, {
+      props: { session: createSession(transport) },
+    });
+
+    await fireEvent.click(await mounted.findByTestId("change"));
+    await fireEvent.click(mounted.getByRole("button", { name: "Apply" }));
+    expect(await mounted.findByText("This change is blocked by policy.")).toBeTruthy();
+    expect(mounted.queryByText("policyBlocked")).toBeNull();
+    mounted.unmount();
+  });
+
   it("uses a confirmation surface for scoped reset", async () => {
     const transport = new FakeSettingsTransport();
     const session = createSession(transport);

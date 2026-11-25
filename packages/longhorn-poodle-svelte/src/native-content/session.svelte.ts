@@ -12,6 +12,8 @@ import type {
   ScaleFactor,
 } from "@inflatable-cookie/longhorn/native-content";
 
+import { StartStop } from "../bindings/start-stop.ts";
+
 export type NativeContentSessionClient = Pick<NativeContentClient, "connect">;
 
 export interface NativeContentResizeObserver {
@@ -58,11 +60,9 @@ export class NativeContentSession {
   #viewportBinding = 0;
   #observer: NativeContentResizeObserver | undefined;
   #connection: NativeContentConnection | undefined;
-  #startTask: Promise<void> | undefined;
-  #stopTask: Promise<void> | undefined;
+  readonly #lifecycle = new StartStop();
   #pumpTask: Promise<void> | undefined;
   #pumpRequested = false;
-  #lifecycle = 0;
   #active = false;
 
   constructor(options: NativeContentSessionOptions) {
@@ -104,73 +104,28 @@ export class NativeContentSession {
   }
 
   start(): Promise<void> {
-    if (this.#startTask !== undefined) {
-      return this.#startTask;
-    }
-    if (this.#active) {
-      return Promise.resolve();
-    }
-
-    const task =
-      this.#stopTask === undefined ? this.#begin() : this.#stopTask.then(() => this.#begin());
-    this.#startTask = task;
-    void task.then(
-      () => {
-        if (this.#startTask === task) {
-          this.#startTask = undefined;
-        }
-      },
-      () => {
-        if (this.#startTask === task) {
-          this.#startTask = undefined;
-        }
-      },
-    );
-    return task;
+    return this.#lifecycle.start((generation) => this.#begin(generation), true);
   }
 
   stop(): Promise<void> {
-    if (this.#stopTask !== undefined) {
-      return this.#stopTask;
-    }
-    if (!this.#active && this.#connection === undefined) {
-      this.#status = { kind: "idle" };
+    return this.#lifecycle.stop(async () => {
+      this.#active = false;
+      this.#pumpRequested = false;
+      this.#pumpTask = undefined;
+      this.#disconnectObserver();
       this.#snapshot = undefined;
-      return Promise.resolve();
-    }
+      this.#status = { kind: "idle" };
 
-    ++this.#lifecycle;
-    this.#active = false;
-    this.#pumpRequested = false;
-    this.#pumpTask = undefined;
-    this.#disconnectObserver();
-    const connection = this.#connection;
-    this.#connection = undefined;
-    this.#snapshot = undefined;
-    this.#status = { kind: "idle" };
-
-    const task = (async () => {
+      await Promise.resolve();
+      const connection = this.#connection;
+      this.#connection = undefined;
       try {
         await connection?.dispose();
       } catch (error) {
         this.#status = { kind: "failed", error };
         throw error;
       }
-    })();
-    this.#stopTask = task;
-    void task.then(
-      () => {
-        if (this.#stopTask === task) {
-          this.#stopTask = undefined;
-        }
-      },
-      () => {
-        if (this.#stopTask === task) {
-          this.#stopTask = undefined;
-        }
-      },
-    );
-    return task;
+    });
   }
 
   bindViewport(element: HTMLElement): () => void {
@@ -246,8 +201,7 @@ export class NativeContentSession {
     }
   }
 
-  async #begin(): Promise<void> {
-    const lifecycle = ++this.#lifecycle;
+  async #begin(lifecycle: number): Promise<void> {
     this.#active = true;
     this.#status = { kind: "connecting" };
 
@@ -275,11 +229,13 @@ export class NativeContentSession {
         },
       );
       this.#connection = connection;
-      if (earlyFailure !== undefined) {
-        this.#status = { kind: "failed", error: earlyFailure };
-      }
-      if (earlySnapshot !== undefined) {
-        this.#acceptSnapshot(earlySnapshot);
+      if (this.#isCurrent(lifecycle, connection)) {
+        if (earlyFailure !== undefined) {
+          this.#status = { kind: "failed", error: earlyFailure };
+        }
+        if (earlySnapshot !== undefined) {
+          this.#acceptSnapshot(earlySnapshot);
+        }
       }
       const snapshot = await connection.ready;
       if (!this.#isCurrent(lifecycle, connection)) {
@@ -287,14 +243,14 @@ export class NativeContentSession {
       }
       this.#acceptSnapshot(connection.current() ?? snapshot);
     } catch (error) {
-      if (lifecycle === this.#lifecycle) {
+      if (lifecycle === this.#lifecycle.generation) {
         this.#active = false;
         this.#disconnectObserver();
         this.#status = { kind: "failed", error };
+        const connection = this.#connection;
+        this.#connection = undefined;
+        await connection?.dispose().catch(() => undefined);
       }
-      const connection = this.#connection;
-      this.#connection = undefined;
-      await connection?.dispose().catch(() => undefined);
       throw error;
     }
   }
@@ -325,7 +281,7 @@ export class NativeContentSession {
       return;
     }
 
-    const lifecycle = this.#lifecycle;
+    const lifecycle = this.#lifecycle.generation;
     const connection = this.#connection;
     const task = this.#drain(lifecycle, connection).catch((error: unknown) => {
       if (this.#isCurrent(lifecycle, connection)) {
@@ -424,7 +380,9 @@ export class NativeContentSession {
   }
 
   #isCurrent(lifecycle: number, connection: NativeContentConnection): boolean {
-    return this.#active && lifecycle === this.#lifecycle && connection === this.#connection;
+    return (
+      this.#active && lifecycle === this.#lifecycle.generation && connection === this.#connection
+    );
   }
 }
 
