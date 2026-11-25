@@ -250,7 +250,7 @@ The optional Tauri adapter exposes only registered history authorities and
 checks caller capability before dispatch. The consumer authority still owns
 product authorization and the atomic apply transaction.
 
-Card 066 implements this edge as a strict version-1 metadata protocol,
+Card 066 implements this edge as a strict version-2 metadata protocol,
 framework-neutral direct and serialized clients, caller-aware Tauri commands,
 listener-first per-instance Svelte state, and a controlled public-Poodle
 panel. Authority epoch plus history revision invalidate stale pages and
@@ -291,6 +291,8 @@ A production tree layer must preserve these rules:
 - branch name, annotation, and pin metadata stay outside nodes
 - divergent record preserves the prior future and creates or advances one
   explicit branch reference
+- fork records reject no-op payloads and group metadata; the fork domain has no group lifecycle
+- switching branches at a shared position commits a stationary navigation
 - preferred redo is deterministic and changes only through committed record
   or navigation
 - checkout plans inverse steps to the lowest common ancestor, then forward
@@ -301,6 +303,9 @@ A production tree layer must preserve these rules:
 - the protected set falls outside the budget: count and exact encoded-weight
   budgets measure only the unprotected share, so pruning always terminates
   and a fully protected graph is never "over budget"
+- pruning moves a removed branch head to its surviving unprotected ancestor; a branch whose entire fork is removed is removed
+- protocol version 2 makes destructive results tagged; clients and authorities must upgrade together
+- delete and prune return typed rejection results for expected refusals, including stale revisions and zero budgets; internal failures remain host errors
 - deleting a fork is explicit and irreversible: it removes the subtree, the
   branches whose heads are inside it and the checkpoints inside it, reports
   all three, and moves the revision. It is not itself undoable and leaves no

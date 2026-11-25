@@ -25,5 +25,25 @@ pub(super) fn render() -> Result<String, Box<dyn Error>> {
             alternate_path_count: 2,
         },
     };
-    Ok(format!("{}\n", serde_json::to_string_pretty(&snapshot)?))
+    let rejections = retention_rejections()?;
+    let fixture = serde_json::json!({ "snapshot": snapshot, "retentionRejections": rejections });
+    Ok(format!("{}\n", serde_json::to_string_pretty(&fixture)?))
+}
+
+/// Wire examples generated from the same Rust projections consumers receive.
+fn retention_rejections() -> Result<serde_json::Value, Box<dyn Error>> {
+    use longhorn_history_tree::{
+        ForkDeleteResult, ForkPruneResult, ForkRetentionError, ForkRetentionRejectionProjection,
+    };
+    let projection = |error| {
+        ForkRetentionRejectionProjection::from_retention_error(&error)
+            .expect("expected retention refusal")
+    };
+    let values = serde_json::json!({
+        "deletePinned": ForkDeleteResult::Rejected { rejection: projection(ForkRetentionError::PinnedBranchInSubtree(ForkBranchId::new("branch:alternate")?)) },
+        "deleteCurrent": ForkDeleteResult::Rejected { rejection: projection(ForkRetentionError::CurrentNodeInSubtree(HistoryEntryId::new("entry:current")?)) },
+        "pruneStale": ForkPruneResult::Rejected { rejection: projection(ForkRetentionError::StaleRevision { expected: HistoryRevision::new(1), actual: HistoryRevision::new(2) }) },
+        "pruneZero": ForkPruneResult::Rejected { rejection: projection(ForkRetentionError::ZeroLimit) },
+    });
+    Ok(values)
 }

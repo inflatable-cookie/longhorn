@@ -9,7 +9,7 @@ import type {
   ForkContinuationPageSnapshot,
   ForkEntryRecord,
   ForkPruneResult,
-  ForkRemovalReceiptProjection,
+  ForkDeleteResult,
   ForkNavigationResult,
   ForkPathPageSnapshot,
   ForkSnapshot,
@@ -81,7 +81,7 @@ export class ForkHistorySession {
     return this.#controller.prune(maximumEntries, maximumEncodedWeight);
   }
   /** Card 185. Delete one continuation and everything below it. Irreversible. */
-  deleteContinuation(entryId: string): Promise<ForkRemovalReceiptProjection> {
+  deleteContinuation(entryId: string): Promise<ForkDeleteResult> {
     return this.#controller.deleteContinuation(entryId);
   }
   /** Card 184. Check out the run beginning at one entry; applies none of it. */

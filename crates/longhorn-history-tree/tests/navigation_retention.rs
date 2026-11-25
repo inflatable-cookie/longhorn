@@ -1483,3 +1483,120 @@ fn prune_to_bounds_protected_lineage_walk_on_many_pinned_branches() {
         "protected-lineage prune with {pinned_forks} pinned branches took too long: {elapsed:?}"
     );
 }
+
+#[test]
+fn pruning_a_branch_tip_keeps_its_surviving_continuation_reachable() {
+    let (mut history, mut model) = forked_history(branch_metadata(None, false));
+    record(&mut history, &mut model, "entry:e", 5, None);
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:main-prune",
+        ForkNavigationTarget::Checkout {
+            branch_id: branch_id("branch:main"),
+            entry_id: entry_id("entry:c"),
+        },
+    );
+    history
+        .prune_to(
+            history.revision(),
+            ForkRetentionLimits::new(1, 100).unwrap(),
+        )
+        .unwrap();
+    let page = history
+        .project_continuations(
+            Some(&entry_id("entry:b")),
+            ForkProjectionPageRequest::new(0, 8).unwrap(),
+        )
+        .unwrap();
+    assert!(
+        page.continuations()
+            .iter()
+            .any(|item| item.entry_id() == &entry_id("entry:d"))
+    );
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:select-pruned",
+        ForkNavigationTarget::CheckoutContinuation {
+            entry_id: entry_id("entry:d"),
+        },
+    );
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:redo-pruned",
+        ForkNavigationTarget::Redo,
+    );
+    assert_eq!(history.current_node_id(), Some(&entry_id("entry:d")));
+}
+
+#[test]
+fn switching_branches_on_a_shared_node_commits_without_product_moves() {
+    let (mut history, mut model) = forked_history(branch_metadata(None, false));
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:shared",
+        ForkNavigationTarget::Undo,
+    );
+    let plan = history
+        .plan_navigation(
+            plan_id("plan:switch"),
+            history.revision(),
+            ForkNavigationTarget::Checkout {
+                branch_id: branch_id("branch:main"),
+                entry_id: entry_id("entry:b"),
+            },
+            &DeltaPolicy,
+        )
+        .unwrap();
+    assert!(plan.steps().is_empty());
+    let revision = history.revision();
+    history
+        .execute_navigation(
+            plan,
+            &mut ModelTransaction {
+                model: &mut model,
+                mode: TransactionMode::Commit,
+                calls: 0,
+            },
+        )
+        .unwrap();
+    assert_eq!(history.current_branch_id(), &branch_id("branch:main"));
+    assert_ne!(history.revision(), revision);
+}
+
+#[test]
+fn recording_refuses_noop_and_unmanaged_group_metadata() {
+    let mut history = history();
+    let revision = history.revision();
+    let result = history.record_applied(
+        ForkRecord::new(
+            revision,
+            entry_id("entry:noop"),
+            metadata("noop"),
+            Delta(0),
+            None,
+        ),
+        &DeltaPolicy,
+    );
+    assert!(matches!(
+        result,
+        Err(longhorn_history_tree::ForkHistoryError::NoOpPayload)
+    ));
+    let grouped = HistoryEntryMetadata::new(
+        HistoryLabel::new("grouped").unwrap(),
+        None,
+        Some(longhorn_core::HistoryGroupId::new("group:one").unwrap()),
+    );
+    let result = history.record_applied(
+        ForkRecord::new(revision, entry_id("entry:grouped"), grouped, Delta(1), None),
+        &DeltaPolicy,
+    );
+    assert!(matches!(
+        result,
+        Err(longhorn_history_tree::ForkHistoryError::GroupRequiresLifecycle)
+    ));
+    assert_eq!(history.revision(), revision);
+}

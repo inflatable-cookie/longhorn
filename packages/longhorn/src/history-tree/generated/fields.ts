@@ -16,6 +16,7 @@ export const HISTORY_TREE_FIELDS = {
   "ForkContinuationPageCommand": ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", "anchorEntryId", "offset", "limit"],
   "ForkContinuationPageSnapshot": ["protocolVersion", "authorityEpoch", "historyId", "revision", "anchorEntryId", "offset", "totalContinuations", "continuations", "truncatedBefore", "truncatedAfter"],
   "ForkDeleteContinuationCommand": ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", "entryId"],
+  "ForkRetentionRejectionProjection": ["code", "detail", "refreshRequired"],
   "ForkRemovedEntryRecord": ["entryId", "sequence", "encodedWeight"],
   "ForkRemovalReceiptProjection": ["protocolVersion", "authorityEpoch", "historyId", "previousRevision", "committedRevision", "removedEntries", "removedBranches", "removedCheckpoints", "retainedEntryCount", "retainedEncodedWeight", "unprotectedEntryCount", "unprotectedEncodedWeight"],
   "ForkPruneCommand": ["protocolVersion", "authorityEpoch", "historyId", "expectedRevision", "maximumEntries", "maximumEncodedWeight"],

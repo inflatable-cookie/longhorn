@@ -20,7 +20,7 @@ it("mounts public Poodle composition, loads branches explicitly, and tears down"
     path: async () => clone(pathPage),
     branches: async () => clone(branchPage),
     continuations: async () => clone(continuationPage),
-    deleteContinuation: async () => clone(removal),
+    deleteContinuation: async () => ({ status: "deleted", receipt: clone(removal) }),
     prune: async () => ({ status: "unchanged" }) as const,
     navigate: async () => clone(committed),
     listen: (listener) => {

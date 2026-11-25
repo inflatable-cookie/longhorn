@@ -1,0 +1,54 @@
+{
+  "retentionRejections": {
+    "deleteCurrent": {
+      "rejection": {
+        "code": "currentNodeInSubtree",
+        "detail": "deletion of fork history entry entry:current would remove the current node",
+        "refreshRequired": false
+      },
+      "status": "rejected"
+    },
+    "deletePinned": {
+      "rejection": {
+        "code": "pinnedBranchInSubtree",
+        "detail": "deletion would remove pinned fork branch branch:alternate; unpin it first",
+        "refreshRequired": false
+      },
+      "status": "rejected"
+    },
+    "pruneStale": {
+      "rejection": {
+        "code": "staleRevision",
+        "detail": "fork history revision 1 is stale; current revision is 2",
+        "refreshRequired": true
+      },
+      "status": "rejected"
+    },
+    "pruneZero": {
+      "rejection": {
+        "code": "zeroLimit",
+        "detail": "fork retention limit is zero",
+        "refreshRequired": false
+      },
+      "status": "rejected"
+    }
+  },
+  "snapshot": {
+    "authorityEpoch": 7,
+    "protocolVersion": 2,
+    "summary": {
+      "alternatePathCount": 2,
+      "branchCount": 2,
+      "currentBranchId": "branch:main",
+      "currentEntryId": "entry:current",
+      "historyId": "history:fixture",
+      "nextRedoLabel": "Resize region",
+      "nextUndoLabel": "Move panel",
+      "redoDepth": 1,
+      "retainedEncodedWeight": 640,
+      "retainedEntryCount": 5,
+      "revision": 12,
+      "undoDepth": 3
+    }
+  }
+}

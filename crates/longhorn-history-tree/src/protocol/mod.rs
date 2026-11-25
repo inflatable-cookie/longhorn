@@ -15,8 +15,9 @@ pub use continuation::{
     ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkContinuationRecord,
 };
 pub use deletion::{
-    ForkDeleteContinuationCommand, ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection,
-    ForkRemovedEntryRecord,
+    ForkDeleteContinuationCommand, ForkDeleteResult, ForkPruneCommand, ForkPruneResult,
+    ForkRemovalReceiptProjection, ForkRemovedEntryRecord, ForkRetentionRejectionCode,
+    ForkRetentionRejectionProjection,
 };
 pub use navigation::{
     ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,

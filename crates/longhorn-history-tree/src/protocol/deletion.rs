@@ -142,6 +142,101 @@ pub struct ForkPruneCommand {
     pub maximum_encoded_weight: u64,
 }
 
+/// Stable reason a destructive history operation was refused.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub enum ForkRetentionRejectionCode {
+    /// Protocol version is unsupported.
+    IncompatibleProtocol,
+    /// Authority lifetime has changed.
+    StaleAuthority,
+    /// History identity differs.
+    ForeignHistory,
+    /// Graph revision has changed.
+    StaleRevision,
+    /// Entry is absent.
+    UnknownEntry,
+    /// Removal contains the current position.
+    CurrentNodeInSubtree,
+    /// Removal intersects the active path.
+    EntryOnCurrentPath,
+    /// Removal contains a pinned branch.
+    PinnedBranchInSubtree,
+    /// A budget was zero.
+    ZeroLimit,
+    /// Budget exceeds a defensive ceiling.
+    LimitTooLarge,
+    /// Caller lacks authorization.
+    Unauthorized,
+    /// Other invalid request.
+    InvalidRequest,
+}
+
+/// Renderer-safe refusal of a destructive operation.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct ForkRetentionRejectionProjection {
+    /// Stable category.
+    pub code: ForkRetentionRejectionCode,
+    /// Renderer-safe diagnostic.
+    pub detail: String,
+    /// Whether the caller should refresh.
+    pub refresh_required: bool,
+}
+
+impl ForkRetentionRejectionProjection {
+    /// Projects an expected retention refusal; internal failures remain errors.
+    #[must_use]
+    pub fn from_retention_error(error: &crate::ForkRetentionError) -> Option<Self> {
+        use crate::ForkRetentionError;
+        let code = match error {
+            ForkRetentionError::ZeroLimit => ForkRetentionRejectionCode::ZeroLimit,
+            ForkRetentionError::EntryLimitTooLarge { .. }
+            | ForkRetentionError::EncodedWeightLimitTooLarge { .. } => {
+                ForkRetentionRejectionCode::LimitTooLarge
+            }
+            ForkRetentionError::StaleRevision { .. } => ForkRetentionRejectionCode::StaleRevision,
+            ForkRetentionError::UnknownEntry(_) => ForkRetentionRejectionCode::UnknownEntry,
+            ForkRetentionError::CurrentNodeInSubtree(_) => {
+                ForkRetentionRejectionCode::CurrentNodeInSubtree
+            }
+            ForkRetentionError::EntryOnCurrentPath(_) => {
+                ForkRetentionRejectionCode::EntryOnCurrentPath
+            }
+            ForkRetentionError::PinnedBranchInSubtree(_) => {
+                ForkRetentionRejectionCode::PinnedBranchInSubtree
+            }
+            ForkRetentionError::WeightOverflow
+            | ForkRetentionError::InvalidTopology
+            | ForkRetentionError::RevisionOverflow => return None,
+        };
+        Some(Self {
+            code,
+            detail: error.to_string(),
+            refresh_required: matches!(error, ForkRetentionError::StaleRevision { .. }),
+        })
+    }
+}
+
+/// Result of deleting a continuation.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase", tag = "status")]
+pub enum ForkDeleteResult {
+    /// Deletion committed.
+    Deleted {
+        /// Receipt for the committed deletion.
+        receipt: ForkRemovalReceiptProjection,
+    },
+    /// Deletion was refused without a commit.
+    Rejected {
+        /// Reason for refusal.
+        rejection: ForkRetentionRejectionProjection,
+    },
+}
+
 /// The result of a prune.
 ///
 /// Tagged rather than an empty receipt, because "already inside the budget"
@@ -155,6 +250,11 @@ pub struct ForkPruneCommand {
     tag = "status"
 )]
 pub enum ForkPruneResult {
+    /// Pruning was refused without a commit.
+    Rejected {
+        /// Reason for refusal.
+        rejection: ForkRetentionRejectionProjection,
+    },
     /// The unprotected share already fitted the budget. Nothing was removed
     /// and the revision did not move.
     Unchanged,

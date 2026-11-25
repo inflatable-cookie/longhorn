@@ -8,12 +8,13 @@ use longhorn_history_tree::{
     FORK_HISTORY_PROTOCOL_VERSION, ForkBranchId, ForkBranchPageCommand, ForkBranchPageSnapshot,
     ForkBranchRecord, ForkChangedEvent, ForkChangedKind, ForkCheckpointId,
     ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkContinuationRecord,
-    ForkDeleteContinuationCommand, ForkEntryRecord, ForkHistoryProtocolVersion,
+    ForkDeleteContinuationCommand, ForkDeleteResult, ForkEntryRecord, ForkHistoryProtocolVersion,
     ForkNavigationCommand, ForkNavigationReceiptProjection, ForkNavigationRejectionCode,
     ForkNavigationRejectionProjection, ForkNavigationResult, ForkNavigationTargetProjection,
     ForkPathFloorProjection, ForkPathPageCommand, ForkPathPageSnapshot, ForkPathTargetProjection,
     ForkProjectionPosition, ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection,
-    ForkRemovedEntryRecord, ForkSnapshot, ForkSummaryProjection, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
+    ForkRemovedEntryRecord, ForkRetentionRejectionCode, ForkRetentionRejectionProjection,
+    ForkSnapshot, ForkSummaryProjection, MAXIMUM_FORK_PROJECTION_PAGE_SIZE,
 };
 use ts_rs::TS;
 
@@ -33,7 +34,7 @@ const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     fields_constant: "HISTORY_TREE_FIELDS",
     variant_fields: "packages/longhorn/src/history-tree/generated/variant-fields.ts",
     variant_fields_constant: "HISTORY_TREE_VARIANT_FIELDS",
-    fixture: "fixtures/history-tree/protocol-v1.json",
+    fixture: "fixtures/history-tree/protocol-v2.json",
 };
 
 /// Renders the fork-history bindings and golden fixtures.
@@ -46,6 +47,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let path_floor = ForkPathFloorProjection::decl(config());
     let navigation_target = ForkNavigationTargetProjection::decl(config());
     let navigation_result = ForkNavigationResult::decl(config());
+    let delete_result = ForkDeleteResult::decl(config());
+    let retention_code = ForkRetentionRejectionCode::decl(config());
     let prune_result = ForkPruneResult::decl(config());
     let declarations = [
         HistoryId::decl(config()),
@@ -74,6 +77,9 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         ForkContinuationPageCommand::decl(config()),
         ForkContinuationPageSnapshot::decl(config()),
         ForkDeleteContinuationCommand::decl(config()),
+        retention_code.clone(),
+        ForkRetentionRejectionProjection::decl(config()),
+        delete_result.clone(),
         ForkRemovedEntryRecord::decl(config()),
         ForkRemovalReceiptProjection::decl(config()),
         ForkPruneCommand::decl(config()),
@@ -101,6 +107,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const FORK_HISTORY_NAVIGATION_REJECTION_CODES = {} as const;\n\
          export const FORK_HISTORY_NAVIGATION_STATUSES = {} as const;\n\
          export const FORK_HISTORY_CHANGED_KINDS = {} as const;\n\
+         export const FORK_HISTORY_RETENTION_REJECTION_CODES = {} as const;\n\
+         export const FORK_HISTORY_DELETE_STATUSES = {} as const;\n\
          export const FORK_HISTORY_PRUNE_STATUSES = {} as const;\n\n\
          {}\n",
         enum_names_json::<ForkProjectionPosition>()?,
@@ -110,6 +118,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         enum_names_json::<ForkNavigationRejectionCode>()?,
         tagged_variants_json(&navigation_result)?,
         enum_names_json::<ForkChangedKind>()?,
+        enum_names_json::<ForkRetentionRejectionCode>()?,
+        tagged_variants_json(&delete_result)?,
         tagged_variants_json(&prune_result)?,
         declarations.join("\n\n"),
     );

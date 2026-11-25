@@ -4,9 +4,9 @@ import {
   assertForkContinuationCommand,
   assertForkContinuationPage,
   assertForkDeleteCommand,
+  assertForkDeleteResult,
   assertForkPruneCommand,
   assertForkPruneResult,
-  assertForkRemovalReceipt,
   assertForkChangedEvent,
   assertForkNavigationCommand,
   assertForkNavigationResult,
@@ -23,7 +23,7 @@ import type {
   ForkDeleteContinuationCommand,
   ForkPruneCommand,
   ForkPruneResult,
-  ForkRemovalReceiptProjection,
+  ForkDeleteResult,
   ForkNavigationCommand,
   ForkNavigationResult,
   ForkPathPageCommand,
@@ -60,12 +60,10 @@ export class ForkHistoryClient implements CheckedForkHistoryPort {
     assertForkContinuationPage(value);
     return value;
   }
-  async deleteContinuation(
-    command: ForkDeleteContinuationCommand,
-  ): Promise<ForkRemovalReceiptProjection> {
+  async deleteContinuation(command: ForkDeleteContinuationCommand): Promise<ForkDeleteResult> {
     assertForkDeleteCommand(command);
     const value = await this.port.deleteContinuation(command);
-    assertForkRemovalReceipt(value);
+    assertForkDeleteResult(value);
     return value;
   }
   async prune(command: ForkPruneCommand): Promise<ForkPruneResult> {

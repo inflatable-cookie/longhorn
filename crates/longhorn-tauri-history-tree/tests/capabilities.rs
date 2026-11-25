@@ -4,9 +4,9 @@ use std::{collections::BTreeSet, fs, path::PathBuf, sync::Arc};
 
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkContinuationPageCommand,
-    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkNavigationCommand,
-    ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot, ForkPruneCommand,
-    ForkPruneResult, ForkRemovalReceiptProjection, ForkSnapshot,
+    ForkContinuationPageSnapshot, ForkDeleteContinuationCommand, ForkDeleteResult,
+    ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand, ForkPathPageSnapshot,
+    ForkPruneCommand, ForkPruneResult, ForkSnapshot,
 };
 use longhorn_tauri_history_tree::{
     ForkHistoryHandlerAssembly, ForkHistoryHostAuthority, ForkHistoryHostError,
@@ -50,7 +50,7 @@ impl ForkHistoryHostAuthority for StubAuthority {
         &mut self,
         _caller: &str,
         _command: ForkDeleteContinuationCommand,
-    ) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
+    ) -> Result<ForkDeleteResult, ForkHistoryHostError> {
         Err(ForkHistoryHostError::authority("stub", false))
     }
 

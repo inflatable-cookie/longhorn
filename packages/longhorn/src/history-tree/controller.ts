@@ -10,7 +10,7 @@ import type {
   ForkContinuationPageSnapshot,
   ForkEntryRecord,
   ForkPruneResult,
-  ForkRemovalReceiptProjection,
+  ForkDeleteResult,
   ForkNavigationResult,
   ForkNavigationTargetProjection,
   ForkPathPageSnapshot,
@@ -223,11 +223,11 @@ export class ForkHistoryController {
    *
    * It refuses four things rather than working around them: the entry the
    * operator stands on or above, the active line, a pinned branch, and an
-   * entry that does not exist. A refusal arrives as a rejected promise.
+   * entry that does not exist. A refusal is returned as a typed result.
    */
-  async deleteContinuation(entryId: string): Promise<ForkRemovalReceiptProjection> {
+  async deleteContinuation(entryId: string): Promise<ForkDeleteResult> {
     const snapshot = this.#required();
-    const receipt = await this.#client.deleteContinuation({
+    const result = await this.#client.deleteContinuation({
       protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
       authorityEpoch: snapshot.authorityEpoch,
       historyId: snapshot.summary.historyId,
@@ -236,8 +236,10 @@ export class ForkHistoryController {
     });
     // Every page the consumer holds may name entries that no longer exist, so
     // this refresh is not optional and is not left to the changed event.
-    await this.refresh();
-    return receipt;
+    if (result.status === "deleted" || result.rejection.refreshRequired) {
+      await this.refresh();
+    }
+    return result;
   }
 
   /**
@@ -262,7 +264,10 @@ export class ForkHistoryController {
       maximumEntries,
       maximumEncodedWeight,
     });
-    if (result.status === "pruned") {
+    if (
+      result.status === "pruned" ||
+      (result.status === "rejected" && result.rejection.refreshRequired)
+    ) {
       await this.refresh();
     }
     return result;

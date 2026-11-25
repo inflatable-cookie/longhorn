@@ -3,9 +3,9 @@ use std::sync::Arc;
 use longhorn_history_tree::{
     ForkBranchPageCommand, ForkBranchPageSnapshot, ForkChangedEvent, ForkChangedKind,
     ForkContinuationPageCommand, ForkContinuationPageSnapshot, ForkDeleteContinuationCommand,
-    ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationResult, ForkPathPageCommand,
-    ForkPathPageSnapshot, ForkPruneCommand, ForkPruneResult, ForkRemovalReceiptProjection,
-    ForkSnapshot,
+    ForkDeleteResult, ForkHistoryProtocolVersion, ForkNavigationCommand, ForkNavigationResult,
+    ForkPathPageCommand, ForkPathPageSnapshot, ForkPruneCommand, ForkPruneResult,
+    ForkRemovalReceiptProjection, ForkSnapshot,
 };
 use tauri::{AppHandle, Emitter, Runtime, State, WebviewWindow};
 
@@ -101,18 +101,20 @@ pub async fn longhorn_history_tree_delete_continuation<R: Runtime>(
     window: WebviewWindow<R>,
     state: State<'_, TauriForkHistoryState>,
     command: ForkDeleteContinuationCommand,
-) -> Result<ForkRemovalReceiptProjection, ForkHistoryHostError> {
-    let receipt = run_blocking(state, &window, move |assembly, label| {
+) -> Result<ForkDeleteResult, ForkHistoryHostError> {
+    let result = run_blocking(state, &window, move |assembly, label| {
         assembly.delete_continuation(label, command)
     })
     .await?;
-    if let Err(error) = window.emit(
-        FORK_HISTORY_CHANGED_EVENT,
-        fork_retention_changed_event(&receipt),
-    ) {
+    if let ForkDeleteResult::Deleted { receipt } = &result
+        && let Err(error) = window.emit(
+            FORK_HISTORY_CHANGED_EVENT,
+            fork_retention_changed_event(receipt),
+        )
+    {
         longhorn_core::report_best_effort_failure("history-tree.retention-emit", error);
     }
-    Ok(receipt)
+    Ok(result)
 }
 
 /// Prunes the unprotected share of the graph to a budget.

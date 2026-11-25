@@ -31,7 +31,7 @@ fn snapshot() -> ForkSnapshot {
 }
 
 #[test]
-fn exact_v1_snapshot_round_trips_without_product_payloads() {
+fn exact_v2_snapshot_round_trips_without_product_payloads() {
     let snapshot = snapshot();
     let bytes = serde_json::to_vec(&snapshot).unwrap();
     let text = String::from_utf8(bytes.clone()).unwrap();
@@ -42,15 +42,15 @@ fn exact_v1_snapshot_round_trips_without_product_payloads() {
     );
 
     let mut future: Value = serde_json::from_slice(&bytes).unwrap();
-    future["protocolVersion"] = Value::from(2);
+    future["protocolVersion"] = Value::from(3);
     // Serde preserves the number; checked clients and hosts own exact-version
-    // admission rather than silently interpreting it as v1.
+    // admission rather than silently interpreting it as v2.
     assert_eq!(
         serde_json::from_value::<ForkSnapshot>(future)
             .unwrap()
             .protocol_version
             .get(),
-        2
+        3
     );
 }
 
@@ -72,7 +72,7 @@ fn page_commands_are_revision_bound_and_reject_unknown_fields() {
     assert_eq!(value["target"]["branchId"], "branch:alternate");
 
     let branch: ForkBranchPageCommand = serde_json::from_value(json!({
-        "protocolVersion": 1,
+        "protocolVersion": 2,
         "authorityEpoch": 7,
         "historyId": "history:fixture",
         "expectedRevision": 12,
