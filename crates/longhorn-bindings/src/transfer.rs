@@ -22,7 +22,7 @@ use crate::{
         Artifact, DomainArtifacts, GENERATE_TASK, build_domain_artifacts, config,
         exported_declaration, tagged_variants_json,
     },
-    serde_shape::enum_names,
+    serde_shape::{enum_names, enum_names_json},
 };
 
 mod fixture;
@@ -123,6 +123,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const TRANSFER_SESSION_RESPONSE_STATUSES = {} as const;\n\
          export const TRANSFER_LEASE_RESPONSE_STATUSES = {} as const;\n\
          export const TRANSFER_CANCEL_RESPONSE_STATUSES = {} as const;\n\
+         export const TRANSFER_SESSION_CANCELLATION_STATUSES = {} as const;\n\
          export const PANEL_TRANSFER_RESPONSE_STATUSES = {} as const;\n\
          export const TRANSFER_ERROR_CODES = {} as const;\n\
          export const PANEL_TRANSFER_ERROR_CODES = {} as const;\n\n\
@@ -133,6 +134,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         tagged_variants_json(&session_response)?,
         tagged_variants_json(&lease_response)?,
         tagged_variants_json(&cancel_response)?,
+        enum_names_json::<SessionCancellationStatus>()?,
         tagged_variants_json(&panel_response)?,
         serde_json::to_string(transfer_error_codes)?,
         serde_json::to_string(panel_error_codes)?,

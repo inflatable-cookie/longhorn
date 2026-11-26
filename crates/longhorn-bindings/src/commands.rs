@@ -67,6 +67,9 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     let preview_result = CommandKeymapPreviewResult::decl(config());
     let mutation_result = CommandKeymapMutationResult::decl(config());
     let load_origin = CommandKeymapLoadOrigin::decl(config());
+    let reason_code = CommandAvailabilityReasonCode::decl(config());
+    let binding_source = CommandBindingSource::decl(config());
+    let argument_schema = CommandArgumentSchema::decl(config());
     let override_kind = CommandKeymapOverride::decl(config());
 
     let [host_error_code, host_error] =
@@ -95,7 +98,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         CommandFiniteNumber::decl(config()),
         CommandArgumentKind::decl(config()),
         CommandArgumentField::decl(config()),
-        CommandArgumentSchema::decl(config()),
+        argument_schema.clone(),
         CommandArgumentValue::decl(config()),
         CommandArguments::decl(config()),
         CommandVisibility::decl(config()),
@@ -104,7 +107,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         CommandDiscoveryRecord::decl(config()),
         CommandAvailabilityReasonId::decl(config()),
         CommandDiagnostic::decl(config()),
-        CommandAvailabilityReasonCode::decl(config()),
+        reason_code.clone(),
         CommandAvailabilityReason::decl(config()),
         CommandAvailabilityState::decl(config()),
         CommandAvailability::decl(config()),
@@ -124,7 +127,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         CommandBindingReplacement::decl(config()),
         override_kind.clone(),
         CommandInvocation::decl(config()),
-        CommandBindingSource::decl(config()),
+        binding_source.clone(),
         CommandEffectiveBinding::decl(config()),
         CommandShortcutRecord::decl(config()),
         CommandCandidateDisposition::decl(config()),
@@ -166,6 +169,10 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          // Rust serde types are the wire authority.\n\n\
          export const COMMAND_KEYMAP_PROTOCOL_VERSION = {COMMAND_KEYMAP_PROTOCOL_VERSION} as const;\n\
          export const COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES = {MAXIMUM_PHYSICAL_CODE_BYTES} as const;\n\
+         export const COMMAND_AVAILABILITY_STATES = {} as const;\n\
+         export const COMMAND_AVAILABILITY_REASON_KINDS = {} as const;\n\
+         export const COMMAND_BINDING_SOURCE_KINDS = {} as const;\n\
+         export const COMMAND_ARGUMENT_SCHEMA_SHAPES = {} as const;\n\
          export const COMMAND_KEYMAP_LOAD_STATUSES = {} as const;\n\
          export const COMMAND_KEYMAP_PREVIEW_STATUSES = {} as const;\n\
          export const COMMAND_KEYMAP_MUTATION_STATUSES = {} as const;\n\
@@ -176,6 +183,10 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const COMMAND_KEYMAP_MUTATION_OUTCOMES = {} as const;\n\
          export const COMMAND_KEYMAP_OVERRIDE_KINDS = {} as const;\n\n\
          {}\n",
+        enum_names_json::<CommandAvailabilityState>()?,
+        tagged_variants_json(&reason_code)?,
+        tagged_variants_json(&binding_source)?,
+        tagged_variants_json(&argument_schema)?,
         tagged_variants_json(&load_outcome)?,
         tagged_variants_json(&preview_result)?,
         tagged_variants_json(&mutation_result)?,

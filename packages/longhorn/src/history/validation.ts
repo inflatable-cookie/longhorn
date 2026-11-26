@@ -1,4 +1,4 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import {
   HISTORY_MAXIMUM_OPAQUE_ID_BYTES,
   HISTORY_CHANGED_KINDS,
@@ -204,10 +204,8 @@ function protocol(value: unknown, path: string): void {
 }
 
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  return value;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  return result;
 }
 
 function array(value: unknown, path: string): ReadonlyArray<unknown> {
@@ -218,17 +216,9 @@ function array(value: unknown, path: string): ReadonlyArray<unknown> {
 }
 
 function keys(value: Record<string, unknown>, path: string, allowed: ReadonlyArray<string>): void {
-  const allowedSet = new Set(allowed);
-  for (const key of Object.keys(value)) {
-    if (!allowedSet.has(key)) {
-      fail(`${path}.${key}`, "unknown field");
-    }
-  }
-  for (const key of allowed) {
-    if (!(key in value)) {
-      fail(`${path}.${key}`, "missing field");
-    }
-  }
+  checkWireFields(value, allowed, (code, key) =>
+    fail(`${path}.${key}`, code === "unknown_field" ? "unknown field" : "missing field"),
+  );
 }
 
 function oneOf(value: unknown, path: string, values: ReadonlyArray<string>): void {
@@ -328,23 +318,16 @@ function floor(value: unknown, path: string): void {
   }
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map, with the
- * discriminant's name read from the map too.
- *
- * A missing entry means the generator failed to read the union: every caller
- * checks the discriminant above this call.
- */
 function variantKeys(
   type: string,
   record: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = record[HISTORY_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const allowed =
-    typeof discriminant === "string" ? HISTORY_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (allowed === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return allowed;
+  return wireVariantFields(
+    HISTORY_VARIANT_FIELDS,
+    HISTORY_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    record,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }

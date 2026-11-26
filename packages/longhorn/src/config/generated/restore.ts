@@ -2,6 +2,11 @@
 // Rust serde types are the wire authority.
 import type { BackupPublicationReceiptProjection, ConfigGeneration, ConfigOperationRejection, ConfigOperationsSnapshot, ConfigProtocolVersion, ConfigRequestId } from "./base.ts";
 
+export const RESTORE_INTEGRITY_VALUES = ["verified"] as const;
+export const RESTORE_AUTHENTICITY_VALUES = ["unauthenticated","authenticated"] as const;
+export const RESTORE_CONFLICT_CHOICES = ["useArchive","keepCurrent"] as const;
+export const RESTORE_OPERATION_STATES = ["inactive","active","recoveryRequired"] as const;
+export const RESTORE_ADAPTER_REQUIREMENTS = ["failureAtomic","allowSeparate"] as const;
 export const RESTORE_ARCHIVE_SELECTION_SOURCES = ["inventory","hostPicker"] as const;
 export const RESTORE_IDENTITY_STATUSES = ["compatible","mismatch"] as const;
 export const RESTORE_DOMAIN_COMPATIBILITY_STATUSES = ["ready","migrationRequired","unknownDomain","descriptorMismatch","domainCodeUnavailable","policyExcluded","customAdapterUnavailable","customAdapterReady","customAdapterRejected","targetUnavailable","sourcePreserved","sourceRejected","targetPreparationFailed"] as const;

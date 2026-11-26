@@ -99,6 +99,60 @@ describe("Rust transfer protocol fixture", () => {
 describe("transfer protocol incompatibility", () => {
   const incompatibility = record(fixture.incompatibility);
 
+  test("checks successful session, lease, and cancellation receipts", () => {
+    const started = record(array(fixture.session_responses)[0]);
+    const published = record(array(fixture.lease_responses)[0]);
+    const cancelled = record(array(fixture.cancel_responses)[0]);
+    const malformed: ReadonlyArray<readonly [(value: unknown) => void, unknown]> = [
+      [
+        assertValidTransferSessionResponse,
+        {
+          ...started,
+          session: { ...record(started.session), request_id: false },
+        },
+      ],
+      [
+        assertValidTransferSessionResponse,
+        {
+          ...started,
+          session: {
+            ...record(started.session),
+            payload: { protocol_version: 1, session_id: "malformed" },
+          },
+        },
+      ],
+      [assertValidTransferLeaseResponse, { ...published, lease: { protocol_version: 1 } }],
+      [
+        assertValidTransferLeaseResponse,
+        {
+          ...published,
+          lease: { ...record(published.lease), client_epoch: "8" },
+        },
+      ],
+      [assertValidTransferCancelResponse, { ...cancelled, cancellation: { protocol_version: 1 } }],
+      [
+        assertValidTransferCancelResponse,
+        {
+          ...cancelled,
+          cancellation: { ...record(cancelled.cancellation), status: "expired" },
+        },
+      ],
+    ];
+    for (const [validate, value] of malformed) {
+      expect(() => validate(value)).toThrow(TransferProtocolValidationError);
+    }
+  });
+
+  test("checks abort payloads returned instead of receipts", () => {
+    const aborted = record(array(fixture.session_responses)[1]);
+    expect(() =>
+      assertValidTransferSessionResponse({
+        ...aborted,
+        abort: { ...record(aborted.abort), retryable: "false" },
+      }),
+    ).toThrow(TransferProtocolValidationError);
+  });
+
   test("rejects future versions and unknown variants", () => {
     for (const check of [
       () => assertTransferProtocolVersion(incompatibility.future_protocol_version),

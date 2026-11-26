@@ -1,3 +1,4 @@
+import type { Unlisten } from "../core/transport.ts";
 import type {
   OperationCancellationCommand,
   OperationChangedEvent,
@@ -9,7 +10,7 @@ import type {
   OperationCancellationResult,
 } from "./generated/protocol.ts";
 
-export type OperationUnlisten = () => void | Promise<void>;
+export type OperationUnlisten = Unlisten;
 
 export interface OperationPort {
   snapshot(query: OperationSnapshotQuery): Promise<unknown>;

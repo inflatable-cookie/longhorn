@@ -1,4 +1,4 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import { UPDATE_FIELDS } from "./generated/fields.ts";
 import {
   UPDATE_AVAILABILITY_STATES,
@@ -214,25 +214,18 @@ function commandBase(value: unknown, expected: ReadonlyArray<string>): void {
   positive(root.authorityEpoch, "$.authorityEpoch");
 }
 
-/**
- * Allowed keys for one variant, from the generated map.
- *
- * A missing entry means the generator failed to read the union, not that a
- * consumer sent something odd — every caller runs `oneOf` over the
- * discriminant first, so an unknown one is already rejected by then.
- */
 function variantFields(
   type: string,
   value: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = value[UPDATE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const fields =
-    typeof discriminant === "string" ? UPDATE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (fields === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return fields;
+  return wireVariantFields(
+    UPDATE_VARIANT_FIELDS,
+    UPDATE_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    value,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }
 
 function noPayload(value: unknown): void {
@@ -252,21 +245,17 @@ function noPayload(value: unknown): void {
   visit(value, "$");
 }
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  return value;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  return result;
 }
 function exact(
   value: Record<string, unknown>,
   path: string,
   expected: ReadonlyArray<string>,
 ): void {
-  const actual = Object.keys(value).sort();
-  const wanted = [...expected].sort();
-  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
-    fail(path, `unexpected keys: ${actual.join(",")}`);
-  }
+  checkWireFields(value, expected, () =>
+    fail(path, `unexpected keys: ${Object.keys(value).sort().join(",")}`),
+  );
 }
 function protocol(value: unknown, path: string): void {
   if (value !== UPDATE_PROTOCOL_VERSION) {

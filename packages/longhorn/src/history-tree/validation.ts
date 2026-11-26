@@ -1,4 +1,4 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import {
   HISTORY_TREE_VARIANT_FIELDS,
   HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS,
@@ -260,10 +260,8 @@ function noPayload(value: unknown): void {
   visit(value, "$");
 }
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  return value;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  return result;
 }
 function array(value: unknown, path: string): Array<unknown> {
   if (!Array.isArray(value)) {
@@ -276,11 +274,9 @@ function exact(
   path: string,
   expected: ReadonlyArray<string>,
 ): void {
-  const actual = Object.keys(value).sort();
-  const wanted = [...expected].sort();
-  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
-    fail(path, `unexpected keys: ${actual.join(",")}`);
-  }
+  checkWireFields(value, expected, () =>
+    fail(path, `unexpected keys: ${Object.keys(value).sort().join(",")}`),
+  );
 }
 function protocol(value: unknown, path: string): void {
   if (value !== FORK_HISTORY_PROTOCOL_VERSION) {
@@ -466,27 +462,16 @@ export function assertForkPruneResult(value: unknown): asserts value is ForkPrun
   }
 }
 
-/**
- * Allowed keys for one variant, from the generated map.
- *
- * A missing entry means the generator failed to read the union, not that a
- * consumer sent something odd — every caller runs `oneOf` over the
- * discriminant first, so an unknown one is already rejected by then. Failing
- * loudly beats defaulting to a key list, which is how `checkoutBranchRoot`
- * shipped rejecting its own `branchId`.
- */
 function variantFields(
   type: string,
   object: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = object[HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const fields =
-    typeof discriminant === "string"
-      ? HISTORY_TREE_VARIANT_FIELDS[type]?.[discriminant]
-      : undefined;
-  if (fields === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return fields;
+  return wireVariantFields(
+    HISTORY_TREE_VARIANT_FIELDS,
+    HISTORY_TREE_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    object,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }

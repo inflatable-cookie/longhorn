@@ -1,9 +1,13 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import {
   COMMAND_VARIANT_FIELDS,
   COMMAND_VARIANT_FIELDS_DISCRIMINANTS,
 } from "./generated/variant-fields.ts";
 import {
+  COMMAND_ARGUMENT_SCHEMA_SHAPES,
+  COMMAND_AVAILABILITY_REASON_KINDS,
+  COMMAND_AVAILABILITY_STATES,
+  COMMAND_BINDING_SOURCE_KINDS,
   COMMAND_KEYMAP_DURABILITIES,
   COMMAND_KEYMAP_LOAD_ORIGINS,
   COMMAND_KEYMAP_LOAD_STATUSES,
@@ -79,7 +83,7 @@ export function assertValidCommandAvailabilitySnapshot(
     const availability = object(item.availability, `$.records[${index}].availability`);
     member(
       availability.state,
-      ["available", "unavailable", "hidden", "unsupported"],
+      COMMAND_AVAILABILITY_STATES,
       `$.records[${index}].availability.state`,
     );
     if ((availability.state === "available") !== (availability.reason === null)) {
@@ -96,7 +100,7 @@ export function assertValidCommandAvailabilitySnapshot(
       const code = object(reason.code, `$.records[${index}].availability.reason.code`);
       member(
         code.kind,
-        ["contextNotAllowed", "missingCapability", "consumer"],
+        COMMAND_AVAILABILITY_REASON_KINDS,
         `$.records[${index}].availability.reason.code.kind`,
       );
       if (code.kind === "consumer") {
@@ -280,7 +284,7 @@ function effectiveBinding(value: unknown, path: string): void {
   const record = object(value, path);
   text(record.id, `${path}.id`);
   const source = object(record.source, `${path}.source`);
-  member(source.kind, ["preset", "replacement", "addedOverride"], `${path}.source.kind`);
+  member(source.kind, COMMAND_BINDING_SOURCE_KINDS, `${path}.source.kind`);
   object(source, `${path}.source`, variantKeys("CommandBindingSource", source, `${path}.source`));
   bindingDefinition(
     {
@@ -293,7 +297,7 @@ function effectiveBinding(value: unknown, path: string): void {
 
 function argumentSchema(value: unknown, path: string): void {
   const record = object(value, path);
-  member(record.shape, ["none", "object"], `${path}.shape`);
+  member(record.shape, COMMAND_ARGUMENT_SCHEMA_SHAPES, `${path}.shape`);
   object(record, path, variantKeys("CommandArgumentSchema", record, path));
   if (record.shape === "object") {
     array(record.fields, `${path}.fields`);
@@ -338,39 +342,16 @@ function finiteInteger(value: unknown, path: string): asserts value is number {
   }
 }
 
-/**
- * Rejects a non-object, an unknown key, and a missing key.
- *
- * `allowed` comes from the generated field map, so the keys accepted are the
- * Rust struct's and nothing else — contract 010's Boundary Validation Target.
- * Passing no list keeps shape-only behaviour for the tagged unions, whose
- * allowed keys depend on their discriminant and so are not one flat set.
- */
 function object(
   value: unknown,
   path: string,
   allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  const record = value;
-  if (allowed === undefined) {
-    return record;
-  }
-
-  const permitted = new Set(allowed);
-  for (const key of Object.keys(record)) {
-    if (!permitted.has(key)) {
-      fail(`${path}.${key}`, "unknown field");
-    }
-  }
-  for (const key of allowed) {
-    if (!(key in record)) {
-      fail(`${path}.${key}`, "missing field");
-    }
-  }
-  return record;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  checkWireFields(result, allowed, (code, key) =>
+    fail(`${path}.${key}`, code === "unknown_field" ? "unknown field" : "missing field"),
+  );
+  return result;
 }
 
 function array(value: unknown, path: string): Array<unknown> {
@@ -394,24 +375,16 @@ function fail(path: string, detail: string): never {
   throw new CommandProtocolValidationError(path, detail);
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map, with the
- * discriminant's name read from the map too. This domain tags on `kind`,
- * `shape` and `status`.
- *
- * A missing entry means the generator failed to read the union — every caller
- * runs `member()` over the discriminant above this call.
- */
 function variantKeys(
   type: string,
   value: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = value[COMMAND_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string" ? COMMAND_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (keys === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return keys;
+  return wireVariantFields(
+    COMMAND_VARIANT_FIELDS,
+    COMMAND_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    value,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }

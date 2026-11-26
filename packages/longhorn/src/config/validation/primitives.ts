@@ -1,4 +1,4 @@
-import { isRecord } from "../../core/record.ts";
+import { checkWireFields, readWireRecord } from "../../core/record.ts";
 import { CONFIG_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/base.ts";
 import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "../generated/protocol.ts";
 
@@ -40,42 +40,19 @@ export function protocol(value: unknown, path: string): void {
   }
 }
 
-/**
- * Rejects a non-object, an unknown key, and a missing key.
- *
- * `allowed` comes from the generated field map, so the keys accepted are the
- * Rust struct's and nothing else — contract 010's Boundary Validation Target.
- * `path` is kept ahead of it because every existing caller passes one and it
- * is what makes a rejection locatable in a nested document.
- *
- * Called without a list, this keeps shape-only behaviour. That is correct for
- * a tagged union, whose allowed keys depend on its discriminant, and it is a
- * gap anywhere else — the remaining untyped call sites are the work left.
- */
 export function record(
   value: unknown,
   path: string,
   allowed?: ReadonlyArray<string>,
 ): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail("invalid_payload", path, "expected object");
-  }
-  const result = value;
-  if (allowed === undefined) {
-    return result;
-  }
-
-  const permitted = new Set(allowed);
-  for (const key of Object.keys(result)) {
-    if (!permitted.has(key)) {
-      fail("invalid_payload", `${path}.${key}`, "unknown field");
-    }
-  }
-  for (const key of allowed) {
-    if (!(key in result)) {
-      fail("invalid_payload", `${path}.${key}`, "missing field");
-    }
-  }
+  const result = readWireRecord(value, () => fail("invalid_payload", path, "expected object"));
+  checkWireFields(result, allowed, (code, key) =>
+    fail(
+      "invalid_payload",
+      `${path}.${key}`,
+      code === "unknown_field" ? "unknown field" : "missing field",
+    ),
+  );
   return result;
 }
 

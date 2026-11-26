@@ -1,4 +1,4 @@
-import { isRecord } from "../../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../../core/record.ts";
 import {
   NATIVE_CONTENT_VARIANT_FIELDS,
   NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS,
@@ -55,10 +55,8 @@ export function exactObject(
 }
 
 export function record(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  return value;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  return result;
 }
 
 export function exactKeys(
@@ -66,17 +64,9 @@ export function exactKeys(
   path: string,
   keys: ReadonlyArray<string>,
 ): void {
-  const expected = new Set(keys);
-  for (const key of Object.keys(value)) {
-    if (!expected.has(key)) {
-      fail(`${path}.${key}`, "unknown field");
-    }
-  }
-  for (const key of keys) {
-    if (!(key in value)) {
-      fail(`${path}.${key}`, "missing field");
-    }
-  }
+  checkWireFields(value, keys, (code, key) =>
+    fail(`${path}.${key}`, code === "unknown_field" ? "unknown field" : "missing field"),
+  );
 }
 
 export function member<const Value extends string>(
@@ -173,29 +163,16 @@ function visit(value: unknown, path: string, seen: Set<object>): void {
   seen.delete(value);
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map.
- *
- * The discriminant's *name* comes from the generated map too: this domain
- * uses `kind`, `status` and `state`, and a call site that has to name the
- * right one is a per-site chance to name the wrong one.
- *
- * A missing entry means the generator failed to read the union, not that a
- * caller sent something odd — every switch checks the discriminant above this
- * call. Failing loudly beats a hand-written list, which is what these were.
- */
 export function variantKeys(
   type: string,
   object: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = object[NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string"
-      ? NATIVE_CONTENT_VARIANT_FIELDS[type]?.[discriminant]
-      : undefined;
-  if (keys === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return keys;
+  return wireVariantFields(
+    NATIVE_CONTENT_VARIANT_FIELDS,
+    NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    object,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }

@@ -1,4 +1,5 @@
 import type { ConnectionFailureReporter } from "../core/connection.ts";
+import type { Unlisten } from "../core/transport.ts";
 import type {
   ForkBranchPageCommand,
   ForkBranchPageSnapshot,
@@ -17,7 +18,7 @@ import type {
   HistoryPlanId,
 } from "./generated/protocol.ts";
 
-export type ForkHistoryUnlisten = () => void | Promise<void>;
+export type ForkHistoryUnlisten = Unlisten;
 
 export interface ForkHistoryPort {
   snapshot(): Promise<unknown>;

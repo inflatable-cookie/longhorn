@@ -1,4 +1,4 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import { OPERATION_FIELDS } from "./generated/fields.ts";
 import {
   OPERATION_VARIANT_FIELDS,
@@ -457,18 +457,17 @@ function exactKeys(
   path: string,
   keys: ReadonlyArray<string>,
 ): void {
-  const actual = Object.keys(object).sort();
-  const expected = [...keys].sort();
-  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
-    fail(path, `expected keys ${expected.join(",")}; received ${actual.join(",")}`);
-  }
+  checkWireFields(object, keys, () =>
+    fail(
+      path,
+      `expected keys ${[...keys].sort().join(",")}; received ${Object.keys(object).sort().join(",")}`,
+    ),
+  );
 }
 
 function record(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  return value;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  return result;
 }
 
 function array(value: unknown, path: string): Array<unknown> {
@@ -543,24 +542,16 @@ function fail(path: string, message: string): never {
   throw new OperationProtocolValidationError(path, message);
 }
 
-/**
- * Allowed keys for one variant, from the generated map.
- *
- * A missing entry means the generator failed to read the union, not that a
- * caller sent something odd: every switch below runs `member()` over the
- * discriminant first. Failing loudly beats a hand-written list, which is what
- * these were and what drifted in `history-tree`.
- */
 function variantKeys(
   type: string,
   object: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = object[OPERATION_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string" ? OPERATION_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (keys === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return keys;
+  return wireVariantFields(
+    OPERATION_VARIANT_FIELDS,
+    OPERATION_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    object,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }

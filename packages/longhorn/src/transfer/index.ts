@@ -8,4 +8,10 @@ export * from "./generated/fields.ts";
 export * from "./validation.ts";
 export * from "./client.ts";
 export * from "./connection.ts";
-export * from "./payload.ts";
+export {
+  assertTransferPayload,
+  InvalidTransferPayloadError,
+  LONGHORN_TRANSFER_MIME_TYPE,
+  parseTransferPayload,
+  serializeTransferPayload,
+} from "./payload.ts";

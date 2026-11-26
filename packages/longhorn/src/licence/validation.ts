@@ -1,4 +1,4 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import { LICENCE_FIELDS } from "./generated/fields.ts";
 import {
   LICENCE_CHANGED_KINDS,
@@ -230,20 +230,18 @@ function variantFields(
   value: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = value[LICENCE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const fields =
-    typeof discriminant === "string" ? LICENCE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (fields === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return fields;
+  return wireVariantFields(
+    LICENCE_VARIANT_FIELDS,
+    LICENCE_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    value,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }
 
 function object(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  return value;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  return result;
 }
 function array(value: unknown, path: string): Array<unknown> {
   if (!Array.isArray(value)) {
@@ -256,11 +254,9 @@ function exact(
   path: string,
   expected: ReadonlyArray<string>,
 ): void {
-  const actual = Object.keys(value).sort();
-  const wanted = [...expected].sort();
-  if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
-    fail(path, `unexpected keys: ${actual.join(",")}`);
-  }
+  checkWireFields(value, expected, () =>
+    fail(path, `unexpected keys: ${Object.keys(value).sort().join(",")}`),
+  );
 }
 function protocol(value: unknown, path: string): void {
   if (value !== LICENCE_PROTOCOL_VERSION) {

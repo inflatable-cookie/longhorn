@@ -1,3 +1,4 @@
+import type { Unlisten } from "../core/transport.ts";
 import type {
   NotificationChangedEvent,
   NotificationMutationCommand,
@@ -7,7 +8,7 @@ import type {
   NotificationMutationResult,
 } from "./generated/protocol.ts";
 
-export type NotificationUnlisten = () => void | Promise<void>;
+export type NotificationUnlisten = Unlisten;
 
 export interface NotificationPort {
   snapshot(query: NotificationSnapshotQuery): Promise<unknown>;

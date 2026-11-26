@@ -1,4 +1,4 @@
-import { isRecord } from "../../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../../core/record.ts";
 import {
   SETTINGS_VARIANT_FIELDS,
   SETTINGS_VARIANT_FIELDS_DISCRIMINANTS,
@@ -133,55 +133,18 @@ export function array(value: unknown): Array<unknown> {
   return value;
 }
 
-/**
- * Rejects a non-object, an unknown key, and a missing key.
- *
- * `allowed` comes from the generated field map, so the keys accepted are the
- * Rust struct's and nothing else — contract 010's Boundary Validation Target.
- * Called without a list, this keeps shape-only behaviour, which is correct
- * for a tagged union and a gap anywhere else.
- */
 export function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (!isRecord(value)) {
-    incompatible("invalid_shape", value);
-  }
-  const result = value;
-  if (allowed === undefined) {
-    return result;
-  }
-
-  const permitted = new Set(allowed);
-  for (const key of Object.keys(result)) {
-    if (!permitted.has(key)) {
-      incompatible("unknown_field", { key, value });
-    }
-  }
-  for (const key of allowed) {
-    if (!(key in result)) {
-      incompatible("missing_field", { key, value });
-    }
-  }
+  const result = readWireRecord(value, () => incompatible("invalid_shape", value));
+  checkWireFields(result, allowed, (code, key) => incompatible(code, { key, value }));
   return result;
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map.
- *
- * The discriminant's name comes from the map too: this domain tags
- * `SettingsDurabilityEvidence` on `kind` and its two results on `status`, and
- * a call site that has to name the right one is a per-site chance to name the
- * wrong one.
- *
- * A missing entry means the generator failed to read the union, not that a
- * caller sent something odd — every caller checks the discriminant with
- * `known()` above this call.
- */
 export function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
-  const discriminant = value[SETTINGS_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string" ? SETTINGS_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (keys === undefined) {
-    incompatible("unknown_field", { type, discriminant });
-  }
-  return keys;
+  return wireVariantFields(
+    SETTINGS_VARIANT_FIELDS,
+    SETTINGS_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    value,
+    (discriminant) => incompatible("unknown_field", { type, discriminant }),
+  );
 }

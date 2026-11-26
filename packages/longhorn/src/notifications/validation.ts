@@ -1,4 +1,4 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import {
   NOTIFICATION_VARIANT_FIELDS,
   NOTIFICATION_VARIANT_FIELDS_DISCRIMINANTS,
@@ -8,6 +8,9 @@ import {
   NOTIFICATION_CHANGED_KINDS,
   NOTIFICATION_MUTATION_KINDS,
   NOTIFICATION_MUTATION_STATUSES,
+  NOTIFICATION_CLEAR_TARGET_KINDS,
+  NOTIFICATION_RECEIPT_KINDS,
+  NOTIFICATION_REMOVAL_REASONS,
   NOTIFICATION_PROTOCOL_VERSION,
   NOTIFICATION_READ_STATES,
   NOTIFICATION_REJECTION_CODES,
@@ -101,7 +104,7 @@ export function assertValidNotificationMutationCommand(
     case "clear": {
       exactKeys(object, "$", variantKeys("NotificationMutationCommand", object, "$"));
       const target = record(object.target, "$.target");
-      member(target.kind, ["all", "records"] as const, "$.target.kind");
+      member(target.kind, NOTIFICATION_CLEAR_TARGET_KINDS, "$.target.kind");
       exactKeys(
         target,
         "$.target",
@@ -210,11 +213,7 @@ function recordProjection(
 
 function receipt(value: unknown, path: string): void {
   const object = record(value, path);
-  member(
-    object.kind,
-    ["added", "replaced", "seen", "removed", "retentionChanged"] as const,
-    `${path}.kind`,
-  );
+  member(object.kind, NOTIFICATION_RECEIPT_KINDS, `${path}.kind`);
   natural(object.previousLedgerRevision, `${path}.previousLedgerRevision`);
   natural(object.committedLedgerRevision, `${path}.committedLedgerRevision`);
   if (object.kind === "added" || object.kind === "replaced") {
@@ -243,7 +242,7 @@ function removals(value: unknown, path: string): void {
       NOTIFICATIONS_FIELDS.NotificationRemovalProjection,
     );
     recordProjection(item.record, `${path}[${index}].record`);
-    member(item.reason, ["dismissed", "cleared", "pruned"] as const, `${path}[${index}].reason`);
+    member(item.reason, NOTIFICATION_REMOVAL_REASONS, `${path}[${index}].reason`);
   });
 }
 
@@ -254,10 +253,8 @@ function protocol(value: unknown, path: string): void {
 }
 
 function record(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    fail(path, "expected object");
-  }
-  return value;
+  const result = readWireRecord(value, () => fail(path, "expected object"));
+  return result;
 }
 
 function exact(value: unknown, path: string, keys: ReadonlyArray<string>): Record<string, unknown> {
@@ -271,11 +268,7 @@ function exactKeys(
   path: string,
   keys: ReadonlyArray<string>,
 ): void {
-  const actual = Object.keys(object).sort();
-  const expected = [...keys].sort();
-  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
-    fail(path, `expected keys ${expected.join(", ")}`);
-  }
+  checkWireFields(object, keys, () => fail(path, `expected keys ${[...keys].sort().join(", ")}`));
 }
 
 function array(value: unknown, path: string): Array<unknown> {
@@ -326,25 +319,16 @@ function fail(path: string, message: string): never {
   throw new NotificationProtocolValidationError(path, message);
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map, with the
- * discriminant's name read from the map too.
- *
- * A missing entry means the generator failed to read the union: every caller
- * checks the discriminant above this call.
- */
 function variantKeys(
   type: string,
   object: Record<string, unknown>,
   path: string,
 ): ReadonlyArray<string> {
-  const discriminant = object[NOTIFICATION_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string"
-      ? NOTIFICATION_VARIANT_FIELDS[type]?.[discriminant]
-      : undefined;
-  if (keys === undefined) {
-    fail(path, `no generated fields for ${type}.${String(discriminant)}`);
-  }
-  return keys;
+  return wireVariantFields(
+    NOTIFICATION_VARIANT_FIELDS,
+    NOTIFICATION_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    object,
+    (discriminant) => fail(path, `no generated fields for ${type}.${String(discriminant)}`),
+  );
 }

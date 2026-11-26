@@ -3,6 +3,10 @@
 
 export const COMMAND_KEYMAP_PROTOCOL_VERSION = 1 as const;
 export const COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES = 64 as const;
+export const COMMAND_AVAILABILITY_STATES = ["available","unavailable","hidden","unsupported"] as const;
+export const COMMAND_AVAILABILITY_REASON_KINDS = ["contextNotAllowed","missingCapability","consumer"] as const;
+export const COMMAND_BINDING_SOURCE_KINDS = ["preset","replacement","addedOverride"] as const;
+export const COMMAND_ARGUMENT_SCHEMA_SHAPES = ["none","object"] as const;
 export const COMMAND_KEYMAP_LOAD_STATUSES = ["loaded","recovery","unavailable"] as const;
 export const COMMAND_KEYMAP_PREVIEW_STATUSES = ["accepted","stale","rejected"] as const;
 export const COMMAND_KEYMAP_MUTATION_STATUSES = ["applied","stale","rejected"] as const;

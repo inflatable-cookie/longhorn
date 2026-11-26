@@ -1,3 +1,4 @@
+import type { Unlisten } from "../core/transport.ts";
 import type {
   NativeContentChangedEvent,
   NativeContentConnectRequest,
@@ -11,7 +12,7 @@ import type {
   NativeContentSnapshotResult,
 } from "./generated/protocol.ts";
 
-export type NativeContentUnlisten = () => void | Promise<void>;
+export type NativeContentUnlisten = Unlisten;
 
 export interface NativeContentPort {
   connect(request: NativeContentConnectRequest): Promise<unknown>;

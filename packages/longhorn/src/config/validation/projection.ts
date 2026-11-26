@@ -1,9 +1,16 @@
 import { CONFIG_FIELDS } from "../generated/fields.ts";
 import {
   BACKUP_ENCRYPTION_STATES,
+  BACKUP_INVENTORY_ENTRY_STATES,
   BACKUP_PENDING_STATES,
   CONFIG_OPERATION_CAPABILITIES,
   RESTORE_ADAPTER_OUTCOMES,
+  RESTORE_AUTHENTICITY_VALUES,
+  RESTORE_CONFLICT_CHOICES,
+  RESTORE_INTEGRITY_VALUES,
+  RESTORE_OPERATION_STATES,
+  STORAGE_LEAF_PROVENANCES,
+  STORAGE_PROFILE_IDS,
   RESTORE_ADAPTER_PARTICIPATION_KINDS,
   RESTORE_CURRENT_EVIDENCE_STATES,
   RESTORE_DOMAIN_COMPATIBILITY_STATUSES,
@@ -27,13 +34,6 @@ import {
   record,
   string,
 } from "./primitives.ts";
-
-const STORAGE_PROFILES = [
-  "platform-native-v1",
-  "unified-app-root-v1",
-  "shared-product-root-v1",
-  "portable-v1",
-] as const;
 
 export function assertValidConfigOperationsSnapshot(
   value: unknown,
@@ -61,12 +61,8 @@ export function assertRestoreInspection(value: unknown, path: string): void {
   ["archiveId", "createdAt", "kind", "applicationVersion", "producerVersion"].forEach((key) =>
     nonempty(inspection[key], `${path}.${key}`),
   );
-  discriminant(inspection.integrity, ["verified"], `${path}.integrity`);
-  discriminant(
-    inspection.authenticity,
-    ["unauthenticated", "authenticated"],
-    `${path}.authenticity`,
-  );
+  discriminant(inspection.integrity, RESTORE_INTEGRITY_VALUES, `${path}.integrity`);
+  discriminant(inspection.authenticity, RESTORE_AUTHENTICITY_VALUES, `${path}.authenticity`);
   identity(
     record(inspection.identity, `${path}.identity`, CONFIG_FIELDS.RestoreIdentityProjection),
     `${path}.identity`,
@@ -105,7 +101,7 @@ export function assertRestorePlan(value: unknown, path: string): void {
     const entryPath = `${path}.entries[${index}]`;
     const entry = record(value, entryPath, CONFIG_FIELDS.RestorePlanEntryProjection);
     nonempty(entry.domainId, `${entryPath}.domainId`);
-    discriminant(entry.choice, ["useArchive", "keepCurrent"], `${entryPath}.choice`);
+    discriminant(entry.choice, RESTORE_CONFLICT_CHOICES, `${entryPath}.choice`);
     nullableString(entry.action, `${entryPath}.action`);
     if (entry.current !== null) {
       currentEvidence(entry.current, `${entryPath}.current`);
@@ -132,7 +128,7 @@ export function assertRestoreExecutionReceipt(value: unknown, path: string): voi
     "unchanged",
     "totalDocumentBytes",
   ]);
-  publication(receipt.safetyBackup, `${path}.safetyBackup`);
+  assertBackupPublication(receipt.safetyBackup, `${path}.safetyBackup`);
   [
     "restoredDomainIds",
     "deletedDomainIds",
@@ -169,10 +165,11 @@ export function assertRestoreRecoveryReceipt(value: unknown, path: string): void
 function storage(value: unknown, path: string): void {
   const projection = record(value, path, CONFIG_FIELDS.StorageOperationsProjection);
   const layout = record(projection.layout, `${path}.layout`, CONFIG_FIELDS.StorageLayoutProjection);
-  discriminant(layout.profile, STORAGE_PROFILES, `${path}.layout.profile`);
+  discriminant(layout.profile, STORAGE_PROFILE_IDS, `${path}.layout.profile`);
   ["platform", "canonicalApplicationId", "effectiveLeaf"].forEach((key) =>
     nonempty(layout[key], `${path}.layout.${key}`),
   );
+  discriminant(layout.leafProvenance, STORAGE_LEAF_PROVENANCES, `${path}.layout.leafProvenance`);
   digest(layout.layoutDigest, `${path}.layout.layoutDigest`);
   array(layout.roots, `${path}.layout.roots`).forEach((rootValue, index) => {
     const root = record(
@@ -187,7 +184,7 @@ function storage(value: unknown, path: string): void {
   const bootstrap = record(projection.bootstrap, `${path}.bootstrap`);
   discriminant(bootstrap.state, STORAGE_BOOTSTRAP_STATES, `${path}.bootstrap.state`);
   array(projection.availableProfiles, `${path}.availableProfiles`).forEach((profile, index) =>
-    discriminant(profile, STORAGE_PROFILES, `${path}.availableProfiles[${index}]`),
+    discriminant(profile, STORAGE_PROFILE_IDS, `${path}.availableProfiles[${index}]`),
   );
 }
 
@@ -231,7 +228,7 @@ function backup(value: unknown, path: string): void {
 
 function restoreState(value: unknown, path: string): void {
   const projection = record(value, path, CONFIG_FIELDS.RestoreOperationsProjection);
-  discriminant(projection.state, ["inactive", "active", "recoveryRequired"], `${path}.state`);
+  discriminant(projection.state, RESTORE_OPERATION_STATES, `${path}.state`);
   nullableDigest(projection.safetyBackupSha256, `${path}.safetyBackupSha256`);
 }
 
@@ -294,16 +291,12 @@ function currentEvidence(value: unknown, path: string): void {
 
 function inventoryEntry(value: unknown, path: string): void {
   const entry = record(value, path, CONFIG_FIELDS.BackupInventoryEntry);
-  discriminant(
-    entry.state,
-    ["valid", "locked", "corrupt", "foreign", "unknown", "unreadable", "unmanaged"],
-    `${path}.state`,
-  );
+  discriminant(entry.state, BACKUP_INVENTORY_ENTRY_STATES, `${path}.state`);
   nonempty(entry.diagnosticKind, `${path}.diagnosticKind`);
   string(entry.detail, `${path}.detail`);
 }
 
-function publication(value: unknown, path: string): void {
+export function assertBackupPublication(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.BackupPublicationReceiptProjection);
   ["path", "destination", "durability"].forEach((key) => nonempty(receipt[key], `${path}.${key}`));
   digest(receipt.archiveSha256, `${path}.archiveSha256`);

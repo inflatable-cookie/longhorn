@@ -1,4 +1,11 @@
-import { isRecord } from "../core/record.ts";
+import { isLayoutRatio } from "../layout/ratio.ts";
+import {
+  checkWireFields,
+  readWireRecord,
+  unsigned32,
+  unsignedInteger,
+  wireVariantFields,
+} from "../core/record.ts";
 import {
   SURFACE_VARIANT_FIELDS,
   SURFACE_VARIANT_FIELDS_DISCRIMINANTS,
@@ -85,9 +92,6 @@ export function assertValidSurfaceMutationRejectionCode(
 export function assertValidSurfaceMutationResponse(
   value: unknown,
 ): asserts value is SurfaceMutationResponse {
-  // Was `record(value, SURFACE_FIELDS.SurfaceMutationResponse)`. The flat
-  // field map skips unions by design, so that lookup was `undefined` and
-  // `record` checked no keys at all -- a call that read as strict and was not.
   const response = record(value);
   switch (response.status) {
     case "committed": {
@@ -109,13 +113,97 @@ export function assertValidSurfaceMutationResponse(
 }
 
 export function assertValidSurfaceSnapshot(value: unknown): asserts value is SurfaceSnapshot {
-  assertSurfaceProtocolVersion(record(value, SURFACE_FIELDS.SurfaceSnapshot).protocol_version);
+  const snapshot = record(value, SURFACE_FIELDS.SurfaceSnapshot);
+  assertSurfaceCursor(snapshot);
+  const document = record(snapshot.document, SURFACE_FIELDS.SurfaceDocument);
+  if (document.revision !== snapshot.revision) {
+    throw new SurfaceProtocolValidationError("invalid_object", document);
+  }
+  for (const entry of array(document.surfaces)) {
+    validateSurface(entry);
+  }
+  for (const entry of array(document.panel_instances)) {
+    const panel = record(entry, SURFACE_FIELDS.PanelInstance);
+    if (typeof panel.id !== "string" || typeof panel.definition_id !== "string") {
+      throw new SurfaceProtocolValidationError("invalid_object", panel);
+    }
+  }
+  for (const entry of array(document.windows)) {
+    const window = record(entry, SURFACE_FIELDS.ParticipatingWindow);
+    if (typeof window.id !== "string" || !nullableString(window.active_surface_id)) {
+      throw new SurfaceProtocolValidationError("invalid_object", window);
+    }
+  }
 }
 
 export function assertValidSurfaceChangedEvent(
   value: unknown,
 ): asserts value is SurfaceChangedEvent {
-  assertSurfaceProtocolVersion(record(value, SURFACE_FIELDS.SurfaceChangedEvent).protocol_version);
+  assertSurfaceCursor(record(value, SURFACE_FIELDS.SurfaceChangedEvent));
+}
+
+function assertSurfaceCursor(value: Record<string, unknown>): void {
+  assertSurfaceProtocolVersion(value.protocol_version);
+  if (!unsignedInteger(value.epoch) || !unsignedInteger(value.revision)) {
+    throw new SurfaceProtocolValidationError("invalid_object", value);
+  }
+}
+
+function validateSurface(value: unknown): void {
+  const surface = record(value, SURFACE_FIELDS.SurfaceRecord);
+  if (
+    typeof surface.id !== "string" ||
+    typeof surface.schema_id !== "string" ||
+    !nullableString(surface.label)
+  ) {
+    throw new SurfaceProtocolValidationError("invalid_object", surface);
+  }
+  const presentation = record(surface.presentation);
+  record(presentation, variantKeys("SurfacePresentation", presentation));
+  if (
+    presentation.kind === "focused_panel" &&
+    typeof presentation.panel_definition_id !== "string"
+  ) {
+    throw new SurfaceProtocolValidationError("invalid_object", presentation);
+  }
+  for (const entry of array(surface.regions)) {
+    const region = record(entry, SURFACE_FIELDS.RegionState);
+    if (
+      typeof region.region_id !== "string" ||
+      !nullableString(region.active_panel_instance_id) ||
+      (region.collapsed !== null && typeof region.collapsed !== "boolean")
+    ) {
+      throw new SurfaceProtocolValidationError("invalid_object", region);
+    }
+    for (const id of array(region.panel_instance_ids)) {
+      if (typeof id !== "string") {
+        throw new SurfaceProtocolValidationError("invalid_object", region);
+      }
+    }
+  }
+  for (const entry of array(surface.sizing_slots)) {
+    const slot = record(entry, SURFACE_FIELDS.SizingSlotState);
+    if (typeof slot.sizing_slot_id !== "string" || !isLayoutRatio(slot.ratio)) {
+      throw new SurfaceProtocolValidationError("invalid_object", slot);
+    }
+  }
+  for (const entry of array(surface.host_preferences)) {
+    const preference = record(entry, SURFACE_FIELDS.SurfaceHostPreference);
+    if (typeof preference.window_id !== "string" || !unsigned32(preference.order)) {
+      throw new SurfaceProtocolValidationError("invalid_object", preference);
+    }
+  }
+}
+
+function nullableString(value: unknown): boolean {
+  return value === null || typeof value === "string";
+}
+
+function array(value: unknown): ReadonlyArray<unknown> {
+  if (!Array.isArray(value)) {
+    throw new SurfaceProtocolValidationError("invalid_object", value);
+  }
+  return value;
 }
 
 function assertKnownKind(
@@ -128,63 +216,27 @@ function assertKnownKind(
   if (typeof candidate.kind !== "string" || !known.includes(candidate.kind)) {
     throw new SurfaceProtocolValidationError(code, value);
   }
-  // The discriminant is checked above, so a missing map entry here means the
-  // generator failed rather than that a caller sent something odd.
   record(candidate, variantKeys(type, candidate));
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map, with the
- * discriminant's name read from the map too.
- */
 function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
-  const discriminant = value[SURFACE_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string" ? SURFACE_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (keys === undefined) {
-    throw new SurfaceProtocolValidationError("unknown_outcome", { type, discriminant });
-  }
-  return keys;
+  return wireVariantFields(
+    SURFACE_VARIANT_FIELDS,
+    SURFACE_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    value,
+    (discriminant) => {
+      throw new SurfaceProtocolValidationError("unknown_outcome", { type, discriminant });
+    },
+  );
 }
 
-/**
- * Rejects a non-object, an unknown key, and a missing key.
- *
- * `allowed` comes from the generated field map, so the keys this accepts are
- * the Rust struct's and nothing else — contract 010's Boundary Validation
- * Target. Passing no list keeps the old shape-only behaviour for the tagged
- * unions, whose allowed keys depend on their discriminant and so are not one
- * flat set.
- *
- * The non-object case used to throw `unknown_response_status`, because the
- * incompatibility union had no code for it. It reported the wrong thing for
- * every caller but one.
- */
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (!isRecord(value)) {
+  const result = readWireRecord(value, () => {
     throw new SurfaceProtocolValidationError("invalid_object", value);
-  }
-  const result = value;
-  if (allowed === undefined) {
-    return result;
-  }
-
-  const permitted = new Set(allowed);
-  for (const key of Object.keys(result)) {
-    if (!permitted.has(key)) {
-      throw new SurfaceProtocolValidationError("unknown_field", {
-        key,
-        value,
-      });
-    }
-  }
-  for (const key of allowed) {
-    if (!(key in result)) {
-      throw new SurfaceProtocolValidationError("missing_field", {
-        key,
-        value,
-      });
-    }
-  }
+  });
+  checkWireFields(result, allowed, (code, key) => {
+    throw new SurfaceProtocolValidationError(code, { key, value });
+  });
   return result;
 }
