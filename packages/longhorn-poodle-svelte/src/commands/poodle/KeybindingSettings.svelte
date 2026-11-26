@@ -2,6 +2,7 @@
   import {
     Button,
     Callout,
+    ConfirmAction,
     FormActions,
     Grid,
     Stack,
@@ -9,6 +10,7 @@
   } from "@inflatable-cookie/poodle-svelte";
 
   import type { CommandKeymapConflict } from "@inflatable-cookie/longhorn/commands/protocol";
+  import { searchCommandSettings } from "@inflatable-cookie/longhorn/commands";
   import type { CommandSettingsRecord } from "@inflatable-cookie/longhorn/commands";
 
   interface Props {
@@ -58,18 +60,7 @@
       : `Change shortcut for ${platformLabels[binding.platform]}`;
   }
 
-  let visible = $derived(
-    query.trim().length === 0
-      ? records
-      : records.filter((record) => {
-          const needle = query.toLowerCase();
-          return (
-            record.label.toLowerCase().includes(needle) ||
-            record.id.includes(needle) ||
-            record.keywords.some((keyword) => keyword.toLowerCase().includes(needle))
-          );
-        }),
-  );
+  let visible = $derived(searchCommandSettings(records, query));
 </script>
 
 <section aria-label="Keybindings">
@@ -134,7 +125,22 @@
     </Stack>
 
     <FormActions>
-      <Button variant="ghost" disabled={busy} onClick={() => onReset?.()}>Reset</Button>
+      {#if busy}
+        <Button variant="ghost" disabled>Reset</Button>
+      {:else}
+        <ConfirmAction
+          title="Reset keyboard shortcuts?"
+          description="This restores the default shortcuts and clears your custom bindings."
+          tone="warning"
+          triggerLabel="Reset"
+          confirmLabel="Reset shortcuts"
+          onConfirm={() => {
+            if (!busy) {
+              onReset?.();
+            }
+          }}
+        />
+      {/if}
       <Button variant="secondary" disabled={!dirty || busy} onClick={() => onCancel?.()}>
         Cancel
       </Button>

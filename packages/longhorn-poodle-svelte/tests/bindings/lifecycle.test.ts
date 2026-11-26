@@ -1,5 +1,5 @@
 import { render, waitFor } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ReactiveClientState } from "../../src/bindings/index.ts";
 import type { ReactiveConnection, StartableClientState } from "../../src/bindings/index.ts";
@@ -164,6 +164,25 @@ describe("ReactiveClientState", () => {
 
     expect(starts).toBe(2);
     expect(stops).toBe(2);
+  });
+
+  it("reports cleanup failures even without a caller-supplied reporter", async () => {
+    const failure = new Error("could not detach listener");
+    const report = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const mounted = render(LifecycleHarness, {
+        props: {
+          state: {
+            start: () => Promise.resolve(),
+            stop: () => Promise.reject(failure),
+          },
+        },
+      });
+      mounted.unmount();
+      await waitFor(() => expect(report).toHaveBeenCalledExactlyOnceWith(failure));
+    } finally {
+      report.mockRestore();
+    }
   });
 
   it("publishes rune-backed status changes to mounted components", async () => {

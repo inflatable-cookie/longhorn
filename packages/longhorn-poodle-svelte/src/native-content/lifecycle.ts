@@ -1,15 +1,6 @@
-import { onMount } from "svelte";
-
-import { reportFailure } from "../failures.ts";
-
+import { useSessionLifecycle } from "../bindings/mount.ts";
 import type { NativeContentSession } from "./session.svelte.ts";
 
 export function useNativeContentSession(getSession: () => NativeContentSession): void {
-  onMount(() => {
-    const session = getSession();
-    void session.start().catch(() => undefined);
-    return () => {
-      void session.stop().catch(reportFailure);
-    };
-  });
+  useSessionLifecycle(getSession);
 }

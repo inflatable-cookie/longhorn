@@ -1,0 +1,1 @@
+Command palette and keybinding settings search now share Longhorn’s case-insensitive command ID matching. Keybinding settings match each search term against the label, keywords, category path, ID, or description through the new `searchCommandSettings` export. Dispatch still uses the original ID.

@@ -29,6 +29,7 @@ export class LayoutState {
   );
   #status = $state.raw<ClientStatus>({ kind: "idle" });
   #destroyed = false;
+  #generation = 0;
 
   constructor(options: LayoutStateOptions) {
     this.#options = options;
@@ -64,7 +65,7 @@ export class LayoutState {
   accept(document: SurfaceDocument): boolean {
     this.#assertAlive();
     const accepted = this.#projection.accept(document);
-    if (accepted) {
+    if (accepted && this.#status.kind !== "unsupported") {
       this.#status = { kind: "ready" };
     }
     return accepted;
@@ -72,6 +73,9 @@ export class LayoutState {
 
   reconnecting(): void {
     this.#assertAlive();
+    if (this.#status.kind === "unsupported") {
+      return;
+    }
     this.#status =
       this.#projection.authoritative === undefined ? { kind: "loading" } : { kind: "reconnecting" };
   }
@@ -88,9 +92,13 @@ export class LayoutState {
       throw new UnsupportedCapabilityError(reason);
     }
 
+    const generation = this.#generation;
     this.#projection.begin(request.request_id, project);
     try {
       const result = await dispatch(request);
+      if (generation !== this.#generation) {
+        return result;
+      }
       const document =
         result.status === "committed"
           ? result.receipt.authoritative_document
@@ -99,8 +107,10 @@ export class LayoutState {
       this.#status = { kind: "ready" };
       return result;
     } catch (error) {
-      this.#projection.cancel(request.request_id);
-      this.#status = { kind: "failed", error };
+      if (generation === this.#generation) {
+        this.#projection.cancel(request.request_id);
+        this.#status = { kind: "failed", error };
+      }
       throw error;
     }
   }
@@ -110,6 +120,7 @@ export class LayoutState {
   }
 
   async stop(): Promise<void> {
+    ++this.#generation;
     this.#projection.clear();
     this.#status = { kind: "idle" };
   }

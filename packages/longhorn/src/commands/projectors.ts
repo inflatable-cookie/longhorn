@@ -139,6 +139,28 @@ export function searchCommands(
   records: ReadonlyArray<CommandDiscoveryRecord>,
   query: string,
 ): ReadonlyArray<CommandSearchHit> {
+  return searchCommandRecords(records, query);
+}
+
+export function searchCommandSettings(
+  records: ReadonlyArray<CommandSettingsRecord>,
+  query: string,
+): ReadonlyArray<CommandSettingsRecord> {
+  if (query.trim().length === 0) {
+    return records;
+  }
+  return searchCommandRecords(records, query).map(({ record }) => record);
+}
+
+type SearchableCommand = Pick<
+  CommandProjectionRecord,
+  "id" | "label" | "description" | "categoryPath" | "keywords"
+>;
+
+function searchCommandRecords<Record extends SearchableCommand>(
+  records: ReadonlyArray<Record>,
+  query: string,
+): ReadonlyArray<{ record: Record; score: number }> {
   const terms = query
     .split(/\s+/u)
     .filter(Boolean)
@@ -207,13 +229,11 @@ export class CommandProjectionConsistencyError extends Error {
   }
 }
 
-function scoreRecord(
-  record: CommandDiscoveryRecord,
-  terms: ReadonlyArray<string>,
-): number | undefined {
+function scoreRecord(record: SearchableCommand, terms: ReadonlyArray<string>): number | undefined {
   if (terms.length === 0) {
     return 0;
   }
+  const id = record.id.toLowerCase();
   const label = record.label.toLowerCase();
   const description = record.description?.toLowerCase() ?? "";
   const keywords = record.keywords.map((keyword) => keyword.toLowerCase());
@@ -234,7 +254,7 @@ function scoreRecord(
                   ? 50
                   : record.categoryPath.some((category) => category.includes(term))
                     ? 60
-                    : record.id.includes(term)
+                    : id.includes(term)
                       ? 70
                       : description.includes(term)
                         ? 80

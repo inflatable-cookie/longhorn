@@ -1,4 +1,4 @@
-import { onMount } from "svelte";
+import { useSessionLifecycle } from "./mount.ts";
 
 import type {
   ConnectionFailure,
@@ -214,10 +214,5 @@ export function useClientState(
   state: StartableClientState,
   reportFailure?: (error: unknown) => void,
 ): void {
-  onMount(() => {
-    void state.start().catch((error: unknown) => reportFailure?.(error));
-    return () => {
-      void state.stop().catch((error: unknown) => reportFailure?.(error));
-    };
-  });
+  useSessionLifecycle(() => state, reportFailure, reportFailure);
 }

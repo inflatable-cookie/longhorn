@@ -1,76 +1,42 @@
 import type { LicenceController } from "@inflatable-cookie/longhorn/licence";
 
-/**
- * The controller's reads, sampled so Svelte can see them change.
- *
- * The same shape as `sampleUpdateController` and for the same measured reason:
- * `LicenceController` is a plain class, so its getters are not tracked
- * dependencies, and Poodle's components re-derive from the props they were
- * handed. The bump has to happen on the side that owns the expressions.
- *
- * The lifecycle is deliberately not touched. Whoever constructed the
- * controller starts and stops it.
- */
+import { sampleController } from "../../bindings/sample-controller.svelte.ts";
+
 export function sampleLicenceController(getController: () => LicenceController) {
-  let controller = getController();
-  let notify = $state(0);
-
-  $effect(() => {
-    const nextController = getController();
-    if (nextController !== controller) {
-      controller = nextController;
-      notify += 1;
-    }
-    const unobserve = nextController.observe(() => {
-      notify += 1;
-    });
-    return () => unobserve();
-  });
-
+  const read = sampleController(getController);
   return {
     get status() {
-      void notify;
-      return controller.status;
+      return read().status;
     },
     get activated() {
-      void notify;
-      return controller.activated;
+      return read().activated;
     },
     get usable() {
-      void notify;
-      return controller.usable;
+      return read().usable;
     },
     get usability() {
-      void notify;
-      return controller.usability;
+      return read().usability;
     },
     get trustBasis() {
-      void notify;
-      return controller.trustBasis;
+      return read().trustBasis;
     },
     get useUntil() {
-      void notify;
-      return controller.useUntil ?? null;
+      return read().useUntil ?? null;
     },
     get updateUntil() {
-      void notify;
-      return controller.updateUntil ?? null;
+      return read().updateUntil ?? null;
     },
     get attention() {
-      void notify;
-      return controller.attention;
+      return read().attention;
     },
     get seats() {
-      void notify;
-      return controller.seats;
+      return read().seats;
     },
     get pending() {
-      void notify;
-      return controller.pending;
+      return read().pending;
     },
     get lastRejection() {
-      void notify;
-      return controller.lastRejection;
+      return read().lastRejection;
     },
   };
 }

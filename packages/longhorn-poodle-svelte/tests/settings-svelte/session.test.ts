@@ -5,6 +5,7 @@ import parity from "../../../../fixtures/parity/projection-v1.json";
 import {
   MissingSettingsRendererError,
   SettingsPageApplyAmbiguityError,
+  SettingsMutationPendingError,
   SettingsSession,
 } from "../../src/settings/svelte.ts";
 import { SettingsScopeState } from "../../src/settings/svelte/scope.svelte.ts";
@@ -175,6 +176,76 @@ describe("SettingsSession", () => {
     expect(closes).toBe(1);
     expect(session.dirty).toBe(false);
     await session.stop();
+  });
+
+  it("keeps newer edits staged until the pending apply has finished", async () => {
+    const transport = new FakeSettingsTransport();
+    const session = new SettingsSession({
+      client: transport.client(),
+      nextRequestId: requestIds("staged-apply"),
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
+    });
+    await session.start(() => renderer());
+    const context = session.currentContext;
+    assert.ok(context);
+    const gate = deferred();
+    transport.mutationGate = gate.promise;
+    const nextIntent = { codecVersion: 1, value: { selected: "device:portable" } };
+    try {
+      await context.change("app:audio", intent);
+      const applying = session.applyCurrent();
+      await context.change("app:audio", nextIntent);
+
+      expect(session.busy).toBe(true);
+      expect(context.draft("app:audio")?.intent).toEqual(nextIntent);
+      await expect(context.apply("app:audio")).rejects.toBeInstanceOf(SettingsMutationPendingError);
+
+      gate.resolve();
+      await expect(applying).resolves.toBe(false);
+      expect(session.busy).toBe(false);
+      expect(context.draft("app:audio")?.intent).toEqual(nextIntent);
+
+      await expect(session.applyCurrent()).resolves.toBe(true);
+      expect(session.dirty).toBe(false);
+    } finally {
+      gate.resolve();
+      await session.stop();
+    }
+  });
+
+  it("retains newer subscribed scope authority when an older mutation completes", async () => {
+    const transport = new FakeSettingsTransport();
+    const session = new SettingsSession({
+      client: transport.client(),
+      nextRequestId: requestIds("scope-race"),
+      searchHostServices: { foldCase: (value) => value.toLowerCase() },
+    });
+    await session.start(() => renderer());
+    const context = session.currentContext;
+    assert.ok(context);
+    const gate = deferred();
+    transport.mutationGate = gate.promise;
+    try {
+      await context.change("app:audio", intent);
+      const applying = session.applyCurrent();
+      const newer = structuredClone(transport.scopeValue);
+      newer.authority.scopeRevision += 1;
+      newer.authority.authorityToken = "authority:newer";
+      transport.emitScope(newer);
+      const readScope = () => session.scopeSnapshot("app:preferences");
+      await transport.settle(
+        () => readScope()?.authority.scopeRevision === newer.authority.scopeRevision,
+      );
+      expect(readScope()).toEqual(newer);
+
+      gate.resolve();
+      await expect(applying).resolves.toBe(true);
+      expect(readScope()).toEqual(newer);
+      expect(session.primaryUnitStatus.kind).toBe("saved");
+    } finally {
+      gate.resolve();
+      await session.stop();
+    }
   });
 
   it("preserves a staged draft and exposes fresh authority on conflict", async () => {

@@ -148,6 +148,40 @@ describe("NativeContentSession", () => {
     await state.stop();
   });
 
+  it("refreshes a same-size viewport after ancestor scroll and detaches on stop", async () => {
+    const client = new ScriptedClient();
+    const state = session(client, new ResizeObserverTrace());
+    const rect = { left: 40, top: 80, width: 640, height: 360 };
+    const element = viewportElement(rect);
+    const scroller = document.createElement("div");
+    document.body.append(scroller);
+    scroller.append(element);
+    const unbind = state.bindViewport(element);
+    try {
+      await state.start();
+      await state.whenSettled();
+      const connection = client.connections[0];
+      assert(connection);
+
+      rect.top = 24;
+      scroller.dispatchEvent(new Event("scroll"));
+      await state.whenSettled();
+      expect(connection.updates.at(-1)?.viewport).toEqual({
+        origin: { x: 40, y: 24 },
+        size: { width: 640, height: 360 },
+      });
+
+      await state.stop();
+      rect.top = 8;
+      scroller.dispatchEvent(new Event("scroll"));
+      expect(state.viewport?.origin.y).toBe(24);
+    } finally {
+      unbind();
+      scroller.remove();
+      await state.stop();
+    }
+  });
+
   it("rejects a late generation result and replans from current authority", async () => {
     const client = new ScriptedClient();
     const observers = new ResizeObserverTrace();

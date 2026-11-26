@@ -1,3 +1,4 @@
+import { SETTINGS_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/settings/protocol";
 import type { SettingsClient } from "@inflatable-cookie/longhorn/settings";
 import type {
   SettingsApplyUnitDefinition,
@@ -63,14 +64,16 @@ export class SettingsPageSession {
   async change(applyUnitId: SettingsApplyUnitId, intent: SettingsOpaqueValue): Promise<void> {
     const unit = this.#applyUnit(applyUnitId);
     if (unit.timing === "immediate") {
-      await this.#executeApply(unit, intent, false);
+      await this.#executeApply(unit, intent);
       return;
     }
     this.#drafts = new Map(this.#drafts).set(applyUnitId, {
       applyUnitId,
       intent,
     });
-    this.#setStatus(applyUnitId, { kind: "idle" });
+    if (this.status(applyUnitId).kind !== "pending") {
+      this.#setStatus(applyUnitId, { kind: "idle" });
+    }
   }
 
   async apply(applyUnitId: SettingsApplyUnitId): Promise<void> {
@@ -79,7 +82,7 @@ export class SettingsPageSession {
     if (unit.timing !== "staged" || draft === undefined) {
       throw new SettingsDraftUnavailableError(applyUnitId);
     }
-    await this.#executeApply(unit, draft.intent, true);
+    await this.#executeApply(unit, draft.intent, draft);
   }
 
   async applyOnlyDraft(): Promise<boolean> {
@@ -126,10 +129,11 @@ export class SettingsPageSession {
       throw new SettingsScopeUnavailableError(unit.scopeId);
     }
     const generation = this.#generation;
+    const draft = this.#drafts.get(applyUnitId);
     this.#setStatus(applyUnitId, { kind: "pending" });
     try {
       const result = await this.#host.client.reset(registry, {
-        protocolVersion: 1,
+        protocolVersion: SETTINGS_PROTOCOL_VERSION,
         requestId: this.#host.nextRequestId(),
         pageId: this.#page.id,
         applyUnitId,
@@ -137,7 +141,7 @@ export class SettingsPageSession {
         authority,
         entryIds: [...entryIds],
       });
-      this.#acceptResult(unit, result, generation, true);
+      this.#acceptResult(unit, result, generation, draft);
     } catch (error) {
       this.#acceptFailure(applyUnitId, error, generation);
       throw error;
@@ -153,7 +157,7 @@ export class SettingsPageSession {
   async #executeApply(
     unit: SettingsApplyUnitDefinition,
     intent: SettingsOpaqueValue,
-    clearDraft: boolean,
+    draft?: SettingsDraft,
   ): Promise<void> {
     this.#assertNotPending(unit.id);
     const registry = this.#host.registry();
@@ -166,7 +170,7 @@ export class SettingsPageSession {
     this.#setStatus(unit.id, { kind: "pending" });
     try {
       const result = await this.#host.client.apply(registry, {
-        protocolVersion: 1,
+        protocolVersion: SETTINGS_PROTOCOL_VERSION,
         requestId: this.#host.nextRequestId(),
         pageId: this.#page.id,
         applyUnitId: unit.id,
@@ -174,7 +178,7 @@ export class SettingsPageSession {
         authority,
         intent,
       });
-      this.#acceptResult(unit, result, generation, clearDraft);
+      this.#acceptResult(unit, result, generation, draft);
     } catch (error) {
       this.#acceptFailure(unit.id, error, generation);
       throw error;
@@ -185,14 +189,19 @@ export class SettingsPageSession {
     unit: SettingsApplyUnitDefinition,
     result: SettingsMutationResult,
     generation: number,
-    clearDraft: boolean,
+    draft: SettingsDraft | undefined,
   ): void {
     if (generation !== this.#generation) {
       return;
     }
     if (result.status === "applied") {
       this.#host.scope(unit).accept(result.snapshot);
-      if (clearDraft) {
+      const currentDraft = this.#drafts.get(unit.id);
+      if (currentDraft !== undefined && currentDraft !== draft) {
+        this.#setStatus(unit.id, { kind: "idle" });
+        return;
+      }
+      if (currentDraft !== undefined) {
         const drafts = new Map(this.#drafts);
         drafts.delete(unit.id);
         this.#drafts = drafts;

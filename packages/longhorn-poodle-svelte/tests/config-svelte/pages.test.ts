@@ -13,12 +13,39 @@ import {
   CONFIG_RESTORE_INSPECT_COMMAND,
   CONFIG_RESTORE_PLAN_COMMAND,
   CONFIG_RESTORE_RECOVER_COMMAND,
+  CONFIG_SNAPSHOT_COMMAND,
   CONFIG_STORAGE_INSPECT_COMMAND,
 } from "../../../longhorn/src/config/index.ts";
 import { assertValidConfigOperationsSnapshot } from "../../../longhorn/src/config/validation/projection.ts";
 import { fixture, pageFixture } from "./support.ts";
 
 describe("public Poodle config pages", () => {
+  test.each([BackupSettingsPage, StorageSettingsPage, RestoreSettingsPage])(
+    "shows a single initial read failure and recovers through retry",
+    async (Page) => {
+      const { client, snapshot, transport } = pageFixture();
+      transport.responses.delete(CONFIG_SNAPSHOT_COMMAND);
+      const admitted: Array<typeof snapshot> = [];
+
+      render(Page, {
+        client,
+        nextRequestId: () => "request:retry",
+        onSnapshot: (value: typeof snapshot) => admitted.push(value),
+      });
+
+      expect(await screen.findByText("Settings could not be read")).toBeTruthy();
+      expect(screen.getByText(`unexpected command ${CONFIG_SNAPSHOT_COMMAND}`)).toBeTruthy();
+      expect(screen.queryByText(/read did not fail|operation failed|Loading/)).toBeNull();
+      expect(admitted).toEqual([]);
+
+      transport.responses.set(CONFIG_SNAPSHOT_COMMAND, snapshot);
+      await fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+      await waitFor(() => expect(admitted).toEqual([snapshot]));
+      expect(screen.queryByText("Settings could not be read")).toBeNull();
+      expect(transport.calls).toEqual([CONFIG_SNAPSHOT_COMMAND, CONFIG_SNAPSHOT_COMMAND]);
+    },
+  );
+
   test.each([
     ["Storage profile", StorageSettingsPage],
     ["Backup archive", RestoreSettingsPage],

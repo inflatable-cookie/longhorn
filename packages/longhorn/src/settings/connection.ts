@@ -192,7 +192,7 @@ function isNewerRegistry(
   return false;
 }
 
-function isNewerScope(
+export function isNewerScope(
   candidate: SettingsScopeSnapshot,
   current: SettingsScopeSnapshot | undefined,
 ): boolean {

@@ -5,6 +5,7 @@ import type {
   TransferLeaseResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 
+import { observeViewportMovement } from "./element-geometry.ts";
 import type { TransferState } from "./transfer.svelte.ts";
 
 export type DropZoneDefinition = Omit<ClientDropZone, "bounds">;
@@ -34,6 +35,7 @@ export class DropZoneLeaseRegistry {
   readonly #zones = new Map<string, RegisteredZone>();
   #tail: Promise<unknown> = Promise.resolve();
   #active = false;
+  #publicationScheduled = false;
   #destroyed = false;
   #lastGeneration = 0;
 
@@ -107,10 +109,12 @@ export class DropZoneLeaseRegistry {
   }
 
   #schedulePublication(): void {
-    if (!this.#active || this.#destroyed) {
+    if (!this.#active || this.#destroyed || this.#publicationScheduled) {
       return;
     }
+    this.#publicationScheduled = true;
     void this.#serialize(async () => {
+      this.#publicationScheduled = false;
       if (!this.#active || this.#destroyed) {
         return;
       }
@@ -222,10 +226,11 @@ function nextGeneration(lastGeneration: number): number {
 }
 
 function observeElementGeometry(node: HTMLElement, changed: () => void): () => void {
-  if (typeof ResizeObserver === "undefined") {
-    return () => undefined;
-  }
-  const observer = new ResizeObserver(changed);
-  observer.observe(node);
-  return () => observer.disconnect();
+  const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(changed);
+  observer?.observe(node);
+  const stopMovement = observeViewportMovement(node, changed);
+  return () => {
+    observer?.disconnect();
+    stopMovement();
+  };
 }
