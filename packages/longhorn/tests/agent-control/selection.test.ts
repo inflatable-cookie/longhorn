@@ -117,6 +117,22 @@ describe("bindFileSelection", () => {
     ]);
   });
 
+  test("agent-originated open omits absent optional hints", async () => {
+    const window = openPage(`<p>Idle</p>`);
+    install(window).markAgentOrigin();
+    const recorded = ports();
+    const api = bindFileSelection(recorded, window);
+    await api.open({ filters: [] });
+    expect(recorded.invokes[0]?.args).toEqual({
+      options: {
+        kind: "open",
+        directory: false,
+        multiple: false,
+        filters: [],
+      },
+    });
+  });
+
   test("agent begin failure preserves the structured error and skips the plugin", async () => {
     const window = openPage("<button>Import</button>");
     install(window).markAgentOrigin();
