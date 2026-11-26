@@ -45,11 +45,12 @@ struct DispatcherState {
     /// enforcement).
     terminal: BTreeMap<String, Terminal>,
     events: Vec<DispatchEvent>,
+    next_sequence: u64,
     callbacks: usize,
     results: usize,
     cancellations: usize,
     rejections: usize,
-    call_budget_refusal_recorded: bool,
+    recorded_rejections: BTreeSet<DispatchErrorKind>,
 }
 
 impl DispatcherState {
@@ -58,31 +59,25 @@ impl DispatcherState {
             in_flight: BTreeSet::new(),
             terminal: BTreeMap::new(),
             events: Vec::new(),
+            next_sequence: 1,
             callbacks: 0,
             results: 0,
             cancellations: 0,
             rejections: 0,
-            call_budget_refusal_recorded: false,
+            recorded_rejections: BTreeSet::new(),
         }
     }
 
     fn record(&mut self, kind: DispatchEventKind) {
-        let sequence = u64::try_from(self.events.len())
-            .unwrap_or(u64::MAX)
-            .saturating_add(1);
+        let sequence = self.next_sequence;
+        self.next_sequence = self.next_sequence.saturating_add(1);
         self.events.push(DispatchEvent::new(sequence, kind));
     }
 
     fn reject(&mut self, error: DispatchError) {
         self.rejections = self.rejections.saturating_add(1);
-        self.record(DispatchEventKind::Rejected(error.kind()));
-    }
-
-    fn reject_exhausted_call_budget(&mut self, error: DispatchError) {
-        self.rejections = self.rejections.saturating_add(1);
-        if !self.call_budget_refusal_recorded {
+        if self.recorded_rejections.insert(error.kind()) {
             self.record(DispatchEventKind::Rejected(error.kind()));
-            self.call_budget_refusal_recorded = true;
         }
     }
 
@@ -243,7 +238,22 @@ impl TimerDriver {
 
     fn try_global() -> Result<Arc<Self>, DispatchError> {
         static DRIVER: Mutex<Option<Arc<TimerDriver>>> = Mutex::new(None);
-        let mut guard = DRIVER
+        Self::get_or_init_with(&DRIVER, |worker| {
+            thread::Builder::new()
+                .name("longhorn-dispatch-timer".to_owned())
+                .spawn(move || worker.run())
+                .map(|_| ())
+        })
+    }
+
+    fn get_or_init_with<F>(
+        slot: &Mutex<Option<Arc<TimerDriver>>>,
+        spawn_worker: F,
+    ) -> Result<Arc<Self>, DispatchError>
+    where
+        F: FnOnce(Arc<Self>) -> std::io::Result<()>,
+    {
+        let mut guard = slot
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         if let Some(driver) = guard.as_ref() {
@@ -254,10 +264,8 @@ impl TimerDriver {
         // Spawn once for the process; the daemon thread parks on `Condvar`
         // whenever no deadline is registered. If thread creation fails, do not
         // cache an unbacked driver so dispatch refuses typed before admission.
-        thread::Builder::new()
-            .name("longhorn-dispatch-timer".to_owned())
-            .spawn(move || worker.run())
-            .map_err(|_| DispatchError::new(DispatchErrorKind::LimitExceeded))?;
+        spawn_worker(worker)
+            .map_err(|_| DispatchError::new(DispatchErrorKind::TimerUnavailable))?;
         *guard = Some(Arc::clone(&driver));
         Ok(driver)
     }
@@ -456,17 +464,32 @@ where
         invocation: DispatchInvocation,
         cancellation: Cancellation,
     ) -> DispatchFuture<'_, Result<DispatchOutcome, DispatchError>> {
-        self.dispatch_with_stage_hook(invocation, cancellation, |_| {})
+        self.dispatch_with_hooks(invocation, cancellation, |_| {}, TimerDriver::try_global)
     }
 
+    #[cfg(test)]
     fn dispatch_with_stage_hook<F>(
         &self,
         invocation: DispatchInvocation,
         cancellation: Cancellation,
-        mut on_stage: F,
+        on_stage: F,
     ) -> DispatchFuture<'_, Result<DispatchOutcome, DispatchError>>
     where
         F: FnMut(AdmissionStage) + Send + 'static,
+    {
+        self.dispatch_with_hooks(invocation, cancellation, on_stage, TimerDriver::try_global)
+    }
+
+    fn dispatch_with_hooks<F, T>(
+        &self,
+        invocation: DispatchInvocation,
+        cancellation: Cancellation,
+        mut on_stage: F,
+        init_timer: T,
+    ) -> DispatchFuture<'_, Result<DispatchOutcome, DispatchError>>
+    where
+        F: FnMut(AdmissionStage) + Send + 'static,
+        T: FnOnce() -> Result<Arc<TimerDriver>, DispatchError> + Send + 'static,
     {
         let dispatch_started_at = Instant::now();
         Box::pin(async move {
@@ -482,12 +505,17 @@ where
                 locked(&self.state).reject(error);
                 return Err(error);
             };
+            if cancellation.is_cancelled() {
+                let error = DispatchError::new(DispatchErrorKind::Cancelled);
+                locked(&self.state).reject(error);
+                return Err(error);
+            }
             if Instant::now() >= deadline_at {
                 let error = DispatchError::new(DispatchErrorKind::DeadlineExceeded);
                 locked(&self.state).reject(error);
                 return Err(error);
             }
-            let driver = match TimerDriver::try_global() {
+            let driver = match init_timer() {
                 Ok(driver) => driver,
                 Err(error) => {
                     locked(&self.state).reject(error);
@@ -526,7 +554,7 @@ where
                 }
                 if state.callbacks >= self.expected_registration.bounds().max_calls_per_binding() {
                     let error = DispatchError::new(DispatchErrorKind::LimitExceeded);
-                    state.reject_exhausted_call_budget(error);
+                    state.reject(error);
                     return Err(error);
                 }
                 if state.in_flight.len()
@@ -537,6 +565,7 @@ where
                     return Err(error);
                 }
                 let events_len_before = state.events.len();
+                let sequence_before = state.next_sequence;
                 state.events.reserve(2);
                 state.in_flight.insert(in_flight_key);
                 state.record(DispatchEventKind::Validated);
@@ -544,15 +573,22 @@ where
                 state.record(DispatchEventKind::CallbackInvoked);
 
                 on_stage(AdmissionStage::BeforeCallbackEntry);
-                // Final deadline check after all setup, allocations, and
-                // bookkeeping: if expired, roll back the reservation and
-                // events atomically before releasing the lock or invoking the
-                // callback.
-                if Instant::now() >= deadline_at {
+                // Final cancellation and deadline checks after all setup,
+                // allocations, and bookkeeping: if cancelled or expired, roll
+                // back the reservation and events atomically before releasing
+                // the lock or invoking the callback.
+                let pre_entry_error = if cancellation.is_cancelled() {
+                    Some(DispatchError::new(DispatchErrorKind::Cancelled))
+                } else if Instant::now() >= deadline_at {
+                    Some(DispatchError::new(DispatchErrorKind::DeadlineExceeded))
+                } else {
+                    None
+                };
+                if let Some(error) = pre_entry_error {
                     state.in_flight.remove(&call_id);
                     state.callbacks = state.callbacks.saturating_sub(1);
                     state.events.truncate(events_len_before);
-                    let error = DispatchError::new(DispatchErrorKind::DeadlineExceeded);
+                    state.next_sequence = sequence_before;
                     state.reject(error);
                     return Err(error);
                 }
@@ -649,7 +685,7 @@ where
         Ok(remaining)
     }
 
-    /// Returns ordered payload-free evidence, sampling repeated call-budget refusals.
+    /// Returns ordered payload-free evidence, sampling repeated refusals per error kind.
     #[must_use]
     pub fn events(&self) -> Vec<DispatchEvent> {
         locked(&self.state).events.clone()
@@ -787,8 +823,8 @@ mod tests {
 
         let input_schema = SchemaIdentity::new("1", "sha256:input").expect("input schema");
         let output_schema = SchemaIdentity::new("1", "sha256:output").expect("output schema");
-        let bounds = DispatchBounds::new(2, 1, 64, 64, 16, 2, Duration::from_secs(5))
-            .expect("positive bounds");
+        let bounds =
+            DispatchBounds::new(2, 1, 64, 64, Duration::from_secs(5)).expect("positive bounds");
         let registration = RegisteredCapability::new(
             "registration-1",
             "desktop/read_context",
@@ -932,5 +968,229 @@ mod tests {
         assert_eq!(final_outcome.result().payload_for_delivery(), b"ok");
         assert_eq!(calls.load(Ordering::SeqCst), 2);
         assert_eq!(dispatcher.metrics().callbacks, 2);
+    }
+
+    #[test]
+    fn timer_driver_spawn_failure_maps_to_timer_unavailable_and_leaves_slot_empty() {
+        use crate::{CancellationSource, DispatchBounds, ExecutionKind};
+        use std::future::ready;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let slot = Mutex::new(None);
+        let spawn_attempts = AtomicUsize::new(0);
+        for _ in 0..2 {
+            let error = TimerDriver::get_or_init_with(&slot, |_| {
+                spawn_attempts.fetch_add(1, Ordering::SeqCst);
+                Err(std::io::Error::other("thread spawn refused"))
+            })
+            .err()
+            .expect("spawn failure must return error");
+            assert_eq!(error.kind(), DispatchErrorKind::TimerUnavailable);
+            assert!(
+                slot.lock().expect("slot lock").is_none(),
+                "failed spawn must not cache an unbacked timer driver"
+            );
+        }
+        assert_eq!(spawn_attempts.load(Ordering::SeqCst), 2);
+
+        struct NeverCancelled;
+        impl CancellationSource for NeverCancelled {
+            fn is_cancelled(&self) -> bool {
+                false
+            }
+        }
+
+        struct CountingCallback(Arc<AtomicUsize>);
+        impl RecordingCallback for CountingCallback {
+            fn invoke(
+                &self,
+                _call: AdmittedCall,
+                _cancellation: Cancellation,
+                result: ResultRecorder,
+            ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+                self.0.fetch_add(1, Ordering::SeqCst);
+                let output_schema =
+                    SchemaIdentity::new("1", "sha256:output").expect("fixture output schema");
+                Box::pin(ready(
+                    result
+                        .record(CallbackResult::new(output_schema, b"ok".to_vec()))
+                        .map_err(|_| CallbackFailure::new()),
+                ))
+            }
+        }
+
+        let input_schema = SchemaIdentity::new("1", "sha256:input").expect("input schema");
+        let output_schema = SchemaIdentity::new("1", "sha256:output").expect("output schema");
+        let bounds =
+            DispatchBounds::new(1, 1, 64, 64, Duration::from_secs(5)).expect("positive bounds");
+        let registration = RegisteredCapability::new(
+            "registration-1",
+            "desktop/read_context",
+            input_schema,
+            output_schema,
+            ExecutionKind::NativeClient,
+            DispatchEffect::Mutating,
+            bounds,
+        )
+        .expect("registration");
+        let binding = TrustedBinding::new("process-1", 1, 1, 1, "task-1", "session-1", "attempt-1")
+            .expect("binding");
+        let calls = Arc::new(AtomicUsize::new(0));
+        let dispatcher = RecordingDispatcher::new(
+            registration.clone(),
+            binding.clone(),
+            CountingCallback(Arc::clone(&calls)),
+        );
+        let cancellation = Cancellation::new(Arc::new(NeverCancelled));
+        let invocation = DispatchInvocation::new(
+            "timer-spawn-fail",
+            registration,
+            binding,
+            BindingStatus::Current,
+            DispatchDeadline::active(Duration::from_secs(1)),
+            b"arg".to_vec(),
+        )
+        .expect("invocation");
+
+        let mut future = dispatcher.dispatch_with_hooks(
+            invocation,
+            cancellation,
+            |_| {},
+            || Err(DispatchError::new(DispatchErrorKind::TimerUnavailable)),
+        );
+        let mut cx = Context::from_waker(Waker::noop());
+        let error = match future.as_mut().poll(&mut cx) {
+            Poll::Ready(Err(error)) => error,
+            other => panic!("timer failure must reject dispatch, got {other:?}"),
+        };
+        assert_eq!(error.kind(), DispatchErrorKind::TimerUnavailable);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert_eq!(dispatcher.metrics().callbacks, 0);
+        assert_eq!(dispatcher.metrics().rejections, 1);
+        assert_eq!(
+            dispatcher
+                .events()
+                .into_iter()
+                .map(|event| event.kind())
+                .collect::<Vec<_>>(),
+            vec![DispatchEventKind::Rejected(
+                DispatchErrorKind::TimerUnavailable
+            )]
+        );
+    }
+
+    #[test]
+    fn cancellation_arriving_during_admission_rolls_back_without_invoking_callback() {
+        use crate::{CancellationSource, DispatchBounds, ExecutionKind};
+        use std::future::ready;
+        use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+        #[derive(Default)]
+        struct Flag(AtomicBool);
+        impl CancellationSource for Flag {
+            fn is_cancelled(&self) -> bool {
+                self.0.load(Ordering::SeqCst)
+            }
+        }
+
+        struct CountingCallback(Arc<AtomicUsize>);
+        impl RecordingCallback for CountingCallback {
+            fn invoke(
+                &self,
+                _call: AdmittedCall,
+                _cancellation: Cancellation,
+                result: ResultRecorder,
+            ) -> DispatchFuture<'_, Result<(), CallbackFailure>> {
+                self.0.fetch_add(1, Ordering::SeqCst);
+                let output_schema =
+                    SchemaIdentity::new("1", "sha256:output").expect("fixture output schema");
+                Box::pin(ready(
+                    result
+                        .record(CallbackResult::new(output_schema, b"ok".to_vec()))
+                        .map_err(|_| CallbackFailure::new()),
+                ))
+            }
+        }
+
+        let input_schema = SchemaIdentity::new("1", "sha256:input").expect("input schema");
+        let output_schema = SchemaIdentity::new("1", "sha256:output").expect("output schema");
+        let bounds =
+            DispatchBounds::new(1, 1, 64, 64, Duration::from_secs(5)).expect("positive bounds");
+        let registration = RegisteredCapability::new(
+            "registration-1",
+            "desktop/mutate_context",
+            input_schema,
+            output_schema,
+            ExecutionKind::NativeClient,
+            DispatchEffect::Mutating,
+            bounds,
+        )
+        .expect("registration");
+        let binding = TrustedBinding::new("process-1", 1, 1, 1, "task-1", "session-1", "attempt-1")
+            .expect("binding");
+        let calls = Arc::new(AtomicUsize::new(0));
+        let dispatcher = RecordingDispatcher::new(
+            registration.clone(),
+            binding.clone(),
+            CountingCallback(Arc::clone(&calls)),
+        );
+        let flag = Arc::new(Flag::default());
+        let cancellation = Cancellation::new(Arc::clone(&flag) as Arc<dyn CancellationSource>);
+        let late_cancel = DispatchInvocation::new(
+            "cancelled-at-entry",
+            registration.clone(),
+            binding.clone(),
+            BindingStatus::Current,
+            DispatchDeadline::active(Duration::from_secs(1)),
+            b"arg".to_vec(),
+        )
+        .expect("invocation");
+
+        let flag_on_entry = Arc::clone(&flag);
+        let mut future =
+            dispatcher.dispatch_with_stage_hook(late_cancel, cancellation, move |stage| {
+                if stage == AdmissionStage::BeforeCallbackEntry {
+                    flag_on_entry.0.store(true, Ordering::SeqCst);
+                }
+            });
+        let mut cx = Context::from_waker(Waker::noop());
+        let error = match future.as_mut().poll(&mut cx) {
+            Poll::Ready(Err(error)) => error,
+            other => panic!("cancelled admission must reject, got {other:?}"),
+        };
+        assert_eq!(error.kind(), DispatchErrorKind::Cancelled);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert_eq!(dispatcher.metrics().callbacks, 0);
+        assert_eq!(dispatcher.metrics().rejections, 1);
+        assert_eq!(
+            dispatcher
+                .events()
+                .into_iter()
+                .map(|event| event.kind())
+                .collect::<Vec<_>>(),
+            vec![DispatchEventKind::Rejected(DispatchErrorKind::Cancelled)]
+        );
+
+        // Call budget (max_calls_per_binding = 1) and capacity (max_outstanding_calls = 1)
+        // must remain intact after the pre-callback cancellation rollback.
+        let fresh_flag = Arc::new(Flag::default());
+        let fresh_cancellation = Cancellation::new(fresh_flag);
+        let follow_up = DispatchInvocation::new(
+            "after-pre-entry-cancel",
+            registration,
+            binding,
+            BindingStatus::Current,
+            DispatchDeadline::active(Duration::from_secs(1)),
+            b"arg".to_vec(),
+        )
+        .expect("follow-up invocation");
+        let mut follow_up_future = dispatcher.dispatch(follow_up, fresh_cancellation);
+        let outcome = match follow_up_future.as_mut().poll(&mut cx) {
+            Poll::Ready(Ok(outcome)) => outcome,
+            other => panic!("follow-up call must succeed with intact budget, got {other:?}"),
+        };
+        assert_eq!(outcome.result().payload_for_delivery(), b"ok");
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        assert_eq!(dispatcher.metrics().callbacks, 1);
     }
 }

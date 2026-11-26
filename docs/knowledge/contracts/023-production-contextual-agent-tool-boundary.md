@@ -43,14 +43,26 @@ Swallowtail as reconciled in `002-production-contextual-agent-tool-boundary.md` 
   never from model arguments.
 - Enforce producer-declared numeric bounds and typed deadline, cancellation,
   concurrency, result, and error semantics. Values are producer-settleable, not
-  generic operator approval gates.
+  generic operator approval gates. The dispatch boundary
+  (`longhorn-agent-tool-dispatch`) enforces `max_calls_per_binding`,
+  `max_outstanding_calls`, `max_argument_bytes`, `max_result_bytes`, and
+  `max_call_duration`; hosts that stream progress enforce progress bounds at
+  their own progress boundary.
 - A retry creates a fresh Desktop attempt and Swallowtail operation generation;
   mutating or indeterminate calls are never transport-replayed.
 - Expose least-access and approval outcomes supplied by Desktop policy without
   approving or manufacturing authority in Longhorn.
-- Result and error envelopes distinguish negotiation, authentication,
-  identity, admission, approval, validation, execution, cancellation,
-  timeout, limit, and shutdown failures. Diagnostics are redacted.
+- Result and error envelopes across the full boundary distinguish negotiation,
+  authentication, identity, admission, approval, validation, execution,
+  cancellation, timeout, limit, and shutdown failures, with redacted
+  diagnostics: Swallowtail and Desktop own transport/protocol negotiation,
+  host authentication, Desktop approval policy outcomes, and bridge/listener
+  shutdown around the dispatch boundary (`longhorn-agent-tool-dispatch` receives
+  an already negotiated, authenticated, and approved binding), while
+  `longhorn-agent-tool-dispatch` (`DispatchErrorKind`) enforces and
+  distinguishes post-admission identity, admission, validation, execution
+  (including internal timer startup failure), cancellation, timeout, and limit
+  failures.
 
 ## Attachment seam
 

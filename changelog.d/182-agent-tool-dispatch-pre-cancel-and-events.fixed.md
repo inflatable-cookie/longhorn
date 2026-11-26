@@ -1,0 +1,1 @@
+Pre-cancelled calls are now rejected with `DispatchErrorKind::Cancelled` before callback entry without consuming per-binding call budget, and repeated rejection events in `RecordingDispatcher` are sampled per `DispatchErrorKind` while `DispatchMetrics::rejections` continues counting every refusal.

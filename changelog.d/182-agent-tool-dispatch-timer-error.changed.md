@@ -1,0 +1,1 @@
+Added `DispatchErrorKind::TimerUnavailable` (`longhorn.agent_tool_dispatch.timer_unavailable`) for failures starting the dispatcher's internal deadline timer instead of reporting `LimitExceeded`; update exhaustive matches on `DispatchErrorKind` to handle `TimerUnavailable` as an unexecuted execution failure.

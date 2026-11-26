@@ -37,8 +37,10 @@ pub enum DispatchErrorKind {
     DuplicateResult,
     /// A result arrived after cancellation or another terminal failure.
     PostTerminalResult,
-    /// The in-flight call was cancelled.
+    /// The call was cancelled before settlement.
     Cancelled,
+    /// The internal dispatch deadline timer could not be started.
+    TimerUnavailable,
     /// The callback returned without recording one result.
     MissingResult,
     /// The consumer callback reported a typed execution failure.
@@ -69,6 +71,7 @@ impl DispatchErrorKind {
             Self::DuplicateResult => "longhorn.agent_tool_dispatch.duplicate_result",
             Self::PostTerminalResult => "longhorn.agent_tool_dispatch.post_terminal_result",
             Self::Cancelled => "longhorn.agent_tool_dispatch.cancelled",
+            Self::TimerUnavailable => "longhorn.agent_tool_dispatch.timer_unavailable",
             Self::MissingResult => "longhorn.agent_tool_dispatch.missing_result",
             Self::CallbackFailed => "longhorn.agent_tool_dispatch.callback_failed",
         }
@@ -94,7 +97,8 @@ impl DispatchErrorKind {
             Self::DuplicateCall => "The call was already admitted",
             Self::DuplicateResult => "A result was already accepted",
             Self::PostTerminalResult => "A result arrived after terminal settlement",
-            Self::Cancelled => "The in-flight call was cancelled",
+            Self::Cancelled => "The call was cancelled",
+            Self::TimerUnavailable => "The dispatch deadline timer is unavailable",
             Self::MissingResult => "The callback returned without one result",
             Self::CallbackFailed => "The consumer callback failed",
         }

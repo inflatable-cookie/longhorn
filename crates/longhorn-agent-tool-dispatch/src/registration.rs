@@ -65,21 +65,16 @@ pub struct DispatchBounds {
     max_outstanding_calls: usize,
     max_argument_bytes: usize,
     max_result_bytes: usize,
-    max_progress_item_bytes: usize,
-    max_queued_progress_items: usize,
     max_call_duration: Duration,
 }
 
 impl DispatchBounds {
     /// Creates one positive bound set.
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         max_calls_per_binding: usize,
         max_outstanding_calls: usize,
         max_argument_bytes: usize,
         max_result_bytes: usize,
-        max_progress_item_bytes: usize,
-        max_queued_progress_items: usize,
         max_call_duration: Duration,
     ) -> Result<Self, DispatchError> {
         let bounds = Self {
@@ -87,8 +82,6 @@ impl DispatchBounds {
             max_outstanding_calls,
             max_argument_bytes,
             max_result_bytes,
-            max_progress_item_bytes,
-            max_queued_progress_items,
             max_call_duration,
         };
         bounds.validate()?;
@@ -100,8 +93,6 @@ impl DispatchBounds {
             || self.max_outstanding_calls == 0
             || self.max_argument_bytes == 0
             || self.max_result_bytes == 0
-            || self.max_progress_item_bytes == 0
-            || self.max_queued_progress_items == 0
             || self.max_call_duration.is_zero()
         {
             Err(DispatchError::new(DispatchErrorKind::InvalidBounds))
@@ -115,8 +106,6 @@ impl DispatchBounds {
             && self.max_outstanding_calls <= ceiling.max_outstanding_calls
             && self.max_argument_bytes <= ceiling.max_argument_bytes
             && self.max_result_bytes <= ceiling.max_result_bytes
-            && self.max_progress_item_bytes <= ceiling.max_progress_item_bytes
-            && self.max_queued_progress_items <= ceiling.max_queued_progress_items
             && self.max_call_duration <= ceiling.max_call_duration
     }
 
@@ -145,18 +134,6 @@ impl DispatchBounds {
     #[must_use]
     pub const fn max_result_bytes(self) -> usize {
         self.max_result_bytes
-    }
-
-    /// Returns the maximum progress-item bytes.
-    #[must_use]
-    pub const fn max_progress_item_bytes(self) -> usize {
-        self.max_progress_item_bytes
-    }
-
-    /// Returns the maximum queued progress items.
-    #[must_use]
-    pub const fn max_queued_progress_items(self) -> usize {
-        self.max_queued_progress_items
     }
 
     /// Returns the maximum call duration.
