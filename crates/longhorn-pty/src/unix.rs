@@ -351,9 +351,24 @@ fn reap_child(shared: Arc<Shared>) {
     }
 }
 
+/// Chunks one live reader pass may read before it checks the child's
+/// lifecycle. A writing child can keep the master readable indefinitely, so a
+/// pass must end on its own.
+const LIVE_DRAIN_CHUNKS: usize = 16;
+
+/// Chunks read once after the child has exited: 1 MiB. Sized to cover the
+/// output a PTY pair keeps unread when its leader exits. That is a sizing
+/// choice, not a kernel guarantee. A background child that keeps the slave
+/// open cannot extend the reader past this budget.
+const POST_EXIT_DRAIN_CHUNKS: usize = 128;
+
 enum DrainResult {
+    /// The master had no readable output at this moment.
     Drained,
+    /// The master reached end-of-file or the consumer stopped reading.
     Finished,
+    /// The pass read its whole chunk budget before the master emptied.
+    BudgetSpent,
 }
 
 enum SendOutcome {
@@ -391,8 +406,9 @@ fn drain_output(
     master: &mut File,
     sender: &SyncSender<PtyEvent>,
     shared: &Shared,
+    max_chunks: usize,
 ) -> Result<DrainResult, Failure> {
-    loop {
+    for _ in 0..max_chunks {
         // A blocked send owns this buffer; no second full-size output buffer
         // remains in the reader while queue capacity is exhausted.
         let mut buffer = vec![0u8; OUTPUT_CHUNK_BYTES];
@@ -410,7 +426,7 @@ fn drain_output(
                     return Ok(DrainResult::Finished);
                 }
             }
-            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
             Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                 return Ok(DrainResult::Drained);
             }
@@ -424,6 +440,18 @@ fn drain_output(
             }
         }
     }
+    Ok(DrainResult::BudgetSpent)
+}
+
+fn child_ended(shared: &Shared) -> bool {
+    let process = process_lock(shared);
+    process.exit.is_some() || process.wait_failure.is_some()
+}
+
+/// Reports a reader failure as soon as the reader sees it, while the child may
+/// still be running. The failure never waits for the child's exit.
+fn report_read_failure(sender: &SyncSender<PtyEvent>, shared: &Shared, failure: Failure) {
+    let _ = send_output(sender, shared, PtyEvent::Failure(failure));
 }
 
 fn read_output(
@@ -432,27 +460,25 @@ fn read_output(
     sender: SyncSender<PtyEvent>,
     shared: Arc<Shared>,
 ) {
-    let mut read_failure = None;
     loop {
-        match drain_output(&mut master, &sender, &shared) {
-            Ok(DrainResult::Drained) => {}
+        match drain_output(&mut master, &sender, &shared, LIVE_DRAIN_CHUNKS) {
+            Ok(DrainResult::Drained | DrainResult::BudgetSpent) => {}
             Ok(DrainResult::Finished) => break,
             Err(failure) => {
-                read_failure = Some(failure);
+                report_read_failure(&sender, &shared, failure);
                 break;
             }
         }
 
-        let process_ended = {
-            let process = process_lock(&shared);
-            process.exit.is_some() || process.wait_failure.is_some()
-        };
-        if process_ended {
-            // The leader may have exited after the prior read reached WouldBlock.
-            // Drain once more before reporting its result, without waiting for
-            // descendants that still hold the slave descriptor.
-            if let Err(failure) = drain_output(&mut master, &sender, &shared) {
-                read_failure = Some(failure);
+        if child_ended(&shared) {
+            // The leader may have exited after the last pass ran out of budget
+            // or reached WouldBlock. Deliver what the PTY already holds, up to
+            // a fixed budget, without waiting for descendants that still hold
+            // the slave.
+            if let Err(failure) =
+                drain_output(&mut master, &sender, &shared, POST_EXIT_DRAIN_CHUNKS)
+            {
+                report_read_failure(&sender, &shared, failure);
             }
             break;
         }
@@ -461,9 +487,13 @@ fn read_output(
         match poll(&mut descriptors, Some(&OUTPUT_POLL_TIMEOUT)) {
             Ok(_) | Err(Errno::INTR) => {}
             Err(errno) => {
-                read_failure = Some(Failure::ReadOutput {
-                    raw_os_error: Some(errno.raw_os_error()),
-                });
+                report_read_failure(
+                    &sender,
+                    &shared,
+                    Failure::ReadOutput {
+                        raw_os_error: Some(errno.raw_os_error()),
+                    },
+                );
                 break;
             }
         }
@@ -485,9 +515,6 @@ fn read_output(
     let wait_failure = process.wait_failure;
     drop(process);
 
-    if let Some(failure) = read_failure {
-        let _ = sender.send(PtyEvent::Failure(failure));
-    }
     if let Some(failure) = wait_failure {
         let _ = sender.send(PtyEvent::Failure(failure));
     }
@@ -805,6 +832,92 @@ mod tests {
             matches!(outcome, SendOutcome::Stop),
             "closing the session stops a send blocked on a full queue"
         );
+    }
+
+    #[test]
+    fn a_read_failure_is_reported_before_the_child_exits() {
+        // A write-only descriptor fails the reader's first read with EBADF
+        // while the child is still running.
+        let master = File::options()
+            .write(true)
+            .open("/dev/null")
+            .expect("a write-only descriptor opens");
+        let held_slave = File::open("/dev/null").expect("a placeholder descriptor opens");
+        let shared = Arc::new(Shared {
+            process: Mutex::new(Process {
+                process_group: rustix::process::getpid(),
+                exit: None,
+                wait_failure: None,
+                closing: false,
+                closed: false,
+            }),
+            control_master: Mutex::new(None),
+            changed: Condvar::new(),
+        });
+        let (sender, receiver) = sync_channel(OUTPUT_QUEUE_CAPACITY);
+
+        let reader_shared = shared.clone();
+        let reader = thread::spawn(move || read_output(master, held_slave, sender, reader_shared));
+
+        let event = receiver
+            .recv_timeout(Duration::from_secs(5))
+            .expect("the read failure is reported while the child still runs");
+        assert_eq!(
+            event,
+            PtyEvent::Failure(Failure::ReadOutput {
+                raw_os_error: Some(Errno::BADF.raw_os_error()),
+            })
+        );
+
+        {
+            let mut process = process_lock(&shared);
+            process.exit = Some(ExitResult::Code(0));
+            shared.changed.notify_all();
+        }
+        reader.join().expect("the reader finishes after the exit");
+        assert_eq!(
+            receiver.recv(),
+            Ok(PtyEvent::Exit(ExitResult::Code(0))),
+            "the exit follows the failure"
+        );
+    }
+
+    #[test]
+    fn a_writing_descendant_cannot_withhold_the_exit_after_the_leader_exits() {
+        // `/dev/zero` stands in for a master that a background child keeps
+        // readable: every read returns data, so the drain never reaches
+        // `WouldBlock` or end-of-file while the leader has already exited.
+        let master = File::open("/dev/zero").expect("the zero device opens");
+        let held_slave = File::open("/dev/null").expect("a placeholder descriptor opens");
+        let shared = Arc::new(Shared {
+            process: Mutex::new(Process {
+                process_group: rustix::process::getpid(),
+                exit: Some(ExitResult::Code(0)),
+                wait_failure: None,
+                closing: false,
+                closed: false,
+            }),
+            control_master: Mutex::new(None),
+            changed: Condvar::new(),
+        });
+        let (sender, receiver) = sync_channel(OUTPUT_QUEUE_CAPACITY);
+
+        let reader_shared = shared.clone();
+        let reader = thread::spawn(move || read_output(master, held_slave, sender, reader_shared));
+
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            match receiver.recv_timeout(remaining) {
+                Ok(PtyEvent::Output(_)) => {}
+                Ok(event) => {
+                    assert_eq!(event, PtyEvent::Exit(ExitResult::Code(0)));
+                    break;
+                }
+                Err(error) => panic!("the exit was withheld by a writing descendant: {error}"),
+            }
+        }
+        reader.join().expect("the reader finishes after the exit");
     }
 
     #[test]

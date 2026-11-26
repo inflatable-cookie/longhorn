@@ -3,7 +3,7 @@
 Status: active compiled boundary
 Owner: Longhorn
 Tier: core
-Updated: 2026-11-25
+Updated: 2026-11-26
 
 ## Boundary
 
@@ -71,10 +71,12 @@ until close finishes, preserving the group identity through escalation. After
 the fixed 300 ms grace period, Longhorn probes the group and sends `SIGKILL` if
 it remains, marks the session closed, and allows the reaper to record the
 direct child's final status. When the receiver queue is not full, the
-nonblocking output reader drains currently readable bytes after the leader is
-reaped, then sends the one exit result. A descendant that keeps the slave open
-cannot prevent that result; output written after the direct child exits is not
-delivered.
+nonblocking output reader drains the bytes readable after the leader is reaped,
+reading at most 1 MiB, then sends the one exit result. A descendant that keeps
+the slave open cannot prevent that result: output past that budget, including a
+descendant's writes, is not delivered. While the leader runs, the reader works
+in passes of at most 16 chunks and checks the child's state between passes, so a
+writing descendant cannot hold the reader in one drain.
 
 A group that is already gone counts as closed, and so does a group that holds
 only zombies. `ESRCH` always means gone. macOS and BSDs answer `EPERM` for a
@@ -91,6 +93,10 @@ reported as closed.
 If `waitpid` fails before a status is available, the reader sends the
 classified `Failure::Wait` and no exit result is available. The session is
 ended for further operations and no later signal is sent.
+
+A read failure (`Failure::ReadOutput`) is sent when the reader sees it, while
+the child may still run. The reader then stops reading, and the exit result
+still follows the child's reap.
 
 ## Output bound and back-pressure
 
@@ -206,8 +212,10 @@ Open:
 The public-API integration suite starts real `/bin/sh` and system utility
 children. It covers output order, stdin, controlling-terminal access, resize,
 exact environment, code and signal exits, 300 ms close escalation, a same-group
-grandchild, ended operations, independent sessions, a slow consumer, and the
-working directory. A final stress test shares the same binary, so under
+grandchild, ended operations, independent sessions, a slow consumer, a natural exit beside a writing
+background child, the leader's full output after its exit, and the working
+directory. Unit tests cover the immediate read-failure report and a writing
+descendant against an exited leader. A final stress test shares the same binary, so under
 `cargo test` it runs as one more thread in the same process: many sessions
 at once, each asserting its own exit and its own output marker under churn,
 synchronized open bursts, fork-and-exec storms, and close escalations. The
