@@ -208,7 +208,8 @@ agent can use while the app runs unfocused in the background.
   behavior. An active server alone must not capture a human picker. A panel
   already open cannot be answered retroactively. Consumers opt in at their
   picker call sites; Longhorn does not patch the plugin globally. The renderer
-  builds the `begin_selection` payload against the generated Rust bindings.
+  builds the `begin_selection` payload against bindings generated from
+  `longhorn_agent_control::BeginSelectionArgs`.
   Begin and settlement failures reject IPC with a `ToolError` JSON object.
   The Rust entry point returns the same error as a typed value. Failure to
   allocate a request id returns `hostFailure`.

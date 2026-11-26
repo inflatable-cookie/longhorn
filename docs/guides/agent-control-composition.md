@@ -299,7 +299,9 @@ fn export_backup(app: tauri::AppHandle) -> Result<(), String> {
 ```
 
 After, the same command keeps its dialog options and result handling.
-The only addition is the origin token and one match on the host entry.
+The command adds the origin token and a match on the host entry. Add
+`longhorn-agent-control` from the same Longhorn version as an optional
+dependency enabled by the app's `agent-control` feature for `BeginSelectionArgs`.
 Take `origin: Option<SelectionOrigin>` and `unwrap_or_default()`: a
 missing invoke key is human. `#[serde(default)]` on a command parameter
 does not compile. A required `SelectionOrigin` argument rejects the
@@ -317,7 +319,7 @@ async fn export_backup(
         origin.unwrap_or_default(),
         &webview,
         &registry,
-        longhorn_tauri_agent_control::BeginSelectionArgs {
+        longhorn_agent_control::BeginSelectionArgs {
             kind: longhorn_tauri_agent_control::SelectionKind::Save,
             directory: false,
             multiple: false,

@@ -1,0 +1,1 @@
+Use `longhorn_agent_control::BeginSelectionArgs` in place of `longhorn_tauri_agent_control::BeginSelectionArgs`. Add a direct dependency on the matching `longhorn-agent-control` version if your app previously depended only on the Tauri adapter.

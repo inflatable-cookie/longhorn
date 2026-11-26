@@ -12,9 +12,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use longhorn_agent_control::BeginSelectionArgs;
 use longhorn_tauri_agent_control::{
-    BeginSelectionArgs, HostSelection, PendingSelection, SelectionKind, SelectionOrigin,
-    SelectionRegistry, ToolError, begin_host_selection,
+    HostSelection, PendingSelection, SelectionKind, SelectionOrigin, SelectionRegistry, ToolError,
+    begin_host_selection,
 };
 use serde_json::{Value, json};
 use tauri::{

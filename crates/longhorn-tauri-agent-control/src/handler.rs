@@ -25,13 +25,17 @@ use longhorn_agent_control::{
     PressRequest, ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest,
     SetFileInputRequest, SnapshotRequest, SnapshotResult, ToolError, TypeRequest,
     ValidatedSetFileInputRequest, WaitForRequest, WaitForResult, WebviewLabel, WebviewTarget,
-    WindowInfo, WindowTarget,
+    WindowTarget,
 };
-use longhorn_core::{ClientSize, WindowId};
+use longhorn_core::WindowId;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime, Webview, Window};
 
 use crate::{bridge::CommandBridge, shim};
+
+mod window_ops;
+
+use window_ops::{window_focused, window_info};
 
 /// Host authority for the control surface, backed by the Tauri app handle.
 pub struct TauriControlHandler<R: Runtime> {
@@ -87,12 +91,6 @@ fn ui_webview<R: Runtime>(window: &Window<R>) -> Option<Webview<R>> {
         .webviews()
         .into_iter()
         .find(|webview| webview.label() == window.label())
-}
-
-fn window_focused<R: Runtime>(label: &str, window: &Window<R>) -> Result<bool, ToolError> {
-    window.is_focused().map_err(|error| ToolError::HostFailure {
-        message: format!("window {label:?} focus read failed: {error}"),
-    })
 }
 
 impl<R: Runtime> TauriControlHandler<R> {
@@ -197,38 +195,6 @@ impl<R: Runtime> TauriControlHandler<R> {
                 Ok((window, live.clone()))
             }
         }
-    }
-
-    /// Reads one window's [`WindowInfo`].
-    fn window_info(label: &str, window: &Window<R>) -> Result<WindowInfo, ToolError> {
-        let id = WindowId::new(label.to_owned()).map_err(|error| ToolError::HostFailure {
-            message: format!("window label {label:?} is not a valid window id: {error}"),
-        })?;
-        let title = window.title().map_err(|error| ToolError::HostFailure {
-            message: format!("window {label:?} title read failed: {error}"),
-        })?;
-        let scale = window
-            .scale_factor()
-            .map_err(|error| ToolError::HostFailure {
-                message: format!("window {label:?} scale factor read failed: {error}"),
-            })?;
-        let physical = window
-            .inner_size()
-            .map_err(|error| ToolError::HostFailure {
-                message: format!("window {label:?} size read failed: {error}"),
-            })?;
-        let logical = physical.to_logical::<f64>(scale);
-        let size = ClientSize::new(logical.width, logical.height).map_err(|error| {
-            ToolError::HostFailure {
-                message: format!("window {label:?} reported an invalid client size: {error}"),
-            }
-        })?;
-        Ok(WindowInfo {
-            window: id,
-            title,
-            size,
-            focused: window_focused(label, window)?,
-        })
     }
 
     /// Resolves a semantic/input target: window as today, then an optional
@@ -487,7 +453,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         let windows = self
             .windows()
             .iter()
-            .map(|(label, live)| Self::window_info(label, &live.window))
+            .map(|(label, live)| window_info(label, &live.window))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(ListWindowsResult { windows })
     }
@@ -497,15 +463,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         request: ResizeWindowRequest,
     ) -> Result<ActionReceipt, ToolError> {
         let (_, live) = self.resolve_window(&Some(request.window.clone()))?;
-        live.window
-            .set_size(tauri::Size::Logical(tauri::LogicalSize::new(
-                request.size.width().get(),
-                request.size.height().get(),
-            )))
-            .map_err(|error| ToolError::HostFailure {
-                message: format!("window {:?} resize failed: {error}", request.window),
-            })?;
-        Ok(ActionReceipt {})
+        window_ops::resize_window(&request, &live.window)
     }
 }
 

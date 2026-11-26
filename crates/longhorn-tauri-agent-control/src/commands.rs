@@ -7,10 +7,9 @@
 //! [`HostSelection::UsePlugin`] and publishes nothing. There is no native
 //! fallback on the agent path.
 
-pub use longhorn_agent_control::BeginSelectionArgs;
 use longhorn_agent_control::{
-    BeginSelectionError, BeginSelectionRequest, SelectionRegistry, SelectionWait, ToolError,
-    plugin_result,
+    BeginSelectionArgs, BeginSelectionError, BeginSelectionRequest, SelectionRegistry,
+    SelectionWait, ToolError, plugin_result,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
