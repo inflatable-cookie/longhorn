@@ -415,7 +415,10 @@ fn disjoint_strong_identity_cannot_take_over_through_reused_adapter_id() {
     ));
     assert_eq!(result.matches()[0].display_id().as_str(), "display:new");
     // The known identity keeps only its own UUID: no merge of the stranger.
-    let retained = result.registry().get(&DisplayId::new("display:known").unwrap()).unwrap();
+    let retained = result
+        .registry()
+        .get(&DisplayId::new("display:known").unwrap())
+        .unwrap();
     assert_eq!(
         retained.evidence().strong_keys().iter().collect::<Vec<_>>(),
         vec![&strong("gpui", "uuid:aaa")]
@@ -480,8 +483,7 @@ fn second_monitor_with_reused_adapter_id_allocates_beside_the_known_one() {
     );
     let mut allocator = QueueAllocator::new(["display:new"]);
 
-    let result =
-        reconcile_displays(&known_displays, [same, other], &mut allocator).unwrap();
+    let result = reconcile_displays(&known_displays, [same, other], &mut allocator).unwrap();
 
     assert_eq!(allocator.calls.len(), 1);
     assert_eq!(result.registry().len(), 2);
@@ -523,12 +525,24 @@ fn retained_adapter_and_weak_evidence_follow_the_latest_observation() {
     let result = reconcile_displays(&known_displays, [observation], &mut allocator).unwrap();
 
     assert!(allocator.calls.is_empty());
-    let retained = result.registry().get(&DisplayId::new("display:known").unwrap()).unwrap();
+    let retained = result
+        .registry()
+        .get(&DisplayId::new("display:known").unwrap())
+        .unwrap();
     // Strong identity accumulates non-conflicting aliases; the current
     // attachment description replaces the stale one instead of growing.
-    assert!(retained.evidence().strong_keys().contains(&strong("gpui", "uuid:aaa")));
+    assert!(
+        retained
+            .evidence()
+            .strong_keys()
+            .contains(&strong("gpui", "uuid:aaa"))
+    );
     assert_eq!(
-        retained.evidence().adapter_keys().iter().collect::<Vec<_>>(),
+        retained
+            .evidence()
+            .adapter_keys()
+            .iter()
+            .collect::<Vec<_>>(),
         vec![&adapter("gpui", "id:current")]
     );
     assert_eq!(
