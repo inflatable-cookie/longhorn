@@ -15,7 +15,7 @@ pub use adapter::{
     ChildViewNavigationOutcome, ChildViewNavigationReceipt, ChildViewTeardownOutcome,
     ChildViewTeardownReceipt,
 };
-pub use error::ChildViewError;
+pub use error::{ChildViewError, ChildViewNativeOperation};
 pub use policy::{
     CHILD_VIEW_CAPABILITIES, ChildViewLabel, ChildViewPolicyEvent, ChildViewPolicyHooks,
     ChildViewSpec,

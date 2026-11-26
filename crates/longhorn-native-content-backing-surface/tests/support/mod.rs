@@ -11,8 +11,8 @@ use longhorn_native_content::{
 use longhorn_native_content_backing_surface::{
     BACKING_SURFACE_CAPABILITIES, BackingSurfaceAdapter, BackingSurfaceAdapterEvent,
     BackingSurfaceError, BackingSurfaceRuntime, BackingSurfaceRuntimeEvent,
-    BackingSurfaceRuntimeEventKind, BackingSurfaceSnapshot, BackingSurfaceSpec,
-    RuntimeAttachRequest,
+    BackingSurfaceRuntimeEventKind, BackingSurfaceRuntimeOperation, BackingSurfaceSnapshot,
+    BackingSurfaceSpec, RuntimeAttachRequest,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,7 +127,10 @@ impl FakeRuntime {
     ) -> Result<BackingSurfaceSnapshot, BackingSurfaceError> {
         let mut state = self.state.lock().unwrap();
         if state.attached_handle != Some(*handle) {
-            return Err(runtime_error("handle"));
+            return Err(BackingSurfaceError::Runtime {
+                operation: BackingSurfaceRuntimeOperation::Other,
+                detail: "handle mismatch".into(),
+            });
         }
         state.calls.push(call);
         change(&mut state.snapshot);
@@ -188,7 +191,7 @@ impl BackingSurfaceRuntime for FakeRuntime {
                     handle: *handle,
                     clip,
                 });
-                return Err(runtime_error("clip"));
+                return Err(runtime_error(BackingSurfaceRuntimeOperation::Clip));
             }
         }
         self.mutate(
@@ -237,7 +240,7 @@ impl BackingSurfaceRuntime for FakeRuntime {
     ) -> Result<BackingSurfaceSnapshot, BackingSurfaceError> {
         let mut state = self.state.lock().unwrap();
         if state.attached_handle != Some(*handle) {
-            return Err(runtime_error("observe"));
+            return Err(runtime_error(BackingSurfaceRuntimeOperation::Observe));
         }
         state.calls.push(Call::Observe(*handle));
         Ok(state.snapshot.clone())
@@ -248,7 +251,7 @@ impl BackingSurfaceRuntime for FakeRuntime {
         state.calls.push(Call::Detach(*handle));
         if state.detach_failures > 0 {
             state.detach_failures -= 1;
-            return Err(runtime_error("detach"));
+            return Err(runtime_error(BackingSurfaceRuntimeOperation::Detach));
         }
         if state.attached_handle != Some(*handle) {
             return Err(BackingSurfaceError::NotAttached);
@@ -368,7 +371,7 @@ pub(crate) fn host_window_id() -> WindowId {
     WindowId::new("window:backing-proof").unwrap()
 }
 
-pub(crate) fn runtime_error(operation: &'static str) -> BackingSurfaceError {
+pub(crate) fn runtime_error(operation: BackingSurfaceRuntimeOperation) -> BackingSurfaceError {
     BackingSurfaceError::Runtime {
         operation,
         detail: "injected failure".into(),

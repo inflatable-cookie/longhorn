@@ -2,6 +2,8 @@ use std::{error::Error, fmt};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
+use crate::{PhysicalSize, ScaleFactor};
+
 /// Finite window-content coordinate in logical (device-independent) pixels.
 ///
 /// Host-neutral. A webview calls these CSS pixels and GPUI calls them
@@ -108,6 +110,18 @@ impl ClientSize {
         Ok(Self { width, height })
     }
 
+    /// Converts a physical content size to logical pixels without integer rounding.
+    #[must_use]
+    pub fn from_physical(size: PhysicalSize, scale: ScaleFactor) -> Self {
+        let scale = f64::from(scale.thousandths());
+        // Unsigned extents and a positive scale produce finite, non-negative values.
+        let logical_extent = |extent: u32| ClientLogicalPx(f64::from(extent) * 1000.0 / scale);
+        Self {
+            width: logical_extent(size.width()),
+            height: logical_extent(size.height()),
+        }
+    }
+
     /// Returns the width.
     #[must_use]
     pub const fn width(self) -> ClientLogicalPx {
@@ -202,6 +216,18 @@ mod tests {
             Err(ClientGeometryError::NegativeExtent)
         );
         assert!(serde_json::from_str::<ClientSize>(r#"{"width":-1,"height":2}"#).is_err());
+    }
+
+    #[test]
+    fn physical_size_conversion_handles_extreme_extents_and_preserves_fractions() {
+        let smallest_scale = ScaleFactor::from_thousandths(1).unwrap();
+        let largest = ClientSize::from_physical(PhysicalSize::new(0, u32::MAX), smallest_scale);
+        assert_eq!(largest.width().get(), 0.0);
+        assert_eq!(largest.height().get(), 4_294_967_295_000.0);
+
+        let fractional_scale = ScaleFactor::from_thousandths(1250).unwrap();
+        let fractional = ClientSize::from_physical(PhysicalSize::new(2, 3), fractional_scale);
+        assert_eq!(fractional, ClientSize::new(1.6, 2.4).unwrap());
     }
 
     #[test]

@@ -19,9 +19,10 @@ use longhorn_native_content::{
 };
 use longhorn_tauri_native_content_child_view::{
     CHILD_VIEW_CAPABILITIES, ChildViewAdapter, ChildViewAdapterEvent, ChildViewError,
-    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewNavigationOutcome, ChildViewPolicyHooks,
-    ChildViewRuntime, ChildViewRuntimeEvent, ChildViewRuntimeEventKind, ChildViewSource,
-    ChildViewSpec, ChildViewTeardownOutcome, RuntimeAttachRequest,
+    ChildViewHostDestroyOutcome, ChildViewLabel, ChildViewNativeOperation,
+    ChildViewNavigationOutcome, ChildViewPolicyHooks, ChildViewRuntime, ChildViewRuntimeEvent,
+    ChildViewRuntimeEventKind, ChildViewSource, ChildViewSpec, ChildViewTeardownOutcome,
+    RuntimeAttachRequest,
 };
 use tauri::Url;
 
@@ -145,7 +146,7 @@ impl ChildViewRuntime for FakeRuntime {
             bounds,
         });
         if state.fail_bounds {
-            return Err(native_error("bounds"));
+            return Err(native_error(ChildViewNativeOperation::Bounds));
         }
         state.bounds.insert(*handle, bounds);
         Ok(())
@@ -182,13 +183,13 @@ impl ChildViewRuntime for FakeRuntime {
         let mut state = self.state.lock().unwrap();
         state.calls.push(NativeCall::CurrentUrl { handle: *handle });
         if state.fail_current_url {
-            return Err(native_error("current-url"));
+            return Err(native_error(ChildViewNativeOperation::CurrentUrl));
         }
         state
             .urls
             .get(handle)
             .cloned()
-            .ok_or_else(|| native_error("current-url"))
+            .ok_or_else(|| native_error(ChildViewNativeOperation::CurrentUrl))
     }
 
     fn navigate(&self, handle: &Self::Handle, url: Url) -> Result<(), ChildViewError> {
@@ -198,7 +199,7 @@ impl ChildViewRuntime for FakeRuntime {
             url: url.to_string(),
         });
         if state.fail_navigate {
-            return Err(native_error("navigate"));
+            return Err(native_error(ChildViewNativeOperation::Navigate));
         }
         state.urls.insert(*handle, url);
         Ok(())
@@ -209,7 +210,7 @@ impl ChildViewRuntime for FakeRuntime {
         state.calls.push(NativeCall::Close { handle: *handle });
         if state.fail_close_once {
             state.fail_close_once = false;
-            return Err(native_error("close"));
+            return Err(native_error(ChildViewNativeOperation::Close));
         }
         Ok(())
     }
@@ -221,11 +222,11 @@ impl ChildViewRuntime for FakeRuntime {
             .bounds
             .get(handle)
             .copied()
-            .ok_or_else(|| native_error("observe"))
+            .ok_or_else(|| native_error(ChildViewNativeOperation::Observe))
     }
 }
 
-fn native_error(operation: &'static str) -> ChildViewError {
+fn native_error(operation: ChildViewNativeOperation) -> ChildViewError {
     ChildViewError::Native {
         operation,
         detail: "injected failure".into(),
@@ -628,7 +629,7 @@ fn denied_stale_and_native_navigation_failures_preserve_attachment() {
             Url::parse("http://127.0.0.1:43119/observe-failure").unwrap()
         ),
         Err(ChildViewError::Native {
-            operation: "current-url",
+            operation: ChildViewNativeOperation::CurrentUrl,
             ..
         })
     ));
@@ -640,7 +641,7 @@ fn denied_stale_and_native_navigation_failures_preserve_attachment() {
             Url::parse("http://127.0.0.1:43119/native-failure").unwrap()
         ),
         Err(ChildViewError::Native {
-            operation: "navigate",
+            operation: ChildViewNativeOperation::Navigate,
             ..
         })
     ));
@@ -813,7 +814,7 @@ fn teardown_preserves_failed_close_for_retry_then_becomes_idempotent() {
     assert!(matches!(
         adapter.teardown(),
         Err(ChildViewError::Native {
-            operation: "close",
+            operation: ChildViewNativeOperation::Close,
             ..
         })
     ));

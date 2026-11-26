@@ -176,10 +176,9 @@ pub enum HelperMessageKind {
     Acknowledged {
         /// Correlated command identity.
         request_id: NativeContentRequestId,
-        /// Whether the command completed successfully.
-        applied: bool,
-        /// Stable failure evidence when rejected.
-        failure: Option<NativeContentFailureCode>,
+        /// Whether the command completed or was rejected.
+        #[serde(flatten)]
+        outcome: HelperAcknowledgementOutcome,
         /// Fresh state after the command when available.
         snapshot: Option<HelperSnapshot>,
     },
@@ -200,6 +199,55 @@ pub enum HelperMessageKind {
     },
     /// Cooperative owner teardown completed.
     TeardownCompleted,
+}
+
+/// Outcome of a helper command. Only a rejected command can carry a failure code.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(
+    try_from = "WireAcknowledgementOutcome",
+    into = "WireAcknowledgementOutcome"
+)]
+pub enum HelperAcknowledgementOutcome {
+    /// The command completed successfully.
+    Applied,
+    /// The command was rejected.
+    Rejected {
+        /// Stable failure evidence when available.
+        failure: Option<NativeContentFailureCode>,
+    },
+}
+
+#[derive(Deserialize, Serialize)]
+struct WireAcknowledgementOutcome {
+    applied: bool,
+    failure: Option<NativeContentFailureCode>,
+}
+
+impl TryFrom<WireAcknowledgementOutcome> for HelperAcknowledgementOutcome {
+    type Error = &'static str;
+
+    fn try_from(wire: WireAcknowledgementOutcome) -> Result<Self, Self::Error> {
+        match (wire.applied, wire.failure) {
+            (true, None) => Ok(Self::Applied),
+            (true, Some(_)) => Err("a successful helper acknowledgement cannot carry a failure"),
+            (false, failure) => Ok(Self::Rejected { failure }),
+        }
+    }
+}
+
+impl From<HelperAcknowledgementOutcome> for WireAcknowledgementOutcome {
+    fn from(outcome: HelperAcknowledgementOutcome) -> Self {
+        match outcome {
+            HelperAcknowledgementOutcome::Applied => Self {
+                applied: true,
+                failure: None,
+            },
+            HelperAcknowledgementOutcome::Rejected { failure } => Self {
+                applied: false,
+                failure,
+            },
+        }
+    }
 }
 
 /// Fresh observable isolated content state.

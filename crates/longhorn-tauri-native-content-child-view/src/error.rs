@@ -5,6 +5,48 @@ use longhorn_native_content::{
 };
 use tauri::Url;
 
+/// Operation category for a child-view native failure.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ChildViewNativeOperation {
+    /// Create and attach the child view.
+    Attach,
+    /// Update the native child bounds.
+    Bounds,
+    /// Show the child view.
+    Show,
+    /// Hide the child view.
+    Hide,
+    /// Request focus for the child view.
+    Focus,
+    /// Read the current child URL.
+    CurrentUrl,
+    /// Navigate the child view.
+    Navigate,
+    /// Close the child view.
+    Close,
+    /// Read the current child view state.
+    Observe,
+    /// Report a runtime-specific operation with its label in the detail.
+    Other,
+}
+
+impl fmt::Display for ChildViewNativeOperation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Attach => "attach",
+            Self::Bounds => "bounds",
+            Self::Show => "show",
+            Self::Hide => "hide",
+            Self::Focus => "focus",
+            Self::CurrentUrl => "current-url",
+            Self::Navigate => "navigate",
+            Self::Close => "close",
+            Self::Observe => "observe",
+            Self::Other => "other",
+        })
+    }
+}
+
 /// Failure from child-view validation, runtime execution, or receipt admission.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ChildViewError {
@@ -65,7 +107,7 @@ pub enum ChildViewError {
     /// A native runtime call failed.
     Native {
         /// Stable operation category.
-        operation: &'static str,
+        operation: ChildViewNativeOperation,
         /// Adapter-local diagnostic detail.
         detail: String,
     },
@@ -99,17 +141,17 @@ impl ChildViewError {
             Self::UnsupportedFocusRelease => "child:focus-release",
             Self::UnsupportedDetachPolicy => "child:detach-policy",
             Self::UnsupportedDataStorePolicy => "child:data-store-policy",
-            Self::Native { operation, .. } => match *operation {
-                "attach" => "child:attach-failed",
-                "bounds" => "child:bounds-failed",
-                "show" => "child:show-failed",
-                "hide" => "child:hide-failed",
-                "focus" => "child:focus-failed",
-                "current-url" => "child:url-observation-failed",
-                "navigate" => "child:navigate-failed",
-                "close" => "child:close-failed",
-                "observe" => "child:observe-failed",
-                _ => "child:native-failed",
+            Self::Native { operation, .. } => match operation {
+                ChildViewNativeOperation::Attach => "child:attach-failed",
+                ChildViewNativeOperation::Bounds => "child:bounds-failed",
+                ChildViewNativeOperation::Show => "child:show-failed",
+                ChildViewNativeOperation::Hide => "child:hide-failed",
+                ChildViewNativeOperation::Focus => "child:focus-failed",
+                ChildViewNativeOperation::CurrentUrl => "child:url-observation-failed",
+                ChildViewNativeOperation::Navigate => "child:navigate-failed",
+                ChildViewNativeOperation::Close => "child:close-failed",
+                ChildViewNativeOperation::Observe => "child:observe-failed",
+                ChildViewNativeOperation::Other => "child:native-failed",
             },
             Self::Receipt(_) => "child:receipt-rejected",
             Self::Poisoned => "child:poisoned",
