@@ -566,6 +566,38 @@ fn a_signed_hard_link_to_a_missing_member_is_malformed_not_retryable() {
 
 #[test]
 #[cfg(unix)]
+fn a_signed_hard_link_through_a_file_is_malformed_not_retryable() {
+    let mut builder = gzip_builder();
+    let mut header = tar::Header::new_gnu();
+    header.set_size(3);
+    header.set_mode(0o644);
+    header.set_cksum();
+    builder
+        .append_data(&mut header, "Example.app/Contents/marker", &b"new"[..])
+        .unwrap();
+    append_link(
+        &mut builder,
+        tar::EntryType::Link,
+        "Example.app/alias",
+        "Example.app/Contents/marker/child",
+    );
+    let bytes = finish(builder);
+    let fixture = Fixture::new();
+    let signature = sign(&fixture.fixtures.pair, &bytes);
+
+    let outcome = fixture
+        .installer()
+        .apply(&verified(&fixture, bytes, &signature));
+
+    assert!(
+        matches!(outcome, Err(InstallFailure::MalformedArtifact { .. })),
+        "expected a malformed-artifact refusal, found {outcome:?}"
+    );
+    assert_eq!(fixture.marker(), "old");
+}
+
+#[test]
+#[cfg(unix)]
 fn a_signed_hard_link_to_a_written_member_installs() {
     // The refusal above must not turn legitimate hard links into malformed
     // archives: a link to a member the archive does contain is part of a

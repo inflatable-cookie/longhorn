@@ -440,7 +440,12 @@ fn unpack_within(
                             ),
                         });
                     }
-                    Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                    Err(error)
+                        if matches!(
+                            error.kind(),
+                            io::ErrorKind::NotFound | io::ErrorKind::NotADirectory
+                        ) =>
+                    {
                         return Err(InstallFailure::MalformedArtifact {
                             detail: format!(
                                 "archive hard link {} names a missing target: {}",
@@ -1140,6 +1145,7 @@ mod tests {
         // Nothing was displaced: the install this apply found is untouched.
         assert!(installer.target().join("0").is_file());
         assert!(locked.join("child").is_file());
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
     }
 
     /// A bundle a failed rollback left for recovery keeps its identity and is
