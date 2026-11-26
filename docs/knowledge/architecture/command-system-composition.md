@@ -150,13 +150,13 @@ failed migration leaves the existing system selected.
 
 ## Artifact Evidence
 
-The `proof:artifacts` aggregate runs the command-system artifact proof, which
+The `proof:artifacts` aggregate runs the command-system artifact proof. It
 packs `@inflatable-cookie/longhorn/core`,
-`@inflatable-cookie/longhorn/settings`, and `@inflatable-cookie/longhorn/commands`, verifies the exact Poodle
-artifact set, and installs clean Jetstream and Loophole consumers. It rejects
-workspace aliases, sibling source resolution, optional-edge drift, duplicate
-Svelte runtimes, capability drift, donor payloads, and generic execution
-buses.
+`@inflatable-cookie/longhorn/settings`, and
+`@inflatable-cookie/longhorn/commands`, verifies the exact Poodle artifact set,
+and installs clean Jetstream and Loophole consumers. It rejects workspace
+aliases, sibling source resolution, optional-edge drift, duplicate Svelte
+runtimes, capability drift, donor payloads, and generic execution buses.
 
 Private Rust crates are inventoried with
 `cargo package --list --allow-dirty`, archived, unpacked into a clean

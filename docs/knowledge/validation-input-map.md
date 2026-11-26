@@ -29,10 +29,9 @@ this distinction.
 
 When `longhorn-bindings` refuses a changed crate as a transitive generator
 input, split the change into three recorded parts instead of planning against
-the refusal (planner ruling, round 4, 2026-11-24): the bindings group on the
-changed fixture and generated paths, the crate's own `test:rust` and
-`lint:rust`, and `effigy check:bindings`. Record all three as one task's
-evidence; none of them replaces the other two.
+the refusal: the bindings group on the changed fixture and generated paths,
+the crate's own `test:rust` and `lint:rust`, and `effigy check:bindings`.
+Record all three as one task's evidence; none of them replaces the other two.
 
 Include old and new paths for moves and the old path for deletions. Inspect
 staged, unstaged and relevant untracked inputs. Use the affected graph to

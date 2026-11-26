@@ -269,11 +269,11 @@ Against the Acowtancy donor at `89c8bf568`:
   failure, truncated back to the pre-append length; a failed truncation
   latches repair-required), a rotation that cannot clear the live file, and timestamps at
   fixed instants including a leap day, a non-leap century, a sub-millisecond
-  carry and pre-epoch time. Level-up round 3 adds a failed intermediate shift
-  (a non-empty directory in a retained slot) that must count as a degraded
-  rotation and keep the line written, identical keys, keys that redaction
-  makes equal and keys that truncation makes equal, each rejected whole, and
-  distinct keys that stay distinct after the bound, still written.
+  carry and pre-epoch time. Additional cases cover a failed intermediate
+  shift (a non-empty directory in a retained slot), which must count as a
+  degraded rotation and keep the line written; identical keys; keys that
+  redaction makes equal and keys that truncation makes equal, each rejected
+  whole; and distinct keys that stay distinct after the bound, still written.
 
 ## Extraction state
 
