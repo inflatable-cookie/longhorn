@@ -10,6 +10,9 @@ use longhorn_update::InstallFailure;
 use crate::classify;
 
 const WORKSPACE_FORMAT: &[u8] = b"Longhorn update install workspace v1\n";
+// Written after the new bundle reaches the target, so a bundle left beside it
+// is the remains of a finished swap rather than a rollback to preserve.
+const PUBLISHED_FORMAT: &[u8] = b"Longhorn update install published v1\n";
 // The reserved prefix has no letters, so a filesystem's case folding cannot
 // turn a permitted target name into a workspace name.
 const WORKSPACE_NAMESPACE: &str = ".--.";
@@ -214,6 +217,7 @@ impl InstallWorkspace {
             root: &self.root,
             bundle: self.root.join("previous"),
             receipt: self.root.join("previous.identity"),
+            published: self.root.join("previous.published"),
         }
     }
 }
@@ -222,6 +226,7 @@ pub(super) struct Backup<'workspace> {
     root: &'workspace Path,
     pub(super) bundle: PathBuf,
     receipt: PathBuf,
+    published: PathBuf,
 }
 
 impl Backup<'_> {
@@ -242,6 +247,9 @@ impl Backup<'_> {
             receipt
                 .persist(&self.receipt)
                 .map_err(|error| classify(&error.error, &self.receipt))?;
+            // The receipt belongs to this displacement. A publication marker
+            // left by an interrupted cleanup describes the previous one.
+            self.clear_published();
         }
         Ok(())
     }
@@ -253,6 +261,14 @@ impl Backup<'_> {
             Err(error) => return Err(classify(&error, &self.bundle)),
         };
         if entry_exists(target)? {
+            // Both entries present means one of two states. The receipt names
+            // the bundle this workspace displaced and the publication marker
+            // says the new bundle reached the target, so cleanup did not
+            // finish and the leftover is reclaimable. Without that marker a
+            // rollback left it here for recovery, and it stays for inspection.
+            if self.is_published() && self.matches(&metadata) {
+                return self.reclaim();
+            }
             return Err(InstallFailure::Failed {
                 detail: format!(
                     "{} already exists. Inspect and move the previous bundle at {} before retrying",
@@ -314,13 +330,88 @@ impl Backup<'_> {
         None
     }
 
-    /// Retire the receipt before reclaiming a displaced bundle, so it cannot
-    /// match a later allocation. Cleanup after publication is best effort.
-    pub(super) fn clear_receipt(&self) -> bool {
-        match fs::remove_file(&self.receipt) {
-            Ok(()) => true,
-            Err(error) => error.kind() == io::ErrorKind::NotFound,
+    /// Retire the receipt and the publication marker together, so neither can
+    /// match a later allocation. Removing these is bookkeeping after the fact:
+    /// a leftover receipt cannot authorize a bundle whose identity differs.
+    pub(super) fn clear_receipt(&self) {
+        let _ = remove_if_present(&self.receipt);
+        self.clear_published();
+    }
+
+    /// Marks that the new bundle reached the target.
+    ///
+    /// Written after publication and before the displaced bundle is removed, so
+    /// an interrupted or failed cleanup leaves a state the next apply can
+    /// identify. Without it, "the target and a bundle are both here" is
+    /// ambiguous: a failed rollback leaves the same two entries, and that
+    /// bundle is somebody's only copy.
+    fn mark_published(&self) -> io::Result<()> {
+        let mut marker = tempfile::NamedTempFile::new_in(self.root)?;
+        marker.write_all(PUBLISHED_FORMAT)?;
+        marker
+            .persist(&self.published)
+            .map_err(|error| error.error)?;
+        Ok(())
+    }
+
+    fn is_published(&self) -> bool {
+        fs::read(&self.published).is_ok_and(|marker| marker == PUBLISHED_FORMAT)
+    }
+
+    fn clear_published(&self) {
+        let _ = remove_if_present(&self.published);
+    }
+
+    /// Retires the displaced bundle after the new one is on disk.
+    ///
+    /// Neither step fails the apply. The new bundle reached the target, and
+    /// contract 018 makes an install that reached disk an applied update:
+    /// reporting [`InstallFailure::Failed`] would say the opposite, keep the
+    /// staged artifact, and have the controller reinstall the same version.
+    /// What a leftover would have cost is already covered — the receipt and the
+    /// publication marker stay until the bundle is gone, so the next apply
+    /// reclaims it instead of refusing to start.
+    pub(super) fn retire(&self) {
+        // A swap that cannot be recorded leaves a state no later apply can
+        // resolve by itself, because the receipt alone cannot tell this
+        // leftover from a bundle a failed rollback kept. That state is the one
+        // the next apply asks a human to inspect; the bundle is still removed
+        // below if it can be.
+        let _ = self.mark_published();
+        if self.remove_bundle().is_ok() {
+            // The marker and the receipt go with the bundle they describe.
+            self.clear_receipt();
         }
+    }
+
+    /// Removes a leftover bundle the receipt and the marker both vouch for.
+    fn reclaim(&self) -> Result<(), InstallFailure> {
+        self.remove_bundle()
+            .map_err(|error| InstallFailure::Failed {
+                detail: format!(
+                    "could not reclaim the previous bundle at {}: {error}",
+                    self.bundle.display(),
+                ),
+            })?;
+        self.clear_receipt();
+        Ok(())
+    }
+
+    fn remove_bundle(&self) -> io::Result<()> {
+        match fs::remove_dir_all(&self.bundle) {
+            Ok(()) => Ok(()),
+            // Already gone: a crash between the removal and the receipt.
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+fn remove_if_present(path: &Path) -> io::Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
     }
 }
 
