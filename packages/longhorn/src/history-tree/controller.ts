@@ -1,3 +1,4 @@
+import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { ForkHistoryClient } from "./client.ts";
 import {
   FORK_HISTORY_PROTOCOL_VERSION,
@@ -17,7 +18,7 @@ import type {
   ForkPathTargetProjection,
   ForkSnapshot,
 } from "./generated/protocol.ts";
-import type { ForkHistoryPort, ForkHistoryUnlisten } from "./ports.ts";
+import type { ForkHistoryPort } from "./ports.ts";
 
 export type ForkHistoryControllerStatus =
   | { readonly kind: "idle" }
@@ -42,12 +43,10 @@ export class ForkHistoryController {
   #path: ForkPathPageSnapshot | undefined;
   #branches: ForkBranchPageSnapshot | undefined;
   #pathTarget: ForkPathTargetProjection = { kind: "default" };
-  #started = false;
-  #lifecycle = 0;
+  readonly #lifecycle = new ControllerLifecycle();
   #load = 0;
   #navigation = 0;
   #pending = false;
-  #unlisten: Array<ForkHistoryUnlisten> = [];
 
   constructor(options: ForkHistoryControllerOptions) {
     this.#client = new ForkHistoryClient(options.port);
@@ -56,7 +55,7 @@ export class ForkHistoryController {
     this.#continuationPageSize = pageSize(options.continuationPageSize ?? 50);
   }
   get status() {
-    return this.#status;
+    return this.#lifecycle.eventFailure ?? this.#status;
   }
   get snapshot() {
     return this.#snapshot;
@@ -84,44 +83,39 @@ export class ForkHistoryController {
     return () => this.#observers.delete(observer);
   }
 
-  async start(): Promise<void> {
-    if (this.#started) {
-      return;
-    }
-    this.#started = true;
-    const lifecycle = ++this.#lifecycle;
-    this.#setStatus({ kind: "loading" });
-    try {
-      const unlisten = await this.#client.listen((event) => this.#changed(event));
-      if (!this.#started || lifecycle !== this.#lifecycle) {
-        await unlisten();
-        return;
-      }
-      this.#unlisten.push(unlisten);
-      await this.refresh();
-    } catch (error) {
-      if (this.#started && lifecycle === this.#lifecycle) {
-        this.#setStatus({ kind: "failed", error });
-      }
-    }
+  start(): Promise<void> {
+    return this.#lifecycle.start({
+      loading: () => this.#setStatus({ kind: "loading" }),
+      connect: async ({ isCurrent, own, reportFailure }) => {
+        const unlisten = await this.#client.listen((event) => {
+          if (isCurrent()) {
+            this.#changed(event);
+          }
+        }, reportFailure);
+        await own(unlisten);
+        if (isCurrent()) {
+          await this.refresh();
+        }
+      },
+      failed: (error) => this.#setStatus({ kind: "failed", error }),
+    });
   }
 
-  async stop(): Promise<void> {
-    this.#started = false;
-    this.#lifecycle += 1;
-    this.#load += 1;
-    this.#navigation += 1;
-    await Promise.allSettled(this.#unlisten.splice(0).map((dispose) => dispose()));
-    this.#snapshot = undefined;
-    this.#path = undefined;
-    this.#branches = undefined;
-    this.#pathTarget = { kind: "default" };
-    this.#pending = false;
-    this.#setStatus({ kind: "idle" });
+  stop(): Promise<void> {
+    return this.#lifecycle.stop(() => {
+      this.#load += 1;
+      this.#navigation += 1;
+      this.#snapshot = undefined;
+      this.#path = undefined;
+      this.#branches = undefined;
+      this.#pathTarget = { kind: "default" };
+      this.#pending = false;
+      this.#setStatus({ kind: "idle" });
+    });
   }
 
   async refresh(): Promise<void> {
-    if (!this.#started) {
+    if (!this.#lifecycle.active) {
       return;
     }
     const load = ++this.#load;
@@ -144,7 +138,7 @@ export class ForkHistoryController {
         if (branches !== undefined && !same(snapshot, branches)) {
           continue;
         }
-        if (this.#started && load === this.#load) {
+        if (this.#lifecycle.active && load === this.#load) {
           this.#install(snapshot, path, branches);
           this.#setStatus({ kind: "ready" });
         }
@@ -152,7 +146,7 @@ export class ForkHistoryController {
       }
       throw new ForkHistoryProjectionGapError();
     } catch (error) {
-      if (this.#started && load === this.#load) {
+      if (this.#lifecycle.active && load === this.#load) {
         this.#setStatus({ kind: "failed", error });
       }
     }
@@ -160,8 +154,13 @@ export class ForkHistoryController {
 
   async loadBranches(offset = 0): Promise<ForkBranchPageSnapshot> {
     const snapshot = this.#required();
+    const lifecycle = this.#lifecycle.revision;
     const value = await this.#client.branches(this.#branchCommand(snapshot, offset));
-    if (!same(snapshot, value)) {
+    if (!this.#lifecycle.isCurrent(lifecycle)) {
+      throw new ForkHistoryLateResultError();
+    }
+    const current = this.#snapshot;
+    if (!same(snapshot, value) || current === undefined || !same(current, value)) {
       throw new ForkHistoryProjectionGapError();
     }
     this.#branches = value;
@@ -321,11 +320,11 @@ export class ForkHistoryController {
         expectedRevision: snapshot.summary.revision,
         target,
       });
-      if (!this.#started || navigation !== this.#navigation) {
+      if (!this.#lifecycle.active || navigation !== this.#navigation) {
         throw new ForkHistoryLateResultError();
       }
       const path = await this.#client.path(this.#pathCommand(result.snapshot, this.#pathTarget));
-      if (!this.#started || navigation !== this.#navigation) {
+      if (!this.#lifecycle.active || navigation !== this.#navigation) {
         throw new ForkHistoryLateResultError();
       }
       if (!same(result.snapshot, path)) {
@@ -336,7 +335,7 @@ export class ForkHistoryController {
         branchOffset === undefined
           ? undefined
           : await this.#client.branches(this.#branchCommand(result.snapshot, branchOffset));
-      if (!this.#started || navigation !== this.#navigation) {
+      if (!this.#lifecycle.active || navigation !== this.#navigation) {
         throw new ForkHistoryLateResultError();
       }
       if (branches !== undefined && !same(result.snapshot, branches)) {
@@ -365,7 +364,7 @@ export class ForkHistoryController {
     } as const;
   }
   #required(): ForkSnapshot {
-    if (!this.#started || this.#snapshot === undefined) {
+    if (!this.#lifecycle.active || this.#snapshot === undefined) {
       throw new ForkHistoryUnavailableError();
     }
     return this.#snapshot;
@@ -401,12 +400,11 @@ export class ForkHistoryController {
     } else if (this.#branches !== undefined && !same(snapshot, this.#branches)) {
       this.#branches = undefined;
     }
-    this.#notify();
   }
   #changed(event: ForkChangedEvent): void {
     const snapshot = this.#snapshot;
     if (
-      !this.#started ||
+      !this.#lifecycle.active ||
       snapshot === undefined ||
       event.authorityEpoch !== snapshot.authorityEpoch ||
       event.historyId !== snapshot.summary.historyId ||

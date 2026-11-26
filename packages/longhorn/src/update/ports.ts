@@ -1,3 +1,4 @@
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import type {
   UpdateApplyCommand,
   UpdateCancelCommand,
@@ -48,6 +49,12 @@ export interface CheckedUpdatePort {
   prepare(command: UpdatePrepareCommand): Promise<UpdateOutcomeProjection>;
   apply(command: UpdateApplyCommand): Promise<UpdateOutcomeProjection>;
   cancel(command: UpdateCancelCommand): Promise<UpdateOutcomeProjection>;
-  listen(listener: (event: UpdateChangedEvent) => void): Promise<UpdateUnlisten>;
-  listenProgress(listener: (event: UpdateProgressEvent) => void): Promise<UpdateUnlisten>;
+  listen(
+    listener: (event: UpdateChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<UpdateUnlisten>;
+  listenProgress(
+    listener: (event: UpdateProgressEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<UpdateUnlisten>;
 }

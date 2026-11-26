@@ -1,3 +1,4 @@
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import type {
   ForkBranchPageCommand,
   ForkBranchPageSnapshot,
@@ -40,6 +41,9 @@ export interface CheckedForkHistoryPort {
   deleteContinuation(command: ForkDeleteContinuationCommand): Promise<ForkDeleteResult>;
   prune(command: ForkPruneCommand): Promise<ForkPruneResult>;
   navigate(command: ForkNavigationCommand): Promise<ForkNavigationResult>;
-  listen?(listener: (event: ForkChangedEvent) => void): Promise<ForkHistoryUnlisten>;
+  listen?(
+    listener: (event: ForkChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<ForkHistoryUnlisten>;
   nextPlanId(): HistoryPlanId;
 }

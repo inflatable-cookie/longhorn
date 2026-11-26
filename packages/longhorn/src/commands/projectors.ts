@@ -44,11 +44,6 @@ export interface CommandSurfaceProjection {
   readonly conflicts: ReadonlyArray<CommandKeymapConflict>;
 }
 
-const AVAILABLE: CommandAvailability = {
-  state: "available",
-  reason: null,
-};
-
 export function joinCommandState(
   catalogue: CommandCatalogueSnapshot,
   keymap: CommandKeymapSnapshot,
@@ -92,39 +87,47 @@ export function projectCommandSurfaces(
   );
   const reverseLookup = new Map<CommandId, ReadonlyArray<CommandShortcutRecord>>();
   const shortcuts: Array<CommandShortcutRecord> = [];
-  for (const command of state.catalogue.commands) {
-    const records = shortcutsForCommand(state.keymap, command.id, platform);
-    reverseLookup.set(command.id, records);
+  const rows = state.catalogue.commands.map((command) => {
+    const { id, label, description, categoryPath, keywords, icon, visibility } = command;
+    const value = availability.get(id);
+    if (value === undefined) {
+      throw new CommandProjectionConsistencyError(`availability is missing command ${id}`);
+    }
+    const records = shortcutsForCommand(state.keymap, id, platform);
+    reverseLookup.set(id, records);
     shortcuts.push(...records);
-  }
-  const project = (record: CommandDiscoveryRecord): CommandProjectionRecord => ({
-    id: record.id,
-    label: record.label,
-    description: record.description,
-    categoryPath: record.categoryPath,
-    keywords: record.keywords,
-    icon: record.icon,
-    availability: availability.get(record.id) ?? AVAILABLE,
-    shortcuts: reverseLookup.get(record.id) ?? [],
+    return {
+      record: {
+        id,
+        label,
+        description,
+        categoryPath,
+        keywords,
+        icon,
+        availability: value,
+        shortcuts: records,
+      },
+      visibility,
+    };
   });
-  const visible = state.catalogue.commands.filter(({ visibility }) => !visibility.hidden);
+  const visible = rows.filter(({ visibility }) => !visibility.hidden);
   return {
     palette: visible
       .filter(({ visibility }) => visibility.palette)
-      .map(project)
+      .map(({ record }) => record)
       .filter(({ availability }) => availability.state !== "hidden"),
     menu: visible
       .filter(({ visibility }) => visibility.menu)
-      .map(project)
+      .map(({ record }) => record)
       .filter(({ availability }) => availability.state !== "hidden"),
     help: visible
       .filter(({ visibility }) => visibility.help)
-      .map(project)
+      .map(({ record }) => record)
       .filter(({ availability }) => availability.state !== "hidden"),
     settings: visible
       .filter(({ visibility }) => visibility.settings)
-      .map((record) => ({
-        ...project(record),
+      .map(({ record }) => ({
+        ...record,
         bindings: state.keymap.bindings.filter(
           ({ invocation }) => invocation.commandId === record.id,
         ),

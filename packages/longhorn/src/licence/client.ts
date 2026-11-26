@@ -1,3 +1,5 @@
+import { listenChecked } from "../core/connection.ts";
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import type {
   LicenceActivateCommand,
   LicenceChangedEvent,
@@ -57,13 +59,15 @@ export class LicenceClient implements CheckedLicencePort {
     assertLicenceOutcome(value);
     return value;
   }
-  async listen(listener: (event: LicenceChangedEvent) => void): Promise<LicenceUnlisten> {
-    if (this.port.listen === undefined) {
-      return () => {};
-    }
-    return this.port.listen((value) => {
-      assertLicenceChangedEvent(value);
-      listener(value);
+  listen(
+    listener: (event: LicenceChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<LicenceUnlisten> {
+    return listenChecked({
+      listen: (receive) => this.port.listen?.(receive) ?? (() => {}),
+      validate: assertLicenceChangedEvent,
+      listener,
+      onFailure,
     });
   }
 }

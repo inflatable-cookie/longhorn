@@ -1,0 +1,1 @@
+Commands, history, and history-tree now reject `stop()` with the first unlisten failure after trying every listener and clearing controller state. Await or catch the returned promise, including during unmount.

@@ -1,3 +1,4 @@
+import { ListenerDisposal } from "./listeners.ts";
 import type { Unlisten } from "./transport.ts";
 
 export type SnapshotEventAction =
@@ -13,6 +14,74 @@ export interface ConnectionFailure {
 }
 
 export type ConnectionFailureReporter = (failure: ConnectionFailure) => void;
+
+interface CheckedListenerOptions<Event> {
+  readonly listen: (listener: (payload: unknown) => void) => Unlisten | Promise<Unlisten>;
+  readonly validate: (payload: unknown) => asserts payload is Event;
+  readonly listener: (event: Event) => void;
+  readonly onFailure?: ConnectionFailureReporter | undefined;
+}
+
+export async function listenChecked<Event>(
+  options: CheckedListenerOptions<Event>,
+): Promise<Unlisten> {
+  const disposal = new ListenerDisposal();
+  const { listener, onFailure } = options;
+  const validate: CheckedListenerOptions<Event>["validate"] = options.validate;
+  let closed = false;
+  let registered = false;
+  const close = () => {
+    closed = true;
+    return disposal.close();
+  };
+  const closeAfterFailure = async () => {
+    try {
+      await close();
+    } catch (error) {
+      reportFailure(onFailure, { phase: "unlisten", error });
+    }
+  };
+
+  disposal.unlisten = await options.listen((payload) => {
+    if (closed) {
+      return;
+    }
+    try {
+      validate(payload);
+    } catch (error) {
+      closed = true;
+      reportFailure(onFailure, { phase: "event", error });
+      if (registered) {
+        void closeAfterFailure();
+      }
+      return;
+    }
+    try {
+      listener(payload);
+    } catch (error) {
+      // A callback during registration cannot unwind a listen that still owes us its disposer.
+      if (registered) {
+        throw error;
+      }
+    }
+  });
+  registered = true;
+  if (closed) {
+    await closeAfterFailure();
+  }
+  return close;
+}
+
+function reportFailure(
+  reporter: ConnectionFailureReporter | undefined,
+  failure: ConnectionFailure,
+): void {
+  try {
+    reporter?.(failure);
+  } catch {
+    // A failure reporter cannot interrupt teardown or replace the recorded error.
+  }
+}
 
 export interface CheckedSnapshotConnectionOptions<Snapshot> {
   readonly listen: (listener: (payload: unknown) => void) => Promise<Unlisten>;
@@ -31,8 +100,7 @@ export class CheckedSnapshotConnection<Snapshot> {
   readonly #options: CheckedSnapshotConnectionOptions<Snapshot>;
   readonly #failures: Array<ConnectionFailure> = [];
   #current: Snapshot | undefined;
-  #unlisten: Unlisten | undefined;
-  #cleanup: Promise<void> | undefined;
+  readonly #listener = new ListenerDisposal();
   #pump: Promise<void> | undefined;
   #registered = false;
   #refreshPending = false;
@@ -67,7 +135,7 @@ export class CheckedSnapshotConnection<Snapshot> {
 
     let cleanupFailure: { error: unknown } | undefined;
     try {
-      await this.#closeListener();
+      await this.#listener.close();
     } catch (error) {
       cleanupFailure = { error };
       this.#recordFailure("unlisten", error);
@@ -82,7 +150,7 @@ export class CheckedSnapshotConnection<Snapshot> {
 
     if (cleanupFailure === undefined) {
       try {
-        await this.#closeListener();
+        await this.#listener.close();
       } catch (error) {
         cleanupFailure = { error };
         this.#recordFailure("unlisten", error);
@@ -106,7 +174,7 @@ export class CheckedSnapshotConnection<Snapshot> {
       throw error;
     }
 
-    this.#unlisten = unlisten;
+    this.#listener.unlisten = unlisten;
     this.#registered = true;
 
     if (this.#disposed) {
@@ -231,31 +299,14 @@ export class CheckedSnapshotConnection<Snapshot> {
     }
     const failure = { phase, error };
     this.#failures.push(failure);
-    try {
-      this.#options.onFailure?.(failure);
-    } catch {
-      // A failure reporter cannot interrupt teardown or replace the recorded error.
-    }
+    reportFailure(this.#options.onFailure, failure);
   }
 
   async #closeAfterFailure(): Promise<void> {
     try {
-      await this.#closeListener();
+      await this.#listener.close();
     } catch (error) {
       this.#recordFailure("unlisten", error);
     }
-  }
-
-  #closeListener(): Promise<void> {
-    if (this.#cleanup !== undefined) {
-      return this.#cleanup;
-    }
-    const unlisten = this.#unlisten;
-    if (unlisten === undefined) {
-      return Promise.resolve();
-    }
-    this.#unlisten = undefined;
-    this.#cleanup = Promise.resolve().then(() => unlisten());
-    return this.#cleanup;
   }
 }

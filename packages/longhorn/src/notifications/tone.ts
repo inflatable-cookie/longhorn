@@ -14,7 +14,7 @@ export type NotificationStatusTone = "info" | "success" | "warning" | "danger";
  * Lives here rather than in a projection tier because two places needed it —
  * `NotificationController.projectToast` and the Poodle projector — and a rule
  * stated twice is a rule that can drift. The cross-backend parity fixture
- * checks this one function, so a third copy would be unchecked. See card 171.
+ * checks this one function.
  *
  * The `error`/`critical` collapse is lossy and the tone cannot say so; a
  * surface that needs the distinction restores it in text, as the Rust toast

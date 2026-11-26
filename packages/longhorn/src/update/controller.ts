@@ -1,4 +1,4 @@
-import { disposeAll } from "../core/listeners.ts";
+import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { UpdateClient } from "./client.ts";
 import { UPDATE_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
@@ -12,7 +12,7 @@ import type {
   UpdateSnapshot,
   UpdateStagedArtifactProjection,
 } from "./generated/protocol.ts";
-import type { UpdatePort, UpdateUnlisten } from "./ports.ts";
+import type { UpdatePort } from "./ports.ts";
 
 export type UpdateControllerStatus =
   | { readonly kind: "idle" }
@@ -60,10 +60,8 @@ export type UpdatePresence = "hidden" | "quiet" | "attention";
  * update `status` for callers that observe the controller instead:
  *
  * - **Committed.** State moved. Read the snapshot.
- * - **Committed with a deferral.** The install did not happen and that is not
- *   a failure — Card 154 step 6. The gate refused because the user has work in
- *   flight, and `deferral` says so. A surface that reports this as an error
- *   tells a customer their update is broken when nothing is.
+ * - **Committed with a deferral.** The gate postponed the install. Read
+ *   `deferral` for the reason.
  * - **Rejected.** The authority refused. `lastRejection` carries the code.
  *
  * - **Failed.** The transport or local precondition failed. The error is in
@@ -76,13 +74,11 @@ export class UpdateController {
   #snapshot?: UpdateSnapshot;
   #lastRejection: UpdateRejectionCode | undefined;
   #lastRejectionDetail: string | null = null;
-  #started = false;
-  #lifecycle = 0;
+  readonly #lifecycle = new ControllerLifecycle();
   #commandSequence = 0;
   #refreshRevision = 0;
   #pending = false;
   #legacyProgress: ((event: UpdateProgressEvent) => void) | undefined;
-  #unlisten: Array<UpdateUnlisten> = [];
   /**
    * The most recent live progress report.
    *
@@ -98,7 +94,7 @@ export class UpdateController {
   }
 
   get status(): UpdateControllerStatus {
-    return this.#status;
+    return this.#lifecycle.eventFailure ?? this.#status;
   }
   get snapshot(): UpdateSnapshot | undefined {
     return this.#snapshot;
@@ -133,8 +129,7 @@ export class UpdateController {
   /**
    * Why the last install did not proceed, when it did not.
    *
-   * Present alongside a *committed* outcome. Card 154 step 6: a refused
-   * restart shows its reason and is not a failure.
+   * The reason a committed command postponed installation.
    */
   get deferral(): { readonly version: string; readonly cause: DeferralCause } | undefined {
     return this.#snapshot?.deferral ?? undefined;
@@ -153,11 +148,8 @@ export class UpdateController {
   /**
    * Whether this install sits ahead of the channel it follows.
    *
-   * Card 154 step 5 calls this the single most likely support question the
-   * feature generates: an install on `1.3.0-nightly.4` that selects production
-   * receives nothing until `1.3.0` ships, which is correct and reads as a
-   * broken updater unless the surface says so. Exposed as its own read so a
-   * surface cannot render it as "no update available" by omission.
+   * A nightly install following production waits for the channel to catch up.
+   * The surface can explain this state using the installed and channel versions.
    */
   get aheadOfChannel(): { readonly installed: string; readonly channel: string } | undefined {
     const availability = this.#snapshot?.availability;
@@ -216,67 +208,50 @@ export class UpdateController {
     return () => this.#observers.delete(observer);
   }
 
-  async start(): Promise<void> {
-    if (this.#started) {
-      return;
-    }
-    this.#started = true;
-    const lifecycle = ++this.#lifecycle;
-    this.#setStatus({ kind: "loading" });
-    try {
-      const unlisten = await this.#client.listen(() => {
-        if (lifecycle === this.#lifecycle) {
-          void this.refresh();
+  start(): Promise<void> {
+    return this.#lifecycle.start({
+      loading: () => this.#setStatus({ kind: "loading" }),
+      connect: async ({ isCurrent, own, reportFailure }) => {
+        const unlisten = await this.#client.listen(() => {
+          if (isCurrent()) {
+            void this.refresh();
+          }
+        }, reportFailure);
+        await own(unlisten);
+        if (!isCurrent()) {
+          return;
         }
-      });
-      // The listen resolved after a stop, or after a restart replaced this
-      // lifetime. Contract 013: an adapter that outlives its owner keeps
-      // writing into state nobody is reading.
-      if (!this.#started || lifecycle !== this.#lifecycle) {
-        await unlisten();
-        return;
-      }
-      this.#unlisten.push(unlisten);
-      const unlistenProgress = await this.#client.listenProgress((event) => {
-        if (lifecycle === this.#lifecycle) {
-          this.#legacyProgress?.(event);
+        const progress = await this.#client.listenProgress((event) => {
+          if (isCurrent()) {
+            this.#legacyProgress?.(event);
+          }
+        }, reportFailure);
+        await own(progress);
+        if (isCurrent()) {
+          await this.refresh();
         }
-      });
-      if (lifecycle !== this.#lifecycle) {
-        await unlistenProgress();
-        return;
-      }
-      this.#unlisten.push(unlistenProgress);
-      await this.refresh();
-    } catch (error) {
-      if (this.#started && lifecycle === this.#lifecycle) {
-        this.#setStatus({ kind: "failed", error });
-      }
-    }
+      },
+      failed: (error) => this.#setStatus({ kind: "failed", error }),
+    });
   }
 
-  async stop(): Promise<void> {
-    this.#started = false;
-    const lifecycle = ++this.#lifecycle;
-    this.#pending = false;
-    this.#legacyProgress = undefined;
-    this.#liveProgress = undefined;
-    const unlisten = this.#unlisten;
-    this.#unlisten = [];
-    const results = await disposeAll(unlisten);
-    if (lifecycle === this.#lifecycle) {
+  stop(): Promise<void> {
+    return this.#lifecycle.stop(() => {
+      this.#pending = false;
+      this.#legacyProgress = undefined;
+      this.#liveProgress = undefined;
       this.#setStatus({ kind: "idle" });
-    }
-    const failure = results.find((result) => result.status === "rejected");
-    if (failure !== undefined) {
-      throw failure.reason;
-    }
+    });
   }
 
   async refresh(): Promise<void> {
-    const lifecycle = this.#lifecycle;
+    if (!this.#lifecycle.active) {
+      return;
+    }
+    const lifecycle = this.#lifecycle.revision;
     const revision = ++this.#refreshRevision;
-    const isCurrent = () => lifecycle === this.#lifecycle && revision === this.#refreshRevision;
+    const isCurrent = () =>
+      this.#lifecycle.isCurrent(lifecycle) && revision === this.#refreshRevision;
     try {
       const snapshot = await this.#client.snapshot();
       if (!isCurrent()) {
@@ -392,12 +367,12 @@ export class UpdateController {
       this.#setStatus({ kind: "failed", error });
       return { status: "failed", error };
     }
-    const lifecycle = this.#lifecycle;
+    const lifecycle = this.#lifecycle.revision;
     const isCurrent = () =>
-      lifecycle === this.#lifecycle && commandSequence === this.#commandSequence;
+      lifecycle === this.#lifecycle.revision && commandSequence === this.#commandSequence;
     const reportProgress = (event: UpdateProgressEvent) => {
       if (
-        this.#started &&
+        this.#lifecycle.active &&
         isCurrent() &&
         this.#pending &&
         event.authorityEpoch === snapshot.authorityEpoch &&

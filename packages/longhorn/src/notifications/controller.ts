@@ -1,5 +1,5 @@
+import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { isNewerNotificationSnapshot, NotificationClient } from "./client.ts";
-import type { NotificationSubscription } from "./client.ts";
 import { NOTIFICATION_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
   NotificationActionProjection,
@@ -81,9 +81,7 @@ export class NotificationController {
   #selectedNotificationId: NotificationId | undefined;
   #commandRejection: NotificationCommandRejection | undefined;
   #commandFailure: NotificationCommandFailure | undefined;
-  #subscription: NotificationSubscription | undefined;
-  #started = false;
-  #lifecycleRevision = 0;
+  readonly #lifecycle = new ControllerLifecycle();
   #toastSequence = 0;
   #pageLoad: Promise<void> | undefined;
 
@@ -135,57 +133,38 @@ export class NotificationController {
     return () => this.#observers.delete(observer);
   }
 
-  async start(): Promise<void> {
-    if (this.#started) {
-      return;
-    }
-    this.#started = true;
-    const lifecycle = ++this.#lifecycleRevision;
-    this.#setStatus({ kind: "loading" });
-    const subscription = this.#client.subscribe(
-      (snapshot) => {
-        if (this.#isCurrent(lifecycle)) {
-          this.#install(snapshot);
-        }
+  start(): Promise<void> {
+    return this.#lifecycle.start({
+      loading: () => this.#setStatus({ kind: "loading" }),
+      connect: ({ isCurrent, reportFailure, watch }) => {
+        const subscription = this.#client.subscribe(
+          (snapshot) => {
+            if (isCurrent()) {
+              this.#install(snapshot);
+            }
+          },
+          reportFailure,
+          this.#pageSize,
+        );
+        return watch(subscription, () => this.#setStatus({ kind: "ready" }));
       },
-      ({ error }) => {
-        if (this.#isCurrent(lifecycle)) {
-          this.#setStatus({ kind: "failed", error });
-        }
-      },
-      this.#pageSize,
-    );
-    this.#subscription = subscription;
-    try {
-      await subscription.ready;
-      if (this.#isCurrent(lifecycle)) {
-        this.#setStatus({ kind: "ready" });
-      }
-    } catch (error) {
-      if (this.#isCurrent(lifecycle)) {
-        this.#setStatus({ kind: "failed", error });
-      }
-    }
+      failed: (error) => this.#setStatus({ kind: "failed", error }),
+    });
   }
 
-  async stop(): Promise<void> {
-    this.#started = false;
-    this.#lifecycleRevision += 1;
-    const subscription = this.#subscription;
-    this.#subscription = undefined;
-    this.#snapshot = undefined;
-    this.#records = [];
-    this.#toasts = [];
-    this.#selectedNotificationId = undefined;
-    this.#pending.clear();
-    this.#pageLoad = undefined;
-    this.#pagination = { kind: "idle" };
-    this.#commandFailure = undefined;
-    this.#commandRejection = undefined;
-    this.#setStatus({ kind: "idle" });
-    if (subscription !== undefined) {
-      await subscription.dispose();
-    }
+  stop(): Promise<void> {
+    return this.#lifecycle.stop(() => {
+      this.#snapshot = undefined;
+      this.#records = [];
+      this.#toasts = [];
+      this.#selectedNotificationId = undefined;
+      this.#pending.clear();
+      this.#pageLoad = undefined;
+      this.#pagination = { kind: "idle" };
+      this.#commandFailure = undefined;
+      this.#commandRejection = undefined;
+      this.#setStatus({ kind: "idle" });
+    });
   }
 
   select(notificationId: NotificationId | undefined): void {
@@ -207,7 +186,7 @@ export class NotificationController {
     if (!current.page.hasMore) {
       return;
     }
-    const lifecycle = this.#lifecycleRevision;
+    const lifecycle = this.#lifecycle.revision;
     const load = this.#applyPage(current, this.#records.length, lifecycle);
     this.#pageLoad = load;
     this.#setPagination({ kind: "loading" });
@@ -292,7 +271,7 @@ export class NotificationController {
       { requestId: command.requestId, notificationId, kind },
       async (lifecycle) => {
         const result = await this.#client.mutate(command);
-        if (!this.#isCurrent(lifecycle)) {
+        if (!this.#lifecycle.isCurrent(lifecycle)) {
           return result;
         }
         if (result.status === "rejected") {
@@ -316,7 +295,7 @@ export class NotificationController {
     if (this.isPending(pending.notificationId, pending.kind)) {
       throw new NotificationControllerCommandPendingError(pending.notificationId, pending.kind);
     }
-    const lifecycle = this.#lifecycleRevision;
+    const lifecycle = this.#lifecycle.revision;
     this.#pending.set(pending.requestId, pending);
     this.#commandFailure = undefined;
     this.#commandRejection = undefined;
@@ -324,12 +303,12 @@ export class NotificationController {
     try {
       return await run(lifecycle);
     } catch (error) {
-      if (this.#isCurrent(lifecycle)) {
+      if (this.#lifecycle.isCurrent(lifecycle)) {
         this.#commandFailure = { ...pending, error };
       }
       throw error;
     } finally {
-      if (this.#isCurrent(lifecycle)) {
+      if (this.#lifecycle.isCurrent(lifecycle)) {
         this.#pending.delete(pending.requestId);
         this.#notify();
       }
@@ -372,7 +351,11 @@ export class NotificationController {
     lifecycle: number,
   ): NotificationSnapshot | undefined {
     const live = this.#snapshot;
-    if (!this.#isCurrent(lifecycle) || live === undefined || this.#records.length !== offset) {
+    if (
+      !this.#lifecycle.isCurrent(lifecycle) ||
+      live === undefined ||
+      this.#records.length !== offset
+    ) {
       return undefined;
     }
     return isSameLedgerPosition(live, basis) ? live : undefined;
@@ -380,7 +363,7 @@ export class NotificationController {
 
   async #resyncFirstPage(lifecycle: number): Promise<void> {
     const first = (await this.#client.snapshot(0, this.#pageSize)).snapshot;
-    if (this.#isCurrent(lifecycle)) {
+    if (this.#lifecycle.isCurrent(lifecycle)) {
       this.#install(first);
     }
   }
@@ -434,7 +417,7 @@ export class NotificationController {
   }
 
   #requireSnapshot(): NotificationSnapshot {
-    if (!this.#started || this.#snapshot === undefined) {
+    if (!this.#lifecycle.active || this.#snapshot === undefined) {
       throw new NotificationControllerUnavailableError();
     }
     return this.#snapshot;
@@ -445,9 +428,6 @@ export class NotificationController {
       throw new NotificationControllerUnknownRecordError(id);
     }
     return record;
-  }
-  #isCurrent(revision: number): boolean {
-    return this.#started && this.#lifecycleRevision === revision;
   }
   #setStatus(status: NotificationControllerStatus): void {
     this.#status = status;

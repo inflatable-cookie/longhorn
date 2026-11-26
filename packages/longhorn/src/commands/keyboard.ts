@@ -115,7 +115,7 @@ export function resolveCommandKeyboard(
     })
     .sort(
       (left, right) =>
-        right.specificity - left.specificity || left.binding.id.localeCompare(right.binding.id),
+        right.specificity - left.specificity || compareText(left.binding.id, right.binding.id),
     );
   const [firstMatch] = matches;
   if (firstMatch === undefined) {
@@ -276,7 +276,7 @@ function uniqueInvocations(
 
 function invocationKey(invocation: CommandInvocation): string {
   const argumentsKey = Object.entries(invocation.arguments)
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => compareText(left, right))
     .map(([key, value]) => [key, value]);
   return JSON.stringify([invocation.commandId, argumentsKey]);
 }

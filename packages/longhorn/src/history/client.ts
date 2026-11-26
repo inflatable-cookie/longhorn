@@ -1,3 +1,5 @@
+import { listenChecked } from "../core/connection.ts";
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import {
   assertValidHistoryChangedEvent,
   assertValidHistoryNavigationCommand,
@@ -47,13 +49,15 @@ export class HistoryClient implements CheckedHistoryPort {
     return value;
   }
 
-  async listen(listener: (event: HistoryChangedEvent) => void): Promise<HistoryUnlisten> {
-    if (this.#port.listen === undefined) {
-      return () => {};
-    }
-    return this.#port.listen((value) => {
-      assertValidHistoryChangedEvent(value);
-      listener(value);
+  listen(
+    listener: (event: HistoryChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<HistoryUnlisten> {
+    return listenChecked({
+      listen: (receive) => this.#port.listen?.(receive) ?? (() => {}),
+      validate: assertValidHistoryChangedEvent,
+      listener,
+      onFailure,
     });
   }
 }

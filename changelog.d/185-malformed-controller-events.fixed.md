@@ -1,0 +1,1 @@
+Malformed history, history-tree, licence, and update events close the affected subscription and give the controller a failed status until restart. Pass `onFailure` to direct checked listeners to receive the event error.
