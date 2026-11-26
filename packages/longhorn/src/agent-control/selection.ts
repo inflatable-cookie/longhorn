@@ -76,14 +76,19 @@ function beginOptions(
 ): BeginSelectionArgs {
   const open = kind === "open" ? options : undefined;
   const { filters = [], title, defaultPath } = options ?? {};
-  return {
+  const begin: BeginSelectionArgs = {
     kind,
     directory: open?.directory ?? false,
     multiple: open?.multiple ?? false,
     filters,
-    ...(title === undefined ? {} : { title }),
-    ...(defaultPath === undefined ? {} : { defaultPath }),
   };
+  if (title !== undefined) {
+    begin.title = title;
+  }
+  if (defaultPath !== undefined) {
+    begin.defaultPath = defaultPath;
+  }
+  return begin;
 }
 
 /**
