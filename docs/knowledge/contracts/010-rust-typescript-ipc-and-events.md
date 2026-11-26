@@ -231,8 +231,9 @@ authority, and derives that strictness from it.** Concretely:
   Bridge request contexts and session payloads share the validator for the
   generated `DomainId` grammar and byte bound. Layout ratio bounds and the
   command availability, config operation, notification receipt and transfer
-  cancellation value sets also come from the Rust bindings. Service supervision uses the
-  generated failure codes and reports unknown ownership as `invalid_ownership`.
+  cancellation value sets also come from the Rust bindings. Service supervision
+  uses the generated failure codes and reports unknown ownership as
+  `invalid_ownership`.
 
 ### What this costs, stated plainly
 
