@@ -1,12 +1,8 @@
 /**
  * The licence key format, in TypeScript.
  *
- * A second implementation of a format that already exists in Rust, which is
- * normally a mistake. It is here because Card 158 requires key entry to fail
- * locally: a mistyped key must never produce a message implying the key is
- * invalid, and telling those apart after a round trip is too late — the
- * authority answers `notRecognised`, which sends a customer to check their
- * purchase when they should check their typing.
+ * Check the format locally so a mistyped key can be corrected before the
+ * authority answers `notRecognised`.
  *
  * The two implementations are bound by `key-conformance.json`, generated from
  * the Rust and asserted against here. Neither can change the format without

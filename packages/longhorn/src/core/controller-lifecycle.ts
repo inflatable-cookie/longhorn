@@ -99,7 +99,8 @@ export class ControllerLifecycle {
     }
   }
 
-  async stop(reset: () => void, onFailure: "ignore" | "reject"): Promise<void> {
+  /** Resets the controller, then releases every owned listener before reporting a failure. */
+  async stop(reset: () => void): Promise<void> {
     const listeners = this.#unlisten ?? [];
     this.#unlisten = undefined;
     this.#eventFailure = undefined;
@@ -111,7 +112,7 @@ export class ControllerLifecycle {
       results = await disposeAll(listeners);
     }
     const failure = results.find((result) => result.status === "rejected");
-    if (onFailure === "reject" && failure !== undefined) {
+    if (failure !== undefined) {
       throw failure.reason;
     }
   }

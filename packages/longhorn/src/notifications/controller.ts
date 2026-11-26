@@ -164,7 +164,7 @@ export class NotificationController {
       this.#commandFailure = undefined;
       this.#commandRejection = undefined;
       this.#setStatus({ kind: "idle" });
-    }, "reject");
+    });
   }
 
   select(notificationId: NotificationId | undefined): void {

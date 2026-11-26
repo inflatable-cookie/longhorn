@@ -160,10 +160,7 @@ function availability(value: unknown, path: string): void {
     oneOf(root.reason, `${path}.reason`, UPDATE_OFFER_REASONS);
     optionalString(root.notes, `${path}.notes`);
   }
-  // Ahead-of-channel is the one state whose fields a surface must be able to
-  // read to say anything useful: "you are on 1.3.0-nightly.4 and production
-  // publishes 1.2.9" is the whole message, and Card 154 calls it the single
-  // most likely support question the feature generates.
+  // The surface needs both versions to explain why the channel has no offer.
   if (root.state === "aheadOfChannel") {
     version(root.installed, `${path}.installed`);
     version(root.channel, `${path}.channel`);

@@ -126,14 +126,15 @@ describe("fork-history controller", () => {
     await controller.stop();
   });
 
-  it("clears controller state after a synchronous unlisten failure", async () => {
+  it("reports a synchronous unlisten failure after clearing controller state", async () => {
     const state = tracked();
+    const failure = new Error("unlisten failed");
     state.port.listen = () => () => {
-      throw new Error("unlisten failed");
+      throw failure;
     };
     const controller = new ForkHistoryController({ port: state.port });
     await controller.start();
-    await controller.stop();
+    await expect(controller.stop()).rejects.toBe(failure);
 
     expect(controller.status).toEqual({ kind: "idle" });
     expect(controller.snapshot).toBeUndefined();

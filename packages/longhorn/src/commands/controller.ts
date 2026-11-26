@@ -140,7 +140,7 @@ export class CommandController {
       this.#draft = undefined;
       this.#mutation = { kind: "idle" };
       this.#setStatus({ kind: "idle" });
-    }, "ignore");
+    });
   }
 
   async refresh(): Promise<void> {

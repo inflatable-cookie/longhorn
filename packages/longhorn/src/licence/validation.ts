@@ -40,8 +40,7 @@ export function assertLicenceSnapshot(value: unknown): asserts value is LicenceS
   exact(root, "$", LICENCE_FIELDS.LicenceSnapshot);
   protocol(root.protocolVersion, "$.protocolVersion");
   positive(root.authorityEpoch, "$.authorityEpoch");
-  // Absent means unlicensed, which is the absence of a licence rather than a
-  // licence that cannot be used. Card 193 kept those apart deliberately.
+  // A held licence reports its usability even when that usability is blocked.
   if (root.licence !== null) {
     held(root.licence, "$.licence");
   }

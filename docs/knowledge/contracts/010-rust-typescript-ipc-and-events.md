@@ -87,10 +87,11 @@ Teardown attempts every registered unlisten. Registration keeps its original
 rejection if cleanup also fails. Events are best-effort projections and
 invalidation hints. Query-only domains do not require an event transport.
 
-Update and licence controllers return to idle after teardown and reject
-`stop()` with the first unlisten failure in registration order. Their
-`refresh()` only reads during a started lifetime. An older refresh cannot
-replace a newer refresh or a settled command's state.
+The commands, history, history-tree, licence, update, notifications and
+operation controllers reset to idle when stopped. `stop()` attempts every
+owned unlisten and rejects with the first failure in registration order.
+Licence and update `refresh()` only read during a started lifetime. An older
+refresh cannot replace a newer refresh or a settled command's state.
 
 A malformed event ends its subscription and is reported as an event failure.
 The checked history, history-tree, licence and update listeners report it to
@@ -100,10 +101,12 @@ the same controller remain active.
 A job's listeners check its request and job identifiers before they decode the
 payload. An event whose identifier reads as another request or job is dropped
 without a failure, even when its other identifier is unreadable, and nothing
-after the job's terminal is decoded. A throwing consumer callback leaves the subscription active and any accepted
-snapshot current. After registration and outside a snapshot query, the
-exception propagates to the event emitter. During registration or a snapshot
-query, the subscription contains it so the operation can finish. A job's
+after the job's terminal is decoded. A throwing consumer callback leaves the
+subscription active and any accepted snapshot current. After registration and
+outside a snapshot query, the exception propagates to the event emitter.
+During registration, the subscription contains it so the transport can return
+its unlisten handle. During a snapshot query, it contains the exception so
+the query can finish. A job's
 terminal event that arrives before its listener is registered is not replayed.
 See Q-007.
 

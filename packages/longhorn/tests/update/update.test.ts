@@ -271,6 +271,28 @@ describe("update client", () => {
     expect(released).toBe(1);
   });
 
+  test("an early consumer error allows registration to return its unlisten", async () => {
+    const port = new Port();
+    const register = port.listenProgress.bind(port);
+    port.listenProgress = (receive) => {
+      receive(PROGRESS_EVENT);
+      return register(receive);
+    };
+    let delivered = 0;
+    const dispose = await new UpdateClient(port).listenProgress(() => {
+      delivered += 1;
+      if (delivered === 1) {
+        throw new Error("early progress observer failed");
+      }
+    });
+
+    port.emitProgress(PROGRESS_EVENT);
+    expect(delivered).toBe(2);
+    await dispose();
+    port.emitProgress(PROGRESS_EVENT);
+    expect(delivered).toBe(2);
+  });
+
   test("a progress consumer error propagates without closing the subscription", async () => {
     const port = new Port();
     const error = new Error("progress observer failed");

@@ -352,7 +352,7 @@ describe("CommandController", () => {
     expect(state.catalogue.unlistenCount).toBe(1);
   });
 
-  test("stop disposes every listener when an earlier unlisten throws synchronously", async () => {
+  test("stop disposes every listener and rejects with the first cleanup error", async () => {
     const state = harness();
     const boom = new Error("catalogue unlisten refused");
     const register = state.catalogue.listen.bind(state.catalogue);
@@ -363,8 +363,17 @@ describe("CommandController", () => {
         throw boom;
       };
     };
+    const registerKeymap = state.keymap.listen.bind(state.keymap);
+    state.keymap.listen = async (listener) => {
+      const dispose = await registerKeymap(listener);
+      return async () => {
+        await dispose();
+        throw new Error("keymap unlisten refused");
+      };
+    };
     await state.controller.start();
-    await state.controller.stop();
+    await expect(state.controller.stop()).rejects.toBe(boom);
+    expect(state.controller.status.kind).toBe("idle");
     expect(state.catalogue.listeners.size).toBe(0);
     expect(state.keymap.listeners.size).toBe(0);
     expect(state.availability.listeners.size).toBe(0);

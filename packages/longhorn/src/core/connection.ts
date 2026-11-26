@@ -59,6 +59,7 @@ export async function listenChecked<Event>(
     try {
       listener(payload);
     } catch (error) {
+      // A callback during registration cannot unwind a listen that still owes us its disposer.
       if (registered) {
         throw error;
       }

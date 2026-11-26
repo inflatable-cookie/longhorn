@@ -241,7 +241,7 @@ export class UpdateController {
       this.#legacyProgress = undefined;
       this.#liveProgress = undefined;
       this.#setStatus({ kind: "idle" });
-    }, "reject");
+    });
   }
 
   async refresh(): Promise<void> {

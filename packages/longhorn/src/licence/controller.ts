@@ -196,7 +196,7 @@ export class LicenceController {
     return this.#lifecycle.stop(() => {
       this.#pending = false;
       this.#setStatus({ kind: "idle" });
-    }, "reject");
+    });
   }
 
   async refresh(): Promise<void> {

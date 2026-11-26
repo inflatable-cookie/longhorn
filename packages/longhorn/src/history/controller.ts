@@ -142,7 +142,7 @@ export class HistoryController {
       this.#page = 1;
       this.#navigationPending = false;
       this.#setStatus({ kind: "idle" });
-    }, "ignore");
+    });
   }
 
   async refresh(): Promise<void> {

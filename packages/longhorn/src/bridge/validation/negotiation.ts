@@ -147,12 +147,7 @@ function validConnectionReason(
   state: BridgeConnectionState,
   reason: BridgeConnectionReason | null,
 ): boolean {
-  // Generated from `BridgeConnectionStatus::ADMITTED_REASONS`. This used to be
-  // an eleven-arm literal here, and Card 160 recorded it as the one rule that
-  // could not be derived because the pairing exists in no type. That was
-  // wrong: it exists in Rust, in a `matches!` arm, which `ts-rs` cannot carry
-  // because it is a relation between two enums rather than a type. The two
-  // copies agreed arm for arm — by maintenance, not by construction.
+  // Generated from `BridgeConnectionStatus::ADMITTED_REASONS` in Rust.
   return BRIDGE_ADMITTED_CONNECTION_REASONS[state].includes(reason);
 }
 

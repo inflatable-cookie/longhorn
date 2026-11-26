@@ -122,7 +122,7 @@ export class OperationController {
       this.#commandRejection = undefined;
       this.#commandFailure = undefined;
       this.#setStatus({ kind: "idle" });
-    }, "reject");
+    });
   }
 
   select(operationId: OperationId | undefined): void {

@@ -111,7 +111,7 @@ export class ForkHistoryController {
       this.#pathTarget = { kind: "default" };
       this.#pending = false;
       this.#setStatus({ kind: "idle" });
-    }, "ignore");
+    });
   }
 
   async refresh(): Promise<void> {

@@ -97,8 +97,7 @@ export function assertForkPathPage(value: unknown): asserts value is ForkPathPag
   optionalId(root.branchId, "$.branchId");
   optionalId(root.headEntryId, "$.headEntryId");
   integer(root.precedingContinuationCount, "$.precedingContinuationCount");
-  // Card 191. The floor tells a renderer whether to draw an origin row; a
-  // nested run says `anchor` and means "draw nothing, it is already above".
+  // An anchor floor refers to the entry already drawn above a nested run.
   const floor = object(root.floor, "$.floor");
   oneOf(floor.kind, "$.floor.kind", FORK_HISTORY_PATH_FLOORS);
   exact(floor, "$.floor", variantFields("ForkPathFloorProjection", floor, "$.floor"));

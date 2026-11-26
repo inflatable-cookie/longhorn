@@ -97,14 +97,15 @@ describe("history controller lifecycle", () => {
     expect(port.calls.filter((call) => call === "unlisten")).toHaveLength(1);
   });
 
-  test("a throwing unlisten still clears the lifetime and leaves the controller idle", async () => {
+  test("a throwing unlisten rejects after clearing the lifetime", async () => {
     const port = new MutablePort();
+    const failure = new Error("unlisten failed");
     port.listen = async () => () => {
-      throw new Error("unlisten failed");
+      throw failure;
     };
     const controller = new HistoryController({ port });
     await controller.start();
-    await controller.stop();
+    await expect(controller.stop()).rejects.toBe(failure);
 
     expect(controller.status).toEqual({ kind: "idle" });
     expect(controller.snapshot).toBeUndefined();
