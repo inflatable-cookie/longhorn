@@ -11,13 +11,14 @@ use longhorn_config::{
 };
 use longhorn_config::{DomainDescriptor, DomainFilePath, StorageClass};
 use longhorn_core::{
-    DomainId, LayoutSchemaId, PanelDefinitionId, RegionFamilyId, RegionId, SchemaVersion,
-    SizingSlotId,
+    DomainId, LayoutRequestId, LayoutSchemaId, PanelDefinitionId, RegionFamilyId, RegionId,
+    SchemaVersion, SizingSlotId,
 };
 use longhorn_surfaces::{
-    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutRatio, LayoutSchemaDefinition,
-    PanelDefinition, PanelInstancePolicy, PlacementSelector, RegionDefinition,
-    SizingSlotDefinition, SurfaceLimits, validate_normalized_document,
+    EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutMutationCommand, LayoutRatio,
+    LayoutSchemaDefinition, PanelDefinition, PanelInstancePolicy, PlacementSelector,
+    RegionDefinition, SizingSlotDefinition, SurfaceLimits, normalize_document,
+    validate_normalized_document,
 };
 use longhorn_surfaces_config::{
     LayoutPresentationIntent, LayoutPresentationIntentError, NoSurfaceMigration,
@@ -26,9 +27,25 @@ use longhorn_surfaces_config::{
 };
 
 use crate::support::{
-    FixedClock, Fixture, activate_request, collapse_request, document, domain, options, registry,
-    sizing_request,
+    FixedClock, Fixture, activate_command, activate_request, collapse_command, document, domain,
+    options, registry, sizing_command,
 };
+
+/// A sizing intent. It names no revision: the flush applies it to whatever value it reads.
+fn sizing(value: u32) -> LayoutPresentationIntent {
+    intent(&format!("request:size:{value}"), sizing_command(value))
+}
+
+fn collapse(collapsed: bool) -> LayoutPresentationIntent {
+    intent(
+        &format!("request:collapse:{collapsed}"),
+        collapse_command(collapsed),
+    )
+}
+
+fn intent(id: &str, command: LayoutMutationCommand) -> LayoutPresentationIntent {
+    LayoutPresentationIntent::new(LayoutRequestId::new(id).unwrap(), command).unwrap()
+}
 
 const HELPER_MODE: &str = "LONGHORN_LAYOUT_CONFIG_HELPER_MODE";
 const HELPER_ROOT: &str = "LONGHORN_LAYOUT_CONFIG_HELPER_ROOT";
@@ -42,7 +59,10 @@ fn policy(maximum: usize, timeout: Duration) -> DebouncePolicy {
 #[test]
 fn presentation_lane_rejects_structural_commands() {
     assert_eq!(
-        LayoutPresentationIntent::new(activate_request(7)),
+        LayoutPresentationIntent::new(
+            LayoutRequestId::new("request:activate").unwrap(),
+            activate_command(),
+        ),
         Err(LayoutPresentationIntentError::StructuralCommand)
     );
 }
@@ -60,10 +80,8 @@ fn ordered_presentation_requests_publish_once_over_fresh_state() {
         policy(2, Duration::from_secs(1)),
     )
     .unwrap();
-    lane.stage(LayoutPresentationIntent::new(sizing_request(7, 340_000)).unwrap())
-        .unwrap();
-    lane.stage(LayoutPresentationIntent::new(collapse_request(8, true)).unwrap())
-        .unwrap();
+    lane.stage(sizing(340_000)).unwrap();
+    lane.stage(collapse(true)).unwrap();
 
     assert!(matches!(
         lane.flush_forced(),
@@ -98,12 +116,8 @@ fn pending_weight_rejection_preserves_existing_generation() {
         policy(1, Duration::from_secs(1)),
     )
     .unwrap();
-    let opened = lane
-        .stage(LayoutPresentationIntent::new(sizing_request(7, 340_000)).unwrap())
-        .unwrap();
-    let error = lane
-        .stage(LayoutPresentationIntent::new(collapse_request(8, true)).unwrap())
-        .unwrap_err();
+    let opened = lane.stage(sizing(340_000)).unwrap();
+    let error = lane.stage(collapse(true)).unwrap_err();
 
     assert!(matches!(
         error,
@@ -132,8 +146,9 @@ fn structural_publication_does_not_wait_behind_presentation_debounce() {
         policy(1, Duration::from_secs(1)),
     )
     .unwrap();
-    lane.stage(LayoutPresentationIntent::new(sizing_request(8, 360_000)).unwrap())
-        .unwrap();
+    // Staged while the store is at revision 7. The structural publish below moves
+    // it to 8 before the flush, and the pending sizing must still land.
+    lane.stage(sizing(360_000)).unwrap();
 
     let structural = publish_layout_mutation(
         &store,
@@ -153,6 +168,13 @@ fn structural_publication_does_not_wait_behind_presentation_debounce() {
         panic!("structural then presentation state should load");
     };
     assert_eq!(loaded.value.revision().get(), 9);
+    assert_eq!(
+        loaded.value.surfaces()[0].sizing_slots()[0]
+            .ratio()
+            .millionths(),
+        360_000,
+        "the pending sizing applies to the post-structural value"
+    );
 }
 
 #[test]
@@ -190,12 +212,8 @@ fn aggregate_flush_accepts_multiple_explicit_layout_domains() {
         policy(1, Duration::from_secs(1)),
     )
     .unwrap();
-    first
-        .stage(LayoutPresentationIntent::new(sizing_request(7, 310_000)).unwrap())
-        .unwrap();
-    second
-        .stage(LayoutPresentationIntent::new(collapse_request(7, true)).unwrap())
-        .unwrap();
+    first.stage(sizing(310_000)).unwrap();
+    second.stage(collapse(true)).unwrap();
 
     let outcomes = {
         let mut set = DebounceFlushSet::new(&store);
@@ -243,9 +261,7 @@ fn timeout_retains_same_pending_generation_for_explicit_retry() {
         policy(1, Duration::from_millis(50)),
     )
     .unwrap();
-    let staged = lane
-        .stage(LayoutPresentationIntent::new(sizing_request(7, 370_000)).unwrap())
-        .unwrap();
+    let staged = lane.stage(sizing(370_000)).unwrap();
     let marker = fixture.temp.path().join("layout-holder-ready");
     let mut helper = spawn_helper(fixture.temp.path(), &marker);
     wait_for_marker(&mut helper, &marker);
@@ -343,6 +359,10 @@ fn debounce_lanes_bind_each_domain_to_its_own_registry_order_and_sizing_bounds()
         ],
     )
     .unwrap();
+    // The shared fixture is canonical for `registry()`, not for the reversed
+    // order, so this domain's default is its own canonical form.
+    let secondary_default =
+        normalize_document(&reversed_and_narrower_registry, &document()).unwrap();
     let secondary = RegisteredSurfaceDomain::new(
         DomainDescriptor::new(
             DomainId::new("layout.reversed").unwrap(),
@@ -351,7 +371,7 @@ fn debounce_lanes_bind_each_domain_to_its_own_registry_order_and_sizing_bounds()
             Some(DomainFilePath::new("workspace/reversed-layout.json").unwrap()),
         )
         .unwrap(),
-        document(),
+        secondary_default,
         reversed_and_narrower_registry,
         NoSurfaceMigration,
         SurfaceBackupPolicy::Include,
@@ -378,12 +398,8 @@ fn debounce_lanes_bind_each_domain_to_its_own_registry_order_and_sizing_bounds()
     .unwrap();
 
     // 150_000 is valid in `primary` ([100_000, 500_000]) but out of bounds in `secondary` ([180_000, 350_000]).
-    primary_lane
-        .stage(LayoutPresentationIntent::new(sizing_request(7, 150_000)).unwrap())
-        .unwrap();
-    secondary_lane
-        .stage(LayoutPresentationIntent::new(sizing_request(7, 150_000)).unwrap())
-        .unwrap();
+    primary_lane.stage(sizing(150_000)).unwrap();
+    secondary_lane.stage(sizing(150_000)).unwrap();
 
     assert!(matches!(
         primary_lane.flush_forced(),
@@ -405,9 +421,7 @@ fn debounce_lanes_bind_each_domain_to_its_own_registry_order_and_sizing_bounds()
         policy(2, Duration::from_secs(1)),
     )
     .unwrap();
-    secondary_valid_lane
-        .stage(LayoutPresentationIntent::new(sizing_request(7, 300_000)).unwrap())
-        .unwrap();
+    secondary_valid_lane.stage(sizing(300_000)).unwrap();
     assert!(matches!(
         secondary_valid_lane.flush_forced(),
         FlushOutcome::Terminal(DebounceTerminal::Published { .. })

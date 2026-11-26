@@ -4,6 +4,8 @@
 mod backup;
 #[path = "layout_config/debounce.rs"]
 mod debounce;
+#[path = "shared/fixture.rs"]
+mod fixture;
 #[path = "layout_config/loading.rs"]
 mod loading;
 #[path = "layout_config/mutation.rs"]

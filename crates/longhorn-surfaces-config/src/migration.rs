@@ -6,7 +6,7 @@ use longhorn_surfaces::{
 use serde::Deserialize;
 use serde_json::Value;
 
-use crate::{LayoutRegistryDigest, PersistedSurfaceDocument};
+use crate::{LayoutRegistryDigest, PersistedSurfaceDocument, domain::surface_validation_issue};
 
 /// Current registry and codec authority exposed to a consumer migration hook.
 #[derive(Clone, Copy, Debug)]
@@ -228,12 +228,8 @@ impl SurfaceMigration for LegacySurfaceFormatMigration {
             return Ok(None);
         }
         let document = self.decode_and_verify(value)?;
-        let normalized = normalize_document(target.registry(), &document).map_err(|error| {
-            DomainIssue::new(
-                format!("surface-validation-{:?}", error.code()).to_ascii_lowercase(),
-                error.detail(),
-            )
-        })?;
+        let normalized =
+            normalize_document(target.registry(), &document).map_err(surface_validation_issue)?;
         Ok(Some(MigrationStep {
             schema_version: target.schema_version(),
             value: target.encode_current(normalized)?,

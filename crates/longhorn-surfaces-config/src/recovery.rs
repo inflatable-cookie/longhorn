@@ -13,7 +13,9 @@
 //!
 //! So this is opt-in, and it says so at the call site.
 
-use longhorn_config::{ConfigDomain, ConfigStore, LoadOutcome, StoreError};
+use std::{error::Error, fmt};
+
+use longhorn_config::{ConfigDomain, ConfigStore, LoadOutcome, StoreError, UnavailableState};
 
 /// Why a load fell back to the registered default.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -38,6 +40,40 @@ impl LayoutFallback {
     }
 }
 
+/// Why `load_or_default` refused to supply a value.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LayoutLoadError {
+    /// The store refused the request: an unregistered domain or a changed
+    /// descriptor. That is a fault in the consumer, not a stored document.
+    Store(StoreError),
+    /// A restore owns the stored state, active or waiting for recovery.
+    ///
+    /// The restore may still replace the file, so the default must not stand in
+    /// for it: a save made under the default would overwrite what the restore is
+    /// about to publish or roll back. Callers resolve the restore first.
+    Restore(UnavailableState),
+}
+
+impl From<StoreError> for LayoutLoadError {
+    fn from(error: StoreError) -> Self {
+        Self::Store(error)
+    }
+}
+
+impl fmt::Display for LayoutLoadError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Store(error) => error.fmt(formatter),
+            Self::Restore(state) => write!(
+                formatter,
+                "layout state is owned by a restore ({state:?}); resolve it before loading"
+            ),
+        }
+    }
+}
+
+impl Error for LayoutLoadError {}
+
 /// Loads a document, falling back to the registered default when the stored
 /// one cannot be used.
 ///
@@ -46,18 +82,31 @@ impl LayoutFallback {
 /// disk until something deliberately replaces it, so a mistake here costs one
 /// session's arrangement rather than the file.
 ///
+/// Falls back only for stored state that is unreadable (`Recovery`) and for a
+/// missing optional authority (`Unavailable` with `Authority`). It does not
+/// default past a restore: `RestoreActive` and `RestoreRecoveryRequired` return
+/// [`LayoutLoadError::Restore`].
+///
 /// A `StoreError` still propagates. That is the store failing — a missing root,
 /// an unregistered domain — not the document being wrong, and defaulting past
 /// it would hide a real fault.
+///
+/// # Errors
+///
+/// Returns [`LayoutLoadError::Store`] for a store refusal and
+/// [`LayoutLoadError::Restore`] while a restore owns the stored state.
 pub fn load_or_default<D: ConfigDomain>(
     store: &ConfigStore,
     domain: &D,
-) -> Result<(D::Value, LayoutFallback), StoreError> {
+) -> Result<(D::Value, LayoutFallback), LayoutLoadError> {
     Ok(match store.load(domain)? {
         LoadOutcome::Ready(loaded) => (loaded.value, LayoutFallback::None),
         LoadOutcome::Recovery(_) => (domain.default_value(), LayoutFallback::RecoveredToDefault),
-        LoadOutcome::Unavailable(_) => {
+        LoadOutcome::Unavailable(UnavailableState::Authority { .. }) => {
             (domain.default_value(), LayoutFallback::UnavailableToDefault)
         }
+        LoadOutcome::Unavailable(
+            state @ (UnavailableState::RestoreActive | UnavailableState::RestoreRecoveryRequired),
+        ) => return Err(LayoutLoadError::Restore(state)),
     })
 }

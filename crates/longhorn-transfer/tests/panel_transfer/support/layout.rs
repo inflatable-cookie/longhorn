@@ -14,6 +14,7 @@ use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, PanelDefinition,
     PanelInstance, PanelInstancePolicy, ParticipatingWindow, PlacementSelector, RegionDefinition,
     RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
+    normalize_document,
 };
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 use tempfile::TempDir;
@@ -79,7 +80,7 @@ pub fn domain() -> TestDomain {
             Some(DomainFilePath::new("workspace/layout.json").unwrap()),
         )
         .unwrap(),
-        document(),
+        normalize_document(&registry(), &document()).unwrap(),
         registry(),
         NoSurfaceMigration,
         SurfaceBackupPolicy::Include,

@@ -1,91 +1,21 @@
-use std::{fs, path::PathBuf, time::Duration};
+use std::{fs, time::Duration};
 
-use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
-    ConfigDomain, ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
-    DomainLocation, DurabilityRequirement, MutationOptions, StorageClass,
+    DomainDescriptor, DomainFilePath, DurabilityRequirement, MutationOptions, StorageClass,
 };
 use longhorn_core::{
     DomainId, LayoutSchemaId, SchemaVersion, SurfaceId, SurfaceRequestId, SurfaceRevision, WindowId,
 };
-use longhorn_storage_layout::StorageRoots;
 use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition, ParticipatingWindow,
     RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits,
     SurfaceMutationCommand, SurfaceMutationRequest, SurfaceRecord,
 };
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
-use serde_json::{Value, json};
-use tempfile::TempDir;
 
 pub type TestSurfaceDomain = RegisteredSurfaceDomain<NoSurfaceMigration>;
 
-pub struct Fixture {
-    temp: TempDir,
-    roots: StorageRoots,
-    coordination: CoordinationAuthority,
-}
-
-impl Fixture {
-    pub fn new() -> Self {
-        let temp = TempDir::new().unwrap();
-        let root = temp.path();
-        let data = root.join("data");
-        for path in [
-            root.join("config"),
-            data.clone(),
-            root.join("state"),
-            root.join("cache"),
-            root.join("runtime"),
-            root.join("log"),
-            root.join("backups"),
-        ] {
-            fs::create_dir_all(path).unwrap();
-        }
-        let roots = StorageRoots::new(
-            root.join("config"),
-            &data,
-            root.join("state"),
-            root.join("cache"),
-            root.join("runtime"),
-            root.join("log"),
-            root.join("backups"),
-        )
-        .unwrap();
-        let coordination = CoordinationAuthority::new(data).unwrap();
-        Self {
-            temp,
-            roots,
-            coordination,
-        }
-    }
-
-    pub fn store(&self) -> ConfigStore {
-        ConfigStore::new(self.roots.clone(), self.coordination.clone())
-    }
-
-    pub fn path<D: ConfigDomain>(&self, domain: &D) -> PathBuf {
-        let _keep_temp_alive = &self.temp;
-        match self.roots.resolve(domain.descriptor()) {
-            DomainLocation::File(file) => file.full_path().to_path_buf(),
-            location => panic!("expected file-backed test domain, found {location:?}"),
-        }
-    }
-
-    pub fn write<D: ConfigDomain>(&self, domain: &D, bytes: &[u8]) {
-        let path = self.path(domain);
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, bytes).unwrap();
-    }
-
-    pub fn roots(&self) -> StorageRoots {
-        self.roots.clone()
-    }
-
-    pub fn coordination(&self) -> CoordinationAuthority {
-        self.coordination.clone()
-    }
-}
+pub use crate::fixture::{Fixture, envelope};
 
 pub fn descriptor(version: u32) -> DomainDescriptor {
     DomainDescriptor::new(
@@ -171,15 +101,6 @@ pub fn options() -> MutationOptions {
     MutationOptions::new(Duration::from_secs(2), DurabilityRequirement::Atomic)
 }
 
-pub fn envelope(domain: &str, version: u32, value: Value) -> Vec<u8> {
-    serde_json::to_vec_pretty(&json!({
-        "domain": domain,
-        "schemaVersion": version,
-        "value": value,
-    }))
-    .unwrap()
-}
-
 pub fn surface_id(value: &str) -> SurfaceId {
     SurfaceId::new(value).unwrap()
 }
@@ -188,7 +109,7 @@ pub fn window_id(value: &str) -> WindowId {
     WindowId::new(value).unwrap()
 }
 
-fn surface(id: &str, label: &str, order: u32) -> SurfaceRecord {
+pub fn surface(id: &str, label: &str, order: u32) -> SurfaceRecord {
     SurfaceRecord::new(
         surface_id(id),
         LayoutSchemaId::new("schema:test").unwrap(),
@@ -202,4 +123,18 @@ fn surface(id: &str, label: &str, order: u32) -> SurfaceRecord {
         [],
         [SurfaceHostPreference::new(window_id("window:main"), order)],
     )
+}
+
+/// Places a restore journal the store cannot read. The store reports that as
+/// recovery-required, which blocks bare loads exactly like an active restore.
+pub fn write_unreadable_restore_journal(fixture: &Fixture) {
+    let path = fixture
+        .temp
+        .path()
+        .join("data")
+        .join(".longhorn")
+        .join("restore")
+        .join("journal.json");
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, b"{ not a journal").unwrap();
 }

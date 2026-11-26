@@ -15,7 +15,7 @@ use longhorn_surface_transfer::{
 use longhorn_surfaces::{
     EmptyRegionPolicy, EmptyWindowPolicy, LayoutDefinitionRegistry, LayoutSchemaDefinition,
     ParticipatingWindow, RegionDefinition, RegionState, SurfaceDocument, SurfaceHostPreference,
-    SurfaceLimits, SurfaceRecord,
+    SurfaceLimits, SurfaceRecord, normalize_document,
 };
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
 use tempfile::TempDir;
@@ -70,47 +70,54 @@ pub fn domain() -> TestDomain {
             Some(DomainFilePath::new("workspace/surfaces.json").unwrap()),
         )
         .unwrap(),
-        SurfaceDocument::new(
-            SurfaceRevision::new(7),
-            [
-                SurfaceRecord::new(
-                    surface_id("surface:a"),
-                    schema_id(),
-                    Some("A".to_owned()),
-                    [RegionState::new(
-                        longhorn_core::RegionId::new("region:main").unwrap(),
+        normalize_document(
+            &registry(),
+            &SurfaceDocument::new(
+                SurfaceRevision::new(7),
+                [
+                    SurfaceRecord::new(
+                        surface_id("surface:a"),
+                        schema_id(),
+                        Some("A".to_owned()),
+                        [RegionState::new(
+                            longhorn_core::RegionId::new("region:main").unwrap(),
+                            [],
+                            None,
+                            None,
+                        )],
                         [],
-                        None,
-                        None,
-                    )],
-                    [],
-                    [
-                        preference("window:main", 0),
-                        preference("window:target", 0),
-                        preference("window:new", 0),
-                    ],
-                ),
-                SurfaceRecord::new(
-                    surface_id("surface:b"),
-                    schema_id(),
-                    Some("B".to_owned()),
-                    [RegionState::new(
-                        longhorn_core::RegionId::new("region:main").unwrap(),
+                        [
+                            preference("window:main", 0),
+                            preference("window:target", 0),
+                            preference("window:new", 0),
+                        ],
+                    ),
+                    SurfaceRecord::new(
+                        surface_id("surface:b"),
+                        schema_id(),
+                        Some("B".to_owned()),
+                        [RegionState::new(
+                            longhorn_core::RegionId::new("region:main").unwrap(),
+                            [],
+                            None,
+                            None,
+                        )],
                         [],
-                        None,
-                        None,
-                    )],
-                    [],
-                    [preference("window:main", 1)],
-                ),
-            ],
-            [],
-            [
-                ParticipatingWindow::new(window_id("window:main"), Some(surface_id("surface:a"))),
-                ParticipatingWindow::new(window_id("window:new"), None),
-                ParticipatingWindow::new(window_id("window:target"), None),
-            ],
-        ),
+                        [preference("window:main", 1)],
+                    ),
+                ],
+                [],
+                [
+                    ParticipatingWindow::new(
+                        window_id("window:main"),
+                        Some(surface_id("surface:a")),
+                    ),
+                    ParticipatingWindow::new(window_id("window:new"), None),
+                    ParticipatingWindow::new(window_id("window:target"), None),
+                ],
+            ),
+        )
+        .unwrap(),
         registry(),
         NoSurfaceMigration,
         SurfaceBackupPolicy::Include,

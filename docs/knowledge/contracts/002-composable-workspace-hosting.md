@@ -270,9 +270,13 @@ Current-schema commands operate only on valid input. Corrupt or future state
 enters the configuration recovery path instead of being silently repaired;
 consumers that prefer to open on the registered default arrangement when stored
 state is unreadable may opt in explicitly through `load_or_default`
-(`LayoutFallback`), which returns the default in memory and leaves the stored
-file untouched on disk. Explicit migrations may translate older documents before
-validation.
+(`LayoutFallback`). It returns the default in memory and leaves the stored file
+untouched on disk. It does not default past a restore that owns the stored
+state: while a restore is active or waiting for recovery it returns
+`LayoutLoadError::Restore`, because a save made under the default could overwrite
+what the restore publishes or rolls back. A registered default must already be
+canonical; registration refuses a non-canonical default rather than sorting it.
+Explicit migrations may translate older documents before validation.
 
 Successful mutation normalizes:
 
@@ -358,9 +362,13 @@ multiple scoped documents.
 The adapter:
 
 - loads and validates through the registered configuration domain
-- rechecks expected revision against fresh state under store coordination
+- rechecks expected revision against fresh state under store coordination for
+  immediate mutations
 - publishes one complete document with the existing atomic mutation path
 - exposes bounded debounce only for sizing/collapse traffic
+- applies a pending presentation intent to the value each flush reads; the
+  intent carries no expected revision, so an intervening structural publish
+  does not strand it
 - exposes explicit flush
 - preserves failed pending intent under the configuration debounce contract
 

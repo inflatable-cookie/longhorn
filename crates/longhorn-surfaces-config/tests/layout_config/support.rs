@@ -1,15 +1,13 @@
-use std::{fs, path::PathBuf, time::Duration};
+use std::time::Duration;
 
-use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
-    ConfigDomain, ConfigStore, CoordinationAuthority, DebounceClock, DomainDescriptor,
-    DomainFilePath, DomainLocation, DurabilityRequirement, MutationOptions, StorageClass,
+    ConfigDomain, DebounceClock, DomainDescriptor, DomainFilePath, DurabilityRequirement,
+    MutationOptions, StorageClass,
 };
 use longhorn_core::{
     DomainId, LayoutRequestId, LayoutSchemaId, PanelDefinitionId, PanelInstanceId, RegionFamilyId,
     RegionId, SchemaVersion, SizingSlotId, SurfaceId, SurfaceRevision, WindowId,
 };
-use longhorn_storage_layout::StorageRoots;
 use longhorn_surfaces::{
     EmptyRegionPolicy, LayoutDefinitionRegistry, LayoutMutationCommand, LayoutMutationRequest,
     LayoutRatio, LayoutSchemaDefinition, PanelDefinition, PanelInstance, PanelInstancePolicy,
@@ -17,76 +15,11 @@ use longhorn_surfaces::{
     SizingSlotState, SurfaceDocument, SurfaceHostPreference, SurfaceLimits, SurfaceRecord,
 };
 use longhorn_surfaces_config::{NoSurfaceMigration, RegisteredSurfaceDomain, SurfaceBackupPolicy};
-use serde_json::{Value, json};
-use tempfile::TempDir;
+use serde_json::Value;
 
 pub type TestLayoutDomain = RegisteredSurfaceDomain<NoSurfaceMigration>;
 
-pub struct Fixture {
-    pub temp: TempDir,
-    roots: StorageRoots,
-    coordination: CoordinationAuthority,
-}
-
-impl Fixture {
-    pub fn new() -> Self {
-        let temp = TempDir::new().unwrap();
-        let root = temp.path();
-        let data = root.join("data");
-        for path in [
-            root.join("config"),
-            data.clone(),
-            root.join("state"),
-            root.join("cache"),
-            root.join("runtime"),
-            root.join("log"),
-            root.join("backups"),
-        ] {
-            fs::create_dir_all(path).unwrap();
-        }
-        let roots = StorageRoots::new(
-            root.join("config"),
-            &data,
-            root.join("state"),
-            root.join("cache"),
-            root.join("runtime"),
-            root.join("log"),
-            root.join("backups"),
-        )
-        .unwrap();
-        let coordination = CoordinationAuthority::new(data).unwrap();
-        Self {
-            temp,
-            roots,
-            coordination,
-        }
-    }
-
-    pub fn store(&self) -> ConfigStore {
-        ConfigStore::new(self.roots.clone(), self.coordination.clone())
-    }
-
-    pub fn path<D: ConfigDomain>(&self, domain: &D) -> PathBuf {
-        match self.roots.resolve(domain.descriptor()) {
-            DomainLocation::File(file) => file.full_path().to_path_buf(),
-            location => panic!("expected file-backed test domain, found {location:?}"),
-        }
-    }
-
-    pub fn write<D: ConfigDomain>(&self, domain: &D, bytes: &[u8]) {
-        let path = self.path(domain);
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, bytes).unwrap();
-    }
-
-    pub fn roots(&self) -> StorageRoots {
-        self.roots.clone()
-    }
-
-    pub fn coordination(&self) -> CoordinationAuthority {
-        self.coordination.clone()
-    }
-}
+pub use crate::fixture::{Fixture, envelope};
 
 pub fn descriptor(version: u32) -> DomainDescriptor {
     DomainDescriptor::new(
@@ -245,17 +178,30 @@ pub fn collapse_request(expected: u64, collapsed: bool) -> LayoutMutationRequest
     )
 }
 
-pub fn options(timeout: Duration) -> MutationOptions {
-    MutationOptions::new(timeout, DurabilityRequirement::Atomic)
+pub fn sizing_command(value: u32) -> LayoutMutationCommand {
+    LayoutMutationCommand::SetSizingSlot {
+        surface_id: surface_id("surface:primary"),
+        sizing_slot_id: slot_id("left-width"),
+        ratio: ratio(value),
+    }
 }
 
-pub fn envelope(domain: &str, version: u32, value: Value) -> Vec<u8> {
-    serde_json::to_vec_pretty(&json!({
-        "domain": domain,
-        "schemaVersion": version,
-        "value": value,
-    }))
-    .unwrap()
+pub fn collapse_command(collapsed: bool) -> LayoutMutationCommand {
+    LayoutMutationCommand::SetRegionCollapsed {
+        surface_id: surface_id("surface:primary"),
+        region_id: region_id("left"),
+        collapsed,
+    }
+}
+
+pub fn activate_command() -> LayoutMutationCommand {
+    LayoutMutationCommand::ActivatePanel {
+        panel_instance_id: instance_id("instance:tool"),
+    }
+}
+
+pub fn options(timeout: Duration) -> MutationOptions {
+    MutationOptions::new(timeout, DurabilityRequirement::Atomic)
 }
 
 pub fn current_value(domain: &TestLayoutDomain) -> Value {

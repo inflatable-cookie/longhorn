@@ -2,6 +2,8 @@
 
 #[path = "surface_config/backup.rs"]
 mod backup;
+#[path = "shared/fixture.rs"]
+mod fixture;
 #[path = "surface_config/independence.rs"]
 mod independence;
 #[path = "surface_config/loading.rs"]
