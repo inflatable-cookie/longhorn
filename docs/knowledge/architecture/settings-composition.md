@@ -153,10 +153,11 @@ authority into Longhorn.
 
 ## Proof
 
-Run:
+Run the artifact proof aggregate, which includes the settings composition
+proof:
 
 ```sh
-effigy proof:settings-composition
+effigy proof:artifacts
 ```
 
 The proof sources live in
