@@ -159,6 +159,9 @@ command ID, or description. Command ID matching is case-insensitive. The
 TypeScript scorer folds IDs supplied through injected ports. Search results
 carry the original IDs for dispatch.
 
+Equal-specificity bindings are ordered by binding ID in UTF-8 byte order.
+The renderer projector rejects catalogue commands with missing availability.
+
 - `@inflatable-cookie/longhorn/commands` owns framework-neutral clients and injected catalogue,
   keymap, availability, and executor ports.
 - Optional Svelte state is per instance and follows contract 013.

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { ForkHistoryController } from "../../src/history-tree/controller.ts";
+import {
+  ForkHistoryController,
+  ForkHistoryLateResultError,
+  ForkHistoryProjectionGapError,
+} from "../../src/history-tree/controller.ts";
 import type { ForkHistoryPort } from "../../src/history-tree/ports.ts";
+import { ForkHistoryValidationError } from "../../src/history-tree/validation.ts";
 import {
   branchPage,
   changed,
@@ -106,6 +111,33 @@ describe("fork-history controller", () => {
     await controller.stop();
     expect(state.listeners.size).toBe(0);
   });
+
+  it("ends the subscription and reports a malformed event", async () => {
+    const state = tracked();
+    const controller = new ForkHistoryController({ port: state.port });
+    await controller.start();
+    const [receive] = state.listeners;
+    expect(() => receive?.({})).not.toThrow();
+    expect(controller.status).toEqual({
+      kind: "failed",
+      error: expect.any(ForkHistoryValidationError),
+    });
+    await waitFor(() => state.listeners.size === 0);
+    await controller.stop();
+  });
+
+  it("clears controller state after a synchronous unlisten failure", async () => {
+    const state = tracked();
+    state.port.listen = () => () => {
+      throw new Error("unlisten failed");
+    };
+    const controller = new ForkHistoryController({ port: state.port });
+    await controller.start();
+    await controller.stop();
+
+    expect(controller.status).toEqual({ kind: "idle" });
+    expect(controller.snapshot).toBeUndefined();
+  });
   it("loads branch metadata and alternate paths only after explicit requests", async () => {
     const state = tracked();
     const controller = new ForkHistoryController({ port: state.port });
@@ -116,6 +148,32 @@ describe("fork-history controller", () => {
     expect(state.calls.slice(-3)).toEqual(["snapshot", "path:branch", "branches"]);
     await controller.stop();
   });
+
+  it.each(["restart", "refresh"] as const)(
+    "discards a branch page overtaken by a %s",
+    async (action) => {
+      const state = tracked();
+      const controller = new ForkHistoryController({ port: state.port });
+      await controller.start();
+      const result = Promise.withResolvers<unknown>();
+      state.port.branches = () => result.promise;
+      const load = controller.loadBranches();
+      if (action === "restart") {
+        await controller.stop();
+        await controller.start();
+      } else {
+        state.advance(5);
+        await controller.refresh();
+      }
+      result.resolve({ ...clone(branchPage), revision: 4 });
+
+      await expect(load).rejects.toBeInstanceOf(
+        action === "restart" ? ForkHistoryLateResultError : ForkHistoryProjectionGapError,
+      );
+      expect(controller.branches).toBeUndefined();
+      await controller.stop();
+    },
+  );
 
   // A consumer that loads branches once and keeps editing used to lose the page
   // on every mutation: `#install` discarded it as stale, and `loadBranches`

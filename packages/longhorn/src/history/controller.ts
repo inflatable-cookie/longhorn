@@ -1,3 +1,4 @@
+import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { HistoryClient } from "./client.ts";
 import { HISTORY_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
@@ -11,7 +12,7 @@ import type {
   HistorySnapshot,
 } from "./generated/protocol.ts";
 import { HISTORY_MAXIMUM_PROJECTION_PAGE_SIZE } from "./generated/protocol.ts";
-import type { HistoryPort, HistoryUnlisten } from "./ports.ts";
+import type { HistoryPort } from "./ports.ts";
 
 export type HistoryControllerStatus =
   | { readonly kind: "idle" }
@@ -22,6 +23,12 @@ export type HistoryControllerStatus =
 export interface HistoryControllerOptions {
   readonly port: HistoryPort;
   readonly pageSize?: number;
+}
+
+interface HistoryProjection {
+  readonly snapshot: HistorySnapshot;
+  readonly page: HistoryPageSnapshot;
+  readonly pageNumber: number;
 }
 
 export class HistoryController {
@@ -35,11 +42,9 @@ export class HistoryController {
   #page = 1;
   #pageSize: number;
   #navigationPending = false;
-  #started = false;
-  #lifecycleRevision = 0;
+  readonly #lifecycle = new ControllerLifecycle();
   #loadRevision = 0;
   #navigationRevision = 0;
-  #unlisten: Array<HistoryUnlisten> = [];
 
   constructor(options: HistoryControllerOptions) {
     this.#client = new HistoryClient(options.port);
@@ -47,7 +52,7 @@ export class HistoryController {
   }
 
   get status(): HistoryControllerStatus {
-    return this.#status;
+    return this.#lifecycle.eventFailure ?? this.#status;
   }
 
   get snapshot(): HistorySnapshot | undefined {
@@ -108,60 +113,52 @@ export class HistoryController {
     return () => this.#observers.delete(observer);
   }
 
-  async start(): Promise<void> {
-    if (this.#started) {
-      return;
-    }
-    this.#started = true;
-    const lifecycleRevision = ++this.#lifecycleRevision;
-    this.#setStatus({ kind: "loading" });
-    try {
-      const unlisten = await this.#client.listen((event) => {
-        this.#handleChanged(event);
-      });
-      if (!this.#isCurrentLifecycle(lifecycleRevision)) {
-        await unlisten();
-        return;
-      }
-      this.#unlisten.push(unlisten);
-      await this.refresh();
-    } catch (error) {
-      if (this.#isCurrentLifecycle(lifecycleRevision)) {
-        this.#setStatus({ kind: "failed", error });
-      }
-    }
+  start(): Promise<void> {
+    return this.#lifecycle.start({
+      loading: () => this.#setStatus({ kind: "loading" }),
+      connect: async ({ isCurrent, own, reportFailure }) => {
+        const unlisten = await this.#client.listen((event) => {
+          if (isCurrent()) {
+            this.#handleChanged(event);
+          }
+        }, reportFailure);
+        await own(unlisten);
+        if (isCurrent()) {
+          await this.refresh();
+        }
+      },
+      failed: (error) => this.#setStatus({ kind: "failed", error }),
+    });
   }
 
-  async stop(): Promise<void> {
-    this.#started = false;
-    this.#lifecycleRevision += 1;
-    this.#loadRevision += 1;
-    this.#navigationRevision += 1;
-    const unlisten = this.#unlisten.splice(0);
-    await Promise.allSettled(unlisten.map((dispose) => dispose()));
-    this.#snapshot = undefined;
-    this.#pageSnapshot = undefined;
-    this.#rejection = undefined;
-    this.#filter = "";
-    this.#page = 1;
-    this.#navigationPending = false;
-    this.#setStatus({ kind: "idle" });
+  stop(): Promise<void> {
+    return this.#lifecycle.stop(() => {
+      this.#loadRevision += 1;
+      this.#navigationRevision += 1;
+      this.#snapshot = undefined;
+      this.#pageSnapshot = undefined;
+      this.#rejection = undefined;
+      this.#filter = "";
+      this.#page = 1;
+      this.#navigationPending = false;
+      this.#setStatus({ kind: "idle" });
+    }, "ignore");
   }
 
   async refresh(): Promise<void> {
-    if (!this.#started) {
+    if (!this.#lifecycle.active) {
       return;
     }
     const revision = ++this.#loadRevision;
     try {
       const state = await this.#readAuthoritativeState();
-      if (!this.#started || revision !== this.#loadRevision) {
+      if (!this.#lifecycle.active || revision !== this.#loadRevision) {
         return;
       }
-      this.#install(state.snapshot, state.page);
+      this.#install(state);
       this.#setStatus({ kind: "ready" });
     } catch (error) {
-      if (this.#started && revision === this.#loadRevision) {
+      if (this.#lifecycle.active && revision === this.#loadRevision) {
         this.#setStatus({ kind: "failed", error });
       }
     }
@@ -209,7 +206,7 @@ export class HistoryController {
 
   async #navigate(target: HistoryNavigationTargetProjection): Promise<HistoryNavigationResult> {
     const snapshot = this.#snapshot;
-    if (!this.#started || snapshot === undefined) {
+    if (!this.#lifecycle.active || snapshot === undefined) {
       throw new HistoryControllerUnavailableError();
     }
     const revision = ++this.#navigationRevision;
@@ -225,20 +222,20 @@ export class HistoryController {
         expectedRevision: snapshot.summary.revision,
         target,
       });
-      if (!this.#started || revision !== this.#navigationRevision) {
+      if (!this.#lifecycle.active || revision !== this.#navigationRevision) {
         throw new HistoryLateResultError();
       }
       this.#rejection = result.status === "rejected" ? result.rejection : undefined;
-      const page = await this.#readPageForSnapshot(result.snapshot);
-      if (!this.#started || revision !== this.#navigationRevision) {
+      const projection = await this.#readPageForSnapshot(result.snapshot);
+      if (!this.#lifecycle.active || revision !== this.#navigationRevision) {
         throw new HistoryLateResultError();
       }
-      this.#install(result.snapshot, page);
+      this.#install(projection);
       this.#setStatus({ kind: "ready" });
       return result;
     } catch (error) {
       if (
-        this.#started &&
+        this.#lifecycle.active &&
         revision === this.#navigationRevision &&
         !(error instanceof HistoryLateResultError)
       ) {
@@ -253,37 +250,33 @@ export class HistoryController {
     }
   }
 
-  async #readAuthoritativeState(): Promise<{
-    snapshot: HistorySnapshot;
-    page: HistoryPageSnapshot;
-  }> {
+  async #readAuthoritativeState(): Promise<HistoryProjection> {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const snapshot = await this.#client.snapshot();
-      const page = await this.#readPageForSnapshot(snapshot);
-      if (sameAuthority(snapshot, page)) {
-        return { snapshot, page };
+      const projection = await this.#readPageForSnapshot(snapshot);
+      if (sameAuthority(snapshot, projection.page)) {
+        return projection;
       }
     }
     throw new HistoryProjectionGapError();
   }
 
-  async #readPageForSnapshot(snapshot: HistorySnapshot): Promise<HistoryPageSnapshot> {
-    const maximumPage = Math.max(
-      1,
-      Math.ceil(snapshot.summary.retainedEntryCount / this.#pageSize),
-    );
-    this.#page = Math.min(this.#page, maximumPage);
-    return this.#client.page({
+  async #readPageForSnapshot(snapshot: HistorySnapshot): Promise<HistoryProjection> {
+    const pageSize = this.#pageSize;
+    const maximumPage = Math.max(1, Math.ceil(snapshot.summary.retainedEntryCount / pageSize));
+    const pageNumber = Math.min(this.#page, maximumPage);
+    const page = await this.#client.page({
       protocolVersion: HISTORY_PROTOCOL_VERSION,
       authorityEpoch: snapshot.authorityEpoch,
       historyId: snapshot.summary.historyId,
       expectedRevision: snapshot.summary.revision,
-      offset: (this.#page - 1) * this.#pageSize,
-      limit: this.#pageSize,
+      offset: (pageNumber - 1) * pageSize,
+      limit: pageSize,
     });
+    return { snapshot, page, pageNumber };
   }
 
-  #install(snapshot: HistorySnapshot, page: HistoryPageSnapshot): void {
+  #install({ snapshot, page, pageNumber }: HistoryProjection): void {
     if (!sameAuthority(snapshot, page)) {
       throw new HistoryProjectionGapError();
     }
@@ -298,11 +291,11 @@ export class HistoryController {
     }
     this.#snapshot = snapshot;
     this.#pageSnapshot = page;
-    this.#notify();
+    this.#page = pageNumber;
   }
 
   #handleChanged(event: HistoryChangedEvent): void {
-    if (!this.#started) {
+    if (!this.#lifecycle.active) {
       return;
     }
     const snapshot = this.#snapshot;
@@ -321,10 +314,6 @@ export class HistoryController {
       return;
     }
     void this.refresh();
-  }
-
-  #isCurrentLifecycle(revision: number): boolean {
-    return this.#started && revision === this.#lifecycleRevision;
   }
 
   #setStatus(status: HistoryControllerStatus): void {

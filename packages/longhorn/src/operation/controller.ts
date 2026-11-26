@@ -1,5 +1,5 @@
+import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { isNewerOperationSnapshot, OperationClient } from "./client.ts";
-import type { OperationSubscription } from "./client.ts";
 import { OPERATION_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
   OperationCancellationResult,
@@ -47,9 +47,7 @@ export class OperationController {
   #selectedOperationId: OperationId | undefined;
   #commandRejection: OperationCommandRejection | undefined;
   #commandFailure: OperationCommandFailure | undefined;
-  #subscription: OperationSubscription | undefined;
-  #started = false;
-  #lifecycleRevision = 0;
+  readonly #lifecycle = new ControllerLifecycle();
   #commandRevision = 0;
 
   constructor(options: OperationControllerOptions) {
@@ -57,7 +55,7 @@ export class OperationController {
   }
 
   get status(): OperationControllerStatus {
-    return this.#status;
+    return this.#lifecycle.eventFailure ?? this.#status;
   }
 
   get snapshot(): OperationSnapshot | undefined {
@@ -100,55 +98,31 @@ export class OperationController {
     return () => this.#observers.delete(observer);
   }
 
-  async start(): Promise<void> {
-    if (this.#started) {
-      return;
-    }
-    this.#started = true;
-    const lifecycleRevision = ++this.#lifecycleRevision;
-    this.#setStatus({ kind: "loading" });
-
-    const subscription = this.#client.subscribe(
-      (snapshot) => {
-        if (this.#isCurrentLifecycle(lifecycleRevision)) {
-          this.#install(snapshot);
-        }
+  start(): Promise<void> {
+    return this.#lifecycle.start({
+      loading: () => this.#setStatus({ kind: "loading" }),
+      connect: ({ isCurrent, reportFailure, watch }) => {
+        const subscription = this.#client.subscribe((snapshot) => {
+          if (isCurrent()) {
+            this.#install(snapshot);
+          }
+        }, reportFailure);
+        return watch(subscription, () => this.#setStatus({ kind: "ready" }));
       },
-      ({ error }) => {
-        if (this.#isCurrentLifecycle(lifecycleRevision)) {
-          this.#setStatus({ kind: "failed", error });
-        }
-      },
-    );
-    this.#subscription = subscription;
-
-    try {
-      await subscription.ready;
-      if (this.#isCurrentLifecycle(lifecycleRevision)) {
-        this.#setStatus({ kind: "ready" });
-      }
-    } catch (error) {
-      if (this.#isCurrentLifecycle(lifecycleRevision)) {
-        this.#setStatus({ kind: "failed", error });
-      }
-    }
+      failed: (error) => this.#setStatus({ kind: "failed", error }),
+    });
   }
 
-  async stop(): Promise<void> {
-    this.#started = false;
-    this.#lifecycleRevision += 1;
-    this.#commandRevision += 1;
-    const subscription = this.#subscription;
-    this.#subscription = undefined;
-    this.#snapshot = undefined;
-    this.#selectedOperationId = undefined;
-    this.#pending.clear();
-    this.#commandRejection = undefined;
-    this.#commandFailure = undefined;
-    this.#setStatus({ kind: "idle" });
-    if (subscription !== undefined) {
-      await subscription.dispose();
-    }
+  stop(): Promise<void> {
+    return this.#lifecycle.stop(() => {
+      this.#commandRevision += 1;
+      this.#snapshot = undefined;
+      this.#selectedOperationId = undefined;
+      this.#pending.clear();
+      this.#commandRejection = undefined;
+      this.#commandFailure = undefined;
+      this.#setStatus({ kind: "idle" });
+    }, "reject");
   }
 
   select(operationId: OperationId | undefined): void {
@@ -204,7 +178,7 @@ export class OperationController {
     if (this.#hasPending(pending.operationId, pending.kind)) {
       throw new OperationControllerCommandPendingError(pending.operationId, pending.kind);
     }
-    const lifecycleRevision = this.#lifecycleRevision;
+    const lifecycleRevision = this.#lifecycle.revision;
     const commandRevision = ++this.#commandRevision;
     this.#pending.set(pending.requestId, pending);
     this.#commandFailure = undefined;
@@ -213,7 +187,7 @@ export class OperationController {
 
     try {
       const result = await run();
-      if (this.#isCurrentLifecycle(lifecycleRevision)) {
+      if (this.#lifecycle.isCurrent(lifecycleRevision)) {
         this.#install(result.snapshot);
         if (commandRevision === this.#commandRevision && result.status === "rejected") {
           this.#commandRejection = { ...pending, rejection: result.rejection };
@@ -222,14 +196,14 @@ export class OperationController {
       return result;
     } catch (error) {
       if (
-        this.#isCurrentLifecycle(lifecycleRevision) &&
+        this.#lifecycle.isCurrent(lifecycleRevision) &&
         commandRevision === this.#commandRevision
       ) {
         this.#commandFailure = { ...pending, error };
       }
       throw error;
     } finally {
-      if (this.#isCurrentLifecycle(lifecycleRevision)) {
+      if (this.#lifecycle.isCurrent(lifecycleRevision)) {
         this.#pending.delete(pending.requestId);
         this.#notify();
       }
@@ -237,7 +211,7 @@ export class OperationController {
   }
 
   #requireAvailableEntry(operationId: OperationId): OperationEntryProjection {
-    if (!this.#started || this.#snapshot === undefined) {
+    if (!this.#lifecycle.active || this.#snapshot === undefined) {
       throw new OperationControllerUnavailableError();
     }
     const operation = this.#entry(operationId);
@@ -269,10 +243,6 @@ export class OperationController {
       this.#selectedOperationId = undefined;
     }
     this.#notify();
-  }
-
-  #isCurrentLifecycle(revision: number): boolean {
-    return this.#started && revision === this.#lifecycleRevision;
   }
 
   #setStatus(status: OperationControllerStatus): void {

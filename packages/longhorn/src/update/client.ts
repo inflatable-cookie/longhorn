@@ -1,3 +1,5 @@
+import { listenChecked } from "../core/connection.ts";
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import type {
   UpdateApplyCommand,
   UpdateCancelCommand,
@@ -83,22 +85,26 @@ export class UpdateClient implements CheckedUpdatePort {
     assertUpdateOutcome(value);
     return value;
   }
-  async listen(listener: (event: UpdateChangedEvent) => void): Promise<UpdateUnlisten> {
-    if (this.port.listen === undefined) {
-      return () => {};
-    }
-    return this.port.listen((value) => {
-      assertUpdateChangedEvent(value);
-      listener(value);
+  listen(
+    listener: (event: UpdateChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<UpdateUnlisten> {
+    return listenChecked({
+      listen: (receive) => this.port.listen?.(receive) ?? (() => {}),
+      validate: assertUpdateChangedEvent,
+      listener,
+      onFailure,
     });
   }
-  async listenProgress(listener: (event: UpdateProgressEvent) => void): Promise<UpdateUnlisten> {
-    if (this.port.listenProgress === undefined) {
-      return () => {};
-    }
-    return this.port.listenProgress((value) => {
-      assertUpdateProgressEvent(value);
-      listener(value);
+  listenProgress(
+    listener: (event: UpdateProgressEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<UpdateUnlisten> {
+    return listenChecked({
+      listen: (receive) => this.port.listenProgress?.(receive) ?? (() => {}),
+      validate: assertUpdateProgressEvent,
+      listener,
+      onFailure,
     });
   }
 }

@@ -1,4 +1,4 @@
-import { disposeAll } from "../core/listeners.ts";
+import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { LicenceClient } from "./client.ts";
 import { LICENCE_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
@@ -11,7 +11,7 @@ import type {
   LicenceTrustBasisProjection,
   LicenceUsabilityProjection,
 } from "./generated/protocol.ts";
-import type { LicencePort, LicenceUnlisten } from "./ports.ts";
+import type { LicencePort } from "./ports.ts";
 
 export type LicenceControllerStatus =
   | { readonly kind: "idle" }
@@ -61,19 +61,17 @@ export class LicenceController {
   #status: LicenceControllerStatus = { kind: "idle" };
   #snapshot?: LicenceSnapshot;
   #lastRejection: LicenceRejectionCode | undefined;
-  #started = false;
-  #lifecycle = 0;
+  readonly #lifecycle = new ControllerLifecycle();
   #commandSequence = 0;
   #refreshRevision = 0;
   #pending = false;
-  #unlisten: Array<LicenceUnlisten> = [];
 
   constructor(options: LicenceControllerOptions) {
     this.#client = new LicenceClient(options.port);
   }
 
   get status(): LicenceControllerStatus {
-    return this.#status;
+    return this.#lifecycle.eventFailure ?? this.#status;
   }
   get snapshot(): LicenceSnapshot | undefined {
     return this.#snapshot;
@@ -176,52 +174,39 @@ export class LicenceController {
     return () => this.#observers.delete(observer);
   }
 
-  async start(): Promise<void> {
-    if (this.#started) {
-      return;
-    }
-    this.#started = true;
-    const lifecycle = ++this.#lifecycle;
-    this.#setStatus({ kind: "loading" });
-    try {
-      const unlisten = await this.#client.listen(() => {
-        if (lifecycle === this.#lifecycle) {
-          void this.refresh();
+  start(): Promise<void> {
+    return this.#lifecycle.start({
+      loading: () => this.#setStatus({ kind: "loading" }),
+      connect: async ({ isCurrent, own, reportFailure }) => {
+        const unlisten = await this.#client.listen(() => {
+          if (isCurrent()) {
+            void this.refresh();
+          }
+        }, reportFailure);
+        await own(unlisten);
+        if (isCurrent()) {
+          await this.refresh();
         }
-      });
-      if (!this.#started || lifecycle !== this.#lifecycle) {
-        await unlisten();
-        return;
-      }
-      this.#unlisten.push(unlisten);
-      await this.refresh();
-    } catch (error) {
-      if (this.#started && lifecycle === this.#lifecycle) {
-        this.#setStatus({ kind: "failed", error });
-      }
-    }
+      },
+      failed: (error) => this.#setStatus({ kind: "failed", error }),
+    });
   }
 
-  async stop(): Promise<void> {
-    this.#started = false;
-    const lifecycle = ++this.#lifecycle;
-    this.#pending = false;
-    const unlisten = this.#unlisten;
-    this.#unlisten = [];
-    const results = await disposeAll(unlisten);
-    if (lifecycle === this.#lifecycle) {
+  stop(): Promise<void> {
+    return this.#lifecycle.stop(() => {
+      this.#pending = false;
       this.#setStatus({ kind: "idle" });
-    }
-    const failure = results.find((result) => result.status === "rejected");
-    if (failure !== undefined) {
-      throw failure.reason;
-    }
+    }, "reject");
   }
 
   async refresh(): Promise<void> {
-    const lifecycle = this.#lifecycle;
+    if (!this.#lifecycle.active) {
+      return;
+    }
+    const lifecycle = this.#lifecycle.revision;
     const revision = ++this.#refreshRevision;
-    const isCurrent = () => lifecycle === this.#lifecycle && revision === this.#refreshRevision;
+    const isCurrent = () =>
+      this.#lifecycle.isCurrent(lifecycle) && revision === this.#refreshRevision;
     try {
       const snapshot = await this.#client.snapshot();
       if (!isCurrent()) {
@@ -252,7 +237,7 @@ export class LicenceController {
   }
 
   /**
-   * Presents a credential. One command for all three routes, as Card 193 set.
+   * Presents a credential for any supported activation route.
    *
    * `label` is what the customer calls this machine in the seat list, asked
    * for at the only moment it can be without inventing a settings screen.
@@ -332,7 +317,7 @@ export class LicenceController {
       this.#setStatus({ kind: "failed", error });
       return { status: "failed", error };
     }
-    const lifecycle = this.#lifecycle;
+    const lifecycle = this.#lifecycle.revision;
     this.#pending = true;
     this.#notify();
     try {
@@ -341,7 +326,7 @@ export class LicenceController {
         outcome.status === "rejected"
           ? { status: "rejected", snapshot: outcome.snapshot, code: outcome.code }
           : { status: "committed", snapshot: outcome.snapshot };
-      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+      if (lifecycle === this.#lifecycle.revision && commandSequence === this.#commandSequence) {
         this.#refreshRevision += 1;
         this.#snapshot = outcome.snapshot;
         this.#lastRejection = result.status === "rejected" ? result.code : undefined;
@@ -349,13 +334,13 @@ export class LicenceController {
       }
       return result;
     } catch (error) {
-      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+      if (lifecycle === this.#lifecycle.revision && commandSequence === this.#commandSequence) {
         this.#refreshRevision += 1;
         this.#setStatus({ kind: "failed", error });
       }
       return { status: "failed", error };
     } finally {
-      if (lifecycle === this.#lifecycle && commandSequence === this.#commandSequence) {
+      if (lifecycle === this.#lifecycle.revision && commandSequence === this.#commandSequence) {
         this.#pending = false;
         this.#notify();
       }

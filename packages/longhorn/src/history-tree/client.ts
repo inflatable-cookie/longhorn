@@ -1,3 +1,5 @@
+import { listenChecked } from "../core/connection.ts";
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import {
   assertForkBranchCommand,
   assertForkBranchPage,
@@ -78,13 +80,15 @@ export class ForkHistoryClient implements CheckedForkHistoryPort {
     assertForkNavigationResult(value);
     return value;
   }
-  async listen(listener: (event: ForkChangedEvent) => void): Promise<ForkHistoryUnlisten> {
-    if (this.port.listen === undefined) {
-      return () => {};
-    }
-    return this.port.listen((value) => {
-      assertForkChangedEvent(value);
-      listener(value);
+  listen(
+    listener: (event: ForkChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<ForkHistoryUnlisten> {
+    return listenChecked({
+      listen: (receive) => this.port.listen?.(receive) ?? (() => {}),
+      validate: assertForkChangedEvent,
+      listener,
+      onFailure,
     });
   }
 }

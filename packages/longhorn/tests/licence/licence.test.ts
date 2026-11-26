@@ -65,7 +65,7 @@ class Port implements LicencePort {
   async renameSeat(): Promise<unknown> {
     return this.outcome();
   }
-  async listen(): Promise<() => void> {
+  async listen(_listener: (event: unknown) => void): Promise<() => void> {
     return () => {};
   }
 }
@@ -184,6 +184,41 @@ async function ready(state: LicenceSnapshot): Promise<LicenceController> {
 }
 
 describe("licence controller", () => {
+  test("an event received during registration can fail and close the subscription", async () => {
+    let disposed = 0;
+    const port = new (class extends Port {
+      override async listen(listener: (event: unknown) => void) {
+        expect(() => listener({ authorityEpoch: "invalid" })).not.toThrow();
+        return () => {
+          disposed += 1;
+        };
+      }
+    })();
+    const controller = new LicenceController({ port });
+    await controller.start();
+
+    expect(controller.status).toEqual({
+      kind: "failed",
+      error: expect.any(LicenceValidationError),
+    });
+    expect(disposed).toBe(1);
+    await controller.stop();
+    expect(disposed).toBe(1);
+  });
+
+  test("refresh after stop leaves the controller idle", async () => {
+    const port = new Port();
+    const controller = new LicenceController({ port });
+    await controller.start();
+    const current = controller.snapshot;
+    await controller.stop();
+    port.snapshot = async () => snapshot(null);
+    await controller.refresh();
+
+    expect(controller.status).toEqual({ kind: "idle" });
+    expect(controller.snapshot).toBe(current);
+  });
+
   test("an asynchronous unlisten failure leaves the controller idle", async () => {
     const failure = new Error("licence unlisten failed");
     let disposed = 0;

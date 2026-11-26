@@ -1,4 +1,4 @@
-import { disposeAll } from "../core/listeners.ts";
+import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { CommandClient } from "./client.ts";
 import type {
   CommandInvocation,
@@ -13,7 +13,6 @@ import type {
   CommandExecutionOutcome,
   CommandExecutionSource,
   CommandPorts,
-  CommandUnlisten,
 } from "./ports.ts";
 import { joinCommandState, projectCommandSurfaces, searchCommands } from "./projectors.ts";
 import type { CommandJoinedState, CommandSurfaceProjection } from "./projectors.ts";
@@ -63,11 +62,10 @@ export class CommandController {
   #searchHits: ReadonlyArray<CommandSearchHit> = [];
   #query = "";
   #draft: CommandKeymapPatch | undefined;
-  #unlisten: Array<CommandUnlisten> = [];
-  #lifecycleRevision = 0;
   #loadRevision = 0;
+  #mutationRevision = 0;
   #searchRevision = 0;
-  #started = false;
+  readonly #lifecycle = new ControllerLifecycle();
 
   constructor(options: CommandControllerOptions) {
     this.#client = new CommandClient(options.ports);
@@ -112,51 +110,44 @@ export class CommandController {
     return () => this.#observers.delete(observer);
   }
 
-  async start(): Promise<void> {
-    if (this.#started) {
-      return;
-    }
-    this.#started = true;
-    const lifecycleRevision = ++this.#lifecycleRevision;
-    this.#setStatus({ kind: "loading" });
-    try {
-      const unlisten = await this.#client.listen(() => {
-        void this.refresh();
-      });
-      if (!this.#started || lifecycleRevision !== this.#lifecycleRevision) {
-        await disposeAll(unlisten);
-        return;
-      }
-      this.#unlisten.push(...unlisten);
-      await this.refresh();
-    } catch (error) {
-      if (this.#started && lifecycleRevision === this.#lifecycleRevision) {
-        this.#setStatus({ kind: "failed", error });
-      }
-    }
+  start(): Promise<void> {
+    return this.#lifecycle.start({
+      loading: () => this.#setStatus({ kind: "loading" }),
+      connect: async ({ isCurrent, own }) => {
+        const unlisten = await this.#client.listen(() => {
+          if (isCurrent()) {
+            void this.refresh();
+          }
+        });
+        await own(...unlisten);
+        if (isCurrent()) {
+          await this.refresh();
+        }
+      },
+      failed: (error) => this.#setStatus({ kind: "failed", error }),
+    });
   }
 
-  async stop(): Promise<void> {
-    this.#started = false;
-    this.#lifecycleRevision += 1;
-    this.#loadRevision += 1;
-    this.#searchRevision += 1;
-    const unlisten = this.#unlisten.splice(0);
-    await disposeAll(unlisten);
-    this.#model = undefined;
-    this.#projection = undefined;
-    this.#searchHits = [];
-    this.#query = "";
-    this.#draft = undefined;
-    this.#mutation = { kind: "idle" };
-    this.#setStatus({ kind: "idle" });
+  stop(): Promise<void> {
+    return this.#lifecycle.stop(() => {
+      this.#loadRevision += 1;
+      this.#searchRevision += 1;
+      this.#mutationRevision += 1;
+      this.#model = undefined;
+      this.#projection = undefined;
+      this.#searchHits = [];
+      this.#query = "";
+      this.#draft = undefined;
+      this.#mutation = { kind: "idle" };
+      this.#setStatus({ kind: "idle" });
+    }, "ignore");
   }
 
   async refresh(): Promise<void> {
     const revision = ++this.#loadRevision;
     try {
       const loaded = await this.#client.load();
-      if (!this.#started || revision !== this.#loadRevision) {
+      if (!this.#lifecycle.active || revision !== this.#loadRevision) {
         return;
       }
       if (loaded.keymap.status === "recovery") {
@@ -183,7 +174,7 @@ export class CommandController {
       this.#setStatus({ kind: "ready" });
       await this.search(this.#query);
     } catch (error) {
-      if (this.#started && revision === this.#loadRevision) {
+      if (this.#lifecycle.active && revision === this.#loadRevision) {
         this.#setStatus({ kind: "failed", error });
       }
     }
@@ -233,12 +224,14 @@ export class CommandController {
   }
 
   stageKeymapPatch(patch: CommandKeymapPatch): void {
+    this.#mutationRevision += 1;
     this.#draft = patch;
     this.#mutation = { kind: "dirty" };
     this.#notify();
   }
 
   cancelKeymapDraft(): void {
+    this.#mutationRevision += 1;
     this.#draft = undefined;
     this.#mutation = { kind: "idle" };
     this.#notify();
@@ -251,7 +244,7 @@ export class CommandController {
       return true;
     }
     const base = model.keymap;
-    const operationRevision = ++this.#loadRevision;
+    const operationRevision = ++this.#mutationRevision;
     this.#mutation = { kind: "previewing" };
     this.#notify();
     try {
@@ -262,7 +255,7 @@ export class CommandController {
         activePresetVersion: base.activePresetVersion,
         patch,
       });
-      if (operationRevision !== this.#loadRevision || patch !== this.#draft) {
+      if (operationRevision !== this.#mutationRevision) {
         return false;
       }
       if (preview.status !== "accepted") {
@@ -279,17 +272,20 @@ export class CommandController {
       }
       this.#mutation = { kind: "committing" };
       this.#notify();
+      if (operationRevision !== this.#mutationRevision) {
+        return false;
+      }
       const result = await this.#client.commit({
         requestId: this.#client.nextRequestId(),
         evidence: preview.evidence,
         patch,
       });
-      if (operationRevision !== this.#loadRevision || patch !== this.#draft) {
+      if (operationRevision !== this.#mutationRevision) {
         return false;
       }
       return this.#finishMutation(result);
     } catch (error) {
-      if (operationRevision === this.#loadRevision) {
+      if (operationRevision === this.#mutationRevision) {
         this.#mutation = { kind: "failed", error };
         this.#notify();
       }
@@ -300,9 +296,12 @@ export class CommandController {
   async resetKeymap(): Promise<boolean> {
     const model = this.#requiredModel();
     const base = model.keymap;
-    const operationRevision = ++this.#loadRevision;
+    const operationRevision = ++this.#mutationRevision;
     this.#mutation = { kind: "committing" };
     this.#notify();
+    if (operationRevision !== this.#mutationRevision) {
+      return false;
+    }
     try {
       const result = await this.#client.reset({
         requestId: this.#client.nextRequestId(),
@@ -311,12 +310,12 @@ export class CommandController {
         activePresetId: base.state.activePresetId,
         activePresetVersion: base.activePresetVersion,
       });
-      if (operationRevision !== this.#loadRevision) {
+      if (operationRevision !== this.#mutationRevision) {
         return false;
       }
       return this.#finishMutation(result);
     } catch (error) {
-      if (operationRevision === this.#loadRevision) {
+      if (operationRevision === this.#mutationRevision) {
         this.#mutation = { kind: "failed", error };
         this.#notify();
       }
@@ -342,7 +341,10 @@ export class CommandController {
   }
 
   #applyMutationSnapshot(snapshot: CommandKeymapSnapshot): void {
-    const model = this.#requiredModel();
+    const model = this.#model;
+    if (model === undefined) {
+      return;
+    }
     if (snapshot.registryGeneration !== model.catalogue.registryGeneration) {
       void this.refresh();
       return;
@@ -361,9 +363,9 @@ export class CommandController {
     ) {
       return;
     }
+    const projection = projectCommandSurfaces(model, this.#platform);
     this.#model = model;
-    this.#projection = projectCommandSurfaces(model, this.#platform);
-    this.#notify();
+    this.#projection = projection;
   }
 
   #requiredModel(): CommandJoinedState {

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import { CommandController, routeCommandKeyboardEvent } from "../../src/commands/index.ts";
+import {
+  assertValidCommandKeymapPreview,
+  CommandController,
+  routeCommandKeyboardEvent,
+} from "../../src/commands/index.ts";
 import type {
   CommandAvailabilitySnapshot,
   CommandExecutionIntent,
@@ -252,6 +256,57 @@ describe("CommandController", () => {
     expect(unavailable.controller.status.kind).toBe("unavailable");
     expect(unavailable.controller.model).toBeUndefined();
     await unavailable.controller.stop();
+  });
+
+  test.each(["commit", "reset"] as const)(
+    "settles %s after its own change event",
+    async (action) => {
+      const state = harness();
+      const applied = fixture.mutationResults[0]!;
+      const mutate = async () => {
+        state.keymap.value = { status: "loaded", snapshot: applied.snapshot };
+        for (const listener of state.keymap.listeners) {
+          listener();
+        }
+        return applied;
+      };
+      state.keymap.preview = async () => fixture.previewResults[0]!;
+      state.keymap.commit = mutate;
+      state.keymap.reset = mutate;
+      await state.controller.start();
+      const request = fixture.requests.preview;
+      assertValidCommandKeymapPreview(request);
+      state.controller.stageKeymapPatch(request.patch);
+
+      const saved = await (action === "commit"
+        ? state.controller.applyKeymapDraft()
+        : state.controller.resetKeymap());
+
+      expect(saved).toBeTrue();
+      expect(state.controller.mutation).toEqual({ kind: "saved" });
+      expect(state.controller.draft).toBeUndefined();
+      expect(state.controller.model?.keymap).toEqual(applied.snapshot);
+      await state.controller.stop();
+    },
+  );
+
+  test("a rejected commit cannot overwrite a newer draft's mutation status", async () => {
+    const state = harness();
+    const request = fixture.requests.preview;
+    assertValidCommandKeymapPreview(request);
+    const replacement = { ...request.patch, upsertOverrides: [] };
+    state.keymap.preview = async () => fixture.previewResults[0]!;
+    state.keymap.commit = async () => {
+      state.controller.stageKeymapPatch(replacement);
+      throw new Error("commit failed");
+    };
+    await state.controller.start();
+    state.controller.stageKeymapPatch(request.patch);
+
+    expect(await state.controller.applyKeymapDraft()).toBeFalse();
+    expect(state.controller.mutation).toEqual({ kind: "dirty" });
+    expect(state.controller.draft).toBe(replacement);
+    await state.controller.stop();
   });
 
   test("disposes listeners exactly once across repeated starts", async () => {

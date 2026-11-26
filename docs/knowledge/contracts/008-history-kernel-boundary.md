@@ -246,6 +246,9 @@ Tauri transport. `/svelte` owns per-instance lifecycle and stale-result
 rejection. `/poodle` uses public controlled Button, list, filter, status, and
 dialog primitives; it does not fork a visual component.
 
+The fork controller installs a requested branch page only while its original
+controller lifetime and snapshot revision are current. A late page rejects.
+
 The optional Tauri adapter exposes only registered history authorities and
 checks caller capability before dispatch. The consumer authority still owns
 product authorization and the atomic apply transaction.

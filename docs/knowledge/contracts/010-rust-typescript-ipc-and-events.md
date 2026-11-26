@@ -88,10 +88,15 @@ rejection if cleanup also fails. Events are best-effort projections and
 invalidation hints. Query-only domains do not require an event transport.
 
 Update and licence controllers return to idle after teardown and reject
-`stop()` with the first unlisten failure in registration order. An older
-refresh cannot replace a newer refresh or a settled command's state.
+`stop()` with the first unlisten failure in registration order. Their
+`refresh()` only reads during a started lifetime. An older refresh cannot
+replace a newer refresh or a settled command's state.
 
 A malformed event ends its subscription and is reported as an event failure.
+The checked history, history-tree, licence and update listeners report it to
+the optional `onFailure` callback with phase `event`. Their controllers keep
+the failure visible until stopped and started again. Other subscriptions in
+the same controller remain active.
 A job's listeners check its request and job identifiers before they decode the
 payload. An event whose identifier reads as another request or job is dropped
 without a failure, even when its other identifier is unreadable, and nothing

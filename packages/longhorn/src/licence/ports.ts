@@ -1,3 +1,4 @@
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import type {
   LicenceActivateCommand,
   LicenceChangedEvent,
@@ -37,5 +38,8 @@ export interface CheckedLicencePort {
   refresh(command: LicenceRefreshCommand): Promise<LicenceOutcomeProjection>;
   releaseSeat(command: LicenceReleaseSeatCommand): Promise<LicenceOutcomeProjection>;
   renameSeat(command: LicenceRenameSeatCommand): Promise<LicenceOutcomeProjection>;
-  listen(listener: (event: LicenceChangedEvent) => void): Promise<LicenceUnlisten>;
+  listen(
+    listener: (event: LicenceChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<LicenceUnlisten>;
 }

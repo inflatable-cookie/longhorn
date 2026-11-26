@@ -1,3 +1,4 @@
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import type {
   HistoryChangedEvent,
   HistoryNavigationCommand,
@@ -24,6 +25,9 @@ export interface CheckedHistoryPort {
   snapshot(): Promise<HistorySnapshot>;
   page(command: HistoryPageCommand): Promise<HistoryPageSnapshot>;
   navigate(command: HistoryNavigationCommand): Promise<HistoryNavigationResult>;
-  listen?(listener: (event: HistoryChangedEvent) => void): Promise<HistoryUnlisten>;
+  listen?(
+    listener: (event: HistoryChangedEvent) => void,
+    onFailure?: ConnectionFailureReporter,
+  ): Promise<HistoryUnlisten>;
   nextPlanId(): HistoryPlanId;
 }
