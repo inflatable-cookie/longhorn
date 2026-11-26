@@ -415,11 +415,13 @@ mod tests {
     fn both_failure_modes_read_as_typos_to_a_surface() {
         assert!(LicenceKeyError::CheckFailed.is_probably_a_typo());
         assert!(LicenceKeyError::UnexpectedSymbol { symbol: '!' }.is_probably_a_typo());
-        assert!(!LicenceKeyError::TooShort {
-            minimum: MINIMUM_KEY_SYMBOLS,
-            actual: 0
-        }
-        .is_probably_a_typo());
+        assert!(
+            !LicenceKeyError::TooShort {
+                minimum: MINIMUM_KEY_SYMBOLS,
+                actual: 0
+            }
+            .is_probably_a_typo()
+        );
     }
 
     #[test]

@@ -280,8 +280,7 @@ fn resolve_tier(
             let known = registry
                 .get(display_id)
                 .expect("remaining known display must exist");
-            if !strong_conflict(known, observation)
-                && tier.evidence([known], observation).is_some()
+            if !strong_conflict(known, observation) && tier.evidence([known], observation).is_some()
             {
                 by_observation
                     .entry(observation_id.clone())
@@ -359,9 +358,7 @@ fn resolve_tier(
 fn strong_conflict(known: &KnownDisplay, observed: &ObservedDisplay) -> bool {
     let known_keys = known.evidence().strong_keys();
     let observed_keys = observed.evidence().strong_keys();
-    !known_keys.is_empty()
-        && !observed_keys.is_empty()
-        && known_keys.is_disjoint(observed_keys)
+    !known_keys.is_empty() && !observed_keys.is_empty() && known_keys.is_disjoint(observed_keys)
 }
 
 fn ambiguity_evidence(

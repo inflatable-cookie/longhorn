@@ -250,8 +250,9 @@ and groups are cheap, and the QA-group records need them (2026-10-09).
 - **A task** runs, once, the Effigy selectors for what it changed: the tests
   for the code it touched (for example `effigy test:rust`, `effigy test:ts`,
   `effigy test:vitest`, or the proof selector it changed), a compile of what
-  it touched (`effigy check:ts`, `effigy lint:rust`), and `effigy qa:docs` for
-  docs. Then it opens the PR. No full `effigy qa`, no repeat passes. A heavy
+  it touched (`effigy check:ts`, `effigy lint:rust`), `effigy fmt:rust` once
+  when it touches Rust sources, and `effigy qa:docs` for docs. Then it opens
+  the PR. No full `effigy qa`, no repeat passes. A heavy
   proof selector the task changed, or one its brief names (for example
   `effigy proof:artifacts`), is a targeted check: run it once.
 - **Prefer a bounded QA group** when one covers the change:

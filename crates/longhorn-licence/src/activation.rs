@@ -2,11 +2,11 @@ use core::fmt;
 use std::error::Error;
 
 use ed25519_dalek::VerifyingKey;
-use longhorn_url::{classify_endpoint, EndpointClassificationError, LoopbackHttp};
+use longhorn_url::{EndpointClassificationError, LoopbackHttp, classify_endpoint};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 
-use crate::{verify, LicenceKey, SignedLicence, VerificationError, VerifiedLicence};
+use crate::{LicenceKey, SignedLicence, VerificationError, VerifiedLicence, verify};
 
 /// A URL an activation request may be issued against.
 ///
