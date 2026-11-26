@@ -11,7 +11,7 @@ use longhorn_native_content::{
 use crate::{
     AdmittedIsolatedContentRequest, HelperSnapshot, IsolatedContentRequestKind,
     IsolatedWindowAdapterEvent, IsolatedWindowError, IsolatedWindowRuntimeEvent,
-    IsolatedWindowRuntimeEventKind, IsolatedWindowRuntimeOperation, TeardownOutcome,
+    IsolatedWindowRuntimeEventKind, TeardownOutcome,
 };
 
 use super::{
@@ -174,15 +174,7 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         let desired = authority.desired();
         self.require_island(desired.island_id())?;
         compare_attached_generation(desired.generation(), generation)?;
-        let scale = f64::from(desired.scale().thousandths());
-        let semantic = ClientSize::new(
-            f64::from(size.width()) * 1000.0 / scale,
-            f64::from(size.height()) * 1000.0 / scale,
-        )
-        .map_err(|error| IsolatedWindowError::Runtime {
-            operation: IsolatedWindowRuntimeOperation::Size,
-            detail: error.to_string(),
-        })?;
+        let semantic = ClientSize::from_physical(size, desired.scale());
         authority
             .decide_content_size(
                 ContentSizeProposal::new(generation, request.desired_revision, semantic),
