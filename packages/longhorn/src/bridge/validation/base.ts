@@ -1,4 +1,4 @@
-import { isRecord } from "../../core/record.ts";
+import { checkWireFields, readWireRecord } from "../../core/record.ts";
 import { BRIDGE_DOMAIN_ID_RULE, BRIDGE_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/protocol.ts";
 export type BridgeProtocolValidationCode =
   | "unsupported_protocol_version"
@@ -56,21 +56,8 @@ export function record(
   required: ReadonlyArray<string>,
   optional: ReadonlyArray<string> = [],
 ): Record<string, unknown> {
-  if (!isRecord(value)) {
-    incompatible("invalid_object", value);
-  }
-  const result = value;
-  const allowed = new Set([...required, ...optional]);
-  for (const key of Object.keys(result)) {
-    if (!allowed.has(key)) {
-      incompatible("unknown_field", { key, value });
-    }
-  }
-  for (const key of required) {
-    if (!(key in result)) {
-      incompatible("missing_field", { key, value });
-    }
-  }
+  const result = readWireRecord(value, () => incompatible("invalid_object", value));
+  checkWireFields(result, required, (code, key) => incompatible(code, { key, value }), optional);
   return result;
 }
 

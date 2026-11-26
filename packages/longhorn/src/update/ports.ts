@@ -1,4 +1,5 @@
 import type { ConnectionFailureReporter } from "../core/connection.ts";
+import type { Unlisten } from "../core/transport.ts";
 import type {
   UpdateApplyCommand,
   UpdateCancelCommand,
@@ -12,7 +13,7 @@ import type {
   UpdateSnapshot,
 } from "./generated/protocol.ts";
 
-export type UpdateUnlisten = () => void | Promise<void>;
+export type UpdateUnlisten = Unlisten;
 
 /**
  * The raw seam.

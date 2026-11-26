@@ -1,4 +1,4 @@
-import type { EventTransport } from "@inflatable-cookie/longhorn/core";
+import type { InvokeTransport } from "@inflatable-cookie/longhorn/core";
 
 import type {
   BackupCreateCommand,
@@ -73,9 +73,9 @@ import {
 } from "./names.ts";
 
 export class ConfigOperationsClient {
-  readonly #transport: EventTransport;
+  readonly #transport: InvokeTransport;
 
-  constructor(transport: EventTransport) {
+  constructor(transport: InvokeTransport) {
     this.#transport = transport;
   }
 

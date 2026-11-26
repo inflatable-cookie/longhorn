@@ -1,4 +1,4 @@
-import { isRecord } from "../core/record.ts";
+import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import {
   SURFACE_TRANSFER_VARIANT_FIELDS,
   SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
@@ -126,27 +126,19 @@ function responseWithStatus(
   return response;
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map, with the
- * discriminant's name read from the map too. This domain uses three: `kind`,
- * `status`, and `domain` on the abort source.
- *
- * A missing entry means the generator failed to read the union — every caller
- * runs `assertKnown` over the discriminant above this.
- */
 function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
-  const discriminant = value[SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string"
-      ? SURFACE_TRANSFER_VARIANT_FIELDS[type]?.[discriminant]
-      : undefined;
-  if (keys === undefined) {
-    throw new SurfaceTransferProtocolValidationError("unknown_response_status", {
-      type,
-      discriminant,
-    });
-  }
-  return keys;
+  return wireVariantFields(
+    SURFACE_TRANSFER_VARIANT_FIELDS,
+    SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    value,
+    (discriminant) => {
+      throw new SurfaceTransferProtocolValidationError("unknown_response_status", {
+        type,
+        discriminant,
+      });
+    },
+  );
 }
 
 function assertKnown(
@@ -159,33 +151,12 @@ function assertKnown(
   }
 }
 
-/**
- * Rejects a non-object, an unknown key, and a missing key.
- *
- * `allowed` comes from the generated field map, so the keys accepted are the
- * Rust struct's and nothing else — contract 010's Boundary Validation Target.
- * Passing no list keeps shape-only behaviour for the tagged unions, whose
- * allowed keys depend on their discriminant and so are not one flat set.
- */
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (!isRecord(value)) {
+  const result = readWireRecord(value, () => {
     throw new SurfaceTransferProtocolValidationError("invalid_object", value);
-  }
-  const result = value;
-  if (allowed === undefined) {
-    return result;
-  }
-
-  const permitted = new Set(allowed);
-  for (const key of Object.keys(result)) {
-    if (!permitted.has(key)) {
-      throw new SurfaceTransferProtocolValidationError("unknown_field", { key, value });
-    }
-  }
-  for (const key of allowed) {
-    if (!(key in result)) {
-      throw new SurfaceTransferProtocolValidationError("missing_field", { key, value });
-    }
-  }
+  });
+  checkWireFields(result, allowed, (code, key) => {
+    throw new SurfaceTransferProtocolValidationError(code, { key, value });
+  });
   return result;
 }

@@ -207,7 +207,8 @@ authority, and derives that strictness from it.** Concretely:
   unknown fields on an internally tagged *unit* variant even when the container
   declares `deny_unknown_fields`. A unit variant on the wire is therefore an
   empty struct variant (`Undo {}`), which serde does check.
-- **Missing fields are rejected.** `ts-rs` emits `Option<T>` as
+- **Missing fields are rejected.** A required field must be an own, enumerable
+  property so it survives JSON serialization. `ts-rs` emits `Option<T>` as
   always-present-and-nullable, so there is no absent-versus-null ambiguity to
   navigate: zero optional fields across the generated protocol, 88 explicit
   `| null`. A derived validator can be exactly as strict as a hand-written one
@@ -217,6 +218,10 @@ authority, and derives that strictness from it.** Concretely:
   and `check:bindings` fails when Rust changes and TypeScript does not.
 - **Generated field maps preserve their known keys in TypeScript.** Oxlint
   rejects inline allowed-key arrays passed to validation helpers.
+- **Check nested wire data before returning a typed value.** Validate array
+  members and the contents of each admitted variant. Surface clients use
+  non-negative safe-integer epochs and revisions and require the snapshot
+  revision to match the document revision before applying it.
 - **A rule Rust declares is generated, not copied.** Including rules that are
   not types: the connection state/reason matrix and the state-to-state
   transition matrix each lived in a `matches!` arm, were hand-copied into
@@ -224,7 +229,9 @@ authority, and derives that strictness from it.** Concretely:
   were declared (`BridgeConnectionStatus::ADMITTED_REASONS`,
   `BridgeConnectionState::ADMITTED_TRANSITIONS`) and emitted.
   Bridge request contexts and session payloads share the validator for the
-  generated `DomainId` grammar and byte bound. Service supervision uses the
+  generated `DomainId` grammar and byte bound. Layout ratio bounds and the
+  command availability, config operation, notification receipt and transfer
+  cancellation value sets also come from the Rust bindings. Service supervision uses the
   generated failure codes and reports unknown ownership as `invalid_ownership`.
 
 ### What this costs, stated plainly

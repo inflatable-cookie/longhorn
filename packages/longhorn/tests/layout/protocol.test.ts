@@ -112,6 +112,58 @@ describe("protocol incompatibility", () => {
     );
   });
 
+  test("checks the fields of known commands and outcomes", () => {
+    for (const command of [
+      { kind: "create_panel" },
+      { kind: "close_panel", panel_instance_id: "panel:one", extra: true },
+      { kind: "close_panel", panel_instance_id: false },
+      {
+        kind: "reorder_region",
+        surface_id: "surface:one",
+        region_id: "left",
+        panel_instance_ids: [1],
+      },
+      {
+        kind: "move_panel",
+        panel_instance_id: "panel:one",
+        target_surface_id: "surface:one",
+        target_region_id: "left",
+        insertion_index: 2 ** 32,
+      },
+      {
+        kind: "set_sizing_slot",
+        surface_id: "surface:one",
+        sizing_slot_id: "width",
+        ratio: 1_000_001,
+      },
+    ]) {
+      expect(() => assertValidLayoutMutationCommand(command)).toThrow(
+        LayoutProtocolValidationError,
+      );
+    }
+    for (const outcome of [
+      { kind: "panel_closed" },
+      {
+        kind: "region_collapsed_set",
+        surface_id: "surface:one",
+        region_id: "left",
+        previous_collapsed: null,
+        committed_collapsed: true,
+      },
+      {
+        kind: "panel_activated",
+        surface_id: "surface:one",
+        region_id: "left",
+        panel_instance_id: "panel:one",
+        previous_active_panel_instance_id: 1,
+      },
+    ]) {
+      expect(() => assertValidLayoutMutationOutcome(outcome)).toThrow(
+        LayoutProtocolValidationError,
+      );
+    }
+  });
+
   test("rejects unknown future variants", () => {
     expect(() => assertValidLayoutMutationCommand(incompatibility.unknown_command)).toThrow(
       LayoutProtocolValidationError,

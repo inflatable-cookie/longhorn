@@ -14,7 +14,13 @@ import type {
   StorageTransitionExecuteCommand,
   StorageTransitionInspectCommand,
 } from "../generated/protocol.ts";
-import { RESTORE_ARCHIVE_SELECTION_SOURCES } from "../generated/protocol.ts";
+import {
+  BACKUP_PENDING_POLICIES,
+  RESTORE_ADAPTER_REQUIREMENTS,
+  RESTORE_ARCHIVE_SELECTION_SOURCES,
+  RESTORE_CONFLICT_CHOICES,
+  STORAGE_PROFILE_IDS,
+} from "../generated/protocol.ts";
 import {
   array,
   baseCommand,
@@ -26,14 +32,6 @@ import {
   record,
 } from "./primitives.ts";
 
-const STORAGE_PROFILES = [
-  "platform-native-v1",
-  "unified-app-root-v1",
-  "shared-product-root-v1",
-  "portable-v1",
-] as const;
-const RESTORE_CHOICES = ["useArchive", "keepCurrent"] as const;
-
 export function assertValidConfigSnapshotCommand(
   value: unknown,
 ): asserts value is ConfigSnapshotCommand {
@@ -44,7 +42,7 @@ export function assertValidStorageTransitionInspectCommand(
   value: unknown,
 ): asserts value is StorageTransitionInspectCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.StorageTransitionInspectCommand);
-  discriminant(command.targetProfile, STORAGE_PROFILES, "$.targetProfile");
+  discriminant(command.targetProfile, STORAGE_PROFILE_IDS, "$.targetProfile");
   boolean(command.includeLogs, "$.includeLogs");
 }
 
@@ -72,7 +70,7 @@ export function assertValidBackupCreateCommand(
   value: unknown,
 ): asserts value is BackupCreateCommand {
   const command = baseCommand(value, "$", CONFIG_FIELDS.BackupCreateCommand);
-  discriminant(command.pendingPolicy, ["refuse", "flush"], "$.pendingPolicy");
+  discriminant(command.pendingPolicy, BACKUP_PENDING_POLICIES, "$.pendingPolicy");
 }
 
 export function assertValidBackupExportCommand(
@@ -107,7 +105,7 @@ export function assertValidRestorePlanCommand(value: unknown): asserts value is 
     const path = `$.choices[${index}]`;
     const choice = record(choiceValue, path, CONFIG_FIELDS.RestoreDomainChoice);
     nonempty(choice.domainId, `${path}.domainId`);
-    discriminant(choice.choice, RESTORE_CHOICES, `${path}.choice`);
+    discriminant(choice.choice, RESTORE_CONFLICT_CHOICES, `${path}.choice`);
   });
 }
 
@@ -123,7 +121,7 @@ export function assertValidRestoreAdapterExecuteCommand(
   const command = generationConfirmationCommand(value, CONFIG_FIELDS.RestoreAdapterExecuteCommand);
   digest(command.archiveSha256, "$.archiveSha256");
   nonempty(command.domainId, "$.domainId");
-  discriminant(command.requirement, ["failureAtomic", "allowSeparate"], "$.requirement");
+  discriminant(command.requirement, RESTORE_ADAPTER_REQUIREMENTS, "$.requirement");
 }
 
 export function assertValidRestoreRecoveryCommand(

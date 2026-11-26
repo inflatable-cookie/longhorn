@@ -1,4 +1,9 @@
-import { isRecord } from "../core/record.ts";
+import {
+  checkWireFields,
+  readWireRecord,
+  unsignedInteger,
+  wireVariantFields,
+} from "../core/record.ts";
 import {
   TRANSFER_VARIANT_FIELDS,
   TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
@@ -12,6 +17,7 @@ import {
   TRANSFER_ERROR_CODES,
   TRANSFER_LEASE_RESPONSE_STATUSES,
   TRANSFER_PROTOCOL_VERSION,
+  TRANSFER_SESSION_CANCELLATION_STATUSES,
   TRANSFER_SESSION_RESPONSE_STATUSES,
   TRANSFER_TARGET_BINDING_KINDS,
 } from "./generated/protocol.ts";
@@ -25,6 +31,7 @@ import type {
   TransferSessionResponse,
   TransferTargetBinding,
 } from "./generated/protocol.ts";
+import { isTransferSessionId } from "./payload.ts";
 import { TRANSFER_FIELDS } from "./generated/fields.ts";
 import { assertValidLayoutMutationRejectionCode } from "@inflatable-cookie/longhorn/layout";
 
@@ -90,6 +97,14 @@ export function assertValidTransferCommitSelector(
 export function assertValidTransferAbort(value: unknown): asserts value is TransferAbort {
   const abort = record(value, TRANSFER_FIELDS.TransferAbort);
   assertTransferProtocolVersion(abort.protocol_version);
+  if (
+    typeof abort.request_id !== "string" ||
+    typeof abort.message !== "string" ||
+    typeof abort.retryable !== "boolean" ||
+    typeof abort.session_consumed !== "boolean"
+  ) {
+    throw new TransferProtocolValidationError("invalid_object", abort);
+  }
   const source = record(abort.source);
   assertKnown(source.domain, TRANSFER_ABORT_DOMAINS, "unknown_abort_domain");
   record(source, variantKeys("TransferAbortSource", source));
@@ -114,7 +129,11 @@ export function assertValidTransferSessionResponse(
   if (response.status === "started") {
     const session = record(response.session, TRANSFER_FIELDS.TransferSessionStarted);
     assertTransferProtocolVersion(session.protocol_version);
-    assertTransferProtocolVersion(record(session.payload).protocol_version);
+    const payload = record(session.payload, TRANSFER_FIELDS.TransferPayload);
+    assertTransferProtocolVersion(payload.protocol_version);
+    if (typeof session.request_id !== "string" || !isTransferSessionId(payload.session_id)) {
+      throw new TransferProtocolValidationError("invalid_object", session);
+    }
   } else {
     assertValidTransferAbort(response.abort);
   }
@@ -129,7 +148,17 @@ export function assertValidTransferLeaseResponse(
     "TransferLeaseResponse",
   );
   if (response.status === "published") {
-    assertTransferProtocolVersion(record(response.lease).protocol_version);
+    const lease = record(response.lease, TRANSFER_FIELDS.TransferLeaseReceipt);
+    assertTransferProtocolVersion(lease.protocol_version);
+    if (
+      typeof lease.request_id !== "string" ||
+      typeof lease.client_id !== "string" ||
+      !unsignedInteger(lease.client_epoch) ||
+      !unsignedInteger(lease.generation) ||
+      !unsignedInteger(lease.zone_count)
+    ) {
+      throw new TransferProtocolValidationError("invalid_object", lease);
+    }
   } else {
     assertValidTransferAbort(response.abort);
   }
@@ -144,7 +173,15 @@ export function assertValidTransferCancelResponse(
     "TransferCancelResponse",
   );
   if (response.status === "cancelled") {
-    assertTransferProtocolVersion(record(response.cancellation).protocol_version);
+    const cancellation = record(response.cancellation, TRANSFER_FIELDS.TransferCancelReceipt);
+    assertTransferProtocolVersion(cancellation.protocol_version);
+    if (
+      typeof cancellation.request_id !== "string" ||
+      !isTransferSessionId(cancellation.session_id)
+    ) {
+      throw new TransferProtocolValidationError("invalid_object", cancellation);
+    }
+    assertKnown(cancellation.status, TRANSFER_SESSION_CANCELLATION_STATUSES, "invalid_object");
   } else {
     assertValidTransferAbort(response.abort);
   }
@@ -179,25 +216,16 @@ function responseWithStatus(
   return response;
 }
 
-/**
- * Allowed keys for one tagged-union variant, from the generated map, with the
- * discriminant's name read from the map too — this domain tags on `kind`,
- * `status` and `domain`.
- *
- * A missing entry means the generator failed to read the union; every caller
- * runs `assertKnown` over the discriminant above this.
- */
 function variantKeys(type: string, value: Record<string, unknown>): ReadonlyArray<string> {
-  const discriminant = value[TRANSFER_VARIANT_FIELDS_DISCRIMINANTS[type] ?? "kind"];
-  const keys =
-    typeof discriminant === "string" ? TRANSFER_VARIANT_FIELDS[type]?.[discriminant] : undefined;
-  if (keys === undefined) {
-    throw new TransferProtocolValidationError("unknown_response_status", {
-      type,
-      discriminant,
-    });
-  }
-  return keys;
+  return wireVariantFields(
+    TRANSFER_VARIANT_FIELDS,
+    TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
+    type,
+    value,
+    (discriminant) => {
+      throw new TransferProtocolValidationError("unknown_response_status", { type, discriminant });
+    },
+  );
 }
 
 function assertKnown(
@@ -210,37 +238,12 @@ function assertKnown(
   }
 }
 
-/**
- * Rejects a non-object, an unknown key, and a missing key.
- *
- * `allowed` comes from the generated field map, so the keys accepted are the
- * Rust struct's and nothing else — contract 010's Boundary Validation Target.
- * Passing no list keeps shape-only behaviour for the tagged unions, whose
- * allowed keys depend on their discriminant and so are not one flat set.
- */
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {
-  if (!isRecord(value)) {
+  const result = readWireRecord(value, () => {
     throw new TransferProtocolValidationError("invalid_object", value);
-  }
-  const result = value;
-  if (allowed === undefined) {
-    return result;
-  }
-
-  const permitted = new Set(allowed);
-  for (const key of Object.keys(result)) {
-    if (!permitted.has(key)) {
-      throw new TransferProtocolValidationError("unknown_field", { key, value });
-    }
-  }
-  for (const key of allowed) {
-    if (!(key in result)) {
-      throw new TransferProtocolValidationError("missing_field", { key, value });
-    }
-  }
+  });
+  checkWireFields(result, allowed, (code, key) => {
+    throw new TransferProtocolValidationError(code, { key, value });
+  });
   return result;
-}
-
-function unsignedInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }

@@ -1,4 +1,5 @@
 import type { ConnectionFailureReporter } from "../core/connection.ts";
+import type { Unlisten } from "../core/transport.ts";
 import type {
   HistoryChangedEvent,
   HistoryNavigationCommand,
@@ -9,7 +10,7 @@ import type {
   HistorySnapshot,
 } from "./generated/protocol.ts";
 
-export type HistoryUnlisten = () => void | Promise<void>;
+export type HistoryUnlisten = Unlisten;
 
 export interface HistoryPort {
   snapshot(): Promise<unknown>;

@@ -256,6 +256,10 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const CONFIG_MAXIMUM_OPAQUE_ID_BYTES = {MAX_OPAQUE_ID_BYTES} as const;\n\
          export const CONFIG_OPERATION_CAPABILITIES = {} as const;\n\
          export const CONFIG_OPERATION_REJECTION_CODES = {} as const;\n\
+         export const STORAGE_PROFILE_IDS = {} as const;\n\
+         export const STORAGE_LEAF_PROVENANCES = {} as const;\n\
+         export const BACKUP_INVENTORY_ENTRY_STATES = {} as const;\n\
+         export const BACKUP_PENDING_POLICIES = {} as const;\n\
          export const STORAGE_BOOTSTRAP_STATES = {} as const;\n\
          export const BACKUP_PENDING_STATES = {} as const;\n\
          export const BACKUP_ENCRYPTION_STATES = {} as const;\n\
@@ -269,6 +273,10 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          {}\n",
         enum_names_json::<ConfigOperationCapability>()?,
         enum_names_json::<ConfigOperationRejectionCode>()?,
+        enum_names_json::<StorageProfileId>()?,
+        enum_names_json::<StorageLeafProvenanceProjection>()?,
+        enum_names_json::<BackupInventoryEntryState>()?,
+        enum_names_json::<PendingBackupPolicy>()?,
         tagged_variants_json(&bootstrap)?,
         tagged_variants_json(&pending)?,
         tagged_variants_json(&encryption)?,
@@ -287,6 +295,11 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          import type {{ BackupPublicationReceiptProjection, ConfigGeneration, \
          ConfigOperationRejection, ConfigOperationsSnapshot, ConfigProtocolVersion, \
          ConfigRequestId }} from \"./base.ts\";\n\n\
+         export const RESTORE_INTEGRITY_VALUES = {} as const;\n\
+         export const RESTORE_AUTHENTICITY_VALUES = {} as const;\n\
+         export const RESTORE_CONFLICT_CHOICES = {} as const;\n\
+         export const RESTORE_OPERATION_STATES = {} as const;\n\
+         export const RESTORE_ADAPTER_REQUIREMENTS = {} as const;\n\
          export const RESTORE_ARCHIVE_SELECTION_SOURCES = {} as const;\n\
          export const RESTORE_IDENTITY_STATUSES = {} as const;\n\
          export const RESTORE_DOMAIN_COMPATIBILITY_STATUSES = {} as const;\n\
@@ -302,6 +315,11 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const RESTORE_ADAPTER_EXECUTE_STATUSES = {} as const;\n\
          export const RESTORE_RECOVERY_STATUSES = {} as const;\n\n\
          {}\n",
+        enum_names_json::<RestoreIntegrityProjection>()?,
+        enum_names_json::<RestoreAuthenticityProjection>()?,
+        enum_names_json::<RestoreConflictChoiceProjection>()?,
+        enum_names_json::<RestoreOperationStateProjection>()?,
+        enum_names_json::<RestoreAdapterRequirementProjection>()?,
         tagged_variants_json(&restore_selection)?,
         tagged_variants_json(&restore_identity)?,
         tagged_variants_json(&restore_compatibility)?,

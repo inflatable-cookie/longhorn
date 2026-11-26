@@ -1,3 +1,4 @@
+import type { Unlisten } from "../core/transport.ts";
 import type {
   CommandArguments,
   CommandAvailabilitySnapshot,
@@ -12,7 +13,7 @@ import type {
   CommandRequestId,
 } from "./generated/protocol.ts";
 
-export type CommandUnlisten = () => void | Promise<void>;
+export type CommandUnlisten = Unlisten;
 
 export interface CommandSnapshotPort<Snapshot> {
   load(): Promise<Snapshot>;
