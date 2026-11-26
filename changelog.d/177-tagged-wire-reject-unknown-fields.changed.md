@@ -1,0 +1,1 @@
+Tagged fork and linear history wire types reject unknown fields, as contract 010 requires: navigation targets and results, fork path targets and floors, and delete and prune results. Senders that add fields to these messages are now refused; accepted wire shapes are unchanged.

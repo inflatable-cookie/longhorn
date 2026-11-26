@@ -151,7 +151,7 @@ encodedWeight: number,
  */
 position: HistoryProjectionPosition, };
 
-export type HistoryPageFloorProjection = { "kind": "origin" } | { "kind": "baseline", 
+export type HistoryPageFloorProjection = { "kind": "origin", } | { "kind": "baseline", 
 /**
  * How many entries were pruned before the oldest retained one.
  */
@@ -232,11 +232,11 @@ retainedBaseline: HistoryBaselineProjection,
  */
 floor: HistoryPageFloorProjection, };
 
-export type HistoryNavigationTargetProjection = { "kind": "undo" } | { "kind": "redo" } | { "kind": "checkout", 
+export type HistoryNavigationTargetProjection = { "kind": "undo", } | { "kind": "redo", } | { "kind": "checkout", 
 /**
  * Stable entry identity, never a presentation index.
  */
-entryId: HistoryEntryId, } | { "kind": "checkoutRoot" };
+entryId: HistoryEntryId, } | { "kind": "checkoutRoot", };
 
 export type HistoryNavigationCommand = { 
 /**

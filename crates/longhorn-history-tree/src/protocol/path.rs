@@ -53,13 +53,14 @@ pub struct ForkEntryRecord {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
+    deny_unknown_fields,
     rename_all = "camelCase",
     rename_all_fields = "camelCase",
     tag = "kind"
 )]
 pub enum ForkPathFloorProjection {
     /// The state the operator started from.
-    Origin,
+    Origin {},
     /// The entry this run forked from. Already a row above; draw nothing.
     Anchor {
         /// The fork point.
@@ -71,13 +72,14 @@ pub enum ForkPathFloorProjection {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
+    deny_unknown_fields,
     rename_all = "camelCase",
     rename_all_fields = "camelCase",
     tag = "kind"
 )]
 pub enum ForkPathTargetProjection {
     /// Preferred linear-default path.
-    Default,
+    Default {},
     /// Path ending at one stable branch head.
     Branch {
         /// Explicit first-class branch selection.
@@ -176,7 +178,7 @@ impl ForkPathPageSnapshot {
                 Some(entry_id) => ForkPathFloorProjection::Anchor {
                     entry_id: entry_id.clone(),
                 },
-                None => ForkPathFloorProjection::Origin,
+                None => ForkPathFloorProjection::Origin {},
             },
             offset: count(page.offset())?,
             total_entries: count(page.total_entries())?,

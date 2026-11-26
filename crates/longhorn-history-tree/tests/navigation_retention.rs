@@ -1600,3 +1600,75 @@ fn recording_refuses_noop_and_unmanaged_group_metadata() {
     ));
     assert_eq!(history.revision(), revision);
 }
+
+#[test]
+fn an_imported_only_child_is_redoable_and_not_a_fresh_continuation() {
+    use longhorn_history::HistoryEntrySequence;
+    use longhorn_history_tree::{ForkBranch, ForkHistoryNode};
+
+    // `from_state` admits a parent with one child and no recorded preference,
+    // and `preferred_child_id` resolves that child. Redo and the continuation
+    // check must read the same answer, or an imported graph offers a redo it
+    // cannot perform.
+    let (a, b) = (entry_id("entry:a"), entry_id("entry:b"));
+    let nodes = vec![
+        ForkHistoryNode::new(
+            a.clone(),
+            None,
+            metadata("a"),
+            HistoryEntrySequence::new(1).unwrap(),
+            HistoryRevision::new(1),
+            8,
+            Delta(1),
+        ),
+        ForkHistoryNode::new(
+            b.clone(),
+            Some(a.clone()),
+            metadata("b"),
+            HistoryEntrySequence::new(2).unwrap(),
+            HistoryRevision::new(2),
+            8,
+            Delta(2),
+        ),
+    ];
+    let state = ForkHistoryState::new(
+        HistoryId::new("history:imported").expect("fixture history id"),
+        HistoryRevision::new(2),
+        branch_id("branch:main"),
+        Some(a.clone()),
+        HistoryEntrySequence::new(3).unwrap(),
+    )
+    .with_nodes(nodes)
+    .with_branches(vec![ForkBranch::new(
+        branch_id("branch:main"),
+        Some(b.clone()),
+        branch_metadata(Some("Main"), true),
+    )]);
+    let mut history =
+        ForkHistory::from_state(state).expect("one child without a preference is admissible");
+    assert_eq!(history.preferred_child_id(Some(&a)), Some(&b));
+
+    // The only child is already the chosen continuation: nothing to switch to.
+    let continuation = history.plan_navigation(
+        plan_id("plan:continue-b"),
+        history.revision(),
+        ForkNavigationTarget::CheckoutContinuation {
+            entry_id: b.clone(),
+        },
+        &DeltaPolicy,
+    );
+    assert!(matches!(
+        continuation,
+        Err(ForkNavigationError::AlreadyAtTarget)
+    ));
+
+    let mut model = 1;
+    navigate(
+        &mut history,
+        &mut model,
+        "plan:redo-b",
+        ForkNavigationTarget::Redo,
+    );
+    assert_eq!(history.current_node_id(), Some(&b));
+    assert_eq!(model, 3);
+}

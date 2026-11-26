@@ -300,7 +300,7 @@ fn a_pruned_page_reports_a_baseline_and_an_unpruned_one_reports_the_origin() {
             .unwrap(),
     )
     .unwrap();
-    assert_eq!(page.floor, HistoryPageFloorProjection::Origin);
+    assert_eq!(page.floor, HistoryPageFloorProjection::Origin {});
     assert_eq!(page.retained_baseline.pruned_entry_count, 0);
 
     // A fourth entry exceeds the three-entry budget and prunes the oldest.

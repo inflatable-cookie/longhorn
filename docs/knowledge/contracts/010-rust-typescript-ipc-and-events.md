@@ -194,6 +194,11 @@ authority, and derives that strictness from it.** Concretely:
   TypeScript waved through was one Rust would refuse. That asymmetry was
   accidental — it is the shape of who wrote which validator, not a decision
   anyone took.
+
+  The rule covers tagged enums too, with one Rust-side limit: serde ignores
+  unknown fields on an internally tagged *unit* variant even when the container
+  declares `deny_unknown_fields`. A unit variant on the wire is therefore an
+  empty struct variant (`Undo {}`), which serde does check.
 - **Missing fields are rejected.** `ts-rs` emits `Option<T>` as
   always-present-and-nullable, so there is no absent-versus-null ambiguity to
   navigate: zero optional fields across the generated protocol, 88 explicit

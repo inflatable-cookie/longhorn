@@ -146,9 +146,10 @@ impl<P> ForkHistory<P> {
                 Ok((self.current_branch_id.clone(), parent))
             }
             ForkNavigationTarget::Redo => {
+                // The same answer every projection gives, including a single
+                // child with no recorded preference.
                 let child = self
-                    .preferred_children
-                    .get(&self.current_node_id)
+                    .preferred_child_id(self.current_node_id.as_ref())
                     .cloned()
                     .ok_or(ForkNavigationError::NothingToRedo)?;
                 let branch_id = self
@@ -183,7 +184,7 @@ impl<P> ForkHistory<P> {
                     .get(entry_id)
                     .ok_or_else(|| ForkNavigationError::UnknownEntry(entry_id.clone()))?;
                 let parent = node.parent_entry_id().cloned();
-                if self.preferred_children.get(&parent) == Some(entry_id) {
+                if self.preferred_child_id(parent.as_ref()) == Some(entry_id) {
                     // The only case where standing still really is nothing to
                     // do: this future is already the chosen one.
                     return Err(ForkNavigationError::AlreadyAtTarget);

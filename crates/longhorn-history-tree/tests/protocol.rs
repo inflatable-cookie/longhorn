@@ -3,9 +3,11 @@
 use longhorn_core::{HistoryEntryId, HistoryId, HistoryRevision};
 use longhorn_history::HistoryAuthorityEpoch;
 use longhorn_history_tree::{
-    ForkBranchId, ForkBranchPageCommand, ForkHistoryProtocolVersion, ForkNavigationError,
-    ForkNavigationRejectionCode, ForkNavigationRejectionProjection, ForkPathPageCommand,
-    ForkPathTargetProjection, ForkSnapshot, ForkSummaryProjection,
+    ForkBranchId, ForkBranchPageCommand, ForkDeleteResult, ForkHistoryProtocolVersion,
+    ForkNavigationError, ForkNavigationRejectionCode, ForkNavigationRejectionProjection,
+    ForkNavigationResult, ForkNavigationTargetProjection, ForkPathFloorProjection,
+    ForkPathPageCommand, ForkPathTargetProjection, ForkPruneResult, ForkRetentionRejectionCode,
+    ForkRetentionRejectionProjection, ForkSnapshot, ForkSummaryProjection,
 };
 use serde_json::{Value, json};
 
@@ -125,4 +127,88 @@ fn unknown_target_wire_code_still_round_trips() {
     let value = serde_json::to_value(&rejection).unwrap();
     assert_eq!(value["code"], "unknownTarget");
     assert_eq!(value["detail"], "fork navigation entry does not exist");
+}
+
+/// Adds one field the schema does not name to a serialized value.
+fn with_unknown_field(mut value: Value) -> Value {
+    value["unexpected"] = json!(true);
+    value
+}
+
+#[test]
+fn tagged_wire_enums_reject_unknown_fields() {
+    // Contract 010: unknown fields are rejected. Tagged variants are the shape
+    // a renderer sends most, so the check has to reach past the tag.
+    assert!(
+        serde_json::from_value::<ForkNavigationTargetProjection>(json!({"kind": "undo"})).is_ok()
+    );
+    assert!(
+        serde_json::from_value::<ForkNavigationTargetProjection>(with_unknown_field(json!({
+            "kind": "undo"
+        })))
+        .is_err()
+    );
+    assert!(
+        serde_json::from_value::<ForkNavigationTargetProjection>(with_unknown_field(json!({
+            "kind": "checkout",
+            "branchId": "branch:main",
+            "entryId": "entry:a"
+        })))
+        .is_err()
+    );
+
+    assert!(
+        serde_json::from_value::<ForkPathTargetProjection>(with_unknown_field(json!({
+            "kind": "default"
+        })))
+        .is_err()
+    );
+    assert!(
+        serde_json::from_value::<ForkPathTargetProjection>(with_unknown_field(json!({
+            "kind": "continuation",
+            "fromEntryId": "entry:a"
+        })))
+        .is_err()
+    );
+    assert!(
+        serde_json::from_value::<ForkPathFloorProjection>(with_unknown_field(json!({
+            "kind": "origin"
+        })))
+        .is_err()
+    );
+
+    let navigation_rejected = serde_json::to_value(ForkNavigationResult::Rejected {
+        snapshot: snapshot(),
+        rejection: ForkNavigationRejectionProjection {
+            code: ForkNavigationRejectionCode::StaleRevision,
+            detail: "stale".to_owned(),
+            refresh_required: true,
+        },
+    })
+    .unwrap();
+    assert!(serde_json::from_value::<ForkNavigationResult>(navigation_rejected.clone()).is_ok());
+    assert!(
+        serde_json::from_value::<ForkNavigationResult>(with_unknown_field(navigation_rejected))
+            .is_err()
+    );
+
+    let retention_rejection = ForkRetentionRejectionProjection {
+        code: ForkRetentionRejectionCode::UnknownEntry,
+        detail: "unknown".to_owned(),
+        refresh_required: false,
+    };
+    let delete_rejected = serde_json::to_value(ForkDeleteResult::Rejected {
+        rejection: retention_rejection,
+    })
+    .unwrap();
+    assert!(serde_json::from_value::<ForkDeleteResult>(delete_rejected.clone()).is_ok());
+    assert!(
+        serde_json::from_value::<ForkDeleteResult>(with_unknown_field(delete_rejected)).is_err()
+    );
+
+    let prune_unchanged = serde_json::to_value(ForkPruneResult::Unchanged {}).unwrap();
+    assert!(serde_json::from_value::<ForkPruneResult>(prune_unchanged.clone()).is_ok());
+    assert!(
+        serde_json::from_value::<ForkPruneResult>(with_unknown_field(prune_unchanged)).is_err()
+    );
 }

@@ -7,18 +7,22 @@ use crate::{ForkBranchId, ForkNavigationReceipt};
 use super::{ForkHistoryProtocolVersion, ForkSnapshot};
 
 /// Stable payload-free graph navigation intent.
+///
+/// Unit-looking variants are written `Variant {}`: serde does not apply
+/// `deny_unknown_fields` to a unit variant of a tagged enum (contract 010).
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
+    deny_unknown_fields,
     rename_all = "camelCase",
     rename_all_fields = "camelCase",
     tag = "kind"
 )]
 pub enum ForkNavigationTargetProjection {
     /// Move to the parent of the current node.
-    Undo,
+    Undo {},
     /// Move to the deterministic preferred child.
-    Redo,
+    Redo {},
     /// Move to one entry on one stable branch.
     Checkout {
         /// Stable target branch.
@@ -146,7 +150,7 @@ pub struct ForkNavigationRejectionProjection {
 /// Authoritative graph-navigation result.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[serde(rename_all = "camelCase", tag = "status")]
+#[serde(deny_unknown_fields, rename_all = "camelCase", tag = "status")]
 pub enum ForkNavigationResult {
     /// Product apply and graph commit succeeded.
     Committed {

@@ -11,18 +11,22 @@ use super::{
 };
 
 /// Stable payload-free navigation intent.
+///
+/// Unit-looking variants are written `Variant {}`: serde does not apply
+/// `deny_unknown_fields` to a unit variant of a tagged enum (contract 010).
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
+    deny_unknown_fields,
     rename_all = "camelCase",
     rename_all_fields = "camelCase",
     tag = "kind"
 )]
 pub enum HistoryNavigationTargetProjection {
     /// Move one entry toward the retained baseline.
-    Undo,
+    Undo {},
     /// Move one entry toward the newest retained state.
-    Redo,
+    Redo {},
     /// Make one stable retained entry current.
     Checkout {
         /// Stable entry identity, never a presentation index.
@@ -30,7 +34,7 @@ pub enum HistoryNavigationTargetProjection {
     },
     /// Return to the position before the oldest retained entry -- the state
     /// the operator started from, and the only one no entry can name.
-    CheckoutRoot,
+    CheckoutRoot {},
 }
 
 /// One revision-bound renderer navigation command.
@@ -172,7 +176,7 @@ pub struct HistoryNavigationRejectionProjection {
 /// Authoritative navigation result.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[serde(rename_all = "camelCase", tag = "status")]
+#[serde(deny_unknown_fields, rename_all = "camelCase", tag = "status")]
 pub enum HistoryNavigationResult {
     /// Product apply and structural commit both succeeded.
     Committed {

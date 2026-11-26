@@ -19,13 +19,14 @@ use super::{
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
+    deny_unknown_fields,
     rename_all = "camelCase",
     rename_all_fields = "camelCase",
     tag = "kind"
 )]
 pub enum HistoryPageFloorProjection {
     /// The state the operator started from. Everything recorded is still here.
-    Origin,
+    Origin {},
     /// Retention took entries older than this page's oldest, so the position
     /// below it is where the surviving history begins -- not where the
     /// document did.
@@ -272,7 +273,7 @@ impl HistoryPageSnapshot {
             // gone, so the position below it is where the surviving history
             // begins rather than where the document did.
             floor: match page.retained_baseline().pruned_entry_count() {
-                0 => HistoryPageFloorProjection::Origin,
+                0 => HistoryPageFloorProjection::Origin {},
                 pruned_entry_count => HistoryPageFloorProjection::Baseline { pruned_entry_count },
             },
         })

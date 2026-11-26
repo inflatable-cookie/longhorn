@@ -98,3 +98,59 @@ fn contains_key(value: &serde_json::Value, key: &str) -> bool {
         _ => false,
     }
 }
+
+#[test]
+fn history_tagged_wire_enums_reject_unknown_fields() {
+    use longhorn_history::{
+        HistoryNavigationRejectionCode, HistoryNavigationRejectionProjection,
+        HistoryNavigationResult, HistoryNavigationTargetProjection, HistoryPageFloorProjection,
+    };
+    use serde_json::{Value, json};
+
+    // Contract 010: unknown fields are rejected on every wire type, tagged
+    // variants included.
+    let epoch = HistoryAuthorityEpoch::new(3).unwrap();
+    let history = LinearHistory::<PulseFixtureMutation>::new(
+        history_id("history:strict"),
+        HistoryLimits::default(),
+    );
+    let snapshot =
+        HistorySnapshot::from_summary(epoch, &history.project_summary().unwrap()).unwrap();
+    let with_unknown_field = |mut value: Value| {
+        value["unexpected"] = json!(true);
+        value
+    };
+
+    let undo = serde_json::to_value(HistoryNavigationTargetProjection::Undo {}).unwrap();
+    assert!(serde_json::from_value::<HistoryNavigationTargetProjection>(undo.clone()).is_ok());
+    assert!(
+        serde_json::from_value::<HistoryNavigationTargetProjection>(with_unknown_field(undo))
+            .is_err()
+    );
+    let checkout = json!({"kind": "checkout", "entryId": "entry:rename"});
+    assert!(serde_json::from_value::<HistoryNavigationTargetProjection>(checkout.clone()).is_ok());
+    assert!(
+        serde_json::from_value::<HistoryNavigationTargetProjection>(with_unknown_field(checkout))
+            .is_err()
+    );
+
+    let origin = serde_json::to_value(HistoryPageFloorProjection::Origin {}).unwrap();
+    assert!(serde_json::from_value::<HistoryPageFloorProjection>(origin.clone()).is_ok());
+    assert!(
+        serde_json::from_value::<HistoryPageFloorProjection>(with_unknown_field(origin)).is_err()
+    );
+
+    let rejected = serde_json::to_value(HistoryNavigationResult::Rejected {
+        snapshot,
+        rejection: HistoryNavigationRejectionProjection {
+            code: HistoryNavigationRejectionCode::StaleRevision,
+            detail: "stale".to_owned(),
+            refresh_required: true,
+        },
+    })
+    .unwrap();
+    assert!(serde_json::from_value::<HistoryNavigationResult>(rejected.clone()).is_ok());
+    assert!(
+        serde_json::from_value::<HistoryNavigationResult>(with_unknown_field(rejected)).is_err()
+    );
+}

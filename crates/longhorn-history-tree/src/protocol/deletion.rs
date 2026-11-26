@@ -223,7 +223,7 @@ impl ForkRetentionRejectionProjection {
 /// Result of deleting a continuation.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
-#[serde(rename_all = "camelCase", tag = "status")]
+#[serde(deny_unknown_fields, rename_all = "camelCase", tag = "status")]
 pub enum ForkDeleteResult {
     /// Deletion committed.
     Deleted {
@@ -245,6 +245,7 @@ pub enum ForkDeleteResult {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
+    deny_unknown_fields,
     rename_all = "camelCase",
     rename_all_fields = "camelCase",
     tag = "status"
@@ -257,7 +258,7 @@ pub enum ForkPruneResult {
     },
     /// The unprotected share already fitted the budget. Nothing was removed
     /// and the revision did not move.
-    Unchanged,
+    Unchanged {},
     /// One pruning transition committed.
     Pruned {
         /// What it removed, and what is left.

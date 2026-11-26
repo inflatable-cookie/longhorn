@@ -145,13 +145,13 @@ position: ForkProjectionPosition,
  */
 continuationCount: number, };
 
-export type ForkPathFloorProjection = { "kind": "origin" } | { "kind": "anchor", 
+export type ForkPathFloorProjection = { "kind": "origin", } | { "kind": "anchor", 
 /**
  * The fork point.
  */
 entryId: HistoryEntryId, };
 
-export type ForkPathTargetProjection = { "kind": "default" } | { "kind": "branch", 
+export type ForkPathTargetProjection = { "kind": "default", } | { "kind": "branch", 
 /**
  * Explicit first-class branch selection.
  */
@@ -596,13 +596,13 @@ export type ForkPruneResult = { "status": "rejected",
 /**
  * Reason for refusal.
  */
-rejection: ForkRetentionRejectionProjection, } | { "status": "unchanged" } | { "status": "pruned", 
+rejection: ForkRetentionRejectionProjection, } | { "status": "unchanged", } | { "status": "pruned", 
 /**
  * What it removed, and what is left.
  */
 receipt: ForkRemovalReceiptProjection, };
 
-export type ForkNavigationTargetProjection = { "kind": "undo" } | { "kind": "redo" } | { "kind": "checkout", 
+export type ForkNavigationTargetProjection = { "kind": "undo", } | { "kind": "redo", } | { "kind": "checkout", 
 /**
  * Stable target branch.
  */
