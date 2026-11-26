@@ -150,7 +150,8 @@ failed migration leaves the existing system selected.
 
 ## Artifact Evidence
 
-`proof:command-system-artifacts` packs `@inflatable-cookie/longhorn/core`,
+The `proof:artifacts` aggregate runs the command-system artifact proof, which
+packs `@inflatable-cookie/longhorn/core`,
 `@inflatable-cookie/longhorn/settings`, and `@inflatable-cookie/longhorn/commands`, verifies the exact Poodle
 artifact set, and installs clean Jetstream and Loophole consumers. It rejects
 workspace aliases, sibling source resolution, optional-edge drift, duplicate
@@ -175,10 +176,10 @@ release-lane gate while the interdependent crates are private.
 
 ## Proof
 
-Run:
+Run the artifact proof aggregate:
 
 ```sh
-effigy proof:command-system-artifacts
+effigy proof:artifacts
 ```
 
 Sources live in `examples/command-system-proof/`. Closeout evidence is in

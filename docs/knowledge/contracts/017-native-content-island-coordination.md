@@ -442,9 +442,9 @@ proves submitted navigation, same-URL idempotence, policy denial, readiness,
 and retained generation. Figmatic owns its preview URLs and command policy;
 Nucleus owns its browser actions and later removal of global-label lookup.
 
-Queue task longhorn#084 (2026-11) adds the bounded bundled local document
+Nucleus task longhorn#084 (2026-11) adds the bounded bundled local document
 source (`ChildViewSource::bundled`) and its real macOS native proof; see
-Child-view Bundled Local Source above. Queue task longhorn#085 prepares the
+Child-view Bundled Local Source above. Nucleus task longhorn#085 prepares the
 0.5.0 candidate that carries it (decision `cc2087bb`): the version inventory
 and the changelog now promote the one documented `ChildViewSpec::new` source
 break. No tag or publication exists yet; the release contract's remaining

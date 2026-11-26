@@ -72,7 +72,7 @@ outside this repository (longhorn#174).
 4. **Rehearse.** `effigy ci:rehearse` on that commit. It checks the
    clean-runner properties that local `qa` can miss.
 5. **Gates.** `effigy release status --check-gates` and read the gate lines.
-   A nonzero exit on an empty `[Unreleased]` is a known Effigy gap (a Queue
+   A nonzero exit on an empty `[Unreleased]` is a known Effigy gap (a Nucleus
    papercut); the gate results are the evidence.
 6. **Dry run.** `gh workflow run release.yml --ref main -f dry-run=true`.
    It runs full QA, the release gates and pack-and-verify.
