@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { errorMessage } from "../../failures.ts";
   import { formatArchiveTimestamp } from "./format.ts";
   import {
     Button,
@@ -15,16 +14,13 @@
     Surface,
   } from "@inflatable-cookie/poodle-svelte";
   import type { RadioGroupOption, SelectOption } from "@inflatable-cookie/poodle-svelte";
-  import { onMount } from "svelte";
 
   import {
-    CONFIG_OPERATIONS_PROTOCOL_VERSION,
     RESTORE_AUTHENTICITY_LABELS,
     RESTORE_INTEGRITY_LABELS,
   } from "@inflatable-cookie/longhorn/config";
   import type {
     ConfigOperationRejection,
-    ConfigOperationsSnapshot,
     RestoreAdapterReceiptProjection,
     RestoreDomainChoice,
     RestoreDomainInspectionProjection,
@@ -36,9 +32,9 @@
   } from "@inflatable-cookie/longhorn/config";
   import { canUseArchive, compatibilityLabel, identityLabel } from "./restore-model.ts";
   import type { RestoreChoice } from "./restore-model.ts";
+  import ConfigSnapshotState from "./ConfigSnapshotState.svelte";
+  import { configRequest, useConfigPage } from "./page-state.svelte.ts";
   import type { ConfigOperationsPageProps } from "./types.ts";
-
-  type Activity = "idle" | "loading" | "inspecting" | "planning" | "publishing" | "recovering";
 
   let {
     client,
@@ -49,28 +45,32 @@
   const archiveId = $props.id();
 
   const initialSnapshotValue = (() => initialSnapshot)();
-  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshotValue);
   let selection = $state("hostPicker");
   let inspection = $state<RestoreInspectionProjection | null>(null);
   let inspectionGeneration = $state<number | null>(null);
   let choices = $state<Record<string, RestoreChoice>>({});
   let plan = $state<RestorePlanProjection | null>(null);
   let planGeneration = $state<number | null>(null);
-  let activity = $state<Activity>("idle");
-  let error = $state<string | null>(null);
-  let notice = $state<string | null>(null);
   let failure = $state<RestoreExecutionFailureProjection | null>(null);
   let execution = $state<RestoreExecutionReceiptProjection | null>(null);
   let adapterReceipt = $state<RestoreAdapterReceiptProjection | null>(null);
   let recoveryReceipt = $state<RestoreRecoveryReceiptProjection | null>(null);
 
-  const restore = $derived(snapshot?.restore ?? null);
-  const canInspect = $derived(snapshot?.capabilities.includes("restoreInspection") === true);
-  const canExecute = $derived(snapshot?.capabilities.includes("restoreExecution") === true);
-  const canExecuteAdapter = $derived(
-    snapshot?.capabilities.includes("restoreAdapterExecution") === true,
+  const page = useConfigPage(
+    initialSnapshotValue,
+    () => client.snapshot(configRequest(nextRequestId)),
+    (value) => {
+      onSnapshot?.(value);
+    },
   );
-  const canRecover = $derived(snapshot?.capabilities.includes("restoreRecovery") === true);
+
+  const restore = $derived(page.snapshot?.restore ?? null);
+  const canInspect = $derived(page.snapshot?.capabilities.includes("restoreInspection") === true);
+  const canExecute = $derived(page.snapshot?.capabilities.includes("restoreExecution") === true);
+  const canExecuteAdapter = $derived(
+    page.snapshot?.capabilities.includes("restoreAdapterExecution") === true,
+  );
+  const canRecover = $derived(page.snapshot?.capabilities.includes("restoreRecovery") === true);
   const blockedByRestore = $derived(
     restore?.state === "active" || restore?.state === "recoveryRequired",
   );
@@ -84,7 +84,7 @@
   );
   const archiveOptions = $derived<Array<SelectOption>>([
     { value: "hostPicker", label: "Choose archive…" },
-    ...(snapshot?.backup?.inventory.archives.map((archive) => ({
+    ...(page.snapshot?.backup?.inventory.archives.map((archive) => ({
       value: archive.archiveSha256,
       label: `${formatArchiveTimestamp(archive.createdAt)} — ${archive.archiveId}`,
     })) ?? []),
@@ -94,29 +94,11 @@
     { value: "keepCurrent", label: "Keep current" },
   ];
 
-  onMount(() => {
-    if (snapshot === null) {
-      void refresh();
-    }
-  });
-
-  async function refresh(): Promise<void> {
-    await run("loading", async () => {
-      acceptSnapshot(
-        await client.snapshot({
-          protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-          requestId: nextRequestId(),
-        }),
-      );
-    });
-  }
-
   async function inspect(): Promise<void> {
-    clearResult();
-    await run("inspecting", async () => {
+    await page.run("inspecting", async () => {
+      clearResult();
       const outcome = await client.inspectRestore({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         selection:
           selection === "hostPicker"
             ? { source: "hostPicker" }
@@ -129,7 +111,7 @@
           outcome.inspection.domains.map((domain) => [domain.domainId, ""]),
         );
       } else if (outcome.status === "locked") {
-        error = `Archive locked: ${outcome.detail}`;
+        page.error = `Archive locked: ${outcome.detail}`;
       } else {
         reject(outcome.rejection);
       }
@@ -148,7 +130,7 @@
     if (current === null || generation === null || !allChoicesMade) {
       return;
     }
-    await run("planning", async () => {
+    await page.run("planning", async () => {
       const domainChoices = current.domains.map((domain): RestoreDomainChoice => {
         const choice = choices[domain.domainId];
         if (!isDecidedChoice(choice)) {
@@ -157,8 +139,7 @@
         return { domainId: domain.domainId, choice };
       });
       const outcome = await client.planRestore({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         generation,
         archiveSha256: current.archiveSha256,
         choices: domainChoices,
@@ -178,25 +159,24 @@
     if (current === null || generation === null) {
       return;
     }
-    await run("publishing", async () => {
+    await page.run("publishing", async () => {
       const outcome = await client.executeRestore({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         generation,
         confirmationDigest: current.confirmationDigest,
       });
       if (outcome.status === "succeeded") {
         execution = outcome.receipt;
-        acceptSnapshot(outcome.snapshot);
-        notice = "Restore published and verified.";
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = "Restore published and verified.";
       } else if (outcome.status === "rolledBack") {
         failure = outcome.failure;
-        acceptSnapshot(outcome.snapshot);
-        notice = "Restore failed and the host verified rollback.";
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = "Restore failed and the host verified rollback.";
       } else if (outcome.status === "recoveryRequired") {
         failure = outcome.failure;
-        acceptSnapshot(outcome.snapshot);
-        error = "Restore could not establish rollback. Recovery is required.";
+        page.acceptSnapshot(outcome.snapshot);
+        page.error = "Restore could not establish rollback. Recovery is required.";
       } else {
         reject(outcome.rejection);
       }
@@ -213,10 +193,9 @@
     if (current === null || generation === null) {
       return;
     }
-    await run("publishing", async () => {
+    await page.run("publishing", async () => {
       const outcome = await client.executeAdapterRestore({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         generation,
         archiveSha256: current.archiveSha256,
         domainId,
@@ -225,8 +204,8 @@
       });
       if (outcome.status === "completed") {
         adapterReceipt = outcome.receipt;
-        acceptSnapshot(outcome.snapshot);
-        notice = `Adapter restore finished with ${outcome.receipt.outcome}.`;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = `Adapter restore finished with ${outcome.receipt.outcome}.`;
       } else {
         reject(outcome.rejection);
       }
@@ -247,36 +226,22 @@
   }
 
   async function recover(): Promise<void> {
-    await run("recovering", async () => {
+    await page.run("recovering", async () => {
       const outcome = await client.recoverRestore({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
       });
       if (outcome.status === "recovered") {
         recoveryReceipt = outcome.receipt;
-        acceptSnapshot(outcome.snapshot);
-        notice = `Recovery finished with ${outcome.receipt.outcome}.`;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = `Recovery finished with ${outcome.receipt.outcome}.`;
       } else if (outcome.status === "recoveryRequired") {
         failure = outcome.failure;
-        acceptSnapshot(outcome.snapshot);
-        error = "Recovery remains required.";
+        page.acceptSnapshot(outcome.snapshot);
+        page.error = "Recovery remains required.";
       } else {
         reject(outcome.rejection);
       }
     });
-  }
-
-  async function run(nextActivity: Activity, action: () => Promise<void>): Promise<void> {
-    activity = nextActivity;
-    error = null;
-    notice = null;
-    try {
-      await action();
-    } catch (error_) {
-      error = errorMessage(error_);
-    } finally {
-      activity = "idle";
-    }
   }
 
   function choose(domainId: string, choice: string): void {
@@ -286,9 +251,9 @@
   }
 
   function reject(rejection: ConfigOperationRejection): void {
-    error = rejection.detail;
+    page.error = rejection.detail;
     if (rejection.snapshot) {
-      acceptSnapshot(rejection.snapshot);
+      page.acceptSnapshot(rejection.snapshot);
     }
     if (rejection.code === "restorePlanStale" || rejection.code === "authorityChanged") {
       plan = null;
@@ -306,49 +271,33 @@
     execution = null;
     adapterReceipt = null;
   }
-
-  function acceptSnapshot(value: ConfigOperationsSnapshot): void {
-    snapshot = value;
-    onSnapshot?.(value);
-  }
 </script>
 
-<div aria-busy={activity !== "idle"}>
+<div aria-busy={page.activity !== "idle"}>
   <Stack gap="md">
-    {#if error}
+    {#if page.snapshot !== null && page.error !== null}
       <Callout
         tone="danger"
         title="Restore operation failed"
-        message={error}
+        message={page.error}
         announceMode="assertive"
       />
     {/if}
-    {#if notice}
+    {#if page.notice}
       <Callout
         tone="success"
         title="Restore operation complete"
-        message={notice}
+        message={page.notice}
         announceMode="polite"
       />
     {/if}
 
-    <!-- Three different situations used to render this one warning: the first
-         read still in flight, a read that failed, and a host that genuinely
-         composed no restore inspection. Only the third is what the message claims, and a
-         Retry beside the other two is either pointless or premature. The load
-         is now its own state, so what a reader sees is what happened. -->
-    {#if restore === null && snapshot === null && activity === "loading"}
-      <Callout tone="pending" title="Loading restore inspection" announceMode="polite" />
-    {:else if snapshot === null}
-      <Callout
-        tone="warning"
-        title="Settings could not be read"
-        message="No configuration snapshot arrived. The read did not fail, so the host answered with nothing."
-      >
-        {#snippet actions()}
-          <Button onClick={() => void refresh()}>Retry</Button>
-        {/snippet}
-      </Callout>
+    {#if page.snapshot === null}
+      <ConfigSnapshotState
+        loadingTitle="Loading restore inspection"
+        error={page.error}
+        retry={page.refresh}
+      />
     {:else if restore === null}
       <Callout
         tone="warning"
@@ -384,15 +333,15 @@
                 value={selection}
                 options={archiveOptions}
                 native={true}
-                disabled={activity !== "idle" || !canInspect}
+                disabled={page.activity !== "idle" || !canInspect}
                 onValueChange={(value) => (selection = value)}
               />
             </Stack>
             <Stack direction="row" align="end">
               <Button
                 variant="secondary"
-                loading={activity === "inspecting"}
-                disabled={activity !== "idle" || !canInspect}
+                loading={page.activity === "inspecting"}
+                disabled={page.activity !== "idle" || !canInspect}
                 onClick={() => void inspect()}
               >
                 Inspect archive
@@ -450,7 +399,7 @@
                       ...option,
                       disabled: option.value === "useArchive" && !canUseArchive(domain),
                     }))}
-                    disabled={activity !== "idle"}
+                    disabled={page.activity !== "idle"}
                     onValueChange={(value) => choose(domain.domainId, value)}
                   />
                 </Stack>
@@ -494,8 +443,8 @@
         <FormActions>
           <Button
             variant="secondary"
-            loading={activity === "planning"}
-            disabled={activity !== "idle" || !allChoicesMade}
+            loading={page.activity === "planning"}
+            disabled={page.activity !== "idle" || !allChoicesMade}
             onClick={() => void createPlan()}
           >
             Review exact plan
@@ -536,14 +485,14 @@
       {/if}
     {/if}
 
-    {#if activity === "publishing"}
+    {#if page.activity === "publishing"}
       <Callout
         tone="warning"
         title="Host-owned publication in progress"
         message="Closing this view does not cancel staging, safety backup, publication, rollback, or recovery."
         announceMode="assertive"
       />
-    {:else if activity === "recovering"}
+    {:else if page.activity === "recovering"}
       <Callout
         tone="warning"
         title="Host-owned recovery in progress"

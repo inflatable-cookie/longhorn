@@ -339,6 +339,8 @@ renderer protocol.
 An optional Svelte adapter may own one per-instance coordination session,
 measure a consumer-supplied viewport element, combine explicit visibility
 inhibitors, reject stale async results, and tear down listeners and observers.
+Measure again on element or window resize and on window or ancestor scroll.
+Consumers can call `refreshViewport()` for position changes without those events.
 
 Poodle integration is layout binding only. Poodle owns panels, overlays,
 menus, focus visuals, and presentation timing. Longhorn must not inspect

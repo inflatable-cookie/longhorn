@@ -39,13 +39,24 @@ primitives without copying component source or durable state.
 - Surface mutation feedback retains pending requests and the 32 most recently
   settled operations within the session. Stop clears it.
 - Optimistic mutations are keyed by request id, reconciled to the host result,
-  and rolled back or resynced on failure.
+  and rolled back or resynced on failure. Layout stop clears the projection.
+  An earlier dispatch can still return its outcome to its caller, but it
+  cannot change the stopped or restarted projection.
+- A settings mutation keeps its unit pending until settlement. A staged edit
+  made during that request stays dirty for the next apply. Mutation snapshots
+  follow the same registry generation, scope revision, and authority token
+  checks as subscription snapshots.
 - Errors, loading, reconnecting, and unsupported capability states are
   explicit.
 - A shell action that fails (apply, guard resolution, reset) stays visible
   on the page and in any open confirmation until the next action. A session
-  whose stop fails on unmount logs the failure rather than leaving it
-  unhandled.
+  whose stop fails on unmount reports through the caller’s reporter or logs
+  the error when none was supplied.
+- Initial configuration read failures show one error with Retry. A loaded
+  snapshot with an absent capability can show that capability as unavailable.
+- Drop-zone lease geometry is refreshed on resize and on window or ancestor
+  scroll. For position changes without those events, the layout owner can
+  request publication after layout settles.
 - An optional capability lives behind its package subpath. Importing the
   Surface-free root cannot resolve that capability.
 
@@ -62,7 +73,9 @@ primitives without copying component source or durable state.
 - Command palette and keybinding adapters project the sealed command registry,
   effective keymap, and current availability through public controlled Poodle
   APIs. Poodle owns focus and visual semantics; Longhorn owns ids, search,
-  conflict records, and injected dispatch.
+  conflict records, and injected dispatch. Keybinding search matches command
+  IDs case-insensitively, and reset requires confirmation. The command palette
+  shows search and execution failures while it stays open.
 - A command selection calls a consumer executor. No Svelte or Poodle adapter
   invents a generic Tauri execution route.
 - Same-window drag remains Poodle-owned. Cross-window binding requires public

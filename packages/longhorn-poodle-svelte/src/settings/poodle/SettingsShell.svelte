@@ -95,10 +95,8 @@
    * page. Searching "Output" and landing on the Audio page with no idea which
    * control matched is barely better than not searching.
    */
-  const routes = new Map<string, { pageId: string; anchorId?: string }>();
-
-  const navigationGroups = $derived.by(() => {
-    routes.clear();
+  const navigation = $derived.by(() => {
+    const routes = new Map<string, { pageId: string; anchorId?: string }>();
     const query = searchQuery.trim();
     const matches = query ? session.search(query) : undefined;
     const anchorsByPage = new Map<string, Array<{ id: string; label: string }>>();
@@ -118,7 +116,7 @@
     }
     const matchedPages = matches && new Set(matches.map(({ page }) => page.id));
 
-    return (
+    const groups =
       session.navigation?.modules.flatMap(({ sections }) =>
         sections
           .map(({ section, pages }) => ({
@@ -150,8 +148,8 @@
           // A section whose every page was filtered out is not a heading over
           // nothing; it is absent.
           .filter(({ items }) => items.length > 0),
-      ) ?? []
-    );
+      ) ?? [];
+    return { groups, routes };
   });
 
   const currentPage = $derived(session.currentPage);
@@ -188,7 +186,7 @@
   // of destinations, and clearing it on the first pick would throw away the
   // filter the moment it became useful.
   function navigate(value: string, _anchorId: string | null = null): void {
-    const route = routes.get(value) ?? { pageId: value };
+    const route = navigation.routes.get(value) ?? { pageId: value };
     // A rail click is a shell action like any other: a rejected navigation --
     // a scope that will not load, a deep link that no longer resolves -- is a
     // failure the operator has to see, not a promise nobody observes. Focus
@@ -259,7 +257,7 @@
   bind:open
   {title}
   {ariaLabel}
-  groups={navigationGroups}
+  groups={navigation.groups}
   activePageId={session.route?.pageId ?? null}
   pageTitle={currentPage?.label ?? null}
   bind:searchQuery

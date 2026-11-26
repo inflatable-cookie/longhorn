@@ -1,5 +1,6 @@
 import type { ConnectionFailure } from "@inflatable-cookie/longhorn/core";
 
+import { isNewerScope } from "@inflatable-cookie/longhorn/settings";
 import type { SettingsClient } from "@inflatable-cookie/longhorn/settings";
 import type {
   SettingsPageId,
@@ -49,6 +50,9 @@ export class SettingsScopeState {
   }
 
   accept(snapshot: SettingsScopeSnapshot): void {
+    if (snapshot !== this.#snapshot && !isNewerScope(snapshot, this.#snapshot)) {
+      return;
+    }
     this.#snapshot = snapshot;
     this.#status = { kind: "ready" };
   }

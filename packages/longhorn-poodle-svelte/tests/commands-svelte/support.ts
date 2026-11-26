@@ -2,7 +2,9 @@ import { requireValue } from "../../../../scripts/proof-support.ts";
 import { CommandSession } from "../../src/commands/poodle.ts";
 import { CommandController } from "../../../longhorn/src/commands/index.ts";
 import type {
+  CommandControllerOptions,
   CommandExecutionIntent,
+  CommandExecutorPort,
   CommandPorts,
   CommandUnlisten,
   KeyboardEventLike,
@@ -44,7 +46,11 @@ class FakeKeyboardTarget {
   }
 }
 
-export function createSession() {
+export function createSession(
+  options: Pick<CommandControllerOptions, "search"> & {
+    execute?: CommandExecutorPort["execute"];
+  } = {},
+) {
   const target = new FakeKeyboardTarget();
   const catalogue = new Port(fixture.catalogue);
   const keymap = new Port(requireValue(fixture.loadOutcomes[0], "fixture.loadOutcomes[0]"));
@@ -58,7 +64,7 @@ export function createSession() {
     executor: {
       async execute(intent) {
         executions.push(intent);
-        return { status: "succeeded" };
+        return options.execute?.(intent) ?? { status: "succeeded" };
       },
     },
     nextRequestId: () => `request:svelte-${++request}`,
@@ -66,6 +72,7 @@ export function createSession() {
   const controller = new CommandController({
     ports,
     platform: "macOs",
+    ...(options.search && { search: options.search }),
   });
   const session = new CommandSession({
     controller,

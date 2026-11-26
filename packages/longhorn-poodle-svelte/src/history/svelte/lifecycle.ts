@@ -1,15 +1,6 @@
-import { onMount } from "svelte";
-
-import { reportFailure } from "../../failures.ts";
-
+import { useSessionLifecycle } from "../../bindings/mount.ts";
 import type { HistorySession } from "./session.svelte.ts";
 
 export function useHistorySession(getSession: () => HistorySession): void {
-  onMount(() => {
-    const session = getSession();
-    void session.start().catch(() => undefined);
-    return () => {
-      void session.stop().catch(reportFailure);
-    };
-  });
+  useSessionLifecycle(getSession);
 }

@@ -12,10 +12,12 @@ import type { LayoutDispatchResult } from "../../src/bindings/layout.svelte.ts";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((resolve_) => {
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((resolve_, reject_) => {
     resolve = resolve_;
+    reject = reject_;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 const document = (revision: number): SurfaceDocument => ({
@@ -78,12 +80,56 @@ describe("LayoutState", () => {
     expect(state.pendingRequestIds).toEqual([]);
   });
 
+  it("keeps a stopped projection empty when dispatch commits late", async () => {
+    const result = deferred<LayoutDispatchResult>();
+    const state = new LayoutState({ dispatch: () => result.promise });
+    await state.start();
+    state.accept(document(1));
+    const pending = state.dispatch(request, (current) => current);
+
+    await state.stop();
+    result.resolve(committed(2));
+    await expect(pending).resolves.toEqual(committed(2));
+
+    expect(state.status.kind).toBe("idle");
+    expect(state.authoritative).toBeUndefined();
+    expect(state.projected).toBeUndefined();
+    expect(state.pendingRequestIds).toEqual([]);
+  });
+
+  it("does not let a late dispatch failure cancel a reused request after restart", async () => {
+    const old = deferred<LayoutDispatchResult>();
+    const next = deferred<LayoutDispatchResult>();
+    let dispatch = old;
+    const state = new LayoutState({ dispatch: () => dispatch.promise });
+    await state.start();
+    state.accept(document(1));
+    const first = state.dispatch(request, (current) => current);
+
+    await state.stop();
+    await state.start();
+    state.accept(document(1));
+    dispatch = next;
+    const second = state.dispatch(request, (current) => current);
+    old.reject(new Error("late dispatch failure"));
+
+    await expect(first).rejects.toThrow("late dispatch failure");
+    expect(state.pendingRequestIds).toEqual([request.request_id]);
+    expect(state.status.kind).toBe("ready");
+    next.resolve(committed(2));
+    await second;
+  });
+
   it("reports unsupported dispatch without treating it as transport failure", async () => {
     const state = new LayoutState({
       unsupportedReason: "consumer supplied no layout endpoint",
     });
     await state.start();
-    state.accept(document(1));
+    expect(state.accept(document(1))).toBe(true);
+    expect(state.status.kind).toBe("unsupported");
+    expect(state.projected?.revision).toBe(1);
+    state.reconnecting();
+    expect(state.status.kind).toBe("unsupported");
 
     await expect(state.dispatch(request, (current) => current)).rejects.toThrow(
       "capability is unsupported",

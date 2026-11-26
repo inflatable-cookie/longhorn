@@ -69,11 +69,14 @@ describe("DropZoneLeaseRegistry", () => {
         return () => `lease:${++value}`;
       })(),
       reportError: (error) => errors.push(error),
-      observeGeometry: () => () => undefined,
     });
     const first = document.createElement("section");
     const second = document.createElement("section");
-    first.getBoundingClientRect = () => rectangle(20.25, 30.5, 400, 260);
+    const scroller = document.createElement("div");
+    document.body.append(scroller);
+    scroller.append(first, second);
+    let top = 30.5;
+    first.getBoundingClientRect = () => rectangle(20.25, top, 400, 260);
     second.getBoundingClientRect = () => rectangle(440, 30, 300, 260);
     const firstAction = registry.zone(first, {
       id: "zone:center",
@@ -117,6 +120,17 @@ describe("DropZoneLeaseRegistry", () => {
       expect.objectContaining({ id: "zone:surface" }),
     ]);
 
+    top = 10.5;
+    scroller.dispatchEvent(new Event("scroll"));
+    await waitFor(() =>
+      expect(requests.at(-1)?.zones[0]?.bounds).toEqual({
+        origin: { x: 20.25, y: 10.5 },
+        size: { width: 400, height: 260 },
+      }),
+    );
+
+    expect(requests).toHaveLength(2);
+
     listener?.({
       ...snapshot,
       client_id: "client:replacement",
@@ -138,6 +152,11 @@ describe("DropZoneLeaseRegistry", () => {
       client_epoch: 5,
       zones: [],
     });
+    const completed = requests.length;
+    scroller.dispatchEvent(new Event("scroll"));
+    await Promise.resolve();
+    expect(requests).toHaveLength(completed);
+    scroller.remove();
     expect(errors).toEqual([]);
     await state.destroy();
   });

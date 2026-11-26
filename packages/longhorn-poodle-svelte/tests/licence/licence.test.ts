@@ -9,6 +9,7 @@ import type {
   LicenceSnapshot,
 } from "@inflatable-cookie/longhorn/licence";
 
+import keyCases from "../../../longhorn/src/licence/generated/key-conformance.json";
 import LicenceHarness from "./LicenceHarness.svelte";
 
 function held(overrides: Partial<HeldLicenceProjection> = {}): HeldLicenceProjection {
@@ -30,6 +31,7 @@ function snapshot(licence: HeldLicenceProjection | null = held()): LicenceSnapsh
 
 class Port implements LicencePort {
   released: Array<string> = [];
+  activation: (() => LicenceOutcomeProjection) | undefined;
   constructor(public state: LicenceSnapshot = snapshot()) {}
   #committed(): LicenceOutcomeProjection {
     return { status: "committed", snapshot: this.state };
@@ -38,7 +40,7 @@ class Port implements LicencePort {
     return this.state;
   }
   async activate(): Promise<unknown> {
-    return this.#committed();
+    return this.activation?.() ?? this.#committed();
   }
   async deactivate(): Promise<unknown> {
     return this.#committed();
@@ -168,6 +170,40 @@ describe("licence surface bindings", () => {
     });
     expect(document.body.textContent?.toLowerCase()).not.toContain("invalid");
     mounted.unmount();
+  });
+
+  it("shows activation rejection and transport failure, then clears the message on success", async () => {
+    const port = new Port(snapshot(null));
+    port.activation = () => ({ status: "rejected", snapshot: port.state, code: "noSeatsFree" });
+    const controller = await ready(port);
+    const mounted = render(LicenceHarness, { props: { controller, surface: "activation" } });
+    const key = keyCases.find(({ outcome }) => outcome.startsWith("ok:"))?.input;
+    if (key === undefined) {
+      throw new Error("missing valid key conformance case");
+    }
+    const submit = async () => {
+      await fireEvent.input(mounted.getByRole("textbox"), { target: { value: key } });
+      await fireEvent.click(mounted.getByRole("button", { name: /activate/i }));
+    };
+
+    await submit();
+    expect(
+      await mounted.findByText("All seats are in use. Release a seat before trying again."),
+    ).toBeTruthy();
+
+    port.activation = () => {
+      throw new Error("authority offline");
+    };
+    await submit();
+    expect(
+      await mounted.findByText("The app could not activate this licence. Try again."),
+    ).toBeTruthy();
+
+    port.activation = undefined;
+    await submit();
+    await waitFor(() => expect(mounted.queryByText("Licence activation failed")).toBeNull());
+    mounted.unmount();
+    await controller.stop();
   });
 
   /**

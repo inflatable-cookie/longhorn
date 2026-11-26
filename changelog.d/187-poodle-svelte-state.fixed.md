@@ -1,0 +1,1 @@
+Keep stopped layout projections cleared, preserve edits made during a settings save, and ignore stale scope results. Show one retryable error on a failed configuration read, surface licence activation and command palette failures, refresh viewport geometry on scroll, and confirm keybinding resets.

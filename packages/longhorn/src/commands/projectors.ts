@@ -139,13 +139,36 @@ export function searchCommands(
   records: ReadonlyArray<CommandDiscoveryRecord>,
   query: string,
 ): ReadonlyArray<CommandSearchHit> {
+  return searchCommandRecords(records, query, false);
+}
+
+export function searchCommandSettings(
+  records: ReadonlyArray<CommandSettingsRecord>,
+  query: string,
+): ReadonlyArray<CommandSettingsRecord> {
+  if (query.trim().length === 0) {
+    return records;
+  }
+  return searchCommandRecords(records, query, true).map(({ record }) => record);
+}
+
+type SearchableCommand = Pick<
+  CommandProjectionRecord,
+  "id" | "label" | "description" | "categoryPath" | "keywords"
+>;
+
+function searchCommandRecords<Record extends SearchableCommand>(
+  records: ReadonlyArray<Record>,
+  query: string,
+  caseInsensitiveId: boolean,
+): ReadonlyArray<{ record: Record; score: number }> {
   const terms = query
     .split(/\s+/u)
     .filter(Boolean)
     .map((term) => term.toLowerCase());
   return records
     .flatMap((record) => {
-      const score = scoreRecord(record, terms);
+      const score = scoreRecord(record, terms, caseInsensitiveId);
       return score === undefined ? [] : [{ record, score }];
     })
     .sort(
@@ -208,12 +231,14 @@ export class CommandProjectionConsistencyError extends Error {
 }
 
 function scoreRecord(
-  record: CommandDiscoveryRecord,
+  record: SearchableCommand,
   terms: ReadonlyArray<string>,
+  caseInsensitiveId: boolean,
 ): number | undefined {
   if (terms.length === 0) {
     return 0;
   }
+  const id = caseInsensitiveId ? record.id.toLowerCase() : record.id;
   const label = record.label.toLowerCase();
   const description = record.description?.toLowerCase() ?? "";
   const keywords = record.keywords.map((keyword) => keyword.toLowerCase());
@@ -234,7 +259,7 @@ function scoreRecord(
                   ? 50
                   : record.categoryPath.some((category) => category.includes(term))
                     ? 60
-                    : record.id.includes(term)
+                    : id.includes(term)
                       ? 70
                       : description.includes(term)
                         ? 80

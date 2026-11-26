@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { errorMessage } from "../../failures.ts";
   import { formatArchiveTimestamp } from "./format.ts";
   import {
     Button,
@@ -13,13 +12,10 @@
     Table,
   } from "@inflatable-cookie/poodle-svelte";
   import type { TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
-  import { onMount } from "svelte";
 
-  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/config";
-  import type {
-    BackupArchiveProjection,
-    ConfigOperationsSnapshot,
-  } from "@inflatable-cookie/longhorn/config";
+  import type { BackupArchiveProjection } from "@inflatable-cookie/longhorn/config";
+  import ConfigSnapshotState from "./ConfigSnapshotState.svelte";
+  import { configRequest, useConfigPage } from "./page-state.svelte.ts";
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   let {
@@ -30,15 +26,19 @@
   }: ConfigOperationsPageProps = $props();
 
   const initialSnapshotValue = (() => initialSnapshot)();
-  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshotValue);
-  let busy = $state(false);
-  let error = $state<string | null>(null);
-  let notice = $state<string | null>(null);
 
-  const backup = $derived(snapshot?.backup ?? null);
-  const canCreate = $derived(snapshot?.capabilities.includes("backupCreate") === true);
-  const canExport = $derived(snapshot?.capabilities.includes("backupExport") === true);
-  const canRetain = $derived(snapshot?.capabilities.includes("backupRetention") === true);
+  const page = useConfigPage(
+    initialSnapshotValue,
+    () => client.snapshot(configRequest(nextRequestId)),
+    (value) => {
+      onSnapshot?.(value);
+    },
+  );
+
+  const backup = $derived(page.snapshot?.backup ?? null);
+  const canCreate = $derived(page.snapshot?.capabilities.includes("backupCreate") === true);
+  const canExport = $derived(page.snapshot?.capabilities.includes("backupExport") === true);
+  const canRetain = $derived(page.snapshot?.capabilities.includes("backupRetention") === true);
   const inventoryColumns: Array<TableColumn> = [
     { id: "state", label: "State", isRowHeader: true },
     { id: "path", label: "Path" },
@@ -55,136 +55,83 @@
     })) ?? [],
   );
 
-  onMount(() => {
-    if (snapshot === null) {
-      void refresh();
-    }
-  });
-
-  async function refresh(): Promise<void> {
-    await run(async () => {
-      acceptSnapshot(
-        await client.snapshot({
-          protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-          requestId: nextRequestId(),
-        }),
-      );
-    });
-  }
-
   async function create(pendingPolicy: "refuse" | "flush"): Promise<void> {
-    await run(async () => {
+    await page.run("working", async () => {
       const outcome = await client.createBackup({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         pendingPolicy,
       });
       if (outcome.status === "published") {
-        acceptSnapshot(outcome.snapshot);
-        notice = `Backup published to ${outcome.publication.path}.`;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = `Backup published to ${outcome.publication.path}.`;
       } else {
-        reject(outcome.rejection.detail);
+        page.error = outcome.rejection.detail;
       }
     });
   }
 
   async function exportArchive(archive: BackupArchiveProjection): Promise<void> {
-    await run(async () => {
+    await page.run("working", async () => {
       const outcome = await client.exportBackup({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         archiveSha256: archive.archiveSha256,
       });
       if (outcome.status === "published") {
-        acceptSnapshot(outcome.snapshot);
-        notice = `Backup exported to ${outcome.publication.path}.`;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = `Backup exported to ${outcome.publication.path}.`;
       } else {
-        reject(outcome.rejection.detail);
+        page.error = outcome.rejection.detail;
       }
     });
   }
 
   async function applyRetention(): Promise<void> {
-    const current = snapshot;
+    const current = page.snapshot;
     const retention = backup?.retention;
     if (current === null || !retention) {
       return;
     }
-    await run(async () => {
+    await page.run("working", async () => {
       const outcome = await client.applyBackupRetention({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         generation: current.generation,
         confirmationDigest: retention.confirmationDigest,
       });
       if (outcome.status === "applied") {
-        acceptSnapshot(outcome.snapshot);
-        notice = `${outcome.deletedPaths.length} proven archive(s) removed.`;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = `${outcome.deletedPaths.length} proven archive(s) removed.`;
       } else {
-        reject(outcome.rejection.detail);
+        page.error = outcome.rejection.detail;
       }
     });
   }
-
-  async function run(action: () => Promise<void>): Promise<void> {
-    busy = true;
-    error = null;
-    notice = null;
-    try {
-      await action();
-    } catch (error_) {
-      error = errorMessage(error_);
-    } finally {
-      busy = false;
-    }
-  }
-
-  function reject(detail: string): void {
-    error = detail;
-  }
-
-  function acceptSnapshot(value: ConfigOperationsSnapshot): void {
-    snapshot = value;
-    onSnapshot?.(value);
-  }
 </script>
 
-<div aria-busy={busy}>
+<div aria-busy={page.busy}>
   <Stack gap="md">
-    {#if error}
+    {#if page.snapshot !== null && page.error !== null}
       <Callout
         tone="danger"
         title="Backup operation failed"
-        message={error}
+        message={page.error}
         announceMode="assertive"
       />
     {/if}
-    {#if notice}
+    {#if page.notice}
       <Callout
         tone="success"
         title="Backup operation complete"
-        message={notice}
+        message={page.notice}
         announceMode="polite"
       />
     {/if}
 
-    <!-- Three different situations used to render this one warning: the first
-         read still in flight, a read that failed, and a host that genuinely
-         composed no backup inventory. Only the third is what the message claims, and a
-         Retry beside the other two is either pointless or premature. The load
-         is now its own state, so what a reader sees is what happened. -->
-    {#if backup === null && snapshot === null && busy}
-      <Callout tone="pending" title="Loading backup inventory" announceMode="polite" />
-    {:else if snapshot === null}
-      <Callout
-        tone="warning"
-        title="Settings could not be read"
-        message="No configuration snapshot arrived. The read did not fail, so the host answered with nothing."
-      >
-        {#snippet actions()}
-          <Button onClick={() => void refresh()}>Retry</Button>
-        {/snippet}
-      </Callout>
+    {#if page.snapshot === null}
+      <ConfigSnapshotState
+        loadingTitle="Loading backup inventory"
+        error={page.error}
+        retry={page.refresh}
+      />
     {:else if backup === null}
       <Callout
         tone="warning"
@@ -192,7 +139,7 @@
         message="This host did not compose backup inventory for this window."
       >
         {#snippet actions()}
-          <Button onClick={() => void refresh()} loading={busy}>Retry</Button>
+          <Button onClick={() => void page.refresh()} loading={page.busy}>Retry</Button>
         {/snippet}
       </Callout>
     {:else}
@@ -241,7 +188,7 @@
                     {#if canExport}
                       <Button
                         variant="secondary"
-                        disabled={busy}
+                        disabled={page.busy}
                         onClick={() => void exportArchive(archive)}
                       >
                         Export…
@@ -270,7 +217,9 @@
       {/if}
 
       <FormActions>
-        <Button variant="ghost" onClick={() => void refresh()} loading={busy}>Refresh</Button>
+        <Button variant="ghost" onClick={() => void page.refresh()} loading={page.busy}
+          >Refresh</Button
+        >
         {#if canCreate}
           {#if backup.pending.state === "pending"}
             <ConfirmAction
@@ -282,7 +231,7 @@
               onConfirm={() => create("flush")}
             />
           {:else}
-            <Button variant="primary" loading={busy} onClick={() => void create("refuse")}>
+            <Button variant="primary" loading={page.busy} onClick={() => void create("refuse")}>
               Create backup
             </Button>
           {/if}

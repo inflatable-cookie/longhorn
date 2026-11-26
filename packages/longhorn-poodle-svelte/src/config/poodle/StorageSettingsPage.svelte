@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { errorMessage } from "../../failures.ts";
   import {
     Button,
     Callout,
@@ -14,15 +13,14 @@
     Table,
   } from "@inflatable-cookie/poodle-svelte";
   import type { SelectOption, TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
-  import { onMount } from "svelte";
 
-  import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/config";
   import type {
-    ConfigOperationsSnapshot,
     StorageProfileId,
     StorageTransitionPreviewProjection,
     StorageTransitionReceiptProjection,
   } from "@inflatable-cookie/longhorn/config";
+  import ConfigSnapshotState from "./ConfigSnapshotState.svelte";
+  import { configRequest, useConfigPage } from "./page-state.svelte.ts";
   import type { ConfigOperationsPageProps } from "./types.ts";
 
   let {
@@ -35,16 +33,23 @@
 
   const initialSnapshotValue = (() => initialSnapshot)();
   const initialProfileValue = (() => initialSnapshot?.storage?.layout.profile ?? null)();
-  let snapshot = $state<ConfigOperationsSnapshot | null>(initialSnapshotValue);
   let selectedProfile = $state<StorageProfileId | null>(initialProfileValue);
   let preview = $state<StorageTransitionPreviewProjection | null>(null);
   let receipt = $state<StorageTransitionReceiptProjection | null>(null);
-  let busy = $state(false);
-  let error = $state<string | null>(null);
-  let notice = $state<string | null>(null);
 
-  const storage = $derived(snapshot?.storage ?? null);
-  const canTransition = $derived(snapshot?.capabilities.includes("storageTransition") === true);
+  const page = useConfigPage(
+    initialSnapshotValue,
+    () => client.snapshot(configRequest(nextRequestId)),
+    (value) => {
+      selectedProfile ??= value.storage?.layout.profile ?? null;
+      onSnapshot?.(value);
+    },
+  );
+
+  const storage = $derived(page.snapshot?.storage ?? null);
+  const canTransition = $derived(
+    page.snapshot?.capabilities.includes("storageTransition") === true,
+  );
   const profileOptions = $derived<Array<SelectOption>>(
     storage?.availableProfiles.map((value) => ({
       value,
@@ -67,83 +72,63 @@
     })) ?? [],
   );
 
-  onMount(() => {
-    if (snapshot === null) {
-      void refresh();
-    }
-  });
-
-  async function refresh(): Promise<void> {
-    await run(async () => {
-      acceptSnapshot(
-        await client.snapshot({
-          protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-          requestId: nextRequestId(),
-        }),
-      );
-    });
-  }
-
   async function inspect(): Promise<void> {
     const targetProfile = selectedProfile;
     if (targetProfile === null) {
       return;
     }
-    await run(async () => {
+    await page.run("working", async () => {
       receipt = null;
       const outcome = await client.inspectStorageTransition({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         targetProfile,
         includeLogs: true,
       });
       if (outcome.status === "ready") {
         preview = outcome.preview;
-        notice =
+        page.notice =
           outcome.preview.conflicts.length === 0
             ? "Transition inspected. Review the exact plan before confirming."
             : "Transition has blocking conflicts and cannot be confirmed.";
       } else {
-        reject(outcome.rejection.detail);
+        page.error = outcome.rejection.detail;
       }
     });
   }
 
   async function execute(): Promise<void> {
     const inspected = preview;
-    const current = snapshot;
+    const current = page.snapshot;
     if (current === null || inspected === null) {
       return;
     }
-    await run(async () => {
+    await page.run("working", async () => {
       const outcome = await client.executeStorageTransition({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         generation: current.generation,
         confirmationDigest: inspected.confirmationDigest,
       });
       if (outcome.status === "committed") {
         receipt = outcome.receipt;
         preview = null;
-        acceptSnapshot(outcome.snapshot);
-        notice = `Storage transition ${outcome.receipt.transitionId} committed.`;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = `Storage transition ${outcome.receipt.transitionId} committed.`;
       } else {
-        reject(outcome.rejection.detail);
+        page.error = outcome.rejection.detail;
       }
     });
   }
 
   async function recover(): Promise<void> {
-    await run(async () => {
+    await page.run("working", async () => {
       const outcome = await client.recoverStorage({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
       });
       if (outcome.status === "recovered") {
-        acceptSnapshot(outcome.snapshot);
-        notice = outcome.receipt.detail;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = outcome.receipt.detail;
       } else {
-        reject(outcome.rejection.detail);
+        page.error = outcome.rejection.detail;
       }
     });
   }
@@ -153,44 +138,20 @@
     if (committed === null) {
       return;
     }
-    await run(async () => {
+    await page.run("working", async () => {
       const outcome = await client.cleanupStorage({
-        protocolVersion: CONFIG_OPERATIONS_PROTOCOL_VERSION,
-        requestId: nextRequestId(),
+        ...configRequest(nextRequestId),
         transitionId: committed.transitionId,
         transitionReceiptDigest: committed.receiptDigest,
       });
       if (outcome.status === "applied") {
-        acceptSnapshot(outcome.snapshot);
-        notice = `${outcome.receipt.removedPaths.length} retained source path(s) removed.`;
+        page.acceptSnapshot(outcome.snapshot);
+        page.notice = `${outcome.receipt.removedPaths.length} retained source path(s) removed.`;
         receipt = null;
       } else {
-        reject(outcome.rejection.detail);
+        page.error = outcome.rejection.detail;
       }
     });
-  }
-
-  async function run(action: () => Promise<void>): Promise<void> {
-    busy = true;
-    error = null;
-    notice = null;
-    try {
-      await action();
-    } catch (error_) {
-      error = errorMessage(error_);
-    } finally {
-      busy = false;
-    }
-  }
-
-  function reject(detail: string): void {
-    error = detail;
-  }
-
-  function acceptSnapshot(value: ConfigOperationsSnapshot): void {
-    snapshot = value;
-    selectedProfile ??= value.storage?.layout.profile ?? null;
-    onSnapshot?.(value);
   }
 
   function profileLabel(profile: StorageProfileId): string {
@@ -207,42 +168,31 @@
   }
 </script>
 
-<div aria-busy={busy}>
+<div aria-busy={page.busy}>
   <Stack gap="md">
-    {#if error}
+    {#if page.snapshot !== null && page.error !== null}
       <Callout
         tone="danger"
         title="Storage operation failed"
-        message={error}
+        message={page.error}
         announceMode="assertive"
       />
     {/if}
-    {#if notice}
+    {#if page.notice}
       <Callout
         tone="success"
         title="Storage operation complete"
-        message={notice}
+        message={page.notice}
         announceMode="polite"
       />
     {/if}
 
-    <!-- Three different situations used to render this one warning: the first
-         read still in flight, a read that failed, and a host that genuinely
-         composed no storage diagnostics. Only the third is what the message claims, and a
-         Retry beside the other two is either pointless or premature. The load
-         is now its own state, so what a reader sees is what happened. -->
-    {#if storage === null && snapshot === null && busy}
-      <Callout tone="pending" title="Loading storage diagnostics" announceMode="polite" />
-    {:else if snapshot === null}
-      <Callout
-        tone="warning"
-        title="Settings could not be read"
-        message="No configuration snapshot arrived. The read did not fail, so the host answered with nothing."
-      >
-        {#snippet actions()}
-          <Button onClick={() => void refresh()}>Retry</Button>
-        {/snippet}
-      </Callout>
+    {#if page.snapshot === null}
+      <ConfigSnapshotState
+        loadingTitle="Loading storage diagnostics"
+        error={page.error}
+        retry={page.refresh}
+      />
     {:else if storage === null}
       <Callout
         tone="warning"
@@ -250,7 +200,7 @@
         message="This host did not compose storage diagnostics for this window."
       >
         {#snippet actions()}
-          <Button onClick={() => void refresh()} loading={busy}>Retry</Button>
+          <Button onClick={() => void page.refresh()} loading={page.busy}>Retry</Button>
         {/snippet}
       </Callout>
     {:else}
@@ -310,14 +260,14 @@
                   value={selectedProfile}
                   options={profileOptions}
                   native={true}
-                  disabled={busy}
+                  disabled={page.busy}
                   onValueChange={(value) => (selectedProfile = value as StorageProfileId)}
                 />
               </Stack>
               <Stack direction="row" align="end">
                 <Button
                   variant="secondary"
-                  disabled={busy || selectedProfile === storage.layout.profile}
+                  disabled={page.busy || selectedProfile === storage.layout.profile}
                   onClick={() => void inspect()}
                 >
                   Inspect change

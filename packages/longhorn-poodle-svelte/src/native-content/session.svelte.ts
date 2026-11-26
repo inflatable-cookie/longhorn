@@ -12,6 +12,7 @@ import type {
   ScaleFactor,
 } from "@inflatable-cookie/longhorn/native-content";
 
+import { observeViewportMovement } from "../bindings/element-geometry.ts";
 import { StartStop } from "../bindings/start-stop.ts";
 
 export type NativeContentSessionClient = Pick<NativeContentClient, "connect">;
@@ -58,7 +59,7 @@ export class NativeContentSession {
   #inputRouting = $state<InputRoutingMode>("disabled");
   #viewportElement: HTMLElement | undefined;
   #viewportBinding = 0;
-  #observer: NativeContentResizeObserver | undefined;
+  #stopObserving: (() => void) | undefined;
   #connection: NativeContentConnection | undefined;
   readonly #lifecycle = new StartStop();
   #pumpTask: Promise<void> | undefined;
@@ -206,7 +207,10 @@ export class NativeContentSession {
     this.#status = { kind: "connecting" };
 
     try {
-      this.#installObserver();
+      if (this.#viewportElement !== undefined) {
+        this.refreshViewport();
+        this.#installObserver();
+      }
       // The client may synchronously notify before it returns the connection.
       // oxlint-disable-next-line prefer-const -- This binding must be initialized before connect calls its callbacks.
       let connection: NativeContentConnection | undefined;
@@ -358,10 +362,10 @@ export class NativeContentSession {
   }
 
   #installObserver(): void {
-    if (!this.#active || this.#viewportElement === undefined || this.#observer !== undefined) {
+    if (!this.#active || this.#viewportElement === undefined || this.#stopObserving !== undefined) {
       return;
     }
-    const observer = this.#resizeObserverFactory(() => {
+    const changed = () => {
       try {
         this.refreshViewport();
       } catch (error) {
@@ -369,14 +373,19 @@ export class NativeContentSession {
           this.#status = { kind: "failed", error };
         }
       }
-    });
+    };
+    const observer = this.#resizeObserverFactory(changed);
     observer.observe(this.#viewportElement);
-    this.#observer = observer;
+    const stopMovement = observeViewportMovement(this.#viewportElement, changed);
+    this.#stopObserving = () => {
+      stopMovement();
+      observer.disconnect();
+    };
   }
 
   #disconnectObserver(): void {
-    this.#observer?.disconnect();
-    this.#observer = undefined;
+    this.#stopObserving?.();
+    this.#stopObserving = undefined;
   }
 
   #isCurrent(lifecycle: number, connection: NativeContentConnection): boolean {

@@ -1,70 +1,15 @@
 import type { UpdateController } from "@inflatable-cookie/longhorn/update";
 
-/**
- * The controller's reads, sampled so Svelte can see them change.
- *
- * `UpdateController` is a plain class, not a rune, so `controller.availability`
- * in a template is not a tracked dependency: nothing re-renders when the
- * authority notifies. Poodle's components bump their own counter on `observe`,
- * but they re-derive from the props they were handed — which are stale unless
- * the parent re-evaluates them.
- *
- * # Why this stays, now that Poodle's `observe` works
- *
- * It did not, for two props. `presence` was read straight in `UpdateCenter`'s
- * template and `pending` at two `disabled=` sites, both outside the
- * notify-tracked derived, so the bump never reached them -- the icon stayed
- * hidden forever. Poodle routed both on 2026-08-13, and their contract now
- * covers it.
- *
- * This stays anyway, for one structural reason rather than distrust:
- * `UpdateSettings` renders its own control. Delegation cannot help a
- * component that draws a `Select` bound to `controller.channel`, so a
- * subscription is needed there whatever the other two do. Given one of the
- * three requires it, all three use it -- one mechanism beats two, which is
- * the principle Poodle applied to their own props.
- *
- * `tests/update` asserts Poodle's `observe` is sufficient on its own, so the
- * simplification stays available and a regression on their side is visible
- * here even though nothing depends on it.
- *
- * # React hosts cannot do this at all
- *
- * Poodle reports that `observe` plus plain reads is structurally impossible in
- * React: props are by value, so the re-render `observe` triggers re-runs with
- * the values the parent last rendered. A React host needs
- * `useSyncExternalStore` over the same authority. Longhorn ships no React
- * surface, so it does not bite here -- recorded because the sampler below is
- * the Svelte shape of the same answer.
- *
- * The controller's lifecycle is deliberately not touched. Whoever constructed
- * it starts and stops it, the same division `SettingsSession` keeps: a view
- * that started the thing it renders would stop it on unmount and take the
- * state away from every other view of the same controller.
- */
+import { sampleController } from "../../bindings/sample-controller.svelte.ts";
+
 export function sampleUpdateController(getController: () => UpdateController) {
-  let controller = getController();
-  let notify = $state(0);
-
-  $effect(() => {
-    const nextController = getController();
-    if (nextController !== controller) {
-      controller = nextController;
-      notify += 1;
-    }
-    const unobserve = nextController.observe(() => {
-      notify += 1;
-    });
-    return () => unobserve();
-  });
-
+  const read = sampleController(getController);
   return {
     get status() {
-      void notify;
-      return controller.status;
+      return read().status;
     },
     get special() {
-      void notify;
+      const controller = read();
       if (controller.pending) {
         return undefined;
       }
@@ -77,51 +22,43 @@ export function sampleUpdateController(getController: () => UpdateController) {
       return undefined;
     },
     retryDownload(): void {
+      const controller = getController();
       const version = actionableVersion(controller);
       if (version !== undefined) {
         void controller.prepare(version);
       }
     },
     get availability() {
-      void notify;
+      const controller = read();
       const availability = controller.availability;
       return availability?.state === "notChecked" || availability?.state === "unavailableForTarget"
         ? undefined
         : availability;
     },
     get progress() {
-      void notify;
-      return controller.progress;
+      return read().progress;
     },
     get channel() {
-      void notify;
-      return controller.channel;
+      return read().channel;
     },
     get installedVersion() {
-      void notify;
-      return controller.installedVersion;
+      return read().installedVersion;
     },
     get deferral() {
-      void notify;
-      return controller.deferral;
+      return read().deferral;
     },
     get lastRejection() {
-      void notify;
-      return controller.lastRejection === "malformedArtifact"
-        ? undefined
-        : controller.lastRejection;
+      const rejection = read().lastRejection;
+      return rejection === "malformedArtifact" ? undefined : rejection;
     },
     get aheadOfChannel() {
-      void notify;
-      return controller.aheadOfChannel;
+      return read().aheadOfChannel;
     },
     get presence() {
-      void notify;
-      return controller.presence;
+      return read().presence;
     },
     get pending() {
-      void notify;
-      return controller.pending;
+      return read().pending;
     },
 
     /**
@@ -132,20 +69,20 @@ export function sampleUpdateController(getController: () => UpdateController) {
      * with no version to install is a button that cannot work.
      */
     get actionableVersion(): string | undefined {
-      void notify;
+      const controller = read();
       return actionableVersion(controller);
     },
 
     check(): void {
-      void controller.check();
+      void getController().check();
     },
 
     install(): void {
-      installUpdate(controller);
+      installUpdate(getController());
     },
 
     defer(): void {
-      deferUpdate(controller);
+      deferUpdate(getController());
     },
   };
 }
