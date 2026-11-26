@@ -34,8 +34,8 @@ use uuid::Uuid;
 
 use crate::{
     execution::{
-        Git, MAX_CAPTURED_STDERR_BYTES, kill_child_tree, kill_process_group_of, read_capped,
-        redact_git_detail, stderr_detail,
+        Git, MAX_CAPTURED_STDERR_BYTES, exited_uncollected, kill_child_tree, kill_process_group_of,
+        read_capped, redact_git_detail, stderr_detail,
     },
     policy::GitCredential,
 };
@@ -234,15 +234,17 @@ impl Git<'_> {
                 let _ = sender.send(read_capped(pipe, MAX_CAPTURED_STDERR_BYTES));
             })
         });
-        let status = loop {
+        // The exit is observed without collecting the child, so its group id
+        // stays reserved for the cancellation signal below.
+        loop {
             if cancel.load(Ordering::SeqCst) {
                 kill_child_tree(&mut child);
                 let _ = stderr_handle.take().map(thread::JoinHandle::join);
                 return Err(CloneFailure::Cancelled);
             }
-            match child.try_wait() {
-                Ok(Some(status)) => break status,
-                Ok(None) => thread::sleep(POLL),
+            match exited_uncollected(&mut child, false) {
+                Ok(true) => break,
+                Ok(false) => thread::sleep(POLL),
                 Err(error) => {
                     kill_child_tree(&mut child);
                     let _ = stderr_handle.take().map(thread::JoinHandle::join);
@@ -251,7 +253,7 @@ impl Git<'_> {
                     });
                 }
             }
-        };
+        }
         // Git has exited, but a remote helper or another descendant can still
         // hold standard error. The drain stays bounded by the cancellation
         // flag, and a cancel ends the whole group by the id taken at spawn.
@@ -277,6 +279,10 @@ impl Git<'_> {
                 }
             },
         };
+        // Reaped last, after the drain: the group id was reserved until now.
+        let status = child.wait().map_err(|error| CloneFailure::WaitFailed {
+            detail: redact_git_detail(self.redactor(), &error.to_string(), None),
+        })?;
         if status.success() {
             return Ok(());
         }

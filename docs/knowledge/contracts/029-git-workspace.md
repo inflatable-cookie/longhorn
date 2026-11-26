@@ -141,7 +141,8 @@ Free functions:
 Wire projections: `GitWorkspaceState`, `GitStatus`, `GitBranch`,
 `GitBranchKind` derive `serde::Serialize` with the donor's key shapes
 (`camelCase` fields, `snake_case` branch kinds, `local_target` never
-serialized). Readings that carry a product outcome (`SyncReading`,
+serialized). `GitWorkspaceState.root` is the exact canonical `PathBuf`; its
+serialized value is the lossy display string, so the wire shape is unchanged. Readings that carry a product outcome (`SyncReading`,
 `SwitchReading`, `AttachReading`) are not serializable: the application projects
 its own result and copy from them.
 
@@ -222,12 +223,15 @@ Part 5b's surface:
   publish (`origin_url`) are redacted at the public boundary.
 - `Git::run` and the two remote probes are bounded. The child runs in its own process group
   on Unix, and its `timeout` covers both the wait and the drain. On reaching
-  the bound the group is killed, the child is reaped and both readers are
-  joined, so the returned `GitFailure::TimedOut` comes at the bound even when
+  the bound the group is killed, both readers are joined and the child is
+  reaped last, so the returned `GitFailure::TimedOut` comes at the bound even when
   Git has already exited and a shell alias, a remote helper or another
   descendant still holds its output pipes: the call has not finished until that
   output does. Other worktree readings impose no wall clock. A clone is
-  bounded by its cancellation flag, which kills the same process group.
+  bounded by its cancellation flag, which kills the same process group. A
+  child's exit is observed without collecting it (`waitid` with `WNOWAIT`), so
+  its process-group id stays reserved until the group is ended and the child is
+  reaped.
 - Capture readers are joined on every exit, including a kill, so a call leaves
   no reader or child behind.
 
@@ -319,8 +323,8 @@ have a fifteen-second Git budget and classify a timeout as
 ## Legacy Sync
 
 `sync_workspace` takes one prior reading and a `reload` closure that re-reads
-the same workspace through the caller's own admission path. The sequence is
-fixed:
+the same workspace through the caller's own admission path. The closure receives
+the exact canonical root path. The sequence is fixed:
 
 1. stop with `Detached` on a detached checkout;
 2. stop with `Dirty` on any staged, modified or conflicted path;
@@ -332,7 +336,9 @@ fixed:
 7. stop with `DirtyBeforePush` or `DivergedBeforePush` on the same readings;
 8. when ahead, `push`; re-read.
 
-There is no rebase, force, stash, reset, clean or branch picker. A failure at
+Untracked content does not stop a sync: as for a branch switch, only tracked,
+staged or conflicted work counts as dirt. There is no rebase, force, stash,
+reset, clean or branch picker. A failure at
 a step returns the step's code. `SyncReading::Completed` reports whether the
 fetch ran, whether the workspace fast-forwarded and whether the branch was
 pushed; `SyncReading::Stopped` reports the stop, the last reading and how far
@@ -412,7 +418,8 @@ expected remote. It never mutates the checkout. The readings are:
 
 The invocation secret and the caller's `longhorn-redact` `Redactor` run over
 every Git text the crate returns. `redact_git_detail(redactor, detail, secret)`
-is the failure form: the secret pass, then the caller's redactor, then
+is the failure form: the caller's redactor with the invocation secret added as
+one more exact secret under the caller's own rules, then
 `longhorn-support-log::bounded_tail` with `FAILURE_DETAIL_BOUND` — at most 40
 lines and 4096 bytes, the newest bytes kept, moved to a character boundary
 with `OMITTED_MARKER` in front. Every failure detail the crate returns goes

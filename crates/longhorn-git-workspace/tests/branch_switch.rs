@@ -4,7 +4,7 @@
 
 mod support;
 
-use std::{fs, path::Path};
+use std::fs;
 
 use longhorn_git_workspace::{GitFailureCode, SwitchReading};
 use support::{Fixture, checked, handle};
@@ -17,9 +17,7 @@ fn switch(
     let before = git
         .inspect_worktree(&fixture.root)
         .expect("the fixture is a worktree");
-    git.switch_branch(before, branch_id, |root| {
-        git.inspect_worktree(Path::new(root))
-    })
+    git.switch_branch(before, branch_id, |root| git.inspect_worktree(root))
 }
 
 #[test]

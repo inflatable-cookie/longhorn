@@ -26,6 +26,13 @@ impl Git<'_> {
     }
 }
 
+/// Tracked, staged or conflicted work. Untracked content is in-progress work,
+/// not dirt, so it neither blocks a branch switch nor stops a Legacy Sync
+/// (contract 029).
+pub(crate) fn has_tracked_dirt(status: &GitStatus) -> bool {
+    status.staged + status.modified + status.conflicted > 0
+}
+
 pub(crate) fn read_status(source: &str) -> GitStatus {
     let mut status = GitStatus {
         staged: 0,

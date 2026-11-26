@@ -15,6 +15,7 @@ use crate::{
     failure::{GitFailure, GitFailureCode},
     model::{GitBranch, GitBranchKind, GitWorkspaceState},
     preflight::{REMOTE_PROBE_TIMEOUT, RemoteAccessFailure, probe_failure},
+    status::has_tracked_dirt,
 };
 
 /// Unix filesystem identity (device and inode) for an exact directory.
@@ -172,7 +173,7 @@ fn same_location(
 /// application content is in-progress work, not dirt.
 #[must_use]
 pub fn has_switch_blocking_dirt(state: &GitWorkspaceState) -> bool {
-    state.status.staged + state.status.modified + state.status.conflicted > 0
+    has_tracked_dirt(&state.status)
 }
 
 /// What the explicit switch did. The application turns this into its own
@@ -267,12 +268,7 @@ impl Git<'_> {
     /// be resolved or is not a worktree, and the branch or status codes when a
     /// later read refuses.
     pub fn inspect_worktree(&self, root: &Path) -> Result<GitWorkspaceState, GitFailure> {
-        let root = root
-            .canonicalize()
-            .map_err(|error| GitFailure::FolderUnavailable {
-                code: GitFailureCode::RepositoryUnavailable,
-                detail: error.to_string(),
-            })?;
+        let root = self.canonicalize_directory(root)?;
         self.ensure_git_repository(&root)?;
         let (current_branch, detached) = self.current_branch(&root)?;
         let upstream = if detached {
@@ -283,7 +279,7 @@ impl Git<'_> {
         let branches = self.branches(&root, &current_branch, detached)?;
         let status = self.status(&root)?;
         Ok(GitWorkspaceState {
-            root: root.to_string_lossy().into_owned(),
+            root,
             current_branch,
             detached,
             upstream,
@@ -355,7 +351,7 @@ impl Git<'_> {
         &self,
         before: GitWorkspaceState,
         branch_id: &str,
-        reload: impl Fn(&str) -> Result<GitWorkspaceState, GitFailure>,
+        reload: impl Fn(&Path) -> Result<GitWorkspaceState, GitFailure>,
     ) -> Result<SwitchReading, GitFailure> {
         let Some(branch) = before.branches.iter().find(|branch| branch.id == branch_id) else {
             return Err(GitFailure::BranchMissing {
@@ -383,7 +379,7 @@ impl Git<'_> {
             (GitBranchKind::Local, _) => vec!["switch", "--", name.as_str()],
             (GitBranchKind::Remote, None) => vec!["switch", "--track", "--", name.as_str()],
         };
-        self.run_git(Path::new(&root), &arguments, GitFailureCode::SwitchFailed)?;
+        self.run_git(&root, &arguments, GitFailureCode::SwitchFailed)?;
         let state = reload(&root)?;
         Ok(SwitchReading::Switched { state })
     }

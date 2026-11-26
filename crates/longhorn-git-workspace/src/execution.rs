@@ -16,13 +16,13 @@ use std::{
     ffi::OsString,
     io::{self, Read},
     path::Path,
-    process::{Child, Command, ExitStatus, Stdio},
+    process::{Child, Command, Stdio},
     sync::mpsc::{self, RecvTimeoutError},
     thread,
     time::{Duration, Instant},
 };
 
-use longhorn_redact::{RedactionRules, Redactor};
+use longhorn_redact::Redactor;
 use longhorn_support_log::{TailBounds, bound_field, bounded_tail};
 use secrecy::ExposeSecret as _;
 use tempfile::TempDir;
@@ -140,18 +140,12 @@ impl<'a> Git<'a> {
             }
             return Ok(strip_record_terminator(process.capture.stdout));
         }
-        Err(GitFailure::Refused {
+        Err(refused(
+            &self.redactor,
             code,
-            detail: stderr_detail(
-                &self.redactor,
-                &process.capture.stderr,
-                process.capture.stderr_overflowed,
-                process
-                    .credential
-                    .as_ref()
-                    .map(|credential| credential.secret().expose_secret()),
-            ),
-        })
+            &process.capture,
+            process.credential.as_ref(),
+        ))
     }
 
     /// The caller's redactor, for a module that formats its own detail.
@@ -197,15 +191,7 @@ impl<'a> Git<'a> {
             }
             return Ok(stdout(&capture.stdout));
         }
-        Err(GitFailure::Refused {
-            code,
-            detail: stderr_detail(
-                &self.redactor,
-                &capture.stderr,
-                capture.stderr_overflowed,
-                credential.map(|credential| credential.secret().expose_secret()),
-            ),
-        })
+        Err(refused(&self.redactor, code, &capture, credential))
     }
 
     /// Runs one invocation and returns its raw standard output. Callers that
@@ -228,18 +214,12 @@ impl<'a> Git<'a> {
                 credential: process.credential,
             });
         }
-        Err(GitFailure::Refused {
+        Err(refused(
+            &self.redactor,
             code,
-            detail: stderr_detail(
-                &self.redactor,
-                &process.capture.stderr,
-                process.capture.stderr_overflowed,
-                process
-                    .credential
-                    .as_ref()
-                    .map(|credential| credential.secret().expose_secret()),
-            ),
-        })
+            &process.capture,
+            process.credential.as_ref(),
+        ))
     }
 
     /// Redacts Git text for a caller: the invocation secret first, then the
@@ -648,17 +628,33 @@ pub fn redact_git_detail(redactor: &Redactor, detail: &str, secret: Option<&str>
     )
 }
 
-/// The invocation secret and the caller's redactor, in that order.
+/// Redacts one text with the caller's redactor, plus the invocation secret when
+/// one applies. The secret joins the caller's own secrets under the caller's own
+/// rules, so one pass applies the caller's policy and nothing else.
 fn redact_text(redactor: &Redactor, text: &str, secret: Option<&str>) -> String {
-    let scrubbed = match secret {
-        Some(secret) => {
-            Redactor::new([secret.to_owned()], RedactionRules::common())
-                .redact(text)
-                .text
-        }
-        None => text.to_owned(),
-    };
-    redactor.redact(&scrubbed).text
+    match secret {
+        Some(secret) => redactor.with_secret(secret).redact(text).text,
+        None => redactor.redact(text).text,
+    }
+}
+
+/// The refusal a non-zero Git exit reports: Git's own standard error, redacted
+/// and bounded with the invocation secret the child ran under.
+fn refused(
+    redactor: &Redactor,
+    code: GitFailureCode,
+    capture: &Capture,
+    credential: Option<&GitCredential>,
+) -> GitFailure {
+    GitFailure::Refused {
+        code,
+        detail: stderr_detail(
+            redactor,
+            &capture.stderr,
+            capture.stderr_overflowed,
+            credential.map(|credential| credential.secret().expose_secret()),
+        ),
+    }
 }
 
 /// Redacts one captured standard-error stream for a failure detail.
@@ -754,29 +750,29 @@ fn capture(mut command: Command, deadline: Option<Instant>) -> io::Result<Captur
         let _ = stderr_sender.send(read_capped(stderr_pipe, MAX_CAPTURED_STDERR_BYTES));
     });
 
-    let status = wait_bounded(&mut child, deadline);
+    // The leader is observed, not collected, until the end of this function:
+    // its zombie keeps the process-group id reserved for the group signal below.
+    let exited = wait_for_exit(&mut child, deadline);
     // The bound covers the drain too. Git can exit while a shell alias, a
     // remote helper or another descendant still holds its output pipes; a call
     // that is still waiting for that output has not finished inside its bound.
     let drained = receive(&stdout_receiver, deadline)
         .and_then(|stdout| receive(&stderr_receiver, deadline).map(|stderr| (stdout, stderr)));
-    let drained = match drained {
-        Ok(drained) => Ok(drained),
-        Err(error) => {
-            if error.kind() == io::ErrorKind::TimedOut {
-                // The direct child may already be reaped, so end the group by
-                // the id captured at spawn.
-                kill_process_group_of(child_pid);
-            }
-            Err(error)
-        }
-    };
+    if drained
+        .as_ref()
+        .is_err_and(|error| error.kind() == io::ErrorKind::TimedOut)
+    {
+        kill_process_group_of(child_pid);
+    }
     // A reader that could not deliver before the deadline ends once the group
     // is gone; join both so no reader outlives the call.
     let _ = stdout_reader.join();
     let _ = stderr_reader.join();
+    // Reaped last, after the group was ended or had already drained.
+    let reaped = child.wait();
+    exited?;
     let (stdout, stderr) = drained?;
-    let status = status?;
+    let status = reaped?;
     let (stdout, stdout_truncated) = stdout;
     let (stderr, stderr_overflowed) = stderr;
     Ok(Capture {
@@ -812,33 +808,74 @@ fn receive<T>(
     }
 }
 
-/// Waits for the child, and kills and reaps it when the bound is reached or the
-/// wait itself fails, so no reader is left waiting on a live child.
-fn wait_bounded(child: &mut Child, deadline: Option<Instant>) -> io::Result<ExitStatus> {
+/// Waits until the child exits, without collecting it. A wait that reaches the
+/// bound or fails ends the child's process group and the child, and returns the
+/// error; the caller still reaps the child.
+fn wait_for_exit(child: &mut Child, deadline: Option<Instant>) -> io::Result<()> {
     let Some(deadline) = deadline else {
-        let status = child.wait();
-        if status.is_err() {
-            kill_child_tree(child);
-        }
-        return status;
+        return match exited_uncollected(child, true) {
+            Ok(_) => Ok(()),
+            Err(error) => {
+                end_group(child);
+                Err(error)
+            }
+        };
     };
     loop {
-        match child.try_wait() {
-            Ok(Some(status)) => return Ok(status),
-            Ok(None) => {}
+        match exited_uncollected(child, false) {
+            Ok(true) => return Ok(()),
+            Ok(false) => {}
             Err(error) => {
-                kill_child_tree(child);
+                end_group(child);
                 return Err(error);
             }
         }
         if Instant::now() >= deadline {
-            kill_child_tree(child);
+            end_group(child);
             return Err(io::Error::new(
                 io::ErrorKind::TimedOut,
                 "Git exceeded its wall clock",
             ));
         }
         thread::sleep(Duration::from_millis(25));
+    }
+}
+
+/// Whether the child has exited, optionally blocking until it does. On Unix the
+/// exit is read with `waitid` and `WNOWAIT`, so the zombie is not collected: its
+/// process-group id stays reserved for signals sent before the caller reaps.
+#[cfg(unix)]
+pub(crate) fn exited_uncollected(child: &mut Child, block: bool) -> io::Result<bool> {
+    use rustix::{
+        io::Errno,
+        process::{Pid, WaitId, WaitIdOptions, waitid},
+    };
+    let raw = i32::try_from(child.id())
+        .map_err(|_| io::Error::other("the Git process id is out of range"))?;
+    let pid = Pid::from_raw(raw)
+        .ok_or_else(|| io::Error::other("the Git process id is not a valid process id"))?;
+    let options = if block {
+        WaitIdOptions::EXITED | WaitIdOptions::NOWAIT
+    } else {
+        WaitIdOptions::EXITED | WaitIdOptions::NOWAIT | WaitIdOptions::NOHANG
+    };
+    loop {
+        match waitid(WaitId::Pid(pid), options) {
+            Ok(status) => return Ok(status.is_some()),
+            Err(Errno::INTR) => {}
+            Err(error) => return Err(error.into()),
+        }
+    }
+}
+
+/// Hosts without process groups have no group id to reserve. The exit is read by
+/// collecting the child, and the cached status serves the caller's later reap.
+#[cfg(not(unix))]
+pub(crate) fn exited_uncollected(child: &mut Child, block: bool) -> io::Result<bool> {
+    if block {
+        child.wait().map(|_| true)
+    } else {
+        Ok(child.try_wait()?.is_some())
     }
 }
 
@@ -868,12 +905,18 @@ pub(crate) fn kill_process_group_of(pid: u32) {
     let _ = pid;
 }
 
-/// Kills the child's whole process group where the host has one, then kills
-/// and reaps the direct child. A descendant holding an output pipe therefore
-/// cannot keep a bounded call alive.
-pub(crate) fn kill_child_tree(child: &mut Child) {
+/// Ends the child's process group, then the direct child, without collecting
+/// it. The child must not have been reaped yet.
+fn end_group(child: &mut Child) {
     kill_process_group_of(child.id());
     let _ = child.kill();
+}
+
+/// Kills the child's whole process group where the host has one, then kills
+/// and reaps the direct child. A descendant holding an output pipe therefore
+/// cannot keep a bounded call alive. The child must not have been reaped yet.
+pub(crate) fn kill_child_tree(child: &mut Child) {
+    end_group(child);
     let _ = child.wait();
 }
 
@@ -940,5 +983,56 @@ mod record_terminator_tests {
             strip_record_terminator(b"/repo/repo\xff".to_vec()),
             b"/repo/repo\xff".to_vec(),
         );
+    }
+}
+
+#[cfg(all(test, unix))]
+mod leader_tests {
+    use std::{
+        process::Command,
+        time::{Duration, Instant},
+    };
+
+    use super::{exited_uncollected, wait_for_exit};
+
+    #[test]
+    fn an_observed_exit_leaves_the_leader_uncollected_until_reaped() {
+        let mut child = Command::new("/bin/sh")
+            .args(["-c", "exit 0"])
+            .spawn()
+            .expect("the shell starts");
+        wait_for_exit(&mut child, Some(Instant::now() + Duration::from_secs(10)))
+            .expect("the exit is observed inside the bound");
+
+        assert!(
+            exited_uncollected(&mut child, false).expect("the zombie is still waitable"),
+            "observing the exit must not collect the leader"
+        );
+        child.wait().expect("the leader is reaped last");
+    }
+}
+
+#[cfg(test)]
+mod redaction_tests {
+    use longhorn_redact::{RedactionRules, Redactor};
+
+    use super::redact_text;
+
+    #[test]
+    fn the_invocation_secret_keeps_the_callers_rules() {
+        let caller = Redactor::new(Vec::new(), RedactionRules::exact_only());
+        let token = "ghp_abcdefghijklmnopqrstuvwxyz0123456789";
+
+        let redacted = redact_text(
+            &caller,
+            &format!("{token} and invocation-secret-value"),
+            Some("invocation-secret-value"),
+        );
+
+        assert!(
+            redacted.contains(token),
+            "a caller that chose exact-only rules keeps token-shaped text: {redacted}"
+        );
+        assert!(!redacted.contains("invocation-secret-value"));
     }
 }
