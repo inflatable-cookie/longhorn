@@ -4,7 +4,7 @@
 //! opens. Human-originated calls pass the original options to the plugin
 //! unchanged. Origin is the in-page shim, not an active-server flag.
 
-import type { BeginSelectionArgs, SelectionFilter } from "./generated/protocol.ts";
+import type { BeginSelectionArgs, SelectionFilter, SelectionKind } from "./generated/protocol.ts";
 import { SHIM_GLOBAL } from "./shim.ts";
 import type { AgentControlApi } from "./shim.ts";
 
@@ -71,7 +71,7 @@ export function currentSelectionOrigin(world: object = globalThis): SelectionOri
 }
 
 function beginOptions(
-  kind: BeginSelectionArgs["kind"],
+  kind: SelectionKind,
   options: OpenDialogOptions | undefined,
 ): BeginSelectionArgs {
   const open = kind === "open" ? options : undefined;
