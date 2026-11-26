@@ -34,8 +34,8 @@ use uuid::Uuid;
 
 use crate::{
     execution::{
-        Git, MAX_CAPTURED_STDERR_BYTES, exited_uncollected, kill_child_tree, kill_process_group_of,
-        read_capped, redact_git_detail, stderr_detail,
+        Git, MAX_CAPTURED_STDERR_BYTES, exited_uncollected, kill_child_tree, read_capped,
+        redact_git_detail, stderr_detail,
     },
     policy::GitCredential,
 };
@@ -227,7 +227,6 @@ impl Git<'_> {
         let mut child = command.spawn().map_err(|error| CloneFailure::NotStarted {
             detail: redact_git_detail(self.redactor(), &error.to_string(), None),
         })?;
-        let child_pid = child.id();
         let (sender, receiver) = mpsc::channel();
         let mut stderr_handle = child.stderr.take().map(|pipe| {
             thread::spawn(move || {
@@ -256,7 +255,7 @@ impl Git<'_> {
         }
         // Git has exited, but a remote helper or another descendant can still
         // hold standard error. The drain stays bounded by the cancellation
-        // flag, and a cancel ends the whole group by the id taken at spawn.
+        // flag; a cancel ends the whole group and reaps the child.
         let (stderr, overflowed) = match stderr_handle.take() {
             None => (Vec::new(), false),
             Some(reader) => loop {
@@ -271,7 +270,9 @@ impl Git<'_> {
                     }
                     Err(RecvTimeoutError::Timeout) => {
                         if cancel.load(Ordering::SeqCst) {
-                            kill_process_group_of(child_pid);
+                            // Ends the group while the child is still waitable,
+                            // then reaps it; the drain is over either way.
+                            kill_child_tree(&mut child);
                             let _ = reader.join();
                             return Err(CloneFailure::Cancelled);
                         }
