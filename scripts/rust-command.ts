@@ -128,6 +128,40 @@ export async function prepareStagedWorkspace(workspace: string): Promise<string>
   return target;
 }
 
+export type StagedCargoOptions = {
+  /** Private final Cargo outputs on external build scratch. */
+  readonly target: string;
+  /** Pins `RUSTUP_TOOLCHAIN` before the lease, as the former `cargo +<pin>` did. */
+  readonly toolchain?: string;
+  /** Oxide's recipe and slot only; the tool still picks its own dev or release build. */
+  readonly profile?: OxideProfile;
+};
+
+type MutableRustExecOptions = {
+  manifestPath: string;
+  profile?: OxideProfile;
+  toolchain?: string;
+};
+
+/**
+ * Prepares `workspace` for an adoption-free `oxide exec` lease and returns a
+ * command builder that keeps final outputs in `options.target`.
+ */
+export async function stagedCargoRunner(
+  workspace: string,
+  options: StagedCargoOptions,
+): Promise<(args: ReadonlyArray<string>) => Array<string>> {
+  await prepareStagedWorkspace(workspace);
+  const execOptions: MutableRustExecOptions = { manifestPath: join(workspace, "Cargo.toml") };
+  if (options.profile !== undefined) {
+    execOptions.profile = options.profile;
+  }
+  if (options.toolchain !== undefined) {
+    execOptions.toolchain = options.toolchain;
+  }
+  return (args) => rustExec(privateCargoCommand(options.target, args), execOptions);
+}
+
 export type TaskScratch = {
   /** Root for this proof's private final Cargo outputs. */
   readonly root: string;

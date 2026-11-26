@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 // the boot volume, so any such script that touches it breaks that claim.
 const scriptsRoot = resolve(import.meta.dir);
 
-const rustStagingCall = /\bawait (?:taskScratch|prepareStagedWorkspace)\(/;
+const rustStagingCall = /\bawait (?:taskScratch|prepareStagedWorkspace|stagedCargoRunner)\(/;
 
 test("a script that stages Rust builds never takes its storage from os.tmpdir()", async () => {
   const entries = await readdir(scriptsRoot, { recursive: true });

@@ -7,12 +7,7 @@ import { MSRV } from "../msrv.ts";
 import { assertExactSet, digest, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-} from "../rust-command.ts";
+import { rustCommand, stagedCargoRunner } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 const typescriptPackages = [
@@ -277,15 +272,7 @@ async function checkRustConsumers(
 `,
   );
 
-  // One exec lease over the staged workspace, with private final outputs on
-  // build scratch: the tool inside calls plain Cargo, and the intermediates keep
-  // the build directory the lease supplies. The real `target/` directory keeps
-  // the lease adoption-free; see `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(workspace);
-  const staged = (args: ReadonlyArray<string>) =>
-    rustExec(privateCargoCommand(buildTarget, args), {
-      manifestPath: join(workspace, "Cargo.toml"),
-    });
+  const staged = await stagedCargoRunner(workspace, { target: buildTarget });
   await run(
     staged(["cargo", "check", "-p", "longhorn-bridge-query-artifact-proof", "--offline"]),
     workspace,

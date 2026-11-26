@@ -21,26 +21,28 @@ import { cargoPackages } from "./cargo-metadata.ts";
 //    direct use; no manifest requirement can prevent that, and Longhorn's
 //    guarantee is about the resolution it participates in.)
 //
-// Final Cargo outputs for the compile stay in a private directory on external
-// build scratch; the staged consumers live under the run's temp root.
+// Final Cargo outputs for the compile, staged consumers, and dirty-tree
+// snapshots all live on external build scratch (via `taskScratch` and
+// `stagingDirectory`), never under the system temp root.
 
+import { MSRV } from "./msrv.ts";
 import { runSync as run, sha256 } from "./proof-support.ts";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 
 import {
   prepareStagedWorkspace,
-  privateCargoCommand,
   rustExec,
+  stagedCargoRunner,
   stagingDirectory,
   taskScratch,
 } from "./rust-command.ts";
 
 const REPAIR_AGE_VERSION = "0.11.5";
 const REPAIR_AGE_CORE_PREFIX = "0.11.";
-const VULNERABLE_AGE_VERSION = "0.12.1";
+export const VULNERABLE_AGE_VERSION = "0.12.1";
 const VULNERABLE_CHAIN = ["crypto-bigint", "elliptic-curve", "hpke", "ml-kem", "p256"] as const;
 const CONSUMED_CRATES = ["longhorn-config-age", "longhorn-config"] as const;
 // The pre-repair candidate whose resolution a real deployed consumer lock
@@ -57,7 +59,14 @@ function resolveRepository(root: string): string {
   return probe.stdout.trim();
 }
 
-function attempt(command: ReadonlyArray<string>, cwd: string) {
+export type AttemptResult = {
+  readonly ok: boolean;
+  readonly exitCode: number | null;
+  readonly output: string;
+  readonly error?: string;
+};
+
+function attempt(command: ReadonlyArray<string>, cwd: string): AttemptResult {
   const [program, ...args] = command;
   if (!program) {
     throw new Error("expected a command to run");
@@ -67,84 +76,72 @@ function attempt(command: ReadonlyArray<string>, cwd: string) {
     encoding: "utf8",
     env: process.env,
   });
-  return {
-    ok: result.status === 0,
-    output: `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim(),
-  };
-}
-
-function releaseMsrv(): string {
-  const env = readFileSafe(join(repositoryRoot, "release-baselines", "rust-toolchains.env"));
-  const match = /LONGHORN_GENERAL_MSRV=(\d+)\.(\d+)\.(\d+)/.exec(env ?? "");
-  if (!match) {
-    throw new Error("release-baselines/rust-toolchains.env has no LONGHORN_GENERAL_MSRV");
-  }
-  return `${match[1]}.${match[2]}`;
-}
-
-function readFileSafe(path: string): string | undefined {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return undefined;
-  }
-}
-
-type Snapshot = { root: string; commit: string; kind: "commit" | "snapshot"; temp?: string };
-
-/**
- * Freezes the exact working tree into a Git snapshot a file:// dependency can
- * resolve: clean trees resolve at HEAD; dirty trees copy every tracked and
- * untracked file into a throwaway repository.
- */
-async function snapshotWorkingTree(): Promise<Snapshot> {
-  const status = run(["git", "status", "--porcelain"], repositoryRoot).trim();
-  if (status === "") {
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim();
+  if (result.error) {
     return {
-      root: repositoryRoot,
-      commit: run(["git", "rev-parse", "HEAD"], repositoryRoot).trim(),
-      kind: "commit",
+      ok: false,
+      exitCode: result.status,
+      output,
+      error: result.error.message,
     };
   }
-  const temp = await stagingDirectory("longhorn-config-age-security-source");
-  const listed = run(
-    ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-    repositoryRoot,
-  );
-  for (const relative of listed.split("\0")) {
-    if (relative === "") {
-      continue;
-    }
-    const from = join(repositoryRoot, relative);
-    const to = join(temp, relative);
-    await mkdir(dirname(to), { recursive: true });
-    await copyFile(from, to);
-  }
-  run(["git", "init", "-q"], temp);
-  run(["git", "add", "-A"], temp);
-  run(
-    [
-      "git",
-      "-c",
-      "user.name=Longhorn",
-      "-c",
-      "user.email=config-age-security@invalid",
-      "-c",
-      "commit.gpgsign=false",
-      "commit",
-      "-q",
-      "-m",
-      "Config age security verification snapshot",
-    ],
-    temp,
-  );
-  const env = {
-    GIT_AUTHOR_DATE: "2000-01-01T00:00:00Z",
-    GIT_COMMITTER_DATE: "2000-01-01T00:00:00Z",
+  return {
+    ok: result.status === 0,
+    exitCode: result.status,
+    output,
   };
-  Object.assign(process.env, env);
-  const commit = run(["git", "rev-parse", "HEAD"], temp).trim();
-  return { root: temp, commit, kind: "snapshot", temp };
+}
+
+/**
+ * Verifies that a `--locked` failure happened specifically because Cargo
+ * refused to update a stale lockfile, not from an Oxide, Git or network error.
+ */
+export function assertLockedRefusal(
+  result: AttemptResult,
+  vulnerableVersion = VULNERABLE_AGE_VERSION,
+): void {
+  if (result.ok) {
+    throw new Error(
+      `a stale lock pinning age ${vulnerableVersion} still built --locked against the repaired requirement`,
+    );
+  }
+  if (result.error !== undefined) {
+    throw new Error(`stale-lock check failed to launch: ${result.error}`);
+  }
+  if (!/lock file\b[\s\S]*--locked was passed to prevent this/i.test(result.output)) {
+    throw new Error(
+      `stale-lock check failed for an unexpected reason (exit ${String(result.exitCode)}):\n${result.output}`,
+    );
+  }
+}
+
+type Snapshot = { root: string; commit: string; kind: "commit" | "snapshot"; stageRoot?: string };
+
+async function snapshotWorkingTree(): Promise<Snapshot> {
+  const stageRoot = await stagingDirectory("longhorn-config-age-security-source");
+  try {
+    const output = run(
+      [
+        "bash",
+        resolve(import.meta.dir, "git-snapshot.sh"),
+        join(stageRoot, "source"),
+        "Config age security verification snapshot",
+      ],
+      repositoryRoot,
+    ).trim();
+    const lines = output.split("\n");
+    if (lines.length !== 3 || (lines[0] !== "commit" && lines[0] !== "snapshot")) {
+      throw new Error(`unexpected git-snapshot output:\n${output}`);
+    }
+    const [kind, root, commit] = lines;
+    if (!root || !commit) {
+      throw new Error(`incomplete git-snapshot output:\n${output}`);
+    }
+    return { root, commit, kind, stageRoot };
+  } catch (error) {
+    await rm(stageRoot, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 function consumerManifest(snapshot: Snapshot): string {
@@ -156,7 +153,7 @@ function consumerManifest(snapshot: Snapshot): string {
 name = "longhorn-config-age-security-consumer"
 version = "0.0.0"
 edition = "2024"
-rust-version = "${releaseMsrv()}"
+rust-version = "${MSRV}"
 publish = false
 
 [workspace]
@@ -232,129 +229,193 @@ async function stageConsumer(label: string, snapshot: Snapshot): Promise<string>
   return directory;
 }
 
-const snapshot = await snapshotWorkingTree();
-const buildScratch = await taskScratch("config-age-security-consumer");
-let consumerUnlocked: string | undefined;
-let consumerStale: string | undefined;
-let receipt;
-
-try {
-  consumerUnlocked = await stageConsumer("unlocked", snapshot);
-  // The stale consumer starts on the pre-repair candidate, the commit whose
-  // resolution a real deployed lock would carry.
-  consumerStale = await stageConsumer("stale", {
-    root: repositoryRoot,
-    commit: PREREPAIR_COMMIT,
-    kind: "commit",
-  });
-
-  // 1. Unlocked compatible resolution: the consumer's own fresh lockfile.
-  run(
-    rustExec(["cargo", "generate-lockfile"], {
-      manifestPath: join(consumerUnlocked, "Cargo.toml"),
-    }),
-    consumerUnlocked,
-  );
-  const metadata: unknown = JSON.parse(
-    run(
-      rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
-        manifestPath: join(consumerUnlocked, "Cargo.toml"),
-      }),
-      consumerUnlocked,
-    ),
-  );
-  assertUnlockedResolution(metadata, snapshot);
-
-  // 2. The unlocked consumer compiles --locked against that resolution, with
-  //    private final Cargo outputs on external build scratch.
-  run(
-    rustExec(privateCargoCommand(buildScratch.root, ["cargo", "check", "--locked", "--quiet"]), {
-      manifestPath: join(consumerUnlocked, "Cargo.toml"),
-    }),
-    consumerUnlocked,
-  );
-
-  // 3. Stale downstream lock: a consumer whose lock resolved the vulnerable
-  //    line against the pre-repair candidate cannot keep it under --locked
-  //    once it repoints at the repaired tree, and re-locking lands clean.
-  run(
-    rustExec(["cargo", "generate-lockfile"], { manifestPath: join(consumerStale, "Cargo.toml") }),
-    consumerStale,
-  );
-  const staleLock = await readFile(join(consumerStale, "Cargo.lock"), "utf8");
-  if (!staleLock.includes(`name = "age"\nversion = "${VULNERABLE_AGE_VERSION}"`)) {
-    throw new Error(
-      `the stale lock did not pin age ${VULNERABLE_AGE_VERSION}; fixture scenario is broken`,
-    );
-  }
-  await writeFile(join(consumerStale, "Cargo.toml"), consumerManifest(snapshot));
-  const lockedRefusal = attempt(
-    rustExec(["cargo", "check", "--locked", "--quiet"], {
-      manifestPath: join(consumerStale, "Cargo.toml"),
-    }),
-    consumerStale,
-  );
-  if (lockedRefusal.ok) {
-    throw new Error(
-      `a stale lock pinning age ${VULNERABLE_AGE_VERSION} still built --locked against the repaired requirement`,
-    );
-  }
-  run(
-    rustExec(["cargo", "update", "-p", "longhorn-config-age"], {
-      manifestPath: join(consumerStale, "Cargo.toml"),
-    }),
-    consumerStale,
-  );
-  const relockedMetadata: unknown = JSON.parse(
-    run(
-      rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
-        manifestPath: join(consumerStale, "Cargo.toml"),
-      }),
-      consumerStale,
-    ),
-  );
-  assertUnlockedResolution(relockedMetadata, snapshot);
-  run(
-    rustExec(privateCargoCommand(buildScratch.root, ["cargo", "check", "--locked", "--quiet"]), {
-      manifestPath: join(consumerStale, "Cargo.toml"),
-    }),
-    consumerStale,
-  );
-
-  const lockSha256 = sha256(await readFile(join(consumerUnlocked, "Cargo.lock")));
-  receipt = {
-    schema: "longhorn.config-age-security-receipt.v1",
-    outcome: "pass",
-    sources: {
-      repository: repositoryRoot,
-      snapshot: snapshot.kind,
-      commit: snapshot.commit,
-    },
-    resolution: {
-      repairedAge: REPAIR_AGE_VERSION,
-      repairedAgeCorePrefix: REPAIR_AGE_CORE_PREFIX,
-      vulnerableChainAbsent: VULNERABLE_CHAIN,
-      gitSourceAtExactCommit: true,
-      unlockedLockfileSha256: lockSha256,
-    },
-    staleLockProbe: {
-      pinnedAge: VULNERABLE_AGE_VERSION,
-      lockedBuildRefused: true,
-      relockResolvedClean: true,
-    },
-    consumerRustVersion: releaseMsrv(),
-    stagedTemporaryRemoved: true,
+export type SecurityReceipt = {
+  readonly schema: "longhorn.config-age-security-receipt.v1";
+  readonly outcome: "pass";
+  readonly sources: {
+    readonly repository: string;
+    readonly snapshot: Snapshot["kind"];
+    readonly commit: string;
   };
+  readonly resolution: {
+    readonly repairedAge: string;
+    readonly repairedAgeCorePrefix: string;
+    readonly vulnerableChainAbsent: ReadonlyArray<string>;
+    readonly gitSourceAtExactCommit: boolean;
+    readonly unlockedLockfileSha256: string;
+  };
+  readonly staleLockProbe: {
+    readonly pinnedAge: string;
+    readonly lockedBuildRefused: boolean;
+    readonly relockResolvedClean: boolean;
+  };
+  readonly consumerRustVersion: string;
+  readonly stagedTemporaryRemoved: boolean;
+};
+
+export type ReceiptSummary = Omit<SecurityReceipt, "stagedTemporaryRemoved">;
+
+/** Removes each staged workspace directory and reports whether all are absent afterward. */
+export async function removeStagedDirectories(
+  paths: ReadonlyArray<string | undefined>,
+  remove: (path: string) => Promise<void> = (path) => rm(path, { recursive: true, force: true }),
+): Promise<boolean> {
+  const targets = paths.filter((path): path is string => path !== undefined);
+  for (const path of targets) {
+    await remove(path);
+  }
+  return targets.every((path) => !existsSync(path));
+}
+
+/**
+ * Runs a proof step, removes its staged directories in `finally`, and derives
+ * `stagedTemporaryRemoved` from the completed cleanup before emitting the receipt.
+ */
+export async function runWithStagedCleanup(
+  execute: () => Promise<ReceiptSummary>,
+  cleanupPaths: () => ReadonlyArray<string | undefined>,
+  dispose: () => Promise<void> = async () => {},
+): Promise<SecurityReceipt> {
+  let summary: ReceiptSummary | undefined;
+  let stagedTemporaryRemoved: boolean;
+  try {
+    summary = await execute();
+  } finally {
+    stagedTemporaryRemoved = await removeStagedDirectories(cleanupPaths());
+    await dispose();
+  }
+  if (summary === undefined) {
+    throw new Error("config-age security proof completed without a receipt");
+  }
+  return {
+    ...summary,
+    stagedTemporaryRemoved,
+  };
+}
+
+async function main(): Promise<void> {
+  let snapshot: Snapshot | undefined;
+  let buildScratch: Awaited<ReturnType<typeof taskScratch>> | undefined;
+  let consumerUnlocked: string | undefined;
+  let consumerStale: string | undefined;
+
+  const receipt = await runWithStagedCleanup(
+    async () => {
+      const currentSnapshot = await snapshotWorkingTree();
+      snapshot = currentSnapshot;
+      buildScratch = await taskScratch("config-age-security-consumer");
+
+      consumerUnlocked = await stageConsumer("unlocked", currentSnapshot);
+      // The stale consumer starts on the pre-repair candidate, the commit whose
+      // resolution a real deployed lock would carry.
+      consumerStale = await stageConsumer("stale", {
+        root: repositoryRoot,
+        commit: PREREPAIR_COMMIT,
+        kind: "commit",
+      });
+
+      const unlockedStaged = await stagedCargoRunner(consumerUnlocked, {
+        target: buildScratch.root,
+      });
+      const staleStaged = await stagedCargoRunner(consumerStale, { target: buildScratch.root });
+
+      // 1. Unlocked compatible resolution: the consumer's own fresh lockfile.
+      run(
+        rustExec(["cargo", "generate-lockfile"], {
+          manifestPath: join(consumerUnlocked, "Cargo.toml"),
+        }),
+        consumerUnlocked,
+      );
+      const metadata: unknown = JSON.parse(
+        run(
+          rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
+            manifestPath: join(consumerUnlocked, "Cargo.toml"),
+          }),
+          consumerUnlocked,
+        ),
+      );
+      assertUnlockedResolution(metadata, currentSnapshot);
+
+      // 2. The unlocked consumer compiles --locked against that resolution, with
+      //    private final Cargo outputs on external build scratch.
+      run(unlockedStaged(["cargo", "check", "--locked", "--quiet"]), consumerUnlocked);
+
+      // 3. Stale downstream lock: a consumer whose lock resolved the vulnerable
+      //    line against the pre-repair candidate cannot keep it under --locked
+      //    once it repoints at the repaired tree, and re-locking lands clean.
+      run(
+        rustExec(["cargo", "generate-lockfile"], {
+          manifestPath: join(consumerStale, "Cargo.toml"),
+        }),
+        consumerStale,
+      );
+      const staleLock = await readFile(join(consumerStale, "Cargo.lock"), "utf8");
+      if (!staleLock.includes(`name = "age"\nversion = "${VULNERABLE_AGE_VERSION}"`)) {
+        throw new Error(
+          `the stale lock did not pin age ${VULNERABLE_AGE_VERSION}; fixture scenario is broken`,
+        );
+      }
+      await writeFile(join(consumerStale, "Cargo.toml"), consumerManifest(currentSnapshot));
+      const lockedRefusal = attempt(
+        rustExec(["cargo", "check", "--locked", "--quiet"], {
+          manifestPath: join(consumerStale, "Cargo.toml"),
+        }),
+        consumerStale,
+      );
+      assertLockedRefusal(lockedRefusal, VULNERABLE_AGE_VERSION);
+
+      run(
+        rustExec(["cargo", "update", "-p", "longhorn-config-age"], {
+          manifestPath: join(consumerStale, "Cargo.toml"),
+        }),
+        consumerStale,
+      );
+      const relockedMetadata: unknown = JSON.parse(
+        run(
+          rustExec(["cargo", "metadata", "--locked", "--format-version", "1"], {
+            manifestPath: join(consumerStale, "Cargo.toml"),
+          }),
+          consumerStale,
+        ),
+      );
+      assertUnlockedResolution(relockedMetadata, currentSnapshot);
+      run(staleStaged(["cargo", "check", "--locked", "--quiet"]), consumerStale);
+
+      const lockSha256 = sha256(await readFile(join(consumerUnlocked, "Cargo.lock")));
+      return {
+        schema: "longhorn.config-age-security-receipt.v1",
+        outcome: "pass",
+        sources: {
+          repository: repositoryRoot,
+          snapshot: currentSnapshot.kind,
+          commit: currentSnapshot.commit,
+        },
+        resolution: {
+          repairedAge: REPAIR_AGE_VERSION,
+          repairedAgeCorePrefix: REPAIR_AGE_CORE_PREFIX,
+          vulnerableChainAbsent: VULNERABLE_CHAIN,
+          gitSourceAtExactCommit: true,
+          unlockedLockfileSha256: lockSha256,
+        },
+        staleLockProbe: {
+          pinnedAge: VULNERABLE_AGE_VERSION,
+          lockedBuildRefused: true,
+          relockResolvedClean: true,
+        },
+        consumerRustVersion: MSRV,
+      };
+    },
+    () => [consumerUnlocked, consumerStale, snapshot?.stageRoot],
+    async () => {
+      if (buildScratch !== undefined) {
+        await buildScratch.dispose();
+      }
+    },
+  );
+
   console.log(JSON.stringify(receipt, null, 2));
-} finally {
-  if (consumerUnlocked !== undefined) {
-    await rm(consumerUnlocked, { recursive: true, force: true });
-  }
-  if (consumerStale !== undefined) {
-    await rm(consumerStale, { recursive: true, force: true });
-  }
-  if (snapshot.temp !== undefined) {
-    await rm(snapshot.temp, { recursive: true, force: true });
-  }
-  await buildScratch.dispose();
+}
+
+if (import.meta.main) {
+  await main();
 }

@@ -8,12 +8,7 @@ import { MSRV } from "../msrv.ts";
 import { digest, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-} from "../rust-command.ts";
+import { rustCommand, stagedCargoRunner } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
@@ -155,22 +150,9 @@ longhorn-tauri-config.workspace = true
 }
 `,
   );
-  // One exec lease over the staged workspace, with private final outputs on
-  // build scratch: the tool inside calls plain Cargo, and the intermediates keep
-  // the build directory the lease supplies. The real `target/` directory keeps
-  // the lease adoption-free; see `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(workspace);
+  const staged = await stagedCargoRunner(workspace, { target: buildTarget });
   await run(
-    rustExec(
-      privateCargoCommand(buildTarget, [
-        "cargo",
-        "check",
-        "-p",
-        "longhorn-settings-artifact-proof",
-        "--offline",
-      ]),
-      { manifestPath: join(workspace, "Cargo.toml") },
-    ),
+    staged(["cargo", "check", "-p", "longhorn-settings-artifact-proof", "--offline"]),
     workspace,
   );
 }

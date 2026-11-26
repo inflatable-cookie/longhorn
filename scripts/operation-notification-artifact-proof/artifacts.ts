@@ -9,12 +9,7 @@ import { assertExactSet, digest, parseTrace, runArtifactCommand as run } from ".
 import { readSourceTree } from "./shared.ts";
 import type { ArtifactIdentity, Shape } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-} from "../rust-command.ts";
+import { rustCommand, stagedCargoRunner } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry; poodleRelease() checks each published
@@ -145,17 +140,10 @@ export async function packAndRunRustArtifacts(
     loophole: {},
     "notification-only": {},
   };
-  // One exec lease over the staged workspace at the MSRV pin, with private final
-  // outputs on build scratch: the tool inside calls plain Cargo, and the
-  // intermediates keep the build directory the lease supplies. The real
-  // `target/` directory keeps the lease adoption-free; see
-  // `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(workspace);
-  const staged = (args: ReadonlyArray<string>) =>
-    rustExec(privateCargoCommand(buildTarget, args), {
-      manifestPath: join(workspace, "Cargo.toml"),
-      toolchain: MSRV_TOOLCHAIN,
-    });
+  const staged = await stagedCargoRunner(workspace, {
+    target: buildTarget,
+    toolchain: MSRV_TOOLCHAIN,
+  });
   const graphs: Record<Shape, ReadonlyArray<string>> = {
     "minimal-operation": [],
     soundcheck: [],

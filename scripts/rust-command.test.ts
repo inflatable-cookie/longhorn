@@ -23,6 +23,7 @@ import {
   rustCommand,
   rustExec,
   scratchRefusal,
+  stagedCargoRunner,
   taskScratch,
 } from "./rust-command.ts";
 import type { BootVolume } from "./rust-command.ts";
@@ -668,6 +669,54 @@ describe("Staged workspace preparation", () => {
       /exists and is not a real directory/,
     );
     expect(await readFile(join(workspace, "target"), "utf8")).toBe("not a directory");
+  });
+
+  test("stagedCargoRunner prepares target/ and binds private output, manifest, toolchain and profile", async () => {
+    const workspace = await stagedWorkspace();
+    const staged = await stagedCargoRunner(workspace, {
+      target: "/scratch/final",
+      toolchain: "1.97.1",
+      profile: "release",
+    });
+
+    expect((await stat(join(workspace, "target"))).isDirectory()).toBe(true);
+    expect(staged(["cargo", "check", "--offline"])).toEqual([
+      "env",
+      "RUSTUP_TOOLCHAIN=1.97.1",
+      "bash",
+      helper,
+      "exec",
+      "--manifest-path",
+      join(workspace, "Cargo.toml"),
+      "--profile",
+      "release",
+      "--",
+      "bash",
+      privateHelper,
+      "--target",
+      "/scratch/final",
+      "--",
+      "cargo",
+      "check",
+      "--offline",
+    ]);
+
+    const plain = await stagedCargoRunner(workspace, { target: "/scratch/final" });
+    expect(plain(["cargo", "tree"])).toEqual([
+      "bash",
+      helper,
+      "exec",
+      "--manifest-path",
+      join(workspace, "Cargo.toml"),
+      "--",
+      "bash",
+      privateHelper,
+      "--target",
+      "/scratch/final",
+      "--",
+      "cargo",
+      "tree",
+    ]);
   });
 });
 

@@ -29,14 +29,7 @@ import { spawnSync } from "node:child_process";
 import { cp, lstat, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-  stagingDirectory,
-  taskScratch,
-} from "./rust-command.ts";
+import { rustCommand, stagedCargoRunner, stagingDirectory, taskScratch } from "./rust-command.ts";
 import { MSRV_TOOLCHAIN } from "./msrv.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
@@ -79,16 +72,10 @@ try {
   await writeFile(join(stage, "Cargo.toml"), await privateWorkspaceManifest());
   await cp(join(repoRoot, "Cargo.lock"), join(stage, "Cargo.lock"));
 
-  // One exec lease over the staged workspace at the MSRV pin, with private
-  // final outputs on build scratch: the tool inside calls plain Cargo. The
-  // real `target/` directory keeps the lease adoption-free; see
-  // `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(stage);
-  const staged = (args: ReadonlyArray<string>) =>
-    rustExec(privateCargoCommand(buildScratch.root, args), {
-      manifestPath: join(stage, "Cargo.toml"),
-      toolchain: MSRV_TOOLCHAIN,
-    });
+  const staged = await stagedCargoRunner(stage, {
+    target: buildScratch.root,
+    toolchain: MSRV_TOOLCHAIN,
+  });
 
   if (checkOnly) {
     run(staged(["cargo", "fmt", "--check", "-p", consumerName]), stage);
