@@ -362,35 +362,26 @@ impl Backup<'_> {
         let _ = remove_if_present(&self.published);
     }
 
-    /// Removes the displaced bundle after the new one is published.
+    /// Retires the displaced bundle after the new one is on disk.
     ///
-    /// The failure is reported rather than dropped: it is the only thing that
-    /// would keep the next apply from starting, and it is recoverable there —
-    /// the marker and the receipt stay, so [`Backup::restore`] reclaims the
-    /// leftover instead of refusing to run.
-    pub(super) fn retire(&self) -> Result<(), InstallFailure> {
-        // A fault here is neither `NotWritable` nor malformed: the bundle is
-        // installed. The receipt alone cannot say whether the leftover is
-        // reclaimable, so this reports what a human has to look at.
-        self.mark_published()
-            .map_err(|error| InstallFailure::Failed {
-                detail: format!(
-                    "the update is installed, but the completed swap in {} could not be recorded \
-                     ({error}). Inspect {} before the next apply",
-                    self.root.display(),
-                    self.bundle.display(),
-                ),
-            })?;
-        self.remove_bundle()
-            .map_err(|error| InstallFailure::Failed {
-                detail: format!(
-                    "the update is installed, but the previous bundle at {} could not be removed \
-                     ({error}). The next apply reclaims it",
-                    self.bundle.display(),
-                ),
-            })?;
-        self.clear_receipt();
-        Ok(())
+    /// Neither step fails the apply. The new bundle reached the target, and
+    /// contract 018 makes an install that reached disk an applied update:
+    /// reporting [`InstallFailure::Failed`] would say the opposite, keep the
+    /// staged artifact, and have the controller reinstall the same version.
+    /// What a leftover would have cost is already covered — the receipt and the
+    /// publication marker stay until the bundle is gone, so the next apply
+    /// reclaims it instead of refusing to start.
+    pub(super) fn retire(&self) {
+        // A swap that cannot be recorded leaves a state no later apply can
+        // resolve by itself, because the receipt alone cannot tell this
+        // leftover from a bundle a failed rollback kept. That state is the one
+        // the next apply asks a human to inspect; the bundle is still removed
+        // below if it can be.
+        let _ = self.mark_published();
+        if self.remove_bundle().is_ok() {
+            // The marker and the receipt go with the bundle they describe.
+            self.clear_receipt();
+        }
     }
 
     /// Removes a leftover bundle the receipt and the marker both vouch for.

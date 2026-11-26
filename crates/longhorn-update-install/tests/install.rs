@@ -145,6 +145,30 @@ fn hardlink_escape_archive() -> Vec<u8> {
     finish(builder)
 }
 
+/// A hard link to a member the archive never writes.
+///
+/// Every payload in this stream is complete and every path is bounded: the
+/// fault is that the member the link names does not exist, which tar meets
+/// only when it creates the link.
+#[cfg(unix)]
+fn dangling_hardlink_archive() -> Vec<u8> {
+    let mut builder = gzip_builder();
+    append_link(
+        &mut builder,
+        tar::EntryType::Link,
+        "Example.app/alias",
+        "Example.app/Contents/missing",
+    );
+    let mut header = tar::Header::new_gnu();
+    header.set_size(3);
+    header.set_mode(0o644);
+    header.set_cksum();
+    builder
+        .append_data(&mut header, "Example.app/Contents/marker", &b"new"[..])
+        .unwrap();
+    finish(builder)
+}
+
 /// The archive's single top-level entry is itself a symlink: renamed onto
 /// the install target, the application would become a pointer.
 #[cfg(unix)]
@@ -517,6 +541,63 @@ fn a_signed_archive_with_a_truncated_stream_is_malformed_not_retryable() {
         "expected a malformed-artifact refusal, found {outcome:?}"
     );
     assert_eq!(fixture.marker(), "old");
+}
+
+#[test]
+#[cfg(unix)]
+fn a_signed_hard_link_to_a_missing_member_is_malformed_not_retryable() {
+    // A structurally incomplete archive: the stream is whole, and the link
+    // names a member that is not in it. Reading the stream again cannot find
+    // that, so it is checked where the link is admitted, and stays terminal.
+    let fixture = Fixture::new();
+    let bytes = dangling_hardlink_archive();
+    let signature = sign(&fixture.fixtures.pair, &bytes);
+
+    let outcome = fixture
+        .installer()
+        .apply(&verified(&fixture, bytes, &signature));
+
+    assert!(
+        matches!(outcome, Err(InstallFailure::MalformedArtifact { .. })),
+        "expected a malformed-artifact refusal, found {outcome:?}"
+    );
+    assert_eq!(fixture.marker(), "old");
+}
+
+#[test]
+#[cfg(unix)]
+fn a_signed_hard_link_to_a_written_member_installs() {
+    // The refusal above must not turn legitimate hard links into malformed
+    // archives: a link to a member the archive does contain is part of a
+    // bundle.
+    let mut builder = gzip_builder();
+    let mut header = tar::Header::new_gnu();
+    header.set_size(3);
+    header.set_mode(0o644);
+    header.set_cksum();
+    builder
+        .append_data(&mut header, "Example.app/Contents/marker", &b"new"[..])
+        .unwrap();
+    append_link(
+        &mut builder,
+        tar::EntryType::Link,
+        "Example.app/Contents/alias",
+        "Example.app/Contents/marker",
+    );
+    let bytes = finish(builder);
+    let fixture = Fixture::new();
+    let signature = sign(&fixture.fixtures.pair, &bytes);
+
+    fixture
+        .installer()
+        .apply(&verified(&fixture, bytes, &signature))
+        .expect("a hard link to a written member installs");
+
+    assert_eq!(fixture.marker(), "new");
+    assert_eq!(
+        fs::read(fixture.target.join("Contents/alias")).unwrap(),
+        b"new"
+    );
 }
 
 #[test]

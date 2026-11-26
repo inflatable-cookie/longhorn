@@ -245,8 +245,9 @@ earlier single-call stance.
   restore that bundle. If restoration also fails, `InstallFailure::Failed`
   names both faults and the preserved bundle's path. A later apply restores
   `previous` before extraction only when the destination is absent and the
-  record matches. Otherwise it reports the backup path for inspection and
-  preserves it.
+  record matches. If the destination is present and both the receipt and
+  publication marker match, it reclaims the completed swap's leftover instead.
+  Otherwise it reports the backup path for inspection and preserves it.
 - A legacy sibling named `*.longhorn-previous` can match several targets.
   If the destination is absent and only that legacy backup exists, the error
   names it so the caller can confirm its identity and restore it manually.
@@ -319,12 +320,11 @@ earlier single-call stance.
   bytes are the fault, so retrying replays them; extraction classifies the
   archive itself rather than the IO error a short write and a short stream
   both produce.
-- Reclaiming the previous bundle after a published swap is bookkeeping, but
-  it is reported rather than dropped: a bundle left beside the target would
-  make every later apply refuse to start. The next apply reclaims it, because
-  the workspace receipt and the publication marker identify it. A bundle a
-  failed rollback retained is never reclaimed that way — it is somebody's
-  only copy.
+- A published swap reports `Applied` even if removing the previous bundle
+  fails. The next apply reclaims the leftover when the workspace receipt and
+  publication marker identify it. A bundle a failed rollback retained is
+  never reclaimed that way — it is somebody's only copy. If publication cannot
+  be recorded and cleanup also fails, a later apply requires inspection.
 - Deferring while a transfer runs preserves its download progress until the
   transfer completes or is cancelled.
 - Request debug output redacts URLs and headers; verified artifact debug output

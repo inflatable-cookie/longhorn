@@ -289,7 +289,7 @@ impl<E: PrivilegedReplace> NativeInstaller<E> {
         match rename(staged, target) {
             Ok(()) => {
                 if displaced {
-                    backup.retire()?;
+                    backup.retire();
                 }
                 Ok(())
             }
@@ -425,7 +425,33 @@ fn unpack_within(
                 .ok_or_else(|| InstallFailure::MalformedArtifact {
                     detail: format!("archive link has no target: {}", path.display()),
                 })?;
-            bounded(&target)?;
+            let target = bounded(&target)?;
+            // Hard links resolve from the archive root and must name an entry
+            // already extracted. Symlinks may legitimately dangle.
+            if kind.is_hard_link() {
+                let link_target = staging.join(&target);
+                match fs::symlink_metadata(&link_target) {
+                    Ok(metadata) if !metadata.is_dir() => {}
+                    Ok(_) => {
+                        return Err(InstallFailure::MalformedArtifact {
+                            detail: format!(
+                                "archive hard link target is a directory: {}",
+                                target.display()
+                            ),
+                        });
+                    }
+                    Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                        return Err(InstallFailure::MalformedArtifact {
+                            detail: format!(
+                                "archive hard link {} names a missing target: {}",
+                                path.display(),
+                                target.display()
+                            ),
+                        });
+                    }
+                    Err(error) => return Err(classify(&error, &link_target)),
+                }
+            }
         }
 
         let mut components = safe.components();
@@ -579,9 +605,11 @@ fn classify_entry(error: &std::io::Error, path: &Path, artifact: &[u8]) -> Insta
 ///
 /// A tar stream that ends early is not an error to `Read`: the copy simply
 /// returns fewer bytes, which is why tar compares the copy against the size
-/// the header declared. This does the same comparison with no destination, so
+/// the entry declares. This does the same comparison with no destination, so
 /// a truncated archive is recognised as input rather than as a fault of the
-/// directory it was unpacked into.
+/// directory it was unpacked into. The size comes from [`tar::Entry::size`],
+/// not the raw header field, so a header format that stores it elsewhere (a
+/// pax extension) is compared against what the reader is actually bounded by.
 fn archive_is_intact(artifact: &[u8]) -> bool {
     let mut archive = tar::Archive::new(GzDecoder::new(artifact));
     let Ok(entries) = archive.entries() else {
@@ -591,9 +619,7 @@ fn archive_is_intact(artifact: &[u8]) -> bool {
         let Ok(mut entry) = entry else {
             return false;
         };
-        let Ok(declared) = entry.header().size() else {
-            return false;
-        };
+        let declared = entry.size();
         if !io::copy(&mut entry, &mut io::sink()).is_ok_and(|read| read == declared) {
             return false;
         }
@@ -1025,11 +1051,12 @@ mod tests {
         ));
     }
 
-    /// A cleanup that fails after publication is reported, and the next apply
-    /// reclaims the leftover instead of refusing to start forever.
+    /// A cleanup that fails after publication does not turn a completed install
+    /// into a reported failure: the new bundle reached the target, and the next
+    /// apply reclaims the leftover instead of refusing to start forever.
     #[cfg(unix)]
     #[test]
-    fn a_failed_cleanup_is_reported_and_the_next_apply_reclaims_the_leftover() {
+    fn a_failed_cleanup_stays_applied_and_the_next_apply_reclaims_the_leftover() {
         use std::os::unix::fs::PermissionsExt;
 
         let directory = tempfile::tempdir().unwrap();
@@ -1043,7 +1070,7 @@ mod tests {
         let previous = workspace.join("previous");
         let locked = previous.join("locked");
 
-        let error = installer
+        let applied = installer
             .apply_with_rename(&artifact, |from, to| {
                 fs::rename(from, to)?;
                 if to == previous {
@@ -1055,14 +1082,13 @@ mod tests {
                 }
                 Ok(())
             })
-            .expect_err("a failed cleanup is reported, not dropped");
+            .expect("a cleanup fault does not fail an install that reached disk");
 
-        let detail = error.to_string();
-        assert!(matches!(error, InstallFailure::Failed { .. }), "{detail}");
-        assert!(detail.contains("could not be removed"), "{detail}");
-        assert!(detail.contains(&*previous.to_string_lossy()), "{detail}");
-        // The new bundle is published; the displaced one is still here.
+        assert_eq!(applied.version, artifact.version().clone());
+        // The new bundle is in place; the displaced one is still here, and the
+        // marker says which kind of leftover it is.
         assert!(installer.target().join("0").is_file());
+        assert!(previous.join("locked/child").is_file());
         assert!(workspace.join("previous.published").is_file());
 
         fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
@@ -1074,6 +1100,46 @@ mod tests {
         assert!(!previous.exists());
         assert!(!workspace.join("previous.identity").exists());
         assert!(!workspace.join("previous.published").exists());
+    }
+
+    /// A leftover a *later* apply cannot reclaim is reported by that apply,
+    /// before it touches the install.
+    #[cfg(unix)]
+    #[test]
+    fn an_unreclaimable_leftover_refuses_the_next_apply() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let directory = tempfile::tempdir().unwrap();
+        let installer = existing_install(directory.path());
+        let artifact = signed_archive();
+        let workspace = directory
+            .path()
+            .canonicalize()
+            .unwrap()
+            .join(".--.longhorn-install-Example.app");
+        let locked = workspace.join("previous/locked");
+
+        installer
+            .apply_with_rename(&artifact, |from, to| {
+                fs::rename(from, to)?;
+                if to == workspace.join("previous") {
+                    fs::create_dir(&locked)?;
+                    fs::write(locked.join("child"), b"kept")?;
+                    fs::set_permissions(&locked, fs::Permissions::from_mode(0o555))?;
+                }
+                Ok(())
+            })
+            .expect("the swap succeeds");
+
+        let error = installer
+            .apply(&artifact)
+            .expect_err("the leftover cannot be reclaimed");
+
+        assert!(matches!(error, InstallFailure::Failed { .. }));
+        assert!(error.to_string().contains("could not reclaim"), "{error}");
+        // Nothing was displaced: the install this apply found is untouched.
+        assert!(installer.target().join("0").is_file());
+        assert!(locked.join("child").is_file());
     }
 
     /// A bundle a failed rollback left for recovery keeps its identity and is
