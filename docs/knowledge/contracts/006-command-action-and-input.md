@@ -153,7 +153,11 @@ Palette, menu, shortcut, help, and keybinding-settings records project one
 registry and effective keymap.
 
 Rust owns canonical search, ranking, shortcut labels, candidate ordering, and
-conflict semantics. Checked TypeScript passes the same fixtures.
+conflict semantics. Checked TypeScript passes the same fixtures. Each
+whitespace-separated search term must match a label, keyword, category path,
+command ID, or description. Command ID matching is case-insensitive. The
+TypeScript scorer folds IDs supplied through injected ports. Search results
+carry the original IDs for dispatch.
 
 - `@inflatable-cookie/longhorn/commands` owns framework-neutral clients and injected catalogue,
   keymap, availability, and executor ports.

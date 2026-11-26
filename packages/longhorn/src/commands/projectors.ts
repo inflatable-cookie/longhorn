@@ -139,7 +139,7 @@ export function searchCommands(
   records: ReadonlyArray<CommandDiscoveryRecord>,
   query: string,
 ): ReadonlyArray<CommandSearchHit> {
-  return searchCommandRecords(records, query, false);
+  return searchCommandRecords(records, query);
 }
 
 export function searchCommandSettings(
@@ -149,7 +149,7 @@ export function searchCommandSettings(
   if (query.trim().length === 0) {
     return records;
   }
-  return searchCommandRecords(records, query, true).map(({ record }) => record);
+  return searchCommandRecords(records, query).map(({ record }) => record);
 }
 
 type SearchableCommand = Pick<
@@ -160,7 +160,6 @@ type SearchableCommand = Pick<
 function searchCommandRecords<Record extends SearchableCommand>(
   records: ReadonlyArray<Record>,
   query: string,
-  caseInsensitiveId: boolean,
 ): ReadonlyArray<{ record: Record; score: number }> {
   const terms = query
     .split(/\s+/u)
@@ -168,7 +167,7 @@ function searchCommandRecords<Record extends SearchableCommand>(
     .map((term) => term.toLowerCase());
   return records
     .flatMap((record) => {
-      const score = scoreRecord(record, terms, caseInsensitiveId);
+      const score = scoreRecord(record, terms);
       return score === undefined ? [] : [{ record, score }];
     })
     .sort(
@@ -230,15 +229,11 @@ export class CommandProjectionConsistencyError extends Error {
   }
 }
 
-function scoreRecord(
-  record: SearchableCommand,
-  terms: ReadonlyArray<string>,
-  caseInsensitiveId: boolean,
-): number | undefined {
+function scoreRecord(record: SearchableCommand, terms: ReadonlyArray<string>): number | undefined {
   if (terms.length === 0) {
     return 0;
   }
-  const id = caseInsensitiveId ? record.id.toLowerCase() : record.id;
+  const id = record.id.toLowerCase();
   const label = record.label.toLowerCase();
   const description = record.description?.toLowerCase() ?? "";
   const keywords = record.keywords.map((keyword) => keyword.toLowerCase());

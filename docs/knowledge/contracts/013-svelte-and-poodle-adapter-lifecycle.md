@@ -73,9 +73,10 @@ primitives without copying component source or durable state.
 - Command palette and keybinding adapters project the sealed command registry,
   effective keymap, and current availability through public controlled Poodle
   APIs. Poodle owns focus and visual semantics; Longhorn owns ids, search,
-  conflict records, and injected dispatch. Keybinding search matches command
-  IDs case-insensitively, and reset requires confirmation. The command palette
-  shows search and execution failures while it stays open.
+  conflict records, and injected dispatch. The palette and keybinding
+  settings share the matching rules in [contract 006](006-command-action-and-input.md#projection-and-ui).
+  Keybinding reset requires confirmation. The palette shows search and
+  execution failures while it stays open.
 - A command selection calls a consumer executor. No Svelte or Poodle adapter
   invents a generic Tauri execution route.
 - Same-window drag remains Poodle-owned. Cross-window binding requires public

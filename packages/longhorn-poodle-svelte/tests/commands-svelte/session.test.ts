@@ -6,6 +6,7 @@ import { KeybindingSettings } from "../../src/commands/poodle.ts";
 import CommandSessionHarness from "./CommandSessionHarness.svelte";
 import KeybindingHarness from "./KeybindingHarness.svelte";
 import { createSession } from "./support.ts";
+import { fixture } from "../../../longhorn/tests/commands/support.ts";
 
 describe("command Svelte and public Poodle adapters", () => {
   it("keeps mounted sessions independent and tears down listeners", async () => {
@@ -36,6 +37,34 @@ describe("command Svelte and public Poodle adapters", () => {
     await Promise.resolve(secondMount.unmount());
     await second.session.stop();
     expect(second.target.listeners.size).toBe(0);
+  });
+
+  it("finds palette commands by mixed-case ID and dispatches the original ID", async () => {
+    const template = fixture.catalogue.commands[0];
+    if (template === undefined) {
+      throw new Error("missing catalogue command");
+    }
+    const command = { ...template, id: "app:InspectFile", label: "Browse project" };
+    const { session, executions } = createSession({ additionalCommands: [command] });
+    const mounted = render(CommandSessionHarness, { props: { session } });
+    try {
+      await waitFor(() => expect(session.status.kind).toBe("ready"));
+      await fireEvent.click(mounted.getByRole("button", { name: "Open commands" }));
+      const dialog = within(await mounted.findByRole("dialog", { name: "Command palette" }));
+      const search = dialog.getByRole("searchbox", { name: "Search commands" });
+
+      await fireEvent.input(search, { target: { value: "save" } });
+      await waitFor(() => expect(dialog.queryByText(command.label)).toBeNull());
+
+      await fireEvent.input(search, { target: { value: "inspectFILE" } });
+      await fireEvent.click(await dialog.findByText(command.label));
+      await waitFor(() =>
+        expect(executions.map(({ invocation }) => invocation.commandId)).toEqual([command.id]),
+      );
+    } finally {
+      mounted.unmount();
+      await session.stop();
+    }
   });
 
   it("shows search errors in the open palette and recovers on a new query", async () => {

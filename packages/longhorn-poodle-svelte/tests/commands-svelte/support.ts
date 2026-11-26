@@ -9,6 +9,10 @@ import type {
   CommandUnlisten,
   KeyboardEventLike,
 } from "../../../longhorn/src/commands/index.ts";
+import type {
+  CommandAvailabilitySnapshot,
+  CommandDiscoveryRecord,
+} from "@inflatable-cookie/longhorn/commands/protocol";
 import { availability, fixture } from "../../../longhorn/tests/commands/support.ts";
 
 class Port<Snapshot> {
@@ -49,12 +53,25 @@ class FakeKeyboardTarget {
 export function createSession(
   options: Pick<CommandControllerOptions, "search"> & {
     execute?: CommandExecutorPort["execute"];
+    additionalCommands?: ReadonlyArray<CommandDiscoveryRecord>;
   } = {},
 ) {
   const target = new FakeKeyboardTarget();
-  const catalogue = new Port(fixture.catalogue);
+  const catalogue = new Port({
+    ...fixture.catalogue,
+    commands: [...fixture.catalogue.commands, ...(options.additionalCommands ?? [])],
+  });
   const keymap = new Port(requireValue(fixture.loadOutcomes[0], "fixture.loadOutcomes[0]"));
-  const available = new Port(availability());
+  const available = new Port<CommandAvailabilitySnapshot>({
+    ...availability(),
+    records: catalogue.value.commands
+      .map(({ id }) => id)
+      .sort()
+      .map((commandId) => ({
+        commandId,
+        availability: { state: "available", reason: null },
+      })),
+  });
   const executions: Array<CommandExecutionIntent> = [];
   let request = 0;
   const ports: CommandPorts = {
