@@ -374,6 +374,74 @@ fn close_succeeds_when_hangup_ends_the_group() {
     assert_eq!(exit, ExitResult::Signal(1));
 }
 
+/// Waits for the exit result, keeping only the first output bytes. A writing
+/// background child can produce output without limit, so the test must not
+/// accumulate all of it.
+fn receive_exit_keeping_prefix(receiver: &Receiver<PtyEvent>) -> (ExitResult, Vec<u8>) {
+    const KEPT_BYTES: usize = 4096;
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut kept = Vec::new();
+    loop {
+        match receive(receiver, deadline) {
+            PtyEvent::Output(bytes) => {
+                let room = KEPT_BYTES.saturating_sub(kept.len());
+                kept.extend_from_slice(&bytes[..bytes.len().min(room)]);
+            }
+            PtyEvent::Failure(failure) => panic!(
+                "unexpected PTY failure before exit: {failure} ({failure:?}); output={:?}",
+                text(&kept)
+            ),
+            PtyEvent::Exit(exit) => return (exit, kept),
+        }
+    }
+}
+
+/// The leader exits while a background child keeps the slave open and writes
+/// faster than the consumer reads. The background child ignores `SIGHUP`, which
+/// the kernel sends to the foreground group when the session leader exits; the
+/// ignore carries across `exec`. The exit result must still arrive, and the
+/// leader's own output must still be delivered.
+#[test]
+fn natural_exit_is_not_withheld_by_a_writing_background_child() {
+    let (session, receiver) = open(shell("trap '' HUP; printf LEADER; yes & exit 0"));
+    let (exit, output) = receive_exit_keeping_prefix(&receiver);
+    assert_eq!(exit, ExitResult::Code(0));
+    assert!(
+        text(&output).starts_with("LEADER"),
+        "the leader's output is delivered before the exit: {:?}",
+        text(&output)
+    );
+    assert!(receiver.try_recv().is_err(), "one exit event was delivered");
+    drop(session);
+}
+
+/// Output the leader wrote before it exited is delivered in full, even when
+/// more than one live reader pass of it is still unread at exit. A slow
+/// consumer keeps the backlog in the PTY when the leader exits.
+#[test]
+fn the_leaders_output_is_delivered_in_full_after_it_exits() {
+    const BYTES: usize = 512 * 1024;
+    let (_session, receiver) = open(shell(&format!("head -c {BYTES} /dev/zero")));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut received = 0;
+    loop {
+        match receive(&receiver, deadline) {
+            PtyEvent::Output(bytes) => {
+                received += bytes.len();
+                thread::sleep(Duration::from_millis(1));
+            }
+            PtyEvent::Failure(failure) => {
+                panic!("unexpected PTY failure before exit: {failure} ({failure:?})")
+            }
+            PtyEvent::Exit(exit) => {
+                assert_eq!(exit, ExitResult::Code(0));
+                break;
+            }
+        }
+    }
+    assert_eq!(received, BYTES, "every byte the leader wrote is delivered");
+}
+
 #[test]
 fn operations_after_exit_are_classified_as_ended() {
     let (session, receiver) = open(shell("exit 0"));
