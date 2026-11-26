@@ -26,6 +26,7 @@ agent-control = [
   "dep:block2",
   "dep:objc2",
   "dep:objc2-app-kit",
+  "dep:objc2-core-foundation",
   "dep:objc2-foundation",
   "dep:objc2-web-kit",
 ]
@@ -53,6 +54,7 @@ tokio = { workspace = true, optional = true }
 block2 = { workspace = true, optional = true }
 objc2 = { workspace = true, optional = true }
 objc2-app-kit = { workspace = true, optional = true }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["CFNumber", "objc2"], optional = true }
 objc2-foundation = { workspace = true, optional = true }
 objc2-web-kit = { workspace = true, optional = true }
 

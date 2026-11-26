@@ -7,7 +7,10 @@
 //! [`HostSelection::UsePlugin`] and publishes nothing. There is no native
 //! fallback on the agent path.
 
-use longhorn_agent_control::{BeginSelectionRequest, SelectionRegistry, plugin_result};
+use longhorn_agent_control::{
+    BeginSelectionArgs, BeginSelectionError, BeginSelectionRequest, SelectionRegistry,
+    SelectionWait, ToolError, plugin_result,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use tauri::{Runtime, State, Webview};
@@ -74,30 +77,6 @@ impl<'de> Deserialize<'de> for SelectionOrigin {
     }
 }
 
-/// Invoke payload for [`longhorn_agent_control_begin_selection`] and the
-/// picker request [`begin_host_selection`] takes.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct BeginSelectionArgs {
-    /// Open or save.
-    pub kind: longhorn_agent_control::SelectionKind,
-    /// Directory intent; only meaningful for open.
-    #[serde(default)]
-    pub directory: bool,
-    /// Multiple paths; only meaningful for open.
-    #[serde(default)]
-    pub multiple: bool,
-    /// Optional extension filters. Hints for the agent; not enforced.
-    #[serde(default)]
-    pub filters: Vec<longhorn_agent_control::SelectionFilter>,
-    /// Dialog title, when the caller supplied one.
-    #[serde(default)]
-    pub title: Option<String>,
-    /// Default-path hint, never an answer.
-    #[serde(default)]
-    pub default_path: Option<String>,
-}
-
 /// Outcome of [`begin_host_selection`].
 #[derive(Clone, Debug, PartialEq)]
 #[must_use]
@@ -108,24 +87,29 @@ pub enum HostSelection {
     /// Agent-originated request settled to the plugin-compatible result.
     ///
     /// `Ok` is one path, a path array, or `null` (explicit reject). `Err` is
-    /// a serialized [`longhorn_agent_control::ToolError`] for expiry,
-    /// shutdown, cancellation, or begin failure. There is no native-dialog
-    /// fallback on this arm.
-    Agent(Result<Value, String>),
+    /// a [`ToolError`] for expiry, shutdown, cancellation, or begin failure.
+    /// There is no native-dialog fallback on this arm.
+    Agent(Result<Value, ToolError>),
 }
 
 /// Starts a pending selection for the invoking webview and returns the
 /// plugin-compatible picker result once an agent answers or rejects.
 ///
-/// Expiry, cancellation, and shutdown fail typed. There is no native-dialog
-/// fallback on this path.
+/// # Errors
+///
+/// Begin and settlement failures serialize as a [`ToolError`] object over IPC.
 #[tauri::command]
 pub async fn longhorn_agent_control_begin_selection<R: Runtime>(
     webview: Webview<R>,
     registry: State<'_, SelectionRegistry>,
     options: BeginSelectionArgs,
-) -> Result<Value, String> {
-    settle_selection(&registry, request_from_webview(&webview, options)).await
+) -> Result<Value, ToolError> {
+    let multiple = options.multiple;
+    settle_selection(
+        registry.begin(request_from_webview(&webview, options)),
+        multiple,
+    )
+    .await
 }
 
 /// Routes a consumer Rust picker through the pending-selection registry.
@@ -144,7 +128,9 @@ pub async fn begin_host_selection<R: Runtime>(
     if !origin.is_agent() {
         return HostSelection::UsePlugin;
     }
-    HostSelection::Agent(settle_selection(registry, request_from_webview(webview, options)).await)
+    let multiple = options.multiple;
+    let started = registry.begin(request_from_webview(webview, options));
+    HostSelection::Agent(settle_selection(started, multiple).await)
 }
 
 fn request_from_webview<R: Runtime>(
@@ -164,21 +150,32 @@ fn request_from_webview<R: Runtime>(
 }
 
 async fn settle_selection(
-    registry: &SelectionRegistry,
-    request: BeginSelectionRequest,
-) -> Result<Value, String> {
-    let multiple = request.multiple;
-    let wait = registry.begin(request).map_err(|error| error.to_string())?;
+    started: Result<SelectionWait, BeginSelectionError>,
+    multiple: bool,
+) -> Result<Value, ToolError> {
+    let wait = started?;
     let id = wait.id().clone();
-    let outcome = wait.await;
-    plugin_result(&id, multiple, &outcome)
-        .map_err(|error| serde_json::to_string(&error).unwrap_or_else(|_| error.to_string()))
+    plugin_result(&id, multiple, &wait.await)
 }
 
 #[cfg(test)]
 mod origin_tests {
     use super::*;
     use serde_json::json;
+
+    #[tokio::test]
+    async fn begin_failure_serializes_as_a_tool_error_object() {
+        let error = settle_selection(Err(BeginSelectionError::EntropyUnavailable), false)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            serde_json::to_value(error).unwrap(),
+            json!({
+                "error": "hostFailure",
+                "message": "selection id entropy unavailable",
+            }),
+        );
+    }
 
     #[test]
     fn exact_agent_string_is_agent() {

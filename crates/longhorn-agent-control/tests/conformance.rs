@@ -23,9 +23,9 @@ use axum::{
 use http_body_util::BodyExt as _;
 use longhorn_agent_control::{
     ActionReceipt, CONTROL_TOOL_NAMES, CommandResult, ControlHandler, ControlServerConfig,
-    ElementRef, EvaluateResult, InstanceToken, ListWindowsResult, PageState, ScreenshotResult,
-    SelectionRegistry, SemanticNode, SnapshotResult, ToolError, WaitForResult, control_router,
-    enumerate_discovery, serve_control_surface,
+    ElementRef, EvaluateResult, InstanceToken, ListWindowsResult, PageEventBatch, PageState,
+    ScreenshotResult, SelectionRegistry, SemanticNode, SnapshotResult, ToolError, WaitForResult,
+    control_router, enumerate_discovery, serve_control_surface,
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
@@ -35,7 +35,7 @@ const SESSION_HEADER: &str = "mcp-session-id";
 
 /// Host stub: canned answers, an invocation counter that proves rejection
 /// happened before dispatch, an echo journal for the interleave fixture,
-/// and a page-event ring listen polls through `evaluate` of `readEvents`.
+/// and a page-event ring for internal subscription reads.
 #[derive(Clone)]
 struct StubHandler {
     invocations: Arc<AtomicUsize>,
@@ -99,20 +99,6 @@ impl StubHandler {
             "kind": "navigation",
             "url": url,
         }));
-    }
-}
-
-fn parse_read_events_args(js: &str) -> Option<(u64, Option<String>)> {
-    let start = js.find("readEvents(")?;
-    let rest = &js[start + "readEvents(".len()..];
-    let end = rest.find(')')?;
-    let args = rest[..end].trim();
-    if let Some((seq_part, epoch_part)) = args.split_once(',') {
-        let seq = seq_part.trim().parse().ok()?;
-        let epoch: Option<String> = serde_json::from_str(epoch_part.trim()).ok()?;
-        Some((seq, epoch))
-    } else {
-        Some((args.parse().ok()?, None))
     }
 }
 
@@ -204,37 +190,36 @@ impl ControlHandler for StubHandler {
     ) -> Result<EvaluateResult, ToolError> {
         self.invocations.fetch_add(1, Ordering::SeqCst);
         self.evaluated.lock().unwrap().push(request.js.clone());
-        if let Some((since, since_epoch)) = parse_read_events_args(&request.js) {
-            let current_epoch = self.epoch.lock().unwrap().clone();
-            let effective_since = match since_epoch.as_deref() {
-                Some(ep) if ep != current_epoch => 0,
-                _ => since,
-            };
-            let events = self.events.lock().unwrap();
-            let filtered: Vec<Value> = events
-                .iter()
-                .filter(|event| event["seq"].as_u64().unwrap_or(0) > effective_since)
-                .cloned()
-                .collect();
-            let next_seq = self.next_seq.load(Ordering::SeqCst);
-            return Ok(EvaluateResult {
-                value: Value::String(
-                    json!({
-                        "epoch": current_epoch,
-                        "events": filtered,
-                        "nextSeq": next_seq,
-                        "dropped": 0
-                    })
-                    .to_string(),
-                ),
-            });
-        }
         if request.js.contains("console.log") {
             self.push_console("only-once");
             return Ok(EvaluateResult { value: Value::Null });
         }
         Ok(EvaluateResult {
             value: Value::String(request.js),
+        })
+    }
+
+    async fn read_page_events(
+        &self,
+        since_seq: u64,
+        since_epoch: Option<&str>,
+    ) -> Result<PageEventBatch, ToolError> {
+        let events = self.events.lock().unwrap();
+        let epoch = self.epoch.lock().unwrap().clone();
+        let since = if since_epoch.is_some_and(|previous| previous != epoch) {
+            0
+        } else {
+            since_seq
+        };
+        Ok(PageEventBatch {
+            epoch,
+            events: events
+                .iter()
+                .filter(|event| event["seq"].as_u64().unwrap() > since)
+                .map(|event| serde_json::from_value(event.clone()).unwrap())
+                .collect(),
+            next_seq: self.next_seq.load(Ordering::SeqCst),
+            dropped: 0,
         })
     }
 
@@ -470,7 +455,7 @@ async fn tool_names_match_the_contract_vocabulary() {
 
 #[tokio::test]
 async fn event_resources_are_listed_and_readable() {
-    let (app, token, _stub) = app();
+    let (app, token, stub) = app();
 
     let response = exchange(app.clone(), McpRequest::authed(&token).resources_list()).await;
     assert_eq!(response.status, StatusCode::OK, "{}", response.body);
@@ -506,6 +491,7 @@ async fn event_resources_are_listed_and_readable() {
     assert_eq!(body["events"][0]["text"], "hello from stub");
     assert_eq!(body["dropped"], 0);
     assert_eq!(body["epoch"], "epoch-1");
+    assert!(stub.evaluated.lock().unwrap().is_empty());
 }
 
 /// One `console.log` after subscribe must produce `resources/updated`.
@@ -588,6 +574,13 @@ async fn listen_delivers_the_first_event_after_subscribe() {
         buf.contains("longhorn://agent-control/console"),
         "updated did not name the console URI: {buf}"
     );
+    #[cfg(feature = "agent-control-evaluate")]
+    assert_eq!(
+        *stub.evaluated.lock().unwrap(),
+        ["console.log('only-once')"]
+    );
+    #[cfg(not(feature = "agent-control-evaluate"))]
+    assert!(stub.evaluated.lock().unwrap().is_empty());
 }
 
 /// Across a page reload, the in-page event ring restarts at seq 1 with a new
@@ -726,7 +719,7 @@ async fn listen_mixed_selection_and_page_events_does_not_starve_page_polls() {
                 })
                 .unwrap();
             let id = wait.id().clone();
-            let _ = reg.reject(&id);
+            let _ = reg.reject(&id, "cancelled by test".to_owned());
             let _ = wait.await;
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
@@ -1161,6 +1154,8 @@ async fn reject_selection_resolves_the_waiter_as_plugin_null() {
     );
     assert_eq!(
         wait.await,
-        longhorn_agent_control::SelectionOutcome::Rejected
+        longhorn_agent_control::SelectionOutcome::Rejected {
+            reason: "cancelled by agent".to_owned()
+        }
     );
 }

@@ -7,7 +7,8 @@
 use std::time::Duration;
 
 use longhorn_agent_control::{
-    ActionReceipt, FileInputFile, PageState, SemanticNode, ToolError, WaitForResult, WaitPredicate,
+    ActionReceipt, FileInputFile, PageEventBatch, PageState, SemanticNode, ToolError,
+    WaitForResult, WaitPredicate,
 };
 use serde_json::{Value, json};
 
@@ -22,6 +23,18 @@ pub const MARK_AGENT_ORIGIN_JS: &str = "globalThis.__longhornAgentControl && glo
 /// Prepends the origin marker without changing the caller's completion value.
 pub(crate) fn compose_evaluate_js(js: &str) -> String {
     format!("{MARK_AGENT_ORIGIN_JS}\n{js}")
+}
+
+/// Reads the installed ring in place so a subscription never marks page origin.
+pub(crate) fn read_events_js(since_seq: u64, since_epoch: Option<&str>) -> String {
+    let epoch = json!(since_epoch);
+    format!("JSON.stringify(globalThis.__longhornAgentControl.readEvents({since_seq}, {epoch}));")
+}
+
+pub(crate) fn decode_events(value: Value) -> Result<PageEventBatch, ToolError> {
+    serde_json::from_value(unwrap_eval_json(value)?).map_err(|error| ToolError::EvaluationFailed {
+        message: format!("invalid page event batch: {error}"),
+    })
 }
 
 const POLL: Duration = Duration::from_millis(50);
@@ -239,6 +252,56 @@ console.log(JSON.stringify(results));
             .map(|(_, result)| result.clone())
             .collect::<Vec<_>>();
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn event_read_passes_the_cursor_without_marking_agent_origin() {
+        let program = r#"
+let agentOrigin = false;
+globalThis.__longhornAgentControl = {
+  markAgentOrigin() { agentOrigin = true; },
+  readEvents(seq, epoch) { return { seq, epoch }; },
+};
+const batches = JSON.parse(process.env.LONGHORN_EVENT_SOURCES)
+  .map((source) => JSON.parse(eval(source)));
+console.log(JSON.stringify({ batches, agentOrigin }));
+"#;
+        let sources = [read_events_js(0, None), read_events_js(5, Some("doc-\"2"))];
+        let output = std::process::Command::new("bun")
+            .args(["-e", program])
+            .env("LONGHORN_EVENT_SOURCES", json!(sources).to_string())
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let actual: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(
+            actual,
+            json!({
+                "batches": [{ "seq": 0, "epoch": null }, { "seq": 5, "epoch": "doc-\"2" }],
+                "agentOrigin": false,
+            })
+        );
+    }
+
+    #[test]
+    fn event_read_rejects_missing_batch_fields() {
+        let batch = json!({ "epoch": "doc-1", "events": [], "nextSeq": 1, "dropped": 0 });
+        assert!(decode_events(json!(batch.to_string())).is_ok());
+        for field in ["epoch", "events", "nextSeq", "dropped"] {
+            let mut invalid = batch.as_object().unwrap().clone();
+            invalid.remove(field);
+            assert!(
+                matches!(
+                    decode_events(json!(Value::Object(invalid).to_string())),
+                    Err(ToolError::EvaluationFailed { .. }),
+                ),
+                "missing {field} should fail"
+            );
+        }
     }
 
     #[test]

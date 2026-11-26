@@ -12,9 +12,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use longhorn_agent_control::BeginSelectionArgs;
 use longhorn_tauri_agent_control::{
-    BeginSelectionArgs, HostSelection, PendingSelection, SelectionKind, SelectionOrigin,
-    SelectionRegistry, ToolError, begin_host_selection,
+    HostSelection, PendingSelection, SelectionKind, SelectionOrigin, SelectionRegistry, ToolError,
+    begin_host_selection,
 };
 use serde_json::{Value, json};
 use tauri::{
@@ -149,7 +150,10 @@ async fn reject_yields_plugin_null() {
         save_args(),
     );
     let pending = wait_pending(&harness.registry).await;
-    harness.registry.reject(&pending.id).unwrap();
+    harness
+        .registry
+        .reject(&pending.id, "cancelled by test".to_owned())
+        .unwrap();
     match begin.await.unwrap() {
         HostSelection::Agent(Ok(Value::Null)) => {}
         other => panic!("expected agent null, got {other:?}"),
@@ -171,7 +175,7 @@ async fn expiry_fails_typed_and_settles_once() {
     let pending = wait_pending(&harness.registry).await;
     match begin.await.unwrap() {
         HostSelection::Agent(Err(error)) => {
-            let body: Value = serde_json::from_str(&error).unwrap();
+            let body: Value = serde_json::to_value(error).unwrap();
             assert_eq!(body["error"], "expiredSelection");
         }
         other => panic!("expected typed expiry, got {other:?}"),
@@ -198,7 +202,7 @@ async fn shutdown_fails_typed() {
     harness.registry.shutdown();
     match begin.await.unwrap() {
         HostSelection::Agent(Err(error)) => {
-            let body: Value = serde_json::from_str(&error).unwrap();
+            let body: Value = serde_json::to_value(error).unwrap();
             assert_eq!(body["error"], "cancelledSelection");
         }
         other => panic!("expected typed shutdown, got {other:?}"),
@@ -253,7 +257,10 @@ async fn wrong_instance_answer_is_typed_and_leaves_the_request() {
         ToolError::UnknownSelection { .. }
     ));
     assert_eq!(harness.registry.pending().len(), 1);
-    harness.registry.reject(&pending.id).unwrap();
+    harness
+        .registry
+        .reject(&pending.id, "cancelled by test".to_owned())
+        .unwrap();
     match begin.await.unwrap() {
         HostSelection::Agent(Ok(Value::Null)) => {}
         other => panic!("expected reject null, got {other:?}"),
@@ -288,6 +295,40 @@ async fn malformed_save_answer_fails_typed_then_settles_once() {
         HostSelection::Agent(Ok(Value::String(path))) => assert_eq!(path, file_target),
         other => panic!("expected answered path, got {other:?}"),
     }
+}
+
+#[tokio::test]
+async fn begin_selection_ipc_rejects_with_a_tool_error_object() {
+    let app = tauri::test::mock_builder()
+        .manage(SelectionRegistry::with_ttl("app:1", Duration::ZERO))
+        .invoke_handler(tauri::generate_handler![
+            longhorn_tauri_agent_control::longhorn_agent_control_begin_selection
+        ])
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let webview = WebviewWindowBuilder::new(&app, "main", WebviewUrl::default())
+        .build()
+        .unwrap();
+
+    let error = tauri::test::get_ipc_response(
+        &webview,
+        tauri::webview::InvokeRequest {
+            cmd: "longhorn_agent_control_begin_selection".into(),
+            callback: tauri::ipc::CallbackFn(0),
+            error: tauri::ipc::CallbackFn(1),
+            url: "tauri://localhost".parse().unwrap(),
+            body: tauri::ipc::InvokeBody::Json(json!({
+                "options": { "kind": "save", "defaultPath": "/projects/export.json" }
+            })),
+            headers: Default::default(),
+            invoke_key: tauri::test::INVOKE_KEY.into(),
+        },
+    )
+    .unwrap_err();
+    assert!(matches!(
+        serde_json::from_value(error).unwrap(),
+        ToolError::ExpiredSelection { .. },
+    ));
 }
 
 /// Documented consumer command: missing `origin` is human.

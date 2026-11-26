@@ -9,7 +9,7 @@
 
 | Crate | Kind | Features | Source reference |
 | --- | --- | --- | --- |
-| `longhorn-agent-control` | library | `agent-control-evaluate`, `client` | [source](../../crates/longhorn-agent-control/README.md) |
+| `longhorn-agent-control` | library | `agent-control-evaluate`, `bindings`, `client` | [source](../../crates/longhorn-agent-control/README.md) |
 | `longhorn-agent-tool-dispatch` | library | none | [source](../../crates/longhorn-agent-tool-dispatch/README.md) |
 | `longhorn-archive-path` | library | none | [source](../../crates/longhorn-archive-path/README.md) |
 | `longhorn-bindings` | library | none | [source](../../crates/longhorn-bindings/src/lib.rs) |

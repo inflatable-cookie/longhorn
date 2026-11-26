@@ -8,6 +8,8 @@
 
 use std::future::Future;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, DragRequest, EvaluateRequest,
     EvaluateResult, ListWindowsRequest, ListWindowsResult, PressRequest, ResizeWindowRequest,
@@ -15,6 +17,59 @@ use crate::{
     SnapshotResult, ToolError, TypeRequest, ValidatedSetFileInputRequest, WaitForRequest,
     WaitForResult,
 };
+
+/// One batch from the current document's page-event ring.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct PageEventBatch {
+    /// Identity of the document whose ring produced this batch.
+    pub epoch: String,
+    /// Events after the requested cursor, or all retained events after a reload.
+    pub events: Vec<PageEvent>,
+    /// Sequence number the ring will assign to the next event.
+    pub next_seq: u64,
+    /// Count of events evicted from this document's ring.
+    pub dropped: u64,
+}
+
+/// One entry in the page-event ring.
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum PageEvent {
+    /// A captured page console message.
+    Console {
+        /// Sequence of the message within the document.
+        seq: u64,
+        /// Console level reported by the page.
+        level: String,
+        /// Text logged by the page.
+        text: String,
+    },
+    /// An unhandled page error or rejected promise.
+    Error {
+        /// Sequence of the error within the document.
+        seq: u64,
+        /// Error message reported by the page.
+        message: String,
+    },
+    /// Initial document load or a URL change.
+    Navigation {
+        /// Sequence of the navigation within the document.
+        seq: u64,
+        /// New page URL.
+        url: String,
+    },
+}
+
+impl PageEvent {
+    pub(crate) const fn sequence(&self) -> u64 {
+        match self {
+            Self::Console { seq, .. } | Self::Error { seq, .. } | Self::Navigation { seq, .. } => {
+                *seq
+            }
+        }
+    }
+}
 
 /// Tool authority the host implements and the MCP server dispatches to.
 ///
@@ -89,6 +144,16 @@ pub trait ControlHandler: Send + Sync + 'static {
         &self,
         request: EvaluateRequest,
     ) -> impl Future<Output = Result<EvaluateResult, ToolError>> + Send;
+
+    /// Reads the default page's event ring without changing picker origin.
+    ///
+    /// A different document epoch resets the read cursor to zero. This
+    /// host-internal read is available independently of MCP `evaluate`.
+    fn read_page_events(
+        &self,
+        since_seq: u64,
+        since_epoch: Option<&str>,
+    ) -> impl Future<Output = Result<PageEventBatch, ToolError>> + Send;
 
     /// Polls a DOM-relative predicate until it holds or the bound ends.
     fn wait_for(

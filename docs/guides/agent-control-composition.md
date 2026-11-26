@@ -299,7 +299,9 @@ fn export_backup(app: tauri::AppHandle) -> Result<(), String> {
 ```
 
 After, the same command keeps its dialog options and result handling.
-The only addition is the origin token and one match on the host entry.
+The command adds the origin token and a match on the host entry. Add
+`longhorn-agent-control` from the same Longhorn version as an optional
+dependency enabled by the app's `agent-control` feature for `BeginSelectionArgs`.
 Take `origin: Option<SelectionOrigin>` and `unwrap_or_default()`: a
 missing invoke key is human. `#[serde(default)]` on a command parameter
 does not compile. A required `SelectionOrigin` argument rejects the
@@ -317,7 +319,7 @@ async fn export_backup(
         origin.unwrap_or_default(),
         &webview,
         &registry,
-        longhorn_tauri_agent_control::BeginSelectionArgs {
+        longhorn_agent_control::BeginSelectionArgs {
             kind: longhorn_tauri_agent_control::SelectionKind::Save,
             directory: false,
             multiple: false,
@@ -334,7 +336,9 @@ async fn export_backup(
             };
             path
         }
-        longhorn_tauri_agent_control::HostSelection::Agent(result) => match result? {
+        longhorn_tauri_agent_control::HostSelection::Agent(result) => match result
+            .map_err(|error| error.to_string())?
+        {
             serde_json::Value::String(path) => std::path::PathBuf::from(path),
             serde_json::Value::Null => return Ok(()),
             other => return Err(format!("unexpected selection {other}")),
@@ -347,8 +351,9 @@ async fn export_backup(
 Human, missing, and malformed origin take the `UsePlugin` arm and never
 publish a pending request. Agent origin waits for `answer_selection` /
 `reject_selection` with the same result shape as the JS route: one path
-or `null` for save. There is no native fallback on the agent arm, and
-Longhorn never writes the chosen path.
+or `null` for save. The Rust result carries a typed `ToolError` on failure.
+The renderer invoke rejects with that error as a JSON object. Longhorn never
+writes the chosen path.
 
 ## 4. Hook Both `ExitRequested` And `Exit`
 
@@ -401,6 +406,7 @@ rules.
 - **Give it a home directory:** without `--discovery-dir` or `--state-root`,
   it finds discovery from `HOME` (plus the XDG variables on Linux, or
   `LOCALAPPDATA`/`APPDATA`/`TEMP` on Windows).
+- **Print usage** with `--help` or `-h`. Both exit 0 before discovery.
 - **Close it by closing stdin** after the last response. It exits 0, and any
   exchange still in flight aborts. The server is stateless. Exit 2 is a
   startup failure, with the reason on stderr.

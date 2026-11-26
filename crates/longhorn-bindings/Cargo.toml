@@ -8,6 +8,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+longhorn-agent-control = { workspace = true, features = ["bindings"] }
 longhorn-core = { workspace = true, features = ["bindings"] }
 longhorn-bridge = { workspace = true, features = ["bindings"] }
 longhorn-command = { workspace = true, features = ["bindings"] }

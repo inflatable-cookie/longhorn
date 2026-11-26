@@ -26,12 +26,12 @@ pub use discovery::{
     remove_discovery_file, resolve_discovery_dir, resolve_discovery_dir_with_state_override,
     sweep_stale_discovery, sweep_stale_discovery_with,
 };
-pub use handler::ControlHandler;
+pub use handler::{ControlHandler, PageEvent, PageEventBatch};
 pub use provider::{NativeSurfaceAction, NativeSurfaceProvider};
 pub use selection::{
-    BeginSelectionError, BeginSelectionRequest, DEFAULT_SELECTION_TTL, PendingSelection,
-    SelectionFilter, SelectionKind, SelectionOutcome, SelectionRegistry, SelectionResource,
-    SelectionWait, path_string, plugin_result,
+    BeginSelectionArgs, BeginSelectionError, BeginSelectionRequest, DEFAULT_SELECTION_TTL,
+    PendingSelection, SelectionFilter, SelectionKind, SelectionOutcome, SelectionRegistry,
+    SelectionResource, SelectionWait, path_string, plugin_result,
 };
 pub use server::{
     ControlServerConfig, ServeError, ServeReceipt, control_router, serve_control_surface,

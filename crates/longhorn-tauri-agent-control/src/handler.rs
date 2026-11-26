@@ -21,16 +21,21 @@ use std::{collections::BTreeSet, sync::Arc};
 
 use longhorn_agent_control::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, ControlHandler, DragRequest,
-    EvaluateRequest, EvaluateResult, ListWindowsRequest, ListWindowsResult, PressRequest,
-    ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest, SetFileInputRequest,
-    SnapshotRequest, SnapshotResult, ToolError, TypeRequest, ValidatedSetFileInputRequest,
-    WaitForRequest, WaitForResult, WebviewLabel, WebviewTarget, WindowInfo, WindowTarget,
+    EvaluateRequest, EvaluateResult, ListWindowsRequest, ListWindowsResult, PageEventBatch,
+    PressRequest, ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest,
+    SetFileInputRequest, SnapshotRequest, SnapshotResult, ToolError, TypeRequest,
+    ValidatedSetFileInputRequest, WaitForRequest, WaitForResult, WebviewLabel, WebviewTarget,
+    WindowTarget,
 };
-use longhorn_core::{ClientSize, WindowId};
+use longhorn_core::WindowId;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime, Webview, Window};
 
 use crate::{bridge::CommandBridge, shim};
+
+mod window_ops;
+
+use window_ops::{window_focused, window_info};
 
 /// Host authority for the control surface, backed by the Tauri app handle.
 pub struct TauriControlHandler<R: Runtime> {
@@ -164,15 +169,25 @@ impl<R: Runtime> TauriControlHandler<R> {
             }
             None => {
                 let windows = self.windows();
-                let (label, live) = windows
-                    .iter()
-                    .find(|(_, live)| live.window.is_focused().unwrap_or(false))
-                    .or_else(|| windows.first())
-                    .ok_or_else(|| ToolError::Unsupported {
-                        message: "the app has no webview windows to target".to_owned(),
-                    })?;
+                let (label, live) = match windows.as_slice() {
+                    [] => {
+                        return Err(ToolError::Unsupported {
+                            message: "the app has no webview windows to target".to_owned(),
+                        });
+                    }
+                    [first, ..] => {
+                        let mut focused = first;
+                        for window in &windows {
+                            if window_focused(&window.0, &window.1.window)? {
+                                focused = window;
+                                break;
+                            }
+                        }
+                        focused
+                    }
+                };
                 let window =
-                    WindowId::new(label.clone()).map_err(|error| ToolError::Unsupported {
+                    WindowId::new(label.clone()).map_err(|error| ToolError::HostFailure {
                         message: format!(
                             "window label {label:?} is not a valid window id: {error}"
                         ),
@@ -180,38 +195,6 @@ impl<R: Runtime> TauriControlHandler<R> {
                 Ok((window, live.clone()))
             }
         }
-    }
-
-    /// Reads one window's [`WindowInfo`].
-    fn window_info(label: &str, window: &Window<R>) -> Result<WindowInfo, ToolError> {
-        let id = WindowId::new(label.to_owned()).map_err(|error| ToolError::Unsupported {
-            message: format!("window label {label:?} is not a valid window id: {error}"),
-        })?;
-        let title = window.title().map_err(|error| ToolError::Unsupported {
-            message: format!("window {label:?} title read failed: {error}"),
-        })?;
-        let scale = window
-            .scale_factor()
-            .map_err(|error| ToolError::Unsupported {
-                message: format!("window {label:?} scale factor read failed: {error}"),
-            })?;
-        let physical = window
-            .inner_size()
-            .map_err(|error| ToolError::Unsupported {
-                message: format!("window {label:?} size read failed: {error}"),
-            })?;
-        let logical = physical.to_logical::<f64>(scale);
-        let size = ClientSize::new(logical.width, logical.height).map_err(|error| {
-            ToolError::Unsupported {
-                message: format!("window {label:?} reported an invalid client size: {error}"),
-            }
-        })?;
-        Ok(WindowInfo {
-            window: id,
-            title,
-            size,
-            focused: window.is_focused().unwrap_or(false),
-        })
     }
 
     /// Resolves a semantic/input target: window as today, then an optional
@@ -256,7 +239,7 @@ impl<R: Runtime> TauriControlHandler<R> {
         }
         WebviewLabel::new(live.webview_label.clone())
             .map(Some)
-            .map_err(|error| ToolError::Unsupported {
+            .map_err(|error| ToolError::HostFailure {
                 message: format!(
                     "webview label {:?} is not a valid webview id: {error}",
                     live.webview_label
@@ -272,18 +255,22 @@ impl<R: Runtime> TauriControlHandler<R> {
     ) -> Result<(WindowId, LiveTarget<R>, serde_json::Value), ToolError> {
         let (window_id, live) = self.resolve_semantic(window, webview)?;
         let js = live.with_ref_prefix(js);
-        #[cfg(target_os = "macos")]
-        {
-            let value = crate::capture::evaluate_webview(&live.webview, js).await?;
-            Ok((window_id, live, value))
-        }
-        #[cfg(not(target_os = "macos"))]
-        {
-            let _ = (live, js);
-            Err(ToolError::Unsupported {
-                message: "evaluate is implemented on macOS only (contract 020)".to_owned(),
-            })
-        }
+        let value = eval_webview(&live.webview, js).await?;
+        Ok((window_id, live, value))
+    }
+}
+
+async fn eval_webview<R: Runtime>(webview: &Webview<R>, js: String) -> Result<Value, ToolError> {
+    #[cfg(target_os = "macos")]
+    {
+        crate::capture::evaluate_webview(webview, js).await
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (webview, js);
+        Err(ToolError::Unsupported {
+            message: "evaluate is implemented on macOS only (contract 020)".to_owned(),
+        })
     }
 }
 
@@ -406,6 +393,16 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         Ok(EvaluateResult { value })
     }
 
+    async fn read_page_events(
+        &self,
+        since_seq: u64,
+        since_epoch: Option<&str>,
+    ) -> Result<PageEventBatch, ToolError> {
+        let (_, live) = self.resolve_window(&None)?;
+        let js = shim::read_events_js(since_seq, since_epoch);
+        shim::decode_events(eval_webview(&live.webview, js).await?)
+    }
+
     async fn wait_for(&self, request: WaitForRequest) -> Result<WaitForResult, ToolError> {
         request.validate()?;
         let js = shim::wait_for_js(&request.predicate);
@@ -456,7 +453,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         let windows = self
             .windows()
             .iter()
-            .map(|(label, live)| Self::window_info(label, &live.window))
+            .map(|(label, live)| window_info(label, &live.window))
             .collect::<Result<Vec<_>, _>>()?;
         Ok(ListWindowsResult { windows })
     }
@@ -466,15 +463,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         request: ResizeWindowRequest,
     ) -> Result<ActionReceipt, ToolError> {
         let (_, live) = self.resolve_window(&Some(request.window.clone()))?;
-        live.window
-            .set_size(tauri::Size::Logical(tauri::LogicalSize::new(
-                request.size.width().get(),
-                request.size.height().get(),
-            )))
-            .map_err(|error| ToolError::Unsupported {
-                message: format!("window {:?} resize failed: {error}", request.window),
-            })?;
-        Ok(ActionReceipt {})
+        window_ops::resize_window(&request, &live.window)
     }
 }
 
@@ -514,6 +503,21 @@ mod tests {
             Arc::new(NoCommandBridge),
             BTreeSet::new(),
         )
+    }
+
+    #[tokio::test]
+    async fn invalid_host_window_label_reports_host_failure() {
+        let app = tauri::test::mock_app();
+        let label = "w".repeat(longhorn_core::MAX_OPAQUE_ID_BYTES + 1);
+        WebviewWindowBuilder::new(app.handle(), label, Default::default())
+            .build()
+            .unwrap();
+
+        let error = handler(&app)
+            .list_windows(ListWindowsRequest {})
+            .await
+            .unwrap_err();
+        assert!(matches!(error, ToolError::HostFailure { .. }));
     }
 
     #[tokio::test]

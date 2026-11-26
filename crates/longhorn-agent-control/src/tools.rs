@@ -45,67 +45,76 @@ pub const MAX_FILE_INPUT_BYTES: usize = 8 * 1024 * 1024;
 /// Upper bound on `wait_for` timeout in milliseconds (5 minutes).
 pub const MAX_WAIT_TIMEOUT_MS: u32 = 300_000;
 
-/// Opaque element reference stamped by the edge that produced a snapshot.
-///
-/// Resolution is the stamping edge's job against the live DOM; the core
-/// treats the value as an opaque, bounded string and never stores it.
-#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
-pub struct ElementRef(String);
+macro_rules! control_id {
+    ($(#[doc = $doc:literal])* $name:ident) => {
+        $(#[doc = $doc])*
+        #[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
+        pub struct $name(String);
 
-impl ElementRef {
-    /// Validates and constructs the reference.
-    pub fn new(value: impl Into<String>) -> Result<Self, OpaqueIdError> {
-        let value = value.into();
-        if value.is_empty() {
-            return Err(OpaqueIdError::Empty);
+        impl $name {
+            /// Validates and constructs the reference.
+            pub fn new(value: impl Into<String>) -> Result<Self, OpaqueIdError> {
+                let value = value.into();
+                if value.is_empty() {
+                    return Err(OpaqueIdError::Empty);
+                }
+                if value.len() > longhorn_core::MAX_OPAQUE_ID_BYTES {
+                    return Err(OpaqueIdError::TooLong {
+                        maximum: longhorn_core::MAX_OPAQUE_ID_BYTES,
+                        actual: value.len(),
+                    });
+                }
+                Ok(Self(value))
+            }
+
+            /// Returns the serialized reference.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
         }
-        if value.len() > longhorn_core::MAX_OPAQUE_ID_BYTES {
-            return Err(OpaqueIdError::TooLong {
-                maximum: longhorn_core::MAX_OPAQUE_ID_BYTES,
-                actual: value.len(),
-            });
+
+        impl fmt::Display for $name {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str(self.as_str())
+            }
         }
-        Ok(Self(value))
-    }
 
-    /// Returns the serialized reference.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
+        impl FromStr for $name {
+            type Err = OpaqueIdError;
+
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                Self::new(value)
+            }
+        }
+
+        impl Serialize for $name {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                serializer.serialize_str(self.as_str())
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                Self::new(String::deserialize(deserializer)?).map_err(D::Error::custom)
+            }
+        }
+    };
 }
 
-impl fmt::Display for ElementRef {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
-
-impl FromStr for ElementRef {
-    type Err = OpaqueIdError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Self::new(value)
-    }
-}
-
-impl Serialize for ElementRef {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for ElementRef {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Self::new(String::deserialize(deserializer)?).map_err(D::Error::custom)
-    }
-}
+control_id!(
+    /// Opaque element reference stamped by the edge that produced a snapshot.
+    ///
+    /// Resolution is the stamping edge's job against the live DOM; the core
+    /// treats the value as an opaque, bounded string and never stores it.
+    ElementRef
+);
 
 /// One node of the semantic element tree: role, name, value, state.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -143,132 +152,22 @@ pub struct PageState {
 /// the host's frontmost or only window.
 pub type WindowTarget = Option<WindowId>;
 
-/// Opaque child-webview label used as a semantic target.
-///
-/// This is the host's own webview label (Tauri's, on that host). Absent
-/// [`WebviewTarget`] means the window's UI webview — today's meaning,
-/// unchanged. A present value addresses one hosted webview of that window.
-#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
-pub struct WebviewLabel(String);
-
-impl WebviewLabel {
-    /// Validates and constructs the label.
-    pub fn new(value: impl Into<String>) -> Result<Self, OpaqueIdError> {
-        let value = value.into();
-        if value.is_empty() {
-            return Err(OpaqueIdError::Empty);
-        }
-        if value.len() > longhorn_core::MAX_OPAQUE_ID_BYTES {
-            return Err(OpaqueIdError::TooLong {
-                maximum: longhorn_core::MAX_OPAQUE_ID_BYTES,
-                actual: value.len(),
-            });
-        }
-        Ok(Self(value))
-    }
-
-    /// Returns the serialized label.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Display for WebviewLabel {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
-
-impl FromStr for WebviewLabel {
-    type Err = OpaqueIdError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Self::new(value)
-    }
-}
-
-impl Serialize for WebviewLabel {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for WebviewLabel {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Self::new(String::deserialize(deserializer)?).map_err(D::Error::custom)
-    }
-}
+control_id!(
+    /// Opaque child-webview label used as a semantic target.
+    ///
+    /// This is the host's own webview label (Tauri's, on that host). Absent
+    /// [`WebviewTarget`] means the window's UI webview.
+    WebviewLabel
+);
 
 /// Per-webview targeting shared by semantic and input tools: `None`
 /// addresses the window's UI webview.
 pub type WebviewTarget = Option<WebviewLabel>;
 
-/// Opaque pending-selection id assigned when an agent-originated picker
-/// call is published.
-#[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
-pub struct SelectionId(String);
-
-impl SelectionId {
-    /// Validates and constructs the id.
-    pub fn new(value: impl Into<String>) -> Result<Self, OpaqueIdError> {
-        let value = value.into();
-        if value.is_empty() {
-            return Err(OpaqueIdError::Empty);
-        }
-        if value.len() > longhorn_core::MAX_OPAQUE_ID_BYTES {
-            return Err(OpaqueIdError::TooLong {
-                maximum: longhorn_core::MAX_OPAQUE_ID_BYTES,
-                actual: value.len(),
-            });
-        }
-        Ok(Self(value))
-    }
-
-    /// Returns the serialized id.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Display for SelectionId {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
-}
-
-impl FromStr for SelectionId {
-    type Err = OpaqueIdError;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Self::new(value)
-    }
-}
-
-impl Serialize for SelectionId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for SelectionId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Self::new(String::deserialize(deserializer)?).map_err(D::Error::custom)
-    }
-}
+control_id!(
+    /// Opaque pending-selection id assigned when an agent-originated picker is published.
+    SelectionId
+);
 
 /// `snapshot` request.
 #[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
@@ -757,7 +656,7 @@ pub struct AnswerSelectionResult {}
 pub struct RejectSelectionRequest {
     /// Pending request to decline.
     pub id: SelectionId,
-    /// Agent-supplied reason; not shown to the JS caller.
+    /// Agent-supplied reason delivered to the host waiter.
     pub reason: String,
 }
 
@@ -813,6 +712,11 @@ pub enum ToolError {
     /// surface asked for more than screenshots with no provider registered.
     Unsupported {
         /// What cannot be served, and why.
+        message: String,
+    },
+    /// A supported operation failed in the host.
+    HostFailure {
+        /// Host-provided failure detail.
         message: String,
     },
     /// No pending selection with this id exists on this instance.
@@ -874,6 +778,9 @@ impl fmt::Display for ToolError {
             }
             Self::Unsupported { message } => {
                 write!(formatter, "unsupported: {message}")
+            }
+            Self::HostFailure { message } => {
+                write!(formatter, "host operation failed: {message}")
             }
             Self::UnknownSelection { id } => {
                 write!(

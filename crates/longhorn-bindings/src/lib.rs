@@ -9,6 +9,7 @@
 
 use std::{env, error::Error};
 
+mod agent_control;
 mod serde_shape;
 
 /// Bridge protocol bindings and golden fixtures.
@@ -51,6 +52,10 @@ struct Domain {
 }
 
 const DOMAINS: &[Domain] = &[
+    Domain {
+        name: "agent-control",
+        render: agent_control::render,
+    },
     Domain {
         name: "bridge",
         render: bridge::render,

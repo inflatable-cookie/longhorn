@@ -55,7 +55,10 @@ agent can use while the app runs unfocused in the background.
   pending requests. Selection updates are pushed over a watch channel with
   zero polling; page-event subscriptions poll `readEvents` on a retained
   50 ms interval with a 2 s per-evaluation bound run concurrently with
-  cancellation and selection notifications.
+  cancellation and selection notifications. Resource reads and polling use a
+  dedicated host read that leaves picker origin untouched. The event batch
+  requires `epoch`, `events`, `nextSeq`, and `dropped`. The shim resets the
+  read cursor when the document epoch changes.
 - Closing a request's response stream cancels that request.
 
 ### Availability And Security
@@ -158,7 +161,10 @@ agent can use while the app runs unfocused in the background.
   registered catalogue is the allowed agency: the consumer replaces the
   no-command bridge with its own typed commands, and those commands are the
   whole of what the server can invoke.
-- Window operations: list windows, resize, per-window targeting.
+- Window operations: list windows, resize, per-window targeting. A failed host
+  window read, resize, or capture returns `hostFailure`. Unavailable capabilities
+  still return `unsupported`. Tauri reports best-effort shim injection failures
+  through the Longhorn diagnostics sink.
 - `set_file_input` (g02.048): supply inline file content to an HTML file
   input by ref. See Agent-Answerable Selection for the bounds.
 
@@ -173,7 +179,8 @@ agent can use while the app runs unfocused in the background.
 - A pending request has a unique id, requesting app instance, window and
   webview, selection kind, multiplicity, filters, title, and optional default path.
   The default path is a hint, never an answer. The pending state is readable
-  and updated on the selection resource so a subscribed agent can discover
+  in publication order, newest last, and updated on the selection resource
+  so a subscribed agent can discover
   a request before its timeout. An unanswered request expires with a typed
   `expiredSelection` error; a request cannot be answered after expiry or by
   another instance. Cancellation and shutdown settle the waiter explicitly
@@ -183,7 +190,8 @@ agent can use while the app runs unfocused in the background.
   evicted ids revert to `unknownSelection`.
 - `answer_selection { id, paths }` supplies the selection; `reject_selection
   { id, reason }` declines it and resolves the app call as `null` (the
-  plugin's cancellation result). Unknown, expired, already-settled, malformed,
+  plugin's cancellation result). The Rust waiter receives the rejection reason.
+  Unknown, expired, already-settled, malformed,
   or kind-incompatible answers fail typed. Single, multiple, directory, and
   save cardinality and shape are checked before delivery; an `open` answer
   must name an existing file or directory of the requested kind. No default path or
@@ -199,7 +207,12 @@ agent can use while the app runs unfocused in the background.
   still call `@tauri-apps/plugin-dialog` with the original options and result
   behavior. An active server alone must not capture a human picker. A panel
   already open cannot be answered retroactively. Consumers opt in at their
-  picker call sites; Longhorn does not patch the plugin globally.
+  picker call sites; Longhorn does not patch the plugin globally. The renderer
+  builds the `begin_selection` payload against bindings generated from
+  `longhorn_agent_control::BeginSelectionArgs`.
+  Begin and settlement failures reject IPC with a `ToolError` JSON object.
+  The Rust entry point returns the same error as a typed value. Failure to
+  allocate a request id returns `hostFailure`.
 - Rust-side picker calls (amended 2026-09-26, g02.047) join the same
   pending-selection registry. The page cannot hand its origin to Rust
   implicitly, so the consumer carries it: the `longhorn` TypeScript entry

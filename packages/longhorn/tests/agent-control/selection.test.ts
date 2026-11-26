@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+import protocol from "../../../../fixtures/agent-control/protocol-v1.json";
 import {
   BEGIN_SELECTION_COMMAND,
   SELECTION_RESOURCE_URI,
@@ -99,25 +100,31 @@ describe("bindFileSelection", () => {
       return "/agent/folder";
     };
     const api = bindFileSelection(recorded, window);
-    const options: OpenDialogOptions = { directory: true, title: "Choose folder" };
+    const options: OpenDialogOptions = {
+      directory: true,
+      filters: [{ name: "Project", extensions: ["json"] }],
+      title: "Choose folder",
+      defaultPath: "/projects",
+    };
     const result: OpenDialogResult = await api.open(options);
     expect(result).toBe("/agent/folder");
     expect(recorded.opens).toEqual([]);
     expect(recorded.invokes).toEqual([
       {
         command: BEGIN_SELECTION_COMMAND,
-        args: {
-          options: {
-            kind: "open",
-            directory: true,
-            multiple: false,
-            filters: [],
-            title: "Choose folder",
-            defaultPath: undefined,
-          },
-        },
+        args: protocol.beginSelection,
       },
     ]);
+  });
+
+  test("agent begin failure preserves the structured error and skips the plugin", async () => {
+    const window = openPage("<button>Import</button>");
+    install(window).markAgentOrigin();
+    const recorded = ports();
+    recorded.invoke = () => Promise.reject(protocol.beginFailure);
+
+    await expect(bindFileSelection(recorded, window).open()).rejects.toEqual(protocol.beginFailure);
+    expect(recorded.opens).toEqual([]);
   });
 
   test("agent-originated save is target selection only", async () => {
@@ -135,7 +142,6 @@ describe("bindFileSelection", () => {
         directory: false,
         multiple: false,
         filters: [],
-        title: undefined,
         defaultPath: "/tmp/out.txt",
       },
     });

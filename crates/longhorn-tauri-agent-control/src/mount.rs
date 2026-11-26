@@ -45,9 +45,60 @@ fn agent_control_plugin<R: Runtime>(registry: SelectionRegistry) -> tauri::plugi
         // event installs the ring before document scripts finish; `Finished`
         // covers any late context and `installAgentControlShim` is idempotent.
         .on_page_load(|webview, _payload| {
-            let _ = webview.eval(SHIM_SOURCE);
+            inject_shim(webview.label(), |source| webview.eval(source));
         })
         .build()
+}
+
+fn inject_shim(label: &str, eval: impl FnOnce(&str) -> tauri::Result<()>) {
+    if let Err(error) = eval(SHIM_SOURCE) {
+        longhorn_core::report_best_effort_failure(
+            "agent-control.shim-injection",
+            format_args!("webview {label:?}: {error}"),
+        );
+    }
+}
+
+#[cfg(test)]
+mod injection_tests {
+    use std::sync::Mutex;
+
+    use longhorn_core::{BestEffortDiagnostics, install_best_effort_diagnostics};
+
+    use super::*;
+
+    #[derive(Default)]
+    struct Diagnostics(Mutex<Vec<(&'static str, String)>>);
+
+    impl BestEffortDiagnostics for Diagnostics {
+        fn best_effort_failure(&self, area: &'static str, detail: &str) {
+            self.0.lock().unwrap().push((area, detail.to_owned()));
+        }
+    }
+
+    #[test]
+    fn shim_eval_failure_reaches_the_diagnostics_sink() {
+        let sink = Arc::new(Diagnostics::default());
+        assert!(install_best_effort_diagnostics(sink.clone()));
+
+        inject_shim("main", |source| {
+            assert_eq!(source, SHIM_SOURCE);
+            Ok(())
+        });
+        assert!(sink.0.lock().unwrap().is_empty());
+
+        inject_shim("preview", |source| {
+            assert_eq!(source, SHIM_SOURCE);
+            Err(io::Error::other("eval dispatch failed").into())
+        });
+        assert_eq!(
+            *sink.0.lock().unwrap(),
+            [(
+                "agent-control.shim-injection",
+                "webview \"preview\": eval dispatch failed".to_owned(),
+            )]
+        );
+    }
 }
 
 /// What one mount needs from the composing app.
@@ -259,7 +310,7 @@ pub fn mount_agent_control<R: Runtime>(
     // adoption finding, 2026-08-20).
     for (_, window) in app.windows() {
         for webview in window.webviews() {
-            let _ = webview.eval(SHIM_SOURCE);
+            inject_shim(webview.label(), |source| webview.eval(source));
         }
     }
 

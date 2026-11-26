@@ -9,6 +9,7 @@ description = "Host-agnostic core of the Longhorn agent app-control surface (con
 publish = false
 
 [features]
+bindings = ["dep:ts-rs"]
 # Off by default. The `evaluate` MCP tool stays listed so a packaged
 # `agent-control` build answers typed `Unsupported`; this feature is what
 # compiles the JS escape hatch (contract 022; expected only in dev/test).
@@ -24,6 +25,7 @@ client = ["dep:reqwest", "tokio/io-std", "tokio/process"]
 axum.workspace = true
 base64.workspace = true
 getrandom.workspace = true
+indexmap = "2"
 longhorn-storage-layout.workspace = true
 longhorn-core.workspace = true
 reqwest = { workspace = true, optional = true }
@@ -34,6 +36,7 @@ serde.workspace = true
 serde_json.workspace = true
 sysinfo.workspace = true
 tokio.workspace = true
+ts-rs = { workspace = true, optional = true }
 
 [[bin]]
 name = "longhorn-agent-control-client"

@@ -21,41 +21,43 @@ struct Args {
 }
 
 fn usage() -> &'static str {
-    "usage: longhorn-agent-control-client [--discovery-dir <dir>] [--state-root <dir>] [--app-id <id>]"
+    "usage: longhorn-agent-control-client [--discovery-dir <dir>] [--state-root <dir>] [--app-id <id>] [-h|--help]"
 }
 
-fn parse_args(argv: &[String]) -> Result<Args, String> {
+fn parse_args(argv: impl IntoIterator<Item = String>) -> Result<Option<Args>, String> {
     let mut args = Args {
         discovery_dir: None,
         state_root: None,
         app_id: None,
     };
-    let mut rest = &argv[1..];
-    while let [flag, value, tail @ ..] = rest {
+    let mut argv = argv.into_iter();
+    while let Some(flag) = argv.next() {
         match flag.as_str() {
-            "--discovery-dir" => args.discovery_dir = Some(PathBuf::from(value)),
-            "--state-root" => args.state_root = Some(PathBuf::from(value)),
-            "--app-id" => args.app_id = Some(value.clone()),
-            "--help" | "-h" => return Err("help".to_owned()),
+            "--help" | "-h" => return Ok(None),
+            "--discovery-dir" | "--state-root" | "--app-id" => {
+                let value = argv
+                    .next()
+                    .ok_or_else(|| format!("missing value for {flag}"))?;
+                match flag.as_str() {
+                    "--discovery-dir" => args.discovery_dir = Some(PathBuf::from(value)),
+                    "--state-root" => args.state_root = Some(PathBuf::from(value)),
+                    _ => args.app_id = Some(value),
+                }
+            }
             _ => return Err(format!("unknown flag {flag}")),
         }
-        rest = tail;
-    }
-    if !rest.is_empty() {
-        return Err(format!("unexpected argument {}", rest.join(" ")));
     }
     if args.discovery_dir.is_some() && args.state_root.is_some() {
         return Err("--discovery-dir and --state-root are mutually exclusive".to_owned());
     }
-    Ok(args)
+    Ok(Some(args))
 }
 
 #[tokio::main]
 async fn main() {
-    let argv: Vec<String> = std::env::args().collect();
-    let args = match parse_args(&argv) {
-        Ok(args) => args,
-        Err(reason) if reason == "help" => {
+    let args = match parse_args(std::env::args().skip(1)) {
+        Ok(Some(args)) => args,
+        Ok(None) => {
             println!("{}", usage());
             return;
         }

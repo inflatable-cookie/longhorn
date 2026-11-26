@@ -1,0 +1,23 @@
+{
+  "beginFailure": {
+    "error": "hostFailure",
+    "message": "selection id entropy unavailable"
+  },
+  "beginSelection": {
+    "options": {
+      "defaultPath": "/projects",
+      "directory": true,
+      "filters": [
+        {
+          "extensions": [
+            "json"
+          ],
+          "name": "Project"
+        }
+      ],
+      "kind": "open",
+      "multiple": false,
+      "title": "Choose folder"
+    }
+  }
+}

@@ -26,8 +26,8 @@ use axum::{Router, body::Body, http::Request};
 use http_body_util::BodyExt as _;
 use longhorn_agent_control::{
     ActionReceipt, CommandResult, ControlHandler, ElementRef, EvaluateResult, InstanceToken,
-    ListWindowsResult, PageState, ScreenshotResult, SelectionRegistry, SemanticNode,
-    SnapshotResult, ToolError, WaitForResult,
+    ListWindowsResult, PageEventBatch, PageState, ScreenshotResult, SelectionRegistry,
+    SemanticNode, SnapshotResult, ToolError, WaitForResult,
     carrier::{CarrierError, CarrierExit, run_carrier, select_instance},
     control_router, publish_discovery,
 };
@@ -41,7 +41,7 @@ use tokio::{
 use tower::ServiceExt as _;
 
 /// Canned host authority: fixed answers plus the page-event ring the
-/// server's listen loop polls through `evaluate` of `readEvents`.
+/// server's listen loop polls through its dedicated host read.
 #[derive(Clone)]
 struct StubHandler {
     events: Arc<Mutex<Vec<Value>>>,
@@ -146,27 +146,32 @@ impl ControlHandler for StubHandler {
         &self,
         request: longhorn_agent_control::EvaluateRequest,
     ) -> Result<EvaluateResult, ToolError> {
-        if let Some(since) = read_events_since(&request.js) {
-            let events = self.events.lock().unwrap();
-            let filtered: Vec<Value> = events
-                .iter()
-                .filter(|event| event["seq"].as_u64().unwrap_or(0) > since)
-                .cloned()
-                .collect();
-            let next_seq = self.next_seq.load(Ordering::SeqCst);
-            return Ok(EvaluateResult {
-                value: Value::String(
-                    json!({
-                        "events": filtered,
-                        "nextSeq": next_seq,
-                        "dropped": 0
-                    })
-                    .to_string(),
-                ),
-            });
-        }
         Ok(EvaluateResult {
             value: Value::String(request.js),
+        })
+    }
+
+    async fn read_page_events(
+        &self,
+        since_seq: u64,
+        since_epoch: Option<&str>,
+    ) -> Result<PageEventBatch, ToolError> {
+        let events = self.events.lock().unwrap();
+        let epoch = "carrier-document".to_owned();
+        let since = if since_epoch.is_some_and(|previous| previous != epoch) {
+            0
+        } else {
+            since_seq
+        };
+        Ok(PageEventBatch {
+            epoch,
+            events: events
+                .iter()
+                .filter(|event| event["seq"].as_u64().unwrap() > since)
+                .map(|event| serde_json::from_value(event.clone()).unwrap())
+                .collect(),
+            next_seq: self.next_seq.load(Ordering::SeqCst),
+            dropped: 0,
         })
     }
 
@@ -209,13 +214,6 @@ impl ControlHandler for StubHandler {
     ) -> Result<ActionReceipt, ToolError> {
         Ok(ActionReceipt {})
     }
-}
-
-fn read_events_since(js: &str) -> Option<u64> {
-    let start = js.find("readEvents(")?;
-    let rest = &js[start + "readEvents(".len()..];
-    let end = rest.find(')')?;
-    rest[..end].trim().parse().ok()
 }
 
 /// One live server plus its discovery file, and the spawned carrier.
@@ -597,6 +595,25 @@ async fn carrier_adapts_listen_and_resources_by_pass_through() {
     assert!(!listed["result"]["tools"].as_array().unwrap().is_empty());
 
     session.close().await;
+}
+
+#[tokio::test]
+async fn carrier_lone_help_flags_print_usage_and_exit_zero() {
+    for flag in ["--help", "-h"] {
+        let output = Command::new(env!("CARGO_BIN_EXE_longhorn-agent-control-client"))
+            .arg(flag)
+            .output()
+            .await
+            .unwrap();
+        assert!(output.status.success(), "{flag}: {:?}", output.stderr);
+        assert!(output.stderr.is_empty(), "{flag}: {:?}", output.stderr);
+        assert!(
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .starts_with("usage: longhorn-agent-control-client"),
+            "{flag} should print usage on stdout",
+        );
+    }
 }
 
 #[tokio::test]
