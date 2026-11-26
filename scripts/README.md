@@ -94,7 +94,9 @@ TypeScript checks; `check:bun-deps` guards
 modules, not entry points. `rust-toolchain-channel.sh` is invoked by `ci.yml` and
 `release.yml`, not by a selector: it prints the pinned stable channel from
 `rust-toolchain.toml` so both workflows install the declared version instead
-of floating `stable`. `release:bump` and `check:release-gates` are the
+of floating `stable`. `git-snapshot.sh` is shared by `verify-source-consumer.sh`
+and `verify-config-age-security.ts` to snapshot dirty working trees into a
+deterministic Git commit. `release:bump` and `check:release-gates` are the
 release-tooling selectors; see Release below.
 
 `check:agent-tool-dispatch` runs the focused contract-023 crate tests, its
@@ -153,9 +155,9 @@ should be argued for.
 
 `check:repo-containment`, also in `qa`, is stricter about location: Cargo
 `path`, package `file:` / `link:`, and `join(repoRoot, "../…")` must resolve
-inside this tree. Its allowed-escape list still names `verify-greenfield-compositions.ts`
-and the disposable g02.036 source-consumer runner described above; no standing
-consumer proof may take a `*_REPO` override.
+inside this tree. Its allowed-escape list names only the disposable g02.036
+source-consumer runner described above; no standing consumer proof may take a
+`*_REPO` override.
 
 `verify-greenfield-compositions.ts` separately enforces the absence of donor
 vocabulary inside the greenfield example root.

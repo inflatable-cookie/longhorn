@@ -1,5 +1,5 @@
 import { parseJsonRecord, requireRecord } from "./proof-json.ts";
-import { requireValue } from "./proof-support.ts";
+import { errorCode, requireValue } from "./proof-support.ts";
 // Fails when a manifest or script names a path that resolves above the
 // repository root.
 //
@@ -8,19 +8,17 @@ import { requireValue } from "./proof-support.ts";
 // named foreign repositories; this catches the mechanism itself — any
 // `path =`, `file:`, or `join(repoRoot, "../…")` that leaves the tree.
 //
-// Deliberate exceptions: the greenfield proof packs Poodle from source, and
-// g02.036 compiles one disposable exact-SHA Swallowtail source consumer.
+// Deliberate exception: g02.036 compiles one disposable exact-SHA Swallowtail
+// source consumer.
 
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
-const repoRoot = resolve(import.meta.dir, "..");
+const defaultRepoRoot = resolve(import.meta.dir, "..");
+const selfPath = import.meta.path;
 
 /** Relative paths allowed to name a location outside the repository. */
-const ALLOWED_ESCAPES = new Set([
-  "scripts/verify-agent-tool-dispatch-source-consumer.ts",
-  "scripts/verify-greenfield-compositions.ts",
-]);
+export const ALLOWED_ESCAPES = new Set(["scripts/verify-agent-tool-dispatch-source-consumer.ts"]);
 
 const SKIPPED = new Set([
   "node_modules",
@@ -36,52 +34,62 @@ const SCANNED = ["crates", "packages", "scripts", "examples", "prototypes", "fix
 const EXTENSIONS = new Set([".ts", ".tsx", ".svelte", ".rs", ".json", ".toml", ".sh"]);
 
 type Finding = { file: string; line: number; detail: string; text: string };
-const findings: Array<Finding> = [];
 
-for (const directory of SCANNED) {
-  await scan(join(repoRoot, directory));
+export async function verifyRepoContainment(repoRoot = defaultRepoRoot) {
+  const findings: Array<Finding> = [];
+
+  for (const directory of SCANNED) {
+    await scan(repoRoot, join(repoRoot, directory), findings);
+  }
+  for (const rootManifest of ["Cargo.toml", "package.json"]) {
+    const absolute = join(repoRoot, rootManifest);
+    try {
+      await inspectManifest(repoRoot, relative(repoRoot, absolute), absolute, findings);
+    } catch (error) {
+      if (errorCode(error) !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  if (findings.length > 0) {
+    const lines = findings.map(
+      ({ file, line, detail, text }) => `  ${file}:${line} ${detail} — ${text}`,
+    );
+    throw new Error(
+      `Longhorn path references must resolve inside the repository.\n\n${lines.join("\n")}\n\n` +
+        "A clean runner has no sibling checkouts and no machine-local packs. The\n" +
+        "only admitted escape is g02.036's disposable exact-SHA source-consumer\n" +
+        "acceptance runner.",
+    );
+  }
+
+  return {
+    schema: "longhorn.repo-containment.v1",
+    outcome: "pass",
+    scanned: SCANNED,
+    allowedEscapes: [...ALLOWED_ESCAPES],
+  };
 }
-await inspectManifest(
-  relative(repoRoot, join(repoRoot, "Cargo.toml")),
-  join(repoRoot, "Cargo.toml"),
-);
-await inspectManifest(
-  relative(repoRoot, join(repoRoot, "package.json")),
-  join(repoRoot, "package.json"),
-);
 
-if (findings.length > 0) {
-  const lines = findings.map(
-    ({ file, line, detail, text }) => `  ${file}:${line} ${detail} — ${text}`,
-  );
-  console.error(
-    `Longhorn path references must resolve inside the repository.\n\n${lines.join("\n")}\n\n` +
-      "A clean runner has no sibling checkouts and no machine-local packs. The\n" +
-      "admitted escapes are the Poodle pack proof and g02.036's disposable\n" +
-      "exact-SHA source-consumer acceptance runner.",
-  );
-  process.exit(1);
+if (import.meta.main) {
+  try {
+    console.log(JSON.stringify(await verifyRepoContainment(), null, 2));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
 }
 
-console.log(
-  JSON.stringify(
-    {
-      schema: "longhorn.repo-containment.v1",
-      outcome: "pass",
-      scanned: SCANNED,
-      allowedEscapes: [...ALLOWED_ESCAPES],
-    },
-    null,
-    2,
-  ),
-);
-
-async function scan(directory: string): Promise<void> {
+async function scan(repoRoot: string, directory: string, findings: Array<Finding>): Promise<void> {
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
-  } catch {
-    return;
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") {
+      return;
+    }
+    throw error;
   }
   for (const entry of entries) {
     if (SKIPPED.has(entry.name)) {
@@ -89,21 +97,26 @@ async function scan(directory: string): Promise<void> {
     }
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
-      await scan(path);
+      await scan(repoRoot, path, findings);
       continue;
     }
     const extension = entry.name.slice(entry.name.lastIndexOf("."));
     if (!EXTENSIONS.has(extension)) {
       continue;
     }
-    if (path === import.meta.path) {
+    if (path === selfPath) {
       continue;
     }
-    await inspectManifest(relative(repoRoot, path), path);
+    await inspectManifest(repoRoot, relative(repoRoot, path), path, findings);
   }
 }
 
-async function inspectManifest(file: string, absolute: string): Promise<void> {
+async function inspectManifest(
+  repoRoot: string,
+  file: string,
+  absolute: string,
+  findings: Array<Finding>,
+): Promise<void> {
   const source = await readFile(absolute, "utf8");
   if (ALLOWED_ESCAPES.has(file)) {
     return;
@@ -111,16 +124,18 @@ async function inspectManifest(file: string, absolute: string): Promise<void> {
 
   if (file.endsWith("Cargo.toml") || file.endsWith(".toml")) {
     recordPaths(
+      repoRoot,
       file,
       source,
       dirname(absolute),
       /\bpath\s*=\s*"([^"]+)"/g,
       "Cargo path escapes the repository",
+      findings,
     );
   }
 
   if (file.endsWith("package.json")) {
-    recordPackagePins(file, source, dirname(absolute));
+    recordPackagePins(repoRoot, file, source, dirname(absolute), findings);
   }
 
   // Sibling checkout from the repository root — the shape that made local qa
@@ -130,16 +145,18 @@ async function inspectManifest(file: string, absolute: string): Promise<void> {
     source,
     /\b(?:resolve|join)\(\s*(?:repoRoot|longhornRoot)\s*,\s*["'`]\.\.\/[^"'`]+["'`]/g,
     () => "resolves a path above the repository root",
+    findings,
   );
 }
 
-function recordPackagePins(file: string, source: string, base: string): void {
-  let manifest: Record<string, unknown>;
-  try {
-    manifest = parseJsonRecord(source);
-  } catch {
-    return;
-  }
+function recordPackagePins(
+  repoRoot: string,
+  file: string,
+  source: string,
+  base: string,
+  findings: Array<Finding>,
+): void {
+  const manifest = parseJsonRecord(source);
 
   const pins: Array<[string, string]> = [];
   for (const block of [
@@ -172,7 +189,7 @@ function recordPackagePins(file: string, source: string, base: string): void {
     }
     const target = requireValue(matched[2], "matched[2]");
     const absolute = resolve(base, target);
-    if (!escapes(absolute)) {
+    if (!escapes(repoRoot, absolute)) {
       continue;
     }
     const line = source.split("\n").findIndex((row) => row.includes(spec)) + 1;
@@ -186,18 +203,20 @@ function recordPackagePins(file: string, source: string, base: string): void {
 }
 
 function recordPaths(
+  repoRoot: string,
   file: string,
   source: string,
   base: string,
   pattern: RegExp,
   detail: string,
+  findings: Array<Finding>,
 ): void {
   pattern.lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(source)) !== null) {
     const target = requireValue(match[1], "match[1]");
     const absolute = resolve(base, target);
-    if (!escapes(absolute)) {
+    if (!escapes(repoRoot, absolute)) {
       continue;
     }
     findings.push({
@@ -214,6 +233,7 @@ function record(
   source: string,
   pattern: RegExp,
   classify: (match: RegExpExecArray) => string | null,
+  findings: Array<Finding>,
 ): void {
   pattern.lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -231,7 +251,7 @@ function record(
   }
 }
 
-function escapes(absolute: string): boolean {
+function escapes(repoRoot: string, absolute: string): boolean {
   const rel = relative(repoRoot, absolute);
   return rel === "" ? false : rel.startsWith("..") || isAbsolute(rel);
 }

@@ -36,14 +36,7 @@ import { runSync as run } from "./proof-support.ts";
 import { cp, lstat, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-  stagingDirectory,
-  taskScratch,
-} from "./rust-command.ts";
+import { rustCommand, stagedCargoRunner, stagingDirectory, taskScratch } from "./rust-command.ts";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const consumerName = "longhorn-desktop-support-conformance";
@@ -103,24 +96,8 @@ try {
   await cp(join(repoRoot, "Cargo.lock"), join(stage, "Cargo.lock"));
 
   const startedAt = performance.now();
-  // One exec lease over the staged workspace, with private final outputs on
-  // build scratch: the tool inside calls plain Cargo. The real `target/`
-  // directory keeps the lease adoption-free; see `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(stage);
-  const output = run(
-    rustExec(
-      privateCargoCommand(buildScratch.root, [
-        "cargo",
-        "run",
-        "-p",
-        consumerName,
-        "--offline",
-        "--quiet",
-      ]),
-      { manifestPath: join(stage, "Cargo.toml") },
-    ),
-    stage,
-  );
+  const staged = await stagedCargoRunner(stage, { target: buildScratch.root });
+  const output = run(staged(["cargo", "run", "-p", consumerName, "--offline", "--quiet"]), stage);
   const seconds = Number(((performance.now() - startedAt) / 1000).toFixed(1));
   const lines = output.trim().split("\n");
   if (!lines.includes("outcome: pass")) {

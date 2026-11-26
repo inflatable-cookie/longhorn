@@ -1,8 +1,17 @@
-import { requireValue } from "./proof-support.ts";
+import { isRecord } from "../packages/longhorn/src/core/record.ts";
+import { parseJsonRecord, requireStrings } from "./proof-json.ts";
+import { errorCode, requireValue } from "./proof-support.ts";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-const repoRoot = resolve(import.meta.dir, "..");
+const defaultRepoRoot = resolve(import.meta.dir, "..");
+
+export type HostProtocolSeams = {
+  readonly commands: ReadonlyMap<string, string>;
+  readonly events: ReadonlyMap<string, string>;
+  readonly commandsRustOnly: ReadonlyMap<string, string>;
+  readonly eventsRustOnly: ReadonlyMap<string, string>;
+};
 
 // Consumer-implemented seams: renderer packages define these names, and the
 // app's own Tauri host implements them. They have no Rust implementation in
@@ -56,26 +65,23 @@ const seamCommandsRustOnly = new Map([
 const seamEventsRustOnly = new Map([
   ["longhorn://command/catalogue-changed", "contract 010; renderer listen is consumer-filled"],
   ["longhorn://command/keymap-changed", "contract 010; renderer listen is consumer-filled"],
-  // MCP resource URIs on the agent-control listen stream, not Tauri events.
-  ["longhorn://agent-control/console", "contract 022; MCP resource, not a Tauri event"],
-  ["longhorn://agent-control/error", "contract 022; MCP resource, not a Tauri event"],
-  ["longhorn://agent-control/navigation", "contract 022; MCP resource, not a Tauri event"],
-  ["longhorn://agent-control/selection", "contract 022; MCP resource, not a Tauri event"],
 ]);
+
+export const DEFAULT_SEAMS: HostProtocolSeams = {
+  commands: seamCommands,
+  events: seamEvents,
+  commandsRustOnly: seamCommandsRustOnly,
+  eventsRustOnly: seamEventsRustOnly,
+};
 
 function walk(directory: string, suffix: string, files: Array<string> = []): Array<string> {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     // Never descend into installed packages. This walks source for protocol
     // strings, and a dependency tree holds none that belong to this repository.
-    // It also cannot be walked safely: `effigy deps link bun ../poodle` leaves
-    // dangling symlinks in the linked package's own node_modules, and the
-    // `statSync` this used to call follows symlinks and throws ENOENT on them.
     if (entry.name === "node_modules") {
       continue;
     }
     const path = join(directory, entry.name);
-    // Dirent classification does not follow symlinks, so a broken link is a
-    // file that does not end in the suffix rather than an exception.
     if (entry.isDirectory()) {
       walk(path, suffix, files);
     } else if (path.endsWith(suffix)) {
@@ -85,16 +91,21 @@ function walk(directory: string, suffix: string, files: Array<string> = []): Arr
   return files;
 }
 
-function collect(
+function collectSource(
   root: string,
   directories: Array<string>,
   matcher: RegExp,
   prefix: string,
   suffix: string,
+  sourceSubdir?: string,
 ): Set<string> {
   const found = new Set<string>();
   for (const directory of directories) {
-    for (const file of walk(join(root, prefix, directory), suffix)) {
+    const sourceRoot =
+      sourceSubdir === undefined
+        ? join(root, prefix, directory)
+        : join(root, prefix, directory, sourceSubdir);
+    for (const file of walk(sourceRoot, suffix)) {
       for (const match of readFileSync(file, "utf8").matchAll(matcher)) {
         found.add(requireValue(match[1], "match[1]"));
       }
@@ -103,135 +114,194 @@ function collect(
   return found;
 }
 
-const tauriCrateNames = readdirSync(join(repoRoot, "crates")).filter((name) =>
-  name.startsWith("longhorn-tauri-"),
-);
-const packageNames = readdirSync(join(repoRoot, "packages")).filter((name) => name !== "poodle");
-
-const rustCommands = collect(
-  repoRoot,
-  tauriCrateNames,
-  /#\[tauri::command[^\]]*\]\s*(?:pub\s+)?(?:async\s+)?fn\s+(longhorn_[a-z0-9_]+)/gs,
-  "crates",
-  ".rs",
-);
-const rustEvents = collect(
-  repoRoot,
-  tauriCrateNames,
-  /"(longhorn:\/\/[a-z0-9/-]+)"/g,
-  "crates",
-  ".rs",
-);
-const tsCommands = collect(repoRoot, packageNames, /"(longhorn_[a-z0-9_]+)"/g, "packages", ".ts");
-const tsEvents = collect(
-  repoRoot,
-  packageNames,
-  /"(longhorn:\/\/[a-z0-9/-]+)"/g,
-  "packages",
-  ".ts",
-);
-
-const problems: Array<string> = [];
-
-for (const command of tsCommands) {
-  if (!rustCommands.has(command) && !seamCommands.has(command)) {
-    problems.push(`renderer invokes command with no Rust implementation and no seam: ${command}`);
-  }
-}
-for (const command of rustCommands) {
-  if (!tsCommands.has(command) && !seamCommandsRustOnly.has(command)) {
-    problems.push(`Rust command with no renderer wiring and no documented seam: ${command}`);
-  }
-}
-for (const event of tsEvents) {
-  if (!rustEvents.has(event) && !seamEvents.has(event)) {
-    problems.push(`renderer listens for an event no Rust emitter and no seam provides: ${event}`);
-  }
-}
-for (const event of rustEvents) {
-  if (!tsEvents.has(event) && !seamEventsRustOnly.has(event)) {
-    problems.push(`Rust event with no renderer listener and no documented seam: ${event}`);
-  }
-}
-
-// Permission and capability examples must reference real commands and real
-// permission identifiers.
-const permissionIds = new Set<string>();
-const allowedCommands = new Set<string>();
-for (const directory of readdirSync(join(repoRoot, "crates")).filter((name) =>
-  name.startsWith("longhorn-tauri-"),
-)) {
-  const permissionsRoot = join(repoRoot, "crates", directory, "examples", "permissions");
-  const capabilitiesRoot = join(repoRoot, "crates", directory, "examples", "capabilities");
+function optionalDirectoryEntries(directory: string): Array<string> {
   try {
-    for (const file of readdirSync(permissionsRoot)) {
-      const content = readFileSync(join(permissionsRoot, file), "utf8");
-      const identifier = content.match(/identifier\s*=\s*"([^"]+)"/)?.[1];
-      if (identifier === undefined) {
-        problems.push(
-          `${join("crates", directory, "examples", "permissions", file)} has no identifier`,
-        );
+    return readdirSync(directory);
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") {
+      return [];
+    }
+    throw error;
+  }
+}
+
+export function verifyHostProtocol(
+  repoRoot = defaultRepoRoot,
+  seams: HostProtocolSeams = DEFAULT_SEAMS,
+) {
+  const tauriCrateNames = readdirSync(join(repoRoot, "crates")).filter((name) =>
+    name.startsWith("longhorn-tauri-"),
+  );
+  const packageNames = readdirSync(join(repoRoot, "packages")).filter((name) => name !== "poodle");
+
+  // Scan only `src/` on Rust crates so integration tests (`tests/`) and
+  // examples never count as shipped Tauri commands or event emitters.
+  const rustCommands = collectSource(
+    repoRoot,
+    tauriCrateNames,
+    /#\[tauri::command[^\]]*\]\s*(?:pub\s+)?(?:async\s+)?fn\s+(longhorn_[a-z0-9_]+)/gs,
+    "crates",
+    ".rs",
+    "src",
+  );
+  const rustEvents = collectSource(
+    repoRoot,
+    tauriCrateNames,
+    /"(longhorn:\/\/[a-z0-9/-]+)"/g,
+    "crates",
+    ".rs",
+    "src",
+  );
+  const tsCommands = collectSource(
+    repoRoot,
+    packageNames,
+    /"(longhorn_[a-z0-9_]+)"/g,
+    "packages",
+    ".ts",
+  );
+  const tsEvents = collectSource(
+    repoRoot,
+    packageNames,
+    /"(longhorn:\/\/[a-z0-9/-]+)"/g,
+    "packages",
+    ".ts",
+  );
+
+  const problems: Array<string> = [];
+
+  for (const command of tsCommands) {
+    if (!rustCommands.has(command) && !seams.commands.has(command)) {
+      problems.push(`renderer invokes command with no Rust implementation and no seam: ${command}`);
+    }
+  }
+  for (const command of rustCommands) {
+    if (!tsCommands.has(command) && !seams.commandsRustOnly.has(command)) {
+      problems.push(`Rust command with no renderer wiring and no documented seam: ${command}`);
+    }
+  }
+  for (const event of tsEvents) {
+    if (!rustEvents.has(event) && !seams.events.has(event)) {
+      problems.push(`renderer listens for an event no Rust emitter and no seam provides: ${event}`);
+    }
+  }
+  for (const event of rustEvents) {
+    if (!tsEvents.has(event) && !seams.eventsRustOnly.has(event)) {
+      problems.push(`Rust event with no renderer listener and no documented seam: ${event}`);
+    }
+  }
+
+  for (const [command] of seams.commands) {
+    if (seams.commandsRustOnly.has(command)) {
+      problems.push(`command listed in both seamCommands and seamCommandsRustOnly: ${command}`);
+    }
+    if (rustCommands.has(command) || !tsCommands.has(command)) {
+      problems.push(`stale seamCommands entry (not renderer-only): ${command}`);
+    }
+  }
+  for (const [command] of seams.commandsRustOnly) {
+    if (!rustCommands.has(command) || tsCommands.has(command)) {
+      problems.push(`stale seamCommandsRustOnly entry (not Rust-only): ${command}`);
+    }
+  }
+  for (const [event] of seams.events) {
+    if (seams.eventsRustOnly.has(event)) {
+      problems.push(`event listed in both seamEvents and seamEventsRustOnly: ${event}`);
+    }
+    if (rustEvents.has(event) || !tsEvents.has(event)) {
+      problems.push(`stale seamEvents entry (not renderer-only): ${event}`);
+    }
+  }
+  for (const [event] of seams.eventsRustOnly) {
+    if (!rustEvents.has(event) || tsEvents.has(event)) {
+      problems.push(`stale seamEventsRustOnly entry (not Rust-only): ${event}`);
+    }
+  }
+
+  // Permission and capability examples must reference real commands and real
+  // permission identifiers. Read all permissions across crates before checking
+  // capabilities so cross-crate ordering never hides a declared identifier.
+  const permissionIds = new Set<string>();
+  const allowedCommands = new Set<string>();
+
+  for (const directory of tauriCrateNames) {
+    const permissionsRoot = join(repoRoot, "crates", directory, "examples", "permissions");
+    for (const file of optionalDirectoryEntries(permissionsRoot)) {
+      const relativeFile = join("crates", directory, "examples", "permissions", file);
+      const parsed = Bun.TOML.parse(readFileSync(join(permissionsRoot, file), "utf8"));
+      if (
+        !isRecord(parsed) ||
+        !Array.isArray(parsed.permission) ||
+        parsed.permission.length === 0
+      ) {
+        problems.push(`${relativeFile} has no [[permission]] entries`);
         continue;
       }
-      permissionIds.add(identifier);
-      for (const command of content.matchAll(/commands\.allow\s*=\s*\[([^\]]*)\]/g)) {
-        for (const name of requireValue(command[1], "command[1]").matchAll(/"([^"]+)"/g)) {
-          allowedCommands.add(requireValue(name[1], "name[1]"));
+      for (const entry of parsed.permission) {
+        if (!isRecord(entry) || typeof entry.identifier !== "string" || entry.identifier === "") {
+          problems.push(`${relativeFile} has no identifier`);
+          continue;
+        }
+        permissionIds.add(entry.identifier);
+        if (isRecord(entry.commands) && entry.commands.allow !== undefined) {
+          for (const name of requireStrings(
+            entry.commands.allow,
+            `${relativeFile} commands.allow`,
+          )) {
+            allowedCommands.add(name);
+          }
         }
       }
     }
-  } catch {
-    // Crate has no examples/permissions directory.
   }
+
+  for (const directory of tauriCrateNames) {
+    const capabilitiesRoot = join(repoRoot, "crates", directory, "examples", "capabilities");
+    for (const file of optionalDirectoryEntries(capabilitiesRoot)) {
+      const relativeFile = join("crates", directory, "examples", "capabilities", file);
+      const parsed = parseJsonRecord(readFileSync(join(capabilitiesRoot, file), "utf8"));
+      if (parsed.permissions === undefined) {
+        continue;
+      }
+      for (const name of requireStrings(parsed.permissions, `${relativeFile} permissions`)) {
+        if (name.startsWith("core:")) {
+          continue;
+        }
+        if (!permissionIds.has(name)) {
+          problems.push(`${relativeFile} references undeclared permission ${name}`);
+        }
+      }
+    }
+  }
+
+  for (const command of allowedCommands) {
+    if (!rustCommands.has(command)) {
+      problems.push(`permission allows command with no Rust implementation: ${command}`);
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`host protocol drift: ${problems.length} problem(s):\n${problems.join("\n")}`);
+  }
+
+  return {
+    schema: "longhorn.host-protocol-proof.v1",
+    outcome: "pass",
+    rustCommands: rustCommands.size,
+    rendererCommands: tsCommands.size,
+    seamCommands: seams.commands.size + seams.commandsRustOnly.size,
+    rustEvents: rustEvents.size,
+    rendererEvents: tsEvents.size,
+    seamEvents: seams.events.size + seams.eventsRustOnly.size,
+    permissions: permissionIds.size,
+    allowedCommands: allowedCommands.size,
+  };
+}
+
+if (import.meta.main) {
   try {
-    for (const file of readdirSync(capabilitiesRoot)) {
-      const content = readFileSync(join(capabilitiesRoot, file), "utf8");
-      for (const permission of content.matchAll(/"permissions"\s*:\s*\[([^\]]*)\]/g)) {
-        for (const name of requireValue(permission[1], "permission[1]").matchAll(/"([^"]+)"/g)) {
-          if (requireValue(name[1], "name[1]").startsWith("core:")) {
-            continue;
-          }
-          if (!permissionIds.has(requireValue(name[1], "name[1]"))) {
-            problems.push(
-              `${join("crates", directory, "examples", "capabilities", file)} references undeclared permission ${name[1]}`,
-            );
-          }
-        }
-      }
-    }
-  } catch {
-    // Crate has no examples/capabilities directory.
+    console.log(JSON.stringify(verifyHostProtocol(), null, 2));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
   }
 }
-
-for (const command of allowedCommands) {
-  if (!rustCommands.has(command)) {
-    problems.push(`permission allows command with no Rust implementation: ${command}`);
-  }
-}
-
-if (problems.length > 0) {
-  for (const problem of problems) {
-    console.error(problem);
-  }
-  throw new Error(`host protocol drift: ${problems.length} problem(s)`);
-}
-
-console.log(
-  JSON.stringify(
-    {
-      schema: "longhorn.host-protocol-proof.v1",
-      outcome: "pass",
-      rustCommands: rustCommands.size,
-      rendererCommands: tsCommands.size,
-      seamCommands: seamCommands.size + seamCommandsRustOnly.size,
-      rustEvents: rustEvents.size,
-      rendererEvents: tsEvents.size,
-      seamEvents: seamEvents.size + seamEventsRustOnly.size,
-      permissions: permissionIds.size,
-      allowedCommands: allowedCommands.size,
-    },
-    null,
-    2,
-  ),
-);

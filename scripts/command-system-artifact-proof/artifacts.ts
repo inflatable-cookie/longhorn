@@ -8,12 +8,7 @@ import { MSRV } from "../msrv.ts";
 import { assertExactSet, digest, parseTrace, runWithDiagnostics as run } from "../proof-support.ts";
 import type { ArtifactIdentity } from "./types.ts";
 import { longhornVersion } from "../longhorn-version.ts";
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-} from "../rust-command.ts";
+import { rustCommand, stagedCargoRunner } from "../rust-command.ts";
 const LONGHORN_VERSION = longhornVersion();
 
 // Poodle installs from the registry, so there is no evidence file to read and
@@ -178,15 +173,7 @@ export async function packAndCheckRustArtifacts(
     );
   }
   await writeFile(join(workspace, "Cargo.toml"), privateWorkspaceManifest());
-  // One exec lease per staged workspace, with private final outputs on build
-  // scratch: the tool inside calls plain Cargo, and the intermediates keep the
-  // build directory the lease supplies. The real `target/` directory keeps the
-  // lease adoption-free; see `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(workspace);
-  const staged = (args: ReadonlyArray<string>) =>
-    rustExec(privateCargoCommand(buildTarget, args), {
-      manifestPath: join(workspace, "Cargo.toml"),
-    });
+  const staged = await stagedCargoRunner(workspace, { target: buildTarget });
   const traces = {
     jetstream: parseTrace(
       await run(

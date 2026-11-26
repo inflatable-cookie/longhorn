@@ -18,14 +18,7 @@ import { cp, mkdir, readFile, readdir, realpath, rm, writeFile } from "node:fs/p
 import { basename, join, resolve } from "node:path";
 import { MSRV, MSRV_TOOLCHAIN } from "./msrv.ts";
 import { longhornVersion } from "./longhorn-version.ts";
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-  stagingDirectory,
-  taskScratch,
-} from "./rust-command.ts";
+import { rustCommand, stagedCargoRunner, stagingDirectory, taskScratch } from "./rust-command.ts";
 
 // Poodle installs from the registry; poodleRelease() checks each published
 // package's sha512 against bun.lock and against the installed copy.
@@ -296,16 +289,10 @@ async function packAndRunRustArtifacts(): Promise<{
   await writeFile(join(workspace, "Cargo.toml"), rustWorkspaceManifest());
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
 
-  // One exec lease over the staged workspace at the MSRV pin, with private final
-  // outputs on build scratch: the tool inside calls plain Cargo. The real
-  // `target/` directory keeps the lease adoption-free; see
-  // `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(workspace);
-  const staged = (args: ReadonlyArray<string>) =>
-    rustExec(privateCargoCommand(buildScratch.root, args), {
-      manifestPath: join(workspace, "Cargo.toml"),
-      toolchain: MSRV_TOOLCHAIN,
-    });
+  const staged = await stagedCargoRunner(workspace, {
+    target: buildScratch.root,
+    toolchain: MSRV_TOOLCHAIN,
+  });
   const traces: Record<Shape, Record<string, unknown>> = { minimal: {}, loophole: {} };
   const graphs: Record<Shape, ReadonlyArray<string>> = { minimal: [], loophole: [] };
   for (const shape of ["minimal", "loophole"] as const) {

@@ -16,14 +16,7 @@ import { basename, join, resolve } from "node:path";
 import { MSRV_TOOLCHAIN } from "./msrv.ts";
 import { poodleRelease } from "./poodle-release.ts";
 import { longhornVersion } from "./longhorn-version.ts";
-import {
-  prepareStagedWorkspace,
-  privateCargoCommand,
-  rustCommand,
-  rustExec,
-  stagingDirectory,
-  taskScratch,
-} from "./rust-command.ts";
+import { rustCommand, stagedCargoRunner, stagingDirectory, taskScratch } from "./rust-command.ts";
 
 const shapeNames = ["minimal", "workspace", "full-hosting", "optional-server"] as const;
 type ShapeName = (typeof shapeNames)[number];
@@ -691,17 +684,10 @@ async function verifyRustArtifacts() {
   await cp(join(repoRoot, "Cargo.lock"), join(workspace, "Cargo.lock"));
 
   const shapes = [];
-  // One exec lease over the staged workspace at the MSRV pin, with private final
-  // outputs on build scratch: the tool inside calls plain Cargo, and the
-  // intermediates keep the build directory the lease supplies. The real
-  // `target/` directory keeps the lease adoption-free; see
-  // `prepareStagedWorkspace`.
-  await prepareStagedWorkspace(workspace);
-  const staged = (args: ReadonlyArray<string>) =>
-    rustExec(privateCargoCommand(buildScratch.root, args), {
-      manifestPath: join(workspace, "Cargo.toml"),
-      toolchain: MSRV_TOOLCHAIN,
-    });
+  const staged = await stagedCargoRunner(workspace, {
+    target: buildScratch.root,
+    toolchain: MSRV_TOOLCHAIN,
+  });
   for (const shape of shapeNames) {
     const packageName = `longhorn-greenfield-${shape}-tauri`;
     const output = await run(
