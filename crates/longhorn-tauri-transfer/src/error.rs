@@ -3,6 +3,22 @@ use std::{error::Error, fmt};
 use crate::{TransferHostError, TransferHostErrorCode};
 use longhorn_windowing::HostWindowHandle;
 
+/// Native Tauri getter that can fail during transfer readback.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum TransferHostOperation {
+    /// Read the inner content position.
+    InnerPosition,
+}
+
+impl fmt::Display for TransferHostOperation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InnerPosition => formatter.write_str("inner_position"),
+        }
+    }
+}
+
 /// Failure while reading current managed Tauri window authority.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TransferRuntimeError {
@@ -27,7 +43,7 @@ pub enum TransferRuntimeError {
         /// Managed transport handle.
         handle: HostWindowHandle,
         /// Failed operation.
-        operation: &'static str,
+        operation: TransferHostOperation,
         /// Tauri error text.
         detail: String,
     },
@@ -149,6 +165,27 @@ impl From<TransferHandlerError> for TransferHostError {
                 retryable: false,
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_call_operation_keeps_its_label_and_runtime_code() {
+        let host_error = TransferHandlerError::Runtime(TransferRuntimeError::HostCall {
+            handle: HostWindowHandle::new("main").expect("valid window label"),
+            operation: TransferHostOperation::InnerPosition,
+            detail: "unavailable".into(),
+        });
+        let host_error = TransferHostError::from(host_error);
+
+        assert_eq!(host_error.code, TransferHostErrorCode::RuntimeUnavailable);
+        assert_eq!(
+            host_error.message,
+            "inner_position failed for main: unavailable"
+        );
     }
 }
 

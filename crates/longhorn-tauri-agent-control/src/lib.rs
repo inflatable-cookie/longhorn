@@ -46,6 +46,6 @@ pub use longhorn_agent_control::{
 };
 #[cfg(feature = "agent-control")]
 pub use mount::{
-    AgentControlConfig, AgentControlHandle, AgentControlMountError, AgentControlShutdownError,
-    mount_agent_control,
+    AgentControlConfig, AgentControlHandle, AgentControlMountError, AgentControlPathOperation,
+    AgentControlShutdownError, mount_agent_control,
 };
