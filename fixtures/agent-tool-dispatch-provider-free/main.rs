@@ -209,6 +209,7 @@ fn swallowtail_failure(kind: longhorn::DispatchErrorKind) -> RegisteredToolFailu
         longhorn::DispatchErrorKind::InvalidIdentity => RegisteredToolFailureKind::IdentityRejected,
         longhorn::DispatchErrorKind::ExecutionKindMismatch
         | longhorn::DispatchErrorKind::EffectMismatch
+        | longhorn::DispatchErrorKind::TimerUnavailable
         | longhorn::DispatchErrorKind::MissingResult
         | longhorn::DispatchErrorKind::CallbackFailed => {
             RegisteredToolFailureKind::ServerExecutionFailed
@@ -231,7 +232,8 @@ fn execution_disposition(kind: longhorn::DispatchErrorKind) -> RegisteredToolExe
         | longhorn::DispatchErrorKind::InvalidBounds
         | longhorn::DispatchErrorKind::LimitExceeded
         | longhorn::DispatchErrorKind::DeadlineExceeded
-        | longhorn::DispatchErrorKind::DuplicateCall => {
+        | longhorn::DispatchErrorKind::DuplicateCall
+        | longhorn::DispatchErrorKind::TimerUnavailable => {
             RegisteredToolExecutionDisposition::NotExecuted
         }
         longhorn::DispatchErrorKind::DuplicateResult
@@ -281,8 +283,6 @@ fn longhorn_bounds() -> longhorn::DispatchBounds {
         bounds.max_outstanding_calls(),
         bounds.max_argument_bytes(),
         bounds.max_result_bytes(),
-        bounds.max_progress_item_bytes(),
-        bounds.max_queued_progress_items(),
         bounds.max_call_duration(),
     )
     .expect("Swallowtail fixture bounds are positive")

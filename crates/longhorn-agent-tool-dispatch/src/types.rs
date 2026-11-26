@@ -378,6 +378,9 @@ impl fmt::Debug for CallbackResult {
 }
 
 /// One successful terminal dispatch outcome.
+///
+/// Contract 023 prohibits transport replay regardless of effect posture; any
+/// retry requires a fresh attempt and operation generation.
 #[derive(Clone, Eq, PartialEq)]
 pub struct DispatchOutcome {
     call_id: String,
@@ -410,15 +413,6 @@ impl DispatchOutcome {
     #[must_use]
     pub const fn effect(&self) -> DispatchEffect {
         self.effect
-    }
-
-    /// Reports whether Longhorn may automatically replay this call.
-    ///
-    /// Contract 023 prohibits transport replay. A consumer retry always needs
-    /// a fresh attempt and operation generation, regardless of effect posture.
-    #[must_use]
-    pub const fn permits_automatic_replay(&self) -> bool {
-        false
     }
 }
 

@@ -1,0 +1,1 @@
+Removed `DispatchOutcome::permits_automatic_replay` because Contract 023 prohibits transport replay unconditionally; remove calls to `permits_automatic_replay()` and always issue a fresh attempt and operation generation for retries.

@@ -18,8 +18,7 @@ fn schema(version: &str, digest: &str) -> SchemaIdentity {
 }
 
 fn bounds(result_bytes: usize) -> DispatchBounds {
-    DispatchBounds::new(8, 1, 64, result_bytes, 16, 2, Duration::from_secs(5))
-        .expect("fixture bounds")
+    DispatchBounds::new(8, 1, 64, result_bytes, Duration::from_secs(5)).expect("fixture bounds")
 }
 
 fn registration(
@@ -160,7 +159,6 @@ fn valid_call_invokes_one_callback_and_accepts_one_result() {
 
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(outcome.result().payload_for_delivery(), b"result-secret");
-    assert!(!outcome.permits_automatic_replay());
     assert_eq!(
         dispatcher
             .events()
@@ -317,12 +315,12 @@ fn registration_schema_kind_and_binding_refusals_precede_callback() {
 
 #[test]
 fn bounds_are_positive_and_enforced_before_callback() {
-    let invalid_total = DispatchBounds::new(0, 1, 64, 64, 16, 2, Duration::from_secs(5))
+    let invalid_total = DispatchBounds::new(0, 1, 64, 64, Duration::from_secs(5))
         .expect_err("zero calls per binding must fail");
     assert_eq!(invalid_total.kind(), DispatchErrorKind::InvalidBounds);
 
-    let invalid = DispatchBounds::new(8, 1, 64, 64, 16, 2, Duration::ZERO)
-        .expect_err("zero duration must fail");
+    let invalid =
+        DispatchBounds::new(8, 1, 64, 64, Duration::ZERO).expect_err("zero duration must fail");
     assert_eq!(invalid.kind(), DispatchErrorKind::InvalidBounds);
 
     let calls = Arc::new(AtomicUsize::new(0));
@@ -334,7 +332,7 @@ fn bounds_are_positive_and_enforced_before_callback() {
         schema("1", "sha256:output"),
         ExecutionKind::NativeClient,
         DispatchEffect::Mutating,
-        DispatchBounds::new(8, 2, 64, 64, 16, 2, Duration::from_secs(5)).expect("positive bounds"),
+        DispatchBounds::new(8, 2, 64, 64, Duration::from_secs(5)).expect("positive bounds"),
     )
     .expect("candidate registration");
     let (_, cancellation) = live_cancellation();
@@ -363,7 +361,7 @@ fn total_calls_are_bounded_by_the_producer_for_one_binding() {
         schema("1", "sha256:output"),
         ExecutionKind::NativeClient,
         DispatchEffect::Mutating,
-        DispatchBounds::new(2, 1, 64, 64, 16, 2, Duration::from_secs(5)).expect("positive bounds"),
+        DispatchBounds::new(2, 1, 64, 64, Duration::from_secs(5)).expect("positive bounds"),
     )
     .expect("bounded registration");
     assert_eq!(registration.bounds().max_calls_per_binding(), 2);
@@ -804,7 +802,7 @@ fn unrepresentable_deadline_fails_typed_without_panicking() {
         schema("1", "sha256:output"),
         ExecutionKind::NativeClient,
         DispatchEffect::Mutating,
-        DispatchBounds::new(8, 1, 64, 64, 16, 2, Duration::MAX).expect("positive bounds"),
+        DispatchBounds::new(8, 1, 64, 64, Duration::MAX).expect("positive bounds"),
     )
     .expect("wide registration");
     let dispatcher = RecordingDispatcher::new(
@@ -1082,6 +1080,184 @@ fn diagnostics_and_debug_output_are_redacted() {
     ] {
         assert!(!evidence.contains(protected));
     }
+}
+
+#[test]
+fn pre_cancelled_mutating_call_never_invokes_callback_or_consumes_budget() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let single_call_registration = RegisteredCapability::new(
+        "registration-7",
+        "desktop/read_context",
+        schema("1", "sha256:input"),
+        schema("1", "sha256:output"),
+        ExecutionKind::NativeClient,
+        DispatchEffect::Mutating,
+        DispatchBounds::new(1, 1, 64, 64, Duration::from_secs(5)).expect("positive bounds"),
+    )
+    .expect("registration");
+    let dispatcher = RecordingDispatcher::new(
+        single_call_registration.clone(),
+        expected_binding(),
+        CompletingCallback {
+            calls: Arc::clone(&calls),
+            payload: b"result-secret".to_vec(),
+        },
+    );
+
+    let (flag, pre_cancelled) = live_cancellation();
+    flag.cancel();
+    let error = block_on(dispatcher.dispatch(
+        invocation(
+            "already-cancelled",
+            single_call_registration.clone(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        pre_cancelled,
+    ))
+    .expect_err("pre-cancelled call must be rejected before callback");
+
+    assert_eq!(error.kind(), DispatchErrorKind::Cancelled);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let metrics = dispatcher.metrics();
+    assert_eq!(metrics.callbacks, 0);
+    assert_eq!(metrics.cancellations, 0);
+    assert_eq!(metrics.rejections, 1);
+    assert_eq!(
+        dispatcher
+            .events()
+            .into_iter()
+            .map(|event| event.kind())
+            .collect::<Vec<_>>(),
+        vec![DispatchEventKind::Rejected(DispatchErrorKind::Cancelled)]
+    );
+
+    // The single-call per-binding budget must still be available for an active call.
+    let (_, fresh_cancellation) = live_cancellation();
+    let outcome = block_on(dispatcher.dispatch(
+        invocation(
+            "uncancelled-call",
+            single_call_registration,
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        fresh_cancellation,
+    ))
+    .expect("pre-cancelled call must not consume per-binding budget");
+    assert_eq!(outcome.result().payload_for_delivery(), b"result-secret");
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(dispatcher.metrics().callbacks, 1);
+    assert_eq!(dispatcher.metrics().results, 1);
+}
+
+#[test]
+fn repeated_rejections_of_any_kind_sample_events_while_counting_metrics() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let retained = Arc::new(Mutex::new(None));
+    let dispatcher = RecordingDispatcher::new(
+        expected_registration(),
+        expected_binding(),
+        RetainingCallback {
+            calls: Arc::clone(&calls),
+            retained: Arc::clone(&retained),
+        },
+    );
+    let (_, cancellation) = live_cancellation();
+
+    // Admit one call so we can also exercise DuplicateCall and DuplicateResult.
+    block_on(dispatcher.dispatch(
+        invocation(
+            "seeded-call",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+        ),
+        cancellation.clone(),
+    ))
+    .expect("seeded call succeeds");
+
+    let stale_reg = registration(
+        "registration-6",
+        schema("1", "sha256:input"),
+        schema("1", "sha256:output"),
+        ExecutionKind::NativeClient,
+    );
+    let recorder = retained
+        .lock()
+        .expect("retained recorder lock")
+        .as_ref()
+        .expect("callback retained recorder")
+        .clone();
+
+    for _ in 0..20 {
+        let stale = block_on(dispatcher.dispatch(
+            invocation(
+                "stale-reg",
+                stale_reg.clone(),
+                expected_binding(),
+                BindingStatus::Current,
+            ),
+            cancellation.clone(),
+        ))
+        .expect_err("stale registration fails");
+        assert_eq!(stale.kind(), DispatchErrorKind::StaleRegistration);
+
+        let dup_call = block_on(dispatcher.dispatch(
+            invocation(
+                "seeded-call",
+                expected_registration(),
+                expected_binding(),
+                BindingStatus::Current,
+            ),
+            cancellation.clone(),
+        ))
+        .expect_err("duplicate call fails");
+        assert_eq!(dup_call.kind(), DispatchErrorKind::DuplicateCall);
+
+        let oversized_args = DispatchInvocation::new(
+            "oversized-args",
+            expected_registration(),
+            expected_binding(),
+            BindingStatus::Current,
+            DispatchDeadline::active(Duration::from_secs(1)),
+            vec![b'x'; 65],
+        )
+        .expect("oversized invocation");
+        let limit = block_on(dispatcher.dispatch(oversized_args, cancellation.clone()))
+            .expect_err("oversized arguments fail");
+        assert_eq!(limit.kind(), DispatchErrorKind::LimitExceeded);
+
+        let dup_result = recorder
+            .record(CallbackResult::new(
+                schema("1", "sha256:output"),
+                b"extra".to_vec(),
+            ))
+            .expect_err("duplicate result fails");
+        assert_eq!(dup_result.kind(), DispatchErrorKind::DuplicateResult);
+    }
+
+    assert_eq!(dispatcher.metrics().rejections, 80);
+    let events = dispatcher.events();
+    for kind in [
+        DispatchErrorKind::StaleRegistration,
+        DispatchErrorKind::DuplicateCall,
+        DispatchErrorKind::LimitExceeded,
+        DispatchErrorKind::DuplicateResult,
+    ] {
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| event.kind() == DispatchEventKind::Rejected(kind))
+                .count(),
+            1,
+            "expected one sampled rejection event for {kind:?}"
+        );
+    }
+    let sequences = events
+        .iter()
+        .map(|event| event.sequence())
+        .collect::<Vec<_>>();
+    assert_eq!(sequences, (1..=events.len() as u64).collect::<Vec<_>>());
 }
 
 struct ThreadWake(std::thread::Thread);
