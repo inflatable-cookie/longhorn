@@ -8,19 +8,6 @@ export function sampleUpdateController(getController: () => UpdateController) {
     get status() {
       return read().status;
     },
-    get special() {
-      const controller = read();
-      if (controller.pending) {
-        return undefined;
-      }
-      if (controller.lastRejection === "malformedArtifact") {
-        return { kind: "malformed" as const, detail: controller.lastRejectionDetail };
-      }
-      if (controller.availability?.state === "unavailableForTarget") {
-        return { kind: "unavailable" as const };
-      }
-      return undefined;
-    },
     retryDownload(): void {
       const controller = getController();
       const version = actionableVersion(controller);
@@ -31,9 +18,7 @@ export function sampleUpdateController(getController: () => UpdateController) {
     get availability() {
       const controller = read();
       const availability = controller.availability;
-      return availability?.state === "notChecked" || availability?.state === "unavailableForTarget"
-        ? undefined
-        : availability;
+      return availability?.state === "notChecked" ? undefined : availability;
     },
     get progress() {
       return read().progress;
@@ -48,14 +33,20 @@ export function sampleUpdateController(getController: () => UpdateController) {
       return read().deferral;
     },
     get lastRejection() {
-      const rejection = read().lastRejection;
-      return rejection === "malformedArtifact" ? undefined : rejection;
+      return read().lastRejection;
+    },
+    get lastRejectionDetail() {
+      return read().lastRejectionDetail;
     },
     get aheadOfChannel() {
       return read().aheadOfChannel;
     },
     get presence() {
-      return read().presence;
+      const controller = read();
+      return controller.availability?.state === "unavailableForTarget" ||
+        controller.lastRejection === "malformedArtifact"
+        ? "quiet"
+        : controller.presence;
     },
     get pending() {
       return read().pending;

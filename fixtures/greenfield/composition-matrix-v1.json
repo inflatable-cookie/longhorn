@@ -2,7 +2,7 @@
   "schema": "longhorn.greenfield-composition-matrix.v1",
   "sources": {
     "longhornSelected": "1155768c423519e62eb7a82e6ebfa3d6485626a3",
-    "poodleSelected": "0.4.4@registry"
+    "poodleSelected": "0.4.16@registry"
   },
   "artifacts": {
     "sets": {

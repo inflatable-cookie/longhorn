@@ -4382,13 +4382,13 @@ dependencies = [
 
 [[package]]
 name = "poodle-headless"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 
 [[package]]
 name = "poodle-specs"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "poodle-headless",
  "poodle-tokens",
@@ -4396,8 +4396,8 @@ dependencies = [
 
 [[package]]
 name = "poodle-tokens"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 
 [[package]]
 name = "portable-atomic"

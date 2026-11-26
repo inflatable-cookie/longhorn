@@ -770,7 +770,7 @@ dependencies = [
  "maybe-owned",
  "rustix",
  "rustix-linux-procfs",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
  "winx",
 ]
 
@@ -1653,7 +1653,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3322,6 +3322,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "longhorn-redact"
+version = "0.6.0"
+
+[[package]]
 name = "longhorn-settings"
 version = "0.6.0"
 dependencies = [
@@ -3375,6 +3379,7 @@ name = "longhorn-update"
 version = "0.6.0"
 dependencies = [
  "longhorn-core",
+ "longhorn-redact",
  "longhorn-url",
  "minisign-verify",
  "semver",
@@ -3726,7 +3731,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -4494,8 +4499,8 @@ dependencies = [
 
 [[package]]
 name = "poodle-adapter"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "poodle-events",
  "poodle-layout",
@@ -4505,13 +4510,13 @@ dependencies = [
 
 [[package]]
 name = "poodle-events"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 
 [[package]]
 name = "poodle-gpui"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "poodle-adapter",
  "poodle-events",
@@ -4524,8 +4529,8 @@ dependencies = [
 
 [[package]]
 name = "poodle-gpui-node-backend"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "anyhow",
  "futures",
@@ -4537,29 +4542,29 @@ dependencies = [
 
 [[package]]
 name = "poodle-headless"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 
 [[package]]
 name = "poodle-layout"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "poodle-tokens",
 ]
 
 [[package]]
 name = "poodle-markdown"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "pulldown-cmark",
 ]
 
 [[package]]
 name = "poodle-node"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "poodle-headless",
  "poodle-layout",
@@ -4569,8 +4574,8 @@ dependencies = [
 
 [[package]]
 name = "poodle-render"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "libc",
  "poodle-adapter",
@@ -4587,8 +4592,8 @@ dependencies = [
 
 [[package]]
 name = "poodle-specs"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "poodle-headless",
  "poodle-tokens",
@@ -4596,8 +4601,8 @@ dependencies = [
 
 [[package]]
 name = "poodle-style"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 dependencies = [
  "poodle-layout",
  "poodle-tokens",
@@ -4605,8 +4610,8 @@ dependencies = [
 
 [[package]]
 name = "poodle-tokens"
-version = "0.4.12"
-source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.12#654e0dec7bb5807724754833e9f196115ec20bae"
+version = "0.4.16"
+source = "git+https://github.com/inflatable-cookie/poodle.git?tag=v0.4.16#114c7b5a0bf204b9ea86cccccf7164cb38470586"
 
 [[package]]
 name = "portable-atomic"
@@ -5160,7 +5165,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5900,7 +5905,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6239,7 +6244,7 @@ checksum = "f2f6fb2847f6742cd76af783a2a2c49e9375d0a111c7bef6f71cd9e738c72d6e"
 dependencies = [
  "memoffset",
  "tempfile",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6895,7 +6900,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

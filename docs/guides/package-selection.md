@@ -33,7 +33,7 @@ against a Longhorn checkout (recipe below). Rust resolves crates against the
 Cargo inventory and source archives of the
 [private 0.1 candidate](../reference/private-0-1-candidate.md), whose receipt
 is frozen history: it records the 17-TypeScript-package tree of 2026-08-02,
-not the current three-package tree. Longhorn `0.1.0` and Poodle `0.4.4` are
+not the current three-package tree. Longhorn `0.1.0` and Poodle `0.4.16` are
 both published.
 
 ## Proven Starting Shapes
@@ -83,7 +83,7 @@ exact `0.1.0`, and without the override bun reaches the registry for it and
 404s. Shapes that select Svelte/Poodle bindings add
 `@inflatable-cookie/longhorn-poodle-svelte` by the same `file:` discipline;
 the Poodle packages it peers on are published, and the adapter takes any
-`0.4.x` from `0.4.4`; install by version, and Longhorn `0.1.0` is published
+`0.4.x` from `0.4.16`; install by version, and Longhorn `0.1.0` is published
 too. The full recipe,
 including the development-link alternative, is in
 [Getting Started](getting-started.md).

@@ -10,9 +10,7 @@
   const source = {
     get availability() {
       const availability = controller.availability;
-      return availability?.state === "notChecked" || availability?.state === "unavailableForTarget"
-        ? undefined
-        : availability;
+      return availability?.state === "notChecked" ? undefined : availability;
     },
   };
 </script>
