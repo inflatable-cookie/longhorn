@@ -5,7 +5,9 @@
 //! caller's own contract pins. An application may serialize them unchanged or
 //! project its own wire shape from them.
 
-use serde::Serialize;
+use std::path::{Path, PathBuf};
+
+use serde::{Serialize, Serializer};
 
 /// One worktree's Git status as Git reports it.
 ///
@@ -62,8 +64,11 @@ pub struct GitBranch {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitWorkspaceState {
-    /// The canonical worktree root.
-    pub root: String,
+    /// The canonical worktree root, exact. Git's own bytes are kept, so a
+    /// later read or switch addresses the same folder. Serialized as a lossy
+    /// display string.
+    #[serde(serialize_with = "serialize_lossy_root")]
+    pub root: PathBuf,
     /// The current branch name, or the short revision when detached.
     pub current_branch: String,
     /// True when the checkout is detached.
@@ -82,4 +87,10 @@ impl GitWorkspaceState {
     pub fn has_named_ref(&self, name: &str) -> bool {
         self.branches.iter().any(|branch| branch.name == name)
     }
+}
+
+/// The wire form of a worktree root: the same lossy display string the
+/// projection has always carried, while the Rust field keeps the exact path.
+fn serialize_lossy_root<S: Serializer>(root: &Path, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(&root.to_string_lossy())
 }

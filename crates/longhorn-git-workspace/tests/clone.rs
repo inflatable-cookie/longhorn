@@ -6,7 +6,7 @@ mod support;
 
 use std::{
     fs,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -249,11 +249,19 @@ fn a_cancelled_clone_returns_at_the_cancel_even_when_the_remote_hangs() {
 }
 
 #[cfg(unix)]
-#[test]
-fn a_cancel_during_the_stderr_drain_returns_at_the_cancel() {
+/// What one cancelled clone left behind.
+struct DrainCancel {
+    failure: CloneFailure,
+    elapsed: Duration,
+    leftovers: Vec<PathBuf>,
+    zombies: Vec<String>,
+}
+
+/// Clones with a remote program that exits at once while a backgrounded
+/// descendant keeps Git's standard error open, and cancels after 300 ms.
+fn cancel_clone_during_stderr_drain(fixture: &Fixture) -> DrainCancel {
     // The remote program exits at once and Git refuses, but a backgrounded
     // descendant keeps Git's standard error open for three seconds.
-    let fixture = Fixture::worktree();
     let program = support::script(
         fixture.temp.path(),
         "orphan.sh",
@@ -272,9 +280,18 @@ fn a_cancel_during_the_stderr_drain_returns_at_the_cancel() {
     fs::create_dir(&parent).expect("a destination parent");
     let staging =
         create_owned_staging(&parent, std::ffi::OsStr::new("workspace")).expect("staging");
+    // Cancel only once Git has exited while its standard error is still held:
+    // that is the drain this helper exists to exercise.
+    #[cfg(unix)]
+    let zombies_before = zombie_children();
+    #[cfg(unix)]
+    let before_for_setter = zombies_before.clone();
     let cancel = Arc::new(AtomicBool::new(false));
     let flag = Arc::clone(&cancel);
     let setter = thread::spawn(move || {
+        #[cfg(unix)]
+        wait_for_new_zombie(&before_for_setter, Duration::from_secs(10));
+        #[cfg(not(unix))]
         thread::sleep(Duration::from_millis(300));
         flag.store(true, Ordering::SeqCst);
     });
@@ -285,17 +302,108 @@ fn a_cancel_during_the_stderr_drain_returns_at_the_cancel() {
         .clone_into(&remote, staging.path(), &cancel, None)
         .expect_err("the caller cancelled");
     let elapsed = started.elapsed();
+    // A clone running beside this one in the same process can hold a zombie
+    // for one of its own polls; that clears at once. A leaked child does not,
+    // so the check waits about a second before it reports one.
+    #[cfg(unix)]
+    let zombies: Vec<String> = {
+        let mut found = Vec::new();
+        for _ in 0..50 {
+            found = zombie_children()
+                .into_iter()
+                .filter(|pid| !zombies_before.contains(pid))
+                .collect();
+            if found.is_empty() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(20));
+        }
+        found
+    };
+    #[cfg(not(unix))]
+    let zombies = Vec::new();
     setter.join().expect("the cancelling thread");
     staging
         .remove()
         .expect("the invocation removes its own staging");
 
-    assert!(matches!(failure, CloneFailure::Cancelled), "{failure:?}");
+    DrainCancel {
+        failure,
+        elapsed,
+        leftovers: staging_leftovers(&parent),
+        zombies,
+    }
+}
+
+/// Waits, for at most `bound`, until this process has a zombie child that was
+/// not in `before`: the clone's own child, exited and not yet reaped.
+#[cfg(unix)]
+fn wait_for_new_zombie(before: &[String], bound: Duration) {
+    let started = Instant::now();
+    while started.elapsed() < bound {
+        if zombie_children().iter().any(|pid| !before.contains(pid)) {
+            return;
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
+/// The process ids of this process's zombie children. `ps` is on macOS and
+/// Linux; a zombie shows no usable name or arguments there, so only its state
+/// and parent identify it.
+#[cfg(unix)]
+fn zombie_children() -> Vec<String> {
+    let output = std::process::Command::new("ps")
+        .args(["-A", "-o", "pid=,ppid=,stat="])
+        .output()
+        .expect("ps lists the process table");
+    let me = std::process::id().to_string();
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .filter_map(|line| {
+            let fields: Vec<&str> = line.split_whitespace().collect();
+            (fields.len() >= 3 && fields[1] == me && fields[2].starts_with('Z'))
+                .then(|| fields[0].to_owned())
+        })
+        .collect()
+}
+
+#[test]
+fn a_cancel_during_the_stderr_drain_returns_at_the_cancel() {
+    let fixture = Fixture::worktree();
+
+    let cancelled = cancel_clone_during_stderr_drain(&fixture);
+
     assert!(
-        elapsed < Duration::from_millis(1500),
-        "cancellation returned after {elapsed:?}"
+        matches!(cancelled.failure, CloneFailure::Cancelled),
+        "{:?}",
+        cancelled.failure
     );
-    assert!(staging_leftovers(&parent).is_empty());
+    assert!(
+        cancelled.elapsed < Duration::from_millis(1500),
+        "cancellation returned after {:?}",
+        cancelled.elapsed
+    );
+    assert!(cancelled.leftovers.is_empty());
+}
+
+#[cfg(unix)]
+#[test]
+fn a_cancel_during_the_stderr_drain_reaps_the_clone_child() {
+    let fixture = Fixture::worktree();
+
+    let cancelled = cancel_clone_during_stderr_drain(&fixture);
+
+    assert!(
+        matches!(cancelled.failure, CloneFailure::Cancelled),
+        "{:?}",
+        cancelled.failure
+    );
+    assert!(
+        cancelled.zombies.is_empty(),
+        "the cancelled clone left its child unreaped: {:?}",
+        cancelled.zombies
+    );
 }
 
 #[test]

@@ -82,8 +82,10 @@ impl Git<'_> {
                 };
             }
         };
-        let root = state.root.clone();
-        match self.origin_url_raw(Path::new(&root)) {
+        // The reading keeps its display string; the origin lookup uses the exact
+        // path the state carries.
+        let root = state.root.to_string_lossy().into_owned();
+        match self.origin_url_raw(&state.root) {
             Some(observed) if remotes_match(&observed, expected_remote) => {}
             observed => {
                 return AttachReading::WrongRemote {

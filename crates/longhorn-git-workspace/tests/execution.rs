@@ -665,3 +665,29 @@ fn stderr_past_the_capture_bound_is_withheld_with_a_note() {
     };
     assert!(detail.contains("later output was not retained"), "{detail}");
 }
+
+#[test]
+fn a_folder_failure_detail_goes_through_the_callers_redactor() {
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy();
+    let missing = fixture.temp.path().join("missing-worktree");
+    // The operating system's own words for the missing folder: the caller's
+    // redactor must reach them like any other failure detail.
+    let message = fs::canonicalize(&missing)
+        .expect_err("the folder does not exist")
+        .to_string();
+    let git = Git::new(
+        &policy,
+        Redactor::new([message.clone()], RedactionRules::exact_only()),
+    );
+
+    let failure = git
+        .inspect_worktree(&missing)
+        .expect_err("the folder is missing");
+
+    let GitFailure::FolderUnavailable { ref detail, .. } = failure else {
+        panic!("expected an unavailable folder, got {failure:?}");
+    };
+    assert!(!detail.contains(&message), "{detail}");
+    assert!(detail.contains("[redacted]"), "{detail}");
+}

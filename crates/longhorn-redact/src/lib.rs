@@ -171,6 +171,18 @@ impl Redactor {
         self.dropped_secrets
     }
 
+    /// This redactor with one more exact secret, under the same rules. The
+    /// secret follows the same acceptance as [`Redactor::new`].
+    #[must_use]
+    pub fn with_secret(&self, secret: impl Into<String>) -> Self {
+        let mut extended = Self::new(
+            self.secrets.iter().cloned().chain([secret.into()]),
+            self.rules.clone(),
+        );
+        extended.dropped_secrets += self.dropped_secrets;
+        extended
+    }
+
     /// Redacts `text`, repeating passes until one finds nothing to replace.
     #[must_use]
     pub fn redact(&self, text: &str) -> Redaction {
@@ -274,7 +286,7 @@ fn replace_spans(text: &str, spans: &[Range<usize>]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{clip, merge};
+    use super::{RedactionRules, Redactor, clip, merge};
 
     #[test]
     fn clip_splits_around_markers_and_drops_wholly_protected_candidates() {
@@ -290,5 +302,32 @@ mod tests {
     #[test]
     fn merge_joins_overlapping_and_touching_spans_only() {
         assert_eq!(merge(vec![6..9, 0..3, 3..4, 2..3]), vec![0..4, 6..9]);
+    }
+
+    #[test]
+    fn with_secret_adds_an_exact_secret_under_the_same_rules() {
+        let base = Redactor::new(
+            ["base-secret-value".to_owned()],
+            RedactionRules::exact_only(),
+        );
+        let extended = base.with_secret("second-secret-value");
+        let token = "ghp_abcdefghijklmnopqrstuvwxyz0123456789";
+        let text = format!("base-secret-value second-secret-value {token}");
+
+        let redacted = extended.redact(&text).text;
+
+        assert!(!redacted.contains("base-secret-value"), "{redacted}");
+        assert!(!redacted.contains("second-secret-value"), "{redacted}");
+        assert!(
+            redacted.contains(token),
+            "exact-only rules add no shape matches: {redacted}"
+        );
+        assert!(
+            base.redact("second-secret-value")
+                .text
+                .contains("second-secret-value"),
+            "the original redactor is unchanged"
+        );
+        assert_eq!(base.with_secret("abc").dropped_secrets(), 1);
     }
 }

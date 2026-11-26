@@ -11,6 +11,7 @@ use crate::{
     execution::Git,
     failure::{GitFailure, GitFailureCode},
     model::GitWorkspaceState,
+    status::has_tracked_dirt,
 };
 
 /// Why a sync stopped before completing. Facts only; the application owns the
@@ -62,8 +63,9 @@ pub enum SyncReading {
 }
 
 impl Git<'_> {
-    /// Syncs one clean, upstream-tracking worktree: fetch, fast-forward when
-    /// behind, push when ahead.
+    /// Syncs one upstream-tracking worktree without tracked, staged or
+    /// conflicted work: fetch, fast-forward when behind, push when ahead.
+    /// Untracked content does not stop it.
     ///
     /// `reload` re-reads the same workspace through the caller's own admission
     /// path after each mutation, so an application that admits its roots keeps
@@ -76,22 +78,22 @@ impl Git<'_> {
     pub fn sync_workspace(
         &self,
         before: GitWorkspaceState,
-        reload: impl Fn(&str) -> Result<GitWorkspaceState, GitFailure>,
+        reload: impl Fn(&Path) -> Result<GitWorkspaceState, GitFailure>,
     ) -> Result<SyncReading, GitFailure> {
         if before.detached {
             return Ok(stopped(SyncStop::Detached, before, false, false));
         }
-        if !before.status.clean {
+        if has_tracked_dirt(&before.status) {
             return Ok(stopped(SyncStop::Dirty, before, false, false));
         }
         if before.upstream.is_none() {
             return Ok(stopped(SyncStop::NoUpstream, before, false, false));
         }
 
-        let root = Path::new(&before.root);
+        let root = before.root.as_path();
         self.run_git(root, &["fetch"], GitFailureCode::FetchFailed)?;
-        let after_fetch = reload(&before.root)?;
-        if !after_fetch.status.clean {
+        let after_fetch = reload(root)?;
+        if has_tracked_dirt(&after_fetch.status) {
             return Ok(stopped(SyncStop::DirtyAfterFetch, after_fetch, true, false));
         }
         if after_fetch.status.ahead > 0 && after_fetch.status.behind > 0 {
@@ -113,8 +115,8 @@ impl Git<'_> {
             fast_forwarded = true;
         }
 
-        let before_push = reload(&before.root)?;
-        if !before_push.status.clean {
+        let before_push = reload(root)?;
+        if has_tracked_dirt(&before_push.status) {
             return Ok(stopped(
                 SyncStop::DirtyBeforePush,
                 before_push,
@@ -136,7 +138,7 @@ impl Git<'_> {
             self.run_git(root, &["push"], GitFailureCode::PushFailed)?;
             pushed = true;
         }
-        let state = reload(&before.root)?;
+        let state = reload(root)?;
 
         Ok(SyncReading::Completed {
             state,

@@ -4,7 +4,7 @@
 
 mod support;
 
-use std::path::Path;
+use std::{cell::Cell, fs};
 
 use longhorn_git_workspace::{GitFailureCode, SyncReading, SyncStop};
 use support::{Fixture, checked, commit, handle};
@@ -13,7 +13,7 @@ fn sync(git: &longhorn_git_workspace::Git<'_>, fixture: &Fixture) -> SyncReading
     let before = git
         .inspect_worktree(&fixture.root)
         .expect("the fixture is a worktree");
-    git.sync_workspace(before, |root| git.inspect_worktree(Path::new(root)))
+    git.sync_workspace(before, |root| git.inspect_worktree(root))
         .expect("the local remote answers")
 }
 
@@ -203,9 +203,219 @@ fn returns_a_stable_fetch_refusal() {
         .expect("the fixture is a worktree");
 
     let failure = git
-        .sync_workspace(before, |root| git.inspect_worktree(Path::new(root)))
+        .sync_workspace(before, |root| git.inspect_worktree(root))
         .expect_err("the remote does not exist");
 
     assert_eq!(failure.code(), GitFailureCode::FetchFailed);
     assert!(failure.detail().contains("longhorn-remote.git"));
+}
+
+#[test]
+fn untracked_content_does_not_stop_a_sync() {
+    let fixture = Fixture::worktree();
+    fs::write(fixture.root.join("untracked.md"), "in progress\n").expect("an untracked path");
+    let policy = fixture.policy();
+    let git = handle(&policy);
+    commit(
+        &fixture.root,
+        &fixture.config,
+        "local.md",
+        "local\n",
+        "Local change",
+    );
+
+    let reading = sync(&git, &fixture);
+
+    let SyncReading::Completed { pushed, .. } = reading else {
+        panic!("untracked content must not stop a sync, got {reading:?}");
+    };
+    assert!(pushed);
+}
+
+#[test]
+fn stops_on_staged_work_before_fetching() {
+    let fixture = Fixture::worktree();
+    fs::write(fixture.root.join("staged.md"), "staged\n").expect("a staged path");
+    checked(&fixture.root, &fixture.config, &["add", "staged.md"]);
+    let policy = fixture.policy();
+    let git = handle(&policy);
+
+    let reading = sync(&git, &fixture);
+
+    let SyncReading::Stopped { stop, fetched, .. } = reading else {
+        panic!("staged work must stop the sync, got {reading:?}");
+    };
+    assert_eq!(stop, SyncStop::Dirty);
+    assert!(!fetched);
+}
+
+#[test]
+fn stops_when_tracked_work_appears_after_the_fetch() {
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy();
+    let git = handle(&policy);
+    let before = git
+        .inspect_worktree(&fixture.root)
+        .expect("the fixture is a worktree");
+    let reads = Cell::new(0);
+
+    let reading = git
+        .sync_workspace(before, |root| {
+            // The first re-read follows the fetch: tracked work appears beside
+            // the incoming changes.
+            if reads.replace(reads.get() + 1) == 0 {
+                fs::write(fixture.root.join("content.md"), "changed while fetching\n")
+                    .expect("tracked content");
+            }
+            git.inspect_worktree(root)
+        })
+        .expect("the local remote answers");
+
+    let SyncReading::Stopped {
+        stop,
+        fetched,
+        fast_forwarded,
+        ..
+    } = reading
+    else {
+        panic!("tracked work after the fetch must stop the sync, got {reading:?}");
+    };
+    assert_eq!(stop, SyncStop::DirtyAfterFetch);
+    assert!(fetched);
+    assert!(!fast_forwarded);
+}
+
+#[test]
+fn stops_when_tracked_work_appears_before_the_push() {
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy();
+    let git = handle(&policy);
+    commit(
+        &fixture.root,
+        &fixture.config,
+        "local.md",
+        "local\n",
+        "Local change",
+    );
+    let before = git
+        .inspect_worktree(&fixture.root)
+        .expect("the fixture is a worktree");
+    let reads = Cell::new(0);
+
+    let reading = git
+        .sync_workspace(before, |root| {
+            // The second re-read sits between the checks and the push.
+            if reads.replace(reads.get() + 1) == 1 {
+                fs::write(fixture.root.join("content.md"), "changed before pushing\n")
+                    .expect("tracked content");
+            }
+            git.inspect_worktree(root)
+        })
+        .expect("the local remote answers");
+
+    let SyncReading::Stopped {
+        stop,
+        fetched,
+        fast_forwarded,
+        ..
+    } = reading
+    else {
+        panic!("tracked work before the push must stop the sync, got {reading:?}");
+    };
+    assert_eq!(stop, SyncStop::DirtyBeforePush);
+    assert!(fetched);
+    assert!(!fast_forwarded);
+}
+
+#[test]
+fn stops_when_the_remote_diverges_before_the_push() {
+    let fixture = Fixture::worktree();
+    let policy = fixture.policy();
+    let git = handle(&policy);
+    let peer = fixture.peer();
+    commit(
+        &fixture.root,
+        &fixture.config,
+        "local.md",
+        "local\n",
+        "Local change",
+    );
+    let before = git
+        .inspect_worktree(&fixture.root)
+        .expect("the fixture is a worktree");
+    let reads = Cell::new(0);
+
+    let reading = git
+        .sync_workspace(before, |root| {
+            // Between the checks and the push, a peer lands a commit and this
+            // checkout fetches it: the branch is now ahead and behind.
+            if reads.replace(reads.get() + 1) == 1 {
+                commit(
+                    &peer,
+                    &fixture.config,
+                    "incoming.md",
+                    "incoming\n",
+                    "Incoming",
+                );
+                checked(&peer, &fixture.config, &["push"]);
+                checked(&fixture.root, &fixture.config, &["fetch"]);
+            }
+            git.inspect_worktree(root)
+        })
+        .expect("the local remote answers");
+
+    let SyncReading::Stopped {
+        stop,
+        ref state,
+        fetched,
+        fast_forwarded,
+    } = reading
+    else {
+        panic!("a diverged branch before the push must stop the sync, got {reading:?}");
+    };
+    assert_eq!(stop, SyncStop::DivergedBeforePush);
+    assert!(fetched);
+    assert!(!fast_forwarded);
+    assert_eq!(state.status.ahead, 1);
+    assert_eq!(state.status.behind, 1);
+}
+
+#[cfg(unix)]
+#[test]
+fn syncs_a_root_whose_path_is_not_utf8() {
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt as _};
+
+    let fixture = Fixture::worktree();
+    let root = fixture
+        .temp
+        .path()
+        .join(OsStr::from_bytes(b"worktree-\xff"));
+    if let Err(error) = fs::rename(&fixture.root, &root) {
+        eprintln!(
+            "SKIP: the platform filesystem refuses non-UTF-8 names ({error}); \
+             the exact-root sync is not exercised here"
+        );
+        return;
+    }
+    commit(
+        &root,
+        &fixture.config,
+        "local.md",
+        "local\n",
+        "Local change",
+    );
+    let policy = fixture.policy();
+    let git = handle(&policy);
+    let before = git
+        .inspect_worktree(&root)
+        .expect("the worktree is read through its exact path");
+
+    let reading = git
+        .sync_workspace(before, |root| git.inspect_worktree(root))
+        .expect("the local remote answers");
+
+    let SyncReading::Completed { pushed, .. } = reading else {
+        panic!("the exact root must sync, got {reading:?}");
+    };
+    assert!(pushed);
 }
