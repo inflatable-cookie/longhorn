@@ -208,5 +208,7 @@ fn tagged_wire_enums_reject_unknown_fields() {
 
     let prune_unchanged = serde_json::to_value(ForkPruneResult::Unchanged {}).unwrap();
     assert!(serde_json::from_value::<ForkPruneResult>(prune_unchanged.clone()).is_ok());
-    assert!(serde_json::from_value::<ForkPruneResult>(with_unknown_field(prune_unchanged)).is_err());
+    assert!(
+        serde_json::from_value::<ForkPruneResult>(with_unknown_field(prune_unchanged)).is_err()
+    );
 }

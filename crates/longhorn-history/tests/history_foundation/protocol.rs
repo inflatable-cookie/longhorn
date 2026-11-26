@@ -114,25 +114,21 @@ fn history_tagged_wire_enums_reject_unknown_fields() {
         history_id("history:strict"),
         HistoryLimits::default(),
     );
-    let snapshot = HistorySnapshot::from_summary(epoch, &history.project_summary().unwrap())
-        .unwrap();
+    let snapshot =
+        HistorySnapshot::from_summary(epoch, &history.project_summary().unwrap()).unwrap();
     let with_unknown_field = |mut value: Value| {
         value["unexpected"] = json!(true);
         value
     };
 
     let undo = serde_json::to_value(HistoryNavigationTargetProjection::Undo {}).unwrap();
-    assert!(
-        serde_json::from_value::<HistoryNavigationTargetProjection>(undo.clone()).is_ok()
-    );
+    assert!(serde_json::from_value::<HistoryNavigationTargetProjection>(undo.clone()).is_ok());
     assert!(
         serde_json::from_value::<HistoryNavigationTargetProjection>(with_unknown_field(undo))
             .is_err()
     );
     let checkout = json!({"kind": "checkout", "entryId": "entry:rename"});
-    assert!(
-        serde_json::from_value::<HistoryNavigationTargetProjection>(checkout.clone()).is_ok()
-    );
+    assert!(serde_json::from_value::<HistoryNavigationTargetProjection>(checkout.clone()).is_ok());
     assert!(
         serde_json::from_value::<HistoryNavigationTargetProjection>(with_unknown_field(checkout))
             .is_err()
