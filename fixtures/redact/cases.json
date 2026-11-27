@@ -635,6 +635,50 @@
       "count": 0,
       "replaced": 0,
       "dropped_secrets": 0
+    },
+    {
+      "name": "json-escaped-quote-in-assignment",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"abc\\\"secret\"}",
+      "expected": "{\"password\":\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-escaped-backslash-before-closing-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"abc\\\\\",\"next\":\"visible\"}",
+      "expected": "{\"password\":\"[redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-escaped-backslash-and-quote-in-assignment",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"abc\\\\\\\"secret\",\"next\":\"visible\"}",
+      "expected": "{\"password\":\"[redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "single-quoted-escaped-quote-and-backslash",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{'password':'abc\\'secret\\\\','next':'visible'}",
+      "expected": "{'password':'[redacted]','next':'visible'}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
     }
   ]
 }

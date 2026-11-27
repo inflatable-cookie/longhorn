@@ -198,7 +198,7 @@ fn assignments(
                 continue;
             }
             let end = match quote {
-                Some(quote) => run_end(text, start, |character| character == char::from(quote)),
+                Some(quote) => quoted_value_end(text, start, quote),
                 None if is_authorization => line_end(text, start),
                 None => run_end(text, start, |character| {
                     character.is_whitespace() || matches!(character, '&' | ',' | ';')
@@ -209,6 +209,24 @@ fn assignments(
             }
         }
     }
+}
+
+/// End of a quoted assignment value starting at `start`, honouring `\\`
+/// escapes (such as `\"`, `\'` and `\\\\`) up to the closing `quote` or the
+/// end of `text`.
+fn quoted_value_end(text: &str, start: usize, quote: u8) -> usize {
+    let quote = char::from(quote);
+    let mut escaped = false;
+    for (offset, character) in text[start..].char_indices() {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == quote {
+            return start + offset;
+        }
+    }
+    text.len()
 }
 
 fn skip_blanks(bytes: &[u8], mut cursor: usize) -> usize {

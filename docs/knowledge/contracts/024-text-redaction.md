@@ -95,8 +95,9 @@ Each rule only proposes spans.
   `NODE_AUTH_TOKEN` matches `token`), then an optional `"` or `'` (so JSON and
   object-literal keys such as `"password":"x"` match), then optional spaces or
   tabs, then `=` or `:`, then optional spaces or tabs. The value:
-  - quoted: up to the closing quote, across line breaks, or the end of the
-    text when it does not close;
+  - quoted: up to the unescaped closing quote (honouring `\` escapes such as
+    `\"`, `\'`, and `\\`), across line breaks, or the end of the text when it
+    does not close;
   - unquoted: up to whitespace, `&`, `,` or `;`;
   - for the key `authorization`: a value starting `Bearer ` (any case)
     proposes nothing, because the Bearer rule owns it. Any other value runs
@@ -151,6 +152,8 @@ Rows that fix the composition:
 | `password=left[redacted]right` | `password=[redacted][redacted][redacted]`, `replaced` 2 | The marker separates the clipped runs |
 | `Authorization: Bearer` | `Authorization: [redacted]` | No space after `Bearer`, so the `authorization` value runs to the line end |
 | `{"password":"x"}` | `{"password":"[redacted]"}` | Optional closing quote after the key before `:` |
+| `{"password":"abc\"secret"}` | `{"password":"[redacted]"}` | Escaped quote stays inside the quoted value |
+| `{"password":"abc\\","next":"visible"}` | `{"password":"[redacted]","next":"visible"}` | Escaped backslash leaves the following quote unescaped |
 
 ## Compatibility for consumers
 

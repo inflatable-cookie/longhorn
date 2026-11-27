@@ -629,16 +629,34 @@ fn fields_are_redacted_before_they_are_cut() {
 #[test]
 fn debug_formatting_logs_never_prints_seeded_secrets() {
     let secret = "seeded-log-debug-secret";
-    let seeded = Redactor::new([secret.to_owned()], RedactionRules::common());
+    let key_secret = "custom-log-key-secret";
+    let prefix_secret = "custom-log-prefix-secret";
+    let rules = RedactionRules {
+        token_prefixes: vec![prefix_secret.to_owned()],
+        assignment_keys: vec![key_secret.to_owned()],
+        ..RedactionRules::common()
+    };
+    let seeded = Redactor::new(
+        [
+            secret.to_owned(),
+            key_secret.to_owned(),
+            prefix_secret.to_owned(),
+        ],
+        rules,
+    );
 
     let ring = RingLog::new(4, 128, seeded.clone());
     let ring_debug = format!("{ring:?}");
     assert!(!ring_debug.contains(secret), "{ring_debug}");
+    assert!(!ring_debug.contains(key_secret), "{ring_debug}");
+    assert!(!ring_debug.contains(prefix_secret), "{ring_debug}");
 
     let root = tempfile::tempdir().unwrap();
     let rotating = RotatingLog::open(config(root.path(), MAX_BYTES), seeded);
     let rotating_debug = format!("{rotating:?}");
     assert!(!rotating_debug.contains(secret), "{rotating_debug}");
+    assert!(!rotating_debug.contains(key_secret), "{rotating_debug}");
+    assert!(!rotating_debug.contains(prefix_secret), "{rotating_debug}");
 
     let discarding_debug = format!("{:?}", RotatingLog::discarding());
     assert!(!discarding_debug.contains(secret), "{discarding_debug}");
