@@ -239,6 +239,7 @@ fn busy_quiescence_releases_the_lease() {
         1,
         "the barrier must protect the probe"
     );
+    assert!(!authority.held(), "deferral must release the barrier");
 }
 
 /// The wire projection states which of the two answers the gate gave. The

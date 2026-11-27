@@ -258,8 +258,10 @@ earlier single-call stance.
 
 - Authorization is no longer a point-in-time answer. `UpdateGate` acquires an
   **exclusive admission lease** from a host-supplied admission authority and
-  checks quiescence after acquiring it, and holds it through `apply`, refusing new conflicting work for
-  the critical section.
+  checks quiescence after acquiring it, and holds it through `apply`, refusing
+  new conflicting work for the critical section. A busy probe releases the
+  lease before returning its deferral; acquisition can briefly block new work
+  even when the probe later defers.
 - The lease is host-supplied: Longhorn owns the gate, and the application owns
   what "conflicting work" means. Longhorn never learns the application's
   operations.
