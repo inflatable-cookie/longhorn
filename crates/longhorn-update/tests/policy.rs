@@ -445,3 +445,21 @@ fn evaluate_never_offers_a_release_without_the_target_artifact() {
         UpdateAvailability::UnavailableForTarget { .. }
     ));
 }
+
+#[test]
+fn build_metadata_does_not_change_release_precedence_or_floor() {
+    let release = manifest(Channel::Production, version("1.2.0+abc"))
+        .with_minimum_version(version("1.2.0+z"));
+    assert!(!release.is_below_minimum(&version("1.2.0")));
+    assert_eq!(
+        evaluate(
+            &build(Channel::Production, "1.2.0"),
+            &release,
+            &install("any"),
+            CheckKind::Automatic,
+            InstallProvenance::SelfManaged,
+            &target()
+        ),
+        UpdateAvailability::UpToDate
+    );
+}

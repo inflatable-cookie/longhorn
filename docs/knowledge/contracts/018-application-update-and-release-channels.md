@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-11-25
+Updated: 2026-11-27
 Architecture: `../architecture/system-architecture.md`
 Research: `019-application-update-and-release-channels.md` (Git history)
 
@@ -81,7 +81,7 @@ terms as the macOS path.
   buffering, and checks the delivered length itself, so the bound is a
   property of the controller rather than a request each implementor is
   trusted to have honoured.
-- Extraction stops at two quotas, not one: 4 GiB of declared entry size, and
+- Extraction stops at two quotas, not one: 4 GiB of effective entry size (including pax overrides), and
   250,000 entries. Both are load-bearing. Directories, links and empty files
   declare no bytes at all, so an archive built from millions of them passes a
   byte quota untouched while still exhausting inodes and directory space —
@@ -148,13 +148,16 @@ terms as the macOS path.
 - Adapters are infallible in policy terms: a source that cannot be reached
   yields no update, never a degraded or unverified one.
 
+Homebrew formula kegs, including executables reached through symlinks, are
+externally managed and use `brew upgrade` rather than the cask command.
+
 ## Channels
 
 - Channels are `production`, `beta`, and `nightly`, resolved at runtime from
   persisted settings, not baked in at build time.
 - All channels ship under one bundle identity. Side-by-side installation is
   not a Longhorn-supported shape.
-- Version ordering is semver, including prerelease ordering. Channel rejoin
+- Version ordering is semver precedence, including prerelease ordering and ignoring build metadata. Channel rejoin
   is a consequence of that ordering and is not special-cased.
 - An install ahead of its selected channel is a supported state and must be
   surfaced as such, never as "no update available".
@@ -202,7 +205,9 @@ earlier single-call stance.
   the previous transfer ineligible to report progress or stage bytes. The
   Tauri adapter orders progress publication against those transitions.
 - Apply names the staged version and digest observed by the client. A mismatch
-  refuses the command and preserves the staged artifact. The installer
+  refuses the command and preserves the staged artifact. Apply also refuses a
+  withdrawn offer. Only a current offer may be postponed by a renderer, and
+  the renderer may supply only the user-postponed cause. The installer
   receives only the already-verified bytes.
 - The staged artifact survives across calls: a deferred ("Later") install
   retains it, an explicit cancel discards it, and a failure reports a typed
@@ -256,7 +261,7 @@ earlier single-call stance.
 
 - Authorization is no longer a point-in-time answer. `UpdateGate` acquires an
   **exclusive admission lease** from a host-supplied admission authority and
-  holds it from authorization through `apply`, refusing new conflicting work for
+  checks quiescence after acquiring it, and holds it through `apply`, refusing new conflicting work for
   the critical section.
 - The lease is host-supplied: Longhorn owns the gate, and the application owns
   what "conflicting work" means. Longhorn never learns the application's

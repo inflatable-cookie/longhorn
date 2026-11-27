@@ -17,8 +17,10 @@ use longhorn_update::{InstallLocation, InstallManager, InstallProvenance, classi
 /// safe.
 #[must_use]
 pub fn observe_install(executable: &Path) -> InstallLocation {
-    let mut location =
-        InstallLocation::unknown().with_executable_path(executable.to_string_lossy());
+    let resolved = executable
+        .canonicalize()
+        .unwrap_or_else(|_| executable.to_path_buf());
+    let mut location = InstallLocation::unknown().with_executable_path(resolved.to_string_lossy());
 
     if let Some((manager, id)) = sandbox_identity(executable, |name| env::var(name).ok()) {
         return location.with_sandbox(manager, id);
@@ -195,6 +197,20 @@ mod tests {
         // Three levels up, but not a bundle.
         assert_eq!(macos_bundle(Path::new("/usr/local/bin/thing")), None);
         assert_eq!(macos_bundle(Path::new("/thing")), None);
+    }
+
+    #[test]
+    fn a_formula_link_resolves_to_its_keg() {
+        let root = tempfile::tempdir().unwrap();
+        let keg = root.path().join("Cellar/app/1/bin");
+        fs::create_dir_all(&keg).unwrap();
+        fs::write(keg.join("app"), b"binary").unwrap();
+        let link = root.path().join("app");
+        std::os::unix::fs::symlink(keg.join("app"), &link).unwrap();
+        assert_eq!(
+            detect_provenance(&link).manager(),
+            Some(InstallManager::HomebrewFormula)
+        );
     }
 
     #[test]

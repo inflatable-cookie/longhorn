@@ -1353,3 +1353,48 @@ fn debug_output_redacts_request_and_verified_bytes() {
     assert!(!debug.contains("97, 32, 115"));
     assert!(debug.contains("byte_len"));
 }
+
+#[test]
+fn withdrawn_offer_cannot_be_applied_after_staging() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, mut manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    prepare_quietly(&mut controller, &prepare("1.4.0"));
+    manifest.version = semver::Version::parse("1.0.0").unwrap();
+    controller.check(&command, &manifest, CheckKind::Automatic);
+    let outcome = controller.apply(
+        &apply("1.4.0"),
+        &UpdateGate::new(Vec::new(), &GRANTING),
+        &Installer,
+    );
+    assert_eq!(rejection(&outcome), UpdateRejectionCode::NoOffer);
+}
+
+#[test]
+fn renderer_cannot_plant_a_deferral_cause_or_version() {
+    let signing = Signing::new();
+    let (source, fetch) = (Source, Fetch::serving(ARTIFACT));
+    let mut controller = controller(&signing, &source, &fetch, writable());
+    let (command, manifest) = check(&signing);
+    controller.check(&command, &manifest, CheckKind::UserInitiated);
+    for (version, cause) in [
+        (
+            "1.4.0",
+            DeferralCause::InstallFailed {
+                detail: "invented".into(),
+            },
+        ),
+        ("9.0.0", DeferralCause::UserPostponed),
+    ] {
+        let outcome = controller.defer(&UpdateDeferCommand {
+            protocol_version: UpdateProtocolVersion::CURRENT,
+            authority_epoch: 1,
+            version: version.into(),
+            cause,
+        });
+        assert_eq!(rejection(&outcome), UpdateRejectionCode::NoOffer);
+        assert!(controller.snapshot().deferral.is_none());
+    }
+}

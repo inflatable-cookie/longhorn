@@ -5,7 +5,7 @@
 export const UPDATE_PROTOCOL_VERSION = 1 as const;
 export const UPDATE_CHANNELS = ["production","beta","nightly"] as const;
 export const UPDATE_OFFER_REASONS = ["staged","belowMinimumVersion","userInitiated"] as const;
-export const UPDATE_INSTALL_MANAGERS = ["macAppStore","homebrewCask","flatpak","snap","appImage","nix","linuxDistribution"] as const;
+export const UPDATE_INSTALL_MANAGERS = ["macAppStore","homebrewCask","homebrewFormula","flatpak","snap","appImage","nix","linuxDistribution"] as const;
 export const UPDATE_DEFERRAL_CAUSES = ["userPostponed","workInFlight","installationNotWritable","externallyManaged","installFailed"] as const;
 export const UPDATE_AVAILABILITY_STATES = ["notChecked","offer","unavailableForTarget","upToDate","aheadOfChannel","withheldByRollout","managedElsewhere"] as const;
 export const UPDATE_PROGRESS_STATES = ["idle","downloading","verifying","readyToInstall","installing"] as const;
@@ -20,7 +20,7 @@ export type Channel = "production" | "beta" | "nightly";
 
 export type OfferReason = "staged" | "belowMinimumVersion" | "userInitiated";
 
-export type InstallManager = "macAppStore" | "homebrewCask" | "flatpak" | "snap" | "appImage" | "nix" | "linuxDistribution";
+export type InstallManager = "macAppStore" | "homebrewCask" | "homebrewFormula" | "flatpak" | "snap" | "appImage" | "nix" | "linuxDistribution";
 
 export type DeferralCause = { "cause": "userPostponed" } | { "cause": "workInFlight", 
 /**
