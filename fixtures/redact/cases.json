@@ -679,6 +679,50 @@
       "count": 1,
       "replaced": 1,
       "dropped_secrets": 0
+    },
+    {
+      "name": "json-bearer-escaped-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc\\\"secret\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-bearer-escaped-backslash-before-closing-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc\\\\\",\"next\":\"visible\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-bearer-escaped-backslash-and-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc\\\\\\\"secret\",\"next\":\"visible\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "single-quoted-bearer-escaped-quote-and-backslash",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{'authorization':'Bearer abc\\'secret\\\\','next':'visible'}",
+      "expected": "{'authorization':'Bearer [redacted]','next':'visible'}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
     }
   ]
 }

@@ -87,9 +87,11 @@ Each rule only proposes spans.
   only when it holds `:`. `https://git@host` is kept; a token used as a user
   name is caught by the prefix rule.
 - **Bearer:** after a case-insensitive `Bearer` and one space, the credential
-  up to whitespace, a quote or a comma. The scheme word stays. A credential
-  under four characters, measured before clipping, is not proposed, so
-  "bearer of" is prose.
+  up to whitespace, an unescaped quote (matching the opening quote when
+  immediately preceded by `"` or `'`, otherwise either quote) or an unescaped
+  comma (honouring `\` escapes such as `\"`, `\'`, and `\\`). The scheme word
+  stays. A credential under four characters, measured before clipping, is not
+  proposed, so "bearer of" is prose.
 - **Assignments:** each key matches case-insensitively where the preceding
   character is not ASCII alphanumeric (`_` is a boundary, so
   `NODE_AUTH_TOKEN` matches `token`), then an optional `"` or `'` (so JSON and
@@ -154,6 +156,8 @@ Rows that fix the composition:
 | `{"password":"x"}` | `{"password":"[redacted]"}` | Optional closing quote after the key before `:` |
 | `{"password":"abc\"secret"}` | `{"password":"[redacted]"}` | Escaped quote stays inside the quoted value |
 | `{"password":"abc\\","next":"visible"}` | `{"password":"[redacted]","next":"visible"}` | Escaped backslash leaves the following quote unescaped |
+| `{"authorization":"Bearer abc\"secret"}` | `{"authorization":"Bearer [redacted]"}` | Escaped quote stays inside the quoted Bearer credential |
+| `{"authorization":"Bearer abc\\","next":"visible"}` | `{"authorization":"Bearer [redacted]","next":"visible"}` | Escaped backslash leaves the following quote unescaped on Bearer values |
 
 ## Compatibility for consumers
 

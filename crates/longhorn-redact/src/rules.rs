@@ -137,20 +137,49 @@ fn url_userinfo(text: &str, authorities: &[Range<usize>], out: &mut Vec<Range<us
 }
 
 /// After a case-insensitive `Bearer` and one space, the credential up to
-/// whitespace, a quote or a comma. Credentials under four characters are
-/// prose, not credentials.
+/// whitespace, an unescaped quote or an unescaped comma (honouring `\` escapes
+/// such as `\"`, `\'` and `\\`). Credentials under four characters are prose,
+/// not credentials.
 fn bearer(text: &str, out: &mut Vec<Range<usize>>) {
     const SCHEME: &str = "bearer ";
     let lower = text.to_ascii_lowercase();
+    let bytes = text.as_bytes();
     for index in occurrences(&lower, SCHEME) {
+        let opening_quote = (index > 0)
+            .then(|| bytes[index - 1])
+            .filter(|byte| matches!(byte, b'"' | b'\''));
         let start = index + SCHEME.len();
-        let end = run_end(text, start, |character| {
-            character.is_whitespace() || matches!(character, '"' | '\'' | ',')
-        });
+        let end = bearer_end(text, start, opening_quote);
         if text[start..end].chars().count() >= crate::MIN_SECRET_CHARS {
             out.push(start..end);
         }
     }
+}
+
+/// End of a `Bearer` credential starting at `start`: stops at whitespace, an
+/// unescaped comma, or an unescaped closing quote (matching `opening_quote`
+/// when immediately preceded by `"` or `'`, otherwise either quote), honouring
+/// `\` escapes such as `\"`, `\'` and `\\`.
+fn bearer_end(text: &str, start: usize, opening_quote: Option<u8>) -> usize {
+    let mut escaped = false;
+    for (offset, character) in text[start..].char_indices() {
+        if character.is_whitespace() {
+            return start + offset;
+        }
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == ','
+            || opening_quote.map_or_else(
+                || matches!(character, '"' | '\''),
+                |quote| character == char::from(quote),
+            )
+        {
+            return start + offset;
+        }
+    }
+    text.len()
 }
 
 /// `key=value`, `key: value`, `"key":"value"` and `'key':'value'` for each key,
