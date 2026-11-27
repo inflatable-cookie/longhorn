@@ -2,7 +2,7 @@
 
 Binds `longhorn-gpui-windowing`'s `GpuiWindowBackend` seam to
 `gpui-unofficial` 1.22.0 (the manifest keeps `gpui` as its dependency key).
-Its Poodle Rust dependencies use tag `v0.4.12`. Card 163 evidence.
+Its Poodle Rust dependencies use tag `v0.4.16`. Card 163 evidence.
 
 ## Why it is outside the workspace
 

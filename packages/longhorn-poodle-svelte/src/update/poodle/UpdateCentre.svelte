@@ -1,23 +1,14 @@
 <script lang="ts">
-  import {
-    Popover,
-    StatusIndicator,
-    UpdateCenter as PoodleUpdateCenter,
-  } from "@inflatable-cookie/poodle-svelte";
+  import { UpdateCenter as PoodleUpdateCenter } from "@inflatable-cookie/poodle-svelte";
   import type { UpdateController } from "@inflatable-cookie/longhorn/update";
 
-  import UpdateSpecialStatus from "./UpdateSpecialStatus.svelte";
   import { sampleUpdateController } from "./UpdateSurface.svelte.ts";
 
   /**
    * Binds an `UpdateController` to Poodle's `UpdateCenter`.
    *
-   * An icon that is not there at all until there is something to act on, and
-   * a popover holding the same status surface a settings panel would show.
-   * `presence` decides the first part and is the controller's, not a rule this
-   * file reimplements: three availability states carry a newer version that
-   * this application cannot install, and an icon for any of them would offer
-   * something that cannot be taken.
+   * The controller supplies presence for ordinary states. Target-unavailable
+   * and invalid-artifact states also keep the centre visible for their message.
    */
   interface Props {
     controller: UpdateController;
@@ -38,39 +29,24 @@
   const update = sampleUpdateController(() => controller);
 </script>
 
-{#if update.special}
-  <Popover ariaLabel={ariaLabel ?? title} {...onOpenChange === null ? {} : { onOpenChange }}>
-    {#snippet trigger()}
-      <StatusIndicator
-        status={update.special?.kind === "unavailable" ? "info" : "warning"}
-        label={ariaLabel ?? title}
-      />
-    {/snippet}
-    <UpdateSpecialStatus
-      special={update.special}
-      retry={update.retryDownload}
-      canRetry={update.actionableVersion !== undefined}
-      pending={update.pending}
-    />
-  </Popover>
-{:else}
-  <PoodleUpdateCenter
-    presence={update.presence}
-    status={update.status}
-    {...update.availability === undefined ? {} : { availability: update.availability }}
-    {...update.progress === undefined ? {} : { progress: update.progress }}
-    {...update.channel === undefined ? {} : { channel: update.channel }}
-    {...update.installedVersion === undefined ? {} : { installedVersion: update.installedVersion }}
-    {...update.deferral === undefined ? {} : { deferral: update.deferral }}
-    {...update.lastRejection === undefined ? {} : { lastRejection: update.lastRejection }}
-    {...update.aheadOfChannel === undefined ? {} : { aheadOfChannel: update.aheadOfChannel }}
-    pending={update.pending}
-    {title}
-    {ariaLabel}
-    {confirmInstall}
-    {onOpenChange}
-    onCheck={update.check}
-    onInstall={update.actionableVersion === undefined ? null : update.install}
-    onDefer={update.actionableVersion === undefined ? null : update.defer}
-  />
-{/if}
+<PoodleUpdateCenter
+  presence={update.presence}
+  status={update.status}
+  {...update.availability === undefined ? {} : { availability: update.availability }}
+  {...update.progress === undefined ? {} : { progress: update.progress }}
+  {...update.channel === undefined ? {} : { channel: update.channel }}
+  {...update.installedVersion === undefined ? {} : { installedVersion: update.installedVersion }}
+  {...update.deferral === undefined ? {} : { deferral: update.deferral }}
+  {...update.lastRejection === undefined ? {} : { lastRejection: update.lastRejection }}
+  lastRejectionDetail={update.lastRejectionDetail}
+  {...update.aheadOfChannel === undefined ? {} : { aheadOfChannel: update.aheadOfChannel }}
+  pending={update.pending}
+  {title}
+  {ariaLabel}
+  {confirmInstall}
+  {onOpenChange}
+  onDownloadAgain={update.actionableVersion === undefined ? null : update.retryDownload}
+  onCheck={update.check}
+  onInstall={update.actionableVersion === undefined ? null : update.install}
+  onDefer={update.actionableVersion === undefined ? null : update.defer}
+/>

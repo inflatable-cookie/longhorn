@@ -35,7 +35,7 @@ import { installProofStage } from "./proof-install.ts";
 // From the 0.3.0 Poodle peer range (contract 012, ruling 2026-09-27) the same
 // shape covers Poodle: each stage runs both peers at the same end of their
 // declared ranges, newest-admitted (both ranges installed verbatim) and floor
-// (both pinned to their floors). Until Poodle publishes past `0.4.4` the two
+// (both pinned to their floors). Until Poodle publishes past `0.4.16` the two
 // stages resolve the same release; the matrix exists so the floor can never
 // be quietly dropped once a newer 0.4.x appears.
 //

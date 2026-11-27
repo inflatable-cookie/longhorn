@@ -2,7 +2,6 @@
   import { UpdateStatus as PoodleUpdateStatus } from "@inflatable-cookie/poodle-svelte";
   import type { UpdateController } from "@inflatable-cookie/longhorn/update";
 
-  import UpdateSpecialStatus from "./UpdateSpecialStatus.svelte";
   import { sampleUpdateController } from "./UpdateSurface.svelte.ts";
 
   /**
@@ -23,27 +22,20 @@
   const update = sampleUpdateController(() => controller);
 </script>
 
-{#if update.special}
-  <UpdateSpecialStatus
-    special={update.special}
-    retry={update.retryDownload}
-    canRetry={update.actionableVersion !== undefined}
-    pending={update.pending}
-  />
-{:else}
-  <PoodleUpdateStatus
-    status={update.status}
-    {...update.availability === undefined ? {} : { availability: update.availability }}
-    {...update.progress === undefined ? {} : { progress: update.progress }}
-    {...update.channel === undefined ? {} : { channel: update.channel }}
-    {...update.installedVersion === undefined ? {} : { installedVersion: update.installedVersion }}
-    {...update.deferral === undefined ? {} : { deferral: update.deferral }}
-    {...update.lastRejection === undefined ? {} : { lastRejection: update.lastRejection }}
-    {...update.aheadOfChannel === undefined ? {} : { aheadOfChannel: update.aheadOfChannel }}
-    pending={update.pending}
-    {confirmInstall}
-    onCheck={update.check}
-    onInstall={update.actionableVersion === undefined ? null : update.install}
-    onDefer={update.actionableVersion === undefined ? null : update.defer}
-  />
-{/if}
+<PoodleUpdateStatus
+  status={update.status}
+  {...update.availability === undefined ? {} : { availability: update.availability }}
+  {...update.progress === undefined ? {} : { progress: update.progress }}
+  {...update.channel === undefined ? {} : { channel: update.channel }}
+  {...update.installedVersion === undefined ? {} : { installedVersion: update.installedVersion }}
+  {...update.deferral === undefined ? {} : { deferral: update.deferral }}
+  {...update.lastRejection === undefined ? {} : { lastRejection: update.lastRejection }}
+  lastRejectionDetail={update.lastRejectionDetail}
+  {...update.aheadOfChannel === undefined ? {} : { aheadOfChannel: update.aheadOfChannel }}
+  pending={update.pending}
+  {confirmInstall}
+  onDownloadAgain={update.actionableVersion === undefined ? null : update.retryDownload}
+  onCheck={update.check}
+  onInstall={update.actionableVersion === undefined ? null : update.install}
+  onDefer={update.actionableVersion === undefined ? null : update.defer}
+/>

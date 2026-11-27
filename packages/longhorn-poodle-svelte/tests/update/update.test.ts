@@ -128,10 +128,10 @@ describe("update surface bindings", () => {
     const controller = new UpdateController({ port });
     await controller.start();
     const mounted = render(UpdateHarness, { props: { controller } });
-    expect(mounted.getByText("No update available for this system")).toBeDefined();
-    expect(mounted.container.querySelector(".poodle-callout")?.getAttribute("data-tone")).toBe(
-      "info",
-    );
+    expect(mounted.getByText("No update for this system")).toBeDefined();
+    expect(
+      mounted.container.querySelector(".poodle-update-status")?.getAttribute("data-tone"),
+    ).toBe("info");
     expect(mounted.queryAllByRole("button")).toHaveLength(0);
     expect(mounted.container.textContent).not.toContain("Update check failed");
     mounted.unmount();
@@ -144,8 +144,8 @@ describe("update surface bindings", () => {
     await controller.start();
     const mounted = render(UpdateHarness, { props: { controller, centre: true } });
     await fireEvent.click(mounted.getByRole("button", { name: "Update" }));
-    const label = await waitFor(() => mounted.getByText("No update available for this system"));
-    expect(label.closest(".poodle-callout")?.getAttribute("data-tone")).toBe("info");
+    const label = await waitFor(() => mounted.getByText("No update for this system"));
+    expect(label.closest(".poodle-update-status")?.getAttribute("data-tone")).toBe("info");
     expect(mounted.queryByRole("button", { name: /retry|check|download/i })).toBeNull();
     mounted.unmount();
   });
@@ -173,9 +173,9 @@ describe("update surface bindings", () => {
     await controller.apply("1.4.0");
     await waitFor(() => expect(mounted.container.textContent).toContain("invalid archive"));
     expect(mounted.getByText("The downloaded update was invalid")).toBeDefined();
-    expect(mounted.container.querySelector(".poodle-callout")?.getAttribute("data-tone")).toBe(
-      "warning",
-    );
+    expect(
+      mounted.container.querySelector(".poodle-update-status")?.getAttribute("data-tone"),
+    ).toBe("warning");
     expect(mounted.container.textContent).not.toContain("Update check failed");
     expect(mounted.queryAllByRole("button").map((button) => button.textContent?.trim())).toEqual([
       "Download again",
@@ -208,7 +208,7 @@ describe("update surface bindings", () => {
     await waitFor(() => expect(mounted.getByRole("button", { name: "Update" })).toBeDefined());
     await fireEvent.click(mounted.getByRole("button", { name: "Update" }));
     const label = await waitFor(() => mounted.getByText("The downloaded update was invalid"));
-    expect(label.closest(".poodle-callout")?.getAttribute("data-tone")).toBe("warning");
+    expect(label.closest(".poodle-update-status")?.getAttribute("data-tone")).toBe("warning");
     expect(mounted.getByText("invalid archive")).toBeDefined();
     expect(mounted.queryByText("Update check failed")).toBeNull();
     await fireEvent.click(mounted.getByRole("button", { name: "Download again" }));

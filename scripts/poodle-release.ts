@@ -7,8 +7,8 @@ import { readPackageIdentity, readPackageManifest } from "./proof-json.ts";
 // unpublished: the only way to prove a consumer could install it was to pack it
 // and install the pack. Poodle publishes to the public registry now, so the
 // proofs install what a real consumer installs, and the pack directory is gone.
-// Which release that is comes from the root manifest's pin -- 0.4.4 as of
-// the 0.3.0 dependency sweep -- and is never a literal in this file.
+// Which release that is comes from the root manifest's pin -- 0.4.16 as of
+// the update-state migration -- and is never a literal in this file.
 //
 // The integrity claim survives the move rather than being dropped. It used to
 // be a SHA-256 over each pack on disk plus a membership hash over the set. It

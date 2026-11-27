@@ -28,8 +28,8 @@ policy remain consumer-owned.
   which meets Poodle only at `5.56.8`.
 - From `0.3.0`, `longhorn-poodle-svelte` declares Poodle (`poodle-core`,
   `poodle-svelte`) as optional peers with a range within one Poodle minor
-  line, starting `>=0.4.4 <0.5` (operator ruling 2026-09-27). Below 1.0 a
-  Poodle minor is the breaking step, so a Poodle patch never forces a
+  line, currently `>=0.4.16 <0.5` (floor raised 2026-11-26). Below 1.0 a
+  Poodle minor is the breaking step, so compatible Poodle patches do not require a
   Longhorn release and consumers keep one Poodle copy. Longhorn's own dev
   and proof installs pin one exact Poodle release, and the proofs cover the
   range ends. `0.2.2` and earlier peer on one exact Poodle version. The
@@ -160,23 +160,21 @@ A release candidate requires:
 
 ## Current Poodle Checkpoint
 
-**Poodle's npm packages remain at exact 0.4.4; the coordinated native Rust
-release is tag `v0.4.12`, adopted 2026-10-07 by the GPUI prototypes.** There
-is no packed preview artifact any more. Longhorn resolves Poodle the way any
+**Longhorn pins Poodle npm packages and the coordinated native Rust tag to
+0.4.16.** There is no packed preview artifact any more. Longhorn resolves Poodle the way any
 consumer does.
 
-- npm: `@inflatable-cookie/poodle-core@0.4.4` and
-  `@inflatable-cookie/poodle-svelte@0.4.4`, both `latest` on the public
-  registry. Exact, not a range: Longhorn's dev and proof installs pin one
-  release, while the adapter's published peers take the `>=0.4.4 <0.5` range
-  (ruling 2026-09-27, Workspace And Versions above).
-- Rust: git tag `v0.4.12` at `654e0dec7bb5807724754833e9f196115ec20bae`. One
+- npm: `@inflatable-cookie/poodle-core@0.4.16` and
+  `@inflatable-cookie/poodle-svelte@0.4.16`, from the public registry. Longhorn's dev and proof installs pin one
+  release, while the adapter's published peers take the `>=0.4.16 <0.5` range
+  (floor raised 2026-11-26, Workspace And Versions above).
+- Rust: git tag `v0.4.16` at `114c7b5a0bf204b9ea86cccccf7164cb38470586`. One
   tag for `poodle-specs` and for every direct prototype Poodle crate --
   two sources for one crate are two incompatible types.
 - GPUI resolves as `gpui-unofficial =1.22.0` on both sides of the prototype
   graph, the consumer's direct dependency and Poodle's transitive backend
   dependency. The manifest aliases it as `gpui` for source compatibility.
-- 0.4.4 adds a Text/Code `wrap` option and IconButton `data-*` forwarding;
+- 0.4.4 added a Text/Code `wrap` option and IconButton `data-*` forwarding;
   its peers are unchanged (`svelte >=5.56.8 <6`, `marked ^18.0.9`).
   `0.4.3` was never published.
 - React remains source-only and has no npm package.

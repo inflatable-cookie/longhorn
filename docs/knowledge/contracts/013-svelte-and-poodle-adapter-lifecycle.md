@@ -106,10 +106,10 @@ to start native dragging. Failure goes through an injected reporter.
 - The Poodle adapter proof pins one exact published Poodle version. The
   preview-artifact era ended when Poodle released publicly.
 - The dev and proof installs pin exact
-  `@inflatable-cookie/poodle-svelte@0.4.4` from the public registry; the
-  adapter's published peer is the optional range `>=0.4.4 <0.5` (ruling
-  2026-09-27). Its Rust crates now use tag `v0.4.12` at
-  `654e0dec7bb5807724754833e9f196115ec20bae`. Contract 012 carries the full
+  `@inflatable-cookie/poodle-svelte@0.4.16` from the public registry; the
+  adapter's published peer is the optional range `>=0.4.16 <0.5` (floor raised
+  2026-11-26). Its Rust crates now use tag `v0.4.16` at
+  `114c7b5a0bf204b9ea86cccccf7164cb38470586`. Contract 012 carries the full
   checkpoint.
 - Superseded: Card 038 artifact set
   `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`, the

@@ -28,10 +28,10 @@ longhorn-windowing = { path = "../../crates/longhorn-windowing" }
 # Taking them by tag also makes this prototype build on its own. The paths
 # these replace pointed outside the repository, so `effigy check:prototypes`
 # -- which `release:gates` runs -- passed only where Poodle sat alongside.
-poodle-adapter = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.12" }
-poodle-gpui = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.12" }
-poodle-gpui-node-backend = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.12" }
-poodle-render = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.12" }
+poodle-adapter = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.16" }
+poodle-gpui = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.16" }
+poodle-gpui-node-backend = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.16" }
+poodle-render = { git = "https://github.com/inflatable-cookie/poodle.git", tag = "v0.4.16" }
 semver = "1"
 
 [lints.rust]
