@@ -87,7 +87,7 @@ export function assertLicenceActivateCommand(
     nonEmpty(credential.token, "$.credential.token");
   }
   if (credential.kind === "licenceFile") {
-    nonEmpty(credential.contentsBase64, "$.credential.contentsBase64");
+    base64(credential.contentsBase64, "$.credential.contentsBase64");
   }
   // The label a customer gives this machine, asked for at the only moment it
   // can be without inventing a settings screen. Absent is fine.
@@ -277,6 +277,18 @@ function nonEmpty(value: unknown, path: string): void {
   string(value, path);
   if (value.length === 0) {
     fail(path, "expected a non-empty string");
+  }
+}
+function base64(value: unknown, path: string): void {
+  string(value, path);
+  // Canonical padded standard base64, including zero pad bits.
+  if (
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value) ||
+    value.length === 0 ||
+    (value.endsWith("==") && !/[AQgw]==$/.test(value)) ||
+    (value.endsWith("=") && !value.endsWith("==") && !/[AEIMQUYcgkosw048]=$/.test(value))
+  ) {
+    fail(path, "expected padded standard base64");
   }
 }
 /** Unix seconds, and negative is a real point in time. */

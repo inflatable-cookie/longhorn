@@ -8,7 +8,7 @@ export const LICENCE_TRUST_BASIS_KINDS = ["offlineSignature","remoteAssertion"] 
 export const LICENCE_CREDENTIAL_KINDS = ["key","accountToken","licenceFile"] as const;
 export const LICENCE_REJECTION_CODES = ["malformed","notRecognised","noSeatsFree","revoked","clockRefused","staleAuthority","seatNotFound","unreachable"] as const;
 export const LICENCE_OUTCOME_STATUSES = ["committed","rejected"] as const;
-export const LICENCE_CHANGED_KINDS = ["activated","deactivated","seatRelabelled","refreshed","usabilityChanged"] as const;
+export const LICENCE_CHANGED_KINDS = ["activated","deactivated","seatReleased","seatRelabelled","refreshed","usabilityChanged"] as const;
 
 export type LicenceProtocolVersion = number;
 
@@ -138,7 +138,7 @@ key: string, } | { "kind": "accountToken",
  */
 token: string, } | { "kind": "licenceFile", 
 /**
- * The file's bytes, base64. A `Vec<u8>` would arrive as an array of
+ * The file's bytes, padded RFC 4648 standard base64. A `Vec<u8>` would arrive as an array of
  * numbers, which is a poor way to move a file across a boundary.
  */
 contentsBase64: string, };
@@ -232,7 +232,7 @@ code: LicenceRejectionCode,
  */
 snapshot: LicenceSnapshot, };
 
-export type LicenceChangedKind = "activated" | "deactivated" | "seatRelabelled" | "refreshed" | "usabilityChanged";
+export type LicenceChangedKind = "activated" | "deactivated" | "seatReleased" | "seatRelabelled" | "refreshed" | "usabilityChanged";
 
 export type LicenceChangedEvent = { 
 /**

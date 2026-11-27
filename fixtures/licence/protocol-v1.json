@@ -30,7 +30,7 @@
   ],
   "changedEvent": {
     "authorityEpoch": 7,
-    "kind": "activated",
+    "kind": "seatReleased",
     "protocolVersion": 1
   },
   "deactivateCommand": {
@@ -459,6 +459,11 @@
     "label": "The old MacBook",
     "machineId": "m-fixture-old-macbook",
     "protocolVersion": 1
+  },
+  "signedLicence": {
+    "keyId": "signing",
+    "payload": "AAEC/w==",
+    "signature": "//4="
   },
   "snapshot": {
     "authorityEpoch": 7,

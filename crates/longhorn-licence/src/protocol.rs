@@ -327,7 +327,7 @@ pub enum LicenceCredentialProjection {
     },
     /// A licence file the customer was sent.
     LicenceFile {
-        /// The file's bytes, base64. A `Vec<u8>` would arrive as an array of
+        /// The file's bytes, padded RFC 4648 standard base64. A `Vec<u8>` would arrive as an array of
         /// numbers, which is a poor way to move a file across a boundary.
         contents_base64: String,
     },
@@ -500,8 +500,10 @@ pub enum LicenceOutcomeProjection {
 pub enum LicenceChangedKind {
     /// A licence was acquired.
     Activated,
-    /// A seat was released — this machine's, or another's.
+    /// This machine was deactivated.
     Deactivated,
+    /// A named machine's seat was released.
+    SeatReleased,
     /// A seat's label changed. Nothing about entitlement or usability moved.
     SeatRelabelled,
     /// A lease was re-checked.

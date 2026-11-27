@@ -20,8 +20,10 @@ pub struct SignedLicence {
     /// be reasoned about.
     pub key_id: String,
     /// The exact signed bytes, base64 in the wire form.
+    #[serde(with = "base64_bytes")]
     pub payload: Vec<u8>,
-    /// Detached Ed25519 signature over `payload`.
+    /// Detached Ed25519 signature over `payload`, base64 on the wire.
+    #[serde(with = "base64_bytes")]
     pub signature: Vec<u8>,
 }
 
@@ -139,3 +141,17 @@ impl fmt::Display for VerificationError {
 }
 
 impl Error for VerificationError {}
+
+mod base64_bytes {
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
+    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
+
+    pub fn serialize<S: Serializer>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&STANDARD.encode(bytes))
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<u8>, D::Error> {
+        let encoded = String::deserialize(deserializer)?;
+        STANDARD.decode(encoded).map_err(D::Error::custom)
+    }
+}

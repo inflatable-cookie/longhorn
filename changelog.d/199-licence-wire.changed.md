@@ -1,0 +1,1 @@
+Signed licence `payload` and `signature` now use padded standard base64 strings instead of byte arrays; producers and stored files must migrate. Licence-file credentials require canonical base64, and consumers must handle the new `seatReleased` event for named seat releases.

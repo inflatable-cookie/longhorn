@@ -175,7 +175,10 @@ impl fmt::Debug for Credential {
 impl PartialEq for Credential {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Key(left), Self::Key(right)) => left == right,
+            (Self::Key(left), Self::Key(right)) => crate::account::constant_time_eq(
+                left.as_str().as_bytes(),
+                right.as_str().as_bytes(),
+            ),
             (Self::AccountToken(left), Self::AccountToken(right)) => {
                 crate::account::constant_time_eq(
                     left.expose_secret().as_bytes(),

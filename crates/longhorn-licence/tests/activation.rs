@@ -457,3 +457,36 @@ fn activation_endpoints_must_be_https() {
     );
     assert!(ActivationUrl::new("https://licences.example.com").is_ok());
 }
+
+#[test]
+fn signed_envelope_uses_canonical_base64_strings() {
+    let signed = SignedLicence::new("signing", vec![0, 1, 2, 255], vec![255, 254]);
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../fixtures/licence/protocol-v1.json")).unwrap();
+    let wire = fixture["signedLicence"].clone();
+    assert_eq!(serde_json::to_value(&signed).unwrap(), wire);
+    assert_eq!(
+        serde_json::from_value::<SignedLicence>(wire).unwrap(),
+        signed
+    );
+    for payload in [
+        serde_json::json!([0, 1]),
+        serde_json::json!("AB=="),
+        serde_json::json!("%%%"),
+    ] {
+        let wire = serde_json::json!({"keyId": "key", "payload": payload, "signature": "//4="});
+        assert!(serde_json::from_value::<SignedLicence>(wire).is_err());
+    }
+}
+
+#[test]
+fn credential_key_equality_compares_normalized_keys() {
+    let a = LicenceKey::from_body(&"0".repeat(19)).unwrap();
+    let b = LicenceKey::from_body(&"1".repeat(19)).unwrap();
+    assert_eq!(Credential::Key(a.clone()), Credential::Key(a));
+    assert_ne!(
+        Credential::Key(b.clone()),
+        Credential::Key(LicenceKey::from_body(&"0".repeat(19)).unwrap())
+    );
+    assert_ne!(Credential::Key(b), Credential::LicenceFile(vec![]));
+}
