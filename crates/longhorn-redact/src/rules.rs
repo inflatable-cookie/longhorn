@@ -153,9 +153,9 @@ fn bearer(text: &str, out: &mut Vec<Range<usize>>) {
     }
 }
 
-/// `key=value` and `key: value` for each key, matched case-insensitively
-/// where the preceding character is not ASCII alphanumeric. Keys inside a URL
-/// authority are left to the userinfo rule.
+/// `key=value`, `key: value`, `"key":"value"` and `'key':'value'` for each key,
+/// matched case-insensitively where the preceding character is not ASCII
+/// alphanumeric. Keys inside a URL authority are left to the userinfo rule.
 fn assignments(
     text: &str,
     keys: &[String],
@@ -180,7 +180,11 @@ fn assignments(
             {
                 continue;
             }
-            let mut cursor = skip_blanks(bytes, index + key.len());
+            let mut cursor = index + key.len();
+            if matches!(bytes.get(cursor), Some(b'"' | b'\'')) {
+                cursor += 1;
+            }
+            cursor = skip_blanks(bytes, cursor);
             if !matches!(bytes.get(cursor), Some(b'=' | b':')) {
                 continue;
             }

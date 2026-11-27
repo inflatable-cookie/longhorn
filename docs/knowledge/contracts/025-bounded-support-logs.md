@@ -158,10 +158,11 @@ or two processes, on one file are not supported.
   it. While the latch is set the log writes nothing: every later line is
   dropped and counted in `failed`, so no line can join onto the partial
   record. Clearing the latch needs a fresh `RotatingLog` after the repair.
-- An empty `directory` writes nothing and counts each line that is not over
-  `max_bytes` in `failed`. Use `discarding()` for a log that writes nowhere;
-  it opens no file and counts nothing. The order of these checks is under
-  Counts.
+- An empty `directory` or an invalid `file_name` (empty, `.`, `..`, or any
+  path with separators, NUL bytes, or non-normal components) writes nothing and
+  counts each line that is not over `max_bytes` in `failed`. Use
+  `discarding()` for a log that writes nowhere; it opens no file and counts
+  nothing. The order of these checks is under Counts.
 - A JSON record whose keys are equal after the transform is dropped whole,
   never written. The check runs on each key after redaction and the field
   bound, so identical keys, keys that redaction makes equal and keys that a
@@ -185,7 +186,8 @@ below that applies decides it, and the later steps do not run for it.
    `failed`. This runs before the size check, so a latched oversized line
    counts as `failed`, as the latch rule under Failure rules requires.
 3. A line over `max_bytes` is dropped unwritten and counted in `oversized`.
-4. An empty `directory` drops the line and counts it in `failed`.
+4. An empty `directory` or an invalid `file_name` drops the line and counts it
+   in `failed`.
 5. A live file at the bound is rotated. A degraded rotation is counted in
    `degraded_rotations()` and drops nothing by itself. If the live file is
    still over the bound after rotation, the line is dropped and counted in

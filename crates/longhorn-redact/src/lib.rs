@@ -20,6 +20,7 @@
 mod rules;
 
 use std::collections::BTreeSet;
+use std::fmt;
 use std::ops::Range;
 
 /// The one replacement marker.
@@ -136,11 +137,22 @@ fn owned(values: &[&str]) -> Vec<String> {
 }
 
 /// Redacts seeded secrets and rule-matched spans from text.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Redactor {
     secrets: Vec<String>,
     dropped_secrets: usize,
     rules: RedactionRules,
+}
+
+impl fmt::Debug for Redactor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Redactor")
+            .field("secret_count", &self.secrets.len())
+            .field("dropped_secrets", &self.dropped_secrets)
+            .field("rules", &self.rules)
+            .finish()
+    }
 }
 
 impl Redactor {
@@ -329,5 +341,19 @@ mod tests {
             "the original redactor is unchanged"
         );
         assert_eq!(base.with_secret("abc").dropped_secrets(), 1);
+    }
+
+    #[test]
+    fn debug_formats_secret_counts_and_never_values() {
+        let secret = "seeded-debug-secret";
+        let redactor = Redactor::new(
+            [secret.to_owned(), "ab".to_owned()],
+            RedactionRules::common(),
+        );
+        let debug = format!("{redactor:?}");
+
+        assert!(!debug.contains(secret), "{debug}");
+        assert!(debug.contains("secret_count: 1"), "{debug}");
+        assert!(debug.contains("dropped_secrets: 1"), "{debug}");
     }
 }

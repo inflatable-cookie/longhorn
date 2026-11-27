@@ -591,6 +591,50 @@
       "count": 2,
       "replaced": 0,
       "dropped_secrets": 0
+    },
+    {
+      "name": "json-double-quoted-assignment",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"x\"}",
+      "expected": "{\"password\":\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-spaced-and-suffixed-key",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"NODE_AUTH_TOKEN\" : \"secret-val\", \"api_key\": 'k-val'}",
+      "expected": "{\"NODE_AUTH_TOKEN\" : \"[redacted]\", \"api_key\": '[redacted]'}",
+      "count": 2,
+      "replaced": 2,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-authorization-bearer",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc.def.ghi\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-empty-assignment-kept",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"\"}",
+      "expected": "{\"password\":\"\"}",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
     }
   ]
 }

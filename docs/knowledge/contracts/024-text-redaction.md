@@ -92,8 +92,9 @@ Each rule only proposes spans.
   "bearer of" is prose.
 - **Assignments:** each key matches case-insensitively where the preceding
   character is not ASCII alphanumeric (`_` is a boundary, so
-  `NODE_AUTH_TOKEN` matches `token`), then optional spaces or tabs, then `=`
-  or `:`, then optional spaces or tabs. The value:
+  `NODE_AUTH_TOKEN` matches `token`), then an optional `"` or `'` (so JSON and
+  object-literal keys such as `"password":"x"` match), then optional spaces or
+  tabs, then `=` or `:`, then optional spaces or tabs. The value:
   - quoted: up to the closing quote, across line breaks, or the end of the
     text when it does not close;
   - unquoted: up to whitespace, `&`, `,` or `;`;
@@ -149,6 +150,7 @@ Rows that fix the composition:
 | `[redacted] and redacted`, seed `redacted` | `[redacted] and [redacted]`, `count` 2, `replaced` 1 | The occurrence inside the marker clips to nothing |
 | `password=left[redacted]right` | `password=[redacted][redacted][redacted]`, `replaced` 2 | The marker separates the clipped runs |
 | `Authorization: Bearer` | `Authorization: [redacted]` | No space after `Bearer`, so the `authorization` value runs to the line end |
+| `{"password":"x"}` | `{"password":"[redacted]"}` | Optional closing quote after the key before `:` |
 
 ## Compatibility for consumers
 

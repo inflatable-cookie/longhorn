@@ -1,7 +1,4 @@
-use std::{
-    fmt,
-    sync::atomic::{AtomicU64, Ordering},
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 /// The platform facilities a host supplies that Longhorn will not assume.
 ///
@@ -82,12 +79,6 @@ impl HostServices for PlainHostServices {
 
     fn fold_case(&self, value: &str) -> String {
         value.to_lowercase()
-    }
-}
-
-impl fmt::Display for PlainHostServices {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("plain host services")
     }
 }
 

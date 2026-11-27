@@ -1,0 +1,1 @@
+`Redactor` and `MemoryCredentialStore` now implement `Debug` with counts instead of printing seeded or stored secret values, `longhorn-redact` matches JSON-quoted assignment keys such as `"password":"x"`, `install_best_effort_diagnostics` is `#[must_use]`, and `RotatingLog` rejects unsafe `file_name` values before joining onto `directory`.

@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 use std::time::SystemTime;
 
@@ -299,7 +299,9 @@ impl Sink {
             state.stats.oversized += 1;
             return;
         }
-        if self.config.directory.as_os_str().is_empty() {
+        if self.config.directory.as_os_str().is_empty()
+            || !is_safe_file_name(&self.config.file_name)
+        {
             state.stats.failed += 1;
             return;
         }
@@ -369,6 +371,18 @@ impl Sink {
         let moved = settled(fs::rename(live, rotated(1)));
         clean && moved
     }
+}
+
+/// Whether `file_name` is a single normal path component within `directory`.
+fn is_safe_file_name(file_name: &str) -> bool {
+    if file_name.is_empty() || matches!(file_name, "." | "..") {
+        return false;
+    }
+    if file_name.contains(['/', '\\', '\0']) {
+        return false;
+    }
+    let mut components = Path::new(file_name).components();
+    matches!(components.next(), Some(Component::Normal(_))) && components.next().is_none()
 }
 
 /// Whether a rotation step finished. A missing path is not a failure: a log
