@@ -104,7 +104,7 @@ fn execution_publishes_verified_target_and_retains_exact_safety_backup() {
     );
     assert_eq!(
         receipt.safety_backup().durability,
-        longhorn_config::Durability::FileAndDirectorySynced
+        longhorn_config::BackupPublicationDurability::FileAndDirectorySynced
     );
     let safety_bytes = fs::read(&receipt.safety_backup().path).unwrap();
     let safety_archive =
@@ -139,7 +139,8 @@ fn destructive_migration_requires_and_records_pre_migration_backup() {
                     BackupKind::PreMigration,
                     "pre-migration-1",
                     "pre-migration-1.longhorn-backup",
-                ),
+                )
+                .with_portable_publication(),
             ),
         )
         .unwrap();
@@ -151,6 +152,10 @@ fn destructive_migration_requires_and_records_pre_migration_backup() {
     assert_eq!(rewritten["schemaVersion"], 3);
     assert_eq!(rewritten["value"]["name"], "legacy");
     assert_eq!(rewritten["value"]["enabled"], true);
+    assert_eq!(
+        receipt.safety_backup().durability,
+        longhorn_config::BackupPublicationDurability::PortableFileAndDirectorySynced,
+    );
     let safety_bytes = fs::read(&receipt.safety_backup().path).unwrap();
     let safety_archive =
         inspect_backup_archive(&safety_bytes, BackupArchiveLimits::default()).unwrap();

@@ -1,6 +1,10 @@
-use std::{fs, io, path::Path};
+use std::{
+    fs::{self, File, OpenOptions},
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
 
-use crate::{BackupKind, Durability, DurabilityRequirement, Sha256Digest};
+use crate::{BackupKind, Sha256Digest, atomic_file::PrivateOpenOptions};
 
 use super::super::{
     BackupEnvelopeError, BackupEnvelopeReader, EncodedBackupArchive,
@@ -8,10 +12,12 @@ use super::super::{
     inspect_backup_archive,
     publication_types::{
         BackupArchiveFileName, BackupDestinationKind, BackupExportTarget, BackupOperationalRoot,
-        BackupPublicationError, BackupPublicationOptions, BackupPublicationReceipt,
-        BackupPublicationStage, ExportOverwrite,
+        BackupPublicationDurability, BackupPublicationError, BackupPublicationMode,
+        BackupPublicationOptions, BackupPublicationReceipt, BackupPublicationStage,
+        ExportOverwrite,
     },
 };
+use super::commit::{CommitError, commit_name};
 use super::support::{
     cleanup, create_temporary, publication_error, read_archive_bytes, verification_error,
 };
@@ -41,7 +47,7 @@ pub fn publish_encrypted_operational_backup(
     root: &BackupOperationalRoot,
     file_name: &BackupArchiveFileName,
     ciphertext: &[u8],
-    durability: DurabilityRequirement,
+    mode: BackupPublicationMode,
     reader: &dyn BackupEnvelopeReader,
 ) -> Result<BackupPublicationReceipt, BackupPublicationError> {
     let name = format!("{}{ENCRYPTED_EXTENSION}", file_name.as_str());
@@ -75,7 +81,7 @@ pub fn publish_encrypted_operational_backup(
         name: &name,
         destination: BackupDestinationKind::Operational,
         overwrite: ExportOverwrite::Refuse,
-        durability,
+        mode,
         max_bytes: reader.max_ciphertext_bytes(),
     }
     .publish(ciphertext, verify)
@@ -111,7 +117,7 @@ fn publish_plaintext(
         name,
         destination,
         overwrite,
-        durability: options.durability,
+        mode: options.mode,
         max_bytes: options.archive_limits.max_archive_bytes(),
     }
     .publish(archive.bytes(), |bytes| {
@@ -126,7 +132,7 @@ pub(super) struct Publication<'a> {
     pub(super) name: &'a str,
     pub(super) destination: BackupDestinationKind,
     pub(super) overwrite: ExportOverwrite,
-    pub(super) durability: DurabilityRequirement,
+    pub(super) mode: BackupPublicationMode,
     pub(super) max_bytes: usize,
 }
 
@@ -135,6 +141,15 @@ impl Publication<'_> {
         &self,
         bytes: &[u8],
         verify: impl Fn(&[u8]) -> Result<BackupKind, BackupPublicationError>,
+    ) -> Result<BackupPublicationReceipt, BackupPublicationError> {
+        self.publish_with_commit(bytes, verify, commit_name)
+    }
+
+    pub(super) fn publish_with_commit(
+        &self,
+        bytes: &[u8],
+        verify: impl Fn(&[u8]) -> Result<BackupKind, BackupPublicationError>,
+        commit: impl FnOnce(&Path, &Path, ExportOverwrite) -> Result<(), CommitError>,
     ) -> Result<BackupPublicationReceipt, BackupPublicationError> {
         let target = self.parent.join(self.name);
         if bytes.len() > self.max_bytes {
@@ -159,17 +174,57 @@ impl Publication<'_> {
             ));
         }
 
+        if self.mode == BackupPublicationMode::PortableExclusiveCopy
+            && self.overwrite == ExportOverwrite::Replace
+        {
+            return Err(publication_error(
+                BackupPublicationStage::ValidateDestination,
+                target,
+                false,
+                "portable exclusive copy requires an unused destination",
+            ));
+        }
+
         let root_durable = self.prepare_parent()?;
         let existed = target.symlink_metadata().is_ok();
         if existed && self.overwrite == ExportOverwrite::Refuse {
             return Err(destination_exists(target));
         }
-        let mut temporary = create_temporary(self.parent, self.name, &target)?;
+        let expected = Sha256Digest::from_bytes(bytes);
+        match self.mode {
+            BackupPublicationMode::Strict(_) => {
+                self.publish_staged(bytes, &target, &expected, verify, commit)?;
+            }
+            BackupPublicationMode::PortableExclusiveCopy => {
+                let file = create_destination(&target)?;
+                write_destination(file, &target, bytes)?;
+                verify_portable_destination(&target, self.max_bytes, &expected)?;
+            }
+        }
+        let durability = self.sync_publication(&target, root_durable)?;
+        Ok(BackupPublicationReceipt {
+            path: target,
+            destination: self.destination,
+            archive_sha256: expected,
+            durability,
+            replaced_existing: existed,
+        })
+    }
+
+    fn publish_staged(
+        &self,
+        bytes: &[u8],
+        target: &Path,
+        expected: &Sha256Digest,
+        verify: impl Fn(&[u8]) -> Result<BackupKind, BackupPublicationError>,
+        commit: impl FnOnce(&Path, &Path, ExportOverwrite) -> Result<(), CommitError>,
+    ) -> Result<(), BackupPublicationError> {
+        let mut temporary = create_temporary(self.parent, self.name, target)?;
         if let Err(error) = temporary.write(bytes) {
             return Err(cleanup(
                 publication_error(
                     BackupPublicationStage::WriteTemporary,
-                    target,
+                    target.to_path_buf(),
                     false,
                     error.to_string(),
                 ),
@@ -178,15 +233,14 @@ impl Publication<'_> {
         }
         temporary.close();
 
-        let expected = Sha256Digest::from_bytes(bytes);
         let checked = read_archive_bytes(temporary.path(), self.max_bytes)
-            .map_err(|error| verification_error(target.clone(), false, error))
+            .map_err(|error| verification_error(target.to_path_buf(), false, error))
             .and_then(|reopened| {
                 verify(&reopened)?;
-                if Sha256Digest::from_bytes(&reopened) != expected {
+                if &Sha256Digest::from_bytes(&reopened) != expected {
                     return Err(publication_error(
                         BackupPublicationStage::VerifyTemporary,
-                        target.clone(),
+                        target.to_path_buf(),
                         false,
                         "staged archive hash changed",
                     ));
@@ -197,50 +251,38 @@ impl Publication<'_> {
             return Err(cleanup(error, temporary));
         }
 
-        if let Err(error) = commit_name(temporary.path(), &target, self.overwrite) {
-            let failure = if error.kind() == io::ErrorKind::AlreadyExists
-                && self.overwrite == ExportOverwrite::Refuse
-            {
-                destination_exists(target)
-            } else {
-                publication_error(
-                    BackupPublicationStage::Rename,
-                    target,
-                    false,
-                    error.to_string(),
-                )
-            };
-            return Err(cleanup(failure, temporary));
-        }
+        commit(temporary.path(), target, self.overwrite)
+            .map_err(|error| cleanup(commit_failure(target, self.overwrite, error), temporary))
+    }
 
+    fn sync_publication(
+        &self,
+        target: &Path,
+        root_durable: bool,
+    ) -> Result<BackupPublicationDurability, BackupPublicationError> {
         let synced = crate::dir_sync::sync_dir_path(self.parent);
-        let durability = match (synced, root_durable, self.durability) {
-            (Ok(()), true, _) => Durability::FileAndDirectorySynced,
-            (_, _, DurabilityRequirement::Atomic) => Durability::FileSynced,
-            (Err(error), _, DurabilityRequirement::Durable) => {
-                return Err(publication_error(
-                    BackupPublicationStage::SyncDirectory,
-                    target,
-                    true,
-                    error.to_string(),
-                ));
+        match (synced, root_durable) {
+            (Ok(()), true) => Ok(match self.mode {
+                BackupPublicationMode::Strict(_) => {
+                    BackupPublicationDurability::FileAndDirectorySynced
+                }
+                BackupPublicationMode::PortableExclusiveCopy => {
+                    BackupPublicationDurability::PortableFileAndDirectorySynced
+                }
+            }),
+            _ if !self.mode.requires_directory_sync() => {
+                Ok(BackupPublicationDurability::FileSynced)
             }
-            (Ok(()), false, DurabilityRequirement::Durable) => {
-                return Err(publication_error(
-                    BackupPublicationStage::SyncDirectory,
-                    target,
-                    true,
-                    "operational root could not be synced",
-                ));
-            }
-        };
-        Ok(BackupPublicationReceipt {
-            path: target,
-            destination: self.destination,
-            archive_sha256: expected,
-            durability,
-            replaced_existing: existed,
-        })
+            (result, _) => Err(publication_error(
+                BackupPublicationStage::SyncDirectory,
+                target.to_path_buf(),
+                true,
+                result.err().map_or_else(
+                    || "operational root could not be synced".into(),
+                    |error| error.to_string(),
+                ),
+            )),
+        }
     }
 
     fn prepare_parent(&self) -> Result<bool, BackupPublicationError> {
@@ -253,7 +295,7 @@ impl Publication<'_> {
                     false,
                     "publication parent exists but is not a directory",
                 )),
-                Err(_) if self.durability == DurabilityRequirement::Atomic => {
+                Err(_) if !self.mode.requires_directory_sync() => {
                     fs::create_dir_all(self.parent).map_err(|error| {
                         publication_error(
                             BackupPublicationStage::CreateRoot,
@@ -284,7 +326,7 @@ impl Publication<'_> {
     }
 }
 
-fn destination_exists(target: std::path::PathBuf) -> BackupPublicationError {
+fn destination_exists(target: PathBuf) -> BackupPublicationError {
     publication_error(
         BackupPublicationStage::ValidateDestination,
         target,
@@ -293,25 +335,97 @@ fn destination_exists(target: std::path::PathBuf) -> BackupPublicationError {
     )
 }
 
-fn commit_name(staging: &Path, target: &Path, overwrite: ExportOverwrite) -> io::Result<()> {
-    match overwrite {
-        ExportOverwrite::Refuse => rename_no_replace(staging, target),
-        ExportOverwrite::Replace => fs::rename(staging, target),
+fn commit_failure(
+    target: &Path,
+    overwrite: ExportOverwrite,
+    error: CommitError,
+) -> BackupPublicationError {
+    let (stage, detail) = match error {
+        CommitError::AtomicNoReplaceUnavailable(error) => (
+            BackupPublicationStage::AtomicNoReplaceUnsupported,
+            format!(
+                "atomic no-replace rename unavailable and hard-link publication failed: {error}"
+            ),
+        ),
+        CommitError::Io(error)
+            if error.kind() == io::ErrorKind::AlreadyExists
+                && overwrite == ExportOverwrite::Refuse =>
+        {
+            return destination_exists(target.to_path_buf());
+        }
+        CommitError::Io(error) => (BackupPublicationStage::Rename, error.to_string()),
+    };
+    publication_error(stage, target.to_path_buf(), false, detail)
+}
+
+pub(super) fn create_destination(target: &Path) -> Result<File, BackupPublicationError> {
+    let mut options = OpenOptions::new();
+    options.create_new(true).write(true).set_private_mode();
+    options.open(target).map_err(|error| {
+        if error.kind() == io::ErrorKind::AlreadyExists {
+            destination_exists(target.to_path_buf())
+        } else {
+            publication_error(
+                BackupPublicationStage::CreateDestination,
+                target.to_path_buf(),
+                false,
+                error.to_string(),
+            )
+        }
+    })
+}
+
+pub(super) fn write_destination(
+    mut file: File,
+    target: &Path,
+    bytes: &[u8],
+) -> Result<(), BackupPublicationError> {
+    // The name can be unlinked and reused while we hold the descriptor.
+    // Keep using the descriptor and leave any failed copy for the caller to inspect.
+    file.write_all(bytes).map_err(|error| {
+        publication_error(
+            BackupPublicationStage::WriteDestination,
+            target.to_path_buf(),
+            false,
+            format!("portable copy may be incomplete: {error}"),
+        )
+    })?;
+    file.sync_all().map_err(|error| {
+        publication_error(
+            BackupPublicationStage::SyncDestination,
+            target.to_path_buf(),
+            false,
+            format!("portable copy could not be synced: {error}"),
+        )
+    })
+}
+
+pub(super) fn verify_portable_destination(
+    target: &Path,
+    limit: usize,
+    expected: &Sha256Digest,
+) -> Result<(), BackupPublicationError> {
+    let failed = |detail: String| {
+        publication_error(
+            BackupPublicationStage::VerifyDestination,
+            target.to_path_buf(),
+            false,
+            detail,
+        )
+    };
+    let metadata = target
+        .symlink_metadata()
+        .map_err(|error| failed(error.to_string()))?;
+    if !metadata.is_file() {
+        return Err(failed(
+            "portable destination is no longer a regular file".into(),
+        ));
     }
-}
-
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-fn rename_no_replace(staging: &Path, target: &Path) -> io::Result<()> {
-    use rustix::fs::{CWD, RenameFlags, renameat_with};
-
-    renameat_with(CWD, staging, CWD, target, RenameFlags::NOREPLACE).map_err(Into::into)
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-fn rename_no_replace(staging: &Path, target: &Path) -> io::Result<()> {
-    fs::hard_link(staging, target)?;
-    if let Err(error) = fs::remove_file(staging) {
-        longhorn_core::report_best_effort_failure("config.backup.partial-cleanup", error);
+    let bytes = read_archive_bytes(target, limit).map_err(|error| failed(error.to_string()))?;
+    if &Sha256Digest::from_bytes(&bytes) != expected {
+        return Err(failed(
+            "portable destination no longer matches the verified archive".into(),
+        ));
     }
     Ok(())
 }

@@ -2,9 +2,10 @@ use std::{collections::BTreeSet, fs};
 
 use longhorn_config::{
     BackupApplication, BackupArchiveFileName, BackupArchiveLimits, BackupKind,
-    BackupOperationalRoot, BackupPublicationOptions, BackupRetentionDiagnosticKind,
-    BackupRetentionPolicy, DurabilityRequirement, Sha256Digest, apply_backup_retention,
-    list_operational_backups, list_operational_backups_with_envelope, plan_backup_retention,
+    BackupOperationalRoot, BackupPublicationDurability, BackupPublicationMode,
+    BackupPublicationOptions, BackupRetentionDiagnosticKind, BackupRetentionPolicy,
+    DurabilityRequirement, Sha256Digest, apply_backup_retention, list_operational_backups,
+    list_operational_backups_with_envelope, plan_backup_retention,
     publish_encrypted_operational_backup, publish_operational_backup,
 };
 use longhorn_config_age::{
@@ -73,30 +74,40 @@ fn encrypted_publication_and_retention_require_verified_operational_evidence() {
         )
         .unwrap()
     };
-    let publish = |name, ciphertext: &[u8]| {
+    let publish = |name, ciphertext: &[u8], mode| {
         publish_encrypted_operational_backup(
             &root,
             &BackupArchiveFileName::new(name).unwrap(),
             ciphertext,
-            DurabilityRequirement::Durable,
+            mode,
             &reader,
         )
     };
+    let strict = BackupPublicationMode::Strict(DurabilityRequirement::Durable);
     let locked = archive("locked-operational", &foreign);
-    assert!(publish("locked.longhorn-backup", locked.bytes()).is_err());
+    assert!(publish("locked.longhorn-backup", locked.bytes(), strict).is_err());
     let export = encrypt_operational_backup(
         &current,
         &encoded_archive("user-export", BackupKind::UserExport),
         limits,
     )
     .unwrap();
-    assert!(publish("export.longhorn-backup", export.bytes()).is_err());
+    assert!(publish("export.longhorn-backup", export.bytes(), strict).is_err());
     assert!(!root.path().exists());
 
     let old = archive("old-operational", &previous);
     let new = archive("new-operational", &current);
-    let old = publish("old.longhorn-backup", old.bytes()).unwrap();
-    let new = publish("new.longhorn-backup", new.bytes()).unwrap();
+    let old = publish("old.longhorn-backup", old.bytes(), strict).unwrap();
+    let new = publish(
+        "new.longhorn-backup",
+        new.bytes(),
+        BackupPublicationMode::PortableExclusiveCopy,
+    )
+    .unwrap();
+    assert_eq!(
+        new.durability,
+        BackupPublicationDurability::PortableFileAndDirectorySynced
+    );
     assert!(new.path.ends_with("new.longhorn-backup.age"));
 
     let plain = publish_operational_backup(

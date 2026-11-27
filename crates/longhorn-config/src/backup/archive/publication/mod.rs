@@ -1,3 +1,4 @@
+mod commit;
 mod publish;
 mod support;
 

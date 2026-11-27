@@ -468,11 +468,28 @@ checksums remain unchanged. The operational source is not mutated. A consumer
 must not recapture current state, byte-copy an operational archive, or carry a
 second ZIP codec to implement export.
 
-Both write a unique sibling partial, sync it, reopen and verify it, and
-atomically publish it. Operational publication and exports without overwrite
-authority use an exclusive commit even if the destination appears during
-staging. Durable first publication syncs newly created root entries as well as
-the archive directory.
+Strict publication writes, syncs, and verifies a unique sibling partial before
+making it visible atomically. Operational publication and exports without
+overwrite authority commit with exclusive rename or a hard link to the complete
+staged file. If neither primitive is available, publication returns
+`BackupPublicationStage::AtomicNoReplaceUnsupported`. Durable first publication
+syncs newly created root entries as well as the archive directory.
+
+A caller publishing to a removable filesystem such as exFAT can explicitly
+select `BackupPublicationMode::PortableExclusiveCopy`. This mode verifies the
+archive before exclusively creating the final file, writes through the opened
+descriptor, then syncs and verifies the result. Readers may see incomplete
+bytes during the copy, and a failed or interrupted copy can leave a file at the
+final path. The caller must inspect and remove that file before retrying to the
+same name. Portable copy requires an unused destination and refuses
+`ExportOverwrite::Replace`. Its `PortableFileAndDirectorySynced` receipt
+records the synced copy and its non-atomic visibility. The renderer value is
+`portableFileAndDirectorySynced`. Strict publication never selects this mode.
+
+The ordinary restore and migration safety-backup options default to strict
+durable publication. A host can explicitly opt into a portable safety copy
+with `RestoreSafetyBackupOptions::with_portable_publication`. Restore still
+verifies the complete safety archive before live mutation.
 
 Retention acts only on successfully inspected same-app operational archives.
 It always preserves the new archive and operation pins. Valid candidates

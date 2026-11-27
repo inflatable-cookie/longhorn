@@ -1,6 +1,7 @@
 use longhorn_config::{
-    BackupConsistencyMode, BackupKind, BackupPublicationReceiptProjection, BackupSourceState,
-    ConfigGeneration, ConfigOperationRejectionCode, RestoreAdapterParticipationProjection,
+    BackupConsistencyMode, BackupKind, BackupPublicationDurability,
+    BackupPublicationReceiptProjection, BackupSourceState, ConfigGeneration,
+    ConfigOperationRejectionCode, RestoreAdapterParticipationProjection,
     RestoreAuthenticityProjection, RestoreConflictChoiceProjection,
     RestoreConsistencyGroupProjection, RestoreCurrentEvidenceProjection,
     RestoreDomainCompatibilityProjection, RestoreDomainInspectionProjection,
@@ -146,7 +147,7 @@ pub(super) fn restore_execution_receipt() -> RestoreExecutionReceiptProjection {
             path: "/backups/pre-restore.longhorn-backup".into(),
             destination: "operational".into(),
             archive_sha256: digest('9'),
-            durability: "fileAndDirectorySynced".into(),
+            durability: BackupPublicationDurability::FileAndDirectorySynced,
             replaced_existing: false,
         },
         restored_domain_ids: vec!["app.preferences".into()],

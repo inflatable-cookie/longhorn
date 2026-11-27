@@ -7,6 +7,7 @@ import {
   STORAGE_CLASSES,
   BACKUP_INVENTORY_ENTRY_STATES,
   BACKUP_PENDING_STATES,
+  BACKUP_PUBLICATION_DURABILITIES,
   CONFIG_OPERATION_CAPABILITIES,
   RESTORE_ADAPTER_OUTCOMES,
   RESTORE_AUTHENTICITY_VALUES,
@@ -306,7 +307,8 @@ function inventoryEntry(value: unknown, path: string): void {
 
 export function assertBackupPublication(value: unknown, path: string): void {
   const receipt = record(value, path, CONFIG_FIELDS.BackupPublicationReceiptProjection);
-  ["path", "destination", "durability"].forEach((key) => nonempty(receipt[key], `${path}.${key}`));
+  ["path", "destination"].forEach((key) => nonempty(receipt[key], `${path}.${key}`));
+  discriminant(receipt.durability, BACKUP_PUBLICATION_DURABILITIES, `${path}.durability`);
   digest(receipt.archiveSha256, `${path}.archiveSha256`);
   boolean(receipt.replacedExisting, `${path}.replacedExisting`);
 }

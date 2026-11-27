@@ -912,7 +912,7 @@
         "path": "/backups/operational.longhorn-backup",
         "destination": "operational",
         "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "durability": "synced",
+        "durability": "fileAndDirectorySynced",
         "replacedExisting": false
       },
       "snapshot": {
@@ -1107,7 +1107,7 @@
         "path": "/backups/userExport.longhorn-backup",
         "destination": "userExport",
         "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "durability": "synced",
+        "durability": "portableFileAndDirectorySynced",
         "replacedExisting": false
       },
       "snapshot": {

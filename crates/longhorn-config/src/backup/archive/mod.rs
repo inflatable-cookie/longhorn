@@ -19,8 +19,9 @@ pub use publication::{
 };
 pub use publication_types::{
     BackupArchiveFileName, BackupArchiveFileNameError, BackupDestinationKind, BackupExportTarget,
-    BackupOperationalRoot, BackupPublicationError, BackupPublicationOptions,
-    BackupPublicationReceipt, BackupPublicationStage, ExportOverwrite,
+    BackupOperationalRoot, BackupPublicationDurability, BackupPublicationError,
+    BackupPublicationMode, BackupPublicationOptions, BackupPublicationReceipt,
+    BackupPublicationStage, ExportOverwrite,
 };
 pub use retention::{
     BackupOperationalCandidate, BackupOperationalListing, BackupRetentionApplyError,

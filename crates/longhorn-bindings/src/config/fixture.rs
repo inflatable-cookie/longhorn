@@ -3,10 +3,11 @@ use std::error::Error;
 use longhorn_config::{
     BackupCaptureReceiptProjection, BackupCreateCommand, BackupCreateOutcome, BackupExportCommand,
     BackupExportOutcome, BackupInventoryEntry, BackupInventoryEntryState,
-    BackupPublicationReceiptProjection, BackupRetentionApplyCommand, BackupRetentionApplyOutcome,
-    ConfigGeneration, ConfigOperationRejection, ConfigOperationRejectionCode,
-    ConfigOperationsSnapshot, ConfigProtocolVersion, ConfigSnapshotCommand, PendingBackupPolicy,
-    RestoreAdapterExecuteCommand, RestoreAdapterExecuteOutcome, RestoreAdapterOutcomeProjection,
+    BackupPublicationDurability, BackupPublicationReceiptProjection, BackupRetentionApplyCommand,
+    BackupRetentionApplyOutcome, ConfigGeneration, ConfigOperationRejection,
+    ConfigOperationRejectionCode, ConfigOperationsSnapshot, ConfigProtocolVersion,
+    ConfigSnapshotCommand, PendingBackupPolicy, RestoreAdapterExecuteCommand,
+    RestoreAdapterExecuteOutcome, RestoreAdapterOutcomeProjection,
     RestoreAdapterParticipationProjection, RestoreAdapterReceiptProjection,
     RestoreAdapterRequirementProjection, RestoreArchiveSelection, RestoreConflictChoiceProjection,
     RestoreDomainChoice, RestoreExecuteCommand, RestoreExecuteOutcome, RestoreInspectCommand,
@@ -238,7 +239,10 @@ pub fn render() -> Result<String, Box<dyn Error>> {
                 snapshot: Box::new(base_snapshot.clone()),
             },
             export_backup: BackupExportOutcome::Published {
-                publication: publication("userExport"),
+                publication: BackupPublicationReceiptProjection {
+                    durability: BackupPublicationDurability::PortableFileAndDirectorySynced,
+                    ..publication("userExport")
+                },
                 snapshot: Box::new(base_snapshot.clone()),
             },
             apply_retention: BackupRetentionApplyOutcome::Applied {
@@ -325,7 +329,7 @@ fn publication(destination: &str) -> BackupPublicationReceiptProjection {
         path: format!("/backups/{destination}.longhorn-backup"),
         destination: destination.into(),
         archive_sha256: digest('e'),
-        durability: "synced".into(),
+        durability: BackupPublicationDurability::FileAndDirectorySynced,
         replaced_existing: false,
     }
 }

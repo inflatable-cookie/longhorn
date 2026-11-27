@@ -7,11 +7,11 @@ use longhorn_config::{
     BackupCreateCommand, BackupCreateOutcome, BackupEncryptionState, BackupExportCommand,
     BackupExportOutcome, BackupInventoryEntry, BackupInventoryEntryState,
     BackupInventoryProjection, BackupKind, BackupOperationsProjection, BackupPendingState,
-    BackupPublicationReceiptProjection, BackupRetentionApplyCommand, BackupRetentionApplyOutcome,
-    BackupRetentionProjection, BackupRetentionReasonProjection, BackupSourceState,
-    CONFIG_OPERATIONS_PROTOCOL_VERSION, ConfigGeneration, ConfigOperationCapability,
-    ConfigOperationRejection, ConfigOperationRejectionCode, ConfigOperationsSnapshot,
-    ConfigProtocolVersion, ConfigSnapshotCommand, PendingBackupPolicy,
+    BackupPublicationDurability, BackupPublicationReceiptProjection, BackupRetentionApplyCommand,
+    BackupRetentionApplyOutcome, BackupRetentionProjection, BackupRetentionReasonProjection,
+    BackupSourceState, CONFIG_OPERATIONS_PROTOCOL_VERSION, ConfigGeneration,
+    ConfigOperationCapability, ConfigOperationRejection, ConfigOperationRejectionCode,
+    ConfigOperationsSnapshot, ConfigProtocolVersion, ConfigSnapshotCommand, PendingBackupPolicy,
     RestoreAdapterExecuteCommand, RestoreAdapterExecuteOutcome, RestoreAdapterOutcomeProjection,
     RestoreAdapterParticipationProjection, RestoreAdapterReceiptProjection,
     RestoreAdapterRequirementProjection, RestoreArchiveSelection, RestoreAuthenticityProjection,
@@ -185,6 +185,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         recovery.clone(),
         cleanup.clone(),
         BackupCaptureReceiptProjection::decl(config()),
+        BackupPublicationDurability::decl(config()),
         BackupPublicationReceiptProjection::decl(config()),
         create.clone(),
         export.clone(),
@@ -277,6 +278,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const STORAGE_CLEANUP_STATUSES = {} as const;\n\
          export const BACKUP_CREATE_STATUSES = {} as const;\n\
          export const BACKUP_EXPORT_STATUSES = {} as const;\n\
+         export const BACKUP_PUBLICATION_DURABILITIES = {} as const;\n\
          export const BACKUP_RETENTION_APPLY_STATUSES = {} as const;\n\n\
          {}\n",
         enum_names_json::<ConfigOperationCapability>()?,
@@ -296,6 +298,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         tagged_variants_json(&cleanup)?,
         tagged_variants_json(&create)?,
         tagged_variants_json(&export)?,
+        enum_names_json::<BackupPublicationDurability>()?,
         tagged_variants_json(&retention)?,
         base_declarations.join("\n\n")
     );

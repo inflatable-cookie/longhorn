@@ -1,7 +1,7 @@
 use super::{
     ConfigGeneration, ConfigOperationRejection, ConfigOperationsSnapshot, ConfigProtocolVersion,
 };
-use crate::BackupKind;
+use crate::{BackupKind, BackupPublicationDurability};
 use longhorn_core::ConfigRequestId;
 use serde::{Deserialize, Serialize};
 
@@ -259,8 +259,8 @@ pub struct BackupPublicationReceiptProjection {
     pub destination: String,
     /// Digest over exact published bytes.
     pub archive_sha256: String,
-    /// Established durability level.
-    pub durability: String,
+    /// Established visibility and filesystem durability.
+    pub durability: BackupPublicationDurability,
     /// Whether an authorized export was replaced.
     pub replaced_existing: bool,
 }

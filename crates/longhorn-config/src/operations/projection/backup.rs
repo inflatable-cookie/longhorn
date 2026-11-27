@@ -1,8 +1,7 @@
 use crate::{
     BackupCaptureReceipt, BackupDestinationKind, BackupOperationalListing,
     BackupPublicationReceipt, BackupRetentionDiagnostic, BackupRetentionDiagnosticKind,
-    BackupRetentionPlan, BackupRetentionReason, ConfigOperationProjectionError, Durability,
-    Sha256Digest,
+    BackupRetentionPlan, BackupRetentionReason, ConfigOperationProjectionError, Sha256Digest,
 };
 
 use super::super::{
@@ -49,11 +48,7 @@ impl TryFrom<&BackupPublicationReceipt> for BackupPublicationReceiptProjection {
             }
             .into(),
             archive_sha256: value.archive_sha256.as_str().into(),
-            durability: match value.durability {
-                Durability::FileSynced => "fileSynced",
-                Durability::FileAndDirectorySynced => "fileAndDirectorySynced",
-            }
-            .into(),
+            durability: value.durability,
             replaced_existing: value.replaced_existing,
         })
     }

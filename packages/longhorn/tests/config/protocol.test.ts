@@ -135,6 +135,21 @@ describe("generated config operations fixture", () => {
     }
   });
 
+  test("validates portable backup receipt evidence and rejects unrecognized values", () => {
+    const { exportBackup } = fixture.outcomes;
+    if (exportBackup.status !== "published") {
+      throw new Error("missing portable export evidence");
+    }
+    expect(exportBackup.publication.durability).toBe("portableFileAndDirectorySynced");
+    assertValidBackupExportOutcome(exportBackup);
+    incompatible(() =>
+      assertValidBackupExportOutcome({
+        ...exportBackup,
+        publication: { ...exportBackup.publication, durability: "synced" },
+      }),
+    );
+  });
+
   test("rejects unknown restore stages, terminals, and receipt outcomes", () => {
     const {
       unknownRestoreExecutionStage,

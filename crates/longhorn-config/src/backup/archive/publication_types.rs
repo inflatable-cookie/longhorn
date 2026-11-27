@@ -4,7 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{Durability, DurabilityRequirement, Sha256Digest};
+use serde::{Deserialize, Serialize};
+
+use crate::{DurabilityRequirement, Sha256Digest};
 
 use super::{BackupArchiveError, BackupArchiveLimits};
 
@@ -144,11 +146,28 @@ pub enum BackupDestinationKind {
     UserExport,
 }
 
-/// Publication durability and verification policy.
+/// Visibility and durability policy for a backup archive.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BackupPublicationMode {
+    /// Publish the complete archive atomically with the required sync evidence.
+    Strict(DurabilityRequirement),
+    /// Create the final file exclusively, then write and sync it in place.
+    ///
+    /// Readers can see incomplete bytes. This mode never replaces a file.
+    PortableExclusiveCopy,
+}
+
+impl BackupPublicationMode {
+    pub(super) const fn requires_directory_sync(self) -> bool {
+        !matches!(self, Self::Strict(DurabilityRequirement::Atomic))
+    }
+}
+
+/// Publication mode and verification policy.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BackupPublicationOptions {
-    /// Required filesystem durability.
-    pub durability: DurabilityRequirement,
+    /// Caller-selected publication mode.
+    pub mode: BackupPublicationMode,
     /// Archive verification safety bounds.
     pub archive_limits: BackupArchiveLimits,
 }
@@ -161,10 +180,30 @@ impl BackupPublicationOptions {
         archive_limits: BackupArchiveLimits,
     ) -> Self {
         Self {
-            durability,
+            mode: BackupPublicationMode::Strict(durability),
             archive_limits,
         }
     }
+
+    /// Selects how the archive becomes visible at its final name.
+    #[must_use]
+    pub const fn with_mode(mut self, mode: BackupPublicationMode) -> Self {
+        self.mode = mode;
+        self
+    }
+}
+
+/// Visibility and sync evidence established for the finished backup.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
+#[serde(rename_all = "camelCase")]
+pub enum BackupPublicationDurability {
+    /// Atomic publication with a synced file.
+    FileSynced,
+    /// Atomic publication with a synced file and containing directory.
+    FileAndDirectorySynced,
+    /// Exclusive in-place copy with a synced file and containing directory.
+    PortableFileAndDirectorySynced,
 }
 
 /// Successful verified archive publication.
@@ -176,8 +215,8 @@ pub struct BackupPublicationReceipt {
     pub destination: BackupDestinationKind,
     /// SHA-256 over exact published archive bytes.
     pub archive_sha256: Sha256Digest,
-    /// Established filesystem durability.
-    pub durability: Durability,
+    /// Established visibility and filesystem durability.
+    pub durability: BackupPublicationDurability,
     /// Whether an existing authorized export was replaced.
     pub replaced_existing: bool,
 }
@@ -199,8 +238,18 @@ pub enum BackupPublicationStage {
     SyncTemporary,
     /// Reopen and inspect staged bytes.
     VerifyTemporary,
-    /// Atomically rename the staged archive.
+    /// Atomically publish the staged archive.
     Rename,
+    /// Neither atomic no-replace rename nor hard-link publication is available.
+    AtomicNoReplaceUnsupported,
+    /// Exclusively create the final file for a portable copy.
+    CreateDestination,
+    /// Write the portable copy through the exclusively opened file.
+    WriteDestination,
+    /// Sync the exclusively opened portable copy.
+    SyncDestination,
+    /// Verify the finished portable copy at its final path.
+    VerifyDestination,
     /// Sync the destination directory.
     SyncDirectory,
 }
@@ -212,7 +261,7 @@ pub struct BackupPublicationError {
     pub stage: BackupPublicationStage,
     /// Intended target or affected root.
     pub path: PathBuf,
-    /// Whether rename already made the archive visible.
+    /// Whether the complete verified archive was published before the failure.
     pub published: bool,
     /// Machine-readable archive verification failure when applicable.
     pub verification: Option<BackupArchiveError>,

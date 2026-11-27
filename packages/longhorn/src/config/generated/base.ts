@@ -21,6 +21,7 @@ export const STORAGE_RECOVERY_STATUSES = ["recovered","rejected"] as const;
 export const STORAGE_CLEANUP_STATUSES = ["applied","rejected"] as const;
 export const BACKUP_CREATE_STATUSES = ["published","rejected"] as const;
 export const BACKUP_EXPORT_STATUSES = ["published","rejected"] as const;
+export const BACKUP_PUBLICATION_DURABILITIES = ["fileSynced","fileAndDirectorySynced","portableFileAndDirectorySynced"] as const;
 export const BACKUP_RETENTION_APPLY_STATUSES = ["applied","rejected"] as const;
 
 export type ConfigProtocolVersion = number;
@@ -655,6 +656,8 @@ totalPayloadBytes: number,
  */
 flushedPendingPublication: boolean, };
 
+export type BackupPublicationDurability = "fileSynced" | "fileAndDirectorySynced" | "portableFileAndDirectorySynced";
+
 export type BackupPublicationReceiptProjection = { 
 /**
  * Exact published path.
@@ -669,9 +672,9 @@ destination: string,
  */
 archiveSha256: string, 
 /**
- * Established durability level.
+ * Established visibility and filesystem durability.
  */
-durability: string, 
+durability: BackupPublicationDurability, 
 /**
  * Whether an authorized export was replaced.
  */
