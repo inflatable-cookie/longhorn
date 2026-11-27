@@ -8,7 +8,9 @@ use longhorn_tauri_windowing::{
 use longhorn_windowing::HostWindowHandle;
 use tauri::Runtime;
 
-use crate::{ManagedTransferSnapshot, ManagedTransferWindow, TransferRuntimeError};
+use crate::{
+    ManagedTransferSnapshot, ManagedTransferWindow, TransferHostOperation, TransferRuntimeError,
+};
 
 /// Runtime seam used by the shared transfer handler assembly and its mocks.
 pub trait ManagedTransferRuntime: Send + Sync {
@@ -114,7 +116,7 @@ fn probe_inner_positions<R: Runtime>(
                 .map(|position| (handle.clone(), (position.x, position.y)))
                 .map_err(|error| TransferRuntimeError::HostCall {
                     handle,
-                    operation: "inner_position",
+                    operation: TransferHostOperation::InnerPosition,
                     detail: error.to_string(),
                 })
         })

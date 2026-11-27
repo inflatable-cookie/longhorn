@@ -31,6 +31,38 @@ use tokio::sync::oneshot;
 
 use crate::{bridge::CommandBridge, handler::TauriControlHandler, shim::SHIM_SOURCE};
 
+/// Tauri directory lookup that can fail while mounting agent control.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum AgentControlPathOperation {
+    /// Resolve the configuration directory.
+    ConfigDir,
+    /// Resolve the local data directory.
+    LocalDataDir,
+    /// Resolve the roaming data directory.
+    RoamingDataDir,
+    /// Resolve the cache directory.
+    CacheDir,
+    /// Resolve the home directory.
+    HomeDir,
+    /// Resolve the temporary directory.
+    TempDir,
+}
+
+impl fmt::Display for AgentControlPathOperation {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            Self::ConfigDir => "config_dir",
+            Self::LocalDataDir => "local_data_dir",
+            Self::RoamingDataDir => "roaming_data_dir",
+            Self::CacheDir => "cache_dir",
+            Self::HomeDir => "home_dir",
+            Self::TempDir => "temp_dir",
+        };
+        formatter.write_str(name)
+    }
+}
+
 fn agent_control_plugin<R: Runtime>(registry: SelectionRegistry) -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new("longhorn-agent-control")
         .setup(move |app, _api| {
@@ -164,7 +196,7 @@ pub enum AgentControlMountError {
     /// A Tauri path-edge lookup failed.
     Path {
         /// Which directory lookup failed.
-        operation: &'static str,
+        operation: AgentControlPathOperation,
         /// Underlying Tauri error.
         source: tauri::Error,
     },
@@ -369,40 +401,52 @@ fn directory_snapshot<R: Runtime>(
     #[cfg(target_os = "macos")]
     {
         Ok(TauriDirectorySnapshot::MacOs {
-            local_data_dir: lookup("local_data_dir", path.local_data_dir())?,
-            cache_dir: lookup("cache_dir", path.cache_dir())?,
-            home_dir: lookup("home_dir", path.home_dir())?,
-            temp_dir: lookup("temp_dir", path.temp_dir())?,
+            local_data_dir: lookup(
+                AgentControlPathOperation::LocalDataDir,
+                path.local_data_dir(),
+            )?,
+            cache_dir: lookup(AgentControlPathOperation::CacheDir, path.cache_dir())?,
+            home_dir: lookup(AgentControlPathOperation::HomeDir, path.home_dir())?,
+            temp_dir: lookup(AgentControlPathOperation::TempDir, path.temp_dir())?,
         })
     }
     #[cfg(target_os = "windows")]
     {
         Ok(TauriDirectorySnapshot::Windows {
-            local_data_dir: lookup("local_data_dir", path.local_data_dir())?,
-            roaming_data_dir: lookup("roaming_data_dir", path.roaming_data_dir())?,
-            temp_dir: lookup("temp_dir", path.temp_dir())?,
+            local_data_dir: lookup(
+                AgentControlPathOperation::LocalDataDir,
+                path.local_data_dir(),
+            )?,
+            roaming_data_dir: lookup(
+                AgentControlPathOperation::RoamingDataDir,
+                path.roaming_data_dir(),
+            )?,
+            temp_dir: lookup(AgentControlPathOperation::TempDir, path.temp_dir())?,
         })
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
         // Tauri has no XDG state lookup; honor XDG_STATE_HOME, then the
         // spec's default below the resolved home directory.
-        let home_dir = lookup("home_dir", path.home_dir())?;
+        let home_dir = lookup(AgentControlPathOperation::HomeDir, path.home_dir())?;
         let state_dir = std::env::var_os("XDG_STATE_HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|| home_dir.join(".local").join("state"));
         Ok(TauriDirectorySnapshot::Linux {
-            config_dir: lookup("config_dir", path.config_dir())?,
-            local_data_dir: lookup("local_data_dir", path.local_data_dir())?,
+            config_dir: lookup(AgentControlPathOperation::ConfigDir, path.config_dir())?,
+            local_data_dir: lookup(
+                AgentControlPathOperation::LocalDataDir,
+                path.local_data_dir(),
+            )?,
             state_dir,
-            cache_dir: lookup("cache_dir", path.cache_dir())?,
+            cache_dir: lookup(AgentControlPathOperation::CacheDir, path.cache_dir())?,
             runtime_dir: path.runtime_dir().ok(),
         })
     }
 }
 
 fn lookup(
-    operation: &'static str,
+    operation: AgentControlPathOperation,
     result: Result<PathBuf, tauri::Error>,
 ) -> Result<PathBuf, AgentControlMountError> {
     result.map_err(|source| AgentControlMountError::Path { operation, source })
@@ -416,6 +460,32 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn path_operations_keep_their_labels() {
+        let operations = [
+            (AgentControlPathOperation::ConfigDir, "config_dir"),
+            (AgentControlPathOperation::LocalDataDir, "local_data_dir"),
+            (
+                AgentControlPathOperation::RoamingDataDir,
+                "roaming_data_dir",
+            ),
+            (AgentControlPathOperation::CacheDir, "cache_dir"),
+            (AgentControlPathOperation::HomeDir, "home_dir"),
+            (AgentControlPathOperation::TempDir, "temp_dir"),
+        ];
+
+        for (operation, label) in operations {
+            assert_eq!(
+                AgentControlMountError::Path {
+                    operation,
+                    source: tauri::Error::Io(io::Error::other("denied")),
+                }
+                .to_string(),
+                format!("tauri path lookup {label} failed: denied")
+            );
+        }
+    }
 
     /// A bind failure ends the server thread before anyone asks it to stop.
     /// `shutdown` must still join it and report the original failure, not an

@@ -18,7 +18,9 @@ pub use commands::{
     longhorn_transfer_cancel, longhorn_transfer_commit_panel, longhorn_transfer_publish_lease,
     longhorn_transfer_snapshot, longhorn_transfer_start_panel,
 };
-pub use error::{TransferHandlerError, TransferProjectionError, TransferRuntimeError};
+pub use error::{
+    TransferHandlerError, TransferHostOperation, TransferProjectionError, TransferRuntimeError,
+};
 #[cfg(feature = "surface-transfer")]
 pub use handler::SurfaceTransferAdapter;
 pub use handler::{
