@@ -377,7 +377,7 @@ fn directory_snapshot<R: Runtime>(
     {
         // Tauri has no XDG state lookup; honor XDG_STATE_HOME, then the
         // spec's default below the resolved home directory.
-        let home_dir = lookup("home_dir", path.home_dir())?;
+        let home_dir = lookup(AgentControlPathOperation::HomeDir, path.home_dir())?;
         let state_dir = std::env::var_os("XDG_STATE_HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|| home_dir.join(".local").join("state"));
@@ -425,10 +425,13 @@ mod tests {
         ];
 
         for (operation, label) in operations {
-            assert_eq!(operation.to_string(), label);
             assert_eq!(
-                format!("tauri path lookup {operation} failed"),
-                format!("tauri path lookup {label} failed")
+                AgentControlMountError::Path {
+                    operation,
+                    source: tauri::Error::Io(io::Error::other("denied")),
+                }
+                .to_string(),
+                format!("tauri path lookup {label} failed: denied")
             );
         }
     }

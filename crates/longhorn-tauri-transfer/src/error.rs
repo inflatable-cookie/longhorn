@@ -168,27 +168,6 @@ impl From<TransferHandlerError> for TransferHostError {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn host_call_operation_keeps_its_label_and_runtime_code() {
-        let host_error = TransferHandlerError::Runtime(TransferRuntimeError::HostCall {
-            handle: HostWindowHandle::new("main").expect("valid window label"),
-            operation: TransferHostOperation::InnerPosition,
-            detail: "unavailable".into(),
-        });
-        let host_error = TransferHostError::from(host_error);
-
-        assert_eq!(host_error.code, TransferHostErrorCode::RuntimeUnavailable);
-        assert_eq!(
-            host_error.message,
-            "inner_position failed for main: unavailable"
-        );
-    }
-}
-
 /// Failure while projecting renderer-local CSS geometry into screen DIPs.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TransferProjectionError {
@@ -223,3 +202,24 @@ impl fmt::Display for TransferProjectionError {
 }
 
 impl Error for TransferProjectionError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_call_operation_keeps_its_label_and_runtime_code() {
+        let host_error = TransferHandlerError::Runtime(TransferRuntimeError::HostCall {
+            handle: HostWindowHandle::new("main").expect("valid window label"),
+            operation: TransferHostOperation::InnerPosition,
+            detail: "unavailable".into(),
+        });
+        let host_error = TransferHostError::from(host_error);
+
+        assert_eq!(host_error.code, TransferHostErrorCode::RuntimeUnavailable);
+        assert_eq!(
+            host_error.message,
+            "inner_position failed for main: unavailable"
+        );
+    }
+}
