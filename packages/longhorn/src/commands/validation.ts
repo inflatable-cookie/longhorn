@@ -166,6 +166,7 @@ export function assertValidCommandKeymapCommit(
   value: unknown,
 ): asserts value is CommandKeymapCommit {
   const record = object(value, "$", COMMANDS_FIELDS.CommandKeymapCommit);
+  version(record.protocolVersion, "$.protocolVersion");
   text(record.requestId, "$.requestId");
   const evidence = object(record.evidence, "$.evidence");
   finiteInteger(evidence.registryGeneration, "$.evidence.registryGeneration");
@@ -233,6 +234,7 @@ export function assertValidCommandKeymapMutationResult(
 
 function baseRequest(value: unknown, path: string, allowed?: ReadonlyArray<string>): void {
   const record = object(value, path, allowed);
+  version(record.protocolVersion, `${path}.protocolVersion`);
   finiteInteger(record.registryGeneration, `${path}.registryGeneration`);
   finiteInteger(record.keymapRevision, `${path}.keymapRevision`);
   text(record.activePresetId, `${path}.activePresetId`);

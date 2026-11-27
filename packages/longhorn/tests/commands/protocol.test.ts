@@ -38,6 +38,16 @@ describe("generated command/keymap protocol fixture", () => {
     catalogue.protocolVersion = fixture.incompatibility.futureProtocolVersion;
     incompatible(() => assertValidCommandCatalogue(catalogue));
 
+    for (const [request, assertion] of [
+      [fixture.requests.preview, assertValidCommandKeymapPreview],
+      [fixture.requests.commit, assertValidCommandKeymapCommit],
+      [fixture.requests.reset, assertValidCommandKeymapReset],
+    ] as const) {
+      const value = structuredClone(request) as Record<string, unknown>;
+      value.protocolVersion = fixture.incompatibility.futureProtocolVersion;
+      incompatible(() => assertion(value));
+    }
+
     for (const [collection, assertion, future] of [
       [
         fixture.previewResults,

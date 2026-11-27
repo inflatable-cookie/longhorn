@@ -3,7 +3,7 @@ use longhorn_config::{DomainIssue, MigrationStep};
 use longhorn_core::SchemaVersion;
 use serde_json::Value;
 
-use crate::CommandKeymapState;
+use crate::{CommandKeymapState, domain::compile_keymap};
 
 /// Current registry, preset, and codec authority exposed to migration code.
 #[derive(Clone, Copy, Debug)]
@@ -55,26 +55,14 @@ where
         let preset = self
             .presets
             .iter()
-            .find(|preset| preset.id == state.active_preset_id)
-            .ok_or_else(|| {
-                DomainIssue::new(
-                    "command-keymap-unknown-preset",
-                    format!("unknown active preset {}", state.active_preset_id),
-                )
-            })?;
-        let effective = longhorn_command::CommandEffectiveKeymap::compile(
+            .find(|preset| preset.id == state.active_preset_id);
+        compile_keymap(
             self.registry,
             preset,
-            &state.overrides,
+            &state,
             self.reserved,
-        )
-        .map_err(keymap_issue)?;
-        if effective.has_conflicts() {
-            return Err(DomainIssue::new(
-                "command-keymap-conflict",
-                "migrated keymap contains unresolved conflicts",
-            ));
-        }
+            "migrated keymap contains unresolved conflicts",
+        )?;
         serde_json::to_value(state)
             .map_err(|error| DomainIssue::new("command-keymap-migration-encode", error.to_string()))
     }

@@ -1,5 +1,6 @@
 import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { CommandClient } from "./client.ts";
+import { COMMAND_KEYMAP_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import type {
   CommandInvocation,
   CommandKeymapMutationResult,
@@ -249,6 +250,7 @@ export class CommandController {
     this.#notify();
     try {
       const preview = await this.#client.preview({
+        protocolVersion: COMMAND_KEYMAP_PROTOCOL_VERSION,
         registryGeneration: model.catalogue.registryGeneration,
         keymapRevision: base.state.revision,
         activePresetId: base.state.activePresetId,
@@ -276,6 +278,7 @@ export class CommandController {
         return false;
       }
       const result = await this.#client.commit({
+        protocolVersion: COMMAND_KEYMAP_PROTOCOL_VERSION,
         requestId: this.#client.nextRequestId(),
         evidence: preview.evidence,
         patch,
@@ -304,6 +307,7 @@ export class CommandController {
     }
     try {
       const result = await this.#client.reset({
+        protocolVersion: COMMAND_KEYMAP_PROTOCOL_VERSION,
         requestId: this.#client.nextRequestId(),
         registryGeneration: model.catalogue.registryGeneration,
         keymapRevision: base.state.revision,

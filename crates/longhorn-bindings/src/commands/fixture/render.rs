@@ -188,6 +188,7 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         })?,
         "requests": {
             "preview": to_value(CommandKeymapPreview {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 registry_generation: registry.generation(),
                 keymap_revision: state.revision,
                 active_preset_id: preset.id.clone(),
@@ -195,11 +196,13 @@ pub fn render() -> Result<String, Box<dyn Error>> {
                 patch: patch.clone(),
             })?,
             "commit": to_value(CommandKeymapCommit {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 request_id: request_id("request:fixture"),
                 evidence: evidence.clone(),
                 patch: patch.clone(),
             })?,
             "reset": to_value(CommandKeymapReset {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 request_id: request_id("request:reset"),
                 registry_generation: registry.generation(),
                 keymap_revision: state.revision,

@@ -1,17 +1,24 @@
-use std::{cell::Cell, fs, time::Duration};
+use std::{cell::Cell, error::Error, fs, time::Duration};
 
 use longhorn_command::{
     CommandKeyChord, CommandKeymapOverride, CommandPlatform, CommandRegistryGeneration,
-    CommandReservedChordPolicy,
+    CommandReservedChordPolicy, NoReservedCommandChords,
 };
 use longhorn_command_config::{
-    CommandKeymapBackupPolicy, CommandKeymapCommit, CommandKeymapLoadOrigin,
-    CommandKeymapLoadOutcome, CommandKeymapMutationOutcome, CommandKeymapMutationResult,
-    CommandKeymapPatch, CommandKeymapPreview, CommandKeymapPreviewResult,
-    CommandKeymapRecoveryCode, CommandKeymapRejectionCode, CommandKeymapService,
-    NoCommandKeymapMigration, RegisteredCommandKeymapDomain,
+    CommandKeymapBackupPolicy, CommandKeymapCommit, CommandKeymapDiagnostic,
+    CommandKeymapLoadOrigin, CommandKeymapLoadOutcome, CommandKeymapMutationOutcome,
+    CommandKeymapMutationResult, CommandKeymapPatch, CommandKeymapPreview,
+    CommandKeymapPreviewResult, CommandKeymapProtocolVersion, CommandKeymapRecoveryCode,
+    CommandKeymapRejectionCode, CommandKeymapReset, CommandKeymapService,
+    CommandKeymapServiceError, NoCommandKeymapMigration, RegisteredCommandKeymapDomain,
 };
-use longhorn_core::SchemaVersion;
+use longhorn_config::{
+    DomainDescriptor, DomainFilePath, DomainLocation, LoadDiagnostic, LoadDiagnosticCode,
+    StorageClass, StoreError, UnavailableState,
+};
+use longhorn_core::{DomainId, SchemaVersion};
+use longhorn_storage_layout::RootKind;
+use serde_json::json;
 
 use super::support::{
     Fixture, binding, binding_id, descriptor, domain, empty_patch, envelope, options, preset,
@@ -36,6 +43,15 @@ fn default_load_and_catalogue_are_exact() {
     assert_eq!(snapshot.origin, CommandKeymapLoadOrigin::Default);
     assert_eq!(snapshot.state.revision.get(), 0);
     assert_eq!(snapshot.bindings.len(), 2);
+    assert_eq!(snapshot.diagnostics.len(), 1);
+    assert_eq!(snapshot.diagnostics[0].code, "missing");
+
+    let diagnostic = CommandKeymapDiagnostic::from(&LoadDiagnostic {
+        code: LoadDiagnosticCode::Missing,
+        message: "keymap file absent".to_owned(),
+    });
+    assert_eq!(diagnostic.code, "missing");
+    assert_eq!(diagnostic.detail, "keymap file absent");
 }
 
 #[test]
@@ -158,6 +174,7 @@ fn preview_commit_and_repeat_are_bound_by_digest_and_revision() {
         .commit(
             &store,
             &CommandKeymapCommit {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 request_id: request_id("request:first"),
                 evidence: evidence.clone(),
                 patch: patch.clone(),
@@ -176,6 +193,7 @@ fn preview_commit_and_repeat_are_bound_by_digest_and_revision() {
         .commit(
             &store,
             &CommandKeymapCommit {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 request_id: request_id("request:repeat"),
                 evidence,
                 patch,
@@ -208,6 +226,7 @@ fn changed_patch_and_changed_registry_evidence_do_not_publish() {
         .commit(
             &store,
             &CommandKeymapCommit {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 request_id: request_id("request:changed"),
                 evidence,
                 patch: different,
@@ -226,6 +245,7 @@ fn changed_patch_and_changed_registry_evidence_do_not_publish() {
         .preview(
             &store,
             &CommandKeymapPreview {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 registry_generation: CommandRegistryGeneration::new(99),
                 keymap_revision: snapshot.state.revision,
                 active_preset_id: snapshot.state.active_preset_id,
@@ -258,6 +278,27 @@ fn invalid_unknown_and_conflicting_overrides_never_publish() {
         panic!("unknown command must reject");
     };
     assert_eq!(rejection.code, CommandKeymapRejectionCode::InvalidKeymap);
+    assert!(
+        rejection
+            .detail
+            .starts_with("command-keymap-unknown-command:")
+    );
+
+    let unknown_preset = CommandKeymapPatch {
+        active_preset_id: Some(super::support::id("app:missing")),
+        ..empty_patch()
+    };
+    let CommandKeymapPreviewResult::Rejected { rejection, .. } =
+        preview(&service, &store, unknown_preset)
+    else {
+        panic!("unknown preset must reject");
+    };
+    assert_eq!(rejection.code, CommandKeymapRejectionCode::InvalidKeymap);
+    assert!(
+        rejection
+            .detail
+            .starts_with("command-keymap-unknown-preset:")
+    );
 
     let conflict = CommandKeymapPatch {
         upsert_overrides: vec![CommandKeymapOverride::Add {
@@ -274,6 +315,7 @@ fn invalid_unknown_and_conflicting_overrides_never_publish() {
         panic!("ambiguous keymap must reject");
     };
     assert_eq!(rejection.code, CommandKeymapRejectionCode::Conflict);
+    assert!(rejection.detail.starts_with("command-keymap-conflict:"));
     assert!(!conflicts.is_empty());
     assert!(!path.exists());
 }
@@ -321,6 +363,7 @@ fn stale_preset_version_is_detected() {
         .preview(
             &store,
             &CommandKeymapPreview {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 registry_generation: snapshot.registry_generation,
                 keymap_revision: snapshot.state.revision,
                 active_preset_id: snapshot.state.active_preset_id,
@@ -371,6 +414,7 @@ fn reserved_override_is_rejected_without_publication() {
         .preview(
             &store,
             &CommandKeymapPreview {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 registry_generation: snapshot.registry_generation,
                 keymap_revision: snapshot.state.revision,
                 active_preset_id: snapshot.state.active_preset_id,
@@ -389,5 +433,156 @@ fn reserved_override_is_rejected_without_publication() {
         panic!("reserved override must reject");
     };
     assert_eq!(rejection.code, CommandKeymapRejectionCode::InvalidKeymap);
+    assert!(
+        rejection
+            .detail
+            .starts_with("command-keymap-reserved-chord:")
+    );
     assert!(!path.exists());
+}
+
+#[test]
+fn protocol_version_rejects_unsupported_versions_and_versions_requests() {
+    assert_eq!(
+        serde_json::from_str::<CommandKeymapProtocolVersion>("1").unwrap(),
+        CommandKeymapProtocolVersion::CURRENT
+    );
+    assert!(serde_json::from_str::<CommandKeymapProtocolVersion>("0").is_err());
+    assert!(serde_json::from_str::<CommandKeymapProtocolVersion>("2").is_err());
+
+    let preview_payload = json!({
+        "protocolVersion": 2,
+        "registryGeneration": 1,
+        "keymapRevision": 0,
+        "activePresetId": "app:default",
+        "activePresetVersion": 1,
+        "patch": empty_patch(),
+    });
+    assert!(serde_json::from_value::<CommandKeymapPreview>(preview_payload).is_err());
+
+    let commit_payload = json!({
+        "protocolVersion": 2,
+        "requestId": "request:1",
+        "evidence": {
+            "registryGeneration": 1,
+            "keymapRevision": 0,
+            "activePresetId": "app:default",
+            "activePresetVersion": 1,
+            "patchDigest": "0".repeat(64),
+        },
+        "patch": empty_patch(),
+    });
+    assert!(serde_json::from_value::<CommandKeymapCommit>(commit_payload).is_err());
+
+    let reset_payload = json!({
+        "protocolVersion": 2,
+        "requestId": "request:1",
+        "registryGeneration": 1,
+        "keymapRevision": 0,
+        "activePresetId": "app:default",
+        "activePresetVersion": 1,
+    });
+    assert!(serde_json::from_value::<CommandKeymapReset>(reset_payload).is_err());
+}
+
+#[test]
+fn unavailable_and_recovery_preview_return_typed_errors_and_sources() {
+    let project_domain = RegisteredCommandKeymapDomain::new(
+        DomainDescriptor::new(
+            DomainId::new("commands.keymap").unwrap(),
+            SchemaVersion::new(1).unwrap(),
+            StorageClass::ProjectShared,
+            Some(DomainFilePath::new("commands/keymap.json").unwrap()),
+        )
+        .unwrap(),
+        registry(1),
+        vec![preset(
+            "app:default",
+            1,
+            vec![binding("base:open", "KeyO", "app:open")],
+        )],
+        super::support::id("app:default"),
+        NoReservedCommandChords,
+        NoCommandKeymapMigration,
+        CommandKeymapBackupPolicy::Include,
+    )
+    .unwrap();
+    let fixture = Fixture::new();
+    let store = fixture.store(&project_domain);
+    let service = CommandKeymapService::new(project_domain);
+
+    let outcome = service.load(&store, Duration::from_secs(2)).unwrap();
+    assert_eq!(
+        outcome,
+        CommandKeymapLoadOutcome::Unavailable {
+            detail: "authority-unavailable".to_owned(),
+        }
+    );
+
+    let err = service
+        .preview(
+            &store,
+            &CommandKeymapPreview {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
+                registry_generation: CommandRegistryGeneration::new(1),
+                keymap_revision: Default::default(),
+                active_preset_id: super::support::id("app:default"),
+                active_preset_version: SchemaVersion::new(1).unwrap(),
+                patch: empty_patch(),
+            },
+            Duration::from_secs(2),
+        )
+        .unwrap_err();
+    assert_eq!(
+        err,
+        CommandKeymapServiceError::Unavailable(UnavailableState::Authority {
+            location: DomainLocation::RootRequired {
+                root: RootKind::Project,
+                relative_path: DomainFilePath::new("commands/keymap.json").unwrap(),
+            },
+        })
+    );
+    assert_eq!(err.to_string(), "authority-unavailable");
+    assert!(err.source().is_none());
+
+    let user_domain = domain();
+    let user_fixture = Fixture::new();
+    let user_store = user_fixture.store(&user_domain);
+    user_fixture.write(&user_domain, b"{broken");
+    let user_service = CommandKeymapService::new(user_domain);
+    let recovery_err = user_service
+        .preview(
+            &user_store,
+            &CommandKeymapPreview {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
+                registry_generation: CommandRegistryGeneration::new(1),
+                keymap_revision: Default::default(),
+                active_preset_id: super::support::id("app:default"),
+                active_preset_version: SchemaVersion::new(1).unwrap(),
+                patch: empty_patch(),
+            },
+            Duration::from_secs(2),
+        )
+        .unwrap_err();
+    let CommandKeymapServiceError::Recovery(recovery) = &recovery_err else {
+        panic!("expected typed recovery error");
+    };
+    assert_eq!(recovery.code, CommandKeymapRecoveryCode::Corrupt);
+    assert!(recovery.source_preserved);
+    assert!(recovery_err.source().is_none());
+
+    let store_err = CommandKeymapServiceError::Store(StoreError::NotRegistered {
+        id: DomainId::new("commands.keymap").unwrap(),
+    });
+    assert!(store_err.source().is_some());
+    assert!(
+        CommandKeymapServiceError::InvalidState("bad".into())
+            .source()
+            .is_none()
+    );
+    assert!(
+        CommandKeymapServiceError::Encoding("bad".into())
+            .source()
+            .is_none()
+    );
 }

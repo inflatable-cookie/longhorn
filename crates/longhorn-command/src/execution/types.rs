@@ -26,8 +26,17 @@ pub struct CommandExecutionRequest {
 }
 
 /// Fully checked invocation passed to a consumer executor.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
+///
+/// Only [`CommandAdmissionEngine::admit`](crate::CommandAdmissionEngine::admit)
+/// constructs this proof; it cannot be deserialized directly:
+///
+/// ```compile_fail
+/// use longhorn_command::AdmittedCommandInvocation;
+///
+/// let _: AdmittedCommandInvocation = serde_json::from_str("{}").unwrap();
+/// ```
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AdmittedCommandInvocation {
     pub(crate) request_id: CommandRequestId,
     pub(crate) registry_generation: CommandRegistryGeneration,

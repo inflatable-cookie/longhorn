@@ -1,0 +1,1 @@
+`AdmittedCommandInvocation` no longer implements `serde::Deserialize` so it can only be constructed by `CommandAdmissionEngine::admit`. Migration: pass `CommandExecutionRequest` across serialization boundaries and admit it via `CommandAdmissionEngine::admit` rather than deserializing `AdmittedCommandInvocation`.

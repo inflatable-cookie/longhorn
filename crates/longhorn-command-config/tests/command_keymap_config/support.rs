@@ -8,8 +8,8 @@ use longhorn_command::{
 };
 use longhorn_command_config::{
     CommandKeymapBackupPolicy, CommandKeymapPatch, CommandKeymapPreview,
-    CommandKeymapPreviewResult, CommandKeymapService, NoCommandKeymapMigration,
-    RegisteredCommandKeymapDomain,
+    CommandKeymapPreviewResult, CommandKeymapProtocolVersion, CommandKeymapService,
+    NoCommandKeymapMigration, RegisteredCommandKeymapDomain,
 };
 use longhorn_config::StorageRootsResolve;
 use longhorn_config::{
@@ -211,6 +211,7 @@ pub fn preview(
         .preview(
             store,
             &CommandKeymapPreview {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 registry_generation: snapshot.registry_generation,
                 keymap_revision: snapshot.state.revision,
                 active_preset_id: snapshot.state.active_preset_id,

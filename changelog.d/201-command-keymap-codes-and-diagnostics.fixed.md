@@ -1,0 +1,1 @@
+`CommandKeymapService` preview and commit rejections now emit explicit `command-keymap-*` codes in `detail`, `CommandKeymapDiagnostic::from(&LoadDiagnostic)` matches `LoadDiagnosticCode` explicitly instead of formatting `Debug`, and `CommandKeymapServiceError::source()` exposes the underlying `longhorn_config` error for `Coordination`, `Store`, and `Mutation`.
