@@ -64,8 +64,6 @@ pub enum InstallManager {
     MacAppStore,
     /// Installed as a Homebrew cask.
     HomebrewCask,
-    /// Installed as a Homebrew formula.
-    HomebrewFormula,
     /// Running inside a Flatpak sandbox.
     Flatpak,
     /// Running inside a Snap.
@@ -84,7 +82,7 @@ impl InstallManager {
     pub const fn label(self) -> &'static str {
         match self {
             Self::MacAppStore => "the Mac App Store",
-            Self::HomebrewCask | Self::HomebrewFormula => "Homebrew",
+            Self::HomebrewCask => "Homebrew",
             Self::Flatpak => "Flatpak",
             Self::Snap => "Snap",
             Self::AppImage => "an AppImage",
@@ -104,7 +102,6 @@ impl InstallManager {
         match self {
             Self::MacAppStore | Self::AppImage => None,
             Self::HomebrewCask => Some(format!("brew upgrade --cask {package}")),
-            Self::HomebrewFormula => Some(format!("brew upgrade {package}")),
             Self::Flatpak => Some(format!("flatpak update {package}")),
             Self::Snap => Some(format!("snap refresh {package}")),
             Self::Nix => Some("nix profile upgrade".to_owned()),
@@ -236,10 +233,6 @@ pub fn classify_install(location: &InstallLocation) -> InstallProvenance {
         return InstallProvenance::Undetermined;
     };
 
-    if executable.contains("/Cellar/") {
-        return managed(InstallManager::HomebrewFormula);
-    }
-
     if executable.starts_with("/nix/store/") {
         return managed(InstallManager::Nix);
     }
@@ -268,27 +261,6 @@ pub fn classify_install(location: &InstallLocation) -> InstallProvenance {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_homebrew_formula_keg_is_externally_managed() {
-        for path in [
-            "/opt/homebrew/Cellar/app/1/bin/app",
-            "/usr/local/Cellar/app/1/bin/app",
-            "/home/linuxbrew/.linuxbrew/Cellar/app/1/bin/app",
-        ] {
-            let location = InstallLocation::unknown().with_executable_path(path);
-            assert_eq!(
-                classify_install(&location).manager(),
-                Some(InstallManager::HomebrewFormula)
-            );
-        }
-        assert_eq!(
-            InstallManager::HomebrewFormula
-                .upgrade_command("app")
-                .as_deref(),
-            Some("brew upgrade app")
-        );
-    }
 
     #[test]
     fn a_homebrew_cask_is_externally_managed_even_though_it_is_writable() {

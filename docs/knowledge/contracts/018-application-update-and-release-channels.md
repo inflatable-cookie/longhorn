@@ -148,9 +148,6 @@ terms as the macOS path.
 - Adapters are infallible in policy terms: a source that cannot be reached
   yields no update, never a degraded or unverified one.
 
-Homebrew formula kegs, including executables reached through symlinks, are
-externally managed and use `brew upgrade` rather than the cask command.
-
 ## Channels
 
 - Channels are `production`, `beta`, and `nightly`, resolved at runtime from

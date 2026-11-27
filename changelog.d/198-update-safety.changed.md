@@ -1,1 +1,1 @@
-Update policy now ignores build metadata for semver precedence, rejects renderer deferral causes other than user postponement, and checks the offer and quiescence again before installing. Homebrew formula installs report the new `homebrewFormula` manager; consumers matching install managers must handle it and use `brew upgrade` for formulae.
+Update policy now ignores build metadata for semver precedence, rejects renderer deferral causes other than user postponement, and checks the offer and quiescence again before installing.
