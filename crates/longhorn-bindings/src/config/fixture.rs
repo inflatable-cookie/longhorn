@@ -12,7 +12,7 @@ use longhorn_config::{
     RestoreDomainChoice, RestoreExecuteCommand, RestoreExecuteOutcome, RestoreInspectCommand,
     RestoreInspectOutcome, RestorePlanCommand, RestorePlanOutcome, RestoreRecoveryCommand,
     RestoreRecoveryOutcomeProjection, RestoreRecoveryReceiptProjection,
-    RestoreRecoveryResultProjection, StorageCleanupCommand, StorageCleanupOutcome,
+    RestoreRecoveryResultProjection, StorageClass, StorageCleanupCommand, StorageCleanupOutcome,
     StorageCleanupReceiptProjection, StorageProfileId, StorageRecoveryCommand,
     StorageRecoveryOutcome, StorageRecoveryReceiptProjection, StorageTransitionConflictProjection,
     StorageTransitionDomainProjection, StorageTransitionExecuteCommand,
@@ -303,7 +303,7 @@ fn transition_preview() -> StorageTransitionPreviewProjection {
         target_profile: StorageProfileId::UnifiedAppRootV1,
         domains: vec![StorageTransitionDomainProjection {
             domain_id: "app.preferences".into(),
-            storage_class: "userConfig".into(),
+            storage_class: StorageClass::UserConfig,
             action: "copy".into(),
             source_path: Some("/old/config/preferences.json".into()),
             target_path: Some("/new/config/preferences.json".into()),

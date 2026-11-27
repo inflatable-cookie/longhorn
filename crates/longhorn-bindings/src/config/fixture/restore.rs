@@ -1,16 +1,16 @@
 use longhorn_config::{
-    BackupPublicationReceiptProjection, ConfigGeneration, ConfigOperationRejectionCode,
-    RestoreAdapterParticipationProjection, RestoreAuthenticityProjection,
-    RestoreConflictChoiceProjection, RestoreConsistencyGroupProjection,
-    RestoreCurrentEvidenceProjection, RestoreDomainCompatibilityProjection,
-    RestoreDomainInspectionProjection, RestoreExclusionProjection, RestoreExecuteOutcome,
-    RestoreExecutionFailureProjection, RestoreExecutionReceiptProjection,
-    RestoreExecutionStageProjection, RestoreFailureTerminalProjection, RestoreIdentityProjection,
-    RestoreIdentityStatusProjection, RestoreInspectOutcome, RestoreInspectionProjection,
-    RestoreInspectionReceiptProjection, RestoreIntegrityProjection,
-    RestoreOperationStateProjection, RestoreOperationsProjection, RestorePlanEntryProjection,
-    RestorePlanOutcome, RestorePlanProjection, RestorePlanReceiptProjection,
-    RestoreStagingReceiptProjection,
+    BackupConsistencyMode, BackupKind, BackupPublicationReceiptProjection, BackupSourceState,
+    ConfigGeneration, ConfigOperationRejectionCode, RestoreAdapterParticipationProjection,
+    RestoreAuthenticityProjection, RestoreConflictChoiceProjection,
+    RestoreConsistencyGroupProjection, RestoreCurrentEvidenceProjection,
+    RestoreDomainCompatibilityProjection, RestoreDomainInspectionProjection,
+    RestoreExclusionProjection, RestoreExecuteOutcome, RestoreExecutionFailureProjection,
+    RestoreExecutionReceiptProjection, RestoreExecutionStageProjection,
+    RestoreFailureTerminalProjection, RestoreIdentityProjection, RestoreIdentityStatusProjection,
+    RestoreInspectOutcome, RestoreInspectionProjection, RestoreInspectionReceiptProjection,
+    RestoreIntegrityProjection, RestoreOperationStateProjection, RestoreOperationsProjection,
+    RestorePlanEntryProjection, RestorePlanOutcome, RestorePlanProjection,
+    RestorePlanReceiptProjection, RestoreStagingReceiptProjection, StorageClass,
 };
 
 use super::{digest, rejection, snapshot};
@@ -20,7 +20,7 @@ pub(super) fn restore_inspection() -> RestoreInspectionProjection {
         archive_sha256: digest('e'),
         archive_id: "backup:fixture".into(),
         created_at: "2026-07-29T12:00:00Z".into(),
-        kind: "operational".into(),
+        kind: BackupKind::Operational,
         application_version: "1.2.3".into(),
         producer_version: "0.1.0".into(),
         integrity: RestoreIntegrityProjection::Verified,
@@ -32,22 +32,22 @@ pub(super) fn restore_inspection() -> RestoreInspectionProjection {
         consistency_groups: vec![
             RestoreConsistencyGroupProjection {
                 id: "longhorn-config-store".into(),
-                mode: "coordinatedBounded".into(),
+                mode: BackupConsistencyMode::CoordinatedBounded,
                 authority: "longhorn-config-store-coordinator".into(),
             },
             RestoreConsistencyGroupProjection {
                 id: "sqlite-main".into(),
-                mode: "externalSnapshot".into(),
+                mode: BackupConsistencyMode::ExternalSnapshot,
                 authority: "sqlite-online-backup".into(),
             },
         ],
         domains: vec![
             RestoreDomainInspectionProjection {
                 domain_id: "app.preferences".into(),
-                storage_class: "user-config".into(),
+                storage_class: StorageClass::UserConfig,
                 consistency_group: "longhorn-config-store".into(),
                 adapter: "longhorn-json-v1".into(),
-                source_state: "present".into(),
+                source_state: BackupSourceState::Present,
                 source_schema_version: Some(1),
                 target_schema_version: Some(2),
                 compatibility: RestoreDomainCompatibilityProjection::MigrationRequired {
@@ -57,10 +57,10 @@ pub(super) fn restore_inspection() -> RestoreInspectionProjection {
             },
             RestoreDomainInspectionProjection {
                 domain_id: "app.database".into(),
-                storage_class: "machine-state".into(),
+                storage_class: StorageClass::MachineState,
                 consistency_group: "sqlite-main".into(),
                 adapter: "sqlite-v1".into(),
-                source_state: "present".into(),
+                source_state: BackupSourceState::Present,
                 source_schema_version: Some(1),
                 target_schema_version: Some(1),
                 compatibility: RestoreDomainCompatibilityProjection::CustomAdapterReady {
@@ -71,10 +71,10 @@ pub(super) fn restore_inspection() -> RestoreInspectionProjection {
             },
             RestoreDomainInspectionProjection {
                 domain_id: "app.future".into(),
-                storage_class: "user-config".into(),
+                storage_class: StorageClass::UserConfig,
                 consistency_group: "longhorn-config-store".into(),
                 adapter: "longhorn-json-v1".into(),
-                source_state: "sourcePreserved".into(),
+                source_state: BackupSourceState::SourcePreserved,
                 source_schema_version: Some(9),
                 target_schema_version: Some(2),
                 compatibility: RestoreDomainCompatibilityProjection::SourcePreserved {
@@ -84,7 +84,7 @@ pub(super) fn restore_inspection() -> RestoreInspectionProjection {
         ],
         exclusions: vec![RestoreExclusionProjection {
             domain_id: "app.secrets".into(),
-            storage_class: "secret".into(),
+            storage_class: StorageClass::Secret,
             reason: "secret".into(),
             registered: true,
         }],

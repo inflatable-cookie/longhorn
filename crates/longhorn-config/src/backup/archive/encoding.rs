@@ -9,7 +9,7 @@ use crate::{
 
 use super::{
     BackupArchiveError, BackupArchiveLimits, DEFLATE_LEVEL, EncodedBackupArchive, MANIFEST_PATH,
-    bounded_cursor::BoundedCursor, manifest::validate_manifest,
+    bounded_cursor::BoundedCursor, codec::ratio_exceeds, manifest::validate_manifest,
 };
 
 /// Encodes an immutable captured snapshot into the canonical ZIP bundle.
@@ -17,7 +17,13 @@ pub fn encode_backup_archive(
     snapshot: &BackupSnapshot,
     limits: BackupArchiveLimits,
 ) -> Result<EncodedBackupArchive, BackupArchiveError> {
-    let payloads = validate_snapshot(snapshot)?;
+    let payloads = validate_payloads(
+        snapshot.manifest(),
+        snapshot.payloads().iter().map(|payload| ArchivePayload {
+            path: payload.path(),
+            bytes: payload.bytes(),
+        }),
+    )?;
     encode_archive(snapshot.manifest(), &payloads, limits)
 }
 
@@ -30,7 +36,13 @@ pub fn encode_backup_export_archive(
     limits: BackupArchiveLimits,
 ) -> Result<EncodedBackupArchive, BackupArchiveError> {
     let manifest = inspection.manifest().with_kind(BackupKind::UserExport);
-    let payloads = validate_inspection(inspection)?;
+    let payloads = validate_payloads(
+        inspection.manifest(),
+        inspection.payloads().iter().map(|payload| ArchivePayload {
+            path: payload.path(),
+            bytes: payload.bytes(),
+        }),
+    )?;
     encode_archive(&manifest, &payloads, limits)
 }
 
@@ -51,26 +63,54 @@ fn encode_archive(
         })?;
     validate_encoding_bounds(&manifest_bytes, payloads, limits)?;
 
-    let cursor = BoundedCursor::new(limits.max_archive_bytes());
-    let mut writer = ZipWriter::new(cursor);
-    write_entry(&mut writer, MANIFEST_PATH, &manifest_bytes)?;
-    for payload in payloads {
-        write_entry(&mut writer, payload.path.as_str(), payload.bytes)?;
-    }
-    let cursor = writer.finish().map_err(zip_encoding_error)?;
-    Ok(EncodedBackupArchive::new(cursor.into_inner()))
+    let entries = || {
+        std::iter::once((MANIFEST_PATH, manifest_bytes.as_slice())).chain(
+            payloads
+                .iter()
+                .map(|payload| (payload.path.as_str(), payload.bytes)),
+        )
+    };
+    let write_zip = |stored: &[bool]| {
+        let mut writer = ZipWriter::new(BoundedCursor::new(limits.max_archive_bytes()));
+        for (index, (path, bytes)) in entries().enumerate() {
+            let compression = if bytes.is_empty() || stored.get(index) == Some(&true) {
+                CompressionMethod::Stored
+            } else {
+                CompressionMethod::Deflated
+            };
+            write_entry(&mut writer, path, bytes, compression)?;
+        }
+        writer.finish_into_readable().map_err(zip_encoding_error)
+    };
+
+    let compressed = write_zip(&[])?;
+    let stored = (0..compressed.len())
+        .map(|index| {
+            let entry = compressed
+                .by_index_data(index)
+                .map_err(zip_encoding_error)?;
+            Ok(ratio_exceeds(
+                entry.size(),
+                entry.compressed_size(),
+                limits.max_compression_ratio(),
+            ))
+        })
+        .collect::<Result<Vec<_>, BackupArchiveError>>()?;
+    let archive = if stored.contains(&true) {
+        drop(compressed);
+        write_zip(&stored)?
+    } else {
+        compressed
+    };
+    Ok(EncodedBackupArchive::new(archive.into_inner().into_inner()))
 }
 
 fn write_entry<W: Write + Seek>(
     writer: &mut ZipWriter<W>,
     path: &str,
     bytes: &[u8],
+    compression: CompressionMethod,
 ) -> Result<(), BackupArchiveError> {
-    let compression = if bytes.is_empty() {
-        CompressionMethod::Stored
-    } else {
-        CompressionMethod::Deflated
-    };
     let level = (compression == CompressionMethod::Deflated).then_some(DEFLATE_LEVEL);
     let options = SimpleFileOptions::default()
         .compression_method(compression)
@@ -88,84 +128,37 @@ fn write_entry<W: Write + Seek>(
         })
 }
 
-fn validate_snapshot(
-    snapshot: &BackupSnapshot,
-) -> Result<Vec<ArchivePayload<'_>>, BackupArchiveError> {
-    let declared = validate_manifest(snapshot.manifest())?;
-    if snapshot.payloads().len() != declared.len() {
+fn validate_payloads<'a>(
+    manifest: &BackupManifest,
+    payloads: impl Iterator<Item = ArchivePayload<'a>>,
+) -> Result<Vec<ArchivePayload<'a>>, BackupArchiveError> {
+    let mut declared = validate_manifest(manifest)?;
+    let mut payloads = payloads.collect::<Vec<_>>();
+    if payloads.len() != declared.len() {
         return Err(snapshot_invariant(
             "payload count does not match manifest declaration",
         ));
     }
-    let mut payloads = snapshot.payloads().iter().collect::<Vec<_>>();
-    payloads.sort_by(|left, right| left.path().cmp(right.path()));
+    payloads.sort_by_key(|payload| payload.path);
     for payload in &payloads {
-        let Some(expected) = declared.get(payload.path().as_str()) else {
+        let path = payload.path.as_str();
+        let Some(expected) = declared.remove(path) else {
             return Err(snapshot_invariant(format!(
-                "payload {} is undeclared",
-                payload.path().as_str()
+                "payload {path} is duplicate or undeclared"
             )));
         };
-        if payload.bytes().len() as u64 != expected.byte_length {
+        if payload.bytes.len() as u64 != expected.byte_length {
             return Err(snapshot_invariant(format!(
-                "payload {} length differs from manifest",
-                payload.path().as_str()
+                "payload {path} length differs from manifest"
             )));
         }
-        if Sha256Digest::from_bytes(payload.bytes()) != expected.sha256 {
+        if Sha256Digest::from_bytes(payload.bytes) != expected.sha256 {
             return Err(snapshot_invariant(format!(
-                "payload {} digest differs from manifest",
-                payload.path().as_str()
+                "payload {path} digest differs from manifest"
             )));
         }
     }
-    Ok(payloads
-        .into_iter()
-        .map(|payload| ArchivePayload {
-            path: payload.path(),
-            bytes: payload.bytes(),
-        })
-        .collect())
-}
-
-fn validate_inspection(
-    inspection: &BackupArchiveInspection,
-) -> Result<Vec<ArchivePayload<'_>>, BackupArchiveError> {
-    let declared = validate_manifest(inspection.manifest())?;
-    if inspection.payloads().len() != declared.len() {
-        return Err(snapshot_invariant(
-            "inspected payload count does not match manifest declaration",
-        ));
-    }
-    let mut payloads = inspection.payloads().iter().collect::<Vec<_>>();
-    payloads.sort_by(|left, right| left.path().cmp(right.path()));
-    for payload in &payloads {
-        let Some(expected) = declared.get(payload.path().as_str()) else {
-            return Err(snapshot_invariant(format!(
-                "inspected payload {} is undeclared",
-                payload.path().as_str()
-            )));
-        };
-        if payload.bytes().len() as u64 != expected.byte_length {
-            return Err(snapshot_invariant(format!(
-                "inspected payload {} length differs from manifest",
-                payload.path().as_str()
-            )));
-        }
-        if Sha256Digest::from_bytes(payload.bytes()) != expected.sha256 {
-            return Err(snapshot_invariant(format!(
-                "inspected payload {} digest differs from manifest",
-                payload.path().as_str()
-            )));
-        }
-    }
-    Ok(payloads
-        .into_iter()
-        .map(|payload| ArchivePayload {
-            path: payload.path(),
-            bytes: payload.bytes(),
-        })
-        .collect())
+    Ok(payloads)
 }
 
 fn validate_encoding_bounds(
@@ -236,8 +229,6 @@ fn zip_encoding_error(error: zip::result::ZipError) -> BackupArchiveError {
 
 #[cfg(test)]
 mod tests {
-    use std::io::Cursor;
-
     use serde_json::json;
 
     use super::*;
@@ -277,7 +268,15 @@ mod tests {
             "exclusions": []
         }))
         .unwrap();
-        let source = encode_parts_for_test(&manifest, path, payload);
+        let source = encode_archive(
+            &manifest,
+            &[ArchivePayload {
+                path: &BackupPayloadPath::new(path).unwrap(),
+                bytes: payload,
+            }],
+            BackupArchiveLimits::default(),
+        )
+        .unwrap();
         let source_inspection =
             inspect_backup_archive(source.bytes(), BackupArchiveLimits::default()).unwrap();
 
@@ -302,20 +301,52 @@ mod tests {
         assert_ne!(export.sha256(), source.sha256());
     }
 
-    fn encode_parts_for_test(
-        manifest: &BackupManifest,
-        path: &str,
-        payload: &[u8],
-    ) -> EncodedBackupArchive {
-        let cursor = Cursor::new(Vec::new());
-        let mut writer = ZipWriter::new(cursor);
-        write_entry(
-            &mut writer,
-            MANIFEST_PATH,
-            &serde_json::to_vec(manifest).unwrap(),
+    #[test]
+    fn repetitive_payload_is_stored_and_the_archive_passes_the_same_limits() {
+        let payload = vec![b'x'; 512 * 1024];
+        let path = "longhorn/adapters/example.settings/document.bin";
+        let manifest = serde_json::from_value::<BackupManifest>(json!({
+            "format": "longhorn.config-backup",
+            "formatVersion": 1,
+            "archiveId": "repetitive",
+            "kind": "pre-restore",
+            "createdAt": "2026-08-02T12:00:00Z",
+            "application": {"id": "com.example.app", "version": "1.0.0"},
+            "producer": {"name": "longhorn-config", "version": "0.1.0"},
+            "consistencyGroups": [{"id": "example.settings", "mode": "external-snapshot", "authority": "settings-test"}],
+            "domains": [{
+                "domain": "example.settings",
+                "storageClass": "user-config",
+                "consistencyGroup": "example.settings",
+                "adapter": "settings-test",
+                "state": "present",
+                "sourceSchemaVersion": 1,
+                "sourceIssue": null,
+                "payloads": [{"path": path, "byteLength": payload.len(), "sha256": Sha256Digest::from_bytes(&payload).as_str()}]
+            }],
+            "exclusions": []
+        })).unwrap();
+        let limits = BackupArchiveLimits::default();
+        let archive = encode_archive(
+            &manifest,
+            &[ArchivePayload {
+                path: &BackupPayloadPath::new(path).unwrap(),
+                bytes: &payload,
+            }],
+            limits,
         )
         .unwrap();
-        write_entry(&mut writer, path, payload).unwrap();
-        EncodedBackupArchive::new(writer.finish().unwrap().into_inner())
+
+        let inspected = inspect_backup_archive(archive.bytes(), limits).unwrap();
+        assert_eq!(inspected.payloads()[0].bytes(), payload);
+        let zip = zip::ZipArchive::new(std::io::Cursor::new(archive.bytes())).unwrap();
+        assert_eq!(
+            zip.by_index_data(0).unwrap().compression(),
+            CompressionMethod::Deflated
+        );
+        assert_eq!(
+            zip.by_index_data(1).unwrap().compression(),
+            CompressionMethod::Stored
+        );
     }
 }

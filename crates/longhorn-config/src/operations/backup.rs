@@ -1,6 +1,7 @@
 use super::{
     ConfigGeneration, ConfigOperationRejection, ConfigOperationsSnapshot, ConfigProtocolVersion,
 };
+use crate::BackupKind;
 use longhorn_core::ConfigRequestId;
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +17,7 @@ pub struct BackupArchiveProjection {
     /// Strict UTC creation time.
     pub created_at: String,
     /// Backup kind.
-    pub kind: String,
+    pub kind: BackupKind,
     /// Digest over exact published archive bytes.
     pub archive_sha256: String,
 }

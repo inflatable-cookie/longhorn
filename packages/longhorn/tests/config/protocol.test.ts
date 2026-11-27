@@ -101,6 +101,40 @@ describe("generated config operations fixture", () => {
     incompatible(() => assertValidRestoreInspectOutcome(compatibility));
   });
 
+  test("rejects unknown config projection values and legacy casing", () => {
+    const { snapshot, outcomes } = fixture;
+    const { backup } = snapshot;
+    const [archive] = backup.inventory.archives;
+    const restore = outcomes.inspectRestore;
+    if (!archive || restore.status !== "ready") {
+      throw new Error("missing config projection evidence");
+    }
+    const { inspection } = restore;
+    const [group] = inspection.consistencyGroups;
+    const [domain] = inspection.domains;
+    if (!group || !domain) {
+      throw new Error("missing restore group or domain");
+    }
+
+    incompatible(() =>
+      assertValidConfigOperationsSnapshot({
+        ...snapshot,
+        backup: {
+          ...backup,
+          inventory: { ...backup.inventory, archives: [{ ...archive, kind: "manual" }] },
+        },
+      }),
+    );
+    for (const invalid of [
+      { ...inspection, kind: "custom" },
+      { ...inspection, consistencyGroups: [{ ...group, mode: "coordinatedBounded" }] },
+      { ...inspection, domains: [{ ...domain, sourceState: "sourcePreserved" }] },
+      { ...inspection, domains: [{ ...domain, storageClass: "userConfig" }] },
+    ]) {
+      incompatible(() => assertValidRestoreInspectOutcome({ ...restore, inspection: invalid }));
+    }
+  });
+
   test("rejects unknown restore stages, terminals, and receipt outcomes", () => {
     const {
       unknownRestoreExecutionStage,

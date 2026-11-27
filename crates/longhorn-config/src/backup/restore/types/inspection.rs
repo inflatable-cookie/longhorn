@@ -340,6 +340,7 @@ impl RestoreInspectionReceipt {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PreparedTarget {
+    pub(crate) location: crate::ResolvedFile,
     pub(crate) bytes: Option<Vec<u8>>,
     pub(crate) schema_version: Option<SchemaVersion>,
 }

@@ -1,6 +1,10 @@
 import { CONFIG_FIELDS } from "../generated/fields.ts";
 import {
   BACKUP_ENCRYPTION_STATES,
+  BACKUP_CONSISTENCY_MODES,
+  BACKUP_KINDS,
+  BACKUP_SOURCE_STATES,
+  STORAGE_CLASSES,
   BACKUP_INVENTORY_ENTRY_STATES,
   BACKUP_PENDING_STATES,
   CONFIG_OPERATION_CAPABILITIES,
@@ -58,9 +62,10 @@ export function assertValidConfigOperationsSnapshot(
 export function assertRestoreInspection(value: unknown, path: string): void {
   const inspection = record(value, path, CONFIG_FIELDS.RestoreInspectionProjection);
   digest(inspection.archiveSha256, `${path}.archiveSha256`);
-  ["archiveId", "createdAt", "kind", "applicationVersion", "producerVersion"].forEach((key) =>
+  ["archiveId", "createdAt", "applicationVersion", "producerVersion"].forEach((key) =>
     nonempty(inspection[key], `${path}.${key}`),
   );
+  discriminant(inspection.kind, BACKUP_KINDS, `${path}.kind`);
   discriminant(inspection.integrity, RESTORE_INTEGRITY_VALUES, `${path}.integrity`);
   discriminant(inspection.authenticity, RESTORE_AUTHENTICITY_VALUES, `${path}.authenticity`);
   identity(
@@ -70,7 +75,8 @@ export function assertRestoreInspection(value: unknown, path: string): void {
   array(inspection.consistencyGroups, `${path}.consistencyGroups`).forEach((value, index) => {
     const groupPath = `${path}.consistencyGroups[${index}]`;
     const group = record(value, groupPath, CONFIG_FIELDS.RestoreConsistencyGroupProjection);
-    ["id", "mode", "authority"].forEach((key) => nonempty(group[key], `${groupPath}.${key}`));
+    ["id", "authority"].forEach((key) => nonempty(group[key], `${groupPath}.${key}`));
+    discriminant(group.mode, BACKUP_CONSISTENCY_MODES, `${groupPath}.mode`);
   });
   array(inspection.domains, `${path}.domains`).forEach((value, index) =>
     restoreDomain(value, `${path}.domains[${index}]`),
@@ -78,9 +84,8 @@ export function assertRestoreInspection(value: unknown, path: string): void {
   array(inspection.exclusions, `${path}.exclusions`).forEach((value, index) => {
     const exclusionPath = `${path}.exclusions[${index}]`;
     const exclusion = record(value, exclusionPath, CONFIG_FIELDS.RestoreExclusionProjection);
-    ["domainId", "storageClass", "reason"].forEach((key) =>
-      nonempty(exclusion[key], `${exclusionPath}.${key}`),
-    );
+    ["domainId", "reason"].forEach((key) => nonempty(exclusion[key], `${exclusionPath}.${key}`));
+    discriminant(exclusion.storageClass, STORAGE_CLASSES, `${exclusionPath}.storageClass`);
     boolean(exclusion.registered, `${exclusionPath}.registered`);
   });
   countReceipt(inspection.receipt, `${path}.receipt`, [
@@ -199,9 +204,10 @@ function backup(value: unknown, path: string): void {
   array(inventory.archives, `${path}.inventory.archives`).forEach((archiveValue, index) => {
     const archivePath = `${path}.inventory.archives[${index}]`;
     const archive = record(archiveValue, archivePath, CONFIG_FIELDS.BackupArchiveProjection);
-    ["path", "archiveId", "createdAt", "kind"].forEach((key) =>
+    ["path", "archiveId", "createdAt"].forEach((key) =>
       nonempty(archive[key], `${archivePath}.${key}`),
     );
+    discriminant(archive.kind, BACKUP_KINDS, `${archivePath}.kind`);
     digest(archive.archiveSha256, `${archivePath}.archiveSha256`);
   });
   array(inventory.entries, `${path}.inventory.entries`).forEach((entryValue, index) =>
@@ -246,9 +252,11 @@ function identity(value: Record<string, unknown>, path: string): void {
 
 function restoreDomain(value: unknown, path: string): void {
   const domain = record(value, path, CONFIG_FIELDS.RestoreDomainInspectionProjection);
-  ["domainId", "storageClass", "consistencyGroup", "adapter", "sourceState"].forEach((key) =>
+  ["domainId", "consistencyGroup", "adapter"].forEach((key) =>
     nonempty(domain[key], `${path}.${key}`),
   );
+  discriminant(domain.storageClass, STORAGE_CLASSES, `${path}.storageClass`);
+  discriminant(domain.sourceState, BACKUP_SOURCE_STATES, `${path}.sourceState`);
   if (domain.sourceSchemaVersion !== null) {
     finiteNumber(domain.sourceSchemaVersion, `${path}.sourceSchemaVersion`);
   }

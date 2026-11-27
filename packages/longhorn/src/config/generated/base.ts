@@ -8,6 +8,8 @@ export const CONFIG_OPERATION_CAPABILITIES = ["storageDiagnostics","storageTrans
 export const CONFIG_OPERATION_REJECTION_CODES = ["unauthorized","unsupported","authorityChanged","confirmationMismatch","transitionActive","recoveryRequired","conflicts","pendingPublication","selectionCancelled","archiveChanged","archiveCorrupt","archiveFutureVersion","identityMismatch","restorePlanStale","restoreActive","restoreAdapterChanged","incompleteInventory","encryptionInteractionRequired","policyBlocked"] as const;
 export const STORAGE_PROFILE_IDS = ["platform-native-v1","unified-app-root-v1","shared-product-root-v1","portable-v1"] as const;
 export const STORAGE_LEAF_PROVENANCES = ["canonicalApplicationId","stableStorageName"] as const;
+export const BACKUP_KINDS = ["operational","user-export","pre-migration","pre-restore"] as const;
+export const STORAGE_CLASSES = ["defaults","policy","user-config","machine-state","workspace-local","project-shared","secret","cache","runtime","log"] as const;
 export const BACKUP_INVENTORY_ENTRY_STATES = ["valid","locked","corrupt","foreign","unknown","unreadable","unmanaged"] as const;
 export const BACKUP_PENDING_POLICIES = ["refuse","flush"] as const;
 export const STORAGE_BOOTSTRAP_STATES = ["selected","recoveryRequired"] as const;
@@ -129,6 +131,8 @@ bootstrap: StorageBootstrapProjection,
  */
 availableProfiles: Array<StorageProfileId>, };
 
+export type StorageClass = "defaults" | "policy" | "user-config" | "machine-state" | "workspace-local" | "project-shared" | "secret" | "cache" | "runtime" | "log";
+
 export type StorageTransitionDomainProjection = { 
 /**
  * Stable configuration domain id.
@@ -137,7 +141,7 @@ domainId: string,
 /**
  * Storage lifecycle class.
  */
-storageClass: string, 
+storageClass: StorageClass, 
 /**
  * Planned action.
  */
@@ -265,6 +269,8 @@ transitionReceiptDigest: string,
  */
 removedPaths: Array<string>, };
 
+export type BackupKind = "operational" | "user-export" | "pre-migration" | "pre-restore";
+
 export type BackupArchiveProjection = { 
 /**
  * Exact root-level archive path.
@@ -281,7 +287,7 @@ createdAt: string,
 /**
  * Backup kind.
  */
-kind: string, 
+kind: BackupKind, 
 /**
  * Digest over exact published archive bytes.
  */

@@ -2,6 +2,7 @@ mod bounded_cursor;
 mod central_directory;
 mod codec;
 mod encoding;
+mod envelope;
 mod error;
 mod manifest;
 mod publication;
@@ -11,8 +12,11 @@ mod types;
 
 pub use codec::inspect_backup_archive;
 pub use encoding::{encode_backup_archive, encode_backup_export_archive};
+pub use envelope::{BackupEnvelopeError, BackupEnvelopeReader};
 pub use error::BackupArchiveError;
-pub use publication::{export_backup, publish_operational_backup};
+pub use publication::{
+    export_backup, publish_encrypted_operational_backup, publish_operational_backup,
+};
 pub use publication_types::{
     BackupArchiveFileName, BackupArchiveFileNameError, BackupDestinationKind, BackupExportTarget,
     BackupOperationalRoot, BackupPublicationError, BackupPublicationOptions,
@@ -23,7 +27,8 @@ pub use retention::{
     BackupRetentionApplyReceipt, BackupRetentionDeletion, BackupRetentionDiagnostic,
     BackupRetentionDiagnosticKind, BackupRetentionPlan, BackupRetentionPlanError,
     BackupRetentionPolicy, BackupRetentionPolicyError, BackupRetentionReason, MilestoneRetention,
-    apply_backup_retention, list_operational_backups, plan_backup_retention,
+    apply_backup_retention, list_operational_backups, list_operational_backups_with_envelope,
+    plan_backup_retention,
 };
 pub use types::{
     BackupArchiveInspection, BackupArchiveLimits, BackupArchiveLimitsError, BackupAuthenticity,

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::{Sha256Digest, journal_file};
-use longhorn_storage_layout::StorageBootstrapPaths;
+use longhorn_storage_layout::{StorageBootstrapPaths, valid_storage_transition_id};
 
 use super::{
     StorageFileEvidence, StorageTransitionAction, StorageTransitionError, StorageTransitionPlan, io,
@@ -128,6 +128,9 @@ pub(super) fn read(
             "unsupported transition journal schema".into(),
         ));
     }
+    if !valid_storage_transition_id(&document.transition_id) {
+        return Err(StorageTransitionError::InvalidTransitionId);
+    }
     Ok(Some(TransitionJournal {
         transition_id: document.transition_id,
         phase: document.phase,
@@ -146,6 +149,9 @@ pub(super) fn cleanup(
     paths: &StorageBootstrapPaths,
     transition_id: &str,
 ) -> Result<(), StorageTransitionError> {
+    if !valid_storage_transition_id(transition_id) {
+        return Err(StorageTransitionError::InvalidTransitionId);
+    }
     io::remove_file(paths.journal())?;
     io::remove_tree(&paths.transitions().join(transition_id))
 }
@@ -323,6 +329,50 @@ mod tests {
             matches!(read(&paths), Err(StorageTransitionError::Journal(detail))
             if detail.contains("bound exceeded"))
         );
+    }
+
+    #[test]
+    fn transition_cleanup_stays_inside_its_own_staging_directory() {
+        use crate::StorageTransitionExecutionOptions;
+        use std::{fs, time::Duration};
+
+        let temp = tempfile::tempdir().unwrap();
+        let identity = StorageIdentity::new("com.example.transfer").unwrap();
+        let facts = PlatformDirectoryFacts::new(TargetPlatform::Linux).with(
+            longhorn_storage_layout::PlatformDirectoryFact::Config,
+            temp.path().to_path_buf(),
+        );
+        let paths = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+        fs::create_dir_all(paths.transitions().join("committed")).unwrap();
+        fs::create_dir(paths.transitions().join("other")).unwrap();
+        fs::write(paths.locator(), b"committed locator").unwrap();
+
+        for invalid in [".", "..", "a/b", "/absolute", "", "a\\b"] {
+            assert!(
+                matches!(
+                    StorageTransitionExecutionOptions::new(invalid, Duration::ZERO),
+                    Err(StorageTransitionError::InvalidTransitionId)
+                ),
+                "{invalid:?}"
+            );
+            let mut active = journal();
+            active.transition_id = invalid.into();
+            write(&paths, &active).unwrap();
+            assert!(matches!(
+                read(&paths),
+                Err(StorageTransitionError::InvalidTransitionId)
+            ));
+            assert!(matches!(
+                cleanup(&paths, invalid),
+                Err(StorageTransitionError::InvalidTransitionId)
+            ));
+            assert!(paths.journal().exists());
+        }
+        cleanup(&paths, "committed").unwrap();
+        assert!(!paths.transitions().join("committed").exists());
+        assert!(paths.transitions().join("other").is_dir());
+        assert_eq!(fs::read(paths.locator()).unwrap(), b"committed locator");
+        assert!(!paths.journal().exists());
     }
 
     #[cfg(unix)]

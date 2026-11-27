@@ -183,3 +183,29 @@ fn plan_digest_binds_conflict_choice_action_and_current_evidence() {
         Some(RestoreAction::Unchanged)
     );
 }
+
+#[test]
+fn a_foreign_store_cannot_plan_inspected_targets() {
+    let source = Fixture::new();
+    let domain = config_domain();
+    let mut store = source.store();
+    store.register(&domain).unwrap();
+    let mut catalog = BackupCatalog::new();
+    catalog.include(&domain).unwrap();
+    let archive = archive(&store, &catalog);
+    let (application, producer) = identities();
+    let inspection = store.inspect_restore(&catalog, &archive, &application, &producer);
+    let id = domain.descriptor().id().clone();
+    let selected = choices([(id.clone(), RestoreConflictChoice::UseArchive)]);
+    let other = Fixture::new();
+    let mut foreign = other.store();
+    assert_eq!(
+        foreign.plan_restore(&inspection, &selected).unwrap_err(),
+        RestorePlanError::TargetChanged { domain: id.clone() }
+    );
+    foreign.register(&domain).unwrap();
+    assert_eq!(
+        foreign.plan_restore(&inspection, &selected).unwrap_err(),
+        RestorePlanError::TargetChanged { domain: id }
+    );
+}

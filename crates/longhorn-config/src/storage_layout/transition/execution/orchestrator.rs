@@ -29,7 +29,14 @@ pub fn execute_storage_transition(
     confirmation: &Sha256Digest,
     options: StorageTransitionExecutionOptions,
 ) -> Result<StorageTransitionReceipt, StorageTransitionError> {
-    execute_inner(request, plan, confirmation, options, None)
+    execute_inner(
+        request,
+        plan,
+        confirmation,
+        options,
+        #[cfg(test)]
+        None,
+    )
 }
 
 /// Recovers one interrupted transition to the authority selected by the locator.
@@ -211,6 +218,7 @@ fn remove_verified_interrupted_targets(
     Ok(())
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum InjectedFailure {
     BeforeLocator,
@@ -222,7 +230,7 @@ pub(crate) fn execute_inner(
     plan: &StorageTransitionPlan,
     confirmation: &Sha256Digest,
     options: StorageTransitionExecutionOptions,
-    injected: Option<InjectedFailure>,
+    #[cfg(test)] injected: Option<InjectedFailure>,
 ) -> Result<StorageTransitionReceipt, StorageTransitionError> {
     if plan.confirmation_digest() != confirmation {
         return Err(StorageTransitionError::StalePlan);
@@ -299,6 +307,7 @@ pub(crate) fn execute_inner(
             | StorageTransitionAction::Conflict => {}
         }
     }
+    #[cfg(test)]
     if injected == Some(InjectedFailure::BeforeLocator) {
         return Err(StorageTransitionError::RecoveryRequired(
             "injected failure before locator commit".into(),
@@ -316,10 +325,12 @@ pub(crate) fn execute_inner(
         Some(crate::storage_layout::layout_evidence(
             &plan.preview.target_layout_digest,
         )),
-    );
+    )
+    .map_err(|error| StorageTransitionError::Locator(error.to_string()))?;
     let encoded = encode_locator(&locator)
         .map_err(|error| StorageTransitionError::Locator(error.to_string()))?;
     transition_io::atomic_write(request.bootstrap.locator(), &encoded)?;
+    #[cfg(test)]
     if injected == Some(InjectedFailure::AfterLocator) {
         return Err(StorageTransitionError::RecoveryRequired(
             "injected failure after locator commit".into(),

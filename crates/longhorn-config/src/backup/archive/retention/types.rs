@@ -48,15 +48,17 @@ impl BackupOperationalCandidate {
 /// Why one root entry was preserved outside automatic retention.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum BackupRetentionDiagnosticKind {
-    /// Entry is not a plaintext Longhorn archive.
+    /// Entry is outside Longhorn operational archive naming.
     Unmanaged,
-    /// Encrypted archive cannot be inspected by the plaintext layer.
+    /// No available identity authenticated the encrypted archive.
     Locked,
+    /// The injected identity provider failed.
+    ProviderFailed,
     /// Candidate could not be read.
     Unreadable,
     /// Candidate is not a regular file.
     NonRegular,
-    /// Plaintext archive is malformed or damaged.
+    /// The archive is malformed or damaged.
     Corrupt,
     /// Archive uses a future or otherwise unsupported format.
     UnknownFormat,
@@ -96,6 +98,7 @@ pub struct BackupOperationalListing {
     pub(crate) candidates: Vec<BackupOperationalCandidate>,
     pub(crate) diagnostics: Vec<BackupRetentionDiagnostic>,
     pub(crate) complete: bool,
+    pub(crate) max_ciphertext_bytes: Option<usize>,
 }
 
 impl BackupOperationalListing {

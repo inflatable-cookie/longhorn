@@ -1,0 +1,1 @@
+Config operations now use closed backup kind, consistency mode, storage class, and source state enums. Rust hosts should pass the corresponding enum variants and clients should regenerate their bindings and use kebab-case values such as `coordinated-bounded`, `external-snapshot`, and `source-preserved`.

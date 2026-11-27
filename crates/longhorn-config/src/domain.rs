@@ -20,6 +20,7 @@ pub enum DocumentFormat {
 
 /// Persistence authority and default root for a configuration domain.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "kebab-case")]
 pub enum StorageClass {
     /// Compiled product defaults with no writable file.
@@ -42,6 +43,16 @@ pub enum StorageClass {
     Runtime,
     /// Application logs.
     Log,
+}
+
+impl DocumentFormat {
+    const fn suffix(self) -> &'static str {
+        match self {
+            Self::Json => ".json",
+            #[cfg(feature = "toml")]
+            Self::Toml => ".toml",
+        }
+    }
 }
 
 impl StorageClass {
@@ -193,6 +204,22 @@ impl DomainDescriptor {
         storage_class: StorageClass,
         file_path: Option<DomainFilePath>,
     ) -> Result<Self, DomainDescriptorError> {
+        Self::with_format(
+            id,
+            schema_version,
+            storage_class,
+            file_path,
+            DocumentFormat::Json,
+        )
+    }
+
+    fn with_format(
+        id: DomainId,
+        schema_version: SchemaVersion,
+        storage_class: StorageClass,
+        file_path: Option<DomainFilePath>,
+        file_format: DocumentFormat,
+    ) -> Result<Self, DomainDescriptorError> {
         match (storage_class.requires_file_path(), file_path.is_some()) {
             (true, false) => {
                 return Err(DomainDescriptorError::FilePathRequired { storage_class });
@@ -203,12 +230,20 @@ impl DomainDescriptor {
             _ => {}
         }
 
+        if let Some(path) = &file_path
+            && !path.as_str().ends_with(file_format.suffix())
+        {
+            return Err(DomainDescriptorError::PathFormatMismatch {
+                path: path.clone(),
+                format: file_format,
+            });
+        }
         Ok(Self {
             id,
             schema_version,
             storage_class,
             file_path,
-            file_format: DocumentFormat::Json,
+            file_format,
         })
     }
 
@@ -224,11 +259,13 @@ impl DomainDescriptor {
         storage_class: StorageClass,
         file_path: Option<DomainFilePath>,
     ) -> Result<Self, DomainDescriptorError> {
-        let descriptor = Self::new(id, schema_version, storage_class, file_path)?;
-        Ok(Self {
-            file_format: DocumentFormat::Toml,
-            ..descriptor
-        })
+        Self::with_format(
+            id,
+            schema_version,
+            storage_class,
+            file_path,
+            DocumentFormat::Toml,
+        )
     }
 
     /// Returns the stable domain id.
@@ -272,6 +309,13 @@ impl DomainDescriptor {
 /// Invalid descriptor shape for its storage class.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DomainDescriptorError {
+    /// A registered file path does not end in the declared format's suffix.
+    PathFormatMismatch {
+        /// Rejected domain file path.
+        path: DomainFilePath,
+        /// Intended document format.
+        format: DocumentFormat,
+    },
     /// A file-backed class did not declare a path.
     FilePathRequired {
         /// Class requiring the path.
@@ -287,6 +331,13 @@ pub enum DomainDescriptorError {
 impl fmt::Display for DomainDescriptorError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::PathFormatMismatch { path, format } => {
+                write!(
+                    formatter,
+                    "domain file {path} must end in {}",
+                    format.suffix()
+                )
+            }
             Self::FilePathRequired { storage_class } => {
                 write!(formatter, "{storage_class:?} requires a domain file path")
             }

@@ -3,14 +3,15 @@ use std::error::Error;
 use longhorn_core::MAX_OPAQUE_ID_BYTES;
 
 use longhorn_config::{
-    BackupArchiveProjection, BackupCaptureReceiptProjection, BackupCreateCommand,
-    BackupCreateOutcome, BackupEncryptionState, BackupExportCommand, BackupExportOutcome,
-    BackupInventoryEntry, BackupInventoryEntryState, BackupInventoryProjection,
-    BackupOperationsProjection, BackupPendingState, BackupPublicationReceiptProjection,
-    BackupRetentionApplyCommand, BackupRetentionApplyOutcome, BackupRetentionProjection,
-    BackupRetentionReasonProjection, CONFIG_OPERATIONS_PROTOCOL_VERSION, ConfigGeneration,
-    ConfigOperationCapability, ConfigOperationRejection, ConfigOperationRejectionCode,
-    ConfigOperationsSnapshot, ConfigProtocolVersion, ConfigSnapshotCommand, PendingBackupPolicy,
+    BackupArchiveProjection, BackupCaptureReceiptProjection, BackupConsistencyMode,
+    BackupCreateCommand, BackupCreateOutcome, BackupEncryptionState, BackupExportCommand,
+    BackupExportOutcome, BackupInventoryEntry, BackupInventoryEntryState,
+    BackupInventoryProjection, BackupKind, BackupOperationsProjection, BackupPendingState,
+    BackupPublicationReceiptProjection, BackupRetentionApplyCommand, BackupRetentionApplyOutcome,
+    BackupRetentionProjection, BackupRetentionReasonProjection, BackupSourceState,
+    CONFIG_OPERATIONS_PROTOCOL_VERSION, ConfigGeneration, ConfigOperationCapability,
+    ConfigOperationRejection, ConfigOperationRejectionCode, ConfigOperationsSnapshot,
+    ConfigProtocolVersion, ConfigSnapshotCommand, PendingBackupPolicy,
     RestoreAdapterExecuteCommand, RestoreAdapterExecuteOutcome, RestoreAdapterOutcomeProjection,
     RestoreAdapterParticipationProjection, RestoreAdapterReceiptProjection,
     RestoreAdapterRequirementProjection, RestoreArchiveSelection, RestoreAuthenticityProjection,
@@ -25,14 +26,15 @@ use longhorn_config::{
     RestorePlanEntryProjection, RestorePlanOutcome, RestorePlanProjection,
     RestorePlanReceiptProjection, RestoreRecoveryCommand, RestoreRecoveryOutcomeProjection,
     RestoreRecoveryReceiptProjection, RestoreRecoveryResultProjection,
-    RestoreStagingReceiptProjection, StorageBootstrapProjection, StorageCleanupCommand,
-    StorageCleanupOutcome, StorageCleanupReceiptProjection, StorageLayoutProjection,
-    StorageLeafProvenanceProjection, StorageOperationsProjection, StorageProfileId,
-    StorageRecoveryCommand, StorageRecoveryOutcome, StorageRecoveryReceiptProjection,
-    StorageRootProjection, StorageTransitionConflictProjection, StorageTransitionDomainProjection,
-    StorageTransitionExecuteCommand, StorageTransitionExecuteOutcome,
-    StorageTransitionInspectCommand, StorageTransitionInspectOutcome,
-    StorageTransitionPreviewProjection, StorageTransitionReceiptProjection,
+    RestoreStagingReceiptProjection, StorageBootstrapProjection, StorageClass,
+    StorageCleanupCommand, StorageCleanupOutcome, StorageCleanupReceiptProjection,
+    StorageLayoutProjection, StorageLeafProvenanceProjection, StorageOperationsProjection,
+    StorageProfileId, StorageRecoveryCommand, StorageRecoveryOutcome,
+    StorageRecoveryReceiptProjection, StorageRootProjection, StorageTransitionConflictProjection,
+    StorageTransitionDomainProjection, StorageTransitionExecuteCommand,
+    StorageTransitionExecuteOutcome, StorageTransitionInspectCommand,
+    StorageTransitionInspectOutcome, StorageTransitionPreviewProjection,
+    StorageTransitionReceiptProjection,
 };
 use longhorn_core::ConfigRequestId;
 use ts_rs::TS;
@@ -149,12 +151,14 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         StorageLayoutProjection::decl(config()),
         bootstrap.clone(),
         StorageOperationsProjection::decl(config()),
+        StorageClass::decl(config()),
         StorageTransitionDomainProjection::decl(config()),
         StorageTransitionConflictProjection::decl(config()),
         StorageTransitionPreviewProjection::decl(config()),
         StorageTransitionReceiptProjection::decl(config()),
         StorageRecoveryReceiptProjection::decl(config()),
         StorageCleanupReceiptProjection::decl(config()),
+        BackupKind::decl(config()),
         BackupArchiveProjection::decl(config()),
         BackupInventoryEntryState::decl(config()),
         BackupInventoryEntry::decl(config()),
@@ -197,9 +201,11 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         RestoreAuthenticityProjection::decl(config()),
         restore_identity.clone(),
         RestoreIdentityProjection::decl(config()),
+        BackupConsistencyMode::decl(config()),
         RestoreConsistencyGroupProjection::decl(config()),
         restore_compatibility.clone(),
         restore_participation.clone(),
+        BackupSourceState::decl(config()),
         RestoreDomainInspectionProjection::decl(config()),
         RestoreExclusionProjection::decl(config()),
         RestoreInspectionReceiptProjection::decl(config()),
@@ -258,6 +264,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const CONFIG_OPERATION_REJECTION_CODES = {} as const;\n\
          export const STORAGE_PROFILE_IDS = {} as const;\n\
          export const STORAGE_LEAF_PROVENANCES = {} as const;\n\
+         export const BACKUP_KINDS = {} as const;\n\
+         export const STORAGE_CLASSES = {} as const;\n\
          export const BACKUP_INVENTORY_ENTRY_STATES = {} as const;\n\
          export const BACKUP_PENDING_POLICIES = {} as const;\n\
          export const STORAGE_BOOTSTRAP_STATES = {} as const;\n\
@@ -275,6 +283,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         enum_names_json::<ConfigOperationRejectionCode>()?,
         enum_names_json::<StorageProfileId>()?,
         enum_names_json::<StorageLeafProvenanceProjection>()?,
+        enum_names_json::<BackupKind>()?,
+        enum_names_json::<StorageClass>()?,
         enum_names_json::<BackupInventoryEntryState>()?,
         enum_names_json::<PendingBackupPolicy>()?,
         tagged_variants_json(&bootstrap)?,
@@ -294,7 +304,9 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          // Rust serde types are the wire authority.\n\
          import type {{ BackupPublicationReceiptProjection, ConfigGeneration, \
          ConfigOperationRejection, ConfigOperationsSnapshot, ConfigProtocolVersion, \
-         ConfigRequestId }} from \"./base.ts\";\n\n\
+         ConfigRequestId, BackupKind, StorageClass }} from \"./base.ts\";\n\n\
+         export const BACKUP_CONSISTENCY_MODES = {} as const;\n\
+         export const BACKUP_SOURCE_STATES = {} as const;\n\
          export const RESTORE_INTEGRITY_VALUES = {} as const;\n\
          export const RESTORE_AUTHENTICITY_VALUES = {} as const;\n\
          export const RESTORE_CONFLICT_CHOICES = {} as const;\n\
@@ -315,6 +327,8 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const RESTORE_ADAPTER_EXECUTE_STATUSES = {} as const;\n\
          export const RESTORE_RECOVERY_STATUSES = {} as const;\n\n\
          {}\n",
+        enum_names_json::<BackupConsistencyMode>()?,
+        enum_names_json::<BackupSourceState>()?,
         enum_names_json::<RestoreIntegrityProjection>()?,
         enum_names_json::<RestoreAuthenticityProjection>()?,
         enum_names_json::<RestoreConflictChoiceProjection>()?,

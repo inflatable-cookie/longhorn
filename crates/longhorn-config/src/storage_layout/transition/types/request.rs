@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use longhorn_storage_layout::{
     ResolvedStorageLayout, StorageBootstrapPaths, StorageProfileSelection, StorageRoots,
+    valid_storage_transition_id,
 };
 
 use super::{StorageTransitionDomain, StorageTransitionError, StorageTransitionUnknownFile};
@@ -122,14 +123,7 @@ impl StorageTransitionExecutionOptions {
         lock_timeout: Duration,
     ) -> Result<Self, StorageTransitionError> {
         let transition_id = transition_id.into();
-        if transition_id.is_empty()
-            || transition_id.len() > 128
-            || !transition_id.bytes().all(|byte| {
-                byte.is_ascii_lowercase()
-                    || byte.is_ascii_digit()
-                    || matches!(byte, b'.' | b'_' | b'-')
-            })
-        {
+        if !valid_storage_transition_id(&transition_id) {
             return Err(StorageTransitionError::InvalidTransitionId);
         }
         Ok(Self {

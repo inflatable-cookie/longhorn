@@ -312,7 +312,7 @@ fn read_entry_bounded<R: Read>(
     Ok(entry_bytes)
 }
 
-fn ratio_exceeds(uncompressed: u64, compressed: u64, limit: u32) -> bool {
+pub(super) fn ratio_exceeds(uncompressed: u64, compressed: u64, limit: u32) -> bool {
     if uncompressed == 0 {
         return false;
     }
@@ -327,14 +327,16 @@ fn noncanonical(path: String, detail: impl Into<String>) -> BackupArchiveError {
 }
 
 fn zip_read_error(error: zip::result::ZipError) -> BackupArchiveError {
-    let detail = error.to_string();
-    if detail.contains("Compression method not supported") {
-        BackupArchiveError::UnsupportedCompression {
-            path: "<archive>".into(),
-            method: "unsupported ZIP method".into(),
+    match error {
+        zip::result::ZipError::CompressionMethodNotSupported(method) => {
+            BackupArchiveError::UnsupportedCompression {
+                path: "<archive>".into(),
+                method: method.to_string(),
+            }
         }
-    } else {
-        BackupArchiveError::Zip { detail }
+        error => BackupArchiveError::Zip {
+            detail: error.to_string(),
+        },
     }
 }
 

@@ -25,7 +25,8 @@ pub(super) fn read(
                 "expected a regular file",
             ));
         }
-        let bytes = crate::store::load::read_bounded_in(&directory, relative, max_bytes)?;
+        let bytes = crate::bounded_file::read_in(&directory, relative, max_bytes)
+            .map_err(io::Error::from)?;
         if bytes.len() as u64 != metadata.len() {
             return Err(io::Error::other(
                 "file changed while transition evidence was read",

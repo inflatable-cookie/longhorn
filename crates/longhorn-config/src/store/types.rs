@@ -344,6 +344,17 @@ impl fmt::Display for MutationError {
             Self::Store(error) => error.fmt(formatter),
             Self::Coordination(error) => error.fmt(formatter),
             Self::RestoreRecovery(error) => error.fmt(formatter),
+            Self::Refused(MutationRefusal::Recovery(recovery)) => {
+                write!(
+                    formatter,
+                    "mutation refused: source needs recovery ({:?})",
+                    recovery.kind
+                )?;
+                if let Some(path) = &recovery.path {
+                    write!(formatter, " at {}", path.display())?;
+                }
+                Ok(())
+            }
             Self::Refused(refusal) => write!(formatter, "mutation refused: {refusal:?}"),
             Self::Patch(issue) => write!(formatter, "patch failed: {}", issue.message),
             Self::Validation(issue) => {

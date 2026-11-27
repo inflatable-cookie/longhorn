@@ -1,0 +1,1 @@
+Keep bootstrap authority intact during storage-transition cleanup, recover restores with absent nested paths, and encode and publish backups within the verified archive limits. Encrypted operational backups can now be published and pruned with an authenticated age identity provider.

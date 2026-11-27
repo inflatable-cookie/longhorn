@@ -124,10 +124,6 @@ impl BackupExportTarget {
     pub fn file_name(&self) -> &BackupArchiveFileName {
         &self.file_name
     }
-
-    pub(super) fn path(&self) -> PathBuf {
-        self.parent.join(self.file_name.as_str())
-    }
 }
 
 /// Explicit authority for replacing an existing export.

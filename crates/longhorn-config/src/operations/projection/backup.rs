@@ -1,5 +1,5 @@
 use crate::{
-    BackupCaptureReceipt, BackupDestinationKind, BackupKind, BackupOperationalListing,
+    BackupCaptureReceipt, BackupDestinationKind, BackupOperationalListing,
     BackupPublicationReceipt, BackupRetentionDiagnostic, BackupRetentionDiagnosticKind,
     BackupRetentionPlan, BackupRetentionReason, ConfigOperationProjectionError, Durability,
     Sha256Digest,
@@ -73,7 +73,7 @@ impl TryFrom<&BackupOperationalListing> for BackupInventoryProjection {
                         path: exact_path(candidate.path())?,
                         archive_id: candidate.archive_id().into(),
                         created_at: candidate.created_at().into(),
-                        kind: backup_kind_id(candidate.kind()).into(),
+                        kind: candidate.kind(),
                         archive_sha256: candidate.archive_sha256().as_str().into(),
                     })
                 })
@@ -145,22 +145,14 @@ impl From<BackupRetentionReason> for BackupRetentionReasonProjection {
     }
 }
 
-pub(super) const fn backup_kind_id(value: BackupKind) -> &'static str {
-    match value {
-        BackupKind::Operational => "operational",
-        BackupKind::UserExport => "user-export",
-        BackupKind::PreMigration => "pre-migration",
-        BackupKind::PreRestore => "pre-restore",
-    }
-}
-
 const fn inventory_state(value: BackupRetentionDiagnosticKind) -> BackupInventoryEntryState {
     match value {
         BackupRetentionDiagnosticKind::Locked => BackupInventoryEntryState::Locked,
         BackupRetentionDiagnosticKind::Corrupt => BackupInventoryEntryState::Corrupt,
         BackupRetentionDiagnosticKind::ForeignApplication => BackupInventoryEntryState::Foreign,
         BackupRetentionDiagnosticKind::UnknownFormat => BackupInventoryEntryState::Unknown,
-        BackupRetentionDiagnosticKind::Unreadable
+        BackupRetentionDiagnosticKind::ProviderFailed
+        | BackupRetentionDiagnosticKind::Unreadable
         | BackupRetentionDiagnosticKind::NonRegular
         | BackupRetentionDiagnosticKind::RootRead => BackupInventoryEntryState::Unreadable,
         BackupRetentionDiagnosticKind::Unmanaged
@@ -177,6 +169,7 @@ const fn retention_diagnostic_id(value: BackupRetentionDiagnosticKind) -> &'stat
     match value {
         BackupRetentionDiagnosticKind::Unmanaged => "unmanaged",
         BackupRetentionDiagnosticKind::Locked => "locked",
+        BackupRetentionDiagnosticKind::ProviderFailed => "providerFailed",
         BackupRetentionDiagnosticKind::Unreadable => "unreadable",
         BackupRetentionDiagnosticKind::NonRegular => "nonRegular",
         BackupRetentionDiagnosticKind::Corrupt => "corrupt",

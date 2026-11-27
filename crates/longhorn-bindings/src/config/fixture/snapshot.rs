@@ -1,5 +1,5 @@
 use longhorn_config::{
-    BackupArchiveProjection, BackupEncryptionState, BackupInventoryProjection,
+    BackupArchiveProjection, BackupEncryptionState, BackupInventoryProjection, BackupKind,
     BackupOperationsProjection, BackupPendingState, BackupRetentionProjection,
     BackupRetentionReasonProjection, ConfigGeneration, ConfigOperationCapability,
     ConfigOperationsSnapshot, ConfigProtocolVersion, RestoreOperationStateProjection,
@@ -72,7 +72,7 @@ pub(super) fn snapshot() -> ConfigOperationsSnapshot {
                     path: "/backups/current.longhorn-backup".into(),
                     archive_id: "backup:fixture".into(),
                     created_at: "2026-07-29T12:00:00Z".into(),
-                    kind: "manual".into(),
+                    kind: BackupKind::PreRestore,
                     archive_sha256: digest('e'),
                 }],
                 entries: inventory_states(),

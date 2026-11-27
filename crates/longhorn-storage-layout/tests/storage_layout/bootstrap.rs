@@ -2,9 +2,10 @@ use std::fs;
 
 use longhorn_storage_layout::{
     PlatformDirectoryFact, PlatformDirectoryFacts, StorageBootstrapOrigin,
-    StorageBootstrapRecoveryKind, StorageBootstrapState, StorageIdentity, StorageLocatorError,
-    StorageProfile, StorageProfileLocator, StorageProfileSelection, TargetPlatform, encode_locator,
-    inspect_storage_bootstrap, resolve_storage_bootstrap_paths,
+    StorageBootstrapRecoveryKind, StorageBootstrapState, StorageIdentity, StorageLayoutDigest,
+    StorageLocatorError, StorageProfile, StorageProfileLocator, StorageProfileSelection,
+    TargetPlatform, encode_locator, inspect_storage_bootstrap, locator_matches,
+    resolve_storage_bootstrap_paths,
 };
 use serde_json::json;
 use tempfile::tempdir;
@@ -61,6 +62,7 @@ fn host_bypass_needs_no_bootstrap_fact_and_invalid_locators_fail_closed() {
         (
             json!({
                 "schemaVersion": 2,
+                "futureField": true,
                 "canonicalApplicationId": "dev.nucleus.desktop",
                 "profileId": "platform-native-v1",
                 "explicitRoot": null,
@@ -91,6 +93,24 @@ fn host_bypass_needs_no_bootstrap_fact_and_invalid_locators_fail_closed() {
             }),
             StorageBootstrapRecoveryKind::UnknownProfile,
         ),
+        (
+            json!({
+                "schemaVersion": 1,
+                "canonicalApplicationId": "dev.nucleus.desktop",
+                "profileId": "portable-v1",
+                "explicitRoot": "relative"
+            }),
+            StorageBootstrapRecoveryKind::InvalidExplicitRoot,
+        ),
+        (
+            json!({
+                "schemaVersion": 1,
+                "canonicalApplicationId": "dev.nucleus.desktop",
+                "profileId": "platform-native-v1",
+                "lastCommittedLayoutSha256": "bad-digest"
+            }),
+            StorageBootstrapRecoveryKind::InvalidLayoutDigest,
+        ),
     ];
     for (document, expected) in cases {
         fs::write(paths.locator(), serde_json::to_vec(&document).unwrap()).unwrap();
@@ -112,6 +132,15 @@ fn host_bypass_needs_no_bootstrap_fact_and_invalid_locators_fail_closed() {
         recovery.kind(),
         &StorageBootstrapRecoveryKind::InvalidDocument
     );
+
+    fs::remove_file(paths.locator()).unwrap();
+    fs::create_dir(paths.locator()).unwrap();
+    let StorageBootstrapState::Recovery(recovery) =
+        inspect_storage_bootstrap(&identity, &facts, None).unwrap()
+    else {
+        panic!("unreadable locator selected a fallback");
+    };
+    assert_eq!(recovery.kind(), &StorageBootstrapRecoveryKind::Unreadable);
 }
 
 #[test]
@@ -169,7 +198,8 @@ fn an_encoded_locator_writes_its_explicit_root_and_transition_as_given() {
         selection,
         Some("example-transition".to_owned()),
         None,
-    );
+    )
+    .unwrap();
 
     let document: serde_json::Value =
         serde_json::from_slice(&encode_locator(&locator).unwrap()).unwrap();
@@ -186,9 +216,91 @@ fn a_non_utf8_explicit_root_is_refused_rather_than_written_lossily() {
 
     let root = PathBuf::from(OsStr::from_bytes(b"/example/portable-\xff"));
     let selection = StorageProfileSelection::portable(root.clone()).unwrap();
-    let locator = StorageProfileLocator::new("com.example.app".to_owned(), selection, None, None);
+    let locator =
+        StorageProfileLocator::new("com.example.app".to_owned(), selection, None, None).unwrap();
 
     let error = encode_locator(&locator).expect_err("a lossy root cannot be written");
 
     assert_eq!(error, StorageLocatorError::NonUtf8Root { path: root });
+}
+
+#[test]
+fn locator_match_requires_exact_committed_evidence_and_a_supported_schema() {
+    let temp = tempdir().unwrap();
+    let facts = PlatformDirectoryFacts::new(TargetPlatform::Linux)
+        .with(PlatformDirectoryFact::Config, temp.path().to_path_buf());
+    let id = "com.example.app";
+    let identity = StorageIdentity::new(id).unwrap();
+    let paths = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    let digest = StorageLayoutDigest::new("a".repeat(64)).unwrap();
+    assert!(!locator_matches(&paths, id, "commit-1", &digest).unwrap());
+    fs::create_dir_all(paths.directory()).unwrap();
+    let selection = StorageProfileSelection::platform_native();
+    let locator = StorageProfileLocator::new(
+        id.into(),
+        selection.clone(),
+        Some("commit-1".into()),
+        Some(digest.clone()),
+    )
+    .unwrap();
+    let bytes = encode_locator(&locator).unwrap();
+    fs::write(paths.locator(), &bytes).unwrap();
+    assert!(locator_matches(&paths, id, "commit-1", &digest).unwrap());
+    assert!(!locator_matches(&paths, id, "commit-2", &digest).unwrap());
+
+    let mut document: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    document["futureField"] = json!(true);
+    fs::write(paths.locator(), serde_json::to_vec(&document).unwrap()).unwrap();
+    assert!(matches!(
+        locator_matches(&paths, id, "commit-1", &digest),
+        Err(StorageLocatorError::InvalidDocument { .. })
+    ));
+    document["schemaVersion"] = json!(2);
+    fs::write(paths.locator(), serde_json::to_vec(&document).unwrap()).unwrap();
+    assert_eq!(
+        locator_matches(&paths, id, "commit-1", &digest),
+        Err(StorageLocatorError::UnsupportedSchema { observed: 2 })
+    );
+
+    assert!(matches!(
+        StorageProfileLocator::new("../app".into(), selection.clone(), None, None),
+        Err(StorageLocatorError::InvalidApplicationId(_))
+    ));
+    assert_eq!(
+        StorageProfileLocator::new(id.into(), selection, Some("..".into()), None),
+        Err(StorageLocatorError::InvalidTransitionId)
+    );
+}
+
+#[test]
+fn a_legacy_locator_can_select_its_root_with_a_historical_transition_id() {
+    let temp = tempdir().unwrap();
+    let identity = StorageIdentity::new("com.example.app").unwrap();
+    let facts = PlatformDirectoryFacts::new(TargetPlatform::Linux)
+        .with(PlatformDirectoryFact::Config, temp.path().to_path_buf());
+    let paths = resolve_storage_bootstrap_paths(&identity, &facts).unwrap();
+    fs::create_dir_all(paths.directory()).unwrap();
+    let explicit_root = temp.path().join("portable");
+    fs::write(
+        paths.locator(),
+        serde_json::to_vec(&json!({
+            "schemaVersion": 1,
+            "canonicalApplicationId": "com.example.app",
+            "profileId": "portable-v1",
+            "explicitRoot": explicit_root,
+            "transitionId": ".",
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let StorageBootstrapState::Selected(selected) =
+        inspect_storage_bootstrap(&identity, &facts, None).unwrap()
+    else {
+        panic!("legacy locator must keep its explicit storage authority");
+    };
+    assert_eq!(
+        selected.selection().explicit_root(),
+        Some(explicit_root.as_path())
+    );
+    assert_eq!(selected.transition_id(), Some("."));
 }

@@ -1,11 +1,11 @@
-use std::io::{self, Read};
+use std::io;
 
-use cap_std::{ambient_authority, fs::Dir};
 use longhorn_core::{DomainId, SchemaVersion};
 
 use crate::{
     BackupCaptureError, BackupSourceIssue, ConfigDomain, LoadedOrigin, RecoveryKind, ResolvedFile,
     SourceDocument,
+    bounded_file::{self, BoundedReadError},
     store::document::SerializedDocument,
     store::load::{FileLoadOutcome, load_source},
 };
@@ -63,36 +63,8 @@ fn read_source_bounded(
     file: &ResolvedFile,
     max_bytes: usize,
 ) -> Result<SourceDocument, BoundedReadError> {
-    let directory =
-        Dir::open_ambient_dir(file.root(), ambient_authority()).map_err(BoundedReadError::Io)?;
-    let input = directory
-        .open(file.relative_path().as_path())
-        .map_err(BoundedReadError::Io)?;
-    let metadata = input.metadata().map_err(BoundedReadError::Io)?;
-    let observed = usize::try_from(metadata.len()).unwrap_or(usize::MAX);
-    if observed > max_bytes {
-        return Err(BoundedReadError::TooLarge {
-            limit: max_bytes,
-            observed,
-        });
-    }
-
-    let read_limit = u64::try_from(max_bytes)
-        .ok()
-        .and_then(|limit| limit.checked_add(1))
-        .expect("backup hard ceiling always fits u64");
-    let mut bytes = Vec::with_capacity(observed);
-    input
-        .take(read_limit)
-        .read_to_end(&mut bytes)
-        .map_err(BoundedReadError::Io)?;
-    if bytes.len() > max_bytes {
-        return Err(BoundedReadError::TooLarge {
-            limit: max_bytes,
-            observed: bytes.len(),
-        });
-    }
-
+    let bytes =
+        bounded_file::read_relative(file.root(), file.relative_path().as_path(), max_bytes)?;
     Ok(SourceDocument {
         path: file.full_path().to_path_buf(),
         bytes,
@@ -145,9 +117,4 @@ impl From<BoundedReadError> for SourceCaptureError {
     fn from(error: BoundedReadError) -> Self {
         Self::Read(error)
     }
-}
-
-pub(crate) enum BoundedReadError {
-    Io(io::Error),
-    TooLarge { limit: usize, observed: usize },
 }

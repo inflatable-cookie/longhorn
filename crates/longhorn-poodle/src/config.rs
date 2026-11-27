@@ -128,10 +128,10 @@ mod tests {
     ) -> RestoreDomainInspectionProjection {
         RestoreDomainInspectionProjection {
             domain_id: "settings".to_owned(),
-            storage_class: "sqlite".to_owned(),
+            storage_class: longhorn_config::StorageClass::UserConfig,
             consistency_group: "primary".to_owned(),
             adapter: "builtin".to_owned(),
-            source_state: "present".to_owned(),
+            source_state: longhorn_config::BackupSourceState::Present,
             source_schema_version: Some(3),
             target_schema_version: Some(4),
             compatibility,

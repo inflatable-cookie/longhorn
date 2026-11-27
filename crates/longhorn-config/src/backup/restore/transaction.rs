@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    io::{self, Read},
-};
+use std::io;
 
 use crate::StorageRootsResolve;
 use crate::{
@@ -105,20 +102,9 @@ pub(super) fn verify_published_safety(
     receipt: &BackupPublicationReceipt,
     limits: BackupArchiveLimits,
 ) -> io::Result<()> {
-    let mut input = fs::File::open(&receipt.path)?;
-    let observed = input.metadata()?.len();
-    if observed > limits.max_archive_bytes() as u64 {
-        return Err(io::Error::other(
-            "published safety archive exceeds configured byte limit",
-        ));
-    }
-    let mut bytes = Vec::with_capacity(usize::try_from(observed).unwrap_or(0));
-    Read::by_ref(&mut input)
-        .take(limits.max_archive_bytes() as u64 + 1)
-        .read_to_end(&mut bytes)?;
-    if bytes.len() > limits.max_archive_bytes()
-        || Sha256Digest::from_bytes(&bytes) != receipt.archive_sha256
-    {
+    let bytes = crate::bounded_file::read_path(&receipt.path, limits.max_archive_bytes())
+        .map_err(io::Error::from)?;
+    if Sha256Digest::from_bytes(&bytes) != receipt.archive_sha256 {
         return Err(io::Error::other(
             "published safety archive no longer matches verified receipt",
         ));

@@ -15,6 +15,7 @@ import {
   RESTORE_PLAN_STATUSES,
   RESTORE_RECOVERY_STATUSES,
   STORAGE_CLEANUP_STATUSES,
+  STORAGE_CLASSES,
   STORAGE_PROFILE_IDS,
   STORAGE_RECOVERY_STATUSES,
   STORAGE_TRANSITION_EXECUTE_STATUSES,
@@ -273,7 +274,7 @@ function assertStorageTransitionPreview(value: unknown): void {
     const domainPath = `${path}.domains[${index}]`;
     const domain = record(value, domainPath, CONFIG_FIELDS.StorageTransitionDomainProjection);
     string(domain.domainId, `${domainPath}.domainId`);
-    string(domain.storageClass, `${domainPath}.storageClass`);
+    discriminant(domain.storageClass, STORAGE_CLASSES, `${domainPath}.storageClass`);
     string(domain.action, `${domainPath}.action`);
     nullableString(domain.sourcePath, `${domainPath}.sourcePath`);
     nullableString(domain.targetPath, `${domainPath}.targetPath`);

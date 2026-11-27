@@ -139,6 +139,10 @@ impl AgeBackupInspection {
         Self { archive, receipt }
     }
 
+    pub(crate) fn into_archive(self) -> BackupArchiveInspection {
+        self.archive
+    }
+
     /// Returns the same strict inspection used for plaintext restore.
     #[must_use]
     pub fn archive(&self) -> &BackupArchiveInspection {

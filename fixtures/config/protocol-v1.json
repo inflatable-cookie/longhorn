@@ -60,7 +60,7 @@
             "path": "/backups/current.longhorn-backup",
             "archiveId": "backup:fixture",
             "createdAt": "2026-07-29T12:00:00Z",
-            "kind": "manual",
+            "kind": "pre-restore",
             "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
           }
         ],
@@ -282,7 +282,7 @@
         "domains": [
           {
             "domainId": "app.preferences",
-            "storageClass": "userConfig",
+            "storageClass": "user-config",
             "action": "copy",
             "sourcePath": "/old/config/preferences.json",
             "targetPath": "/new/config/preferences.json",
@@ -380,7 +380,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -574,7 +574,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -769,7 +769,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -975,7 +975,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -1170,7 +1170,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -1361,7 +1361,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -1510,12 +1510,12 @@
         "consistencyGroups": [
           {
             "id": "longhorn-config-store",
-            "mode": "coordinatedBounded",
+            "mode": "coordinated-bounded",
             "authority": "longhorn-config-store-coordinator"
           },
           {
             "id": "sqlite-main",
-            "mode": "externalSnapshot",
+            "mode": "external-snapshot",
             "authority": "sqlite-online-backup"
           }
         ],
@@ -1556,7 +1556,7 @@
             "storageClass": "user-config",
             "consistencyGroup": "longhorn-config-store",
             "adapter": "longhorn-json-v1",
-            "sourceState": "sourcePreserved",
+            "sourceState": "source-preserved",
             "sourceSchemaVersion": 9,
             "targetSchemaVersion": 2,
             "compatibility": {
@@ -1711,7 +1711,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -1909,7 +1909,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -2103,7 +2103,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -2298,12 +2298,12 @@
         "consistencyGroups": [
           {
             "id": "longhorn-config-store",
-            "mode": "coordinatedBounded",
+            "mode": "coordinated-bounded",
             "authority": "longhorn-config-store-coordinator"
           },
           {
             "id": "sqlite-main",
-            "mode": "externalSnapshot",
+            "mode": "external-snapshot",
             "authority": "sqlite-online-backup"
           }
         ],
@@ -2344,7 +2344,7 @@
             "storageClass": "user-config",
             "consistencyGroup": "longhorn-config-store",
             "adapter": "longhorn-json-v1",
-            "sourceState": "sourcePreserved",
+            "sourceState": "source-preserved",
             "sourceSchemaVersion": 9,
             "targetSchemaVersion": 2,
             "compatibility": {
@@ -2531,7 +2531,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -2725,7 +2725,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],
@@ -2919,7 +2919,7 @@
                 "path": "/backups/current.longhorn-backup",
                 "archiveId": "backup:fixture",
                 "createdAt": "2026-07-29T12:00:00Z",
-                "kind": "manual",
+                "kind": "pre-restore",
                 "archiveSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
               }
             ],

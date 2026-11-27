@@ -5,7 +5,7 @@ use longhorn_core::SchemaVersion;
 use serde_json::json;
 
 use crate::StorageRootsResolve;
-use crate::{ConfigStore, DomainLocation, ResolvedFile, Sha256Digest};
+use crate::{ConfigStore, ResolvedFile, Sha256Digest};
 
 use super::types::{
     PlannedTarget, PreparedTarget, RestoreAction, RestoreChoices, RestoreConflictChoice,
@@ -63,22 +63,31 @@ pub(crate) fn plan(
             });
         }
 
+        let target_changed = || RestorePlanError::TargetChanged {
+            domain: domain.clone(),
+        };
+        let prepared = inspection
+            .prepared
+            .get(&domain)
+            .ok_or_else(target_changed)?;
         let descriptor = store
             .registered_descriptor(&domain)
-            .expect("restorable inspection has a registered descriptor");
-        let DomainLocation::File(file) = store.roots.resolve(descriptor) else {
-            unreachable!("restorable inspection has an ordinary file target");
-        };
+            .ok_or_else(target_changed)?;
+        let location = store.roots.resolve(descriptor);
+        let file =
+            super::inspection::ordinary_restore_target(&location).ok_or_else(target_changed)?;
+        if file != &prepared.location
+            || descriptor.file_format() != crate::DocumentFormat::Json
+            || Some(descriptor.schema_version()) != report.target_schema_version()
+        {
+            return Err(target_changed());
+        }
         let current =
-            read_current_evidence(&file).map_err(|error| RestorePlanError::CurrentReadFailed {
+            read_current_evidence(file).map_err(|error| RestorePlanError::CurrentReadFailed {
                 domain: domain.clone(),
                 path: file.full_path().to_path_buf(),
                 detail: error.to_string(),
             })?;
-        let prepared = inspection
-            .prepared
-            .get(&domain)
-            .expect("restorable inspection retains a prepared target");
         let target_sha256 = prepared.bytes.as_deref().map(Sha256Digest::from_bytes);
         let action = derive_action(report, &current, prepared, target_sha256.as_ref());
         increment_action(&mut receipt, action);

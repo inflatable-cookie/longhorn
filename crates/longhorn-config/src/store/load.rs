@@ -1,9 +1,5 @@
-use std::{
-    io::{self, Read},
-    path::{Path, PathBuf},
-};
+use std::{io, path::PathBuf};
 
-use cap_std::{ambient_authority, fs::Dir};
 use longhorn_core::SchemaVersion;
 use serde_json::Value;
 
@@ -68,54 +64,12 @@ pub(crate) fn max_live_domain_bytes() -> usize {
 pub(crate) fn read_source(file: &ResolvedFile) -> io::Result<SourceDocument> {
     Ok(SourceDocument {
         path: file.full_path().to_path_buf(),
-        bytes: read_bounded(
+        bytes: crate::bounded_file::read_relative(
             file.root(),
             file.relative_path().as_path(),
             max_live_domain_bytes(),
         )?,
     })
-}
-
-/// Reads through a trusted root and caps allocation even if the file grows.
-pub(crate) fn read_bounded(root: &Path, relative: &Path, max_bytes: usize) -> io::Result<Vec<u8>> {
-    let directory = Dir::open_ambient_dir(root, ambient_authority())?;
-    read_bounded_in(&directory, relative, max_bytes)
-}
-
-pub(crate) fn read_bounded_in(
-    directory: &Dir,
-    relative: &Path,
-    max_bytes: usize,
-) -> io::Result<Vec<u8>> {
-    let input = directory.open(relative)?;
-    let metadata = input.metadata()?;
-    if !metadata.is_file() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "expected a regular file",
-        ));
-    }
-    let observed = usize::try_from(metadata.len()).unwrap_or(usize::MAX);
-    if observed > max_bytes {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("file exceeds {max_bytes}-byte limit ({observed} bytes)"),
-        ));
-    }
-    let read_limit = (max_bytes as u64).saturating_add(1);
-    let mut bytes = Vec::with_capacity(observed);
-    input.take(read_limit).read_to_end(&mut bytes)?;
-    if bytes.len() > max_bytes {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!(
-                "file exceeds {max_bytes}-byte limit ({} bytes)",
-                bytes.len()
-            ),
-        ));
-    }
-
-    Ok(bytes)
 }
 
 pub(crate) fn validated_default<D: ConfigDomain>(
