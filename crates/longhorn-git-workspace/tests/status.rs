@@ -4,9 +4,7 @@ mod support;
 
 use std::fs;
 
-use longhorn_git_workspace::{
-    GitBranchKind, GitFailure, GitFailureCode, GitStatus, has_switch_blocking_dirt,
-};
+use longhorn_git_workspace::{GitBranchKind, GitFailure, GitFailureCode, has_switch_blocking_dirt};
 use support::{Fixture, checked, commit, handle, succeeds};
 
 #[test]
@@ -22,7 +20,7 @@ fn reads_local_and_remote_branches_and_a_clean_status() {
     assert_eq!(state.current_branch, "main");
     assert!(!state.detached);
     assert_eq!(state.upstream.as_deref(), Some("origin/main"));
-    assert!(state.status.clean);
+    assert!(state.status.clean());
     assert!(state.has_named_ref("client-a"));
     assert!(state.branches.iter().any(|branch| branch.name == "client-a"
         && branch.kind == GitBranchKind::Local
@@ -60,17 +58,15 @@ fn counts_staged_modified_and_untracked_work() {
         .expect("a status reading");
 
     assert_eq!(
-        state.status,
-        GitStatus {
-            staged: 1,
-            modified: 1,
-            untracked: 1,
-            conflicted: 0,
-            ahead: 0,
-            behind: 0,
-            clean: false,
-        }
+        (
+            state.status.staged(),
+            state.status.modified(),
+            state.status.untracked(),
+            state.status.conflicted()
+        ),
+        (1, 1, 1, 0)
     );
+    assert!(!state.status.clean());
     assert!(has_switch_blocking_dirt(&state));
 }
 
@@ -85,8 +81,8 @@ fn untracked_content_alone_does_not_block_a_switch() {
         .inspect_worktree(&fixture.root)
         .expect("a status reading");
 
-    assert_eq!(state.status.untracked, 1);
-    assert!(!state.status.clean);
+    assert_eq!(state.status.untracked(), 1);
+    assert!(!state.status.clean());
     assert!(!has_switch_blocking_dirt(&state));
 }
 
@@ -121,8 +117,8 @@ fn reads_one_conflict_and_blocks_a_switch() {
         .inspect_worktree(&fixture.root)
         .expect("a status reading");
 
-    assert_eq!(state.status.conflicted, 1);
-    assert!(!state.status.clean);
+    assert_eq!(state.status.conflicted(), 1);
+    assert!(!state.status.clean());
     assert!(has_switch_blocking_dirt(&state));
 }
 

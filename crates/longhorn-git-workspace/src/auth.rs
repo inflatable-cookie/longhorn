@@ -14,10 +14,11 @@
 //! `Debug` output, an error, or a log line.
 
 use std::{
+    collections::HashMap,
     fmt,
     io::Read as _,
     sync::{
-        Mutex,
+        Arc, LazyLock, Mutex, Weak,
         atomic::{AtomicBool, Ordering},
     },
     thread,
@@ -67,9 +68,22 @@ const SLOW_DOWN_STEP: Duration = Duration::from_secs(5);
 /// The cancellation check interval during a poll wait.
 const CANCEL_POLL_STEP: Duration = Duration::from_millis(100);
 
-/// Serializes refreshes process-wide: two callers that need one at the same
-/// time cause one exchange, and the second adopts the rotated grant.
-static REFRESH_LOCK: Mutex<()> = Mutex::new(());
+// Locks are keyed by slot so independent grants can refresh concurrently.
+static REFRESH_LOCKS: LazyLock<Mutex<HashMap<CredentialSlot, Weak<Mutex<()>>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+
+fn refresh_lock(slot: &CredentialSlot) -> Arc<Mutex<()>> {
+    let mut locks = REFRESH_LOCKS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    locks.retain(|_, lock| lock.strong_count() > 0);
+    if let Some(lock) = locks.get(slot).and_then(Weak::upgrade) {
+        return lock;
+    }
+    let lock = Arc::new(Mutex::new(()));
+    locks.insert(slot.clone(), Arc::downgrade(&lock));
+    lock
+}
 
 // Serialize sign-out and new sign-in with the refresh's final check and write.
 static GRANT_WRITE_LOCK: Mutex<()> = Mutex::new(());
@@ -648,7 +662,7 @@ pub fn sign_out(scope: &CredentialScope<'_>) -> Result<(), GithubAuthFailure> {
 /// The access token for the stored grant, refreshed first when it is inside
 /// [`ACCESS_REFRESH_SKEW`] or when `force` is set.
 ///
-/// One refresh lock covers the whole read-refresh-write sequence, so two
+/// A per-slot refresh lock covers the whole read-refresh-write sequence, so two
 /// callers that need a refresh at once cause one exchange and the second
 /// adopts the rotated grant. `rejected_access` names an access token the remote
 /// refused: when the stored grant already holds another value, that rotated
@@ -680,9 +694,8 @@ pub fn fresh_access_token(
     force: bool,
     rejected_access: Option<&SecretString>,
 ) -> Result<Option<SecretString>, GithubAuthFailure> {
-    let _guard = REFRESH_LOCK
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let lock = refresh_lock(scope.slot);
+    let _guard = lock.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
     let Some(grant) = read_grant(scope)? else {
         return Ok(None);
     };

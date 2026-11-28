@@ -240,6 +240,10 @@ fn remote_aliases_name_the_same_repository() {
         "https://github.com/example/content.git"
     );
     assert_eq!(
+        remote_for_display("https://host/team/repo@v2.git"),
+        "https://host/team/repo@v2.git"
+    );
+    assert_eq!(
         remote_for_display("ssh://git@github.com/example/content.git"),
         "ssh://github.com/example/content.git"
     );

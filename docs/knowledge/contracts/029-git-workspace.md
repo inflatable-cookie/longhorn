@@ -81,8 +81,9 @@ vocabulary, `secrecy` for every secret value, `serde` and `serde_json` for the
 wire projections and the stored grant, a blocking `reqwest` with rustls for the
 device flow, the token exchange and the profile read, `sha2` for the token
 digest the identity cache keys on, `tempfile` for the bridge's private folder,
-`uuid` for staging names, and `rustix` on Linux and macOS for the exclusive
-rename. It has no Tauri, no shell, no `unsafe` code and no credential-store
+`uuid` for staging names, and `rustix` on Unix for process-group termination
+and child exit observation, and on Linux and macOS for the exclusive rename.
+It has no Tauri, no shell, no `unsafe` code and no credential-store
 implementation: the store is injected.
 
 The handle:
@@ -289,7 +290,8 @@ untracked; `DD`, `AU`, `UD`, `UA`, `DU`, `AA` and `UU` count as conflicted;
 every other line counts its index and worktree columns as staged and modified.
 The `## ` header's `ahead` and `behind` distances are read from the bracket
 list. `clean` is computed once, as the sum of the four dirt counters being
-zero; no caller reconstructs cleanliness.
+zero; the dirt counters and cleanliness are read-only through accessors, so
+callers cannot invalidate that result.
 
 Branch ids are `local:<name>` and `remote:<name>`. A remote reference records
 its tracking local branch, if one exists, as `local_target`; that value is
@@ -371,7 +373,10 @@ the caller's cancellation flag: a cancelled clone has its process group killed,
 is reaped and is reported as `Cancelled`. The flag also bounds the drain after
 Git exits: a remote helper or another descendant that still holds standard
 error cannot delay a cancel, which kills the group by the id taken at spawn.
-Standard error keeps its head within the capture bound; its refusal detail is
+A credential destination lookup that reaches its bound reports `TimedOut` with
+the bound. Failure to start an output reader or read standard error reports
+`WaitFailed`, and the started child is reaped. Standard error keeps its head
+within the capture bound; its refusal detail is
 redacted with the caller's redactor and the credential secret, then cut to
 `FAILURE_DETAIL_BOUND`.
 
@@ -670,7 +675,7 @@ within the skew, or has already expired, is refreshed before it is used. A
 grant with no declared expiry is used as it is unless the caller forces a
 refresh.
 
-One process-wide refresh lock covers the read, the exchange and the write, so
+A lock per slot covers the read, the exchange and the write, so
 two callers that need a refresh at once cause one exchange and the second
 adopts the rotated grant. `fresh_access_token(scope, client_id, client, now,
 force, rejected_access)` is the one entry point; `force_refresh_token` is its
@@ -814,7 +819,7 @@ Deltas from Acowtancy Desktop's mechanism at `4993376c`:
   `BranchSwitchResult`, `GitCommandError`, `SyncStop`'s messages and every
   outcome label stay in the application.
 - `GitWorktreeFacts` is removed. `GitWorkspaceState`'s fields are public and
-  `GitStatus::clean` is computed once, so a readiness check reads the same
+  `GitStatus::clean()` is computed once, so a readiness check reads the same
   facts the mechanism computed.
 - Output is bounded and redacted where the donor was not: 64 KiB of standard
   output and 1 MiB of standard error per invocation, a failure detail cut to

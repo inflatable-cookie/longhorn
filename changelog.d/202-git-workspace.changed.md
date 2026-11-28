@@ -1,0 +1,1 @@
+Git workspace status dirt counts and `clean` are now read-only: replace field reads with `staged()`, `modified()`, `untracked()`, `conflicted()` and `clean()`. Construct status by reading Git rather than with a struct literal.
