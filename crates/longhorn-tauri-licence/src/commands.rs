@@ -104,7 +104,7 @@ pub async fn longhorn_licence_release_seat<R: Runtime>(
         assembly.release_seat(label, command)
     })
     .await?;
-    emitting(&window, outcome, LicenceChangedKind::Deactivated)
+    emitting(&window, outcome, LicenceChangedKind::SeatReleased)
 }
 
 /// Renames a machine's seat.

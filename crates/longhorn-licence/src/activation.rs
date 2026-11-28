@@ -175,7 +175,10 @@ impl fmt::Debug for Credential {
 impl PartialEq for Credential {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Key(left), Self::Key(right)) => left == right,
+            (Self::Key(left), Self::Key(right)) => crate::account::constant_time_eq(
+                left.as_str().as_bytes(),
+                right.as_str().as_bytes(),
+            ),
             (Self::AccountToken(left), Self::AccountToken(right)) => {
                 crate::account::constant_time_eq(
                     left.expose_secret().as_bytes(),
@@ -191,6 +194,18 @@ impl PartialEq for Credential {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn key_credential_equality_uses_constant_time_comparison() {
+        let key = LicenceKey::from_body(&"0".repeat(crate::MINIMUM_KEY_SYMBOLS - 1)).unwrap();
+        let left = Credential::Key(key.clone());
+        let right = Credential::Key(key);
+        crate::account::COMPARISON_CALLS.with(|calls| {
+            let before = calls.get();
+            assert_eq!(left, right);
+            assert_eq!(calls.get(), before + 1);
+        });
+    }
 
     #[test]
     fn debug_redacts_credentials_and_file_contents() {

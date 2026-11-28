@@ -9,15 +9,16 @@ use longhorn_licence::{
     LicenceRenameSeatCommand, LicenceSnapshot,
 };
 use longhorn_tauri_licence::{
-    LicenceHandlerAssembly, LicenceHostAuthority, LicenceHostError, TauriLicenceState,
-    licence_changed_event, longhorn_licence_activate, longhorn_licence_deactivate,
-    longhorn_licence_refresh, longhorn_licence_release_seat, longhorn_licence_rename_seat,
-    longhorn_licence_snapshot,
+    LICENCE_CHANGED_EVENT, LicenceHandlerAssembly, LicenceHostAuthority, LicenceHostError,
+    TauriLicenceState, licence_changed_event, longhorn_licence_activate,
+    longhorn_licence_deactivate, longhorn_licence_refresh, longhorn_licence_release_seat,
+    longhorn_licence_rename_seat, longhorn_licence_snapshot,
 };
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 
 struct Authority {
     calls: Arc<Mutex<Vec<String>>>,
+    release_commits: bool,
 }
 
 impl Authority {
@@ -65,7 +66,11 @@ impl LicenceHostAuthority for Authority {
         _: LicenceReleaseSeatCommand,
     ) -> Result<LicenceOutcomeProjection, LicenceHostError> {
         self.record("release_seat", caller);
-        Ok(rejected())
+        Ok(if self.release_commits {
+            committed()
+        } else {
+            rejected()
+        })
     }
 
     fn rename_seat(
@@ -104,6 +109,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let service = Arc::new(LicenceHandlerAssembly::new(Authority {
         calls: calls.clone(),
+        release_commits: false,
     }));
     let app = tauri::test::mock_builder()
         .manage(TauriLicenceState::new(service))
@@ -206,6 +212,7 @@ fn mock_runtime_uses_one_injected_caller_aware_assembly() {
 fn serialized_service_and_committed_event_remain_credential_free() {
     let service = LicenceHandlerAssembly::new(Authority {
         calls: Arc::new(Mutex::new(Vec::new())),
+        release_commits: false,
     });
     let (protocol_version, authority_epoch) = envelope();
 
@@ -235,4 +242,43 @@ fn serialized_service_and_committed_event_remain_credential_free() {
 #[test]
 fn a_rejected_outcome_publishes_no_invalidation_hint() {
     assert!(licence_changed_event(&rejected(), LicenceChangedKind::Deactivated).is_none());
+}
+
+#[test]
+fn committed_seat_release_emits_seat_released() {
+    let authority = Authority {
+        calls: Arc::new(Mutex::new(Vec::new())),
+        release_commits: true,
+    };
+    let app = tauri::test::mock_builder()
+        .manage(TauriLicenceState::new(Arc::new(
+            LicenceHandlerAssembly::new(authority),
+        )))
+        .build(tauri::test::mock_context(tauri::test::noop_assets()))
+        .unwrap();
+    let window = WebviewWindowBuilder::new(&app, "settings", WebviewUrl::default())
+        .build()
+        .unwrap();
+    let received = Arc::new(Mutex::new(Vec::new()));
+    let events = Arc::clone(&received);
+    window.listen(LICENCE_CHANGED_EVENT, move |event| {
+        events.lock().unwrap().push(
+            serde_json::from_str::<longhorn_licence::LicenceChangedEvent>(event.payload()).unwrap(),
+        );
+    });
+    let (protocol_version, authority_epoch) = envelope();
+    tauri::async_runtime::block_on(longhorn_licence_release_seat(
+        window,
+        app.state(),
+        LicenceReleaseSeatCommand {
+            protocol_version,
+            authority_epoch,
+            machine_id: "machine-2".into(),
+        },
+    ))
+    .unwrap();
+    assert_eq!(
+        received.lock().unwrap()[0].kind,
+        LicenceChangedKind::SeatReleased
+    );
 }

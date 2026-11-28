@@ -28,6 +28,28 @@ describe("Rust-generated licence protocol", () => {
     assertLicenceChangedEvent(value.changedEvent);
   });
 
+  test("requires canonical padded standard base64 for licence files", () => {
+    for (const contentsBase64 of ["AAEC/w==", "AAEC", "/w=="]) {
+      assertLicenceActivateCommand({
+        protocolVersion: 1,
+        authorityEpoch: 7,
+        label: null,
+        credential: { kind: "licenceFile", contentsBase64 },
+      });
+    }
+    for (const contentsBase64 of ["", "AB==", "AAE", "__8=", "%%%="]) {
+      expect(() =>
+        assertLicenceActivateCommand({
+          protocolVersion: 1,
+          authorityEpoch: 7,
+          label: null,
+          credential: { kind: "licenceFile", contentsBase64 },
+        }),
+      ).toThrow();
+    }
+    assertLicenceChangedEvent({ protocolVersion: 1, authorityEpoch: 7, kind: "seatReleased" });
+  });
+
   test("carries one rejection per protocol rejection code", () => {
     const value = fixture();
     const codes: Array<string> = value.outcomes.flatMap((outcome) =>

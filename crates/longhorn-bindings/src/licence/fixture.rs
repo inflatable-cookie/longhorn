@@ -5,7 +5,7 @@ use longhorn_licence::{
     LicenceCredentialProjection, LicenceDeactivateCommand, LicenceEntitlementProjection,
     LicenceOutcomeProjection, LicenceProtocolVersion, LicenceRefreshCommand, LicenceRejectionCode,
     LicenceReleaseSeatCommand, LicenceRenameSeatCommand, LicenceSeatProjection, LicenceSnapshot,
-    LicenceTrustBasisProjection, LicenceUsabilityProjection, Timestamp,
+    LicenceTrustBasisProjection, LicenceUsabilityProjection, SignedLicence, Timestamp,
 };
 use serde_json::{json, to_value};
 
@@ -152,10 +152,11 @@ pub fn render() -> Result<String, Box<dyn Error>> {
             label: Some("The old MacBook".into()),
         })?,
         "outcomes": outcomes.map(to_value).into_iter().collect::<Result<Vec<_>, _>>()?,
+        "signedLicence": to_value(SignedLicence::new("signing", vec![0, 1, 2, 255], vec![255, 254]))?,
         "changedEvent": to_value(LicenceChangedEvent {
             protocol_version: LicenceProtocolVersion::CURRENT,
             authority_epoch: epoch,
-            kind: LicenceChangedKind::Activated,
+            kind: LicenceChangedKind::SeatReleased,
         })?,
         "incompatibility": {
             "futureProtocolVersion": 2,

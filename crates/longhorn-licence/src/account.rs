@@ -279,6 +279,11 @@ impl Authorization {
     }
 }
 
+#[cfg(test)]
+std::thread_local! {
+    pub(crate) static COMPARISON_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 /// Compares two byte slices without a data-dependent early exit.
 ///
 /// Mismatched lengths still fold over the shared prefix so there is no
@@ -287,6 +292,8 @@ impl Authorization {
 /// the workspace's canonical constant-time equality shape, with `black_box`
 /// to discourage short-circuiting optimizations.
 pub(crate) fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+    #[cfg(test)]
+    COMPARISON_CALLS.with(|calls| calls.set(calls.get() + 1));
     let mut difference = left.len() ^ right.len();
     for (&a, &b) in left.iter().zip(right.iter()) {
         difference |= usize::from(a ^ b);

@@ -60,6 +60,11 @@ merchant of record, or tax jurisdiction.
   redirect and PKCE. Embedded webviews are not an accepted flow.
 - Longhorn ships reference adapters for signed-file import and generic token
   redemption. Hosted backends are consumer-implemented.
+- Signed licence envelopes encode `payload` and `signature` as padded RFC 4648
+  standard base64 strings. The signature covers the decoded payload bytes.
+  Licence-file activation uses the same encoding in `contentsBase64`.
+- Committed seat releases emit `seatReleased`; `deactivated` means this
+  machine was deactivated.
 
 ## Enforcement
 
