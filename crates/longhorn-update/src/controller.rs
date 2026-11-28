@@ -290,6 +290,11 @@ impl<'port> UpdateController<'port> {
             return stale;
         }
 
+        if !matches!(command.cause, crate::DeferralCause::UserPostponed)
+            || self.offered_artifact(&command.version).is_none()
+        {
+            return self.reject(UpdateRejectionCode::NoOffer);
+        }
         let Ok(version) = command.version.parse::<Version>() else {
             return self.reject(UpdateRejectionCode::NoOffer);
         };
@@ -451,6 +456,7 @@ impl<'port> UpdateController<'port> {
         };
         if staged.version().to_string() != command.version
             || staged.digest().as_str() != command.digest
+            || self.offered_artifact(&command.version).is_none()
         {
             self.staged = Some(staged);
             return self.reject(UpdateRejectionCode::NoOffer);

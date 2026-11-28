@@ -201,8 +201,12 @@ fn position(install: &InstallId, seed: &str) -> f64 {
 
     let mut leading = [0_u8; 8];
     leading.copy_from_slice(&digest[..8]);
-    // Divide by 2^64 rather than u64::MAX so the result cannot reach 1.0.
-    u64::from_be_bytes(leading) as f64 / (2.0_f64).powi(64)
+    // Use the 53 most significant bits, which are exactly representable in f64.
+    position_from_hash(u64::from_be_bytes(leading))
+}
+
+fn position_from_hash(hash: u64) -> f64 {
+    (hash >> 11) as f64 / (2.0_f64).powi(53)
 }
 
 #[cfg(test)]
@@ -211,6 +215,11 @@ mod tests {
 
     fn install(value: &str) -> InstallId {
         InstallId::new(value).unwrap()
+    }
+
+    #[test]
+    fn maximum_hash_is_below_one() {
+        assert!(position_from_hash(u64::MAX) < 1.0);
     }
 
     fn fraction(value: f64) -> RolloutFraction {

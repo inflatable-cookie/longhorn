@@ -164,7 +164,7 @@ impl ChannelManifest {
     pub fn is_below_minimum(&self, installed: &Version) -> bool {
         self.minimum_version
             .as_ref()
-            .is_some_and(|minimum| installed < minimum)
+            .is_some_and(|minimum| installed.cmp_precedence(minimum).is_lt())
     }
 }
 

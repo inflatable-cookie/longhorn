@@ -1,0 +1,1 @@
+Update policy ignores build metadata for semver precedence and refuses applying a withdrawn offer. Renderers must defer only the currently offered version with `userPostponed`; hosts sending another cause or version receive `NoOffer` and must stop sending it. Quiescence is checked under the admission lease.

@@ -78,9 +78,8 @@ impl Error for ArtifactKeyError {}
 /// anything reaches disk" is a property of the call rather than a promise in
 /// a doc comment.
 ///
-/// It carries the version it was fetched for. The version is **not** proved by
-/// the signature — see the module note on downgrade below — so this records
-/// what the controller asked for, not what the artifact claims to be.
+/// It carries the requested version. A versioned trusted comment binds that
+/// version to the signature; signatures without one do not prove the version.
 #[derive(Clone, Eq, PartialEq)]
 pub struct VerifiedArtifact {
     version: Version,

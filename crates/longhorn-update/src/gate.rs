@@ -21,8 +21,7 @@ use crate::{
 /// # Two answers, one critical section
 ///
 /// The 2026-09-22 amendment makes authorization a *held* answer. Quiescence is
-/// still checked on every call and is the precondition; the exclusive
-/// admission lease is the barrier that keeps the answer true until the
+/// checked after taking the exclusive admission lease, which keeps the answer true until the
 /// replacement returns. The receipt says "nothing is in flight now"; the lease
 /// says "nothing conflicting starts until I am dropped". Both are needed, and
 /// the lease is released by dropping the [`InstallAuthorization`] that
@@ -67,31 +66,27 @@ impl<'probe> UpdateGate<'probe> {
     /// update and accepting it. A refused install is never a cancelled one —
     /// the reason travels with the refusal.
     ///
-    /// Quiescence is checked first, because it is the precondition; the lease
-    /// is acquired second and must be held until the replacement returns. The
+    /// The lease is acquired before checking quiescence and held until replacement returns. The
     /// returned [`InstallAuthorization::Held`] owns the lease, so a caller
     /// that drops it before `apply` returns has reopened the window. A lease
     /// that cannot be acquired is a deferral carrying the host's reason, never
     /// a failure and never an install.
     pub fn authorize(&self, version: &Version) -> InstallAuthorization<'probe> {
-        let receipt = self.quiescence();
-        if let Some(cause) = receipt.as_deferral_cause() {
+        let lease = match self.admission.acquire() {
+            Ok(lease) => lease,
+            Err(refusal) => {
+                return InstallAuthorization::Deferred(Deferral::new(
+                    version.clone(),
+                    DeferralCause::WorkInFlight {
+                        detail: refusal.detail,
+                    },
+                ));
+            }
+        };
+        if let Some(cause) = self.quiescence().as_deferral_cause() {
             return InstallAuthorization::Deferred(Deferral::new(version.clone(), cause));
         }
-        match self.admission.acquire() {
-            Ok(lease) => InstallAuthorization::Held(lease),
-            // The host refused to hold the barrier. It is the same deferral
-            // cause as Longhorn's own probes because it is the same answer —
-            // something conflicting is in flight — and the host's detail is
-            // what says which. Longhorn relays it and learns nothing about the
-            // application's operations.
-            Err(refusal) => InstallAuthorization::Deferred(Deferral::new(
-                version.clone(),
-                DeferralCause::WorkInFlight {
-                    detail: refusal.detail,
-                },
-            )),
-        }
+        InstallAuthorization::Held(lease)
     }
 }
 

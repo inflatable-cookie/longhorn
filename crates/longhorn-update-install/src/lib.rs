@@ -481,14 +481,8 @@ fn unpack_within(
         }
         root.get_or_insert(entry_root);
 
-        // The declared sizes are the archive's own claim — the only bound
-        // available before a byte is written. A header understating its
-        // payload desyncs the entry stream and fails as malformed.
-        declared_bytes = declared_bytes.saturating_add(entry.header().size().map_err(|error| {
-            InstallFailure::MalformedArtifact {
-                detail: error.to_string(),
-            }
-        })?);
+        // tar applies pax size overrides to the entry reader.
+        declared_bytes = declared_bytes.saturating_add(entry.size());
         if declared_bytes > quota.bytes {
             return Err(InstallFailure::MalformedArtifact {
                 detail: format!("archive exceeds the {}-byte extraction quota", quota.bytes),

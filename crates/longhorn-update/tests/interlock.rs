@@ -221,12 +221,9 @@ fn a_refused_install_never_looks_like_a_cancelled_one() {
     );
 }
 
-/// Quiescence is the precondition and the lease is the barrier, so a receipt
-/// that is not clear must stop before the authority is asked at all: taking a
-/// lease and holding it while Longhorn's own work is mid-commit is worse than
-/// an ordinary deferral.
+/// A busy receipt releases the barrier before returning the deferral.
 #[test]
-fn quiescence_is_checked_before_the_lease_is_acquired() {
+fn busy_quiescence_releases_the_lease() {
     let authority = ExclusiveAuthority::new();
     let busy = transfer_session_probe(|| 1);
     let probes: Vec<&dyn QuiescenceProbe> = vec![&busy];
@@ -239,9 +236,10 @@ fn quiescence_is_checked_before_the_lease_is_acquired() {
     assert!(matches!(deferral.cause, DeferralCause::WorkInFlight { .. }));
     assert_eq!(
         authority.acquisitions(),
-        0,
-        "a non-quiescent host must not take the barrier"
+        1,
+        "the barrier must protect the probe"
     );
+    assert!(!authority.held(), "deferral must release the barrier");
 }
 
 /// The wire projection states which of the two answers the gate gave. The
@@ -296,4 +294,15 @@ fn an_unacquirable_lease_defers_with_the_hosts_reason() {
         deferral.cause.to_string(),
         "work in flight: another window is saving"
     );
+}
+
+#[test]
+fn probes_run_under_the_admission_lease() {
+    let authority = ExclusiveAuthority::new();
+    let busy_before_lease = transfer_session_probe(|| usize::from(!authority.held()));
+    let gate = UpdateGate::new(vec![&busy_before_lease], &authority);
+    assert!(matches!(
+        gate.authorize(&version()),
+        InstallAuthorization::Held(_)
+    ));
 }

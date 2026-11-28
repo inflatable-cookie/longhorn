@@ -135,11 +135,11 @@ pub fn evaluate(
     provenance: InstallProvenance,
     target: &TargetTriple,
 ) -> UpdateAvailability {
-    if manifest.version == build.version {
+    if manifest.version.cmp_precedence(&build.version).is_eq() {
         return UpdateAvailability::UpToDate;
     }
 
-    if manifest.version < build.version {
+    if manifest.version.cmp_precedence(&build.version).is_lt() {
         return UpdateAvailability::AheadOfChannel {
             installed: build.version.clone(),
             channel: manifest.version.clone(),

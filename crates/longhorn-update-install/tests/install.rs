@@ -940,3 +940,29 @@ fn verified(fixture: &Fixture, bytes: Vec<u8>, signature: &str) -> VerifiedArtif
     )
     .expect("fixture verifies")
 }
+
+#[test]
+fn pax_size_override_is_charged_to_the_extraction_quota() {
+    let fixture = Fixture::new();
+    let mut builder = tar::Builder::new(GzEncoder::new(Vec::new(), Compression::default()));
+    builder
+        .append_pax_extensions([("size", b"5368709121".as_slice())])
+        .unwrap();
+    let mut header = tar::Header::new_ustar();
+    header.set_path("Example.app/Contents/big").unwrap();
+    header.set_size(0);
+    header.set_mode(0o644);
+    header.set_entry_type(tar::EntryType::Regular);
+    header.set_cksum();
+    builder.append(&header, &[][..]).unwrap();
+    let archive = builder.into_inner().unwrap().finish().unwrap();
+    let signature = sign(&fixture.fixtures.pair, &archive);
+    let outcome = fixture
+        .installer()
+        .apply(&verified(&fixture, archive, &signature));
+    assert!(
+        matches!(outcome, Err(InstallFailure::MalformedArtifact { ref detail }) if detail.contains("extraction quota")),
+        "expected quota refusal: {outcome:?}"
+    );
+    assert_eq!(fixture.marker(), "old");
+}
