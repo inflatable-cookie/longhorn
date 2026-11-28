@@ -6,21 +6,17 @@ briefs. An answered question keeps only its pointer to where the answer lives.
 ## Q-001 — What follows the 0.2.1 release?
 
 Status: answered 2026-09-26
-Answer: a hardening lane, then `0.2.2`. Soundcheck adoption waits until
-Soundcheck finishes its own Northstar cutover. See lane:release-0-3-0.
+Answer: Nucleus lane `release-0-3-0`.
 
 ## Q-002 — How are Rust-side pickers and HTML file inputs admitted to agent control?
 
 Status: answered 2026-09-26
-Answer: [contract 022](contracts/022-agent-app-control.md) — a consumer-carried
-origin for Rust pickers; inline base64 bytes with an 8 MiB cap and no path
-reads for file inputs.
+Answer: [contract 022](contracts/022-agent-app-control.md).
 
 ## Q-003 — Does contract 023 carry the production MCP role?
 
 Status: answered 2026-09-22
-Answer: No. [contract 023](contracts/023-production-contextual-agent-tool-boundary.md)
-withdrawal; the contract 022 opt-in server is the production MCP.
+Answer: [contract 023](contracts/023-production-contextual-agent-tool-boundary.md#withdrawal--2026-09-22).
 
 ## Q-004 — Should the Svelte tier import or generate Poodle spec shapes?
 
@@ -36,17 +32,12 @@ nothing. Owner file:
 ## Q-005 — Should the fork tree leave the held-surface register?
 
 Status: answered 2026-09-28
-Answer: yes. See the [held-surface register](../reference/held-surface.md)
-and [package selection](../guides/package-selection.md). Governed by
-[contract 008](contracts/008-history-kernel-boundary.md).
+Answer: [held-surface register](../reference/held-surface.md#register).
 
 ## Q-006 — Where is the Split-shell consumer, and is it still a consumer?
 
 Status: answered 2026-10-22
-Answer: it no longer exists and is retired. Tom, 2026-10-22: "If it's not in
-~/Dev/projects now, it won't exist now and we can get rid of it." No checkout
-or repository for it was found (2026-10-21). The removal of its live references
-is a Nucleus task.
+Answer: [0.4.2 changelog](../../CHANGELOG.md#042---2026-10-23).
 
 ## Q-007 — Can a fast bridge job's terminal event land before its listener is registered?
 

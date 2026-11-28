@@ -495,7 +495,7 @@ ordinary configuration.
   write and whatever it names is adopted, so two processes generating on the
   same first run agree on one identity instead of one of them encrypting to an
   identity the store no longer holds. The credential store has no conditional
-  write to exclude with — no platform backend offers one (Card 224) — so the
+  write to exclude with — no platform backend offers one — so the
   residual window is a rival write landing between one process's write and its
   read-back. A store that reports a successful write and reads back empty is
   `Unavailable`, never encrypted to

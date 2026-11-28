@@ -22,7 +22,7 @@ Geometry always names its space:
 | --- | --- |
 | `PhysicalPx` | host or native device pixels |
 | `ScreenDip` | global, top-left logical desktop coordinates |
-| `ClientCssPx` | local webview content coordinates |
+| `ClientLogicalPx` | window-content coordinates in device-independent pixels, called CSS pixels in a webview |
 | `ScaleFactor` | explicit conversion evidence |
 
 - No public geometry API accepts an untyped tuple or rectangle.

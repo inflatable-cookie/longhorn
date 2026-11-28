@@ -12,11 +12,10 @@ history state and checked transitions. Consumers own payload meaning, product
 mutation, canonical model state, and recovery policy.
 
 The first compatibility-proved mode is linear. The optional production tree
-is a selectable system on that linear default; branch mode is opt-in. Cards
-070-073 implement it through strict persistence, bounded pure projections,
+is a selectable system on that linear default; branch mode is opt-in. It uses strict persistence, bounded pure projections,
 an exact metadata protocol, a caller-aware Tauri host, checked clients,
-per-instance Svelte state, and public-Poodle composition. Card 074 proves the
-produced artifacts.
+per-instance Svelte state, and public Poodle composition. The history-tree
+artifact proof verifies the produced packages.
 
 ## Package Shape
 
@@ -253,7 +252,7 @@ The optional Tauri adapter exposes only registered history authorities and
 checks caller capability before dispatch. The consumer authority still owns
 product authorization and the atomic apply transaction.
 
-Card 066 implements this edge as a strict version-2 metadata protocol,
+The client edge uses a strict version-2 metadata protocol,
 framework-neutral direct and serialized clients, caller-aware Tauri commands,
 listener-first per-instance Svelte state, and a controlled public-Poodle
 panel. Authority epoch plus history revision invalidate stale pages and
@@ -262,7 +261,7 @@ cannot disguise an already committed navigation result.
 
 ## Promoted Fork-tree Semantics
 
-Card 068 proves and Card 069 accepts:
+The fork-tree prototype established these rules:
 
 - immutable single-parent entry nodes
 - stable branch and current-node identity
@@ -326,14 +325,14 @@ The production persistence format must avoid the prototype's JSON numeric-byte
 array expansion. The implementation lane must prove a dense payload encoding,
 strict topology validation, and deterministic encode/load behavior.
 
-Cards 070-071 implement the pure graph through atomic navigation, protected
+The pure graph implementation runs through atomic navigation, protected
 retention, and opaque checkpoint accounting. Navigation routes are revision
 and history bound, finite, and applied through one consumer transaction.
 Verified rollback and rollback failure both preserve graph authority. Pruning
 removes only deterministic unprotected leaves or rejects without mutation.
 Checkpoint data and durability remain outside Longhorn.
 
-Card 072 implements graph persistence under the separate stable
+The persistence layer stores the graph under the separate stable
 `longhorn.history-tree` family. Structural version and consumer payload-codec
 version are independent. Older sources advance only through registered exact
 next-version steps; foreign and future families or versions reject visibly.
@@ -354,7 +353,7 @@ The package boundary is optional and downward-only. `longhorn-history-tree`
 depends on `longhorn-history`; the linear crate does not depend on tree state.
 Renderer and Poodle edges remain metadata-only and optional.
 
-Card 073 freezes exact-v1 metadata-only graph clients. Startup attaches the
+Graph clients use the exact-v1 metadata-only protocol. Startup attaches the
 listener, loads the linear-default summary, then requests one bounded default
 path page. Branch pages and alternate branch paths require explicit calls;
 summary counts do not materialize either collection. Every page is limited to
@@ -369,7 +368,7 @@ Svelte sessions are per instance, listener-first, stale-safe, SSR-safe, and
 idempotently disposable. Poodle composition uses only public controlled
 primitives. Product payloads never enter generated types, ports, events, or UI.
 
-Card 074 artifact proof establishes:
+The history-tree artifact proof establishes:
 
 - private `0.1.0` tree artifacts install without sibling-source resolution
 - the linear-only graph remains tree-free
@@ -378,7 +377,7 @@ Card 074 artifact proof establishes:
 - Loophole migration does not depend on branching
 - project versions, collaboration, and event sourcing stay separate
 
-The Card 068 prototype remains executable research evidence. It is not a
+The fork-tree prototype remains executable research evidence. It is not a
 release package or a donor dependency.
 
 ## Loophole Admission

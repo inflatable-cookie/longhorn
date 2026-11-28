@@ -16,10 +16,10 @@
 - [Cross-backend Projection](cross-backend-projection.md) — two hosts, one reading of each fact
 - [Poodle Overlay Geometry Boundary](poodle-overlay-geometry-boundary.md)
 - [Package Topology](package-topology.md)
-- [System Inventory](system-inventory.md)
+- [System Inventory](system-inventory.md) — authority, evidence and limits
 - [Repo Authority Map](repo-authority-map.md)
 - [Product Guardrails](product-guardrails.md)
-- [Shared Desktop System Suite](shared-desktop-system-suite.md) — candidate suite and maturity
+- [Shared Desktop System Suite](shared-desktop-system-suite.md) — capability map and owning contracts
 
 Architecture is canonical once promoted. Working registry names remain
 provisional until release preparation.

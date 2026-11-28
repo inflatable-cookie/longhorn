@@ -231,24 +231,110 @@ None attempts registry publication.
 
 ## Rust routing
 
-`scripts/rust-command.sh` is the one Cargo switch point: `oxide` locally, plain
-`cargo` under `GITHUB_ACTIONS=true` or `EFFIGY_OXIDE_ESCAPE=cargo`, with an
-`exec` form for a tool that calls Cargo itself. `scripts/rust-command.ts` builds
-that argv for the scripts here, and `scripts/private-cargo.sh` is the tool behind
-a lease that sets the private output directories for one staged workspace. Those
-directories must be set inside the lease: `oxide exec` replaces a
-`CARGO_TARGET_DIR` inherited on the outer call. `prepareStagedWorkspace` creates
-the empty real `target/` directory that keeps a staged lease adoption-free, and
-`stagingDirectory` gives every proof's staged workspaces that same external root
-rather than `os.tmpdir()`, and `scripts/staged-storage.test.ts` enforces it.
-`scripts/external-scratch.sh` gives local shell routes the same fail-closed
-private directory `taskScratch` gives a TypeScript one; locally it runs the
-TypeScript rule. On hosted CI it creates the directory under runner-owned
-temporary storage without needing Bun. The local root is
-`OXIDE_TASK_SCRATCH_ROOT` when set, otherwise the scratch root Oxide reports
-for its removable build pool. Scratch roots fail closed rather than being
-created on the internal drive.
-`AGENTS.md` owns the routing table, the storage rules and the named exceptions.
+Every ordinary local Longhorn route runs Cargo through Oxide
+(Tom, 2026-10-25). `scripts/rust-command.sh` is the one switch point, and it has two forms:
+
+- `<cargo command> [args...]` — one Cargo command.
+- `exec [--manifest-path <Cargo.toml>] [--profile <p>] -- <tool> [args...]` —
+  one tool that calls Cargo itself, in one lease over one workspace and one
+  toolchain.
+
+Locally it runs `oxide` or `oxide exec`; with `GITHUB_ACTIONS=true` it runs plain
+`cargo` or the tool itself, so hosted CI keeps the Cargo behavior it always had.
+There is no per-selector `:cargo` task and no silent fallback: install Oxide, or
+set `EFFIGY_OXIDE_ESCAPE=cargo` for one local run (any other value is refused),
+or hand-run Cargo yourself for a one-off investigation. `fmt:rust` and the
+`dependencies` release gate are switched too: they run non-building Cargo subcommands
+(`fmt`, `metadata`, `deny`) that Oxide passes straight through.
+
+`scripts/rust-command.ts` builds that argv for scripts and adds no rule of its
+own: `rustCommand` for a Cargo command, `rustExec` for a leased tool,
+`privateCargoCommand` for a leased tool that keeps private final outputs.
+
+### Storage and lease boundaries
+
+Oxide owns local Cargo output placement. A route that needs a private directory
+keeps final outputs on external build scratch and never on the internal drive,
+the account home or a drive root:
+
+- `OXIDE_TASK_SCRATCH_ROOT`, when set, wins. It must already exist. Missing
+  scratch fails the route; nothing creates it, so an unmounted build volume
+  cannot turn into an ordinary directory on the internal drive.
+- When it is unset, the default is the scratch root Oxide reports for its
+  registered removable build pool (`oxide pool describe --json`,
+  `removable.suggested_scratch_root`, only when `removable.available` is true).
+  Nothing is hard-coded to a volume name. Any gap (no Oxide, no available pool,
+  no suggested root, or a missing directory) fails closed and names
+  `OXIDE_TASK_SCRATCH_ROOT`. The repository creates only a `longhorn` child below
+  the default root. The child must be an owned real directory whose resolved
+  path stays below that root.
+- The resolved root, configured or reported, is refused when it is a drive root,
+  a boot-volume top-level directory, a volume mount root, the account home, or on
+  the boot volume. The internal drive is judged by volume
+  (the device of `/` or of the account home), never by `TMPDIR`: Nucleus points
+  `TMPDIR` at external scratch, and a `TMPDIR` on the boot volume is still refused.
+  `scripts/rust-command.ts` owns this rule (`taskScratch`, and the `scratch`
+  command that `scripts/external-scratch.sh` runs for shell routes).
+- Hosted CI keeps its runner-owned temporary storage.
+
+`oxide exec` replaces a `CARGO_TARGET_DIR` inherited on the outer call with
+`<workspace>/target`, so the private directory survives only when it is set
+inside the lease: `scripts/private-cargo.sh` is the tool behind the lease, it
+exports `CARGO_TARGET_DIR` for the plain Cargo child it runs, and it makes no
+routing decision of its own.
+Setting either variable on the outer `exec` call, or in a proof's member
+environment, does nothing. Only `CARGO_TARGET_DIR` moves final outputs: an
+inherited `CARGO_BUILD_BUILD_DIR` still sends intermediates to the held slot, so
+an inner target is not a second build store.
+
+One lease covers one Cargo workspace and one toolchain. A proof that stages
+several consumers, or builds at the MSRV, runs one `exec` boundary per staged
+workspace: that workspace's `--manifest-path`, and `RUSTUP_TOOLCHAIN` pinned
+before the lease. Inside a lease the tool calls plain `cargo`, never oxide: a
+nested lease takes its own slot and can deadlock the host permits.
+
+Staged workspaces need `prepareStagedWorkspace`: it creates an empty real
+`target/` directory in the owned disposable workspace before the lease. An
+existing real target opts that workspace out of Oxide's automatic first
+conversion — which otherwise refuses a workspace with no Git work tree to
+confirm — reports `outputs not converted`, and creates no Oxide output root.
+Never apply it to a real checkout, never overwrite an existing target or an
+owned-output link, and do not substitute `git init` or target-ignore metadata
+for it. The conversion refusal is an Oxide defect (upstream `755757db`); this is
+the supported interim rule on the installed Oxide (`4df3dfd`). Real Rust stages
+live on external build scratch and are removed after use: proofs allocate them
+with `stagingDirectory` or `taskScratch` in `scripts/rust-command.ts`, never
+under `os.tmpdir()`, and `scripts/staged-storage.test.ts` fails any proof that
+does.
+
+### Cargo entry points
+
+| Route | Form |
+| --- | --- |
+| Every `lint:*`/`test:*`/`docs:*` Rust selector, `check:prototypes`, `check:bindings`, `release:floor`, `ci:rehearse` | `rust-command.sh <cargo command>` |
+| `effigy fmt:rust` | `rust-command.sh fmt --check -p …` (workspace), `rust-command.sh fmt --check` (prototypes), `rust-command.sh metadata --no-deps`, plus `rustfmt --edition 2024 --check` on staged example sources |
+| `[release.gates] dependencies` / `effigy release:gates` | `rust-command.sh deny check` |
+| `check:machete` | `rustCommand` for workspace metadata and `machete` |
+| `scripts/sync-prototype-locks.ts`, `scripts/prototype-dependency-coverage.ts`, `scripts/generate-api-reference.ts` | `rustCommand(["metadata", …])` |
+| Checkout-level `package --list` inventories, bindings `run` checks, `tree` reads and `-p` tests in the proofs and the two absence scans | `rustCommand([...])`, at `RUSTUP_TOOLCHAIN=<MSRV>` where the call was `cargo +<toolchain>` |
+| Staged and disposable consumer builds: the `scripts/proof-artifacts.ts` members, `scripts/verify-desktop-support-conformance.ts`, `scripts/verify-agent-tool-dispatch-source-consumer.ts`, `scripts/verify-source-consumer.sh` | `rustExec(privateCargoCommand(...))`, one boundary per staged workspace, at the MSRV pin where the staged crates need it |
+| `check:agent-control-release-absence`, `check:agent-tool-dispatch-release-absence` | `rustExec(privateCargoCommand(...), { profile: "release" })`; the scan reads the rlib paths Cargo reports in `--message-format=json` output (`libraryArchives`), not a directory layout |
+| `cargo tauri build` in the example and prototype READMEs | documented as `oxide exec -- cargo tauri build`; source guidance only, no live Tauri run is claimed |
+
+Each feature state of the release-absence scans is its own private final output
+directory, so no scan pins `CARGO_BUILD_BUILD_DIR`: intermediates pool like every
+other staged consumer's, and Cargo keys them by feature.
+
+Genuine Cargo exceptions:
+
+| Route | Category |
+| --- | --- |
+| `.github/workflows/*`, including its `cargo metadata` step | CI, and workflow edits need approval |
+| Effigy's own `cargo update --workspace` lockfile sync from `config/release.toml` | Not a Longhorn entry point; Effigy runs it |
+| `scripts/check-runner-tools.ts` | Read `cargo deny`/`cargo install` as text to check workflow installs; not entry points |
+| `scripts/workspace-dependencies.ts` | Reads `Cargo.toml` text; runs no Cargo |
+| A consumer's own project commands in `docs/guides/` | Product Cargo behavior in the consumer's checkout, not this repository's route |
+| `.git/queue-hooks` warm-merge manifest | Nucleus-owned, outside the repository |
 
 ## Language
 

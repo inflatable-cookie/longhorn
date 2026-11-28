@@ -1,7 +1,5 @@
 # Choose Packages
 
-Status: checked private adoption guidance
-Updated: 2026-09-28
 Governing contracts: [002](../knowledge/contracts/002-composable-workspace-hosting.md),
 [007](../knowledge/contracts/007-optional-backend-topology.md),
 [008](../knowledge/contracts/008-history-kernel-boundary.md),
@@ -27,14 +25,10 @@ storage, Tauri, Svelte, Poodle, or service adapters required to expose it.
 There is no umbrella package. A visual similarity to another app is not a
 dependency reason.
 
-Nothing below is on a registry today — there is no npm/crates.io install of
-Longhorn or Poodle. TypeScript pins the three packages by `file:` path
-against a Longhorn checkout (recipe below). Rust resolves crates against the
-Cargo inventory and source archives of the
-[private 0.1 candidate](../reference/private-0-1-candidate.md), whose receipt
-is frozen history: it records the 17-TypeScript-package tree of 2026-08-02,
-not the current three-package tree. Longhorn `0.1.0` and Poodle `0.4.16` are
-both published.
+The [installation recipe](getting-started.md#3-rust-add-the-crate-set)
+uses the Rust Git tag and matching npm version. See the
+[release contract](../knowledge/contracts/release.md) for distribution
+and the [API surface](../reference/api-surface.md) for peer ranges.
 
 ## Proven Starting Shapes
 
@@ -54,55 +48,14 @@ are the live equivalents of these shapes. Copy package selection from that
 shape's `package.json` and `src-tauri/Cargo.toml`; replace the neutral app
 identity and product policy. `capability.json` is selection evidence, not a
 universal Tauri capability. The
-[Card 125 matrix](../knowledge/architecture/greenfield-composition-matrix.md) records
+[composition matrix](../knowledge/architecture/greenfield-composition-matrix.md) records
 the shape boundaries and extension points.
 
-The minimal shape selects two Longhorn TypeScript packages — one dependency
-on `@inflatable-cookie/longhorn` plus its Tauri peer — and six Rust crates:
-
-```json
-{
-  "name": "my-app",
-  "dependencies": {
-    "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn",
-    "@inflatable-cookie/longhorn-tauri": "file:../longhorn/packages/longhorn-tauri",
-    "@tauri-apps/api": "2.10.1",
-    "svelte": "5.56.8"
-  },
-  "overrides": {
-    "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn"
-  }
-}
-```
-
-`./config`, `./settings`, and the other system names are export subpaths of
-the one package, not installable packages — never depend on
-`@inflatable-cookie/longhorn/config` directly. The `overrides` entry is
-required: `longhorn-tauri` peer-depends on `@inflatable-cookie/longhorn` at
-exact `0.1.0`, and without the override bun reaches the registry for it and
-404s. Shapes that select Svelte/Poodle bindings add
-`@inflatable-cookie/longhorn-poodle-svelte` by the same `file:` discipline;
-the Poodle packages it peers on are published, and the adapter takes any
-`0.4.x` from `0.4.16`; install by version, and Longhorn `0.1.0` is published
-too. The full recipe,
-including the development-link alternative, is in
-[Getting Started](getting-started.md).
-
-```toml
-[dependencies]
-longhorn-config = "0.1.0"
-longhorn-core = "0.1.0"
-longhorn-settings = "0.1.0"
-longhorn-settings-config = "0.1.0"
-longhorn-tauri-config = "0.1.0"
-longhorn-tauri-settings = "0.1.0"
-tauri = "2"
-```
-
-The proof manifests inside this repo resolve `longhorn-*` through the
-workspace (`longhorn-config.workspace = true`). That form is proof-only:
-a standalone consumer resolves the same names from the produced private
-artifacts described in the [distribution reference](../reference/private-0-1-candidate.md).
+The [minimal walkthrough](getting-started.md) selects config, settings, and
+their Tauri adapters. The proof uses workspace dependencies for the same
+Rust crate names. Optional components add capabilities through public
+exports, such as `@inflatable-cookie/longhorn/settings`; install the
+package at its root.
 
 ## Add One System At A Time
 

@@ -14,7 +14,7 @@ parallel implementations or mandatory Surface state.
 ## Hosting Composition
 
 Display inventory and window planning remain independent of layout topology.
-Since Card 179 a Surface *is* the layout: it carries the schema it
+A Surface *is* the layout: it carries the schema it
 instantiates, its regions, its sizing slots, and the panel instances placed
 in them. One binding chain serves every host:
 
@@ -58,8 +58,7 @@ clause loads unchanged and no migration is required.
 
 **Longhorn records the focused panel; it does not police the layout.** The
 Surface domain does not verify that the Surface's own layout holds that panel
-and only that panel — that invariant is a consumer obligation (Card 177
-recorded why), and so is refusing a panel dropped onto a focused Surface.
+and only that panel — that invariant is a consumer obligation, and so is refusing a panel dropped onto a focused Surface.
 
 This is a stated ceiling rather than a silence: a consumer can put a focused
 Surface's layout into a state the presentation no longer describes, and
@@ -181,7 +180,7 @@ Provisioning a window is not an implicit side effect of panel transfer.
 
 ## Layout, Absorbed From Contract 014 — 2026-08-11
 
-Card 179 removed the layout container, so a Surface *is* a layout: it carries
+A Surface *is* a layout: it carries
 the schema it instantiates, its regions, its sizing slots and the panel
 instances placed in them. Contract 014 governed a separate document that no
 longer exists, and its substance moves here rather than being restated in two

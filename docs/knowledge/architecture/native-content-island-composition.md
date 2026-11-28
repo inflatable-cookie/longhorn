@@ -7,25 +7,16 @@ Governing contract: [017 Native Content Island Coordination](../contracts/017-na
 
 ## Decision
 
-Card 086 selects `Promote`.
-
-Promote one pure coordination kernel and three independently selectable
-mechanism layers. Promote checked TypeScript and per-instance Svelte lifecycle
-support. Keep Poodle as a public layout and presentation seam without a
-Longhorn native-content package dependency.
-
-The Card 082-085 workspaces remain non-publishable evidence. Cards 087-093
-implement the production pure kernel, generated checked renderer protocol,
-framework-neutral client, isolated Tauri child-view mechanism, generic
-process-isolated window mechanism, generic backing-surface mechanism, and
-per-instance Svelte lifecycle. Card 093 proves isolated produced artifacts and
-records the consumer gates. Donor cutover still requires a migration card and
-the named consumer-owned policy map.
+The production graph uses one pure coordination kernel, three independently
+selectable mechanism layers, a checked TypeScript client and per-instance
+Svelte lifecycle support. Poodle supplies public layout and presentation
+APIs. Prototypes remain non-publishable evidence. The isolated artifact proof
+checks the production package boundaries, and each donor cutover needs its
+own authority map and explicit approval.
 
 ## Package Graph
 
-Working production names are fixed for g01.018. Registry ownership remains a
-release gate.
+The TypeScript edges are public export subpaths of their containing packages.
 
 ```text
 longhorn-core
@@ -152,14 +143,14 @@ prerequisites are mapped.
 ## Prototype Disposition
 
 Retain `prototypes/native-content*` in place as non-workspace, non-publishable
-evidence. Card 093 proves that no prototype package enters a production graph.
+evidence. The isolated artifact proof excludes them from production graphs.
 The first consumer cutover may later record whether any evidence can be
 archived. Do not copy prototype source blindly, publish prototype manifests,
 or treat prototype API shape as compatibility authority.
 
 ## Artifact And Adoption Checkpoint
 
-Card 093 packs `@inflatable-cookie/longhorn/core`, `@inflatable-cookie/longhorn/native-content`, and
+The isolated artifact proof packs `@inflatable-cookie/longhorn/core`, `@inflatable-cookie/longhorn/native-content`, and
 `@inflatable-cookie/longhorn-poodle-svelte/native-content`, inventories the five Rust crates, and runs
 four offline Rust consumers plus three isolated renderer consumers. The pure,
 Nucleus, Soundcheck, and Jetstream graphs contain exactly their selected
@@ -180,24 +171,19 @@ remain exact and unchanged.
 
 | Consumer | Artifact gate | Next admission | Native-content cutover blocker |
 | --- | --- | --- | --- |
-| Nucleus | pass | Card 101 complete | none; product policy remains Nucleus-owned |
+| Nucleus | pass | cutover complete | none; product policy remains Nucleus-owned |
 | Soundcheck | pass | after g01.014 and g01.015 | Signal/plugin ABI and authorization, helper/process ownership, native content and media policy |
 | Jetstream | pass | after g01.014 and g01.015 | native storage/WGPU construction, renderer/world/camera/picking/gizmo/frame-loop authority, semantic input mapping |
 | Loophole | not applicable | no current native-content migration | none claimed |
 
 Artifact readiness is not donor cutover authority. The exact Nucleus Browser
-policy is in the canonical migration map and Card 094 freeze. Card 095 admits
-the private graph and both consumer checks. Card 096 completes the bounded
-storage slice. Card 097 replaces protected-window mechanics and keeps the
-native-content capability unchanged. Cards 098-099 replace project layout
-authority and the checked renderer/Poodle edge. Card 100 replaces Browser
-mechanics with the production graph without adding Surface state. Card 101
-closes conformance with exact artifacts, restart and rollback evidence, and
-capability/duplicate-authority audits.
+policy and the exact artifact, restart, rollback and authority evidence are in
+the [Nucleus migration map](nucleus-migration-map.md). Its Browser cutover
+keeps product policy downstream.
 
 ## Production Kernel Checkpoint
 
-Card 087 adds `longhorn-native-content` with only `longhorn-core` and `serde`
+The production kernel is `longhorn-native-content` with only `longhorn-core` and `serde`
 as normal dependencies. Shared native-content ids and revisions live in
 `longhorn-core`; no second identity grammar entered the production crate.
 
@@ -223,7 +209,7 @@ flow are recorded in the
 
 ## Renderer Protocol Checkpoint
 
-Card 088 keeps Rust as wire authority. Exact-version request/result/event
+The checked protocol keeps Rust as wire authority. Exact-version request/result/event
 types cover connection, snapshots, desired updates, observations,
 content-size proposals and decisions, apply receipts, and host destruction.
 The checked fixture is generated beside TypeScript; drift fails the gate.
@@ -242,8 +228,7 @@ content.
 
 ## Svelte Lifecycle Checkpoint
 
-Card 092 adds `@inflatable-cookie/longhorn-poodle-svelte/native-content` as a separate package over the
-checked client. Each `NativeContentSession` owns one connection per mount and
+The Svelte adapter exposes `@inflatable-cookie/longhorn-poodle-svelte/native-content` as a subpath over the checked client. Each `NativeContentSession` owns one connection per mount and
 accepts the current scale plus final visibility, focus, and input-routing
 policy. It measures only the exact consumer-supplied viewport element. Host
 window, attach generation, rounding, and presence remain checked host state.
@@ -261,7 +246,7 @@ routing.
 
 ## Production Child-view Checkpoint
 
-Card 089 adds `longhorn-tauri-native-content-child-view`. The package depends
+`longhorn-tauri-native-content-child-view` depends
 only on the pure kernel, `longhorn-core`, `serde`, and Tauri. It isolates
 `WebviewBuilder` and `Window::add_child` in one runtime module and wraps the
 retained `tauri::Webview` so no raw handle crosses its public protocol.
@@ -280,10 +265,10 @@ unproved.
 
 ## Production Isolated-window Checkpoint
 
-Card 090 adds `longhorn-native-content-isolated-window`. Its production graph
+The `longhorn-native-content-isolated-window` graph
 depends only on `longhorn-core`, the pure native-content kernel, and `serde`.
 Consumers inject process launch, native content creation, transport I/O,
-authorization, and safe owner termination. Tauri and the frozen Card 084
+authorization, and safe owner termination. Tauri and the frozen prototype
 process fixture appear only in the packaged proof.
 
 The shared protocol carries generation plus bounded
@@ -293,7 +278,7 @@ raw handles, plugin ABI, Signal, audio, MIDI, rendering, and semantic input are
 absent. Content resize remains a revision-bound proposal; accepted,
 constrained, and rejected receipts cannot mutate durable desired state.
 
-The macOS 26.5.2 arm64 package passes the full Card 084 11-check matrix with a
+The macOS 26.5.2 arm64 package passes the 11-check prototype matrix with a
 real controlled `NSView`: startup and readiness, host/content resize, echo
 suppression, show/hide/focus loss, resize-hint admission, cooperative close,
 consumer-owned recentering, timeout, owner termination, helper loss, and stale
@@ -301,7 +286,7 @@ generation rejection. Windows and Linux are explicitly unsupported.
 
 ## Production Backing-surface Checkpoint
 
-Card 091 adds `longhorn-native-content-backing-surface`. Its production graph
+The `longhorn-native-content-backing-surface` graph
 depends only on `longhorn-core`, the pure native-content kernel, and `serde`.
 Consumers inject native storage, renderer lifecycle, clipping, observation,
 and reversible detach. Tauri, AppKit, raw pointers, and deterministic pixel

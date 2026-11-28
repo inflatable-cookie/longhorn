@@ -1,150 +1,45 @@
 # Shared Desktop System Suite
 
-Status: active  
-Owner: Tom  
-Updated: 2026-09-28
-Evidence: translation memos 001, 002, 015, 016 and 017 (Git history)
+This map groups reusable capabilities by what an application needs. The
+[contract index](../contracts/contract-index.md) defines which rules apply to
+the shared core, each host, and the optional webview edge. The
+[API surface](../../reference/api-surface.md) lists packages and features.
 
-## Purpose
+| Capability | Owning boundary |
+| --- | --- |
+| Display identity, geometry and window planning | [009](../contracts/009-display-identity-coordinates-and-window-planning.md) |
+| Window lifecycle and native execution for Tauri and GPUI | [020](../contracts/020-host-adapter-boundary.md) |
+| Optional layout and Surface hosting | [002](../contracts/002-composable-workspace-hosting.md) |
+| Cross-window panel and Surface transfer | [011](../contracts/011-cross-window-transfer.md) |
+| Storage roots, domain state, backups and recovery | [004](../contracts/004-configuration-storage-backup-and-recovery.md) |
+| Settings registry, apply units and shell | [005](../contracts/005-settings-and-system-registration.md) |
+| Command registry, physical input, keymaps and palette projection | [006](../contracts/006-command-action-and-input.md) |
+| Optional service topology and supervision | [007](../contracts/007-optional-backend-topology.md) |
+| Checked webview IPC and events | [010](../contracts/010-rust-typescript-ipc-and-events.md) |
+| Svelte lifetime and public Poodle bindings | [013](../contracts/013-svelte-and-poodle-adapter-lifecycle.md) |
+| Linear history and optional fork-tree history | [008](../contracts/008-history-kernel-boundary.md) |
+| Finite operations and cancellation | [015](../contracts/015-async-operation-lifecycle.md) |
+| Retained notifications and transient projection | [016](../contracts/016-notification-ledger-and-projection.md) |
+| Child-webview, isolated-window and backing-surface coordination | [017](../contracts/017-native-content-island-coordination.md) |
+| Staged app updates, release channels and restart admission | [018](../contracts/018-application-update-and-release-channels.md) |
+| Licensing, entitlement, activation and leases | [019](../contracts/019-licensing-entitlement-and-activation.md) |
+| Consumer-scoped credential references | [021](../contracts/021-consumer-scoped-credential-slots.md) |
+| Opt-in agent app control | [022](../contracts/022-agent-app-control.md) |
+| Transport-neutral contextual tool dispatch and validation | [023](../contracts/023-production-contextual-agent-tool-boundary.md) |
+| Secret redaction | [024](../contracts/024-text-redaction.md) |
+| Bounded support logs and output tails | [025](../contracts/025-bounded-support-logs.md) |
+| Diagnostics bundle rendering | [026](../contracts/026-diagnostics-bundle.md) |
+| Verified tool provisioning and discovery | [027](../contracts/027-managed-tool-provisioning.md) |
+| PTY process and session lifecycle | [028](../contracts/028-pty-sessions.md) |
+| Policy-hooked Git workspace operations and credentials | [029](../contracts/029-git-workspace.md) |
 
-Keep the complete candidate suite and its maturity in one durable place.
-Architecture and contracts own promoted behavior. This file owns unresolved
-shape and admission questions.
+An app can omit layout. If it uses registered regions and panels, the Surface
+owns the layout and every host uses the binding chain in
+[contract 002](../contracts/002-composable-workspace-hosting.md#hosting-composition).
+Contract 014 is superseded there.
 
-## Suite
-
-| Capability | Intended reusable unit | State | Main evidence |
-| --- | --- | --- | --- |
-| configuration storage | Rust domain stores, roots, migrations, safe writes | promoted first pass | Loophole, Soundcheck, minimal-shell proof, Nucleus |
-| backup and recovery | inventory, snapshot, verify, rotate, restore | promoted first pass | cross-app need; partial Loophole evidence |
-| display inventory | pure model plus Tauri probe adapter | contract 009 | Loophole, Nucleus, Soundcheck |
-| geometry/window planning | pure planner plus native host | contract 009 | Loophole, Nucleus, Soundcheck |
-| lifecycle and app chrome | small Tauri/Svelte helpers and guidance | provisional | all four apps |
-| layout containers | Rust/TS region and panel state | promoted first pass | Loophole, Nucleus |
-| hosted Surfaces | optional layout-container host | promoted first pass | Loophole |
-| cross-window drag | id/coordinate protocol and host transaction | contract 011 | Loophole, Nucleus |
-| Svelte/Poodle bindings | stores, actions, adapters; no component fork | architecture | Loophole, Nucleus |
-| settings | registry-driven dialog shell and domain pages | promoted first pass | Loophole plus cross-app demand |
-| typed bridge | checked commands, events, errors, subscriptions | contract 010 | all four apps |
-| optional backend topology | local, embedded, or remote authority adapters | promoted first pass | Nucleus, Loophole |
-| commands/actions | sealed registry, bounded arguments, fresh admission, injected execution | compiled boundary | Loophole, Jetstream |
-| input/keymaps | physical keyboard, contexts, conflicts, durable sparse overrides | compiled boundary | Loophole, Jetstream |
-| command palette | Poodle-backed projection of command registry | compiled boundary | Loophole, Jetstream |
-| history | typed linear kernel plus optional fork-tree layer | linear default; tree selectable as opt-in | Loophole plus non-editor fixture |
-| async operations | finite lifecycle authority, progress, cancellation receipts, retention | lifecycle foundation implemented | Soundcheck scan, Loophole render queue |
-| notifications | independent retained ledger plus transient projection | compiled boundary | Loophole domain records; Soundcheck outcome need |
-| native content islands | pure coordination plus separate host mechanisms | promoted split graph; production runway compiled | Nucleus, Soundcheck, Jetstream |
-| greenfield starter | composition examples and release guidance | runway | all consumers |
-| production contextual app tools | typed dispatch and validation only | contract 023; production MCP role withdrawn to contract 022 | Desktop request; Swallowtail lane |
-
-## Cross-System Shape
-
-- Rust owns durable state, validation, mutations, and host authority.
-- TypeScript owns checked projections and framework-neutral interaction.
-- Svelte owns subscriptions and presentation composition.
-- Poodle owns visual primitives.
-- Apps register product definitions and policy.
-- Optional systems depend downward; the foundation never depends on Surface,
-  Poodle, a specific server, or a product domain.
-
-## Remaining Configuration Question
-
-Local domain registration, transaction boundaries, multi-process coordination,
-backup/encryption, storage profiles, and managed-policy projection are promoted
-through contracts 004 and 005. Server-synchronized configuration and remote
-conflict semantics remain deferred after g01.009; no production authority has
-proved that contract.
-
-## History Decisions
-
-- The Rust payload is consumer-owned and typed.
-- Consumers inject inverse, coalesce, and no-op policy.
-- Navigation uses revision-bound plan, atomic product apply, then checked
-  commit. Failure leaves model and history unchanged.
-- Longhorn owns structural envelopes. Consumers own payload codecs, model
-  snapshots, storage, journals, checkpoints, and recovery choices.
-- Clients receive authoritative metadata pages, not product payloads or
-  renderer-reconstructed redo entries.
-- Linear mode is public first and remains the current compatibility promise.
-- Card 068 proves stable branch refs, divergent retention, atomic LCA checkout,
-  pruning, checkpoints, migration, performance, and linear-default UI.
-- Card 069 promotes those semantics. Card 070 implements the optional
-  production Rust graph foundation without publishing the prototype or making
-  a compatibility claim.
-- Card 071 implements bounded atomic LCA navigation, current/pinned
-  protection, deterministic leaf pruning, and opaque checkpoint replay cost.
-- Card 072 implements the strict dense graph envelope, independent exact-step
-  structural/payload migration, and complete validation before load returns.
-- Card 073 implements a linear-default summary, hard-bounded explicit branch
-  and path pages, payload-free navigation, and removable Tauri/Svelte/Poodle
-  clients.
-- Alternate projections must be bounded and lazy or paged. Production
-  persistence uses base64 payload strings rather than numeric byte arrays.
-- Undo branches remain distinct from project versions, collaboration, and
-  event sourcing.
-
-## Promotion Rules
-
-- No plan item or brief may treat an open question as implied behavior.
-- A generic system needs two materially different fixtures or one strong
-  greenfield invariant before implementation.
-- A Poodle component remains in Poodle. Longhorn may supply its state and
-  registration model.
-- An optional system stays a separate dependency and feature boundary.
-- A donor implementation is evidence, not the public API.
-
-## Operation And Notification Decisions
-
-- Operation authority owns identity, transitions, progress bounds,
-  cancellation receipts, retention, and projections; consumers own scheduling
-  and execution.
-- Cancellation acceptance does not promise terminal cancellation.
-- Retry creates a new operation and never reopens a terminal record.
-- Product phases, warnings, reports, logs, artifacts, and approval workflows
-  stay outside the generic protocol.
-- Notifications are retained user records, not operation states.
-- Selected terminal outcomes may produce notifications through consumer
-  policy; publication failure cannot alter the operation outcome.
-- Seen, dismissed, pruned, and toast-expired are distinct.
-- Poodle owns feedback visuals and toast timers. Native OS delivery remains a
-  later adapter contract.
-
-## Native Content Island Decisions
-
-- Share opaque island identity, attach generations, typed desired/observed
-  viewport state, visibility, focus intent, input-routing mode, and receipts.
-- Treat the viewport as presentation and interaction geometry. It may drive a
-  child frame, isolated-window content size, or backing-surface clip.
-- Keep child-webview, isolated native-window, and backing-surface mechanisms
-  separate and independently selectable.
-- Keep browser policy in Nucleus, plugin ABI and process isolation in
-  Soundcheck/Signal, and GPU/render authority in Jetstream.
-- Use explicit scale evidence. Preserve unknown when portable occlusion cannot
-  be observed.
-- Card 082 proves the product-neutral pure model across all three donor shapes
-  without Tauri, host mechanism code, donor payloads, or raw native handles.
-- Cards 083-085 prove three isolated packaged macOS mechanisms. Card 086
-  promotes the pure kernel, separate mechanism layers, checked client, and
-  Svelte lifecycle into g01.018.
-- Initial native-host support is macOS-only. Child-view Windows/Linux are
-  unproved; isolated-window and backing-surface Windows/Linux are unsupported.
-- Live native scale switching remains unproved for child-view and
-  backing-surface. Deterministic 1x/2x conversion is proved.
-- Retain private prototypes as evidence. Do not publish them, treat them as
-  production source, or migrate donors before g01.018 artifact proof.
-
-## Rejected Shapes
-
-- one all-app framework
-- one `settings.json` containing unrelated domains
-- configuration files in the current working directory by default
-- secrets mixed into ordinary config or backups
-- renderer-authoritative durable state
-- Surface as a mandatory parent of regions
-- palette definitions separate from the command registry
-- claiming branch history from a linear undo/redo donor
-- cancellation receipts treated as terminal outcomes
-- one shared state machine for operations and notifications
-- toast expiry treated as retained-record dismissal
-- one universal browser/plugin/GPU native host trait
-- assuming the desired content viewport is always a native child frame
+Lifecycle and app chrome beyond host window events remain consumer
+composition. The [greenfield examples](../../../examples/greenfield-compositions/README.md)
+show supported starting shapes. The
+[held-surface register](../../reference/held-surface.md) owns selection limits
+for implemented capabilities awaiting a consumer or product decision.

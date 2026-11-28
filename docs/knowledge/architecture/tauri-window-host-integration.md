@@ -187,4 +187,4 @@ The package integration suite covers:
   reveal failure surfaces
 - Tauri capability parsing and exact permission contents
 
-Packaged native runtime behavior remains Card 022 evidence.
+The packaged native evidence is in the [Tauri windowing proof](../../../examples/tauri-windowing-proof/README.md).

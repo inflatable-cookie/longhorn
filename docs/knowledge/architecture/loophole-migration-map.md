@@ -131,7 +131,7 @@ copying missing files. It has no fixed locator, durable journal, complete
 conflict inventory, verification receipt, native database adapter, or
 receipt-bound cleanup.
 
-Card 103 selects one exact Chorus matrix and implements it as
+The Chorus trial selects one exact Chorus matrix and implements it as
 `shared-product-root-v1`:
 
 | Platform | Shared durable parent | Exact product root |
@@ -152,7 +152,7 @@ Tauri identifier root, use registered adapters, commit the canonical-id fixed
 locator last, retain sources, and expose diagnostics. No dual-write or silent
 old-path read survives cutover.
 
-Card 105 completes that cutover. Aura, embedded Pulse, the local brokered Pulse
+The embedded topology cutover is complete. Aura, embedded Pulse, the local brokered Pulse
 host, Spark, and Echo profile config use `echo-storage-profile`. The old
 `echo-os-paths` crate is no longer an active workspace member or dependency.
 Existing `Loophole` roots adopt in place. The old canonical-id Tauri root is
@@ -198,7 +198,7 @@ and performs best-effort whole-file persistence. A failed write is logged but
 the method still returns the in-memory snapshot. Cutover must publish through
 checked persistence before returning success.
 
-Card 106 completes the display and workspace-window slice. Aura now owns a
+The display and workspace-window cutover is complete. Aura now owns a
 registered `loophole.window-placement` machine-state domain separate from the
 workspace document. Its first publication imports retained canonical display
 facts and every per-display window geometry, then writes a digest-bound
@@ -216,7 +216,7 @@ supplies canonical ids, built-in status, labels, and logical display facts;
 Longhorn owns correlation, known-display retention, arrangement signatures,
 placement resolution, and native lifecycle. `echo-configuration` is read only
 during the one-shot import. `echo-windowing` remains active only for the shell
-topology that Cards 107-108 replace. The old Aura planner, three/five-second
+topology replaced by the Surface and transfer cutovers. The old Aura planner, three/five-second
 suppression windows, geometry timer, duplicate Tauri builder, and window
 coordinator are gone.
 

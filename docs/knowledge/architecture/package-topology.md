@@ -107,7 +107,7 @@ protocols with Rust-produced golden fixtures.
 ## TypeScript Packages
 
 Three published packages, grouped by peer requirement rather than by domain.
-Card 164 collapsed the earlier eighteen; contract 012 records why the split
+Contract 012 records why the current split
 earned its keep on the Rust side and not here.
 
 ### `@inflatable-cookie/longhorn` — no peers
@@ -183,13 +183,13 @@ The implemented Svelte root is Surface-free. Optional layout, Surface,
 transfer, and Surface-transfer bindings are subpath exports backed by optional
 peers, not root re-exports. The implemented private Poodle root is also
 Surface-free and owns public Tabs, DockRegion, and SplitView integration. It is
-tested against the exact Card 038 preview artifact. A public peer range remains
+tested against the exact five-tarball preview artifact. A public peer range remains
 a later release-lane gate, not an inferred promise from sibling source.
 
 `@inflatable-cookie/longhorn/settings` keeps its framework-neutral root UI-free. Its optional
 `/svelte` subpath owns per-instance settings sessions; `/poodle` composes one
 modal, window, or panel shell over the same controller. Both use optional
-peers, and the Poodle shell is verified against the exact Card 038 artifact.
+peers, and the Poodle shell is verified against the five-tarball preview artifact.
 Consumer renderer snippets retain product schemas, validation, and copy.
 
 `@inflatable-cookie/longhorn/commands` keeps its framework-neutral root independent of Tauri,
@@ -213,7 +213,7 @@ transaction. Structural persistence and committed transition receipts are
 shared; canonical product snapshots, journal files, checkpoints, fsync,
 autosave, replay, and project versions remain consumer authority.
 
-`longhorn-history-tree` is a separate downward-only package. Cards 070-072 own
+`longhorn-history-tree` is a separate downward-only package. The fork-tree kernel owns
 bounded branch identity and metadata, immutable single-parent nodes, canonical
 child indexes, checked complete-state admission, divergent record, atomic LCA
 navigation, current/pinned lineage protection, deterministic leaf
@@ -271,7 +271,7 @@ See [Operation And Notification Composition](operation-notification-composition.
 
 ## Promoted Native-content Coordination
 
-Card 086 promotes a split production direction:
+The production graph separates the mechanisms:
 
 - `longhorn-native-content`: pure identity, generation, desired/observed
   state, planning, proposals, receipts, and stale-result rejection
@@ -296,20 +296,16 @@ overlays, and presentation. Consumers bind public Poodle layout to the Svelte
 adapter through supplied elements and policy. `longhorn-windowing` retains
 outer-window authority.
 
-Cards 082-085 remain private evidence, not production source. Initial native
+The prototypes remain private evidence, not production source. Initial native
 host support is macOS-only. Child-view Windows and Linux are unproved;
 isolated-window and backing-surface Windows and Linux are unsupported. Live
 native scale switching remains unproved for child-view and backing-surface.
-Card 093 proves isolated production artifacts, exact optional graphs, and
-three-shape Rust/renderer conformance. g01.014 Cards 094-101 compile the
-Nucleus migration. Card 094 is the read-only behavior and policy freeze;
-Card 095 admits the private artifact graph and both Nucleus consumer checks.
-Cards 096-098 complete storage, protected-window, and project-layout authority
-cutovers. Card 099 completes listener-first renderer state, public Poodle
-composition, and explicit overlay geometry. Card 100 completes the native
-Browser cutover through the child-view host, checked client, and Svelte
+The artifact proof verifies exact optional graphs and cross-language
+conformance across the three mechanisms. The [Nucleus migration map](nucleus-migration-map.md)
+records the exact private artifact graph, storage, protected-window, layout,
+listener-first renderer, and public Poodle cutovers. The Browser cutover uses the child-view host, checked client, and Svelte
 session. Nucleus retains browser policy and gains no Surface dependency.
-Card 101 closes the migration with exact private artifacts, restart and
+Final conformance closes the migration with exact private artifacts, restart and
 rollback drills, capability and duplicate-authority audits, and no Surface
 edge in the Nucleus graph.
 Soundcheck and Jetstream retain their sequential and consumer-authority gates. See
@@ -317,11 +313,11 @@ Soundcheck and Jetstream retain their sequential and consumer-authority gates. S
 
 ## Optional History-tree Layer
 
-Card 069 promotes a downward-only tree layer. `longhorn-history-tree`,
+The fork tree is a downward-only layer. `longhorn-history-tree`,
 `longhorn-tauri-history-tree`, and `@inflatable-cookie/longhorn/history-tree`
 are selectable optional packages. Linear history stays the default; branch
 mode is opt-in. See
-[contract 008](../contracts/008-history-kernel-boundary.md). Card 074 proves
+[contract 008](../contracts/008-history-kernel-boundary.md). The tree artifact proof verifies
 produced artifacts. The tree is not implicitly enabled.
 
 The Rust tree crate depends on `longhorn-core` and `longhorn-history` for

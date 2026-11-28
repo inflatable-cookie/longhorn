@@ -1,9 +1,8 @@
 # Adoption Guides
 
-These guides explain how to select Longhorn packages and integrate them into a
-Tauri app. Longhorn remains a private coordinated `0.1.0` workspace: the
-guides work from produced artifacts, and they do not claim npm, crates.io,
-hosted documentation, tags, or public releases.
+These guides cover package selection and composition for Tauri and GPUI.
+Install the TypeScript packages from npm and use the matching Git tag for
+Rust crates. Start with the [installation recipe](getting-started.md).
 
 New here? Read the [glossary](glossary.md) first — the docs use terms like
 authority, receipt, and donor in precise ways.

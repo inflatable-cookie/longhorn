@@ -1,19 +1,18 @@
-# Vision: Shared Tauri Systems
+# Vision: Shared Desktop Foundations
 
 Status: active  
 Owner: Tom  
-Updated: 2026-07-27
+Updated: 2026-11-28
 
 ## Purpose
 
-Tauri apps in `~/Dev/projects` repeatedly rebuild the same desktop shell
-mechanisms: display discovery, window restore, local preferences, docked panel
-layouts, drag/drop, settings, command/event bridges, history, service
-connections, and native-content coordination.
-
-Longhorn turns the reusable parts into maintained Rust and
-Svelte/TypeScript libraries. Existing apps become real consumers. Greenfield
-apps start from coherent mechanisms instead of copying another product.
+Desktop apps repeatedly rebuild display discovery, window restore, local
+preferences, settings, commands, panel layouts, and native-content
+coordination. Longhorn is a [Rust desktop application framework with
+pluggable Tauri and GPUI hosts](contracts/contract-index.md#positioning).
+TypeScript and Svelte provide checked clients and presentation adapters for
+webview compositions. Shared mechanisms let new apps start from tested
+foundations while each app owns its product policy.
 
 ## Product Outcome
 
@@ -26,15 +25,11 @@ An app composes only the layers it needs:
 - any shape may add a registered settings shell, command palette, backup,
   history, or optional local/remote backend without adopting the rest
 
-Loophole can keep:
-
-`display -> window -> surface -> region -> panel`
-
-Nucleus can use:
-
-`display -> window -> region -> panel`
-
-Neither shape becomes a compatibility mode or a fork.
+Apps that use registered regions and panels follow the same
+[hosting chain](contracts/002-composable-workspace-hosting.md#hosting-composition).
+A Surface owns the layout. An app can present named Surfaces to users or keep
+one unlabelled layout Surface per window. An app that needs only preferences
+and a window can omit layout entirely.
 
 ## Strategic Constraints
 
@@ -56,11 +51,10 @@ Neither shape becomes a compatibility mode or a fork.
 ## Success
 
 - at least two materially different apps consume the foundation packages
-- Nucleus proves the no-Surface composition
-- Loophole proves the full hosted-Surface composition
+- packaged compositions prove window-bound layout and full hosted-Surface layout
 - window/display loss and restore are deterministic and tested
 - Rust and TypeScript contracts do not drift silently
-- new Tauri/Poodle apps can adopt a documented minimum stack
+- new Tauri and GPUI apps can adopt a documented minimum stack
 - settings, commands, and optional systems compose from registries rather than
   copied app shells
 - configuration backup and restore can be inspected, verified, and scoped
@@ -69,8 +63,7 @@ Neither shape becomes a compatibility mode or a fork.
 ## Non-Goals
 
 - a second component library
-- a universal application framework
-- forcing every app into Loophole's workspace hierarchy
+- a universal shell that every app must adopt
 - moving domain-specific DAW, agent, accounting, or engine behavior into
   Longhorn
 - preserving pre-1.0 donor APIs through aliases

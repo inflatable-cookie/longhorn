@@ -16,9 +16,10 @@ host-agnostic core.
 Contracts sit in one of three tiers, and the tier decides who must satisfy
 them.
 
-- **Core** — host-agnostic. Every application satisfies these whatever its
-  backend: 001, 002, 003, 004, 005, 006, 007, 008, 011, 012, 014, 015, 016,
-  018 (policy), 019, 021, 024, 025, 026, 027, 028, 029.
+- **Core** — host-agnostic rules for the framework and each selected
+  capability: 001, 002, 003, 004, 005, 006, 007, 008, 011, 012, 014, 015,
+  016, 018 (policy), 019, 021, 023 (typed dispatch), 024, 025, 026, 027, 028,
+  029.
 - **Host** — what a backend must provide: 009, 017, 020, and contract 018's
   execution half. Satisfied per backend, proved per backend.
 - **Webview edge** — optional, and only meaningful where a webview exists:
@@ -45,7 +46,7 @@ A claim proved on one backend does not close a host-tier contract.
 | [011 Cross-window Transfer](011-cross-window-transfer.md) | id-only sessions, leased targets, authoritative move | active compiled boundary |
 | [012 Distribution And Compatibility](012-distribution-and-compatibility.md) | package graph, versions, artifacts, adoption | active compiled boundary |
 | [013 Svelte And Poodle Adapter Lifecycle](013-svelte-and-poodle-adapter-lifecycle.md) | reactive lifetime and public component binding | active compiled boundary |
-| [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md) | superseded by 002; layout is Surface state since Card 179 | superseded |
+| [014 Layout Container, Region, And Panel Core](014-layout-container-region-and-panel-core.md) | superseded by 002; layout is Surface state | superseded |
 | [015 Async Operation Lifecycle](015-async-operation-lifecycle.md) | finite lifecycle, progress, cancellation receipts, retention, and projection | active compiled boundary |
 | [016 Notification Ledger And Projection](016-notification-ledger-and-projection.md) | independent retained records, seen/dismiss state, actions, and transient projection | active compiled boundary |
 | [017 Native Content Island Coordination](017-native-content-island-coordination.md) | shared desired/observed coordination across separate native host mechanisms | active promoted production boundary |

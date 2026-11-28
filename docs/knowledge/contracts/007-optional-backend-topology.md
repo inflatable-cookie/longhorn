@@ -162,7 +162,7 @@ until a production consumer supplies cross-platform and security evidence.
 
 ## Implemented Evidence
 
-Cards 049-055 implement and prove this boundary. Five isolated consumers
+The bridge conformance and artifact checks prove this boundary. Five isolated consumers
 install produced TypeScript artifacts with exact imports and permissions.
 Separate private Rust source inventories compile query-only and full-host
 graphs offline. The proof covers direct, Tauri, and serialized-loopback

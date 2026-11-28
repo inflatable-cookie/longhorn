@@ -1,0 +1,1 @@
+Correct the adoption guides to use published npm packages and matching Rust Git tags. The guide check rejects unpublished package names, mismatched release pins and command registrations that omit their owning crate.
