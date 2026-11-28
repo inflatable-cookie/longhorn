@@ -354,19 +354,6 @@
       "request_id": "request:surface-error-16",
       "source": {
         "domain": "surface_transfer",
-        "code": "ambiguous_empty_display_target"
-      },
-      "surface_code": null,
-      "message": "golden fixture for ambiguous_empty_display_target",
-      "retryable": false,
-      "session_consumed": true,
-      "reconciliation_required": false
-    },
-    {
-      "protocol_version": 1,
-      "request_id": "request:surface-error-17",
-      "source": {
-        "domain": "surface_transfer",
         "code": "provision_failed"
       },
       "surface_code": null,
@@ -377,7 +364,7 @@
     },
     {
       "protocol_version": 1,
-      "request_id": "request:surface-error-18",
+      "request_id": "request:surface-error-17",
       "source": {
         "domain": "surface_transfer",
         "code": "provision_receipt_mismatch"
@@ -390,7 +377,7 @@
     },
     {
       "protocol_version": 1,
-      "request_id": "request:surface-error-19",
+      "request_id": "request:surface-error-18",
       "source": {
         "domain": "surface_transfer",
         "code": "surface_mutation_rejected"
@@ -403,7 +390,7 @@
     },
     {
       "protocol_version": 1,
-      "request_id": "request:surface-error-20",
+      "request_id": "request:surface-error-19",
       "source": {
         "domain": "surface_transfer",
         "code": "publication_failed"
@@ -412,11 +399,11 @@
       "message": "golden fixture for publication_failed",
       "retryable": false,
       "session_consumed": true,
-      "reconciliation_required": false
+      "reconciliation_required": true
     },
     {
       "protocol_version": 1,
-      "request_id": "request:surface-error-21",
+      "request_id": "request:surface-error-20",
       "source": {
         "domain": "surface_transfer",
         "code": "host_reconciliation_required"
@@ -429,7 +416,7 @@
     },
     {
       "protocol_version": 1,
-      "request_id": "request:surface-error-22",
+      "request_id": "request:surface-error-21",
       "source": {
         "domain": "surface_transfer",
         "code": "transfer_rejected"

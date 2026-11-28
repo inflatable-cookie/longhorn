@@ -1,0 +1,1 @@
+Tauri panel and Surface transfer adapters now take `&self`. Implementations installed in Tauri state must be `Send + Sync`. Move mutable state behind narrowly scoped synchronization or into each call so other transfers can progress during configuration I/O.

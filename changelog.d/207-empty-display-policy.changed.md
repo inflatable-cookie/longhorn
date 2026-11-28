@@ -1,0 +1,1 @@
+Enabled Surface provisioning now requires at least one target with non-overlapping display bounds. Use `Disabled` when no targets are available and resolve overlapping displays before constructing the policy. Handle invalid bounds through `SurfaceTransferPolicy::new` in place of matching the removed `AmbiguousEmptyDisplayTarget` abort code.

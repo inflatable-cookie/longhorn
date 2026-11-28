@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use longhorn_surface_transfer::{
     SurfaceSessionResponse, SurfaceSessionStartRequest, SurfaceTransferCommand,
@@ -8,7 +8,7 @@ use longhorn_transfer::MonotonicClock;
 use longhorn_windowing::HostWindowHandle;
 use tauri::{Runtime, State, WebviewWindow};
 
-use super::caller_handle;
+use super::run_blocking;
 use crate::{
     ManagedTransferRuntime, SurfaceTransferAdapter, TransferHandlerAssembly, TransferHandlerError,
     TransferHostError,
@@ -31,17 +31,14 @@ trait ErasedSurfaceTransferCommands: Send + Sync {
 /// Optional Surface commands sharing the base handler's coordinator and epochs.
 pub struct AssembledSurfaceTransferCommands<R, C, S> {
     handler: Arc<TransferHandlerAssembly<R, C>>,
-    surface: Mutex<S>,
+    surface: S,
 }
 
 impl<R, C, S> AssembledSurfaceTransferCommands<R, C, S> {
     /// Assembles optional Surface commands over shared base handler state.
     #[must_use]
     pub const fn new(handler: Arc<TransferHandlerAssembly<R, C>>, surface: S) -> Self {
-        Self {
-            handler,
-            surface: Mutex::new(surface),
-        }
+        Self { handler, surface }
     }
 }
 
@@ -57,11 +54,7 @@ where
         caller: &HostWindowHandle,
         request: SurfaceSessionStartRequest,
     ) -> Result<SurfaceSessionResponse, TransferHandlerError> {
-        let mut surface = self
-            .surface
-            .lock()
-            .map_err(|_| TransferHandlerError::StateUnavailable)?;
-        self.handler.start_surface(caller, request, &mut *surface)
+        self.handler.start_surface(caller, request, &self.surface)
     }
 
     /// Commits one terminal whole-Surface transfer.
@@ -70,11 +63,7 @@ where
         caller: &HostWindowHandle,
         request: SurfaceTransferCommand,
     ) -> Result<SurfaceTransferResponse, TransferHandlerError> {
-        let mut surface = self
-            .surface
-            .lock()
-            .map_err(|_| TransferHandlerError::StateUnavailable)?;
-        self.handler.commit_surface(caller, request, &mut *surface)
+        self.handler.commit_surface(caller, request, &self.surface)
     }
 }
 
@@ -82,7 +71,7 @@ impl<R, C, S> ErasedSurfaceTransferCommands for AssembledSurfaceTransferCommands
 where
     R: ManagedTransferRuntime + 'static,
     C: MonotonicClock + Send + Sync + 'static,
-    S: SurfaceTransferAdapter + Send + 'static,
+    S: SurfaceTransferAdapter + Send + Sync + 'static,
 {
     fn start_surface(
         &self,
@@ -113,28 +102,10 @@ impl TauriSurfaceTransferState {
     where
         R: ManagedTransferRuntime + 'static,
         C: MonotonicClock + Send + Sync + 'static,
-        S: SurfaceTransferAdapter + Send + 'static,
+        S: SurfaceTransferAdapter + Send + Sync + 'static,
     {
         Self { commands }
     }
-}
-
-async fn run_blocking<R: Runtime, T: Send + 'static>(
-    state: State<'_, TauriSurfaceTransferState>,
-    window: &WebviewWindow<R>,
-    action: impl FnOnce(
-        &dyn ErasedSurfaceTransferCommands,
-        &HostWindowHandle,
-    ) -> Result<T, TransferHandlerError>
-    + Send
-    + 'static,
-) -> Result<T, TransferHostError> {
-    let caller = caller_handle(window)?;
-    let commands = Arc::clone(&state.commands);
-    tauri::async_runtime::spawn_blocking(move || action(commands.as_ref(), &caller))
-        .await
-        .map_err(|_| TransferHostError::state_unavailable())?
-        .map_err(TransferHostError::from)
 }
 
 /// Admits one current whole-Surface transfer session.
@@ -144,7 +115,7 @@ pub async fn longhorn_transfer_start_surface<R: Runtime>(
     state: State<'_, TauriSurfaceTransferState>,
     request: SurfaceSessionStartRequest,
 ) -> Result<SurfaceSessionResponse, TransferHostError> {
-    run_blocking(state, &window, move |commands, caller| {
+    run_blocking(&state.commands, &window, move |commands, caller| {
         commands.start_surface(caller, request)
     })
     .await
@@ -157,7 +128,7 @@ pub async fn longhorn_transfer_commit_surface<R: Runtime>(
     state: State<'_, TauriSurfaceTransferState>,
     request: SurfaceTransferCommand,
 ) -> Result<SurfaceTransferResponse, TransferHostError> {
-    run_blocking(state, &window, move |commands, caller| {
+    run_blocking(&state.commands, &window, move |commands, caller| {
         commands.commit_surface(caller, request)
     })
     .await

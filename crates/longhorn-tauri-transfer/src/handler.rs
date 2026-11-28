@@ -3,12 +3,12 @@ use std::{
     sync::{Condvar, Mutex},
 };
 
-use longhorn_core::{TransferClientId, WindowId};
+use longhorn_core::{TransferClientId, TransferRequestId, WindowId};
 use longhorn_transfer::{
-    ClientEpoch, DragSessionIdAllocator, DropZone, LeasePublication, MonotonicClock,
-    SessionCreationReceipt, TargetSelector, TransferAbort, TransferCancelReceipt,
+    ClientEpoch, DragSessionIdAllocator, DropZone, LeasePublication, LiveTransferWindow,
+    MonotonicClock, SessionCreationReceipt, TargetSelector, TransferAbort, TransferCancelReceipt,
     TransferCancelRequest, TransferCancelResponse, TransferClientSnapshot, TransferCommitSelector,
-    TransferCoordinator, TransferDuration, TransferError, TransferLeaseReceipt,
+    TransferCoordinator, TransferDuration, TransferError, TransferErrorCode, TransferLeaseReceipt,
     TransferLeaseRequest, TransferLeaseResponse, TransferLimits, TransferSessionRequest,
 };
 use longhorn_windowing::HostWindowHandle;
@@ -42,6 +42,29 @@ struct HandlerState {
     next_client: u64,
     publishing: BTreeSet<HostWindowHandle>,
     active: bool,
+}
+
+enum AttemptRejection {
+    UnknownCaller,
+    Coordination(TransferError),
+}
+
+impl AttemptRejection {
+    fn into_abort<A>(
+        self,
+        request_id: TransferRequestId,
+        host_abort: impl FnOnce(TransferRequestId, TransferErrorCode, &'static str) -> A,
+        transfer_abort: impl FnOnce(TransferRequestId, &TransferError) -> A,
+    ) -> A {
+        match self {
+            Self::UnknownCaller => host_abort(
+                request_id,
+                TransferErrorCode::UnknownClientEpoch,
+                "caller has no current registered transfer client",
+            ),
+            Self::Coordination(error) => transfer_abort(request_id, &error),
+        }
+    }
 }
 
 type CreateSessionFn<'a> = dyn FnMut(
@@ -287,12 +310,38 @@ where
         }
     }
 
-    /// Converts one renderer selector using fresh caller and live-window evidence.
-    pub(crate) fn project_selector(
+    fn admit<T>(
+        &self,
+        caller_handle: &HostWindowHandle,
+        start: impl FnOnce(TransferCallerAuthority, &mut TransferSessionRegistrar<'_>) -> T,
+    ) -> Result<Result<T, AttemptRejection>, TransferHandlerError> {
+        let runtime = self.runtime.snapshot(caller_handle)?;
+        let caller = {
+            let state = self.lock_active()?;
+            self.caller_authority(&state, &runtime)
+        };
+        let Some(caller) = caller else {
+            return Ok(Err(AttemptRejection::UnknownCaller));
+        };
+        let mut create = |allocator: &mut dyn DragSessionIdAllocator,
+                          request: TransferSessionRequest| {
+            self.create_session_dyn(allocator, request)
+        };
+        let mut registrar = TransferSessionRegistrar::new(&mut create);
+        Ok(Ok(start(caller, &mut registrar)))
+    }
+
+    fn resolve_commit<A>(
         &self,
         caller_handle: &HostWindowHandle,
         selector: &TransferCommitSelector,
-    ) -> Result<(TargetSelector, ManagedTransferSnapshot), TransferHandlerError> {
+        resolve: impl FnOnce(
+            &mut TransferCoordinator,
+            &C,
+            TargetSelector,
+            &[LiveTransferWindow],
+        ) -> Result<A, TransferError>,
+    ) -> Result<Result<(TransferCallerAuthority, A), AttemptRejection>, TransferHandlerError> {
         let runtime = self.runtime.snapshot(caller_handle)?;
         let selector = match selector {
             TransferCommitSelector::ExplicitZone { drop_zone_id } => {
@@ -300,7 +349,33 @@ where
             }
             TransferCommitSelector::ScreenPoint { point } => TargetSelector::ScreenPoint(*point),
         };
-        Ok((selector, runtime))
+        let live_windows = runtime.live_windows();
+        let mut state = self.lock_active()?;
+        let Some(caller) = self.caller_authority(&state, &runtime) else {
+            return Ok(Err(AttemptRejection::UnknownCaller));
+        };
+        Ok(
+            resolve(&mut state.coordinator, &self.clock, selector, &live_windows)
+                .map(|attempt| (caller, attempt))
+                .map_err(AttemptRejection::Coordination),
+        )
+    }
+
+    fn caller_authority(
+        &self,
+        state: &HandlerState,
+        runtime: &ManagedTransferSnapshot,
+    ) -> Option<TransferCallerAuthority> {
+        let window_id = runtime.caller().window_id();
+        let (client_id, epoch) = state.coordinator.current_client(window_id)?;
+        Some(TransferCallerAuthority::new(
+            window_id.clone(),
+            CurrentClient {
+                client_id: client_id.clone(),
+                epoch,
+            },
+            self.session_lifetime,
+        ))
     }
 
     /// Invalidates process-local authority after a trusted managed-window destroy.
@@ -356,19 +431,6 @@ where
             .coordinator
             .create_session(&self.clock, &mut dyn_allocator, request))
     }
-}
-
-fn current_caller(
-    state: &HandlerState,
-    runtime: &ManagedTransferSnapshot,
-) -> Option<CurrentClient> {
-    state
-        .coordinator
-        .current_client(runtime.caller().window_id())
-        .map(|(client_id, epoch)| CurrentClient {
-            client_id: client_id.clone(),
-            epoch,
-        })
 }
 
 fn issue_client(state: &mut HandlerState) -> Result<CurrentClient, TransferHandlerError> {

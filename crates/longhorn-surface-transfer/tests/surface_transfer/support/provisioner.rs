@@ -1,14 +1,9 @@
-use longhorn_config::ConfigStore;
-use longhorn_core::{SurfaceRequestId, SurfaceRevision, TransferHostBindingId};
+use longhorn_core::{TransferHostBindingId, WindowId};
 use longhorn_surface_transfer::{
     ProvisionedSurfaceWindow, SurfaceWindowCleanupReceipt, SurfaceWindowCommitReceipt,
     SurfaceWindowProvisionFailure, SurfaceWindowProvisionReceipt, SurfaceWindowProvisionRequest,
     SurfaceWindowProvisionStage, SurfaceWindowProvisioner,
 };
-use longhorn_surfaces::{EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationRequest};
-use longhorn_surfaces_config::publish_surface_mutation;
-
-use super::{TestDomain, options, surface_id};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MockMode {
@@ -21,6 +16,7 @@ pub enum MockMode {
 pub struct MockProvisioner {
     pub mode: MockMode,
     pub calls: Vec<&'static str>,
+    provisioned_window: Option<WindowId>,
 }
 
 impl MockProvisioner {
@@ -28,7 +24,13 @@ impl MockProvisioner {
         Self {
             mode,
             calls: Vec::new(),
+            provisioned_window: None,
         }
+    }
+
+    pub fn with_provisioned_window(mut self, window_id: WindowId) -> Self {
+        self.provisioned_window = Some(window_id);
+        self
     }
 }
 
@@ -48,10 +50,14 @@ impl SurfaceWindowProvisioner for MockProvisioner {
                 "renderer readiness failed",
             ));
         }
+        let window_id = self
+            .provisioned_window
+            .as_ref()
+            .unwrap_or(request.window_id());
         Ok(ProvisionedSurfaceWindow::new(
-            request.window_id().clone(),
+            window_id.clone(),
             SurfaceWindowProvisionReceipt::hidden_ready(
-                request.window_id().clone(),
+                window_id.clone(),
                 TransferHostBindingId::new("binding:new").unwrap(),
                 request.display_id().clone(),
                 request.placement(),
@@ -88,23 +94,21 @@ impl SurfaceWindowProvisioner for MockProvisioner {
     }
 }
 
-pub struct StalingProvisioner<'a> {
+pub struct InterveningProvisioner<F> {
     pub inner: MockProvisioner,
-    store: &'a ConfigStore,
-    domain: &'a TestDomain,
+    intervene: F,
 }
 
-impl<'a> StalingProvisioner<'a> {
-    pub const fn new(mode: MockMode, store: &'a ConfigStore, domain: &'a TestDomain) -> Self {
+impl<F> InterveningProvisioner<F> {
+    pub const fn new(mode: MockMode, intervene: F) -> Self {
         Self {
             inner: MockProvisioner::new(mode),
-            store,
-            domain,
+            intervene,
         }
     }
 }
 
-impl SurfaceWindowProvisioner for StalingProvisioner<'_> {
+impl<F: FnMut()> SurfaceWindowProvisioner for InterveningProvisioner<F> {
     type Authority = longhorn_core::WindowId;
 
     fn provision(
@@ -112,21 +116,7 @@ impl SurfaceWindowProvisioner for StalingProvisioner<'_> {
         request: &SurfaceWindowProvisionRequest,
     ) -> Result<ProvisionedSurfaceWindow<Self::Authority>, SurfaceWindowProvisionFailure> {
         let prepared = self.inner.provision(request)?;
-        publish_surface_mutation(
-            self.store,
-            self.domain,
-            options(),
-            EmptyWindowPolicy::Allow,
-            &SurfaceMutationRequest::new(
-                SurfaceRequestId::new("request:intervening").unwrap(),
-                SurfaceRevision::new(7),
-                SurfaceMutationCommand::RenameSurface {
-                    surface_id: surface_id("surface:a"),
-                    label: Some("Intervening".to_owned()),
-                },
-            ),
-        )
-        .unwrap();
+        (self.intervene)();
         Ok(prepared)
     }
 

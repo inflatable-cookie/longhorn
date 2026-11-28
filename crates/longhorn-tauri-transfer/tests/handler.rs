@@ -61,7 +61,7 @@ fn projection_is_explicit_and_confined_to_current_content() {
 }
 
 #[test]
-fn mock_and_real_runtimes_share_epoch_lease_and_teardown_core() {
+fn epoch_lease_and_teardown_over_mock_runtime() {
     let caller = handle("main");
     let snapshot = ManagedTransferSnapshot::new(
         &caller,
@@ -229,7 +229,7 @@ fn snapshot_command_orders_window_hints_without_waiting_for_another_probe() {
 
     impl PanelTransferAdapter for SnapshotOnly {
         fn start_panel(
-            &mut self,
+            &self,
             _: TransferCallerAuthority,
             _: PanelSessionStartRequest,
             _: &mut TransferSessionRegistrar<'_>,
@@ -238,7 +238,7 @@ fn snapshot_command_orders_window_hints_without_waiting_for_another_probe() {
         }
 
         fn commit_panel(
-            &mut self,
+            &self,
             _: TransferCallerAuthority,
             _: PanelTransferCommand,
             _: TerminalTransferAttempt,
@@ -433,8 +433,13 @@ fn snapshot_destroy_race_never_leaks_client_capacity() {
 }
 
 #[test]
-fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock() {
-    use std::{fs, sync::Arc, time::Duration};
+fn panel_publication_allows_another_admission_on_the_same_command_assembly() {
+    use std::{
+        fs,
+        sync::{Arc, Mutex, mpsc},
+        thread,
+        time::Duration,
+    };
 
     use longhorn_config::{
         ConfigStore, CoordinationAuthority, DomainDescriptor, DomainFilePath,
@@ -468,32 +473,27 @@ fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock()
     };
     use tempfile::TempDir;
 
-    struct OneShotAllocator(Option<[u8; 16]>);
+    struct TestAllocator(std::array::IntoIter<[u8; 16], 2>);
 
-    impl DragSessionIdAllocator for OneShotAllocator {
+    impl DragSessionIdAllocator for TestAllocator {
         fn allocate(&mut self) -> Result<[u8; 16], DragSessionIdAllocationError> {
-            self.0.take().ok_or(DragSessionIdAllocationError)
+            self.0.next().ok_or(DragSessionIdAllocationError)
         }
     }
 
-    struct RealPanelAdapter<R, C> {
+    struct RealPanelAdapter {
         store: ConfigStore,
         domain: RegisteredSurfaceDomain<NoSurfaceMigration>,
         bindings: PanelHostBindings,
         source_binding: TransferHostBindingId,
-        allocator: OneShotAllocator,
-        // Held only to prove the coordinator lock is not held during commit_panel.
-        handler: Arc<TransferHandlerAssembly<R, C>>,
-        probe_caller: HostWindowHandle,
+        allocator: Mutex<TestAllocator>,
+        before_publication: mpsc::Sender<()>,
+        resume_publication: Mutex<mpsc::Receiver<()>>,
     }
 
-    impl<R, C> PanelTransferAdapter for RealPanelAdapter<R, C>
-    where
-        R: longhorn_tauri_transfer::ManagedTransferRuntime,
-        C: MonotonicClock,
-    {
+    impl PanelTransferAdapter for RealPanelAdapter {
         fn start_panel(
-            &mut self,
+            &self,
             caller: TransferCallerAuthority,
             request: PanelSessionStartRequest,
             sessions: &mut TransferSessionRegistrar<'_>,
@@ -520,7 +520,7 @@ fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock()
                 }
             };
             match sessions.create_session(
-                &mut self.allocator,
+                &mut *self.allocator.lock().unwrap(),
                 TransferSessionRequest::new(source, caller.session_lifetime()),
             ) {
                 Ok(Ok(receipt)) => TransferSessionResponse::Started {
@@ -543,14 +543,17 @@ fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock()
         }
 
         fn commit_panel(
-            &mut self,
+            &self,
             _caller: TransferCallerAuthority,
             request: PanelTransferCommand,
             attempt: TerminalTransferAttempt,
         ) -> PanelTransferResponse {
-            // Re-entering handler.snapshot() here would deadlock if commit_panel
-            // held the coordinator mutex across consumer config I/O.
-            let _ = self.handler.snapshot(&self.probe_caller).unwrap();
+            self.before_publication.send(()).unwrap();
+            self.resume_publication
+                .lock()
+                .unwrap()
+                .recv_timeout(Duration::from_secs(15))
+                .expect("test must release the commit after checking concurrent admission");
 
             let options =
                 MutationOptions::new(Duration::from_secs(1), DurabilityRequirement::Atomic);
@@ -735,14 +738,16 @@ fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock()
     let handler = Arc::new(TransferHandlerAssembly::new(runtime, Clock, limits()));
     let mut adapter_store = ConfigStore::new(roots, coordination);
     adapter_store.register(&domain).unwrap();
+    let (before_publication, publication_waiting) = mpsc::channel();
+    let (resume_publication, resume) = mpsc::channel();
     let adapter = RealPanelAdapter {
         store: adapter_store,
         domain: domain.clone(),
         bindings,
         source_binding,
-        allocator: OneShotAllocator(Some([42; 16])),
-        handler: Arc::clone(&handler),
-        probe_caller: target_handle.clone(),
+        allocator: Mutex::new(TestAllocator([[42; 16], [43; 16]].into_iter())),
+        before_publication,
+        resume_publication: Mutex::new(resume),
     };
     let commands = AssembledTransferCommands::from_shared(handler, adapter);
 
@@ -795,18 +800,49 @@ fn real_panel_commit_through_transfer_handler_moves_panel_without_holding_lock()
     );
     let session_id = DragSessionId::from_entropy([42; 16]);
 
-    let committed = commands
-        .commit_panel(
-            &source_handle,
-            PanelTransferCommand::new(
-                TransferRequestId::new("request:commit-panel").unwrap(),
-                session_id,
-                TransferCommitSelector::ExplicitZone {
-                    drop_zone_id: DropZoneId::new("zone:target").unwrap(),
-                },
-            ),
-        )
-        .unwrap();
+    let committed = thread::scope(|scope| {
+        let commit = scope.spawn(|| {
+            commands.commit_panel(
+                &source_handle,
+                PanelTransferCommand::new(
+                    TransferRequestId::new("request:commit-panel").unwrap(),
+                    session_id,
+                    TransferCommitSelector::ExplicitZone {
+                        drop_zone_id: DropZoneId::new("zone:target").unwrap(),
+                    },
+                ),
+            )
+        });
+        let timeout = Duration::from_secs(5);
+        publication_waiting.recv_timeout(timeout).unwrap();
+
+        let (admission_finished, admission_response) = mpsc::channel();
+        let commands = &commands;
+        let source_handle = &source_handle;
+        let panel_id = panel_id.clone();
+        let admission = scope.spawn(move || {
+            let started = commands.start_panel(
+                source_handle,
+                PanelSessionStartRequest::new(
+                    TransferRequestId::new("request:start-during-publication").unwrap(),
+                    panel_id,
+                ),
+            );
+            admission_finished.send(started).unwrap();
+        });
+        let overlapping_start = admission_response.recv_timeout(timeout);
+        resume_publication.send(()).unwrap();
+        let committed = commit.join().unwrap().unwrap();
+        admission.join().unwrap();
+        let overlapping_start = overlapping_start
+            .expect("panel admission should finish while publication is still waiting")
+            .unwrap();
+        assert!(matches!(
+            overlapping_start,
+            TransferSessionResponse::Started { .. }
+        ));
+        committed
+    });
     assert!(
         matches!(committed, PanelTransferResponse::Committed { .. }),
         "expected committed panel transfer, got {committed:?}"

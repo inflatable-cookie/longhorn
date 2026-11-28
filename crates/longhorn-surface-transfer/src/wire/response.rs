@@ -126,6 +126,7 @@ pub struct SurfaceTransferAbort {
     protocol_version: TransferProtocolVersion,
     request_id: TransferRequestId,
     source: SurfaceTransferAbortSource,
+    #[serde(deserialize_with = "Option::deserialize")]
     surface_code: Option<SurfaceMutationRejectionCode>,
     message: String,
     retryable: bool,
@@ -183,8 +184,7 @@ impl SurfaceTransferAbort {
             message: error.detail().to_owned(),
             retryable: false,
             session_consumed: error.session_consumed(),
-            reconciliation_required: error.code()
-                == SurfaceTransferErrorCode::HostReconciliationRequired,
+            reconciliation_required: error.reconciliation_required(),
         }
     }
 

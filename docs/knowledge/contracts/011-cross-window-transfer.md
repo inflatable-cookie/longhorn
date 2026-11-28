@@ -196,13 +196,14 @@ The expected-revision Surface move publishes one complete unified Surface
 document or none. Relocation preserves the Surface identity and its contained
 regions, panels, and sizing slots while updating host placement.
 
-If an empty-display policy provisions a window before the Surface commit, every
-configured empty-display target window must appear in `allowed_target_windows`
-(validated when constructing `SurfaceTransferPolicy`), and the provisioner
-returns explicit commit and cleanup authority. A failed Surface commit must
-invoke cleanup and report both receipts. Unresolved cleanup or post-commit host
-failure is a typed host-reconciliation failure (`reconciliation_required`),
-never silent success.
+Enabled empty-display provisioning requires at least one display target.
+`SurfaceTransferPolicy` rejects overlapping display bounds and target windows
+outside `allowed_target_windows` at construction. Adjacent display edges may
+touch. The provisioner returns explicit commit and cleanup authority.
+A failed publication cleans up the prepared window and reports the cleanup
+outcome. Unresolved cleanup preserves the original failure code and diagnostic
+and sets `reconciliation_required`. A failed post-publication host commit
+sets the same flag and reports `host_reconciliation_required`.
 
 ## Completion And Cancellation
 
@@ -222,11 +223,12 @@ Success returns:
 
 Abort returns a stable code (promoting underlying transfer-domain rejections
 and preserving layout/Surface mutation rejection codes) and current authority
-evidence when safe. Transfer aborts are terminal for the request
-(`retryable: false`): callers must acquire fresh authority or start a new
-session rather than replaying a failed request. Missing, stale, ineligible,
-expired, ambiguous, replayed, cancelled, cross-document, or disappeared targets
-leave the source document byte-for-byte unchanged.
+evidence when safe. A Surface abort always includes `surface_code` with a
+mutation rejection code or explicit `null`. Transfer aborts are terminal for
+the request (`retryable: false`): callers must acquire fresh authority or
+start a new session. Missing, stale, ineligible, expired, ambiguous, replayed,
+cancelled, cross-document, or disappeared targets leave the source document
+byte-for-byte unchanged.
 
 Optimistic renderer projection must reconcile to the authoritative response
 and roll back on abort. Optimism never advances durable revision locally.
@@ -285,9 +287,13 @@ geometry, and exposes optional Surface commands over the same coordinator.
 The client installs the epoch listener before requesting its initial snapshot,
 accepts only the newest epoch, and tears down safely even when listener
 registration resolves late.
-Snapshot readback and the liveness recheck run outside adapter locks. An invoke
-returns its issued epoch. The best-effort hint goes to the caller's webview,
-with publication ordered for that window and superseded snapshots skipped.
+Command assemblies can call a shared adapter concurrently. Adapters coordinate
+their own mutable state. The handler releases the coordinator lock before
+calling the adapter. The session registrar acquires it for session creation.
+Snapshot readback and the liveness recheck run outside the coordinator lock.
+An invoke returns its issued epoch. The best-effort hint goes to the caller's
+webview, with publication ordered for that window and superseded snapshots
+skipped.
 
 The packaged multi-window transfer proof records the native runtime evidence.
 

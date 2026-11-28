@@ -79,18 +79,6 @@ where
         &mutation,
     )
     .map_err(map_mutation_error)?;
-    // The document is durably committed at this point; never panic post-commit.
-    if publication
-        .surface()
-        .authoritative_document()
-        .surface(&source.surface_id)
-        .is_none()
-    {
-        return Err(super::evidence::consumed(
-            crate::SurfaceTransferErrorCode::HostReconciliationRequired,
-            "Surface commit completed but the moved Surface is absent from the authoritative document",
-        ));
-    }
     Ok(SurfaceTransferCommitReceipt::new(
         SurfaceTerminalAttempt::Existing(attempt),
         source_binding.id().clone(),

@@ -75,22 +75,14 @@ where
         || provision.placement() != target.placement()
     {
         let cleanup = cleanup(provisioner, &mut authority);
-        let cleanup_failed = matches!(cleanup, ProvisionCleanupOutcome::Failed(_));
-        let error = consumed(
+        return Err(consumed(
             SurfaceTransferErrorCode::ProvisionReceiptMismatch,
             "provisioner returned authority for another admitted target",
         )
         .with_provisioning(SurfaceProvisionFailureEvidence::PreparedTargetRejected {
             provision,
             cleanup,
-        });
-        return Err(if cleanup_failed {
-            error.reconciliation_required(
-                "provisioner returned another target and cleanup remains unresolved",
-            )
-        } else {
-            error
-        });
+        }));
     }
 
     let mutation = move_request(
@@ -110,41 +102,11 @@ where
         Ok(publication) => publication,
         Err(error) => {
             let cleanup = cleanup(provisioner, &mut authority);
-            let cleanup_failed = matches!(cleanup, ProvisionCleanupOutcome::Failed(_));
-            let mapped = map_mutation_error(error).with_provisioning(
+            return Err(map_mutation_error(error).with_provisioning(
                 SurfaceProvisionFailureEvidence::PublicationFailed { provision, cleanup },
-            );
-            return Err(if cleanup_failed {
-                mapped.reconciliation_required(
-                    "Surface publication failed and provisioned target cleanup remains unresolved",
-                )
-            } else {
-                mapped
-            });
+            ));
         }
     };
-    // The document is durably committed and a native window is provisioned;
-    // never panic post-commit.
-    if publication
-        .surface()
-        .authoritative_document()
-        .surface(&source.surface_id)
-        .is_none()
-    {
-        let failure = SurfaceWindowProvisionFailure::new(
-            SurfaceWindowProvisionStage::Commit,
-            "Surface commit completed but the moved Surface is absent from the authoritative document",
-        );
-        return Err(consumed(
-            SurfaceTransferErrorCode::HostReconciliationRequired,
-            failure.detail(),
-        )
-        .with_provisioning(SurfaceProvisionFailureEvidence::ReconciliationRequired {
-            provision,
-            publication: Box::new(publication),
-            failure,
-        }));
-    }
     let commit = provisioner.commit(&mut authority).map_err(|failure| {
         consumed(
             SurfaceTransferErrorCode::HostReconciliationRequired,
@@ -200,10 +162,6 @@ fn map_empty_target(error: EmptyTargetResolution) -> SurfaceTransferError {
         EmptyTargetResolution::NoMatch => consumed(
             SurfaceTransferErrorCode::NoEmptyDisplayTarget,
             "no consumer-approved display target contains the drop point",
-        ),
-        EmptyTargetResolution::Ambiguous => consumed(
-            SurfaceTransferErrorCode::AmbiguousEmptyDisplayTarget,
-            "multiple consumer-approved display targets contain the drop point",
         ),
     }
 }
