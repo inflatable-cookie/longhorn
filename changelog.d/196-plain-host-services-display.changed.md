@@ -1,0 +1,1 @@
+`longhorn_core::PlainHostServices` no longer implements `std::fmt::Display` (its implementation wrote a constant string). Migration: use `{:?}` (`Debug`) when inspecting `PlainHostServices`, or supply an explicit label at the call site.

@@ -20,6 +20,7 @@
 mod rules;
 
 use std::collections::BTreeSet;
+use std::fmt;
 use std::ops::Range;
 
 /// The one replacement marker.
@@ -30,7 +31,7 @@ pub const REDACTED: &str = "[redacted]";
 const MIN_SECRET_CHARS: usize = 4;
 
 /// Which shape rules run, and the vocabulary they use.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct RedactionRules {
     /// Token prefixes, matched case-sensitively at a token boundary.
     pub token_prefixes: Vec<String>,
@@ -45,6 +46,20 @@ pub struct RedactionRules {
     pub pem_private_keys: bool,
     /// Redacts JSON Web Tokens.
     pub jwt: bool,
+}
+
+impl fmt::Debug for RedactionRules {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RedactionRules")
+            .field("token_prefix_count", &self.token_prefixes.len())
+            .field("assignment_key_count", &self.assignment_keys.len())
+            .field("bearer", &self.bearer)
+            .field("url_userinfo", &self.url_userinfo)
+            .field("pem_private_keys", &self.pem_private_keys)
+            .field("jwt", &self.jwt)
+            .finish()
+    }
 }
 
 impl RedactionRules {
@@ -136,11 +151,22 @@ fn owned(values: &[&str]) -> Vec<String> {
 }
 
 /// Redacts seeded secrets and rule-matched spans from text.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Redactor {
     secrets: Vec<String>,
     dropped_secrets: usize,
     rules: RedactionRules,
+}
+
+impl fmt::Debug for Redactor {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("Redactor")
+            .field("secret_count", &self.secrets.len())
+            .field("dropped_secrets", &self.dropped_secrets)
+            .field("rules", &self.rules)
+            .finish()
+    }
 }
 
 impl Redactor {
@@ -329,5 +355,52 @@ mod tests {
             "the original redactor is unchanged"
         );
         assert_eq!(base.with_secret("abc").dropped_secrets(), 1);
+    }
+
+    #[test]
+    fn debug_formats_secret_counts_and_never_values() {
+        let secret = "seeded-debug-secret";
+        let key_secret = "custom-key-secret";
+        let prefix_secret = "custom-prefix-secret";
+        let rules = RedactionRules {
+            token_prefixes: vec![prefix_secret.to_owned()],
+            assignment_keys: vec![key_secret.to_owned()],
+            bearer: true,
+            url_userinfo: false,
+            pem_private_keys: true,
+            jwt: false,
+        };
+        let rules_debug = format!("{rules:?}");
+        assert!(!rules_debug.contains(key_secret), "{rules_debug}");
+        assert!(!rules_debug.contains(prefix_secret), "{rules_debug}");
+        assert!(
+            rules_debug.contains("token_prefix_count: 1"),
+            "{rules_debug}"
+        );
+        assert!(
+            rules_debug.contains("assignment_key_count: 1"),
+            "{rules_debug}"
+        );
+        assert!(rules_debug.contains("bearer: true"), "{rules_debug}");
+        assert!(rules_debug.contains("url_userinfo: false"), "{rules_debug}");
+
+        let redactor = Redactor::new(
+            [
+                secret.to_owned(),
+                key_secret.to_owned(),
+                prefix_secret.to_owned(),
+                "ab".to_owned(),
+            ],
+            rules,
+        );
+        let debug = format!("{redactor:?}");
+
+        assert!(!debug.contains(secret), "{debug}");
+        assert!(!debug.contains(key_secret), "{debug}");
+        assert!(!debug.contains(prefix_secret), "{debug}");
+        assert!(debug.contains("secret_count: 3"), "{debug}");
+        assert!(debug.contains("dropped_secrets: 1"), "{debug}");
+        assert!(debug.contains("token_prefix_count: 1"), "{debug}");
+        assert!(debug.contains("assignment_key_count: 1"), "{debug}");
     }
 }

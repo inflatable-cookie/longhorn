@@ -20,6 +20,7 @@ static SINK: OnceLock<Arc<dyn BestEffortDiagnostics>> = OnceLock::new();
 
 /// Installs the process-wide diagnostics sink. The first installation wins;
 /// later calls return `false` and change nothing.
+#[must_use]
 pub fn install_best_effort_diagnostics(sink: Arc<dyn BestEffortDiagnostics>) -> bool {
     SINK.set(sink).is_ok()
 }

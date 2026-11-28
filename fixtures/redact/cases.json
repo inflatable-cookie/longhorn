@@ -591,6 +591,193 @@
       "count": 2,
       "replaced": 0,
       "dropped_secrets": 0
+    },
+    {
+      "name": "json-double-quoted-assignment",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"x\"}",
+      "expected": "{\"password\":\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-spaced-and-suffixed-key",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"NODE_AUTH_TOKEN\" : \"secret-val\", \"api_key\": 'k-val'}",
+      "expected": "{\"NODE_AUTH_TOKEN\" : \"[redacted]\", \"api_key\": '[redacted]'}",
+      "count": 2,
+      "replaced": 2,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-authorization-bearer",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc.def.ghi\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-empty-assignment-kept",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"\"}",
+      "expected": "{\"password\":\"\"}",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-escaped-quote-in-assignment",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"abc\\\"secret\"}",
+      "expected": "{\"password\":\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-escaped-backslash-before-closing-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"abc\\\\\",\"next\":\"visible\"}",
+      "expected": "{\"password\":\"[redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-escaped-backslash-and-quote-in-assignment",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\"abc\\\\\\\"secret\",\"next\":\"visible\"}",
+      "expected": "{\"password\":\"[redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "single-quoted-escaped-quote-and-backslash",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{'password':'abc\\'secret\\\\','next':'visible'}",
+      "expected": "{'password':'[redacted]','next':'visible'}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-bearer-escaped-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc\\\"secret\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-bearer-escaped-backslash-before-closing-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc\\\\\",\"next\":\"visible\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-bearer-escaped-backslash-and-quote",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"authorization\":\"Bearer abc\\\\\\\"secret\",\"next\":\"visible\"}",
+      "expected": "{\"authorization\":\"Bearer [redacted]\",\"next\":\"visible\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "single-quoted-bearer-escaped-quote-and-backslash",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{'authorization':'Bearer abc\\'secret\\\\','next':'visible'}",
+      "expected": "{'authorization':'Bearer [redacted]','next':'visible'}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "unquoted-bearer-backslash-keeps-trailing-field",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "prefix Bearer abcdef\\,tag=public",
+      "expected": "prefix Bearer [redacted],tag=public",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-line-feed-after-colon",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\n\"neutral-value\"}",
+      "expected": "{\"password\":\n\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-line-feed-before-colon",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\"\n:\"neutral-value\"}",
+      "expected": "{\"password\"\n:\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-crlf-after-colon",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\r\n  \"neutral-value\"}",
+      "expected": "{\"password\":\r\n  \"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-number-value-keeps-boundary",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":12345}",
+      "expected": "{\"password\":12345}",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
     }
   ]
 }

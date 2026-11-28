@@ -1,6 +1,4 @@
-use std::{error::Error, fmt, str::FromStr};
-
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use std::{error::Error, fmt};
 
 /// Longest opaque identifier, in bytes.
 ///
@@ -18,9 +16,9 @@ macro_rules! opaque_id {
 
         impl $name {
             /// Validates and constructs the identifier.
-            pub fn new(value: impl Into<String>) -> Result<Self, OpaqueIdError> {
+            pub fn new(value: impl Into<String>) -> Result<Self, crate::opaque_id::OpaqueIdError> {
                 let value = value.into();
-                validate_opaque_id(&value)?;
+                crate::opaque_id::validate_opaque_id(&value)?;
                 Ok(Self(value))
             }
 
@@ -31,40 +29,42 @@ macro_rules! opaque_id {
             }
         }
 
-        impl fmt::Display for $name {
-            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 formatter.write_str(self.as_str())
             }
         }
 
-        impl FromStr for $name {
-            type Err = OpaqueIdError;
+        impl ::std::str::FromStr for $name {
+            type Err = crate::opaque_id::OpaqueIdError;
 
             fn from_str(value: &str) -> Result<Self, Self::Err> {
                 Self::new(value)
             }
         }
 
-        impl Serialize for $name {
+        impl ::serde::Serialize for $name {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
-                S: Serializer,
+                S: ::serde::Serializer,
             {
                 serializer.serialize_str(self.as_str())
             }
         }
 
-        impl<'de> Deserialize<'de> for $name {
+        impl<'de> ::serde::Deserialize<'de> for $name {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
-                D: Deserializer<'de>,
+                D: ::serde::Deserializer<'de>,
             {
                 let value = String::deserialize(deserializer)?;
-                Self::new(value).map_err(de::Error::custom)
+                Self::new(value).map_err(::serde::de::Error::custom)
             }
         }
     };
 }
+
+pub(crate) use opaque_id;
 
 opaque_id!(
     DisplayId,
@@ -458,5 +458,24 @@ mod tests {
             serde_json::from_str::<SurfaceId>(&serde_json::to_string(&surface).unwrap()).unwrap(),
             surface
         );
+    }
+
+    #[test]
+    fn total_conversions_preserve_identifier_bytes_for_owned_and_borrowed_values() {
+        let panel = PanelInstanceId::new("panel:inspector").unwrap();
+        let from_panel_ref = TransferSubjectId::from(&panel);
+        let from_panel = TransferSubjectId::from(panel.clone());
+        assert_eq!(from_panel_ref, from_panel);
+        assert_eq!(from_panel.as_str(), panel.as_str());
+        assert_eq!(PanelInstanceId::from(&from_panel), panel);
+        assert_eq!(PanelInstanceId::from(from_panel), panel);
+
+        let surface = SurfaceId::new("surface:workspace_2").unwrap();
+        let from_surface_ref = TransferSubjectId::from(&surface);
+        let from_surface = TransferSubjectId::from(surface.clone());
+        assert_eq!(from_surface_ref, from_surface);
+        assert_eq!(from_surface.as_str(), surface.as_str());
+        assert_eq!(SurfaceId::from(&from_surface), surface);
+        assert_eq!(SurfaceId::from(from_surface), surface);
     }
 }

@@ -137,25 +137,56 @@ fn url_userinfo(text: &str, authorities: &[Range<usize>], out: &mut Vec<Range<us
 }
 
 /// After a case-insensitive `Bearer` and one space, the credential up to
-/// whitespace, a quote or a comma. Credentials under four characters are
-/// prose, not credentials.
+/// whitespace, a comma or a quote. When `Bearer` opens a quoted value, `\`
+/// escapes (such as `\"`, `\'` and `\\`) are honoured and only the matching
+/// closing quote ends it. Credentials under four characters are prose, not
+/// credentials.
 fn bearer(text: &str, out: &mut Vec<Range<usize>>) {
     const SCHEME: &str = "bearer ";
     let lower = text.to_ascii_lowercase();
+    let bytes = text.as_bytes();
     for index in occurrences(&lower, SCHEME) {
+        let opening_quote = (index > 0)
+            .then(|| bytes[index - 1])
+            .filter(|byte| matches!(byte, b'"' | b'\''));
         let start = index + SCHEME.len();
-        let end = run_end(text, start, |character| {
-            character.is_whitespace() || matches!(character, '"' | '\'' | ',')
-        });
+        let end = bearer_end(text, start, opening_quote);
         if text[start..end].chars().count() >= crate::MIN_SECRET_CHARS {
             out.push(start..end);
         }
     }
 }
 
-/// `key=value` and `key: value` for each key, matched case-insensitively
-/// where the preceding character is not ASCII alphanumeric. Keys inside a URL
-/// authority are left to the userinfo rule.
+/// End of a `Bearer` credential starting at `start`. It always stops at
+/// whitespace. Unquoted (`opening_quote` is `None`), it stops at the first
+/// comma or quote, and `\` is an ordinary character. Quoted, it stops at an
+/// unescaped comma or an unescaped `opening_quote`, honouring `\` escapes.
+fn bearer_end(text: &str, start: usize, opening_quote: Option<u8>) -> usize {
+    let Some(quote) = opening_quote.map(char::from) else {
+        return run_end(text, start, |character| {
+            character.is_whitespace() || matches!(character, ',' | '"' | '\'')
+        });
+    };
+    let mut escaped = false;
+    for (offset, character) in text[start..].char_indices() {
+        if character.is_whitespace() {
+            return start + offset;
+        }
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == ',' || character == quote {
+            return start + offset;
+        }
+    }
+    text.len()
+}
+
+/// `key=value`, `key: value`, `"key":"value"` and `'key':'value'` for each key,
+/// matched case-insensitively where the preceding character is not ASCII
+/// alphanumeric. A quoted key proposes only a quoted string value. Keys inside
+/// a URL authority are left to the userinfo rule.
 fn assignments(
     text: &str,
     keys: &[String],
@@ -180,21 +211,36 @@ fn assignments(
             {
                 continue;
             }
-            let mut cursor = skip_blanks(bytes, index + key.len());
+            let mut cursor = index + key.len();
+            // A quoted key (`"password":`) is JSON or an object literal: any
+            // JSON whitespace may surround the separator, and only a quoted
+            // string value is proposed, so numbers, literals and nested
+            // values keep their boundaries.
+            let quoted_key = matches!(bytes.get(cursor), Some(b'"' | b'\''));
+            let skip = if quoted_key {
+                cursor += 1;
+                skip_json_whitespace
+            } else {
+                skip_blanks
+            };
+            cursor = skip(bytes, cursor);
             if !matches!(bytes.get(cursor), Some(b'=' | b':')) {
                 continue;
             }
-            cursor = skip_blanks(bytes, cursor + 1);
+            cursor = skip(bytes, cursor + 1);
             let quote = bytes
                 .get(cursor)
                 .copied()
                 .filter(|byte| matches!(byte, b'"' | b'\''));
+            if quoted_key && quote.is_none() {
+                continue;
+            }
             let start = cursor + usize::from(quote.is_some());
             if is_authorization && lower[start..].starts_with("bearer ") {
                 continue;
             }
             let end = match quote {
-                Some(quote) => run_end(text, start, |character| character == char::from(quote)),
+                Some(quote) => quoted_value_end(text, start, quote),
                 None if is_authorization => line_end(text, start),
                 None => run_end(text, start, |character| {
                     character.is_whitespace() || matches!(character, '&' | ',' | ';')
@@ -207,8 +253,34 @@ fn assignments(
     }
 }
 
+/// End of a quoted assignment value starting at `start`, honouring `\\`
+/// escapes (such as `\"`, `\'` and `\\\\`) up to the closing `quote` or the
+/// end of `text`.
+fn quoted_value_end(text: &str, start: usize, quote: u8) -> usize {
+    let quote = char::from(quote);
+    let mut escaped = false;
+    for (offset, character) in text[start..].char_indices() {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' {
+            escaped = true;
+        } else if character == quote {
+            return start + offset;
+        }
+    }
+    text.len()
+}
+
 fn skip_blanks(bytes: &[u8], mut cursor: usize) -> usize {
     while matches!(bytes.get(cursor), Some(b' ' | b'\t')) {
+        cursor += 1;
+    }
+    cursor
+}
+
+/// `cursor` advanced past JSON whitespace: spaces, tabs, `\n` and `\r`.
+fn skip_json_whitespace(bytes: &[u8], mut cursor: usize) -> usize {
+    while matches!(bytes.get(cursor), Some(b' ' | b'\t' | b'\n' | b'\r')) {
         cursor += 1;
     }
     cursor

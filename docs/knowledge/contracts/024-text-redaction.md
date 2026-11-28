@@ -87,15 +87,22 @@ Each rule only proposes spans.
   only when it holds `:`. `https://git@host` is kept; a token used as a user
   name is caught by the prefix rule.
 - **Bearer:** after a case-insensitive `Bearer` and one space, the credential
-  up to whitespace, a quote or a comma. The scheme word stays. A credential
-  under four characters, measured before clipping, is not proposed, so
-  "bearer of" is prose.
+  up to whitespace, a comma or a quote. When `Bearer` is immediately preceded
+  by `"` or `'`, the value is quoted: `\` escapes (such as `\"`, `\'` and
+  `\\`) are honoured, and only an unescaped comma or the matching unescaped
+  closing quote ends it. Unquoted, `\` is an ordinary character. The scheme
+  word stays. A credential under four characters, measured before clipping,
+  is not proposed, so "bearer of" is prose.
 - **Assignments:** each key matches case-insensitively where the preceding
   character is not ASCII alphanumeric (`_` is a boundary, so
   `NODE_AUTH_TOKEN` matches `token`), then optional spaces or tabs, then `=`
-  or `:`, then optional spaces or tabs. The value:
-  - quoted: up to the closing quote, across line breaks, or the end of the
-    text when it does not close;
+  or `:`, then optional spaces or tabs. A key followed by `"` or `'` is
+  quoted (JSON and object-literal keys such as `"password":"x"`): JSON
+  whitespace (spaces, tabs, `\n`, `\r`) may surround the `=` or `:`, and only
+  a quoted value is proposed, so `{"password":12345}` is kept. The value:
+  - quoted: up to the unescaped closing quote (honouring `\` escapes such as
+    `\"`, `\'`, and `\\`), across line breaks, or the end of the text when it
+    does not close;
   - unquoted: up to whitespace, `&`, `,` or `;`;
   - for the key `authorization`: a value starting `Bearer ` (any case)
     proposes nothing, because the Bearer rule owns it. Any other value runs
@@ -149,6 +156,14 @@ Rows that fix the composition:
 | `[redacted] and redacted`, seed `redacted` | `[redacted] and [redacted]`, `count` 2, `replaced` 1 | The occurrence inside the marker clips to nothing |
 | `password=left[redacted]right` | `password=[redacted][redacted][redacted]`, `replaced` 2 | The marker separates the clipped runs |
 | `Authorization: Bearer` | `Authorization: [redacted]` | No space after `Bearer`, so the `authorization` value runs to the line end |
+| `{"password":"x"}` | `{"password":"[redacted]"}` | Optional closing quote after the key before `:` |
+| `{"password":"abc\"secret"}` | `{"password":"[redacted]"}` | Escaped quote stays inside the quoted value |
+| `{"password":"abc\\","next":"visible"}` | `{"password":"[redacted]","next":"visible"}` | Escaped backslash leaves the following quote unescaped |
+| `{"authorization":"Bearer abc\"secret"}` | `{"authorization":"Bearer [redacted]"}` | Escaped quote stays inside the quoted Bearer credential |
+| `{"authorization":"Bearer abc\\","next":"visible"}` | `{"authorization":"Bearer [redacted]","next":"visible"}` | Escaped backslash leaves the following quote unescaped on Bearer values |
+| `prefix Bearer abcdef\,tag=public` | `prefix Bearer [redacted],tag=public` | Unquoted Bearer: `\` is ordinary, so the comma ends the credential |
+| `{"password":` LF `"x"}` | `{"password":` LF `"[redacted]"}` | JSON whitespace, line breaks included, around `:` after a quoted key |
+| `{"password":12345}` | `{"password":12345}` | A quoted key proposes only a quoted string value |
 
 ## Compatibility for consumers
 

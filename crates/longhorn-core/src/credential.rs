@@ -256,9 +256,20 @@ impl Error for CredentialError {}
 ///
 /// For tests, and for a deliberate no-persistence composition where
 /// re-authenticating on each launch is preferred to storing anything.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct MemoryCredentialStore {
     secrets: Mutex<BTreeMap<CredentialSlot, String>>,
+}
+
+impl fmt::Debug for MemoryCredentialStore {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = formatter.debug_struct("MemoryCredentialStore");
+        match self.secrets.lock() {
+            Ok(secrets) => debug.field("secret_count", &secrets.len()),
+            Err(_) => debug.field("secret_count", &"<unavailable>"),
+        };
+        debug.finish()
+    }
 }
 
 impl MemoryCredentialStore {
@@ -514,5 +525,40 @@ mod tests {
             error.to_string(),
             "credential store unavailable: keychain locked"
         );
+    }
+
+    #[test]
+    fn memory_credential_store_debug_prints_counts_and_never_secrets() {
+        let store = MemoryCredentialStore::new();
+        let slot = CredentialSlot::licence_key();
+        let secret = "stored-memory-credential-secret";
+        store.store(&slot, secret).unwrap();
+
+        let debug = format!("{store:?}");
+        assert!(!debug.contains(secret), "{debug}");
+        assert!(!debug.contains(slot.as_str()), "{debug}");
+        assert!(debug.contains("secret_count: 1"), "{debug}");
+    }
+
+    #[test]
+    fn memory_credential_store_debug_handles_poisoned_lock_without_leaking() {
+        let store = std::sync::Arc::new(MemoryCredentialStore::new());
+        let slot = CredentialSlot::licence_key();
+        let secret = "poisoned-memory-credential-secret";
+        store.store(&slot, secret).unwrap();
+
+        let poisoned = std::sync::Arc::clone(&store);
+        assert!(
+            std::thread::spawn(move || {
+                let _guard = poisoned.secrets.lock().unwrap();
+                panic!("poison memory credential store");
+            })
+            .join()
+            .is_err()
+        );
+
+        let debug = format!("{store:?}");
+        assert!(!debug.contains(secret), "{debug}");
+        assert!(debug.contains("<unavailable>"), "{debug}");
     }
 }

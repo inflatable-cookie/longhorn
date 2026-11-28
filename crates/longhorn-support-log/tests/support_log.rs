@@ -625,3 +625,106 @@ fn fields_are_redacted_before_they_are_cut() {
     assert_eq!(field, "[redacte");
     assert!(!field.contains("ghp_"));
 }
+
+#[test]
+fn debug_formatting_logs_never_prints_seeded_secrets() {
+    let secret = "seeded-log-debug-secret";
+    let key_secret = "custom-log-key-secret";
+    let prefix_secret = "custom-log-prefix-secret";
+    let rules = RedactionRules {
+        token_prefixes: vec![prefix_secret.to_owned()],
+        assignment_keys: vec![key_secret.to_owned()],
+        ..RedactionRules::common()
+    };
+    let seeded = Redactor::new(
+        [
+            secret.to_owned(),
+            key_secret.to_owned(),
+            prefix_secret.to_owned(),
+        ],
+        rules,
+    );
+
+    let ring = RingLog::new(4, 128, seeded.clone());
+    let ring_debug = format!("{ring:?}");
+    assert!(!ring_debug.contains(secret), "{ring_debug}");
+    assert!(!ring_debug.contains(key_secret), "{ring_debug}");
+    assert!(!ring_debug.contains(prefix_secret), "{ring_debug}");
+
+    let root = tempfile::tempdir().unwrap();
+    let rotating = RotatingLog::open(config(root.path(), MAX_BYTES), seeded);
+    let rotating_debug = format!("{rotating:?}");
+    assert!(!rotating_debug.contains(secret), "{rotating_debug}");
+    assert!(!rotating_debug.contains(key_secret), "{rotating_debug}");
+    assert!(!rotating_debug.contains(prefix_secret), "{rotating_debug}");
+
+    let discarding_debug = format!("{:?}", RotatingLog::discarding());
+    assert!(!discarding_debug.contains(secret), "{discarding_debug}");
+}
+
+#[test]
+fn unsafe_file_names_are_dropped_without_touching_disk() {
+    let root = tempfile::tempdir().unwrap();
+    let logs_dir = root.path().join("logs");
+    let escaped = root.path().join("outside.log");
+    let absolute_target = escaped.to_string_lossy().into_owned();
+
+    let unsafe_names = [
+        "",
+        ".",
+        "..",
+        "../outside.log",
+        "sub/support.log",
+        "sub\\support.log",
+        "bad\0.log",
+        absolute_target.as_str(),
+    ];
+
+    for bad_name in unsafe_names {
+        let log = RotatingLog::open(
+            RotatingLogConfig {
+                directory: logs_dir.clone(),
+                file_name: bad_name.to_owned(),
+                max_bytes: MAX_BYTES,
+                retained: 2,
+                field_bytes: FIELD_BYTES,
+            },
+            redactor(),
+        );
+        log.record("event", "detail");
+        log.record_json(&JsonRecord::new().text("event", "detail"));
+        assert_eq!(
+            log.stats(),
+            LogStats {
+                written: 0,
+                oversized: 0,
+                failed: 2,
+                repair_required: false,
+            },
+            "bad file_name {bad_name:?}"
+        );
+        assert!(
+            !logs_dir.exists(),
+            "directory must not be created for {bad_name:?}"
+        );
+        assert!(
+            !escaped.exists(),
+            "outside path must not be created for {bad_name:?}"
+        );
+    }
+
+    // Oversized check still runs before the file_name check (step 3 before step 4).
+    let oversized_log = RotatingLog::open(
+        RotatingLogConfig {
+            directory: logs_dir,
+            file_name: "../outside.log".to_owned(),
+            max_bytes: 32,
+            retained: 2,
+            field_bytes: FIELD_BYTES,
+        },
+        redactor(),
+    );
+    oversized_log.record("event", &"x".repeat(100));
+    assert_eq!(oversized_log.stats().oversized, 1);
+    assert_eq!(oversized_log.stats().failed, 0);
+}
