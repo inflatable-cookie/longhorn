@@ -189,9 +189,8 @@ fn unsigned_dip(value: f32) -> Result<u32, GpuiGeometryError> {
 
 /// GPUI's own window state, with the restore bounds it retains for itself.
 ///
-/// GPUI reports the normal geometry of a maximized or fullscreen window. Tauri
-/// does not, which is why Longhorn's Tauri capture threads a `retained_normal`
-/// placement through every call. On GPUI that parameter has nothing to do.
+/// GPUI reports restore outer bounds, but not normal content size while
+/// maximized. Callers retain that content size separately when available.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum GpuiWindowBoundsState {
     /// Ordinary windowed state. The bounds are the live bounds.

@@ -135,3 +135,20 @@ fn gpui_discards_every_display_origin_so_two_displays_collide_at_zero() {
         .collect();
     assert_eq!(sizes, [1920, 3440]);
 }
+
+#[test]
+fn display_probe_failure_is_not_attributed_to_a_window() {
+    let mut host = FakeGpuiHost::new().with_invalid_display();
+    let error = longhorn_gpui_windowing::observe_gpui_desktop(
+        &mut host,
+        &longhorn_gpui_windowing::GpuiWindowRegistry::default(),
+        &mut BareDisplayFacts,
+    )
+    .unwrap_err();
+    assert!(matches!(
+        error,
+        longhorn_gpui_windowing::GpuiObservationError::Display(
+            longhorn_gpui_windowing::GpuiDisplayError::InvalidBounds { ordinal: 0, .. }
+        )
+    ));
+}

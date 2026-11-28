@@ -1,4 +1,6 @@
-use longhorn_core::{DisplayId, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
+use longhorn_core::{
+    DisplayId, ScaleFactor, ScreenPoint, ScreenRect, ScreenSize, WindowId, WindowPlacement,
+};
 use longhorn_display::{DisplayAvailability, DisplayInventory};
 use serde::{Deserialize, Serialize};
 
@@ -88,11 +90,60 @@ impl SavedDisplayAssociation {
     }
 }
 
+/// Normal outer origin and a content size that may be unavailable at capture.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct CapturedNormalPlacement {
+    outer_origin: ScreenPoint,
+    inner_size: Option<ScreenSize>,
+}
+
+impl CapturedNormalPlacement {
+    /// Records the known outer origin and optional normal content size.
+    #[must_use]
+    pub const fn new(outer_origin: ScreenPoint, inner_size: Option<ScreenSize>) -> Self {
+        Self {
+            outer_origin,
+            inner_size,
+        }
+    }
+
+    /// Returns the restore origin.
+    #[must_use]
+    pub const fn outer_origin(&self) -> ScreenPoint {
+        self.outer_origin
+    }
+
+    /// Returns the normal content size, when known.
+    #[must_use]
+    pub const fn inner_size(&self) -> Option<ScreenSize> {
+        self.inner_size
+    }
+
+    /// Returns a complete placement when the normal content size is known.
+    #[must_use]
+    pub fn known(&self) -> Option<WindowPlacement> {
+        self.inner_size
+            .map(|size| WindowPlacement::new(self.outer_origin, size))
+    }
+
+    /// Resolves unknown size using the consumer's declared default.
+    #[must_use]
+    pub fn with_default_size(&self, default_size: ScreenSize) -> WindowPlacement {
+        WindowPlacement::new(self.outer_origin, self.inner_size.unwrap_or(default_size))
+    }
+}
+
+impl From<WindowPlacement> for CapturedNormalPlacement {
+    fn from(placement: WindowPlacement) -> Self {
+        Self::new(placement.outer_origin(), Some(placement.inner_size()))
+    }
+}
+
 /// Serializable placement record accepted directly by restore planning.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SavedWindowPlacement {
     window_id: WindowId,
-    normal_placement: WindowPlacement,
+    normal_placement: CapturedNormalPlacement,
     maximized: bool,
     display: SavedDisplayAssociation,
 }
@@ -103,6 +154,25 @@ impl SavedWindowPlacement {
     pub const fn new(
         window_id: WindowId,
         normal_placement: WindowPlacement,
+        maximized: bool,
+        display: SavedDisplayAssociation,
+    ) -> Self {
+        Self {
+            window_id,
+            normal_placement: CapturedNormalPlacement::new(
+                normal_placement.outer_origin(),
+                Some(normal_placement.inner_size()),
+            ),
+            maximized,
+            display,
+        }
+    }
+
+    /// Constructs a record with a possibly unknown normal content size.
+    #[must_use]
+    pub const fn from_capture(
+        window_id: WindowId,
+        normal_placement: CapturedNormalPlacement,
         maximized: bool,
         display: SavedDisplayAssociation,
     ) -> Self {
@@ -122,7 +192,7 @@ impl SavedWindowPlacement {
 
     /// Returns saved normal outer origin and inner size.
     #[must_use]
-    pub const fn normal_placement(&self) -> WindowPlacement {
+    pub const fn normal_placement(&self) -> CapturedNormalPlacement {
         self.normal_placement
     }
 
@@ -145,6 +215,7 @@ pub fn restore_window_placement(
     inventory: &DisplayInventory,
     role: WindowRole,
     policy: PlacementPolicy,
+    default_size: ScreenSize,
 ) -> Result<WindowPlacementResolution, PlacementResolutionError> {
     let matched = resolve_saved_display_association(saved.display(), inventory);
     let home = saved
@@ -152,11 +223,14 @@ pub fn restore_window_placement(
         .display_id()
         .cloned()
         .or_else(|| matched.clone());
-    let config =
-        WindowPlacementConfig::new(saved.window_id().clone(), role, saved.normal_placement())
-            .with_home_display(home.clone())
-            .with_fallback_displays(matched.filter(|id| Some(id) != home.as_ref()))
-            .with_maximized(saved.is_maximized());
+    let config = WindowPlacementConfig::new(
+        saved.window_id().clone(),
+        role,
+        saved.normal_placement().with_default_size(default_size),
+    )
+    .with_home_display(home.clone())
+    .with_fallback_displays(matched.filter(|id| Some(id) != home.as_ref()))
+    .with_maximized(saved.is_maximized());
     resolve_placement(
         &config,
         inventory,

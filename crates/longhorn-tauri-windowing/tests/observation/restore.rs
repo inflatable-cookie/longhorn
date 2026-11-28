@@ -73,6 +73,7 @@ fn one_entry_point_reconciles_displays_and_restores_saved_evidence() {
         &mut ObservationAllocator,
         WindowRole::RequiredPrimary,
         PlacementPolicy::new(ScreenSize::new(100, 100), ScreenSize::new(80, 80)),
+        ScreenSize::new(800, 600),
     )
     .unwrap();
 

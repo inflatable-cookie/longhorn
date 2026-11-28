@@ -3,7 +3,7 @@ use longhorn_windowing::{
     CapturedWindowPlacement, ScheduledWindowLifecycleWake, WindowPlacementSink,
 };
 
-use crate::GpuiWindowKey;
+use crate::{GpuiServiceError, GpuiWindowKey};
 
 /// Deadline seam for capture settling and persistence debounce.
 ///
@@ -13,21 +13,20 @@ use crate::GpuiWindowKey;
 /// here the caller simply hands the wake back.
 pub trait GpuiLifecycleScheduler {
     /// Accepts one deadline. Returning `Err` reports a scheduling failure.
-    fn schedule(&mut self, wake: ScheduledWindowLifecycleWake) -> Result<(), String>;
+    fn schedule(&mut self, wake: ScheduledWindowLifecycleWake) -> Result<(), GpuiServiceError>;
 }
 
 /// Complete live capture seam.
 pub trait GpuiWindowCaptureBackend {
     /// Captures one window without persistence or product policy.
     ///
-    /// There is no `retained_normal` parameter. GPUI reports a maximized
-    /// window's restore bounds itself, so the caller has nothing to thread
-    /// back in.
+    /// Retain normal content size from a normal observation or saved placement
+    /// and pass it to `capture_from_gpui_facts` when available.
     fn capture(
         &mut self,
         window_id: &WindowId,
         key: GpuiWindowKey,
-    ) -> Result<CapturedWindowPlacement, String>;
+    ) -> Result<CapturedWindowPlacement, GpuiServiceError>;
 }
 
 /// Injected seams for one GPUI lifecycle host.

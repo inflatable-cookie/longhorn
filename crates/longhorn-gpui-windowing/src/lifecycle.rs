@@ -108,9 +108,22 @@ where
     }
 
     /// Installs one managed window.
-    pub fn install(&mut self, window_id: WindowId, key: GpuiWindowKey) {
-        self.windows
-            .insert(window_id, InstalledWindow { key, scale: None });
+    pub fn install(
+        &mut self,
+        window_id: WindowId,
+        key: GpuiWindowKey,
+    ) -> Result<(), GpuiWindowLifecycleError> {
+        match self.windows.entry(window_id) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(InstalledWindow { key, scale: None });
+                Ok(())
+            }
+            std::collections::btree_map::Entry::Occupied(entry) => {
+                Err(GpuiWindowLifecycleError::DuplicateWindow {
+                    window_id: entry.key().clone(),
+                })
+            }
+        }
     }
 
     /// Returns whether a window is installed.
@@ -211,11 +224,10 @@ where
         }
         let event_kind = event.kind();
         let now = self.services.clock.now();
-        let directives = self.coordinator.handle(now, event).map_err(|error| {
-            GpuiWindowLifecycleError::Coordination {
-                detail: error.to_string(),
-            }
-        })?;
+        let directives = self
+            .coordinator
+            .handle(now, event)
+            .map_err(|error| GpuiWindowLifecycleError::Coordination { source: error })?;
 
         let mut actions = Vec::with_capacity(directives.len());
         self.execute_directives(directives, &mut actions, shutdown_targets)?;
@@ -304,7 +316,7 @@ where
                         .coordinator
                         .handle(self.services.clock.now(), event)
                         .map_err(|error| GpuiWindowLifecycleError::Coordination {
-                            detail: error.to_string(),
+                            source: error,
                         })?;
                     self.execute_directives(nested, actions, shutdown_targets)?;
                     continue;
@@ -412,7 +424,9 @@ where
                     ScheduledKind::Capture => self.settle_capture(window_id),
                     ScheduledKind::Flush => self.settle_flush(window_id),
                 }
-                GpuiLifecycleAction::ScheduleFailed { detail }
+                GpuiLifecycleAction::ScheduleFailed {
+                    detail: detail.to_string(),
+                }
             }
         }
     }
@@ -434,7 +448,9 @@ where
                 Ok(()) => GpuiLifecycleAction::Captured { generation },
                 Err(detail) => GpuiLifecycleAction::CaptureFailed { detail },
             },
-            Err(detail) => GpuiLifecycleAction::CaptureFailed { detail },
+            Err(detail) => GpuiLifecycleAction::CaptureFailed {
+                detail: detail.to_string(),
+            },
         }
     }
 }
@@ -454,23 +470,23 @@ where
         &mut self,
         generation: ApplyGeneration,
         operation: &WindowOperation,
-    ) -> Result<(), String> {
+    ) -> Result<(), crate::GpuiServiceError> {
         let at = self.services.clock.now();
         match self
             .coordinator
             .register_apply(at, generation, operation)
-            .map_err(|error| error.to_string())?
+            .map_err(crate::GpuiServiceError::Coordination)?
         {
             ApplyRegistrationOutcome::Registered | ApplyRegistrationOutcome::Extended => Ok(()),
-            ApplyRegistrationOutcome::StaleGeneration { current } => Err(format!(
-                "apply generation {} is older than {}",
-                generation.get(),
-                current.get()
-            )),
-            ApplyRegistrationOutcome::StaleTimestamp { latest } => Err(format!(
-                "apply evidence timestamp precedes {}",
-                latest.get()
-            )),
+            ApplyRegistrationOutcome::StaleGeneration { current } => {
+                Err(crate::GpuiServiceError::StaleGeneration {
+                    attempted: generation,
+                    current,
+                })
+            }
+            ApplyRegistrationOutcome::StaleTimestamp { latest } => {
+                Err(crate::GpuiServiceError::StaleTimestamp { latest })
+            }
         }
     }
 
@@ -493,8 +509,8 @@ where
             return Ok(());
         }
         if self.windows.contains_key(window_id) {
-            return Err(GpuiRetagError::Refused(format!(
-                "window {window_id} is already installed"
+            return Err(GpuiRetagError::Refused(crate::GpuiServiceError::new(
+                format!("window {window_id} is already installed"),
             )));
         }
         // Publish what the old identity staged before it becomes unreachable.
@@ -509,8 +525,8 @@ where
         );
         let outcome = flush_window_placements(&*self.services.sink, &request);
         if outcome != WindowFlushOutcome::Succeeded {
-            return Err(GpuiRetagError::Refused(format!(
-                "window {previous} could not publish before retag: {outcome:?}"
+            return Err(GpuiRetagError::Refused(crate::GpuiServiceError::new(
+                format!("window {previous} could not publish before retag: {outcome:?}"),
             )));
         }
 
@@ -521,7 +537,9 @@ where
         let directives = self
             .coordinator
             .retag(&previous, window_id)
-            .map_err(|error| GpuiRetagError::Refused(error.to_string()))?;
+            .map_err(|error| {
+                GpuiRetagError::Refused(crate::GpuiServiceError::new(error.to_string()))
+            })?;
         if let Some(installed) = self.windows.remove(&previous) {
             self.windows.insert(window_id.clone(), installed);
         }
@@ -532,11 +550,15 @@ where
         // The move above is committed from here on. A failure now is a
         // rescheduling failure, and the caller must still commit the registry.
         self.execute_directives(directives, &mut actions, &mut None)
-            .map_err(|error| GpuiRetagError::Rescheduling(error.to_string()))?;
+            .map_err(|error| {
+                GpuiRetagError::Rescheduling(crate::GpuiServiceError::new(error.to_string()))
+            })?;
         for action in actions {
             if let GpuiLifecycleAction::ScheduleFailed { detail } = action {
-                return Err(GpuiRetagError::Rescheduling(format!(
-                    "window {window_id} was retagged, but a pending deadline could not be rescheduled: {detail}"
+                return Err(GpuiRetagError::Rescheduling(crate::GpuiServiceError::new(
+                    format!(
+                        "window {window_id} was retagged, but a pending deadline could not be rescheduled: {detail}"
+                    ),
                 )));
             }
         }

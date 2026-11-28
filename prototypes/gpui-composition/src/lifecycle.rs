@@ -57,7 +57,10 @@ pub struct DrainingScheduler {
 }
 
 impl GpuiLifecycleScheduler for DrainingScheduler {
-    fn schedule(&mut self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
+    fn schedule(
+        &mut self,
+        wake: ScheduledWindowLifecycleWake,
+    ) -> Result<(), longhorn_gpui_windowing::GpuiServiceError> {
         self.pending.borrow_mut().push(wake);
         Ok(())
     }
@@ -85,6 +88,7 @@ impl GpuiLifecycleScheduler for DrainingScheduler {
 #[derive(Clone, Default)]
 pub struct CachedCapture {
     facts: Rc<RefCell<BTreeMap<WindowId, GpuiWindowFacts>>>,
+    normal_sizes: Rc<RefCell<BTreeMap<WindowId, longhorn_core::ScreenSize>>>,
 }
 
 impl GpuiWindowCaptureBackend for CachedCapture {
@@ -92,12 +96,19 @@ impl GpuiWindowCaptureBackend for CachedCapture {
         &mut self,
         window_id: &WindowId,
         _key: GpuiWindowKey,
-    ) -> Result<CapturedWindowPlacement, String> {
+    ) -> Result<CapturedWindowPlacement, longhorn_gpui_windowing::GpuiServiceError> {
         let facts = self.facts.borrow();
-        let facts = facts
-            .get(window_id)
-            .ok_or_else(|| format!("no observed facts for {window_id}"))?;
-        capture_from_gpui_facts(window_id, facts)
+        let facts = facts.get(window_id).ok_or_else(|| {
+            longhorn_gpui_windowing::GpuiServiceError::new(format!(
+                "no observed facts for {window_id}"
+            ))
+        })?;
+        capture_from_gpui_facts(
+            window_id,
+            facts,
+            self.normal_sizes.borrow().get(window_id).copied(),
+        )
+        .map_err(longhorn_gpui_windowing::GpuiServiceError::new)
     }
 }
 
@@ -122,6 +133,18 @@ impl LifecycleHost {
     #[must_use]
     pub fn new(windows: &[(WindowId, AnyWindowHandle)]) -> Self {
         let capture = CachedCapture::default();
+        for (window_id, _) in windows {
+            if let Some(size) = crate::store::persisted()
+                .placements
+                .get(window_id.as_str())
+                .and_then(|placement| placement.normal_placement().inner_size())
+            {
+                capture
+                    .normal_sizes
+                    .borrow_mut()
+                    .insert(window_id.clone(), size);
+            }
+        }
         let scheduler = DrainingScheduler::default();
         let mut host = Host::new(
             WindowLifecyclePolicy::recommended(),
@@ -138,7 +161,8 @@ impl LifecycleHost {
             host.install(
                 window_id.clone(),
                 GpuiWindowKey::new(handle.window_id().as_u64()),
-            );
+            )
+            .expect("unique window ids");
         }
 
         // The window list is not kept. It was only ever needed to observe at
@@ -168,6 +192,15 @@ impl LifecycleHost {
     pub fn record_from_render(&self, window_id: &WindowId, window: &Window) {
         let facts = longhorn_gpui_windowing_prototype::facts_from_window(window);
         let bounds = facts.bounds();
+        if !facts.bounds_state().is_maximized()
+            && !facts.bounds_state().is_fullscreen()
+            && let Ok(size) = facts.content_size().to_screen_size()
+        {
+            self.capture
+                .normal_sizes
+                .borrow_mut()
+                .insert(window_id.clone(), size);
+        }
 
         let changed = self
             .last_bounds

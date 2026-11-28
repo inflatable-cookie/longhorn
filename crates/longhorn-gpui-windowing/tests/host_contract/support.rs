@@ -113,6 +113,16 @@ impl FakeGpuiHost {
         self
     }
 
+    pub(super) fn with_invalid_display(mut self) -> Self {
+        self.displays = vec![GpuiDisplayFacts::new(
+            1,
+            None,
+            GpuiLogicalRect::new(0.0, 0.0, -1.0, 100.0),
+            true,
+        )];
+        self
+    }
+
     pub(super) fn without_create(mut self) -> Self {
         self.can_create = false;
         self
@@ -345,9 +355,11 @@ impl GpuiApplyObserver for RecordingApplyObserver {
         &mut self,
         _generation: ApplyGeneration,
         operation: &WindowOperation,
-    ) -> Result<(), String> {
+    ) -> Result<(), longhorn_gpui_windowing::GpuiServiceError> {
         if let Some(detail) = &self.refusal {
-            return Err(detail.clone());
+            return Err(longhorn_gpui_windowing::GpuiServiceError::new(
+                detail.clone(),
+            ));
         }
         self.registered.push(operation.kind());
         Ok(())
@@ -359,7 +371,9 @@ impl GpuiApplyObserver for RecordingApplyObserver {
         window_id: &WindowId,
     ) -> Result<(), GpuiRetagError> {
         if let Some(detail) = &self.refusal {
-            return Err(GpuiRetagError::Refused(detail.clone()));
+            return Err(GpuiRetagError::Refused(
+                longhorn_gpui_windowing::GpuiServiceError::new(detail.clone()),
+            ));
         }
         self.retagged
             .push((transport_handle.clone(), window_id.clone()));

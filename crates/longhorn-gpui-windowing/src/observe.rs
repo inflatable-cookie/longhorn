@@ -262,16 +262,7 @@ pub fn observe_gpui_desktop(
     source: &mut impl GpuiDisplayFactsSource,
 ) -> Result<GpuiDesktopObservation, GpuiObservationError> {
     let windows = observe_gpui_windows(backend, registry)?;
-    let displays = observe_gpui_displays(backend, source).map_err(|error| {
-        // Display failure is reported through the window-observation error so
-        // one readback has one typed failure. The detail keeps the display
-        // diagnostic intact.
-        GpuiObservationError::Host {
-            handle: HostWindowHandle::new("gpui-displays")
-                .expect("literal display probe handle is valid"),
-            detail: error.to_string(),
-        }
-    })?;
+    let displays = observe_gpui_displays(backend, source).map_err(GpuiObservationError::Display)?;
     Ok(GpuiDesktopObservation::new(displays, windows))
 }
 
@@ -280,15 +271,11 @@ pub fn observe_gpui_windows(
     backend: &mut impl GpuiWindowBackend,
     registry: &GpuiWindowRegistry,
 ) -> Result<Vec<LiveWindow>, GpuiObservationError> {
-    let mut handles = BTreeSet::new();
     let mut stable_ids = BTreeSet::new();
     let mut observations = Vec::new();
 
     for managed in registry.managed_windows() {
         let handle = managed.key().transport_handle();
-        if !handles.insert(handle.clone()) {
-            return Err(GpuiObservationError::DuplicateTransportHandle(handle));
-        }
         if let Some(window_id) = managed.window_id()
             && !stable_ids.insert(window_id.clone())
         {
@@ -313,19 +300,9 @@ pub fn observe_gpui_displays(
     let facts = backend.displays().map_err(|error| GpuiDisplayError::Host {
         detail: error.detail().to_string(),
     })?;
-    let mut observation_ids = BTreeSet::new();
     let mut displays = Vec::with_capacity(facts.len());
     for (ordinal, display) in facts.iter().enumerate() {
         let observation = project_gpui_display(ordinal, display, source)?;
-        let observation_id = match &observation {
-            GpuiDisplayObservation::Resolved(resolved) => resolved.observation_id().clone(),
-            GpuiDisplayObservation::Unobtainable { observation_id, .. } => observation_id.clone(),
-        };
-        if !observation_ids.insert(observation_id.clone()) {
-            return Err(GpuiDisplayError::DuplicateObservationId {
-                observation_id: observation_id.to_string(),
-            });
-        }
         displays.push(observation);
     }
     Ok(displays)

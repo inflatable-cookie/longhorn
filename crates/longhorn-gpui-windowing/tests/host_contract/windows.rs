@@ -32,10 +32,7 @@ fn a_window_is_created_placed_from_a_shared_plan_and_observed() {
     .unwrap();
     // Each native call is registered first, so the events its window opening
     // produces are attributed to this apply.
-    assert_eq!(
-        observer.registered,
-        vec![WindowOperationKind::Create, WindowOperationKind::Resize]
-    );
+    assert_eq!(observer.registered, vec![WindowOperationKind::Create]);
 
     let created = bundle
         .receipt()
@@ -52,16 +49,8 @@ fn a_window_is_created_placed_from_a_shared_plan_and_observed() {
                 GpuiWindowCall::RegistryInsert,
             ]
     ));
-    // The origin arrives with the window because GPUI takes bounds at
-    // creation; the size is then applied as its own operation, which a GPUI
-    // host can do.
-    assert_eq!(
-        host.calls,
-        vec![
-            Call::Create(id("main")),
-            Call::Resize(GpuiWindowKey::new(1))
-        ]
-    );
+    // GPUI takes both origin and content size at creation.
+    assert_eq!(host.calls, vec![Call::Create(id("main"))]);
 
     // Observed: the readback found the window it just opened, at the placement
     // the shared plan asked for.

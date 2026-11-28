@@ -178,6 +178,10 @@ impl TransferState {
                         match longhorn_gpui_windowing::capture_from_gpui_facts(
                             &window.window_id,
                             &facts,
+                            crate::store::persisted()
+                                .placements
+                                .get(window.window_id.as_str())
+                                .and_then(|placement| placement.normal_placement().inner_size()),
                         ) {
                             Err(error) => format!("capture failed: {error}"),
                             Ok(placement) => match crate::store::persist_now(&store, &placement) {

@@ -405,9 +405,14 @@ fn desired_windows(
         }
         let id = window_id(label)?;
         let saved = persisted.placements.get(label);
+        let default = fallback_placement(observation.displays(), ordinal)?;
         let normal = saved
-            .map(CapturedWindowPlacement::normal_placement)
-            .map_or_else(|| fallback_placement(observation.displays(), ordinal), Ok)?;
+            .map(|placement| {
+                placement
+                    .normal_placement()
+                    .with_default_size(default.inner_size())
+            })
+            .unwrap_or(default);
         let maximized = if label == MAIN_LABEL {
             main_maximized
                 .unwrap_or_else(|| saved.is_some_and(CapturedWindowPlacement::is_maximized))
@@ -912,7 +917,7 @@ fn setup(app: &mut tauri::App<Wry>) -> Result<(), Box<dyn std::error::Error>> {
     let initial_normal = persisted
         .placements
         .get(MAIN_LABEL)
-        .map(CapturedWindowPlacement::normal_placement);
+        .and_then(|placement| placement.normal_placement().known());
     let predeclared = match initial_normal {
         Some(normal) => {
             PredeclaredTauriWindow::new(window_id(MAIN_LABEL)?, main).with_initial_normal(normal)

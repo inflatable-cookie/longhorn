@@ -97,21 +97,33 @@ impl WindowRevealReceipt {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct WindowShutdownReceipt {
     actions: Vec<TauriWindowLifecycleAction>,
+    failures: Vec<(WindowId, TauriWindowLifecycleError)>,
     flush: Option<WindowFlushOutcome>,
 }
 
 impl WindowShutdownReceipt {
     pub(crate) const fn new(
         actions: Vec<TauriWindowLifecycleAction>,
+        failures: Vec<(WindowId, TauriWindowLifecycleError)>,
         flush: Option<WindowFlushOutcome>,
     ) -> Self {
-        Self { actions, flush }
+        Self {
+            actions,
+            failures,
+            flush,
+        }
     }
 
     /// Returns capture and scheduling work performed before aggregate flush.
     #[must_use]
     pub fn actions(&self) -> &[TauriWindowLifecycleAction] {
         &self.actions
+    }
+
+    /// Returns failures that prevented an individual window receipt.
+    #[must_use]
+    pub fn failures(&self) -> &[(WindowId, TauriWindowLifecycleError)] {
+        &self.failures
     }
 
     /// Returns aggregate sink outcome when at least one target was flushable.

@@ -1,3 +1,4 @@
+use longhorn_core::ScreenSize;
 use longhorn_display::{
     DisplayIdAllocator, KnownDisplayRegistry, ReconcileError, Reconciliation, reconcile_displays,
 };
@@ -56,6 +57,7 @@ pub fn plan_window_restore_from_observation<A>(
     allocator: &mut A,
     role: WindowRole,
     policy: PlacementPolicy,
+    default_size: ScreenSize,
 ) -> Result<TauriWindowRestore, TauriWindowRestoreError<A::Error>>
 where
     A: DisplayIdAllocator,
@@ -63,8 +65,14 @@ where
     let reconciliation =
         reconcile_displays(registry, observation.displays().iter().cloned(), allocator)
             .map_err(TauriWindowRestoreError::Reconciliation)?;
-    let placement = restore_window_placement(saved, reconciliation.inventory(), role, policy)
-        .map_err(TauriWindowRestoreError::Placement)?;
+    let placement = restore_window_placement(
+        saved,
+        reconciliation.inventory(),
+        role,
+        policy,
+        default_size,
+    )
+    .map_err(TauriWindowRestoreError::Placement)?;
     Ok(TauriWindowRestore {
         reconciliation,
         placement,
@@ -81,6 +89,7 @@ pub fn plan_tauri_window_restore<R, A>(
     allocator: &mut A,
     role: WindowRole,
     policy: PlacementPolicy,
+    default_size: ScreenSize,
 ) -> Result<TauriWindowRestore, TauriWindowRestoreError<A::Error>>
 where
     R: Runtime,
@@ -88,5 +97,13 @@ where
 {
     let observation = observe_tauri_desktop(app, &[], metadata_provider)
         .map_err(TauriWindowRestoreError::Observation)?;
-    plan_window_restore_from_observation(saved, registry, &observation, allocator, role, policy)
+    plan_window_restore_from_observation(
+        saved,
+        registry,
+        &observation,
+        allocator,
+        role,
+        policy,
+        default_size,
+    )
 }

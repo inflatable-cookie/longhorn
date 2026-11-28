@@ -36,7 +36,7 @@ pub use outcome::{
 };
 pub use resolution::resolve_window_placement;
 pub use restore::{
-    SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement,
+    CapturedNormalPlacement, SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement,
     resolve_saved_display_association, restore_window_placement,
 };
 pub use settled::{

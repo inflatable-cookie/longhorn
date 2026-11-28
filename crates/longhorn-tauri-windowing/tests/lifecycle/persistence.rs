@@ -268,3 +268,50 @@ fn oversized_label_installation_fails_typed_with_no_partial_state() {
         longhorn_tauri_windowing::TauriWindowLifecycleError::UnknownWindow { .. }
     ));
 }
+
+#[test]
+fn shutdown_flush_keeps_aggregate_when_a_window_disappears() {
+    let first = id("window:a");
+    let sink = Arc::new(TestSink::new(FlushMode::Succeed));
+    let test = harness(
+        "a",
+        1_000,
+        Arc::new(TestCapture::repeating(&first)),
+        sink.clone(),
+    );
+    let second = id("window:b");
+    let second_window = WebviewWindowBuilder::new(&test._app, "b", Default::default())
+        .build()
+        .unwrap();
+    test.host
+        .install_window(second.clone(), second_window, None)
+        .unwrap();
+    test.host
+        .handle_lifecycle_event(WindowLifecycleEvent::Moved {
+            window_id: first.clone(),
+            outer_origin: longhorn_core::ScreenPoint::new(10, 20),
+        })
+        .unwrap();
+    let host = Arc::downgrade(&test.host);
+    let removed = second.clone();
+    sink.set_stage_hook(Arc::new(move || {
+        host.upgrade()
+            .unwrap()
+            .handle_lifecycle_event(WindowLifecycleEvent::Destroyed {
+                window_id: removed.clone(),
+            })
+            .unwrap();
+    }));
+
+    let receipt = test.host.shutdown_flush().unwrap();
+    assert!(
+        matches!(receipt.failures(), [(window_id, longhorn_tauri_windowing::TauriWindowLifecycleError::UnknownWindow { .. })] if window_id == &second)
+    );
+    assert_eq!(receipt.flush(), Some(&WindowFlushOutcome::Succeeded));
+    assert!(sink.requests().iter().any(|request| {
+        request
+            .targets()
+            .iter()
+            .any(|target| target.window_id() == &first)
+    }));
+}

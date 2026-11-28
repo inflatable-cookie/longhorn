@@ -27,6 +27,7 @@ fn canonical_saved_display_restores_before_intersection() {
             ]),
             WindowRole::RequiredPrimary,
             policy(),
+            ScreenSize::new(800, 600),
         )
         .unwrap(),
     );
@@ -61,6 +62,7 @@ fn exact_saved_evidence_recovers_a_reallocated_display_id() {
             ]),
             WindowRole::RequiredPrimary,
             policy(),
+            ScreenSize::new(800, 600),
         )
         .unwrap(),
     );
@@ -93,6 +95,7 @@ fn missing_saved_display_uses_intersection_then_main() {
             ]),
             WindowRole::RequiredPrimary,
             policy(),
+            ScreenSize::new(800, 600),
         )
         .unwrap(),
     );
@@ -117,6 +120,7 @@ fn missing_saved_display_uses_intersection_then_main() {
             &inventory(&[display("display:main", 0, 0, 1600, 900, true)]),
             WindowRole::RequiredPrimary,
             policy(),
+            ScreenSize::new(800, 600),
         )
         .unwrap(),
     );
@@ -163,6 +167,7 @@ fn poisoned_double_scale_size_is_clamped_to_the_work_area() {
             &inventory(&[display("display:main", 0, 0, 1_580, 1_013, true)]),
             WindowRole::RequiredPrimary,
             policy(),
+            ScreenSize::new(800, 600),
         )
         .unwrap(),
     );
@@ -184,6 +189,7 @@ fn reachable_edge_placement_keeps_its_saved_origin() {
             &inventory(&[display("display:main", 0, 0, 1_512, 982, true)]),
             WindowRole::RequiredPrimary,
             policy(),
+            ScreenSize::new(800, 600),
         )
         .unwrap(),
     );
@@ -192,4 +198,36 @@ fn reachable_edge_placement_keeps_its_saved_origin() {
         restored.normal_placement(),
         placement(1_400, 100, 1_200, 800)
     );
+}
+
+#[test]
+fn unknown_normal_size_round_trips_and_restores_with_consumer_default() {
+    use longhorn_core::ScreenPoint;
+    use longhorn_windowing::{
+        CapturedDisplayAssociation, CapturedNormalPlacement, CapturedWindowPlacement,
+    };
+    let capture = CapturedWindowPlacement::from_normal(
+        window_id("window:main"),
+        CapturedNormalPlacement::new(ScreenPoint::new(120, 100), None),
+        true,
+        CapturedDisplayAssociation::Unresolved,
+    );
+    let saved = capture.saved(None);
+    let json = serde_json::to_value(&saved).unwrap();
+    let expected: serde_json::Value =
+        serde_json::from_str(include_str!("../data/maximized-unknown-size.json")).unwrap();
+    assert_eq!(json, expected);
+    let saved: SavedWindowPlacement = serde_json::from_value(json).unwrap();
+    let result = resolved(
+        restore_window_placement(
+            &saved,
+            &inventory(&[display("display:main", 0, 0, 1600, 900, true)]),
+            WindowRole::RequiredPrimary,
+            policy(),
+            ScreenSize::new(800, 600),
+        )
+        .unwrap(),
+    );
+    assert!(result.is_maximized());
+    assert_eq!(result.normal_placement(), placement(120, 100, 800, 600));
 }

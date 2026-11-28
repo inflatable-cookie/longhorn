@@ -22,7 +22,12 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
             .capture(window_id, window, None)
             .ok()
             .filter(|placement| !placement.is_maximized())
-            .map(|placement| placement.normal_placement())
+            .and_then(|placement| {
+                let normal = placement.normal_placement();
+                normal
+                    .inner_size()
+                    .map(|size| WindowPlacement::new(normal.outer_origin(), size))
+            })
     }
 
     /// Returns whether the host still accepts lifecycle work.

@@ -58,7 +58,10 @@ struct CountingScheduler {
 }
 
 impl GpuiLifecycleScheduler for CountingScheduler {
-    fn schedule(&mut self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
+    fn schedule(
+        &mut self,
+        wake: ScheduledWindowLifecycleWake,
+    ) -> Result<(), longhorn_gpui_windowing::GpuiServiceError> {
         self.accepted.push(wake);
         Ok(())
     }
@@ -73,9 +76,11 @@ impl GpuiWindowCaptureBackend for MovingCapture {
         &mut self,
         window_id: &WindowId,
         key: GpuiWindowKey,
-    ) -> Result<CapturedWindowPlacement, String> {
+    ) -> Result<CapturedWindowPlacement, longhorn_gpui_windowing::GpuiServiceError> {
         if self.fail_on == Some(key) {
-            return Err("window capture refused".to_owned());
+            return Err(longhorn_gpui_windowing::GpuiServiceError::new(
+                "window capture refused",
+            ));
         }
         Ok(CapturedWindowPlacement::new(
             window_id.clone(),
@@ -178,7 +183,8 @@ fn window(index: usize) -> WindowId {
 /// close has to settle.
 fn install_all(host: &mut Host) {
     for index in 0..WINDOWS {
-        host.install(window(index), GpuiWindowKey::new(index as u64 + 1));
+        host.install(window(index), GpuiWindowKey::new(index as u64 + 1))
+            .unwrap();
         host.record_scale(&window(index), super::support::scale(2000));
 
         host.handle_lifecycle_event(WindowLifecycleEvent::Moved {
@@ -255,7 +261,8 @@ fn nothing_closes_while_a_flush_is_failing() {
     let sink = Arc::new(LoadedSink::default());
     let mut host = loaded_host(&sink);
     for index in 0..WINDOWS {
-        host.install(window(index), GpuiWindowKey::new(index as u64 + 1));
+        host.install(window(index), GpuiWindowKey::new(index as u64 + 1))
+            .unwrap();
     }
 
     sink.fail_flushes(true);
@@ -306,7 +313,7 @@ fn nothing_closes_while_a_flush_is_failing() {
 fn a_close_with_a_pending_capture_flushes_the_exact_generation() {
     let sink = Arc::new(LoadedSink::default());
     let mut host = loaded_host(&sink);
-    host.install(window(0), GpuiWindowKey::new(1));
+    host.install(window(0), GpuiWindowKey::new(1)).unwrap();
     host.handle_lifecycle_event(WindowLifecycleEvent::Moved {
         window_id: window(0),
         outer_origin: longhorn_core::ScreenPoint::new(10, 10),
@@ -400,7 +407,8 @@ fn a_shutdown_flush_reports_a_failed_capture_and_flushes_the_other_generation() 
         host.install(
             window(index),
             GpuiWindowKey::new(u64::try_from(index + 1).unwrap()),
-        );
+        )
+        .unwrap();
         host.handle_lifecycle_event(WindowLifecycleEvent::Moved {
             window_id: window(index),
             outer_origin: longhorn_core::ScreenPoint::new(10, 10),

@@ -62,9 +62,15 @@ impl<R: Runtime> TauriWindowLifecycleHost<R> {
                                     // before the unlocked capture; a newer
                                     // retained normal installed concurrently
                                     // by register_apply wins.
-                                    if installed.retained_normal() == retained_normal {
+                                    let normal = placement.normal_placement();
+                                    if installed.retained_normal() == retained_normal
+                                        && let Some(size) = normal.inner_size()
+                                    {
                                         installed.set_retained_normal(Some(
-                                            placement.normal_placement(),
+                                            longhorn_core::WindowPlacement::new(
+                                                normal.outer_origin(),
+                                                size,
+                                            ),
                                         ));
                                     }
                                 }
