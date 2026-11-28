@@ -15,6 +15,7 @@ import {
   assertValidSurfaceMutationCommand,
   assertValidSurfaceMutationResponse,
   assertValidSurfaceSnapshot,
+  SurfaceProtocolValidationError,
 } from "./validation.ts";
 
 export const SURFACE_SNAPSHOT_COMMAND = "longhorn_surfaces_snapshot";
@@ -46,6 +47,11 @@ export class SurfaceClient {
       request,
     });
     assertValidSurfaceMutationResponse(value);
+    const echoed =
+      value.status === "committed" ? value.receipt.request_id : value.rejection.request_id;
+    if (echoed !== request.request_id) {
+      throw new SurfaceProtocolValidationError("uncorrelated_response", value);
+    }
     return value;
   }
 

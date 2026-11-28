@@ -1,0 +1,1 @@
+Surface mutation receipts and rejections, command and outcome values, and transfer and Surface-transfer sessions, aborts, targets and completions are now validated to their leaves, including the authoritative Surface document. Migration: hosts and test transports must send complete generated payloads.

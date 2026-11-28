@@ -237,7 +237,17 @@ authority, and derives that strictness from it.** Concretely:
 - **Check nested wire data before returning a typed value.** Validate array
   members and the contents of each admitted variant. Surface clients use
   non-negative safe-integer epochs and revisions and require the snapshot
-  revision to match the document revision before applying it.
+  revision to match the document revision before applying it. Surface mutation
+  receipts and rejections, transfer and Surface-transfer completions, sessions
+  and aborts, and every command catalogue, availability, keymap request and
+  reply are checked to their leaves. The Surface client refuses a mutation reply
+  that does not echo the request id.
+- **Opaque identifiers follow one generated rule.** Rust declares the
+  characters and byte bound, and the bindings emit them once as
+  `OPAQUE_ID_RULE`. The bridge, command, config, history, native-content,
+  operation, settings, Surface, transfer and Surface-transfer validators read
+  it. Command ids are the exception: contract 006 admits injected-port ids that
+  search has to fold.
 - **A rule Rust declares is generated, not copied.** Including rules that are
   not types: the connection state/reason matrix and the state-to-state
   transition matrix each lived in a `matches!` arm, were hand-copied into
