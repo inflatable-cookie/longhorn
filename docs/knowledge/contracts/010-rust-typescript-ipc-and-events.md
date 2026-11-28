@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-11-24
+Updated: 2026-11-28
 Evidence: `003-foundation-boundary-characterization.md` (Git history);
 `013-typed-bridge-and-backend-topology-boundary.md` (Git history);
 `014-command-input-and-palette-boundary.md` (Git history)
@@ -117,6 +117,11 @@ See Q-007.
   window-destroyed hook by default; hosts that install `TauriBridgeState::new`
   manually must wire `teardown_window` from `.on_window_event`. A destroyed
   window's session must stop validating, not linger.
+- The caller is the window, and only its UI webview (the one sharing the
+  window label) speaks for it. The UI webview keeps the bridge when the window
+  also hosts child webviews. A child webview's bridge command fails with
+  `invalidSession`, whatever session id it presents. `longhorn-tauri-bridge`
+  enables Tauri's `unstable` feature for this.
 - Session ids are per-session secrets. The authority provider must mint an
   unguessable id (128-bit random or better): session use requires only the id
   and the window label, and labels are predictable. Fixture-style ids
@@ -128,15 +133,18 @@ See Q-007.
   mutation.
 
 The Tauri bridge dispatches domain, progress and terminal events as
-`CustomEvent` on the owning renderer's `window`. The host serializes the event
-name and encodes the payload as a JSON string literal before building the
-script. The script parses that string into `detail`, which the DOM listener
-reads. The subscription capability grants only invoke permissions. The
-Tauri event bus filters listener callbacks and
-can still send the payload to a nonmatching webview, so it cannot carry
-these full payloads across the authority boundary. The client also checks
-session cursors and job correlation. A product that needs cross-window
-invalidation can use a distinct hint and an authorized refetch.
+`CustomEvent` on the `window` of the owning window's UI webview. Every event
+requires the session to hold read authority for the domain. Progress and
+terminal events also require execution authority, and a domain event requires
+the current authority epoch. The host serializes the event name and encodes
+the payload as a JSON string literal before building the script. The script
+parses that string into `detail`, which the DOM listener reads. The
+subscription capability grants only invoke permissions. The Tauri event bus
+filters listener callbacks and can still send the payload to a nonmatching
+webview, so it cannot carry these full payloads across the authority
+boundary. The client also checks session cursors and job correlation. A
+product that needs cross-window invalidation can use a distinct hint and an
+authorized refetch.
 
 ## Handler And Client Shape
 

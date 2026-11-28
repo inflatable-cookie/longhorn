@@ -21,6 +21,14 @@ builder
     ])
 ```
 
+A session belongs to a window, and only its UI webview (the one sharing the
+window label) can use the bridge. That holds when the window also hosts child
+webviews, such as native-content islands; the children are refused. The crate
+enables Tauri's `unstable` feature to do this.
+
+Events reach only sessions with read authority for the domain. Progress and
+terminal events also need execution authority.
+
 Use `BridgeHandlerAssembly::new` for invoke-only hosts. Use
 `with_event_sink` with `TauriBridgeEventSink` when the app needs subscriptions.
 The sink dispatches `CustomEvent` in the owning renderer. Bridge subscriptions

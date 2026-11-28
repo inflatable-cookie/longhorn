@@ -20,11 +20,11 @@ use crate::{
 mod authorization;
 mod publication;
 
-pub(crate) use authorization::caller_torn_down;
 use authorization::{
     AuthorityNeed, RouteKind, authorize, invalid_authority, invalid_reply, invalid_session,
     unknown_route,
 };
+pub(crate) use authorization::{caller_not_ui_webview, caller_torn_down};
 
 #[derive(Clone)]
 struct SessionRecord {

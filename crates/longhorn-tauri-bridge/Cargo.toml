@@ -12,7 +12,10 @@ longhorn-bridge.workspace = true
 longhorn-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-tauri.workspace = true
+# `unstable` because caller admission and event delivery must survive
+# multiwebview windows: `WebviewWindow` and `get_webview_window` refuse a window
+# hosting a child webview (a native-content island).
+tauri = { workspace = true, features = ["unstable"] }
 
 [dev-dependencies]
 tauri = { workspace = true, features = ["test"] }
