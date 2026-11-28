@@ -1,11 +1,14 @@
 //! Protocol execution over OperationCatalogue.
 
-use crate::{
-    OperationCatalogue, OperationDismissal, OperationProgressUpdate, OperationRegistration,
-    OperationRetentionChange, OperationTeardown, OperationTransition,
+use crate::protocol::{
+    OperationCatalogueLimitsProjection, OperationEntryProjection, OperationMutationCommand,
+    OperationMutationReceiptProjection, OperationPhaseProgressProjection,
+    OperationProgressProjection, OperationProtocolInputError, OperationRejection,
 };
-
-use super::super::*;
+use crate::{
+    OperationCatalogue, OperationDismissal, OperationLabel, OperationProgressUpdate,
+    OperationRegistration, OperationRetentionChange, OperationTeardown, OperationTransition,
+};
 
 use super::{project_teardown_outcome, project_teardown_resolution};
 
@@ -27,7 +30,7 @@ pub(crate) fn execute_mutation(
             ..
         } => {
             let authority = authority.into_cursor().map_err(OperationRejection::from)?;
-            let label = crate::OperationLabel::new(label).map_err(|error| {
+            let label = OperationLabel::new(label).map_err(|error| {
                 OperationRejection::from(OperationProtocolInputError::Label(error.to_string()))
             })?;
             let receipt = catalogue

@@ -25,7 +25,7 @@ fn retry_registration(
 }
 
 #[test]
-fn retry_lineage_requires_a_retained_terminal_and_never_reopens_it() {
+fn retry_lineage_rejects_active_or_self_allows_terminal_or_dismissed_and_never_reopens() {
     let mut catalogue = catalogue("authority:retry", 1);
     catalogue
         .register(registration(
@@ -220,6 +220,192 @@ fn teardown_is_complete_atomic_and_closes_the_authority() {
         Err(OperationCatalogueError::AuthorityClosed)
     );
     assert_eq!(catalogue, closed_before);
+}
+
+#[test]
+fn teardown_rejects_non_terminal_completion_without_mutation() {
+    for invalid_state in [
+        OperationState::Queued,
+        OperationState::Running,
+        OperationState::Cancelling,
+    ] {
+        let mut catalogue = catalogue("authority:teardown-invalid-terminal", 1);
+        catalogue
+            .register(registration(
+                &catalogue,
+                "operation:active",
+                "test",
+                "Active",
+                OperationState::Running,
+            ))
+            .unwrap();
+        let active = catalogue
+            .operation(&operation_id("operation:active"))
+            .unwrap();
+        let request = OperationTeardown::new(
+            catalogue.authority().clone(),
+            catalogue.revision(),
+            vec![OperationTeardownResolution::new(
+                active.operation_id().clone(),
+                active.revision(),
+                OperationTeardownResolutionOutcome::Complete(invalid_state),
+            )],
+        );
+        let before = catalogue.clone();
+        assert_eq!(
+            catalogue.teardown(request),
+            Err(OperationCatalogueError::InvalidTeardownTerminal {
+                state: invalid_state,
+            })
+        );
+        assert_eq!(catalogue, before);
+        assert!(!catalogue.is_closed());
+    }
+}
+
+#[test]
+fn teardown_enforces_lifecycle_edges_and_rejects_queued_succeeded_without_mutation() {
+    let mut catalogue = catalogue("authority:teardown-edges", 1);
+    catalogue
+        .register(registration(
+            &catalogue,
+            "operation:queued",
+            "test",
+            "Queued",
+            OperationState::Queued,
+        ))
+        .unwrap();
+    let queued = catalogue
+        .operation(&operation_id("operation:queued"))
+        .unwrap();
+    let illegal = OperationTeardown::new(
+        catalogue.authority().clone(),
+        catalogue.revision(),
+        vec![OperationTeardownResolution::new(
+            queued.operation_id().clone(),
+            queued.revision(),
+            OperationTeardownResolutionOutcome::Complete(OperationState::Succeeded),
+        )],
+    );
+    let before = catalogue.clone();
+    assert_eq!(
+        catalogue.teardown(illegal),
+        Err(OperationCatalogueError::InvalidTransition {
+            current: OperationState::Queued,
+            next: OperationState::Succeeded,
+        })
+    );
+    assert_eq!(catalogue, before);
+    assert!(!catalogue.is_closed());
+
+    // Legal queued teardown terminals (`Failed`, `Cancelled`, `Interrupted`) and
+    // running `Succeeded` all commit cleanly.
+    for legal_queued in [
+        OperationState::Failed,
+        OperationState::Cancelled,
+        OperationState::Interrupted,
+    ] {
+        let mut legal_catalogue = super::support::catalogue("authority:teardown-legal", 1);
+        legal_catalogue
+            .register(registration(
+                &legal_catalogue,
+                "operation:queued",
+                "test",
+                "Queued",
+                OperationState::Queued,
+            ))
+            .unwrap();
+        legal_catalogue
+            .register(registration(
+                &legal_catalogue,
+                "operation:running",
+                "test",
+                "Running",
+                OperationState::Running,
+            ))
+            .unwrap();
+        let queued = legal_catalogue
+            .operation(&operation_id("operation:queued"))
+            .unwrap();
+        let running = legal_catalogue
+            .operation(&operation_id("operation:running"))
+            .unwrap();
+        let request = OperationTeardown::new(
+            legal_catalogue.authority().clone(),
+            legal_catalogue.revision(),
+            vec![
+                OperationTeardownResolution::new(
+                    queued.operation_id().clone(),
+                    queued.revision(),
+                    OperationTeardownResolutionOutcome::Complete(legal_queued),
+                ),
+                OperationTeardownResolution::new(
+                    running.operation_id().clone(),
+                    running.revision(),
+                    OperationTeardownResolutionOutcome::Complete(OperationState::Succeeded),
+                ),
+            ],
+        );
+        let receipt = legal_catalogue.teardown(request).unwrap();
+        assert_eq!(receipt.outcomes().len(), 2);
+        assert!(legal_catalogue.is_closed());
+    }
+}
+
+#[test]
+fn teardown_rejects_transfer_to_self_without_mutation() {
+    let mut catalogue = catalogue("authority:teardown-self", 3);
+    catalogue
+        .register(registration(
+            &catalogue,
+            "operation:self-transfer",
+            "test",
+            "Self transfer",
+            OperationState::Running,
+        ))
+        .unwrap();
+    let op = catalogue
+        .operation(&operation_id("operation:self-transfer"))
+        .unwrap();
+    let op_id = op.operation_id().clone();
+    let op_revision = op.revision();
+    let request = OperationTeardown::new(
+        catalogue.authority().clone(),
+        catalogue.revision(),
+        vec![OperationTeardownResolution::new(
+            op_id.clone(),
+            op_revision,
+            OperationTeardownResolutionOutcome::Transfer(catalogue.authority().clone()),
+        )],
+    );
+    let before = catalogue.clone();
+    assert_eq!(
+        catalogue.teardown(request),
+        Err(OperationCatalogueError::TeardownTransferToSelf {
+            operation_id: operation_id("operation:self-transfer"),
+        })
+    );
+    assert_eq!(catalogue, before);
+    assert!(!catalogue.is_closed());
+
+    // Transferring to the same authority id at a newer epoch is allowed.
+    let next_epoch = cursor("authority:teardown-self", 4);
+    let valid = OperationTeardown::new(
+        catalogue.authority().clone(),
+        catalogue.revision(),
+        vec![OperationTeardownResolution::new(
+            op_id,
+            op_revision,
+            OperationTeardownResolutionOutcome::Transfer(next_epoch.clone()),
+        )],
+    );
+    let receipt = catalogue.teardown(valid).unwrap();
+    assert!(matches!(
+        &receipt.outcomes()[0],
+        OperationTeardownOutcome::Transferred { target_authority, .. }
+            if target_authority == &next_epoch
+    ));
+    assert!(catalogue.is_closed());
 }
 
 #[test]

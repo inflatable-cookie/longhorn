@@ -118,7 +118,8 @@ stop becomes `cancelled`.
 
 Repeated requests are idempotent. Stale epoch or revision rejects. Cancelling
 queued work may become terminal immediately only when consumer admission
-confirms execution never started.
+confirms execution never started. The protocol path carries that confirmation
+from consumer admission; it is never inferred from the command.
 
 ## Progress
 
@@ -164,7 +165,9 @@ Renderer unmount only disposes listeners. It does not cancel host work.
 Authority teardown produces an explicit outcome for every non-terminal
 operation. The consumer may complete cancellation, mark interruption, or
 transfer to another live authority. Silent disappearance is forbidden in a
-controlled shutdown.
+controlled shutdown. A completion follows the same
+transition edges as an ordinary transition: teardown cannot commit `queued`
+straight to `succeeded`.
 
 The v1 core is not a durable scheduler. A consumer that persists operations
 must reconcile each recovered non-terminal record before publication. It may

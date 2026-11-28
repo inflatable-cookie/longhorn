@@ -368,7 +368,6 @@ impl OperationRegistrationReceipt {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationTransitionReceipt {
     pub(crate) operation: OperationRecord,
-    pub(crate) operation_id: OperationId,
     pub(crate) previous_state: OperationState,
     pub(crate) committed_state: OperationState,
     pub(crate) previous_operation_revision: OperationRevision,
@@ -388,7 +387,7 @@ impl OperationTransitionReceipt {
     /// Returns the changed operation identity.
     #[must_use]
     pub const fn operation_id(&self) -> &OperationId {
-        &self.operation_id
+        self.operation.operation_id()
     }
     /// Returns the state before the transition.
     #[must_use]

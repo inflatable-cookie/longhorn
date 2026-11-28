@@ -123,7 +123,6 @@ impl OperationCatalogue {
         self.revision = committed_catalogue_revision;
         Ok(OperationTransitionReceipt {
             operation: committed_operation,
-            operation_id: request.operation_id,
             previous_state,
             committed_state: request.next_state,
             previous_operation_revision,
@@ -198,7 +197,6 @@ impl OperationCatalogue {
         if outcome != OperationCancellationOutcome::Accepted {
             return Ok(OperationCancellationReceipt {
                 operation: operation.clone(),
-                operation_id: request.operation_id,
                 outcome,
                 previous_state: operation.state(),
                 committed_state: operation.state(),
@@ -242,7 +240,6 @@ impl OperationCatalogue {
         self.revision = committed_catalogue_revision;
         Ok(OperationCancellationReceipt {
             operation: committed_operation,
-            operation_id: request.operation_id,
             outcome,
             previous_state,
             committed_state,
