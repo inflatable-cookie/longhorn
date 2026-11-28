@@ -72,6 +72,30 @@ describe("SettingsSession", () => {
     expect(scope.status.kind).toBe("idle");
   });
 
+  it("retries a failed settings scope start without leaking the old subscription", async () => {
+    const transport = new FakeSettingsTransport();
+    const page = transport.registryValue.pages[0];
+    const scopeId = page?.readableScopeIds[0];
+    assert.ok(page && scopeId);
+    const scope = new SettingsScopeState({
+      client: transport.client(),
+      registry: transport.registryValue,
+      pageId: page.id,
+      scopeId,
+      nextRequestId: requestIds("scope-retry"),
+    });
+    transport.loadError = new Error("settings scope unavailable");
+    await expect(scope.start()).rejects.toBe(transport.loadError);
+    expect(transport.activeListenerCount()).toBe(0);
+
+    transport.loadError = undefined;
+    await scope.start();
+    expect(scope.status.kind).toBe("ready");
+    expect(scope.snapshot?.scopeId).toBe(scopeId);
+    expect(transport.activeListenerCount()).toBe(1);
+    await scope.stop();
+  });
+
   it("uses the host folding policy for page and anchor search", async () => {
     for (const testCase of parity.settingsSearch) {
       const transport = new FakeSettingsTransport();
@@ -442,12 +466,16 @@ describe("SettingsSession", () => {
     });
     await session.start(() => renderer());
     expect(session.registry?.generation).toBe(fixture.registry.generation);
+    const outgoing = session.currentPageSession;
+    expect(outgoing).toBeDefined();
 
     const disposal = transport.deferNextScopeUnlisten();
     transport.publishRegistry(newer);
     // The first replacement is now disposing the outgoing scopes and cannot
     // finish until the gate below releases.
     await disposal.entered;
+    expect(session.currentPageSession).toBeUndefined();
+    expect(session.currentContext).toBeUndefined();
     transport.publishRegistry(newest);
     await transport.drain();
     disposal.release();
@@ -455,6 +483,8 @@ describe("SettingsSession", () => {
     await transport.settle(() => session.status.kind === "ready");
     expect(session.registry?.generation).toBe(newest);
     expect(session.status.kind).toBe("ready");
+    expect(session.currentPageSession).toBeDefined();
+    expect(session.currentPageSession).not.toBe(outgoing);
     await session.stop();
   });
 

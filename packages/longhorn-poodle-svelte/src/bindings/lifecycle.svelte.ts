@@ -68,7 +68,7 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
     if (this.#destroyed) {
       return Promise.reject(new ClientStateDestroyedError());
     }
-    return this.#lifecycle.start((generation) => this.#begin(generation, false));
+    return this.#lifecycle.start((generation) => this.#begin(generation, false), true);
   }
 
   reconnect(): Promise<void> {
@@ -80,7 +80,7 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
     }
 
     void this.#stop(false).catch(() => undefined);
-    return this.#lifecycle.start((generation) => this.#begin(generation, true));
+    return this.#lifecycle.start((generation) => this.#begin(generation, true), true);
   }
 
   stop(): Promise<void> {
@@ -172,8 +172,8 @@ export class ReactiveClientState<Snapshot> implements StartableClientState {
     if (clearSnapshot) {
       this.#snapshot = undefined;
     }
+    this.#status = { kind: clearSnapshot ? "idle" : "reconnecting" };
     return this.#lifecycle.stop(async () => {
-      this.#status = { kind: "idle" };
       // A synchronous connect callback can call stop before connect returns.
       // Capture its connection after that call has finished publishing it.
       await Promise.resolve();

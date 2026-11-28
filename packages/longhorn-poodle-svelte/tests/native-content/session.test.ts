@@ -31,6 +31,22 @@ function session(
 }
 
 describe("NativeContentSession", () => {
+  it("retries a rejected native-content start", async () => {
+    const client = new ScriptedClient();
+    const state = session(client, new ResizeObserverTrace());
+    const failure = new Error("native content unavailable");
+    vi.spyOn(client, "connect").mockImplementationOnce(() => {
+      throw failure;
+    });
+
+    await expect(state.start()).rejects.toBe(failure);
+    expect(state.status).toEqual({ kind: "failed", error: failure });
+    await state.start();
+    expect(state.status.kind).toBe("ready");
+    expect(client.connections).toHaveLength(1);
+    await state.stop();
+  });
+
   it("supersedes a start queued behind native-content teardown", async () => {
     const client = new ScriptedClient();
     const state = session(client, new ResizeObserverTrace());

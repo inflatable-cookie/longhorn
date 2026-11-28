@@ -8,9 +8,7 @@
   let { session }: { session: CommandSession } = $props();
 </script>
 
-<button type="button" onclick={() => session.setOpen(true)}>
-  Open commands
-</button>
+<button type="button" onclick={() => session.setOpen(true)}> Open commands </button>
 
 <CommandPaletteBinding
   {session}
@@ -21,4 +19,6 @@
 <KeybindingSettings
   records={session.settingsRecords}
   conflicts={session.projection?.conflicts ?? []}
+  status={session.status}
+  mutation={session.mutation}
 />

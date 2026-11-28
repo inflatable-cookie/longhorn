@@ -140,7 +140,6 @@ export class SurfaceState {
       if (this.#operations.includes(pending)) {
         this.#projection.cancel(request.request_id);
         this.#setOperation({ requestId: request.request_id, status: "failed", error });
-        this.#lifecycle.fail(error);
       }
       throw error;
     }

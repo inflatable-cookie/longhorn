@@ -7,6 +7,30 @@ import { NotificationSession } from "../../src/notifications/svelte.ts";
 import { createMountedSession, MountedNotificationPort, withNewRecord } from "./support.ts";
 
 describe("notification Svelte and public Poodle adapters", () => {
+  it("shows loading during the initial read and reloads after a failure", async () => {
+    const { port, session } = createMountedSession();
+    let rejectRead!: (error: Error) => void;
+    const initial = new Promise<unknown>((_resolve, reject) => {
+      rejectRead = reject;
+    });
+    const read = vi.spyOn(port, "snapshot").mockReturnValueOnce(initial);
+    const mounted = render(NotificationHarness, { props: { session } });
+
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    expect(mounted.getByLabelText("Loading notifications")).toBeTruthy();
+    expect(mounted.queryByText("No notifications.")).toBeNull();
+    rejectRead(new Error("Notification host unavailable"));
+    expect(await mounted.findByText("Notification host unavailable")).toBeTruthy();
+
+    await fireEvent.click(mounted.getByRole("button", { name: "Retry" }));
+    expect(await mounted.findByRole("button", { name: "Scan complete" })).toBeTruthy();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(port.listeners.size).toBe(1);
+    mounted.unmount();
+    await session.stop();
+    expect(port.listeners.size).toBe(0);
+  });
+
   it("keeps notification authority behind commands and observation", async () => {
     const { session } = createMountedSession();
     await session.start();

@@ -10,16 +10,12 @@ import {
   parseTransferPayload,
   serializeTransferPayload,
 } from "@inflatable-cookie/longhorn/transfer";
-import type { TransferCommitSelector } from "@inflatable-cookie/longhorn/transfer";
+import { notify, reportError, resolveDropSelector } from "./drop-target.ts";
+import type { DropSelector } from "./drop-target.ts";
 
 import type { SurfaceTransferState } from "./surface-transfer.svelte.ts";
 
-export type SurfaceDropSelector =
-  | {
-      readonly kind: "explicit_zone";
-      readonly dropZoneId: string;
-    }
-  | { readonly kind: "screen_point" };
+export type SurfaceDropSelector = DropSelector;
 
 export interface SurfaceTransferDragOptions {
   readonly state: SurfaceTransferState;
@@ -146,13 +142,13 @@ export function surfaceTransferDrag(
 }
 
 function handleDragOver(event: DragEvent): void {
-  if (readPayload(event.dataTransfer) === null) {
+  // The drag store exposes types during dragover and payload data on drop.
+  const dataTransfer = event.dataTransfer;
+  if (!dataTransfer?.types.includes(LONGHORN_TRANSFER_MIME_TYPE)) {
     return;
   }
   event.preventDefault();
-  if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = "move";
-  }
+  dataTransfer.dropEffect = "move";
 }
 
 export function surfaceTransferDrop(
@@ -173,11 +169,14 @@ export function surfaceTransferDrop(
         protocol_version: TRANSFER_PROTOCOL_VERSION,
         request_id: options.nextRequestId(),
         session_id: payload.session_id,
-        selector: resolveSelector(options.selector, event),
+        selector: resolveDropSelector(options.selector, () => ({
+          x: event.screenX,
+          y: event.screenY,
+        })),
       };
     } catch (error) {
       reportError(options.reportError, error);
-      notifyTerminal(options.onTerminal, options.reportError);
+      notify(options.onTerminal, undefined, options.reportError);
       return;
     }
     void options.state
@@ -189,7 +188,7 @@ export function surfaceTransferDrop(
         reportError(options.reportError, error);
       })
       .finally(() => {
-        notifyTerminal(options.onTerminal, options.reportError);
+        notify(options.onTerminal, undefined, options.reportError);
       });
   }
 
@@ -225,53 +224,6 @@ function readPayload(dataTransfer: DataTransfer | null | undefined) {
     return parseTransferPayload(raw);
   } catch {
     return null;
-  }
-}
-
-function resolveSelector(selector: SurfaceDropSelector, event: DragEvent): TransferCommitSelector {
-  if (selector.kind === "explicit_zone") {
-    return {
-      kind: "explicit_zone",
-      drop_zone_id: selector.dropZoneId,
-    };
-  }
-  if (!Number.isSafeInteger(event.screenX) || !Number.isSafeInteger(event.screenY)) {
-    throw new RangeError("drop screen point must use integer screen DIPs");
-  }
-  return {
-    kind: "screen_point",
-    point: { x: event.screenX, y: event.screenY },
-  };
-}
-
-function reportError(reporter: (error: unknown) => void, error: unknown): void {
-  try {
-    reporter(error);
-  } catch {
-    // Reporting failure must not escape an event callback.
-  }
-}
-
-function notify<T>(
-  listener: ((value: T) => void) | undefined,
-  value: T,
-  reporter: (error: unknown) => void,
-): void {
-  try {
-    listener?.(value);
-  } catch (error) {
-    reportError(reporter, error);
-  }
-}
-
-function notifyTerminal(
-  listener: (() => void) | undefined,
-  reporter: (error: unknown) => void,
-): void {
-  try {
-    listener?.();
-  } catch (error) {
-    reportError(reporter, error);
   }
 }
 

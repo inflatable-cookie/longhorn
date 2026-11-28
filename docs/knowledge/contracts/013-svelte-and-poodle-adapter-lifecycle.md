@@ -22,6 +22,9 @@ primitives without copying component source or durable state.
 - Stop is idempotent and handles listener-registration promises that resolve
   after teardown. A start queued behind stop runs only if it is still current
   when teardown finishes. A later stop or destroy supersedes that start.
+- Reactive client and settings scope startup can be retried after a failed
+  connection is disposed. Reconnect retains the last reactive client snapshot
+  until the replacement can publish one.
 - Window destruction releases listeners, timers, drag leases, and pending
   optimistic projections.
 - Transport and scheduler dependencies are injectable for tests.
@@ -37,7 +40,8 @@ primitives without copying component source or durable state.
   history, notification, and operation Svelte sessions expose read-only
   projections. Use session commands to change selection, filters, or pages.
 - Surface mutation feedback retains pending requests and the 32 most recently
-  settled operations within the session. Stop clears it.
+  settled operations within the session. Stop clears it. Surface and transfer
+  command failures update operation feedback independently of subscription status.
 - Optimistic mutations are keyed by request id, reconciled to the host result,
   and rolled back or resynced on failure. Layout stop clears the projection.
   An earlier dispatch can still return its outcome to its caller, but it
@@ -54,9 +58,12 @@ primitives without copying component source or durable state.
   the error when none was supplied.
 - Initial configuration read failures show one error with Retry. A loaded
   snapshot with an absent capability can show that capability as unavailable.
+- Operation and notification panels show loading until the initial read
+  settles. Retry replaces a failed subscription.
 - Drop-zone lease geometry is refreshed on resize and on window or ancestor
   scroll. For position changes without those events, the layout owner can
-  request publication after layout settles.
+  request publication after layout settles. Zero-extent zones are omitted
+  until they have measurable area.
 - An optional capability lives behind its package subpath. Importing the
   Surface-free root cannot resolve that capability.
 
@@ -75,8 +82,9 @@ primitives without copying component source or durable state.
   APIs. Poodle owns focus and visual semantics; Longhorn owns ids, search,
   conflict records, and injected dispatch. The palette and keybinding
   settings share the matching rules in [contract 006](006-command-action-and-input.md#projection-and-ui).
-  Keybinding reset requires confirmation. The palette shows search and
-  execution failures while it stays open.
+  Keybinding reset requires confirmation. Keybinding settings can show
+  controller load and mutation states alongside an explicit no-match state.
+  The palette shows search and execution failures while it stays open.
 - A command selection calls a consumer executor. No Svelte or Poodle adapter
   invents a generic Tauri execution route.
 - Same-window drag remains Poodle-owned. Cross-window binding requires public
@@ -84,6 +92,9 @@ primitives without copying component source or durable state.
 - Poodle `g12.016` supplies those public points through typed asynchronous
   prepare, synchronous start, terminal end/cancel, target eligibility, and
   accepted-drop callbacks. Pending preparation emits no external payload.
+- Panel targets can subscribe to host-owned incoming projection and terminal
+  events. Surface drag-over admits the transfer MIME type and reads its
+  payload on drop.
 - Private MIME values, generated DOM ids, CSS classes, and event-target
   reverse engineering are not public integration seams.
 

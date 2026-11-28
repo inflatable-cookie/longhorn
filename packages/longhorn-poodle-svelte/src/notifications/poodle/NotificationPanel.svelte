@@ -4,6 +4,7 @@
     Button,
     Callout,
     InlineListSection,
+    Spinner,
     Stack,
     StatusIndicator,
   } from "@inflatable-cookie/poodle-svelte";
@@ -25,10 +26,6 @@
     detail?: Snippet<[NotificationRecordProjection]>;
   } = $props();
 
-  const failure = $derived(
-    session.status.kind === "failed" ? errorMessage(session.status.error) : null,
-  );
-
   function toggle(record: NotificationRecordProjection): void {
     session.select(
       session.selectedNotificationId === record.notificationId ? undefined : record.notificationId,
@@ -40,13 +37,21 @@
 </script>
 
 <Stack gap="md" ariaLabel={title}>
-  {#if failure}
+  {#if session.status.kind === "idle" || session.status.kind === "loading"}
+    <Spinner ariaLabel="Loading notifications" />
+  {:else if session.status.kind === "failed"}
     <Callout
       tone="danger"
       title="Notifications unavailable"
-      message={failure}
+      message={errorMessage(session.status.error)}
       announceMode="polite"
-    />
+    >
+      {#snippet actions()}
+        <Button variant="secondary" onClick={() => void session.retry().catch(() => undefined)}>
+          Retry
+        </Button>
+      {/snippet}
+    </Callout>
   {:else}
     {#if session.commandRejection}
       <Callout

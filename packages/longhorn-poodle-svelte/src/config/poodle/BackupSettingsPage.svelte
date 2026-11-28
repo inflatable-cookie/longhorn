@@ -13,7 +13,11 @@
   } from "@inflatable-cookie/poodle-svelte";
   import type { TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
 
-  import type { BackupArchiveProjection } from "@inflatable-cookie/longhorn/config";
+  import type {
+    BackupArchiveProjection,
+    BackupEncryptionState,
+    BackupInventoryEntryState,
+  } from "@inflatable-cookie/longhorn/config";
   import ConfigSnapshotState from "./ConfigSnapshotState.svelte";
   import { configRequest, useConfigPage } from "./page-state.svelte.ts";
   import type { ConfigOperationsPageProps } from "./types.ts";
@@ -39,6 +43,21 @@
   const canCreate = $derived(page.snapshot?.capabilities.includes("backupCreate") === true);
   const canExport = $derived(page.snapshot?.capabilities.includes("backupExport") === true);
   const canRetain = $derived(page.snapshot?.capabilities.includes("backupRetention") === true);
+  const inventoryStateLabels: Record<BackupInventoryEntryState, string> = {
+    valid: "Valid",
+    locked: "Locked",
+    corrupt: "Corrupt",
+    foreign: "Different application",
+    unknown: "Unrecognized archive",
+    unreadable: "Unreadable",
+    unmanaged: "Unmanaged",
+  };
+  const encryptionStateLabels: Record<BackupEncryptionState["state"], string> = {
+    unavailable: "Unavailable",
+    available: "Available",
+    interactionRequired: "Action required",
+    failed: "Failed",
+  };
   const inventoryColumns: Array<TableColumn> = [
     { id: "state", label: "State", isRowHeader: true },
     { id: "path", label: "Path" },
@@ -48,7 +67,7 @@
     backup?.inventory.entries.map((entry, index) => ({
       id: `${index}:${entry.path ?? entry.diagnosticKind}`,
       cells: {
-        state: entry.state,
+        state: inventoryStateLabels[entry.state],
         path: entry.path ?? "Operational root",
         detail: entry.detail,
       },
@@ -166,7 +185,7 @@
           <DetailItem label="Operational root" value={backup.inventory.root} />
           <DetailItem label="Inventory complete" value={backup.inventory.complete ? "Yes" : "No"} />
           <DetailItem label="Valid archives" value={backup.inventory.archives.length} />
-          <DetailItem label="Encryption" value={backup.encryption.state} />
+          <DetailItem label="Encryption" value={encryptionStateLabels[backup.encryption.state]} />
         </Grid>
       </Surface>
 

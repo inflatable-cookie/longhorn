@@ -152,6 +152,30 @@ describe("SettingsShell", () => {
     await session.stop();
   });
 
+  it("keeps search focused when a background registry update retains the route", async () => {
+    const transport = new FakeSettingsTransport();
+    const session = createSession(transport);
+    const mounted = render(SettingsShellHarness, { props: { session } });
+    await mounted.findByTestId("consumer-page");
+    const target = document.querySelector('[data-page-id="app:audio"]');
+    await waitFor(() => expect(document.activeElement).toBe(target));
+
+    const search = mounted.getByRole("searchbox", { name: "Search settings" });
+    search.focus();
+    const generation = transport.registryValue.generation + 1;
+    const revision = session.focusRevision;
+    transport.publishRegistry(generation);
+    await waitFor(() => {
+      expect(session.registry?.generation).toBe(generation);
+      expect(session.status.kind).toBe("ready");
+    });
+    expect(session.focusRevision).toBe(revision);
+    expect(document.activeElement).toBe(search);
+
+    mounted.unmount();
+    await session.stop();
+  });
+
   /**
    * A rail click is a shell action, and a rejected navigation used to escape
    * through a promise nobody observed: no record on screen, and the rejection

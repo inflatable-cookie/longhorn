@@ -10,72 +10,74 @@ import type {
 
 import { freezeProjection } from "../../bindings/freeze-projection.ts";
 
+import { SessionProjection } from "../../bindings/session-projection.svelte.ts";
+
 export class NotificationSession {
   readonly #controller: NotificationController;
-  readonly #unobserve: () => void;
-  #projection: ReturnType<typeof project>;
+  readonly #projection: SessionProjection<ReturnType<typeof project>>;
 
   constructor(options: NotificationControllerOptions) {
     this.#controller = new NotificationController(options);
-    this.#projection = $state.raw(project(this.#controller));
-    this.#unobserve = this.#controller.observe(() => {
-      this.#projection = project(this.#controller);
-    });
+    this.#projection = new SessionProjection(this.#controller, () => project(this.#controller));
   }
 
   get status() {
-    return this.#projection.status;
+    return this.#projection.retryFailure ?? this.#projection.current.status;
   }
 
   get snapshot() {
-    return this.#projection.snapshot;
+    return this.#projection.current.snapshot;
   }
 
   get records() {
-    return this.#projection.records;
+    return this.#projection.current.records;
   }
 
   get toasts() {
-    return this.#projection.toasts;
+    return this.#projection.current.toasts;
   }
 
   get selectedNotificationId() {
-    return this.#projection.selectedNotificationId;
+    return this.#projection.current.selectedNotificationId;
   }
 
   get selected() {
-    return this.#projection.selected;
+    return this.#projection.current.selected;
   }
 
   get pendingCommands() {
-    return this.#projection.pendingCommands;
+    return this.#projection.current.pendingCommands;
   }
 
   get commandRejection() {
-    return this.#projection.commandRejection;
+    return this.#projection.current.commandRejection;
   }
 
   get commandFailure() {
-    return this.#projection.commandFailure;
+    return this.#projection.current.commandFailure;
   }
 
   get pagination() {
-    return this.#projection.pagination;
+    return this.#projection.current.pagination;
   }
 
   get hasMore() {
-    return this.#projection.hasMore;
+    return this.#projection.current.hasMore;
   }
 
   start(): Promise<void> {
-    return this.#controller.start();
+    return this.#projection.start();
   }
   stop(): Promise<void> {
-    return this.#controller.stop();
+    return this.#projection.stop();
   }
+  retry(): Promise<void> {
+    const status = this.status;
+    return status.kind === "failed" ? this.#projection.retry(status.error) : this.start();
+  }
+
   async dispose(): Promise<void> {
-    this.#unobserve();
-    await this.#controller.stop();
+    await this.#projection.dispose();
   }
   observe(observer: () => void): () => void {
     return this.#controller.observe(observer);

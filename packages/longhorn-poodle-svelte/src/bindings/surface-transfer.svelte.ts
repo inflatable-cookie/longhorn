@@ -73,9 +73,6 @@ export class SurfaceTransferState {
 
   async start(): Promise<void> {
     this.#assertAlive();
-    if (!this.#stopped && this.#status.kind === "failed") {
-      this.#status = { kind: "ready" };
-    }
     await this.#lifetime.start(async () => {
       this.#stopped = false;
       this.#status =
@@ -122,7 +119,6 @@ export class SurfaceTransferState {
       .catch((error: unknown) => {
         if (generation === this.#generation && !this.#stopped) {
           this.#preparation = { status: "failed", error };
-          this.#status = { kind: "failed", error };
         }
         throw error;
       });
@@ -151,7 +147,6 @@ export class SurfaceTransferState {
       return response;
     } catch (error) {
       this.#completion = { status: "failed", error };
-      this.#status = { kind: "failed", error };
       throw error;
     }
   }

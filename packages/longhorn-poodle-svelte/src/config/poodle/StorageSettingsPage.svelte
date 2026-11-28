@@ -15,6 +15,7 @@
   import type { SelectOption, TableColumn, TableRow } from "@inflatable-cookie/poodle-svelte";
 
   import type {
+    StorageLeafProvenanceProjection,
     StorageProfileId,
     StorageTransitionPreviewProjection,
     StorageTransitionReceiptProjection,
@@ -47,6 +48,20 @@
   );
 
   const storage = $derived(page.snapshot?.storage ?? null);
+  const leafSourceLabels: Record<StorageLeafProvenanceProjection, string> = {
+    canonicalApplicationId: "Application identity",
+    stableStorageName: "Configured storage name",
+  };
+  const platformLabels = new Map([
+    ["macos", "macOS"],
+    ["linux", "Linux"],
+    ["windows", "Windows"],
+  ]);
+  const conflictTitles = new Map([
+    ["overlappingRoots", "Storage roots overlap"],
+    ["targetOccupied", "Destination contains different data"],
+    ["unknownTargetFile", "Destination contains an unregistered file"],
+  ]);
   const canTransition = $derived(
     page.snapshot?.capabilities.includes("storageTransition") === true,
   );
@@ -233,8 +248,11 @@
           <DetailItem label="Profile" value={profileLabel(storage.layout.profile)} />
           <DetailItem label="Application identity" value={storage.layout.canonicalApplicationId} />
           <DetailItem label="Directory leaf" value={storage.layout.effectiveLeaf} />
-          <DetailItem label="Leaf source" value={storage.layout.leafProvenance} />
-          <DetailItem label="Platform" value={storage.layout.platform} />
+          <DetailItem label="Leaf source" value={leafSourceLabels[storage.layout.leafProvenance]} />
+          <DetailItem
+            label="Platform"
+            value={platformLabels.get(storage.layout.platform) ?? "Unknown platform"}
+          />
           <DetailItem
             label="Layout digest"
             value={storage.layout.layoutDigest}
@@ -290,7 +308,11 @@
             />
           {/if}
           {#each preview.conflicts as conflict (`${conflict.kind}:${conflict.path ?? ""}`)}
-            <Callout tone="danger" title={conflict.kind} message={conflict.detail} />
+            <Callout
+              tone="danger"
+              title={conflictTitles.get(conflict.kind) ?? "Storage conflict"}
+              message={conflict.detail}
+            />
           {/each}
           <FormActions>
             <Button variant="ghost" onClick={() => (preview = null)}>Cancel</Button>
