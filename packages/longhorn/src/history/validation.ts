@@ -1,6 +1,6 @@
+import { isOpaqueId } from "../core/identifiers.ts";
 import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import {
-  HISTORY_MAXIMUM_OPAQUE_ID_BYTES,
   HISTORY_CHANGED_KINDS,
   HISTORY_ENTRY_POSITIONS,
   HISTORY_PAGE_FLOORS,
@@ -228,12 +228,7 @@ function oneOf(value: unknown, path: string, values: ReadonlyArray<string>): voi
 }
 
 function id(value: unknown, path: string): void {
-  string(value, path);
-  if (
-    value.length === 0 ||
-    value.length > HISTORY_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z0-9._:-]+$/.test(value)
-  ) {
+  if (!isOpaqueId(value)) {
     fail(path, "expected bounded lowercase opaque id");
   }
 }

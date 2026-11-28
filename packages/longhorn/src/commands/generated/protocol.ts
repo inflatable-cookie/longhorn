@@ -3,6 +3,10 @@
 
 export const COMMAND_KEYMAP_PROTOCOL_VERSION = 1 as const;
 export const COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES = 64 as const;
+export const COMMAND_MAXIMUM_DIAGNOSTIC_BYTES = 4096 as const;
+export const COMMAND_PLATFORMS = ["macOs","windows","linux"] as const;
+export const COMMAND_PLATFORM_SCOPES = ["any","macOs","windows","linux"] as const;
+export const COMMAND_TEXT_INPUT_POLICIES = ["blocked","allowed"] as const;
 export const COMMAND_AVAILABILITY_STATES = ["available","unavailable","hidden","unsupported"] as const;
 export const COMMAND_AVAILABILITY_REASON_KINDS = ["contextNotAllowed","missingCapability","consumer"] as const;
 export const COMMAND_BINDING_SOURCE_KINDS = ["preset","replacement","addedOverride"] as const;

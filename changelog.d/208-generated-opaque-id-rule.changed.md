@@ -1,0 +1,1 @@
+The four `BRIDGE_`, `CONFIG_`, `HISTORY_` and `NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES` TypeScript constants are replaced by one generated `OPAQUE_ID_RULE`. Migration: read `OPAQUE_ID_RULE.maximumBytes` from `@inflatable-cookie/longhorn/core`, or call `isOpaqueId` from the same entry.

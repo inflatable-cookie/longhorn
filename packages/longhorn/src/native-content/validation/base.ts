@@ -1,12 +1,10 @@
+import { isOpaqueId } from "../../core/identifiers.ts";
 import { checkWireFields, readWireRecord, wireVariantFields } from "../../core/record.ts";
 import {
   NATIVE_CONTENT_VARIANT_FIELDS,
   NATIVE_CONTENT_VARIANT_FIELDS_DISCRIMINANTS,
 } from "../generated/variant-fields.ts";
-import {
-  NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES,
-  NATIVE_CONTENT_PROTOCOL_VERSION,
-} from "../generated/protocol.ts";
+import { NATIVE_CONTENT_PROTOCOL_VERSION } from "../generated/protocol.ts";
 
 const FORBIDDEN_KEYS = new Set([
   "payload",
@@ -86,12 +84,7 @@ export function text(value: unknown, path: string): asserts value is string {
 }
 
 export function opaqueId(value: unknown, path: string): asserts value is string {
-  text(value, path);
-  if (
-    value.length === 0 ||
-    value.length > NATIVE_CONTENT_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z0-9._:-]+$/.test(value)
-  ) {
+  if (!isOpaqueId(value)) {
     fail(path, "invalid bounded opaque id");
   }
 }

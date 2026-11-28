@@ -41,7 +41,6 @@ pub use geometry::{
 };
 pub use hex::bytes_to_lowercase_hex;
 pub use host_services::{HostServices, PlainHostServices};
-pub use opaque_id::MAX_OPAQUE_ID_BYTES;
 pub use opaque_id::{
     AuthorityScopeId, BridgeCapabilityId, BridgeCredentialRef, BridgeDiagnosticId, BridgeErrorCode,
     BridgeId, BridgeIdempotencyKey, BridgeJobId, BridgeRequestId, BridgeSessionId, ConfigRequestId,
@@ -56,6 +55,7 @@ pub use opaque_id::{
     TransferHostBindingId, TransferRequestId, TransferSubjectId, TransportFeatureId,
     VisibilityReasonId, WindowId,
 };
+pub use opaque_id::{MAX_OPAQUE_ID_BYTES, OPAQUE_ID_CHARACTERS};
 pub use revision::{
     HistoryRevision, HistoryRevisionOverflow, LayoutRevision, LayoutRevisionOverflow,
     NativeContentRevision, NativeContentRevisionOverflow, NotificationLedgerRevision,
