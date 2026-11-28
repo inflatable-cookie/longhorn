@@ -1,7 +1,7 @@
 use std::{error::Error, fmt};
 
 use longhorn_core::WindowId;
-use longhorn_windowing::{HostWindowHandle, HostWindowHandleError, WindowDiffError};
+use longhorn_windowing::{HostWindowHandle, WindowDiffError};
 
 use crate::GpuiWindowRegistryError;
 
@@ -47,8 +47,6 @@ pub enum UnobtainableDisplayFact {
     ScaleFactor,
     /// The area left after system chrome. GPUI reports full bounds only.
     WorkArea,
-    /// Physical pixel bounds. GPUI reports logical bounds only.
-    PhysicalBounds,
     /// Where the display sits in the global desktop plane.
     ///
     /// GPUI's macOS backend reads `CGDisplayBounds`, whose own comment says it
@@ -60,8 +58,6 @@ pub enum UnobtainableDisplayFact {
     /// Dropped rather than lost: the same call on the same id returns the
     /// real value. This variant means "no reader supplied".
     Position,
-    /// Whether the display is the machine's built-in panel.
-    BuiltinStatus,
 }
 
 impl fmt::Display for UnobtainableDisplayFact {
@@ -69,8 +65,6 @@ impl fmt::Display for UnobtainableDisplayFact {
         formatter.write_str(match self {
             Self::ScaleFactor => "per-display scale factor",
             Self::WorkArea => "display work area",
-            Self::PhysicalBounds => "physical display bounds",
-            Self::BuiltinStatus => "built-in display status",
             Self::Position => "display position in the global plane",
         })
     }
@@ -79,31 +73,12 @@ impl fmt::Display for UnobtainableDisplayFact {
 /// Display observation failure at the GPUI edge.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GpuiDisplayError {
-    /// A display reported an unusable scale.
-    InvalidScale {
-        /// Ordinal of the failing display in the probe.
-        ordinal: usize,
-        /// Validation failure.
-        source: GpuiScaleFactorError,
-    },
     /// A display reported a negative or zero extent.
     InvalidBounds {
         /// Ordinal of the failing display in the probe.
         ordinal: usize,
         /// Boundary diagnostic.
         detail: String,
-    },
-    /// Two displays in one probe claimed the same observation id.
-    DuplicateObservationId {
-        /// The repeated id.
-        observation_id: String,
-    },
-    /// The host could not supply a fact contract 020 requires.
-    Unobtainable {
-        /// Ordinal of the failing display in the probe.
-        ordinal: usize,
-        /// The missing fact.
-        fact: UnobtainableDisplayFact,
     },
     /// A GPUI call failed.
     Host {
@@ -115,56 +90,24 @@ pub enum GpuiDisplayError {
 impl fmt::Display for GpuiDisplayError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidScale { ordinal, source } => {
-                write!(
-                    formatter,
-                    "display {ordinal} reported an invalid scale: {source}"
-                )
-            }
             Self::InvalidBounds { ordinal, detail } => {
                 write!(
                     formatter,
                     "display {ordinal} reported invalid bounds: {detail}"
                 )
             }
-            Self::DuplicateObservationId { observation_id } => {
-                write!(
-                    formatter,
-                    "duplicate display observation id {observation_id}"
-                )
-            }
-            Self::Unobtainable { ordinal, fact } => write!(
-                formatter,
-                "gpui cannot report the {fact} of display {ordinal}"
-            ),
             Self::Host { detail } => write!(formatter, "gpui display probe failed: {detail}"),
         }
     }
 }
 
-impl Error for GpuiDisplayError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            Self::InvalidScale { source, .. } => Some(source),
-            _ => None,
-        }
-    }
-}
+impl Error for GpuiDisplayError {}
 
 /// Window observation failure at the GPUI edge.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum GpuiObservationError {
     /// A rejected native window is still tracked for cleanup.
     PendingWindowDiscard(WindowId),
-    /// A GPUI window key violated opaque handle syntax.
-    InvalidTransportHandle {
-        /// The rejected key.
-        key: String,
-        /// Validation failure.
-        source: HostWindowHandleError,
-    },
-    /// Two observed windows shared a handle.
-    DuplicateTransportHandle(HostWindowHandle),
     /// Two observed windows shared a stable id.
     DuplicateWindowId(WindowId),
     /// A window reported an unusable scale.
@@ -181,6 +124,8 @@ pub enum GpuiObservationError {
         /// Boundary diagnostic.
         detail: String,
     },
+    /// The display probe failed independently of any window.
+    Display(GpuiDisplayError),
     /// A GPUI call failed.
     Host {
         /// The observed window.
@@ -199,12 +144,6 @@ impl fmt::Display for GpuiObservationError {
                     "rejected window {window_id} still needs native cleanup"
                 )
             }
-            Self::InvalidTransportHandle { key, .. } => {
-                write!(formatter, "invalid gpui window key {key:?}")
-            }
-            Self::DuplicateTransportHandle(handle) => {
-                write!(formatter, "duplicate observed handle {handle}")
-            }
             Self::DuplicateWindowId(window_id) => {
                 write!(formatter, "duplicate observed window id {window_id}")
             }
@@ -220,6 +159,7 @@ impl fmt::Display for GpuiObservationError {
                     "window {handle} geometry conversion failed: {detail}"
                 )
             }
+            Self::Display(source) => write!(formatter, "{source}"),
             Self::Host { handle, detail } => {
                 write!(formatter, "gpui probe of window {handle} failed: {detail}")
             }
@@ -230,7 +170,7 @@ impl fmt::Display for GpuiObservationError {
 impl Error for GpuiObservationError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::InvalidTransportHandle { source, .. } => Some(source),
+            Self::Display(source) => Some(source),
             Self::InvalidScale { source, .. } => Some(source),
             _ => None,
         }
@@ -272,6 +212,11 @@ pub enum GpuiWindowLifecycleError {
         /// The unmanaged identity.
         window_id: WindowId,
     },
+    /// A window with this identity is already installed.
+    DuplicateWindow {
+        /// Repeated identity.
+        window_id: WindowId,
+    },
     /// A native fact could not be expressed in Longhorn's vocabulary.
     EventTranslation {
         /// Boundary diagnostic.
@@ -279,8 +224,8 @@ pub enum GpuiWindowLifecycleError {
     },
     /// The pure coordinator rejected the input.
     Coordination {
-        /// Boundary diagnostic.
-        detail: String,
+        /// Pure coordinator failure.
+        source: longhorn_windowing::WindowLifecycleError,
     },
 }
 
@@ -290,14 +235,80 @@ impl fmt::Display for GpuiWindowLifecycleError {
             Self::UnknownWindow { window_id } => {
                 write!(formatter, "window {window_id} is not installed")
             }
+            Self::DuplicateWindow { window_id } => {
+                write!(formatter, "window {window_id} is already installed")
+            }
             Self::EventTranslation { detail } => {
                 write!(formatter, "gpui event translation failed: {detail}")
             }
-            Self::Coordination { detail } => {
-                write!(formatter, "window lifecycle coordination failed: {detail}")
+            Self::Coordination { source } => {
+                write!(formatter, "window lifecycle coordination failed: {source}")
             }
         }
     }
 }
 
-impl Error for GpuiWindowLifecycleError {}
+impl Error for GpuiWindowLifecycleError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Coordination { source } => Some(source),
+            _ => None,
+        }
+    }
+}
+
+/// Failure reported by a GPUI lifecycle service or apply observer.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum GpuiServiceError {
+    /// The injected service refused the request.
+    Host(String),
+    /// The coordinator could not compute a deadline or generation.
+    Coordination(longhorn_windowing::WindowLifecycleError),
+    /// The apply generation is older than registered evidence.
+    StaleGeneration {
+        /// Rejected generation.
+        attempted: longhorn_windowing::ApplyGeneration,
+        /// Latest registered generation.
+        current: longhorn_windowing::ApplyGeneration,
+    },
+    /// The apply clock preceded registered evidence.
+    StaleTimestamp {
+        /// Latest registered timestamp.
+        latest: longhorn_windowing::MonotonicMillis,
+    },
+}
+
+impl GpuiServiceError {
+    /// Records a service diagnostic.
+    #[must_use]
+    pub fn new(detail: impl Into<String>) -> Self {
+        Self::Host(detail.into())
+    }
+}
+impl fmt::Display for GpuiServiceError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Host(detail) => formatter.write_str(detail),
+            Self::Coordination(source) => write!(formatter, "{source}"),
+            Self::StaleGeneration { attempted, current } => write!(
+                formatter,
+                "apply generation {} is older than {}",
+                attempted.get(),
+                current.get()
+            ),
+            Self::StaleTimestamp { latest } => write!(
+                formatter,
+                "apply evidence timestamp precedes {}",
+                latest.get()
+            ),
+        }
+    }
+}
+impl Error for GpuiServiceError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Coordination(source) => Some(source),
+            _ => None,
+        }
+    }
+}

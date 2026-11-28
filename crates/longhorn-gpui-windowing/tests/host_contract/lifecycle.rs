@@ -41,12 +41,17 @@ struct RecordingScheduler {
 }
 
 impl GpuiLifecycleScheduler for RecordingScheduler {
-    fn schedule(&mut self, wake: ScheduledWindowLifecycleWake) -> Result<(), String> {
+    fn schedule(
+        &mut self,
+        wake: ScheduledWindowLifecycleWake,
+    ) -> Result<(), longhorn_gpui_windowing::GpuiServiceError> {
         if self
             .refuse_after
             .is_some_and(|limit| self.wakes.len() >= limit)
         {
-            return Err("scheduler refused the deadline".to_owned());
+            return Err(longhorn_gpui_windowing::GpuiServiceError::new(
+                "scheduler refused the deadline",
+            ));
         }
         self.wakes.push(wake);
         Ok(())
@@ -60,7 +65,7 @@ impl GpuiWindowCaptureBackend for FixedCapture {
         &mut self,
         window_id: &WindowId,
         _key: GpuiWindowKey,
-    ) -> Result<CapturedWindowPlacement, String> {
+    ) -> Result<CapturedWindowPlacement, longhorn_gpui_windowing::GpuiServiceError> {
         Ok(CapturedWindowPlacement::new(
             window_id.clone(),
             placement(0, 0, 800, 600),
@@ -240,7 +245,7 @@ fn a_close_request_flushes_and_then_permits_the_close() {
     // With nothing pending the pure coordinator asks for a bounded flush and
     // reports the user close. There is no capture, because nothing changed.
     let mut host = host(NoopWindowUserCloseHandler);
-    host.install(id("main"), GpuiWindowKey::new(1));
+    host.install(id("main"), GpuiWindowKey::new(1)).unwrap();
 
     let (decision, receipt) = host.handle_close_requested(&id("main")).unwrap();
 
@@ -263,7 +268,7 @@ fn a_close_request_flushes_and_then_permits_the_close() {
 #[test]
 fn a_close_request_after_a_move_captures_the_final_state_first() {
     let mut host = host(NoopWindowUserCloseHandler);
-    host.install(id("main"), GpuiWindowKey::new(1));
+    host.install(id("main"), GpuiWindowKey::new(1)).unwrap();
     host.handle_lifecycle_event(WindowLifecycleEvent::Moved {
         window_id: id("main"),
         outer_origin: longhorn_core::ScreenPoint::new(10, 10),
@@ -293,7 +298,7 @@ fn a_close_is_deferred_when_product_policy_refuses_it() {
     // the window later by its own route. Both defer; the resumption paths are
     // not the same, and only this one has to answer now.
     let mut host = host(RefusingCloseHandler);
-    host.install(id("main"), GpuiWindowKey::new(1));
+    host.install(id("main"), GpuiWindowKey::new(1)).unwrap();
 
     let (decision, receipt) = host.handle_close_requested(&id("main")).unwrap();
 
@@ -351,18 +356,19 @@ fn a_windowed_capture_records_the_content_size_not_the_frame() {
         false,
     );
 
-    let capture = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts)
+    let capture = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts, None)
         .expect("a windowed capture");
 
-    assert_eq!(capture.normal_placement().inner_size().height(), 560);
+    assert_eq!(
+        capture.normal_placement().inner_size().unwrap().height(),
+        560
+    );
     assert_eq!(capture.normal_placement().outer_origin().y().get(), 120);
 }
 
 #[test]
-fn a_maximized_capture_keeps_the_restore_extent() {
-    // The case with no clean answer: `content_size` describes the maximized
-    // window, and the restore bounds describe where it returns to. The frame
-    // difference is accepted rather than hidden, and this pins that choice.
+fn a_maximized_capture_marks_unknown_normal_size() {
+    // Live content size belongs to the maximized window; restore extent is outer.
     let facts = longhorn_gpui_windowing::GpuiWindowFacts::new(
         longhorn_gpui_windowing::GpuiLogicalRect::new(0.0, 0.0, 1920.0, 1080.0),
         GpuiLogicalSize::new(1920.0, 1048.0),
@@ -373,11 +379,15 @@ fn a_maximized_capture_keeps_the_restore_extent() {
         false,
     );
 
-    let capture = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts)
+    let capture = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts, None)
         .expect("a maximized capture");
 
     assert!(capture.is_maximized());
-    assert_eq!(capture.normal_placement().inner_size().height(), 592);
+    assert_eq!(capture.normal_placement().inner_size(), None);
+    let known = longhorn_core::ScreenSize::new(560, 560);
+    let capture =
+        longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts, Some(known)).unwrap();
+    assert_eq!(capture.normal_placement().inner_size(), Some(known));
 }
 
 fn live_window(key: GpuiWindowKey, width: u32, height: u32) -> longhorn_windowing::LiveWindow {
@@ -426,7 +436,7 @@ fn a_resize_the_apply_made_is_not_captured_as_a_user_placement() {
     )
     .with_live_windows([live_window(key, 800, 600)]);
     let mut lifecycle = host(NoopWindowUserCloseHandler);
-    lifecycle.install(id("main"), key);
+    lifecycle.install(id("main"), key).unwrap();
 
     execute_gpui_window_apply(input, registry, &mut backend, &mut displays, &mut lifecycle)
         .unwrap();
@@ -467,7 +477,7 @@ fn a_resize_the_apply_made_is_not_captured_as_a_user_placement() {
 fn a_retag_moves_the_installed_window_to_its_new_identity() {
     let mut lifecycle = host(NoopWindowUserCloseHandler);
     let key = GpuiWindowKey::new(7);
-    lifecycle.install(id("old"), key);
+    lifecycle.install(id("old"), key).unwrap();
 
     GpuiApplyObserver::retag(&mut lifecycle, &handle_of(key), &id("new")).unwrap();
 
@@ -482,7 +492,7 @@ fn a_retag_carries_pending_work_to_the_new_identity() {
     // that now exists rather than being stranded.
     let mut lifecycle = host(NoopWindowUserCloseHandler);
     let key = GpuiWindowKey::new(7);
-    lifecycle.install(id("old"), key);
+    lifecycle.install(id("old"), key).unwrap();
     lifecycle
         .handle_lifecycle_event(WindowLifecycleEvent::Moved {
             window_id: id("old"),
@@ -507,7 +517,7 @@ fn apply_evidence_for_the_old_identity_still_attributes_the_new_identitys_events
     // as a user placement.
     let mut lifecycle = host(NoopWindowUserCloseHandler);
     let key = GpuiWindowKey::new(7);
-    lifecycle.install(id("old"), key);
+    lifecycle.install(id("old"), key).unwrap();
     GpuiApplyObserver::register_apply(
         &mut lifecycle,
         longhorn_windowing::ApplyGeneration::new(1),
@@ -550,7 +560,7 @@ fn a_retag_is_refused_when_the_old_identity_cannot_publish() {
         RecordingScheduler::default(),
     );
     let key = GpuiWindowKey::new(7);
-    lifecycle.install(id("old"), key);
+    lifecycle.install(id("old"), key).unwrap();
 
     let refused = GpuiApplyObserver::retag(&mut lifecycle, &handle_of(key), &id("new"));
 
@@ -574,7 +584,7 @@ fn a_retag_that_cannot_reschedule_its_deadlines_still_reports_the_move() {
         scheduler,
     );
     let key = GpuiWindowKey::new(7);
-    lifecycle.install(id("old"), key);
+    lifecycle.install(id("old"), key).unwrap();
     lifecycle
         .handle_lifecycle_event(WindowLifecycleEvent::Moved {
             window_id: id("old"),
@@ -606,7 +616,45 @@ fn a_fullscreen_window_is_refused_rather_than_persisted_as_windowed() {
         false,
     );
 
-    let refused = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts);
+    let refused = longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts, None);
 
     assert!(refused.is_err(), "{refused:?}");
+}
+
+#[test]
+fn duplicate_install_is_refused() {
+    let mut host = host(NoopWindowUserCloseHandler);
+    host.install(id("main"), GpuiWindowKey::new(1)).unwrap();
+    assert!(matches!(
+        host.install(id("main"), GpuiWindowKey::new(2)),
+        Err(longhorn_gpui_windowing::GpuiWindowLifecycleError::DuplicateWindow { .. })
+    ));
+    assert!(host.is_installed(&id("main")));
+}
+
+#[test]
+fn repeated_maximized_capture_keeps_normal_content_size() {
+    let normal_size = longhorn_core::ScreenSize::new(560, 560);
+    let mut retained = Some(normal_size);
+    for _ in 0..3 {
+        let facts = longhorn_gpui_windowing::GpuiWindowFacts::new(
+            GpuiLogicalRect::new(0.0, 0.0, 1920.0, 1080.0),
+            GpuiLogicalSize::new(1920.0, 1048.0),
+            longhorn_gpui_windowing::GpuiWindowBoundsState::Maximized(GpuiLogicalRect::new(
+                120.0, 120.0, 560.0, 592.0,
+            )),
+            2.0,
+            false,
+        );
+        let capture =
+            longhorn_gpui_windowing::capture_from_gpui_facts(&id("main"), &facts, retained)
+                .unwrap();
+        let saved = capture.saved(None);
+        assert!(saved.is_maximized());
+        let restored = saved
+            .normal_placement()
+            .with_default_size(longhorn_core::ScreenSize::new(800, 600));
+        assert_eq!(restored.inner_size(), normal_size);
+        retained = Some(restored.inner_size());
+    }
 }

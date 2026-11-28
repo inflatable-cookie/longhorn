@@ -57,7 +57,7 @@ impl GpuiApplyObserver for NoLifecycleHost {
         &mut self,
         _generation: ApplyGeneration,
         _operation: &WindowOperation,
-    ) -> Result<(), String> {
+    ) -> Result<(), longhorn_gpui_windowing::GpuiServiceError> {
         Ok(())
     }
 

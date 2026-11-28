@@ -1,7 +1,7 @@
 //! Captured display and placement evidence.
 
 use crate::{
-    SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement,
+    CapturedNormalPlacement, SavedDisplayAssociation, SavedDisplayEvidence, SavedWindowPlacement,
     resolve_saved_display_association,
 };
 use longhorn_core::{DisplayId, PhysicalRect, ScaleFactor, ScreenRect, WindowId, WindowPlacement};
@@ -94,7 +94,7 @@ pub enum CapturedDisplayAssociation {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CapturedWindowPlacement {
     window_id: WindowId,
-    normal_placement: WindowPlacement,
+    normal_placement: CapturedNormalPlacement,
     maximized: bool,
     display: CapturedDisplayAssociation,
 }
@@ -105,6 +105,25 @@ impl CapturedWindowPlacement {
     pub const fn new(
         window_id: WindowId,
         normal_placement: WindowPlacement,
+        maximized: bool,
+        display: CapturedDisplayAssociation,
+    ) -> Self {
+        Self {
+            window_id,
+            normal_placement: CapturedNormalPlacement::new(
+                normal_placement.outer_origin(),
+                Some(normal_placement.inner_size()),
+            ),
+            maximized,
+            display,
+        }
+    }
+
+    /// Constructs a capture with a possibly unknown normal content size.
+    #[must_use]
+    pub const fn from_normal(
+        window_id: WindowId,
+        normal_placement: CapturedNormalPlacement,
         maximized: bool,
         display: CapturedDisplayAssociation,
     ) -> Self {
@@ -124,7 +143,7 @@ impl CapturedWindowPlacement {
 
     /// Returns normal outer-origin plus inner-size placement.
     #[must_use]
-    pub const fn normal_placement(&self) -> WindowPlacement {
+    pub const fn normal_placement(&self) -> CapturedNormalPlacement {
         self.normal_placement
     }
 
@@ -151,7 +170,7 @@ impl CapturedWindowPlacement {
             )),
             CapturedDisplayAssociation::Unresolved => None,
         };
-        SavedWindowPlacement::new(
+        SavedWindowPlacement::from_capture(
             self.window_id.clone(),
             self.normal_placement,
             self.maximized,

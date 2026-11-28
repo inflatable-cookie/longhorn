@@ -182,6 +182,7 @@ fn config_sink_coalesces_and_preserves_other_domain_fields() {
         loaded.value.placements["window:main"]
             .normal_placement()
             .inner_size()
+            .unwrap()
             .width(),
         1_200
     );

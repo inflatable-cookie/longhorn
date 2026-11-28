@@ -137,11 +137,11 @@ impl GpuiApplyOutcomeBundle {
 pub enum GpuiRetagError {
     /// The lifecycle host did not move. The retag is refused, and the registry
     /// stays where it was.
-    Refused(String),
+    Refused(crate::GpuiServiceError),
     /// The lifecycle host moved the window to its new identity, but some of its
     /// pending deadlines could not be rescheduled. The registry follows the move,
     /// and the attempt reports the failure.
-    Rescheduling(String),
+    Rescheduling(crate::GpuiServiceError),
 }
 
 /// Receives apply evidence before each native mutation.
@@ -160,7 +160,7 @@ pub trait GpuiApplyObserver {
         &mut self,
         generation: ApplyGeneration,
         operation: &WindowOperation,
-    ) -> Result<(), String>;
+    ) -> Result<(), crate::GpuiServiceError>;
 
     /// Moves lifecycle bookkeeping for `transport_handle` to `window_id`.
     ///
@@ -209,6 +209,7 @@ pub fn execute_gpui_window_apply(
         displays,
         observer,
         desired: &desired,
+        created: BTreeSet::new(),
     };
     let run = apply_window_diff(&mut host, input, &gpui_deferred_settlement())?;
     let dispositions = run
@@ -240,6 +241,7 @@ struct GpuiApplyHost<'a, B, D, O> {
     displays: &'a mut D,
     observer: &'a mut O,
     desired: &'a BTreeMap<WindowId, DesiredState>,
+    created: BTreeSet<WindowId>,
 }
 
 impl<B, D, O> WindowApplyHost for GpuiApplyHost<'_, B, D, O>
@@ -265,6 +267,26 @@ where
     }
 
     fn execute(&mut self, planned: &PlannedWindowOperation) -> (Self::Attempt, bool) {
+        let operation = planned.operation();
+        if self.created.contains(operation.window_id())
+            && matches!(
+                operation,
+                WindowOperation::Move { .. }
+                    | WindowOperation::Resize { .. }
+                    | WindowOperation::Maximize { .. }
+            )
+        {
+            return (
+                succeeded(
+                    planned.generation(),
+                    operation.window_id().clone(),
+                    operation.transport_handle().cloned(),
+                    operation.kind(),
+                    Vec::new(),
+                ),
+                true,
+            );
+        }
         let attempt = execute_operation(
             self.registry,
             self.backend,
@@ -274,6 +296,9 @@ where
             planned.operation(),
         );
         let succeeded = matches!(attempt.outcome(), GpuiApplyOutcome::Succeeded { .. });
+        if succeeded && matches!(operation, WindowOperation::Create { .. }) {
+            self.created.insert(operation.window_id().clone());
+        }
         (attempt, succeeded)
     }
 
@@ -434,10 +459,10 @@ fn execute_retag(
                 Some(transport_handle.clone()),
                 WindowOperationKind::Retag,
                 Vec::new(),
-                lifecycle_failure(detail),
+                lifecycle_failure(detail.to_string()),
             );
         }
-        Err(GpuiRetagError::Rescheduling(detail)) => Some(lifecycle_failure(detail)),
+        Err(GpuiRetagError::Rescheduling(detail)) => Some(lifecycle_failure(detail.to_string())),
     };
     registry.record_evidence(Some(transport_handle.clone()), operation.clone());
     match registry.retag(transport_handle, window_id.clone()) {
@@ -488,20 +513,6 @@ fn execute_create(
             registry_failure(GpuiWindowCall::RegistryInsert, &error),
         );
     }
-    // Before the window exists, so the events its opening produces are
-    // attributed to this apply and not to the user.
-    if let Err(detail) = observer.register_apply(generation, operation) {
-        return failed(
-            generation,
-            window_id.clone(),
-            None,
-            WindowOperationKind::Create,
-            Vec::new(),
-            lifecycle_failure(detail),
-        );
-    }
-    registry.record_evidence(None, operation.clone());
-
     // The plan says "create a neutral hidden unmaximized slot". GPUI has no
     // such slot: bounds, maximized state and initial focus are `WindowOptions`
     // fields and two of the three cannot be changed afterwards. So the adapter
@@ -521,6 +532,20 @@ fn execute_create(
             ),
         );
     };
+    // Before the window exists, so the events its opening produces are
+    // attributed to this apply and not to the user.
+    if let Err(detail) = observer.register_apply(generation, operation) {
+        return failed(
+            generation,
+            window_id.clone(),
+            None,
+            WindowOperationKind::Create,
+            Vec::new(),
+            lifecycle_failure(detail.to_string()),
+        );
+    }
+    registry.record_evidence(None, operation.clone());
+
     let mut request = GpuiWindowCreateRequest::new(placement_bounds(state.placement));
     if state.maximized {
         request = request.maximized();
@@ -634,7 +659,7 @@ fn execute_existing(
             Some(handle),
             kind,
             Vec::new(),
-            lifecycle_failure(detail),
+            lifecycle_failure(detail.to_string()),
         );
     }
     registry.record_evidence(Some(handle.clone()), operation.clone());
@@ -697,12 +722,8 @@ fn execute_existing(
 }
 
 fn placement_bounds(placement: WindowPlacement) -> GpuiLogicalRect {
-    // GPUI's window bounds are outer bounds, and its content size is set
-    // separately. Longhorn's placement is an outer origin with an inner size,
-    // so the create request carries the inner size as the initial extent and
-    // the frame grows around it. A host that needs the distinction exact
-    // resizes after creation, which is why `resize` is in the seam even though
-    // `MoveResize` is not a declared capability.
+    // GPUI consumes the initial extent as content size and grows the frame
+    // around it; Longhorn keeps the outer origin separately.
     let origin = placement.outer_origin();
     let size = GpuiLogicalSize::from(placement.inner_size());
     GpuiLogicalRect::new(
@@ -809,5 +830,89 @@ mod tests {
                 capability: HostCapability::Hide,
             })
         );
+    }
+    #[test]
+    fn missing_create_state_leaves_no_evidence() {
+        struct Backend;
+        impl crate::GpuiWindowBackend for Backend {
+            fn can_create(&self) -> bool {
+                true
+            }
+            fn create(
+                &mut self,
+                _: &WindowId,
+                _: &crate::GpuiWindowCreateRequest,
+            ) -> Result<crate::GpuiWindowKey, crate::GpuiWindowError> {
+                panic!("must not create")
+            }
+            fn resize(
+                &mut self,
+                _: crate::GpuiWindowKey,
+                _: crate::GpuiLogicalSize,
+            ) -> Result<(), crate::GpuiWindowError> {
+                panic!("must not resize")
+            }
+            fn set_maximized(
+                &mut self,
+                _: crate::GpuiWindowKey,
+                _: bool,
+            ) -> Result<(), crate::GpuiWindowError> {
+                panic!("must not maximize")
+            }
+            fn activate(&mut self, _: crate::GpuiWindowKey) -> Result<(), crate::GpuiWindowError> {
+                panic!("must not activate")
+            }
+            fn close(&mut self, _: crate::GpuiWindowKey) -> Result<(), crate::GpuiWindowError> {
+                panic!("must not close")
+            }
+            fn observe(
+                &mut self,
+                _: crate::GpuiWindowKey,
+            ) -> Result<crate::GpuiWindowFacts, crate::GpuiWindowError> {
+                panic!("must not observe")
+            }
+            fn displays(&mut self) -> Result<Vec<crate::GpuiDisplayFacts>, crate::GpuiWindowError> {
+                panic!("must not probe")
+            }
+        }
+        #[derive(Default)]
+        struct Observer(usize);
+        impl super::GpuiApplyObserver for Observer {
+            fn register_apply(
+                &mut self,
+                _: longhorn_windowing::ApplyGeneration,
+                _: &longhorn_windowing::WindowOperation,
+            ) -> Result<(), crate::GpuiServiceError> {
+                self.0 += 1;
+                Ok(())
+            }
+            fn retag(
+                &mut self,
+                _: &longhorn_windowing::HostWindowHandle,
+                _: &WindowId,
+            ) -> Result<(), super::GpuiRetagError> {
+                panic!("must not retag")
+            }
+        }
+        let id = WindowId::new("main").unwrap();
+        let operation = longhorn_windowing::WindowOperation::Create {
+            window_id: id.clone(),
+        };
+        let mut registry = crate::GpuiWindowRegistry::default();
+        let mut observer = Observer::default();
+        let attempt = super::execute_create(
+            &mut registry,
+            &mut Backend,
+            &mut observer,
+            &std::collections::BTreeMap::new(),
+            longhorn_windowing::ApplyGeneration::new(1),
+            &id,
+            &operation,
+        );
+        assert!(
+            matches!(attempt.outcome(), crate::GpuiApplyOutcome::Failed { failure, .. } if failure.kind() == crate::GpuiApplyFailureKind::CreateComposition)
+        );
+        assert_eq!(observer.0, 0);
+        assert!(registry.evidence().is_empty());
     }
 }

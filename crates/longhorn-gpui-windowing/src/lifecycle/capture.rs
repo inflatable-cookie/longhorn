@@ -1,5 +1,7 @@
-use longhorn_core::{WindowId, WindowPlacement};
-use longhorn_windowing::{CapturedDisplayAssociation, CapturedWindowPlacement};
+use longhorn_core::{ScreenSize, WindowId};
+use longhorn_windowing::{
+    CapturedDisplayAssociation, CapturedNormalPlacement, CapturedWindowPlacement,
+};
 
 /// Builds a capture from GPUI facts, with no display association.
 ///
@@ -7,10 +9,12 @@ use longhorn_windowing::{CapturedDisplayAssociation, CapturedWindowPlacement};
 /// [`longhorn_windowing::CapturedDisplayEvidence`] requires, so a capture
 /// taken from GPUI alone associates with no display. A product that needs the
 /// association supplies the missing facts itself and constructs the evidence
-/// directly.
+/// directly. While maximized, pass a previously observed or stored normal
+/// content size when available; the capture records it as unknown otherwise.
 pub fn capture_from_gpui_facts(
     window_id: &WindowId,
     facts: &crate::GpuiWindowFacts,
+    retained_normal_size: Option<ScreenSize>,
 ) -> Result<CapturedWindowPlacement, String> {
     let state = facts.bounds_state();
     // Longhorn's placement vocabulary has no fullscreen state. The bounds
@@ -22,31 +26,21 @@ pub fn capture_from_gpui_facts(
     }
     let restore = state.restore_bounds();
 
-    // Longhorn's normal placement wants an *inner* size, and gpui's bounds are
-    // outer. For a window that is not maximized the two are both available and
-    // `content_size` is the right one; taking the outer extent instead
-    // recorded a 560pt window as 592 on macOS, and applying that back grew it
-    // by the titlebar every save-and-restore cycle. Measured, not reasoned:
-    // the composition example persisted two real windows and the numbers
-    // disagreed by exactly the frame.
-    //
-    // Maximized is the case that has no clean answer. `content_size` then
-    // describes the *maximized* window while the restore bounds describe where
-    // it will return to, so the restore extent stays the closest honest value
-    // and the frame difference is accepted rather than hidden.
     let inner_size = if state.is_maximized() {
-        restore.to_screen_size().map_err(|e| e.to_string())?
+        retained_normal_size
     } else {
-        facts
-            .content_size()
-            .to_screen_size()
-            .map_err(|e| e.to_string())?
+        Some(
+            facts
+                .content_size()
+                .to_screen_size()
+                .map_err(|e| e.to_string())?,
+        )
     };
-    let normal_placement = WindowPlacement::new(
+    let normal_placement = CapturedNormalPlacement::new(
         restore.to_screen_origin().map_err(|e| e.to_string())?,
         inner_size,
     );
-    Ok(CapturedWindowPlacement::new(
+    Ok(CapturedWindowPlacement::from_normal(
         window_id.clone(),
         normal_placement,
         state.is_maximized(),

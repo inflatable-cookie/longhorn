@@ -41,8 +41,7 @@ fn placement_is_applied_at_creation_because_gpui_cannot_move_a_window_afterwards
     // resize it, then show it. GPUI has no move, no show, and no neutral slot
     // — bounds and maximized state are `WindowOptions` fields. So the adapter
     // opens the window at its final origin and reports that the plan's Move
-    // was satisfied at creation rather than skipped. The resize it can do
-    // for real.
+    // was satisfied at creation rather than skipped. Resize is satisfied there too.
     let mut host = FakeGpuiHost::new();
     let mut displays = SuppliedDisplayFacts::new();
 
@@ -59,13 +58,7 @@ fn placement_is_applied_at_creation_because_gpui_cannot_move_a_window_afterwards
     )
     .unwrap();
 
-    assert_eq!(
-        host.calls,
-        vec![
-            Call::Create(id("main")),
-            Call::Resize(GpuiWindowKey::new(1))
-        ]
-    );
+    assert_eq!(host.calls, vec![Call::Create(id("main"))]);
     let satisfied = bundle
         .dispositions()
         .iter()
@@ -80,6 +73,25 @@ fn placement_is_applied_at_creation_because_gpui_cannot_move_a_window_afterwards
         })
         .count();
     assert_eq!(satisfied, 1);
+    assert!(bundle.desired_state_reached());
+}
+
+#[test]
+fn creating_maximized_does_not_resize_or_toggle_after_creation() {
+    let mut host = FakeGpuiHost::new().with_lagging_maximize();
+    let bundle = execute_gpui_window_apply(
+        plan(
+            [desired("main", placement(300, 200, 1024, 768), true, true)],
+            1,
+        ),
+        GpuiWindowRegistry::default(),
+        &mut host,
+        &mut SuppliedDisplayFacts::new(),
+        &mut RecordingApplyObserver::default(),
+    )
+    .unwrap();
+    assert_eq!(host.calls, vec![Call::Create(id("main"))]);
+    assert!(host.is_maximized(GpuiWindowKey::new(1)));
     assert!(bundle.desired_state_reached());
 }
 

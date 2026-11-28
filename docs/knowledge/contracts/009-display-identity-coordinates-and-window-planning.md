@@ -175,7 +175,8 @@ the host suppress feedback from its own mutations.
   receipt. Both hosts feed successful and failed captures back to the shared
   coordinator. Shutdown sends one sorted aggregate of ready targets, with
   capture generations where known. Per-window and sink failures remain
-  observable.
+  observable. A fatal per-window lifecycle failure is returned alongside the
+  aggregate outcome and does not prevent other ready targets from flushing.
 - User close is reported to consumer policy. The adapter does not disable,
   delete, or otherwise rewrite desired product state by inference.
 - A window remains hidden until placement is applied and the consumer's page

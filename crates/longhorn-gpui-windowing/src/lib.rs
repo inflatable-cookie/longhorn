@@ -35,7 +35,7 @@ pub use capabilities::{
     WITHHELD_CAPABILITIES, WithheldCapability, gpui_deferred_settlement, gpui_host_capabilities,
 };
 pub use error::{
-    GpuiApplyError, GpuiDisplayError, GpuiObservationError, GpuiScaleFactorError,
+    GpuiApplyError, GpuiDisplayError, GpuiObservationError, GpuiScaleFactorError, GpuiServiceError,
     GpuiWindowLifecycleError, UnobtainableDisplayFact,
 };
 pub use lifecycle::{

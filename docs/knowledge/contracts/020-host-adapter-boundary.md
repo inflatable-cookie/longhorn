@@ -132,7 +132,7 @@ Stated, not erased. Each row names the backend whose shape caused it.
 | Observe visibility | yes | **no** | GPUI has no visibility query |
 | Maximize | absolute `maximize`/`unmaximize` | toggle `zoom_window` + `is_maximized` | GPUI; reachable by read-then-toggle, not atomically |
 | Maximize is readable after the call | yes | **no**, not in the same turn | GPUI on macOS animates the zoom; observed directly, see below |
-| Normal geometry while maximized | **no**, caller retains it | yes, `WindowBounds` carries restore bounds | Tauri; `retained_normal` in the Tauri capture seam is a Tauri workaround, not contract |
+| Normal geometry while maximized | caller retains it | GPUI reports restore outer bounds but not normal content size | Both hosts retain normal content size when known |
 | Display position in the global plane | yes | **not via gpui** — every display reports `(0, 0)`; recoverable from the platform with the id gpui exposes | GPUI's macOS backend reads `CGDisplayBounds` and discards the origin |
 | Per-display scale factor | yes | **not via gpui** — per-window only; recoverable from the platform with the id gpui exposes | GPUI's `PlatformDisplay` has id, uuid and bounds |
 | Display work area | yes | **no** | as above |
@@ -361,13 +361,13 @@ the next capture records 624, and so on. **A window grew by its titlebar every
 save-and-restore cycle.** The function's own comment had described the
 approximation and stopped short of its consequence.
 
-Fixed: a window that is not maximized records `content_size`, which gpui
-reports and which is the thing the field means. Maximized keeps the restore
-extent, because there `content_size` describes the maximized window while the
-restore bounds describe where it returns to — that case has no clean answer
-and the frame difference is now accepted explicitly rather than by accident.
-
-Both arms are pinned by tests, and re-running the example persisted 560.
+A normal window records `content_size`. When maximized, GPUI reports restore
+outer bounds but not normal content size. The caller supplies a retained normal
+content size observed while normal or loaded from stored placement. Capture
+records that size when known, otherwise records it as unknown; both cases
+persist maximized state. Restore uses the consumer's declared default content
+size when the saved normal size is unknown, then maximizes the window. Outer
+restore extent is never used as content size.
 
 This is the pattern again, and the cheapest instance of it yet: the fake sink
 was correct about everything except the number, and only a real write to a
