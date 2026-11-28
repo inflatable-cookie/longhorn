@@ -153,16 +153,9 @@ export class ForkHistoryController {
   }
 
   async loadBranches(offset = 0): Promise<ForkBranchPageSnapshot> {
-    const snapshot = this.#required();
-    const lifecycle = this.#lifecycle.revision;
-    const value = await this.#client.branches(this.#branchCommand(snapshot, offset));
-    if (!this.#lifecycle.isCurrent(lifecycle)) {
-      throw new ForkHistoryLateResultError();
-    }
-    const current = this.#snapshot;
-    if (!same(snapshot, value) || current === undefined || !same(current, value)) {
-      throw new ForkHistoryProjectionGapError();
-    }
+    const value = await this.#loadCurrent((snapshot) =>
+      this.#client.branches(this.#branchCommand(snapshot, offset)),
+    );
     this.#branches = value;
     this.#notify();
     return value;
@@ -178,40 +171,34 @@ export class ForkHistoryController {
    * Not cached and not refreshed. A consumer asks when the operator opens an
    * entry, and the revision check below tells them if it went stale meanwhile.
    */
-  async loadContinuations(
+  loadContinuations(
     anchorEntryId: string | null,
     offset = 0,
   ): Promise<ForkContinuationPageSnapshot> {
-    const snapshot = this.#required();
-    const value = await this.#client.continuations({
-      protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
-      authorityEpoch: snapshot.authorityEpoch,
-      historyId: snapshot.summary.historyId,
-      expectedRevision: snapshot.summary.revision,
-      anchorEntryId,
-      offset,
-      limit: this.#continuationPageSize,
-    });
-    if (!same(snapshot, value)) {
-      throw new ForkHistoryProjectionGapError();
-    }
-    return value;
+    return this.#loadCurrent((snapshot) =>
+      this.#client.continuations({
+        protocolVersion: FORK_HISTORY_PROTOCOL_VERSION,
+        authorityEpoch: snapshot.authorityEpoch,
+        historyId: snapshot.summary.historyId,
+        expectedRevision: snapshot.summary.revision,
+        anchorEntryId,
+        offset,
+        limit: this.#continuationPageSize,
+      }),
+    );
   }
 
   /**
    * The flat run beginning at one entry. The same snapshot type as the main
    * path, so a renderer draws a nested fork with the component it already has.
    */
-  async loadContinuationRun(fromEntryId: string, offset = 0): Promise<ForkPathPageSnapshot> {
-    const snapshot = this.#required();
-    const value = await this.#client.path({
-      ...this.#pathCommand(snapshot, { kind: "continuation", fromEntryId }),
-      offset,
-    });
-    if (!same(snapshot, value)) {
-      throw new ForkHistoryProjectionGapError();
-    }
-    return value;
+  loadContinuationRun(fromEntryId: string, offset = 0): Promise<ForkPathPageSnapshot> {
+    return this.#loadCurrent((snapshot) =>
+      this.#client.path({
+        ...this.#pathCommand(snapshot, { kind: "continuation", fromEntryId }),
+        offset,
+      }),
+    );
   }
 
   /**
@@ -344,12 +331,38 @@ export class ForkHistoryController {
       this.#install(result.snapshot, path, branches);
       this.#setStatus({ kind: "ready" });
       return result;
+    } catch (error) {
+      // A superseded navigation no longer owns the controller's status.
+      if (this.#lifecycle.active && navigation === this.#navigation) {
+        this.#setStatus({ kind: "failed", error });
+      }
+      throw error;
     } finally {
       if (navigation === this.#navigation) {
         this.#pending = false;
         this.#notify();
       }
     }
+  }
+
+  /**
+   * Loads one page against the held snapshot. The page is returned only while
+   * the same lifetime still holds the revision it was read at.
+   */
+  async #loadCurrent<Page extends ForkPage>(
+    load: (snapshot: ForkSnapshot) => Promise<Page>,
+  ): Promise<Page> {
+    const snapshot = this.#required();
+    const lifecycle = this.#lifecycle.revision;
+    const page = await load(snapshot);
+    if (!this.#lifecycle.isCurrent(lifecycle)) {
+      throw new ForkHistoryLateResultError();
+    }
+    const current = this.#snapshot;
+    if (!same(snapshot, page) || current === undefined || !same(current, page)) {
+      throw new ForkHistoryProjectionGapError();
+    }
+    return page;
   }
 
   #pathCommand(snapshot: ForkSnapshot, target: ForkPathTargetProjection) {
@@ -424,10 +437,9 @@ export class ForkHistoryController {
   }
 }
 
-function same(
-  snapshot: ForkSnapshot,
-  page: { authorityEpoch: number; historyId: string; revision: number },
-): boolean {
+type ForkPage = { authorityEpoch: number; historyId: string; revision: number };
+
+function same(snapshot: ForkSnapshot, page: ForkPage): boolean {
   return (
     snapshot.authorityEpoch === page.authorityEpoch &&
     snapshot.summary.historyId === page.historyId &&
@@ -440,6 +452,23 @@ function pageSize(value: number): number {
   }
   return value;
 }
-export class ForkHistoryUnavailableError extends Error {}
-export class ForkHistoryProjectionGapError extends Error {}
-export class ForkHistoryLateResultError extends Error {}
+export class ForkHistoryUnavailableError extends Error {
+  constructor(message = "fork-history controller is not ready") {
+    super(message);
+    this.name = "ForkHistoryUnavailableError";
+  }
+}
+
+export class ForkHistoryProjectionGapError extends Error {
+  constructor(message = "fork-history projections do not share one authority revision") {
+    super(message);
+    this.name = "ForkHistoryProjectionGapError";
+  }
+}
+
+export class ForkHistoryLateResultError extends Error {
+  constructor(message = "fork-history result arrived after the controller moved on") {
+    super(message);
+    this.name = "ForkHistoryLateResultError";
+  }
+}

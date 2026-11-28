@@ -8,7 +8,6 @@ import type {
   UpdateDeferCommand,
   UpdateOutcomeProjection,
   UpdatePrepareCommand,
-  UpdateProgressEvent,
   UpdateSelectChannelCommand,
   UpdateSnapshot,
 } from "./generated/protocol.ts";
@@ -36,9 +35,6 @@ export interface UpdatePort {
   listen?:
     | ((listener: (event: unknown) => void) => UpdateUnlisten | Promise<UpdateUnlisten>)
     | undefined;
-  listenProgress?:
-    | ((listener: (event: unknown) => void) => UpdateUnlisten | Promise<UpdateUnlisten>)
-    | undefined;
 }
 
 /** The same seam after validation. */
@@ -52,10 +48,6 @@ export interface CheckedUpdatePort {
   cancel(command: UpdateCancelCommand): Promise<UpdateOutcomeProjection>;
   listen(
     listener: (event: UpdateChangedEvent) => void,
-    onFailure?: ConnectionFailureReporter,
-  ): Promise<UpdateUnlisten>;
-  listenProgress(
-    listener: (event: UpdateProgressEvent) => void,
     onFailure?: ConnectionFailureReporter,
   ): Promise<UpdateUnlisten>;
 }

@@ -4,6 +4,8 @@ import {
   UPDATE_PROTOCOL_VERSION,
   UpdateClient,
   UpdateController,
+  UpdateControllerUnavailableError,
+  UpdateNotStagedError,
   UpdateValidationError,
   assertUpdateOutcome,
   assertUpdateSnapshot,
@@ -49,7 +51,6 @@ function committed(value: UpdateSnapshot = snapshot()): UpdateOutcomeProjection 
 class Port implements UpdatePort {
   calls: Array<string> = [];
   applied: Array<UpdateApplyCommand> = [];
-  #progressListener: ((event: unknown) => void) | undefined;
   constructor(
     private state: UpdateSnapshot = snapshot(),
     private outcome: (command: string) => UpdateOutcomeProjection = () => committed(this.state),
@@ -87,16 +88,6 @@ class Port implements UpdatePort {
     this.calls.push("listen");
     return () => {};
   }
-  listenProgress(listener: (event: unknown) => void): () => void {
-    this.calls.push("listenProgress");
-    this.#progressListener = listener;
-    return () => {
-      this.#progressListener = undefined;
-    };
-  }
-  emitProgress(event: unknown): void {
-    this.#progressListener?.(event);
-  }
 }
 
 class PreparingPort extends Port {
@@ -121,6 +112,11 @@ class PreparingPort extends Port {
   }
 }
 
+const CHANGED_EVENT = {
+  protocolVersion: UPDATE_PROTOCOL_VERSION,
+  authorityEpoch: 3,
+  kind: "checked",
+};
 const LIVE_PROGRESS = { state: "downloading", received: 5, expected: 10, fraction: 0.5 } as const;
 const PROGRESS_EVENT = {
   protocolVersion: UPDATE_PROTOCOL_VERSION,
@@ -273,32 +269,40 @@ describe("update client", () => {
 
   test("an early consumer error allows registration to return its unlisten", async () => {
     const port = new Port();
-    const register = port.listenProgress.bind(port);
-    port.listenProgress = (receive) => {
-      receive(PROGRESS_EVENT);
-      return register(receive);
+    let emit: ((event: unknown) => void) | undefined;
+    port.listen = async (receive) => {
+      emit = receive;
+      receive(CHANGED_EVENT);
+      return () => {
+        emit = undefined;
+      };
     };
     let delivered = 0;
-    const dispose = await new UpdateClient(port).listenProgress(() => {
+    const dispose = await new UpdateClient(port).listen(() => {
       delivered += 1;
       if (delivered === 1) {
-        throw new Error("early progress observer failed");
+        throw new Error("early change observer failed");
       }
     });
 
-    port.emitProgress(PROGRESS_EVENT);
+    emit?.(CHANGED_EVENT);
     expect(delivered).toBe(2);
     await dispose();
-    port.emitProgress(PROGRESS_EVENT);
+    emit?.(CHANGED_EVENT);
     expect(delivered).toBe(2);
   });
 
-  test("a progress consumer error propagates without closing the subscription", async () => {
+  test("a change consumer error propagates without closing the subscription", async () => {
     const port = new Port();
-    const error = new Error("progress observer failed");
+    let emit: ((event: unknown) => void) | undefined;
+    port.listen = async (receive) => {
+      emit = receive;
+      return () => {};
+    };
+    const error = new Error("change observer failed");
     let delivered = 0;
     const failures: Array<unknown> = [];
-    const dispose = await new UpdateClient(port).listenProgress(
+    const dispose = await new UpdateClient(port).listen(
       () => {
         delivered += 1;
         throw error;
@@ -306,11 +310,35 @@ describe("update client", () => {
       (failure) => failures.push(failure),
     );
 
-    expect(() => port.emitProgress(PROGRESS_EVENT)).toThrow(error);
-    expect(() => port.emitProgress(PROGRESS_EVENT)).toThrow(error);
+    expect(() => emit?.(CHANGED_EVENT)).toThrow(error);
+    expect(() => emit?.(CHANGED_EVENT)).toThrow(error);
     expect(delivered).toBe(2);
     expect(failures).toEqual([]);
     await dispose();
+  });
+
+  test("a malformed progress report is reported, ends delivery and does not throw into the port", async () => {
+    const port = new PreparingPort();
+    const failures: Array<{ phase: string; error: unknown }> = [];
+    let delivered = 0;
+    const pending = new UpdateClient(port).prepareWithProgress(
+      { protocolVersion: UPDATE_PROTOCOL_VERSION, authorityEpoch: 3, version: "1.4.0" },
+      () => {
+        delivered += 1;
+      },
+      (failure) => failures.push(failure),
+    );
+    const transfer = port.transfer(0);
+
+    transfer.report(PROGRESS_EVENT);
+    expect(() => transfer.report({ progress: "invalid" })).not.toThrow();
+    transfer.report(PROGRESS_EVENT);
+    transfer.report({});
+    transfer.complete(committed());
+
+    await expect(pending).resolves.toEqual(committed());
+    expect(delivered).toBe(1);
+    expect(failures).toEqual([{ phase: "event", error: expect.any(UpdateValidationError) }]);
   });
 
   test("the serialized port survives a structured-clone round trip", async () => {
@@ -321,57 +349,127 @@ describe("update client", () => {
 });
 
 describe("update controller", () => {
-  test.each(["changed", "progress"] as const)(
-    "a malformed %s event closes its own subscription",
-    async (channel) => {
-      const port = new Port();
-      type EventChannel = "changed" | "progress";
-      const listeners = new Map<EventChannel, (event: unknown) => void>();
-      const releases: Array<EventChannel> = [];
-      const listen = (kind: EventChannel, receive: (event: unknown) => void) => {
-        listeners.set(kind, receive);
-        return () => {
-          listeners.delete(kind);
-          releases.push(kind);
-        };
-      };
-      port.listen = async (receive) => listen("changed", receive);
-      port.listenProgress = (receive) => listen("progress", receive);
-      const controller = new UpdateController({ port });
-      await controller.start();
-      const receive = listeners.get(channel)!;
-
-      expect(() => receive({})).not.toThrow();
-      expect(controller.status).toEqual({
-        kind: "failed",
-        error: expect.any(UpdateValidationError),
-      });
-      await controller.refresh();
-      expect(controller.status.kind).toBe("failed");
-      expect(releases).toEqual([channel]);
-      expect(listeners.size).toBe(1);
-      await controller.stop();
-      expect(listeners.size).toBe(0);
-      expect(releases).toHaveLength(2);
-    },
-  );
-
-  test("a failed progress registration releases the change listener", async () => {
+  test("a malformed change event closes the subscription and stays visible", async () => {
     const port = new Port();
-    const failure = new Error("progress registration failed");
-    let released = false;
-    port.listen = async () => () => {
-      released = true;
-      throw new Error("change unlisten failed");
-    };
-    port.listenProgress = () => {
-      throw failure;
+    let receive: ((event: unknown) => void) | undefined;
+    let released = 0;
+    port.listen = async (listener) => {
+      receive = listener;
+      return () => {
+        released += 1;
+      };
     };
     const controller = new UpdateController({ port });
     await controller.start();
 
-    expect(released).toBeTrue();
-    expect(controller.status).toEqual({ kind: "failed", error: failure });
+    expect(() => receive?.({})).not.toThrow();
+    expect(controller.status).toEqual({
+      kind: "failed",
+      error: expect.any(UpdateValidationError),
+    });
+    await controller.refresh();
+    expect(controller.status.kind).toBe("failed");
+    expect(released).toBe(1);
+    await controller.stop();
+    expect(released).toBe(1);
+  });
+
+  test("a malformed progress report fails the controller until it restarts", async () => {
+    const port = new PreparingPort();
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    const pending = controller.prepare("1.4.0");
+    const transfer = port.transfer(0);
+    transfer.report(PROGRESS_EVENT);
+    expect(() => transfer.report({})).not.toThrow();
+    expect(controller.progress).toEqual({ state: "idle" });
+    transfer.complete(committed());
+    await expect(pending).resolves.toEqual(committed());
+
+    expect(controller.status).toEqual({
+      kind: "failed",
+      error: expect.any(UpdateValidationError),
+    });
+    expect(controller.pending).toBe(false);
+    await controller.stop();
+    await controller.start();
+    expect(controller.status).toEqual({ kind: "ready" });
+    // A report from the earlier lifetime cannot fail the new one.
+    transfer.report({});
+    expect(controller.status).toEqual({ kind: "ready" });
+    await controller.stop();
+  });
+
+  test.each([
+    ["check", (controller: UpdateController) => controller.check()],
+    ["apply", (controller: UpdateController) => controller.apply("1.4.0")],
+    ["prepare", (controller: UpdateController) => controller.prepare("1.4.0")],
+  ])("%s on a stopped controller sends nothing and leaves it idle", async (_name, run) => {
+    const port = new Port(snapshot({ staged: STAGED }));
+    const controller = new UpdateController({ port });
+    await controller.start();
+    await controller.stop();
+    const calls = [...port.calls];
+    let notifications = 0;
+    controller.observe(() => {
+      notifications += 1;
+    });
+
+    await expect(run(controller)).resolves.toEqual({
+      status: "failed",
+      error: expect.any(UpdateControllerUnavailableError),
+    });
+    expect(controller.status).toEqual({ kind: "idle" });
+    expect(controller.pending).toBe(false);
+    expect(port.calls).toEqual(calls);
+    expect(notifications).toBe(0);
+  });
+
+  test("a command stopped in flight cannot make the stopped controller ready", async () => {
+    const port = new PreparingPort();
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    const pending = controller.prepare("1.4.0");
+    await controller.stop();
+    port.transfer(0).complete(committed());
+    await pending;
+
+    expect(controller.status).toEqual({ kind: "idle" });
+    expect(controller.pending).toBe(false);
+  });
+
+  test("applying a version that is not staged fails locally, not as an authority rejection", async () => {
+    const port = new Port(snapshot({ staged: STAGED }));
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    const result = await controller.apply("9.9.9");
+
+    expect(result).toEqual({ status: "failed", error: expect.any(UpdateNotStagedError) });
+    expect(controller.status).toEqual({
+      kind: "failed",
+      error: expect.any(UpdateNotStagedError),
+    });
+    expect(controller.lastRejection).toBeUndefined();
+    expect(port.calls).not.toContain("apply");
+  });
+
+  test("a local apply failure leaves a prepare in flight in charge", async () => {
+    const port = new PreparingPort();
+    const controller = new UpdateController({ port });
+    await controller.start();
+
+    const pending = controller.prepare("1.4.0");
+    await controller.apply("1.4.0");
+    expect(controller.pending).toBe(true);
+    port.transfer(0).complete(committed(snapshot({ staged: STAGED })));
+    await pending;
+
+    expect(controller.pending).toBe(false);
+    expect(controller.staged).toEqual(STAGED);
+    expect(controller.status).toEqual({ kind: "ready" });
     await controller.stop();
   });
 
@@ -387,29 +485,18 @@ describe("update controller", () => {
     expect(controller.status).toEqual({ kind: "idle" });
   });
 
-  test("stop attempts both unlistens and restores idle when the first throws", async () => {
+  test("an unlisten failure rejects stop and still restores idle", async () => {
     const failure = new Error("update unlisten failed");
-    let progressDisposed = 0;
-    const port = new (class extends Port {
-      override async listen() {
-        return () => {
-          throw failure;
-        };
-      }
-      override listenProgress() {
-        return async () => {
-          progressDisposed += 1;
-        };
-      }
-    })();
+    const port = new Port();
+    port.listen = async () => () => {
+      throw failure;
+    };
     const controller = new UpdateController({ port });
     await controller.start();
 
     await expect(controller.stop()).rejects.toBe(failure);
-    expect(progressDisposed).toBe(1);
     expect(controller.status).toEqual({ kind: "idle" });
     await controller.stop();
-    expect(progressDisposed).toBe(1);
   });
 
   test("a late update refresh cannot replace a command snapshot", async () => {
@@ -592,12 +679,17 @@ describe("update controller", () => {
   /** Inventing an epoch would have the authority refuse it as stale, which
    * reads as a protocol problem rather than as "nothing has been read yet". */
   test("a command before the first read fails saying so", async () => {
-    const controller = new UpdateController({ port: new Port() });
+    const port = new Port();
+    port.snapshot = () => new Promise(() => {});
+    const controller = new UpdateController({ port });
+    void controller.start();
+    await Promise.resolve();
 
     await controller.check();
 
     expect(controller.status.kind).toBe("failed");
     expect(String((controller.status as { error: unknown }).error)).toContain("has not been read");
+    await controller.stop();
   });
 
   test("the staged protocol sends prepare, apply and cancel as their own commands", async () => {
@@ -607,19 +699,12 @@ describe("update controller", () => {
     const controller = new UpdateController({ port });
 
     await controller.start();
-    expect((await controller.apply("1.4.0")).status).toBe("rejected");
+    expect((await controller.apply("1.4.0")).status).toBe("failed");
     await controller.prepare("1.4.0");
     await controller.apply("1.4.0");
     await controller.cancel();
 
-    expect(port.calls).toEqual([
-      "listen",
-      "listenProgress",
-      "snapshot",
-      "prepare",
-      "apply",
-      "cancel",
-    ]);
+    expect(port.calls).toEqual(["listen", "snapshot", "prepare", "apply", "cancel"]);
     expect(port.applied).toEqual([
       {
         protocolVersion: UPDATE_PROTOCOL_VERSION,
@@ -678,7 +763,6 @@ describe("update controller", () => {
 
     const pending = controller.prepare("1.4.0");
     const transfer = port.transfer(0);
-    port.emitProgress(PROGRESS_EVENT);
     transfer.report({ ...PROGRESS_EVENT, authorityEpoch: 2 });
     expect(controller.progress).toEqual({ state: "idle" });
 
@@ -689,31 +773,18 @@ describe("update controller", () => {
     await pending;
   });
 
-  test("an event-only port reports live bytes only during prepare and at its epoch", async () => {
-    const port = new Port();
-    let finish: ((outcome: UpdateOutcomeProjection) => void) | undefined;
-    port.prepare = () =>
-      new Promise((resolve) => {
-        finish = resolve;
-      });
+  test("a port without invocation-scoped progress prepares without live bytes", async () => {
+    const retained = snapshot({ staged: STAGED });
+    const port = new Port(snapshot(), () => committed(retained));
     const controller = new UpdateController({ port });
     await controller.start();
 
-    port.emitProgress(PROGRESS_EVENT);
-    expect(controller.progress).toEqual({ state: "idle" });
-    const pending = controller.prepare("1.4.0");
-    port.emitProgress({ ...PROGRESS_EVENT, authorityEpoch: 2 });
-    expect(controller.progress).toEqual({ state: "idle" });
+    await controller.prepare("1.4.0");
 
-    port.emitProgress(PROGRESS_EVENT);
-    expect(controller.progress).toEqual(LIVE_PROGRESS);
-    await controller.cancel();
-    port.emitProgress(PROGRESS_EVENT);
+    expect(port.calls).toEqual(["listen", "snapshot", "prepare"]);
+    expect(controller.staged).toEqual(STAGED);
     expect(controller.progress).toEqual({ state: "idle" });
-
-    ok(finish, "legacy prepare is pending");
-    finish(committed());
-    await pending;
+    await controller.stop();
   });
 
   test("the live report is dropped when the command that started it settles", async () => {

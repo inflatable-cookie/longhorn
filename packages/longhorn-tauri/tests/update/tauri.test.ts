@@ -45,7 +45,6 @@ describe("Tauri update composition", () => {
       ["longhorn_update_cancel", { command: cancelCommand }],
     ]);
     expect(listened).toEqual(["longhorn://update/changed"]);
-    expect(port.listenProgress).toBeUndefined();
   });
 
   test("an invoke-only transport leaves the port silent", async () => {
@@ -56,7 +55,6 @@ describe("Tauri update composition", () => {
     };
     const port = createTauriUpdatePort({ transport });
     expect(port.listen).toBeUndefined();
-    expect(port.listenProgress).toBeUndefined();
     expect(port.prepareWithProgress).toBeUndefined();
   });
 

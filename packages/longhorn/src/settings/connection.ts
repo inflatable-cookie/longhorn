@@ -1,4 +1,4 @@
-import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import { CheckedSnapshotConnection, CheckedSubscription } from "@inflatable-cookie/longhorn/core";
 import type {
   ConnectionFailure,
   ConnectionFailureReporter,
@@ -129,17 +129,12 @@ function requiredSubscription<Snapshot>(
   connection: CheckedSnapshotConnection<Snapshot>,
   target: string,
 ): SettingsSubscription<Snapshot> {
-  return {
-    ready: connection.ready.then((snapshot) => {
-      if (snapshot === undefined) {
-        throw new SettingsConnectionDisposedError(target);
-      }
-      return snapshot;
-    }),
-    current: () => connection.current(),
-    failures: () => connection.failures(),
-    dispose: () => connection.dispose(),
-  };
+  return new CheckedSubscription(connection, (snapshot) => {
+    if (snapshot === undefined) {
+      throw new SettingsConnectionDisposedError(target);
+    }
+    return snapshot;
+  });
 }
 
 function parseRegistry(value: unknown): SettingsRegistrySnapshot {

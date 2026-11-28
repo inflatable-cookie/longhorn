@@ -7,7 +7,15 @@ import type {
   BridgeServiceState,
   BridgeServiceTransitionReceipt,
 } from "./generated/protocol.ts";
-import { BRIDGE_SERVICE_FAILURE_CODES, BRIDGE_SERVICE_OWNERSHIPS } from "./generated/protocol.ts";
+import {
+  BRIDGE_SERVICE_ADMISSIONS,
+  BRIDGE_SERVICE_ADMITTED_OBSERVATIONS,
+  BRIDGE_SERVICE_FAILURE_CODES,
+  BRIDGE_SERVICE_FAILURE_STATE,
+  BRIDGE_SERVICE_INCARNATION_STATES,
+  BRIDGE_SERVICE_OWNERSHIPS,
+  BRIDGE_SERVICE_UNIT_OUTCOMES,
+} from "./generated/protocol.ts";
 import { opaqueId } from "./validation/base.ts";
 
 export interface BridgeServiceSupervisorPort {
@@ -133,7 +141,9 @@ export class BridgeServiceRuntime {
     const outcome = parseOutcome(value);
     const current = transitionState(action, outcome);
     const generation = this.#generation + 1;
-    const incarnation = startsIncarnation(current) ? this.#incarnation + 1 : this.#incarnation;
+    const incarnation = BRIDGE_SERVICE_INCARNATION_STATES.includes(current)
+      ? this.#incarnation + 1
+      : this.#incarnation;
     if (!Number.isSafeInteger(generation) || !Number.isSafeInteger(incarnation)) {
       throw new BridgeSupervisionError("invalid_transition");
     }
@@ -152,39 +162,12 @@ export class BridgeServiceRuntime {
   }
 
   #admit(action: BridgeServiceAction): void {
-    const owned = this.#ownership === "ownedLocal";
-    let admitted = false;
-    switch (action) {
-      case "spawn":
-        admitted = owned && ["absent", "stopped", "failed"].includes(this.#state);
-        break;
-      case "attach":
-        admitted = !owned && ["absent", "stopped", "failed"].includes(this.#state);
-        break;
-      case "checkReadiness":
-        admitted = [
-          "starting",
-          "attaching",
-          "awaitingReadiness",
-          "restarting",
-          "reconnecting",
-          "ready",
-        ].includes(this.#state);
-        break;
-      case "restart":
-        admitted = owned && ["ready", "failed"].includes(this.#state);
-        break;
-      case "reconnect":
-        admitted = ["ready", "failed", "stopped"].includes(this.#state);
-        break;
-      case "shutdown":
-        admitted = owned && !["absent", "stopped"].includes(this.#state);
-        break;
-    }
-    if (admitted) {
+    const rule = BRIDGE_SERVICE_ADMISSIONS[action];
+    const ownershipAdmitted = rule.ownerships.includes(this.#ownership);
+    if (ownershipAdmitted && rule.states.includes(this.#state)) {
       return;
     }
-    if (!owned && ["spawn", "restart", "shutdown"].includes(action)) {
+    if (!ownershipAdmitted && rule.requiresOwnedLifecycle) {
       throw new BridgeSupervisionError("lifecycle_not_owned");
     }
     throw new BridgeSupervisionError("invalid_transition");
@@ -196,39 +179,21 @@ function transitionState(
   outcome: BridgeServiceOutcome,
 ): BridgeServiceState {
   if (typeof outcome === "object") {
-    return "failed";
+    return BRIDGE_SERVICE_FAILURE_STATE;
   }
-  if (action === "checkReadiness" && outcome === "ready") {
-    return "ready";
+  const admitted = BRIDGE_SERVICE_ADMITTED_OBSERVATIONS.find(
+    ([candidate, observation]) => candidate === action && observation === outcome,
+  );
+  if (admitted === undefined) {
+    throw new BridgeSupervisionError("invalid_observation");
   }
-  if (action === "checkReadiness" && outcome === "notReady") {
-    return "awaitingReadiness";
-  }
-  if (action === "shutdown" && outcome === "stopped") {
-    return "stopped";
-  }
-  if (outcome === "accepted") {
-    const accepted: Partial<Record<BridgeServiceAction, BridgeServiceState>> = {
-      spawn: "starting",
-      attach: "attaching",
-      restart: "restarting",
-      reconnect: "reconnecting",
-    };
-    const state = accepted[action];
-    if (state !== undefined) {
-      return state;
-    }
-  }
-  throw new BridgeSupervisionError("invalid_observation");
-}
-
-function startsIncarnation(state: BridgeServiceState): boolean {
-  return ["starting", "attaching", "restarting", "reconnecting"].includes(state);
+  return admitted[2];
 }
 
 function parseOutcome(value: unknown): BridgeServiceOutcome {
-  if (value === "accepted" || value === "ready" || value === "notReady" || value === "stopped") {
-    return value;
+  const unit = BRIDGE_SERVICE_UNIT_OUTCOMES.find((outcome) => outcome === value);
+  if (unit !== undefined) {
+    return unit;
   }
   if (
     typeof value === "object" &&

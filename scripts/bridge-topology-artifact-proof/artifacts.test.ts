@@ -98,7 +98,6 @@ test("checks longhorn-core for vocabulary but allows its credential field names"
 });
 
 const bridgeExportMap = {
-  ".": "./src/core/index.ts",
   "./bridge": "./src/bridge/index.ts",
   "./bridge/protocol": "./src/bridge/protocol.ts",
   "./bridge/stream": "./src/bridge/stream.ts",

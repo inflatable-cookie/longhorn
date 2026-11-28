@@ -151,6 +151,78 @@ describe("checked bridge stream lifetime", () => {
     await connection.dispose();
   });
 
+  test("a snapshot behind an event seen during registration is loaded again", async () => {
+    const base = structuredClone(fixture.snapshot) as BridgeSnapshotEnvelope<Snapshot>;
+    const start = base.cursor.sequence;
+    const at = (sequence: number) => ({ ...base.cursor, sequence });
+    let loads = 0;
+    const direct = new DirectBridgeStreamSource(() => {
+      loads += 1;
+      // The first reply predates the event; the authority has it by the second.
+      return loads === 1
+        ? { cursor: at(start), payload: { value: 0 } }
+        : { cursor: at(start + 1), payload: { value: 1 } };
+    });
+    const source: BridgeStreamSource = {
+      listen: async (listener) => {
+        const unlisten = await direct.listen(listener);
+        direct.emit({ cursor: at(start + 1), payload: { delta: 1 } });
+        return unlisten;
+      },
+      loadSnapshot: () => direct.loadSnapshot(),
+    };
+    const connection = connectBridgeStream({
+      sessionId: "session:fixture",
+      domainId: "example.workspace",
+      source,
+      snapshot: snapshotCodec,
+      event: eventCodec,
+      apply: (snapshot, update) => ({ value: snapshot.value + update.delta }),
+    });
+
+    await connection.ready;
+    await settle();
+
+    // No further event arrives, so only the connection can have asked again.
+    expect(loads).toBe(2);
+    expect(connection.current()?.payload.value).toBe(1);
+    await connection.dispose();
+  });
+
+  test("a source that stays behind is asked once more, not forever", async () => {
+    const base = structuredClone(fixture.snapshot) as BridgeSnapshotEnvelope<Snapshot>;
+    const start = base.cursor.sequence;
+    const at = (sequence: number) => ({ ...base.cursor, sequence });
+    let loads = 0;
+    const direct = new DirectBridgeStreamSource(() => {
+      loads += 1;
+      return { cursor: at(start), payload: { value: 0 } };
+    });
+    const source: BridgeStreamSource = {
+      listen: async (listener) => {
+        const unlisten = await direct.listen(listener);
+        direct.emit({ cursor: at(start + 1), payload: { delta: 1 } });
+        return unlisten;
+      },
+      loadSnapshot: () => direct.loadSnapshot(),
+    };
+    const connection = connectBridgeStream({
+      sessionId: "session:fixture",
+      domainId: "example.workspace",
+      source,
+      snapshot: snapshotCodec,
+      event: eventCodec,
+      apply: (snapshot, update) => ({ value: snapshot.value + update.delta }),
+    });
+
+    await connection.ready;
+    await settle();
+
+    expect(loads).toBe(2);
+    expect(connection.failures()).toHaveLength(0);
+    await connection.dispose();
+  });
+
   test("a stale resync reply cannot fail the initial subscription", async () => {
     const base = structuredClone(fixture.snapshot) as BridgeSnapshotEnvelope<Snapshot>;
     const start = base.cursor.sequence;

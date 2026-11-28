@@ -3,6 +3,7 @@ import {
   LICENCE_PROTOCOL_VERSION,
   LicenceClient,
   LicenceController,
+  LicenceControllerUnavailableError,
   LicenceValidationError,
   SerializedLicencePort,
   assertLicenceOutcome,
@@ -371,12 +372,49 @@ describe("licence controller", () => {
   });
 
   test("a command before the first read fails saying so", async () => {
-    const controller = new LicenceController({ port: new Port() });
+    const port = new Port();
+    port.snapshot = () => new Promise(() => {});
+    const controller = new LicenceController({ port });
+    void controller.start();
+    await Promise.resolve();
 
     await controller.deactivate();
 
     expect(controller.status.kind).toBe("failed");
     expect(String((controller.status as { error: unknown }).error)).toContain("has not been read");
+    await controller.stop();
+  });
+
+  test.each([
+    ["activate", (c: LicenceController) => c.activate({ kind: "key", key: "AAAA" })],
+    ["deactivate", (c: LicenceController) => c.deactivate()],
+    ["refreshLease", (c: LicenceController) => c.refreshLease()],
+    ["releaseSeat", (c: LicenceController) => c.releaseSeat("machine:2")],
+    ["renameSeat", (c: LicenceController) => c.renameSeat("machine:2", "Desk")],
+  ])("%s on a stopped controller sends nothing and leaves it idle", async (_name, run) => {
+    let sent = 0;
+    const port = new (class extends Port {
+      override async deactivate() {
+        sent += 1;
+        return committed();
+      }
+    })();
+    const controller = new LicenceController({ port });
+    await controller.start();
+    await controller.stop();
+    let notifications = 0;
+    controller.observe(() => {
+      notifications += 1;
+    });
+
+    await expect(run(controller)).resolves.toEqual({
+      status: "failed",
+      error: expect.any(LicenceControllerUnavailableError),
+    });
+    expect(controller.status).toEqual({ kind: "idle" });
+    expect(controller.pending).toBe(false);
+    expect(notifications).toBe(0);
+    expect(sent).toBe(0);
   });
 
   /**

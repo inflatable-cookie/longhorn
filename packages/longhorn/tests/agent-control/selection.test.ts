@@ -117,7 +117,7 @@ describe("bindFileSelection", () => {
     ]);
   });
 
-  test("agent-originated open omits absent optional hints", async () => {
+  test("agent-originated open sends absent hints as null", async () => {
     const window = openPage(`<p>Idle</p>`);
     install(window).markAgentOrigin();
     const recorded = ports();
@@ -129,6 +129,8 @@ describe("bindFileSelection", () => {
         directory: false,
         multiple: false,
         filters: [],
+        title: null,
+        defaultPath: null,
       },
     });
   });
@@ -158,6 +160,7 @@ describe("bindFileSelection", () => {
         directory: false,
         multiple: false,
         filters: [],
+        title: null,
         defaultPath: "/tmp/out.txt",
       },
     });

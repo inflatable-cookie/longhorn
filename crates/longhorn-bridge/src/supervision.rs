@@ -61,6 +61,149 @@ pub enum BridgeServiceAction {
     Shutdown,
 }
 
+impl BridgeServiceState {
+    /// State committed by any [`BridgeServiceOutcome::Failed`] observation.
+    pub const OF_FAILURE: Self = Self::Failed;
+
+    /// States whose commit starts a fresh service attempt, and so a fresh
+    /// incarnation. Readiness observations and an attempt's end do not.
+    pub const STARTS_INCARNATION: &'static [Self] = &[
+        Self::Starting,
+        Self::Attaching,
+        Self::Restarting,
+        Self::Reconnecting,
+    ];
+}
+
+/// Where one supervision action is admitted.
+///
+/// Declared as data so the machine and the generated TypeScript runtime read
+/// one admission matrix.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BridgeServiceAdmissionRule {
+    /// Ownerships that may request the action.
+    pub ownerships: &'static [BridgeServiceOwnership],
+    /// Service states that admit the action.
+    pub states: &'static [BridgeServiceState],
+    /// Whether the action controls an owned lifecycle, so that refusing an
+    /// ownership reports [`BridgeSupervisionError::LifecycleNotOwned`] rather
+    /// than an invalid transition.
+    pub requires_owned_lifecycle: bool,
+}
+
+impl BridgeServiceAction {
+    /// Every action. The binding generator checks that this list is as long as
+    /// the variant list Serde reads.
+    pub const ALL: [Self; 6] = [
+        Self::Spawn,
+        Self::Attach,
+        Self::CheckReadiness,
+        Self::Restart,
+        Self::Reconnect,
+        Self::Shutdown,
+    ];
+
+    /// Observations each action admits and the state each one commits. A
+    /// [`BridgeServiceOutcome::Failed`] observation is admitted for every
+    /// action and commits [`BridgeServiceState::OF_FAILURE`].
+    pub const ADMITTED_OBSERVATIONS: &'static [(Self, BridgeServiceOutcome, BridgeServiceState)] =
+        &[
+            (
+                Self::Spawn,
+                BridgeServiceOutcome::Accepted,
+                BridgeServiceState::Starting,
+            ),
+            (
+                Self::Attach,
+                BridgeServiceOutcome::Accepted,
+                BridgeServiceState::Attaching,
+            ),
+            (
+                Self::CheckReadiness,
+                BridgeServiceOutcome::Ready,
+                BridgeServiceState::Ready,
+            ),
+            (
+                Self::CheckReadiness,
+                BridgeServiceOutcome::NotReady,
+                BridgeServiceState::AwaitingReadiness,
+            ),
+            (
+                Self::Restart,
+                BridgeServiceOutcome::Accepted,
+                BridgeServiceState::Restarting,
+            ),
+            (
+                Self::Reconnect,
+                BridgeServiceOutcome::Accepted,
+                BridgeServiceState::Reconnecting,
+            ),
+            (
+                Self::Shutdown,
+                BridgeServiceOutcome::Stopped,
+                BridgeServiceState::Stopped,
+            ),
+        ];
+
+    /// Returns where this action is admitted.
+    #[must_use]
+    pub const fn admission_rule(self) -> BridgeServiceAdmissionRule {
+        use BridgeServiceOwnership::{ExternalLocal, ExternalRemote, OwnedLocal};
+        use BridgeServiceState::{
+            Absent, Attaching, AwaitingReadiness, Failed, Ready, Reconnecting, Restarting,
+            Starting, Stopped,
+        };
+        match self {
+            Self::Spawn => BridgeServiceAdmissionRule {
+                ownerships: &[OwnedLocal],
+                states: &[Absent, Stopped, Failed],
+                requires_owned_lifecycle: true,
+            },
+            Self::Attach => BridgeServiceAdmissionRule {
+                ownerships: &[ExternalLocal, ExternalRemote],
+                states: &[Absent, Stopped, Failed],
+                requires_owned_lifecycle: false,
+            },
+            Self::CheckReadiness => BridgeServiceAdmissionRule {
+                ownerships: &[OwnedLocal, ExternalLocal, ExternalRemote],
+                states: &[
+                    Starting,
+                    Attaching,
+                    AwaitingReadiness,
+                    Restarting,
+                    Reconnecting,
+                    Ready,
+                ],
+                requires_owned_lifecycle: false,
+            },
+            Self::Restart => BridgeServiceAdmissionRule {
+                ownerships: &[OwnedLocal],
+                states: &[Ready, Failed],
+                requires_owned_lifecycle: true,
+            },
+            Self::Reconnect => BridgeServiceAdmissionRule {
+                ownerships: &[OwnedLocal, ExternalLocal, ExternalRemote],
+                states: &[Ready, Failed, Stopped],
+                requires_owned_lifecycle: false,
+            },
+            Self::Shutdown => BridgeServiceAdmissionRule {
+                ownerships: &[OwnedLocal],
+                states: &[
+                    Starting,
+                    Attaching,
+                    AwaitingReadiness,
+                    Ready,
+                    Restarting,
+                    Reconnecting,
+                    Failed,
+                ],
+                requires_owned_lifecycle: true,
+            },
+        }
+    }
+}
+
 /// Stable adapter failure category. No arbitrary message or credential material is admitted.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
@@ -361,7 +504,7 @@ impl BridgeServiceMachine {
     ) -> Result<BridgeServiceTransitionReceipt, BridgeSupervisionError> {
         let current = transition_state(action, outcome)?;
         let generation = self.generation.next()?;
-        let incarnation = if starts_incarnation(current) {
+        let incarnation = if BridgeServiceState::STARTS_INCARNATION.contains(&current) {
             self.incarnation.next()?
         } else {
             self.incarnation
@@ -381,65 +524,11 @@ impl BridgeServiceMachine {
     }
 
     fn admit(&self, action: BridgeServiceAction) -> Result<(), BridgeSupervisionError> {
-        let owned = self.ownership == BridgeServiceOwnership::OwnedLocal;
-        let admitted = match action {
-            BridgeServiceAction::Spawn => {
-                owned
-                    && matches!(
-                        self.state,
-                        BridgeServiceState::Absent
-                            | BridgeServiceState::Stopped
-                            | BridgeServiceState::Failed
-                    )
-            }
-            BridgeServiceAction::Attach => {
-                !owned
-                    && matches!(
-                        self.state,
-                        BridgeServiceState::Absent
-                            | BridgeServiceState::Stopped
-                            | BridgeServiceState::Failed
-                    )
-            }
-            BridgeServiceAction::CheckReadiness => matches!(
-                self.state,
-                BridgeServiceState::Starting
-                    | BridgeServiceState::Attaching
-                    | BridgeServiceState::AwaitingReadiness
-                    | BridgeServiceState::Restarting
-                    | BridgeServiceState::Reconnecting
-                    | BridgeServiceState::Ready
-            ),
-            BridgeServiceAction::Restart => {
-                owned
-                    && matches!(
-                        self.state,
-                        BridgeServiceState::Ready | BridgeServiceState::Failed
-                    )
-            }
-            BridgeServiceAction::Reconnect => matches!(
-                self.state,
-                BridgeServiceState::Ready
-                    | BridgeServiceState::Failed
-                    | BridgeServiceState::Stopped
-            ),
-            BridgeServiceAction::Shutdown => {
-                owned
-                    && !matches!(
-                        self.state,
-                        BridgeServiceState::Absent | BridgeServiceState::Stopped
-                    )
-            }
-        };
-        if admitted {
+        let rule = action.admission_rule();
+        let ownership_admitted = rule.ownerships.contains(&self.ownership);
+        if ownership_admitted && rule.states.contains(&self.state) {
             Ok(())
-        } else if matches!(
-            action,
-            BridgeServiceAction::Spawn
-                | BridgeServiceAction::Restart
-                | BridgeServiceAction::Shutdown
-        ) && !owned
-        {
+        } else if !ownership_admitted && rule.requires_owned_lifecycle {
             Err(BridgeSupervisionError::LifecycleNotOwned)
         } else {
             Err(BridgeSupervisionError::InvalidTransition {
@@ -454,41 +543,14 @@ fn transition_state(
     action: BridgeServiceAction,
     outcome: BridgeServiceOutcome,
 ) -> Result<BridgeServiceState, BridgeSupervisionError> {
-    let current = match outcome {
-        BridgeServiceOutcome::Failed(_) => BridgeServiceState::Failed,
-        BridgeServiceOutcome::Ready if matches!(action, BridgeServiceAction::CheckReadiness) => {
-            BridgeServiceState::Ready
-        }
-        BridgeServiceOutcome::NotReady if matches!(action, BridgeServiceAction::CheckReadiness) => {
-            BridgeServiceState::AwaitingReadiness
-        }
-        BridgeServiceOutcome::Stopped if action == BridgeServiceAction::Shutdown => {
-            BridgeServiceState::Stopped
-        }
-        BridgeServiceOutcome::Accepted => match action {
-            BridgeServiceAction::Spawn => BridgeServiceState::Starting,
-            BridgeServiceAction::Attach => BridgeServiceState::Attaching,
-            BridgeServiceAction::Restart => BridgeServiceState::Restarting,
-            BridgeServiceAction::Reconnect => BridgeServiceState::Reconnecting,
-            BridgeServiceAction::CheckReadiness | BridgeServiceAction::Shutdown => {
-                return Err(BridgeSupervisionError::InvalidObservation { action, outcome });
-            }
-        },
-        _ => return Err(BridgeSupervisionError::InvalidObservation { action, outcome }),
-    };
-    Ok(current)
-}
-
-/// Whether a committed state starts a fresh service attempt, and so a fresh
-/// incarnation. Readiness observations and an attempt's end do not.
-fn starts_incarnation(current: BridgeServiceState) -> bool {
-    matches!(
-        current,
-        BridgeServiceState::Starting
-            | BridgeServiceState::Attaching
-            | BridgeServiceState::Restarting
-            | BridgeServiceState::Reconnecting
-    )
+    if matches!(outcome, BridgeServiceOutcome::Failed(_)) {
+        return Ok(BridgeServiceState::OF_FAILURE);
+    }
+    BridgeServiceAction::ADMITTED_OBSERVATIONS
+        .iter()
+        .find(|(admitted, observation, _)| *admitted == action && *observation == outcome)
+        .map(|(_, _, state)| *state)
+        .ok_or(BridgeSupervisionError::InvalidObservation { action, outcome })
 }
 
 /// Supervision ownership or transition failure.

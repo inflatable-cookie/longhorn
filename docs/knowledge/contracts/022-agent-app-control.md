@@ -60,7 +60,9 @@ agent can use while the app runs unfocused in the background.
   changes leave the listener on that webview. Resource reads and polling use a
   dedicated host read that leaves picker origin untouched. The event batch
   requires `epoch`, `events`, `nextSeq`, and `dropped`. The shim resets the
-  read cursor when the document epoch changes.
+  read cursor when the document epoch changes. The shim's wire shapes are
+  generated from the Rust types (contract 010). An absent node name or value,
+  or file media type, is an explicit `null` between Rust and the page.
 - Closing a request's response stream cancels that request. Server shutdown
   cancels active MCP exchanges and settles pending selections before draining
   HTTP connections and removing discovery.
@@ -126,7 +128,12 @@ agent can use while the app runs unfocused in the background.
 - `click`, `type`, `press`, `scroll`, `drag` by ref: synthetic DOM events
   dispatched in-page. They never move the OS pointer and never require
   focus. Documented honestly as untrusted events: native hover, OS
-  drag-and-drop, and `isTrusted` checks are out of scope.
+  drag-and-drop, and `isTrusted` checks are out of scope. `type` follows two
+  browser rules: a cancelled `keydown` suppresses that character, and an input
+  without a text selection (email, number, date and the like) takes the typed
+  text as a whole value. Date, time, colour and range inputs are replaced rather
+  than appended to. A file input answers `unsupported`. Only an element that is
+  actually editable receives text; `contenteditable="false"` is not.
 - `evaluate`: run JS in the page. Escape hatch, not the primary path, and
   behind the `agent-control-evaluate` feature; a packaged build omits it and
   the tool answers typed `Unsupported`. It returns the script's synchronous

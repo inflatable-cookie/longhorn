@@ -1,4 +1,4 @@
-import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import { CheckedSnapshotConnection, CheckedSubscription } from "@inflatable-cookie/longhorn/core";
 import type {
   ConnectionFailure,
   ConnectionFailureReporter,
@@ -10,6 +10,7 @@ import {
   assertValidOperationChangedEvent,
   assertValidOperationMutationCommand,
   assertValidOperationMutationResult,
+  assertValidOperationSnapshot,
   assertValidOperationSnapshotResponse,
 } from "./validation.ts";
 import { OPERATION_PROTOCOL_VERSION } from "./generated/protocol.ts";
@@ -72,7 +73,19 @@ export class OperationClient {
     listener: (snapshot: OperationSnapshot) => void,
     onFailure?: ConnectionFailureReporter,
   ): OperationSubscription {
-    return new CheckedOperationSubscription(this, this.#port, listener, onFailure);
+    const port = this.#port;
+    return new CheckedSubscription(
+      new CheckedSnapshotConnection({
+        listen: async (receive) => (port.listen === undefined ? () => {} : port.listen(receive)),
+        loadSnapshot: async () => (await this.snapshot()).snapshot,
+        validateSnapshot: parseSnapshot,
+        handleEvent: operationEventAction,
+        isNewer: isNewerOperationSnapshot,
+        onSnapshot: listener,
+        onFailure,
+      }),
+      () => {},
+    );
   }
 }
 
@@ -94,50 +107,9 @@ function assertResponseCorrelation(received: string, expected: string): void {
   }
 }
 
-class CheckedOperationSubscription implements OperationSubscription {
-  readonly ready: Promise<void>;
-  readonly #connection: CheckedSnapshotConnection<OperationSnapshot>;
-
-  constructor(
-    client: OperationClient,
-    port: OperationPort,
-    listener: (snapshot: OperationSnapshot) => void,
-    onFailure?: ConnectionFailureReporter,
-  ) {
-    this.#connection = new CheckedSnapshotConnection({
-      listen: async (receive) => {
-        if (port.listen === undefined) {
-          return () => {};
-        }
-        return port.listen(receive);
-      },
-      loadSnapshot: async () => (await client.snapshot()).snapshot,
-      validateSnapshot: parseSnapshot,
-      handleEvent: operationEventAction,
-      isNewer: isNewerOperationSnapshot,
-      onSnapshot: listener,
-      onFailure,
-    });
-    this.ready = this.#connection.ready.then(() => undefined);
-  }
-
-  current(): OperationSnapshot | undefined {
-    return this.#connection.current();
-  }
-
-  failures(): ReadonlyArray<ConnectionFailure> {
-    return this.#connection.failures();
-  }
-
-  dispose(): Promise<void> {
-    return this.#connection.dispose();
-  }
-}
-
 function parseSnapshot(value: unknown): OperationSnapshot {
-  const response = { requestId: "request:validation", snapshot: value };
-  assertValidOperationSnapshotResponse(response);
-  return response.snapshot;
+  assertValidOperationSnapshot(value);
+  return value;
 }
 
 export function operationEventAction(

@@ -1,3 +1,4 @@
+import type { ConnectionFailureReporter } from "../core/connection.ts";
 import { ControllerLifecycle } from "../core/controller-lifecycle.ts";
 import { UpdateClient } from "./client.ts";
 import { UPDATE_PROTOCOL_VERSION } from "./generated/protocol.ts";
@@ -78,7 +79,6 @@ export class UpdateController {
   #commandSequence = 0;
   #refreshRevision = 0;
   #pending = false;
-  #legacyProgress: ((event: UpdateProgressEvent) => void) | undefined;
   /**
    * The most recent live progress report.
    *
@@ -218,15 +218,6 @@ export class UpdateController {
           }
         }, reportFailure);
         await own(unlisten);
-        if (!isCurrent()) {
-          return;
-        }
-        const progress = await this.#client.listenProgress((event) => {
-          if (isCurrent()) {
-            this.#legacyProgress?.(event);
-          }
-        }, reportFailure);
-        await own(progress);
         if (isCurrent()) {
           await this.refresh();
         }
@@ -238,7 +229,6 @@ export class UpdateController {
   stop(): Promise<void> {
     return this.#lifecycle.stop(() => {
       this.#pending = false;
-      this.#legacyProgress = undefined;
       this.#liveProgress = undefined;
       this.#setStatus({ kind: "idle" });
     });
@@ -303,17 +293,16 @@ export class UpdateController {
 
   /** Fetches, verifies and retains an update for a later apply. */
   async prepare(version: string): Promise<UpdateCommandOutcome> {
-    return this.#command(
-      (client, snapshot, reportProgress) =>
-        client.prepareWithProgress(
-          {
-            protocolVersion: UPDATE_PROTOCOL_VERSION,
-            authorityEpoch: snapshot.authorityEpoch,
-            version,
-          },
-          reportProgress,
-        ),
-      { prepare: true },
+    return this.#command((client, snapshot, progress) =>
+      client.prepareWithProgress(
+        {
+          protocolVersion: UPDATE_PROTOCOL_VERSION,
+          authorityEpoch: snapshot.authorityEpoch,
+          version,
+        },
+        progress.report,
+        progress.fail,
+      ),
     );
   }
 
@@ -321,23 +310,24 @@ export class UpdateController {
    * Applies the retained staged artifact, replacing the application.
    *
    * A gate refusal is a deferral: the artifact stays staged and the surface
-   * can offer the restart again.
+   * can offer the restart again. A version that is not the staged one fails
+   * with `UpdateNotStagedError` and nothing is sent.
    */
   async apply(version: string): Promise<UpdateCommandOutcome> {
     return this.#command(
-      async (client, snapshot) => {
-        const staged = snapshot.staged;
-        if (staged?.version !== version) {
-          return { status: "rejected", code: "noOffer", detail: null, snapshot };
-        }
-        return client.apply({
+      (client, snapshot) =>
+        client.apply({
           protocolVersion: UPDATE_PROTOCOL_VERSION,
           authorityEpoch: snapshot.authorityEpoch,
           version,
-          digest: staged.digest,
-        });
+          digest: stagedArtifact(snapshot, version).digest,
+        }),
+      {
+        committedMayDefer: true,
+        precondition: (snapshot) => {
+          stagedArtifact(snapshot, version);
+        },
       },
-      { committedMayDefer: true },
     );
   }
 
@@ -352,21 +342,38 @@ export class UpdateController {
     run: (
       client: UpdateClient,
       snapshot: UpdateSnapshot,
-      reportProgress: (event: UpdateProgressEvent) => void,
+      progress: {
+        readonly report: (event: UpdateProgressEvent) => void;
+        readonly fail: ConnectionFailureReporter;
+      },
     ) => Promise<UpdateOutcomeProjection>,
-    options: { readonly committedMayDefer?: boolean; readonly prepare?: boolean } = {},
+    options: {
+      readonly committedMayDefer?: boolean;
+      /** Throws when local state rules the command out before anything is sent. */
+      readonly precondition?: (snapshot: UpdateSnapshot) => void;
+    } = {},
   ): Promise<UpdateCommandOutcome> {
-    const commandSequence = ++this.#commandSequence;
+    if (!this.#lifecycle.active) {
+      // Nothing is sent and nothing is written: a stopped controller stays idle.
+      return { status: "failed", error: new UpdateControllerUnavailableError() };
+    }
     this.#lastRejection = undefined;
     this.#lastRejectionDetail = null;
     const snapshot = this.#snapshot;
-    if (snapshot === undefined) {
-      // No snapshot means no epoch to send, and inventing one would have the
-      // authority refuse it as stale. Say what is actually wrong.
-      const error = new Error("update state has not been read yet");
+    // A local failure takes no command sequence, so a command already in
+    // flight keeps ownership of `pending` and of its result.
+    try {
+      if (snapshot === undefined) {
+        // No snapshot means no epoch to send, and inventing one would have the
+        // authority refuse it as stale. Say what is actually wrong.
+        throw new Error("update state has not been read yet");
+      }
+      options.precondition?.(snapshot);
+    } catch (error) {
       this.#setStatus({ kind: "failed", error });
       return { status: "failed", error };
     }
+    const commandSequence = ++this.#commandSequence;
     const lifecycle = this.#lifecycle.revision;
     const isCurrent = () =>
       lifecycle === this.#lifecycle.revision && commandSequence === this.#commandSequence;
@@ -382,15 +389,21 @@ export class UpdateController {
         this.#notify();
       }
     };
+    const failProgress: ConnectionFailureReporter = ({ error }) => {
+      if (this.#lifecycle.isCurrent(lifecycle)) {
+        this.#lifecycle.recordEventFailure(error);
+        this.#liveProgress = undefined;
+        this.#notify();
+      }
+    };
     this.#pending = true;
-    this.#legacyProgress =
-      options.prepare && this.#client.port.prepareWithProgress === undefined
-        ? reportProgress
-        : undefined;
     this.#liveProgress = undefined;
     this.#notify();
     try {
-      const outcome = await run(this.#client, snapshot, reportProgress);
+      const outcome = await run(this.#client, snapshot, {
+        report: reportProgress,
+        fail: failProgress,
+      });
       const result: UpdateCommandOutcome =
         outcome.status === "rejected"
           ? {
@@ -408,7 +421,6 @@ export class UpdateController {
             : { status: "committed", snapshot: outcome.snapshot };
       if (isCurrent()) {
         this.#pending = false;
-        this.#legacyProgress = undefined;
         this.#refreshRevision += 1;
         this.#snapshot = outcome.snapshot;
         this.#liveProgress = undefined;
@@ -421,7 +433,6 @@ export class UpdateController {
       if (isCurrent()) {
         this.#refreshRevision += 1;
         this.#pending = false;
-        this.#legacyProgress = undefined;
         this.#liveProgress = undefined;
         this.#setStatus({ kind: "failed", error });
       }
@@ -439,4 +450,28 @@ export class UpdateController {
       observer();
     }
   }
+}
+
+/** A command was issued outside a started lifetime. */
+export class UpdateControllerUnavailableError extends Error {
+  constructor() {
+    super("update controller is not started");
+    this.name = "UpdateControllerUnavailableError";
+  }
+}
+
+/** `apply` named a version that is not the staged artifact. */
+export class UpdateNotStagedError extends Error {
+  constructor(readonly version: string) {
+    super(`no staged update artifact for version: ${version}`);
+    this.name = "UpdateNotStagedError";
+  }
+}
+
+function stagedArtifact(snapshot: UpdateSnapshot, version: string): UpdateStagedArtifactProjection {
+  const staged = snapshot.staged;
+  if (staged?.version !== version) {
+    throw new UpdateNotStagedError(version);
+  }
+  return staged;
 }

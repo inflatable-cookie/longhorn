@@ -307,7 +307,10 @@ export class LicenceController {
   async #command(
     run: (client: LicenceClient, epoch: number) => Promise<LicenceOutcomeProjection>,
   ): Promise<LicenceCommandOutcome> {
-    const commandSequence = ++this.#commandSequence;
+    if (!this.#lifecycle.active) {
+      // Nothing is sent and nothing is written: a stopped controller stays idle.
+      return { status: "failed", error: new LicenceControllerUnavailableError() };
+    }
     this.#lastRejection = undefined;
     const epoch = this.#snapshot?.authorityEpoch;
     if (epoch === undefined) {
@@ -317,6 +320,7 @@ export class LicenceController {
       this.#setStatus({ kind: "failed", error });
       return { status: "failed", error };
     }
+    const commandSequence = ++this.#commandSequence;
     const lifecycle = this.#lifecycle.revision;
     this.#pending = true;
     this.#notify();
@@ -356,5 +360,13 @@ export class LicenceController {
     for (const observer of this.#observers) {
       observer();
     }
+  }
+}
+
+/** A command was issued outside a started lifetime. */
+export class LicenceControllerUnavailableError extends Error {
+  constructor() {
+    super("licence controller is not started");
+    this.name = "LicenceControllerUnavailableError";
   }
 }

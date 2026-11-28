@@ -19,5 +19,92 @@
       "multiple": false,
       "title": "Choose folder"
     }
-  }
+  },
+  "fileInputFiles": [
+    {
+      "contentBase64": "e30=",
+      "mediaType": "application/json",
+      "name": "manifest.json"
+    },
+    {
+      "contentBase64": "e30=",
+      "mediaType": null,
+      "name": "notes"
+    }
+  ],
+  "page": {
+    "title": "Example",
+    "url": "https://app.example/"
+  },
+  "pageEvents": {
+    "dropped": 0,
+    "epoch": "document:1",
+    "events": [
+      {
+        "kind": "navigation",
+        "seq": 1,
+        "url": "https://app.example/"
+      },
+      {
+        "kind": "console",
+        "level": "log",
+        "seq": 2,
+        "text": "ready"
+      },
+      {
+        "kind": "error",
+        "message": "boom",
+        "seq": 3
+      }
+    ],
+    "nextSeq": 4
+  },
+  "shimErrors": [
+    {
+      "element": "e2",
+      "error": "unresolvedRef"
+    },
+    {
+      "error": "unsupported",
+      "message": "set_file_input requires an input type=file"
+    }
+  ],
+  "snapshotRoot": {
+    "children": [
+      {
+        "elementRef": "e2",
+        "name": "Save",
+        "role": "button",
+        "states": [
+          "visible"
+        ],
+        "value": "save"
+      }
+    ],
+    "elementRef": "e1",
+    "name": "Settings",
+    "role": "group",
+    "states": [
+      "visible"
+    ],
+    "value": "open"
+  },
+  "waitPredicates": [
+    {
+      "element": "e2",
+      "predicate": "refResolve"
+    },
+    {
+      "element": "e2",
+      "predicate": "refAbsent"
+    },
+    {
+      "needle": "/settings",
+      "predicate": "pageUrlContains"
+    },
+    {
+      "needle": "Settings",
+      "predicate": "pageTitleContains"
+    }
+  ]
 }

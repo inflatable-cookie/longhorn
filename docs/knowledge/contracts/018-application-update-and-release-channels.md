@@ -215,10 +215,11 @@ earlier single-call stance.
   channel completes without live byte reports. Tauri snapshot always returns
   the plain snapshot.
 - The TypeScript controller accepts scoped reports for its pending prepare
-  and current authority epoch. Custom event-only `UpdatePort` implementations
-  can still supply epoch-gated progress. Those ports need invocation-scoped
-  progress to distinguish a queued report from a cancelled prepare from one
-  for its same-epoch replacement.
+  and current authority epoch. A custom `UpdatePort` reports live bytes through
+  `prepareWithProgress` only; there is no unscoped progress listener. A port
+  without it prepares without live byte reports.
+- `UpdateController.apply` fails locally, sending nothing, when the version it
+  names is not the staged artifact. `noOffer` is only ever an authority answer.
 - Committed Tauri command hints distinguish checks, channel selection,
   deferrals, and install progress.
 

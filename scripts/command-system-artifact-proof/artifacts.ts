@@ -91,7 +91,7 @@ async function inspectNpmArtifact(name: string, path: string, artifactRoot: stri
   assertExactSet(`${name} dependencies`, Object.keys(manifest.dependencies ?? {}), []);
   const exports = Object.keys(manifest.exports ?? {});
   if (name === "@inflatable-cookie/longhorn") {
-    for (const entry of [".", "./commands", "./commands/protocol"]) {
+    for (const entry of ["./core", "./commands", "./commands/protocol"]) {
       if (!exports.includes(entry)) {
         throw new Error(`framework package is missing the ${entry} entry`);
       }

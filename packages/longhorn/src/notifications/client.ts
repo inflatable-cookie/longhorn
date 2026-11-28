@@ -1,4 +1,4 @@
-import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import { CheckedSnapshotConnection, CheckedSubscription } from "@inflatable-cookie/longhorn/core";
 import type {
   ConnectionFailure,
   ConnectionFailureReporter,
@@ -8,6 +8,7 @@ import {
   assertValidNotificationChangedEvent,
   assertValidNotificationMutationCommand,
   assertValidNotificationMutationResult,
+  assertValidNotificationSnapshot,
   assertValidNotificationSnapshotResponse,
 } from "./validation.ts";
 import { NOTIFICATION_PROTOCOL_VERSION } from "./generated/protocol.ts";
@@ -59,7 +60,19 @@ export class NotificationClient {
     onFailure?: ConnectionFailureReporter,
     limit = 100,
   ): NotificationSubscription {
-    return new CheckedNotificationSubscription(this, this.port, listener, onFailure, limit);
+    const port = this.port;
+    return new CheckedSubscription(
+      new CheckedSnapshotConnection({
+        listen: async (receive) => (port.listen === undefined ? () => {} : port.listen(receive)),
+        loadSnapshot: async () => (await this.snapshot(0, limit)).snapshot,
+        validateSnapshot: parseSnapshot,
+        handleEvent: notificationEventAction,
+        isNewer: isNewerNotificationSnapshot,
+        onSnapshot: listener,
+        onFailure,
+      }),
+      () => {},
+    );
   }
 }
 
@@ -75,44 +88,9 @@ export class NotificationResponseCorrelationError extends Error {
   }
 }
 
-class CheckedNotificationSubscription implements NotificationSubscription {
-  readonly ready: Promise<void>;
-  readonly connection: CheckedSnapshotConnection<NotificationSnapshot>;
-
-  constructor(
-    client: NotificationClient,
-    port: NotificationPort,
-    listener: (snapshot: NotificationSnapshot) => void,
-    onFailure: ConnectionFailureReporter | undefined,
-    limit: number,
-  ) {
-    this.connection = new CheckedSnapshotConnection({
-      listen: async (receive) => (port.listen === undefined ? () => {} : port.listen(receive)),
-      loadSnapshot: async () => (await client.snapshot(0, limit)).snapshot,
-      validateSnapshot: parseSnapshot,
-      handleEvent: notificationEventAction,
-      isNewer: isNewerNotificationSnapshot,
-      onSnapshot: listener,
-      onFailure,
-    });
-    this.ready = this.connection.ready.then(() => undefined);
-  }
-
-  current(): NotificationSnapshot | undefined {
-    return this.connection.current();
-  }
-  failures(): ReadonlyArray<ConnectionFailure> {
-    return this.connection.failures();
-  }
-  dispose(): Promise<void> {
-    return this.connection.dispose();
-  }
-}
-
 function parseSnapshot(value: unknown): NotificationSnapshot {
-  const response = { requestId: "request:validation", snapshot: value };
-  assertValidNotificationSnapshotResponse(response);
-  return response.snapshot;
+  assertValidNotificationSnapshot(value);
+  return value;
 }
 
 export function notificationEventAction(

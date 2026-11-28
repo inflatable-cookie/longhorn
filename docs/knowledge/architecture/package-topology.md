@@ -114,7 +114,7 @@ explains the package boundaries. See the
 
 | Subpath | Responsibility |
 | --- | --- |
-| `/core` (also the root) | structural transport, checked subscription lifetime, and shared framework-neutral utilities |
+| `/core` (no root entrypoint) | structural transport, checked subscription lifetime, and shared framework-neutral utilities |
 | `/config` | checked storage-layout, backup, restore, and recovery client |
 | `/layout` | generated layout snapshots, commands, receipts, and framework-neutral helpers |
 | `/surfaces` | optional Surface protocol |

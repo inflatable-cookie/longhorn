@@ -91,9 +91,17 @@ The commands, history, history-tree, licence, update, notifications and
 operation controllers reset to idle when stopped. `stop()` attempts every
 owned unlisten and rejects with the first failure in registration order.
 Licence and update `refresh()` only read during a started lifetime. An older
-refresh cannot replace a newer refresh or a settled command's state.
+refresh cannot replace a newer refresh or a settled command's state. Their
+commands also need a started lifetime: outside one they send nothing, write no
+state and resolve `failed`. A failed history or history-tree navigation sets
+that controller's status to `failed` unless a later lifetime or navigation has
+superseded it. A history-tree page load rejects when the lifetime or the held
+revision moved while it was in flight.
 
 A malformed event ends its subscription and is reported as an event failure.
+A malformed update progress report ends delivery for that prepare invocation
+without throwing into the port. The prepare still settles, and the update
+controller keeps the failure visible in the same way.
 The checked history, history-tree, licence and update listeners report it to
 the optional `onFailure` callback with phase `event`. Their controllers keep
 the failure visible until stopped and started again. Other subscriptions in
@@ -218,9 +226,9 @@ authority, and derives that strictness from it.** Concretely:
 - **Missing fields are rejected.** A required field must be an own, enumerable
   property so it survives JSON serialization. `ts-rs` emits `Option<T>` as
   always-present-and-nullable, so there is no absent-versus-null ambiguity to
-  navigate: zero optional fields across the generated protocol, 88 explicit
-  `| null`. A derived validator can be exactly as strict as a hand-written one
-  without guessing.
+  navigate: zero optional fields across the generated protocol, with absence an
+  explicit `| null`. The generator refuses to emit an optional field. A derived
+  validator can be exactly as strict as a hand-written one without guessing.
 - **Every bound comes from a named constant, never a literal.** A `MAXIMUM_*`
   that bounds a wire-visible collection is enforced from a generated constant,
   and `check:bindings` fails when Rust changes and TypeScript does not.
@@ -235,7 +243,14 @@ authority, and derives that strictness from it.** Concretely:
   transition matrix each lived in a `matches!` arm, were hand-copied into
   TypeScript, and agreed by maintenance rather than by construction until they
   were declared (`BridgeConnectionStatus::ADMITTED_REASONS`,
-  `BridgeConnectionState::ADMITTED_TRANSITIONS`) and emitted.
+  `BridgeConnectionState::ADMITTED_TRANSITIONS`) and emitted. Service
+  supervision admission, admitted observations and incarnation-starting states
+  are declared and emitted the same way
+  (`BridgeServiceAction::admission_rule`,
+  `BridgeServiceAction::ADMITTED_OBSERVATIONS`,
+  `BridgeServiceState::STARTS_INCARNATION`).
+  The agent-control page shim's tree, event, predicate, file and error shapes
+  are generated bindings.
   Bridge request contexts and session payloads share the validator for the
   generated `DomainId` grammar and byte bound. Layout ratio bounds and the
   command availability, config operation, notification receipt and transfer

@@ -1,4 +1,4 @@
-export { CheckedSnapshotConnection } from "./connection.ts";
+export { CheckedSnapshotConnection, CheckedSubscription } from "./connection.ts";
 export type {
   CheckedSnapshotConnectionOptions,
   ConnectionFailure,
