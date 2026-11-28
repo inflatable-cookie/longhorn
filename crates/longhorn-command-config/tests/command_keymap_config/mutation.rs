@@ -9,7 +9,8 @@ use longhorn_command_config::{
     CommandKeymapBackupPolicy, CommandKeymapCommit, CommandKeymapLoadOrigin,
     CommandKeymapLoadOutcome, CommandKeymapMigration, CommandKeymapMigrationTarget,
     CommandKeymapMutationResult, CommandKeymapPatch, CommandKeymapPreviewResult,
-    CommandKeymapReset, CommandKeymapService, CommandKeymapState, RegisteredCommandKeymapDomain,
+    CommandKeymapProtocolVersion, CommandKeymapReset, CommandKeymapService, CommandKeymapState,
+    RegisteredCommandKeymapDomain,
 };
 use longhorn_config::{
     BackupApplication, BackupCaptureOptions, BackupCatalog, BackupKind, BackupLimits,
@@ -36,6 +37,7 @@ fn concurrent_commits_from_one_preview_publish_once() {
         panic!("expected accepted preview");
     };
     let request = CommandKeymapCommit {
+        protocol_version: CommandKeymapProtocolVersion::CURRENT,
         request_id: request_id("request:race"),
         evidence,
         patch,
@@ -96,6 +98,7 @@ fn publication_failure_preserves_published_bytes_and_effective_state() {
     let result = service.commit(
         &store,
         &CommandKeymapCommit {
+            protocol_version: CommandKeymapProtocolVersion::CURRENT,
             request_id: request_id("request:must-fail"),
             evidence,
             patch: disable("base:save"),
@@ -104,14 +107,14 @@ fn publication_failure_preserves_published_bytes_and_effective_state() {
     );
     fs::set_permissions(parent, fs::Permissions::from_mode(original_mode)).unwrap();
 
+    let Err(error) = result else {
+        panic!("expected publication error");
+    };
     assert!(matches!(
-        result,
-        Err(
-            longhorn_command_config::CommandKeymapServiceError::Mutation(
-                MutationError::Publication(_)
-            )
-        )
+        error,
+        longhorn_command_config::CommandKeymapServiceError::Mutation(MutationError::Publication(_))
     ));
+    assert!(std::error::Error::source(&error).is_some());
     assert_eq!(fs::read(&path).unwrap(), before);
     let CommandKeymapLoadOutcome::Loaded { snapshot } =
         service.load(&store, Duration::from_secs(2)).unwrap()
@@ -201,6 +204,32 @@ fn migration_projects_source_versions_and_preserves_exact_bytes() {
         }
     );
     assert_eq!(fs::read(fixture.path(&current)).unwrap(), bytes);
+
+    let mut invalid_override_state = CommandKeymapState::initial(super::support::id("app:default"));
+    invalid_override_state
+        .overrides
+        .push(CommandKeymapOverride::Add {
+            binding: binding("override:missing", "KeyM", "app:missing"),
+        });
+    let invalid_bytes = envelope(1, serde_json::to_value(invalid_override_state).unwrap());
+    fixture.write(&current, &invalid_bytes);
+    let CommandKeymapLoadOutcome::Recovery { recovery } =
+        service.load(&store, Duration::from_secs(2)).unwrap()
+    else {
+        panic!("invalid migrated override should recover");
+    };
+    assert!(recovery.detail.contains("command-keymap-unknown-command"));
+
+    let mut unknown_preset_state = CommandKeymapState::initial(super::support::id("app:missing"));
+    unknown_preset_state.overrides.clear();
+    let unknown_preset_bytes = envelope(1, serde_json::to_value(unknown_preset_state).unwrap());
+    fixture.write(&current, &unknown_preset_bytes);
+    let CommandKeymapLoadOutcome::Recovery { recovery } =
+        service.load(&store, Duration::from_secs(2)).unwrap()
+    else {
+        panic!("unknown migrated preset should recover");
+    };
+    assert!(recovery.detail.contains("command-keymap-unknown-preset"));
 }
 
 #[test]
@@ -219,6 +248,7 @@ fn reset_returns_to_compiled_default_and_advances_revision_once() {
         .reset(
             &store,
             &CommandKeymapReset {
+                protocol_version: CommandKeymapProtocolVersion::CURRENT,
                 request_id: request_id("request:reset"),
                 registry_generation: snapshot.registry_generation,
                 keymap_revision: snapshot.state.revision,
@@ -295,6 +325,7 @@ fn commit_patch(
             .commit(
                 store,
                 &CommandKeymapCommit {
+                    protocol_version: CommandKeymapProtocolVersion::CURRENT,
                     request_id: request_id(request),
                     evidence,
                     patch,

@@ -146,26 +146,13 @@ where
         &self,
         state: &CommandKeymapState,
     ) -> Result<CommandEffectiveKeymap, DomainIssue> {
-        let preset = self.preset(&state.active_preset_id).ok_or_else(|| {
-            DomainIssue::new(
-                "command-keymap-unknown-preset",
-                format!("unknown active preset {}", state.active_preset_id),
-            )
-        })?;
-        let effective = CommandEffectiveKeymap::compile(
+        compile_keymap(
             &self.registry,
-            preset,
-            &state.overrides,
+            self.preset(&state.active_preset_id),
+            state,
             &self.reserved,
+            "effective keymap contains unresolved conflicts",
         )
-        .map_err(keymap_issue)?;
-        if effective.has_conflicts() {
-            return Err(DomainIssue::new(
-                "command-keymap-conflict",
-                "effective keymap contains unresolved conflicts",
-            ));
-        }
-        Ok(effective)
     }
 
     fn migration_target(&self) -> CommandKeymapMigrationTarget<'_, P> {
@@ -228,6 +215,36 @@ where
         self.migration
             .migrate_one(from, value, self.migration_target())
     }
+}
+
+pub(crate) fn compile_keymap_raw<P: CommandReservedChordPolicy>(
+    registry: &CommandRegistry,
+    preset: Option<&CommandKeymapPreset>,
+    state: &CommandKeymapState,
+    reserved: &P,
+) -> Result<CommandEffectiveKeymap, DomainIssue> {
+    let preset = preset.ok_or_else(|| {
+        DomainIssue::new(
+            "command-keymap-unknown-preset",
+            format!("unknown active preset {}", state.active_preset_id),
+        )
+    })?;
+    CommandEffectiveKeymap::compile(registry, preset, &state.overrides, reserved)
+        .map_err(keymap_issue)
+}
+
+pub(crate) fn compile_keymap<P: CommandReservedChordPolicy>(
+    registry: &CommandRegistry,
+    preset: Option<&CommandKeymapPreset>,
+    state: &CommandKeymapState,
+    reserved: &P,
+    conflict_detail: &str,
+) -> Result<CommandEffectiveKeymap, DomainIssue> {
+    let effective = compile_keymap_raw(registry, preset, state, reserved)?;
+    if effective.has_conflicts() {
+        return Err(DomainIssue::new("command-keymap-conflict", conflict_detail));
+    }
+    Ok(effective)
 }
 
 pub(crate) fn decode_state(value: Value) -> Result<CommandKeymapState, DomainIssue> {

@@ -233,6 +233,9 @@ fn admitted_invocation_carries_normalized_arguments_route_and_fresh_context() {
         invocation.arguments().get(&enabled_field_id()),
         Some(&CommandArgumentValue::Boolean(true))
     );
+    let serialized = serde_json::to_value(invocation).expect("admitted invocation serializes");
+    assert_eq!(serialized["commandId"], "test:edit");
+    assert_eq!(serialized["route"], "domain:editor.apply");
 }
 
 #[test]

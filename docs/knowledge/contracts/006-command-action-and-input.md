@@ -130,13 +130,13 @@ reserved, or unresolved override state cannot persist or execute.
 `longhorn-command-config` registers active preset selection and sparse
 overrides as an ordinary user-config domain under contract 004.
 
-Mutation carries expected keymap revision and registry generation. Conflict
-preview and commit bind the proposed patch digest to the same base revision.
-A changed registry or keymap returns fresh authoritative state. Unavailable
-keymap loads put a stable code in `detail` (`authority-unavailable`,
-`restore-active`, or `restore-recovery-required`). Keymap validation issues
-use explicit `command-keymap-*` codes, such as
-`command-keymap-limit-exceeded`.
+Preview, commit, and reset requests carry the exact protocol version,
+expected keymap revision, and registry generation. Conflict preview and
+commit bind the proposed patch digest to the same base revision. A changed
+registry or keymap returns fresh authoritative state. Unavailable keymap loads
+put a stable code in `detail` (`authority-unavailable`, `restore-active`, or
+`restore-recovery-required`). Keymap validation issues use explicit
+`command-keymap-*` codes, such as `command-keymap-limit-exceeded`.
 
 Coordinated publication, migration, recovery, durability, backup, and restore
 remain contract-004 behavior. Session state becomes effective from the

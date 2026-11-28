@@ -589,6 +589,7 @@
           }
         ]
       },
+      "protocolVersion": 1,
       "requestId": "request:fixture"
     },
     "preview": {
@@ -606,12 +607,14 @@
           }
         ]
       },
+      "protocolVersion": 1,
       "registryGeneration": 0
     },
     "reset": {
       "activePresetId": "app:default",
       "activePresetVersion": 1,
       "keymapRevision": 0,
+      "protocolVersion": 1,
       "registryGeneration": 0,
       "requestId": "request:reset"
     }

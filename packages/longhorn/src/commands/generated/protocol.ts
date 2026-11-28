@@ -627,6 +627,10 @@ patchDigest: CommandKeymapPatchDigest, };
 
 export type CommandKeymapPreview = { 
 /**
+ * Exact protocol line.
+ */
+protocolVersion: CommandKeymapProtocolVersion, 
+/**
  * Expected sealed registry generation.
  */
 registryGeneration: CommandRegistryGeneration, 
@@ -649,6 +653,10 @@ patch: CommandKeymapPatch, };
 
 export type CommandKeymapCommit = { 
 /**
+ * Exact protocol line.
+ */
+protocolVersion: CommandKeymapProtocolVersion, 
+/**
  * Correlation identity.
  */
 requestId: CommandRequestId, 
@@ -662,6 +670,10 @@ evidence: CommandKeymapCommitEvidence,
 patch: CommandKeymapPatch, };
 
 export type CommandKeymapReset = { 
+/**
+ * Exact protocol line.
+ */
+protocolVersion: CommandKeymapProtocolVersion, 
 /**
  * Correlation identity.
  */

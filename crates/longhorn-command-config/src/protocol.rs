@@ -1,10 +1,12 @@
+use std::{error::Error, fmt};
+
 use longhorn_command::{
     CommandDiscoveryRecord, CommandEffectiveBinding, CommandKeymapConflict, CommandKeymapOverride,
     CommandRegistryDigest, CommandRegistryGeneration,
 };
-use longhorn_config::{Durability, LoadDiagnostic, LoadedOrigin, RecoveryKind};
+use longhorn_config::{Durability, LoadDiagnostic, LoadDiagnosticCode, LoadedOrigin, RecoveryKind};
 use longhorn_core::{CommandBindingId, CommandKeymapPresetId, CommandRequestId, SchemaVersion};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de};
 
 use crate::{CommandKeymapPatchDigest, CommandKeymapRevision, CommandKeymapState};
 
@@ -12,7 +14,7 @@ use crate::{CommandKeymapPatchDigest, CommandKeymapRevision, CommandKeymapState}
 pub const COMMAND_KEYMAP_PROTOCOL_VERSION: u32 = 1;
 
 /// Exact command/keymap protocol line.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[cfg_attr(feature = "bindings", ts(type = "number"))]
 #[serde(transparent)]
@@ -28,6 +30,37 @@ impl CommandKeymapProtocolVersion {
         self.0
     }
 }
+
+impl<'de> Deserialize<'de> for CommandKeymapProtocolVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = u32::deserialize(deserializer)?;
+        if value == COMMAND_KEYMAP_PROTOCOL_VERSION {
+            Ok(Self(value))
+        } else {
+            Err(de::Error::custom(UnsupportedCommandKeymapProtocolVersion(
+                value,
+            )))
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct UnsupportedCommandKeymapProtocolVersion(u32);
+
+impl fmt::Display for UnsupportedCommandKeymapProtocolVersion {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "command keymap protocol version {} is unsupported; expected {COMMAND_KEYMAP_PROTOCOL_VERSION}",
+            self.0
+        )
+    }
+}
+
+impl Error for UnsupportedCommandKeymapProtocolVersion {}
 
 /// Immutable preset metadata exposed to clients.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -120,6 +153,8 @@ pub struct CommandKeymapCommitEvidence {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CommandKeymapPreview {
+    /// Exact protocol line.
+    pub protocol_version: CommandKeymapProtocolVersion,
     /// Expected sealed registry generation.
     pub registry_generation: CommandRegistryGeneration,
     /// Expected current keymap revision.
@@ -137,6 +172,8 @@ pub struct CommandKeymapPreview {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CommandKeymapCommit {
+    /// Exact protocol line.
+    pub protocol_version: CommandKeymapProtocolVersion,
     /// Correlation identity.
     pub request_id: CommandRequestId,
     /// Exact accepted preview evidence.
@@ -150,6 +187,8 @@ pub struct CommandKeymapCommit {
 #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct CommandKeymapReset {
+    /// Exact protocol line.
+    pub protocol_version: CommandKeymapProtocolVersion,
     /// Correlation identity.
     pub request_id: CommandRequestId,
     /// Expected sealed registry generation.
@@ -203,8 +242,11 @@ pub struct CommandKeymapDiagnostic {
 
 impl From<&LoadDiagnostic> for CommandKeymapDiagnostic {
     fn from(value: &LoadDiagnostic) -> Self {
+        let code = match value.code {
+            LoadDiagnosticCode::Missing => "missing",
+        };
         Self {
-            code: format!("{:?}", value.code).to_ascii_lowercase(),
+            code: code.to_owned(),
             detail: value.message.clone(),
         }
     }
