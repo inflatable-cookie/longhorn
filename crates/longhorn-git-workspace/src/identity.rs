@@ -122,7 +122,10 @@ impl GithubCommitIdentityResolver {
             .ok_or(GithubAuthFailure::NotSignedIn)?;
         let fingerprint = fingerprint(&token);
         {
-            let cache = self.cache.lock().map_err(|_| GithubAuthFailure::Failed)?;
+            let cache = self
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             if let Some(account_id) = cache.account_by_token.get(&fingerprint)
                 && let Some(identity) = cache.identity_by_account.get(account_id)
             {
@@ -150,7 +153,10 @@ impl GithubCommitIdentityResolver {
             name,
             email: format!("{}+{}@users.noreply.github.com", profile.id, login),
         };
-        let mut cache = self.cache.lock().map_err(|_| GithubAuthFailure::Failed)?;
+        let mut cache = self
+            .cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         cache.account_by_token.insert(fingerprint, profile.id);
         cache
             .identity_by_account
@@ -160,9 +166,11 @@ impl GithubCommitIdentityResolver {
 
     /// Forgets every cached identity. The application calls it on sign-out.
     pub fn clear_cache(&self) {
-        if let Ok(mut cache) = self.cache.lock() {
-            *cache = CommitIdentityCache::default();
-        }
+        let mut cache = self
+            .cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *cache = CommitIdentityCache::default();
     }
 
     fn profile(&self, token: &SecretString) -> Result<GithubUserProfile, GithubAuthFailure> {
@@ -200,4 +208,29 @@ impl std::fmt::Debug for GithubCommitIdentityResolver {
 /// The token's digest: the cache key that is never the token.
 fn fingerprint(token: &SecretString) -> [u8; 32] {
     Sha256::digest(token.expose_secret().as_bytes()).into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clearing_a_poisoned_cache_still_forgets_identities() {
+        let resolver = GithubCommitIdentityResolver::new("https://example.com/user", "test")
+            .expect("resolver");
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut cache = resolver.cache.lock().expect("cache");
+            cache.account_by_token.insert([1; 32], 1);
+            panic!("poison cache");
+        }));
+        resolver.clear_cache();
+        assert!(
+            resolver
+                .cache
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .account_by_token
+                .is_empty()
+        );
+    }
 }

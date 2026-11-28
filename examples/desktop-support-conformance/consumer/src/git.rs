@@ -372,7 +372,7 @@ pub(crate) fn run() -> String {
     assert_eq!(state.current_branch, "main");
     assert!(!state.detached, "the clone is on a branch");
     assert_eq!(state.upstream.as_deref(), Some("origin/main"));
-    assert!(state.status.clean, "a fresh clone is clean");
+    assert!(state.status.clean(), "a fresh clone is clean");
     let local_main = state
         .branches
         .iter()
@@ -582,8 +582,8 @@ pub(crate) fn run() -> String {
     // and does not block a switch.
     fs::write(target.join("in-progress.txt"), "unsaved\n").expect("untracked content");
     let untracked = git.status(&target).expect("the status of the worktree");
-    assert_eq!(untracked.untracked, 1);
-    assert!(!untracked.clean, "untracked content is not clean");
+    assert_eq!(untracked.untracked(), 1);
+    assert!(!untracked.clean(), "untracked content is not clean");
     assert!(
         !has_switch_blocking_dirt(
             &git.inspect_worktree(&target)
@@ -615,7 +615,7 @@ pub(crate) fn run() -> String {
     let dirty = git
         .status(&target)
         .expect("the status of the dirty worktree");
-    assert_eq!(dirty.modified, 1);
+    assert_eq!(dirty.modified(), 1);
     assert!(has_switch_blocking_dirt(
         &git.inspect_worktree(&target).expect("the dirty worktree")
     ));

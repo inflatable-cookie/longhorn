@@ -17,19 +17,47 @@ use serde::{Serialize, Serializer};
 #[serde(rename_all = "camelCase")]
 pub struct GitStatus {
     /// Paths with staged changes.
-    pub staged: usize,
+    pub(crate) staged: usize,
     /// Paths with unstaged changes to tracked content.
-    pub modified: usize,
+    pub(crate) modified: usize,
     /// Paths Git does not track.
-    pub untracked: usize,
+    pub(crate) untracked: usize,
     /// Paths in a conflicted merge state.
-    pub conflicted: usize,
+    pub(crate) conflicted: usize,
     /// Commits the current branch has and its upstream does not.
     pub ahead: usize,
     /// Commits the upstream has and the current branch does not.
     pub behind: usize,
     /// True when no staged, modified, untracked or conflicted path exists.
-    pub clean: bool,
+    pub(crate) clean: bool,
+}
+
+impl GitStatus {
+    /// Number of paths with staged changes.
+    #[must_use]
+    pub fn staged(&self) -> usize {
+        self.staged
+    }
+    /// Number of paths with unstaged changes.
+    #[must_use]
+    pub fn modified(&self) -> usize {
+        self.modified
+    }
+    /// Number of untracked paths.
+    #[must_use]
+    pub fn untracked(&self) -> usize {
+        self.untracked
+    }
+    /// Number of conflicted paths.
+    #[must_use]
+    pub fn conflicted(&self) -> usize {
+        self.conflicted
+    }
+    /// Whether all four dirt counters are zero.
+    #[must_use]
+    pub fn clean(&self) -> bool {
+        self.clean
+    }
 }
 
 /// Where one branch reference lives.

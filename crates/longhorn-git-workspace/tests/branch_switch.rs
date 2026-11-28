@@ -92,7 +92,7 @@ fn blocks_a_switch_while_the_worktree_holds_dirty_work() {
         panic!("expected a blocked switch, got {reading:?}");
     };
     assert_eq!(state.current_branch, "main");
-    assert_eq!(state.status.modified, 1);
+    assert_eq!(state.status.modified(), 1);
 }
 
 #[test]

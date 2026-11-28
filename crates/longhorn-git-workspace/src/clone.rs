@@ -35,7 +35,7 @@ use uuid::Uuid;
 use crate::{
     execution::{
         Git, MAX_CAPTURED_STDERR_BYTES, exited_uncollected, kill_child_tree, read_capped,
-        redact_git_detail, stderr_detail,
+        redact_git_detail, start_reader, stderr_detail,
     },
     policy::GitCredential,
 };
@@ -48,6 +48,11 @@ pub enum CloneFailure {
     Cancelled,
     /// The destination cannot be named to Git.
     PathNotUsable,
+    /// The credential destination lookup exceeded its bound.
+    TimedOut {
+        /// The lookup bound.
+        after: Duration,
+    },
     /// The Git child could not be started. Detail is the operating system's.
     NotStarted {
         /// The operating system's own words, redacted and bounded.
@@ -214,9 +219,7 @@ impl Git<'_> {
                 remote,
                 credential,
             )
-            .map_err(|error| CloneFailure::NotStarted {
-                detail: redact_git_detail(self.redactor(), &error.to_string(), None),
-            })?;
+            .map_err(|error| clone_setup_failure(self.redactor(), error))?;
         if cancel.load(Ordering::SeqCst) {
             return Err(CloneFailure::Cancelled);
         }
@@ -228,11 +231,24 @@ impl Git<'_> {
             detail: redact_git_detail(self.redactor(), &error.to_string(), None),
         })?;
         let (sender, receiver) = mpsc::channel();
-        let mut stderr_handle = child.stderr.take().map(|pipe| {
-            thread::spawn(move || {
+        let Some(pipe) = child.stderr.take() else {
+            kill_child_tree(&mut child);
+            return Err(CloneFailure::WaitFailed {
+                detail: "Git standard error was not captured".to_owned(),
+            });
+        };
+        let mut stderr_handle = match start_reader(&mut child, || {
+            thread::Builder::new().spawn(move || {
                 let _ = sender.send(read_capped(pipe, MAX_CAPTURED_STDERR_BYTES));
             })
-        });
+        }) {
+            Ok(reader) => Some(reader),
+            Err(error) => {
+                return Err(CloneFailure::WaitFailed {
+                    detail: redact_git_detail(self.redactor(), &error.to_string(), None),
+                });
+            }
+        };
         // The exit is observed without collecting the child, so its group id
         // stays reserved for the cancellation signal below.
         loop {
@@ -262,11 +278,14 @@ impl Git<'_> {
                 match receiver.recv_timeout(POLL) {
                     Ok(captured) => {
                         let _ = reader.join();
-                        break captured.unwrap_or_default();
+                        break clone_stderr_result(self.redactor(), &mut child, captured)?;
                     }
                     Err(RecvTimeoutError::Disconnected) => {
                         let _ = reader.join();
-                        break (Vec::new(), false);
+                        kill_child_tree(&mut child);
+                        return Err(CloneFailure::WaitFailed {
+                            detail: "Git standard error reader stopped unexpectedly".to_owned(),
+                        });
                     }
                     Err(RecvTimeoutError::Timeout) => {
                         if cancel.load(Ordering::SeqCst) {
@@ -295,6 +314,67 @@ impl Git<'_> {
                 credential.map(|credential| credential.secret().expose_secret()),
             ),
         })
+    }
+}
+
+fn clone_setup_failure(redactor: &longhorn_redact::Redactor, error: io::Error) -> CloneFailure {
+    if error.kind() == io::ErrorKind::TimedOut {
+        CloneFailure::TimedOut {
+            after: crate::preflight::REMOTE_PROBE_TIMEOUT,
+        }
+    } else {
+        CloneFailure::NotStarted {
+            detail: redact_git_detail(redactor, &error.to_string(), None),
+        }
+    }
+}
+
+fn clone_stderr_result(
+    redactor: &longhorn_redact::Redactor,
+    child: &mut std::process::Child,
+    result: io::Result<(Vec<u8>, bool)>,
+) -> Result<(Vec<u8>, bool), CloneFailure> {
+    result.map_err(|error| {
+        kill_child_tree(child);
+        CloneFailure::WaitFailed {
+            detail: redact_git_detail(redactor, &error.to_string(), None),
+        }
+    })
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use crate::execution::isolate_process_group;
+    use longhorn_redact::{RedactionRules, Redactor};
+    use std::process::Command;
+
+    #[test]
+    fn lookup_timeout_retains_its_class() {
+        let redactor = Redactor::new(Vec::new(), RedactionRules::common());
+        let error = clone_setup_failure(
+            &redactor,
+            io::Error::new(io::ErrorKind::TimedOut, "lookup timeout"),
+        );
+        assert!(
+            matches!(error, CloneFailure::TimedOut { after } if after == crate::preflight::REMOTE_PROBE_TIMEOUT)
+        );
+    }
+
+    #[test]
+    fn stderr_read_failure_is_reported_and_reaps_child() {
+        let redactor = Redactor::new(Vec::new(), RedactionRules::common());
+        let mut command = Command::new("/bin/sleep");
+        command.arg("30");
+        isolate_process_group(&mut command);
+        let mut child = command.spawn().expect("child starts");
+        let failure =
+            clone_stderr_result(&redactor, &mut child, Err(io::Error::other("read failed")))
+                .expect_err("read failure");
+        assert!(
+            matches!(failure, CloneFailure::WaitFailed { detail } if detail.contains("read failed"))
+        );
+        assert!(child.try_wait().expect("child was reaped").is_some());
     }
 }
 

@@ -494,11 +494,18 @@ impl<'a> Git<'a> {
                 Some(crate::preflight::REMOTE_PROBE_TIMEOUT),
             );
             self.read_command(None, &["ls-remote", "--get-url", "--", remote], &clock)
-                .map_err(|error| io::Error::other(error.to_string()))?
+                .map_err(lookup_io_error)?
         } else {
             None
         };
         self.command(None, arguments, credential.zip(resolved.as_deref()))
+    }
+}
+
+fn lookup_io_error(error: GitFailure) -> io::Error {
+    match error {
+        GitFailure::TimedOut { .. } => io::Error::new(io::ErrorKind::TimedOut, error.to_string()),
+        _ => io::Error::other(error.to_string()),
     }
 }
 
@@ -743,12 +750,22 @@ fn capture(mut command: Command, deadline: Option<Instant>) -> io::Result<Captur
     };
     let (stdout_sender, stdout_receiver) = mpsc::channel();
     let (stderr_sender, stderr_receiver) = mpsc::channel();
-    let stdout_reader = thread::spawn(move || {
-        let _ = stdout_sender.send(read_capped(stdout_pipe, MAX_CAPTURED_OUTPUT_BYTES));
-    });
-    let stderr_reader = thread::spawn(move || {
-        let _ = stderr_sender.send(read_capped(stderr_pipe, MAX_CAPTURED_STDERR_BYTES));
-    });
+    let stdout_reader = start_reader(&mut child, || {
+        thread::Builder::new().spawn(move || {
+            let _ = stdout_sender.send(read_capped(stdout_pipe, MAX_CAPTURED_OUTPUT_BYTES));
+        })
+    })?;
+    let stderr_reader = match start_reader(&mut child, || {
+        thread::Builder::new().spawn(move || {
+            let _ = stderr_sender.send(read_capped(stderr_pipe, MAX_CAPTURED_STDERR_BYTES));
+        })
+    }) {
+        Ok(reader) => reader,
+        Err(error) => {
+            let _ = stdout_reader.join();
+            return Err(error);
+        }
+    };
 
     // The leader is observed, not collected, until the end of this function:
     // its zombie keeps the process-group id reserved for the group signal below.
@@ -912,9 +929,15 @@ fn end_group(child: &mut Child) {
     let _ = child.kill();
 }
 
-/// Kills the child's whole process group where the host has one, then kills
-/// and reaps the direct child. A descendant holding an output pipe therefore
-/// cannot keep a bounded call alive. The child must not have been reaped yet.
+/// Reaps the child if a reader cannot start.
+pub(crate) fn start_reader<T>(
+    child: &mut Child,
+    start: impl FnOnce() -> io::Result<T>,
+) -> io::Result<T> {
+    start().inspect_err(|_| kill_child_tree(child))
+}
+
+/// Ends the process group and reaps its still-waitable leader.
 pub(crate) fn kill_child_tree(child: &mut Child) {
     end_group(child);
     let _ = child.wait();
@@ -1034,5 +1057,34 @@ mod redaction_tests {
             "a caller that chose exact-only rules keeps token-shaped text: {redacted}"
         );
         assert!(!redacted.contains("invocation-secret-value"));
+    }
+}
+
+#[cfg(all(test, unix))]
+mod reader_start_tests {
+    use super::*;
+
+    #[test]
+    fn lookup_timeout_is_preserved_for_clone() {
+        let error = lookup_io_error(GitFailure::TimedOut {
+            code: GitFailureCode::RemotePreflightFailed,
+            after: Duration::from_secs(15),
+        });
+        assert_eq!(error.kind(), io::ErrorKind::TimedOut);
+    }
+
+    #[test]
+    fn failure_to_start_a_reader_reaps_the_child() {
+        let mut command = Command::new("/bin/sleep");
+        command.arg("30");
+        isolate_process_group(&mut command);
+        let mut child = command.spawn().expect("child starts");
+        let result: io::Result<()> =
+            start_reader(&mut child, || Err(io::Error::other("thread limit")));
+        assert_eq!(
+            result.expect_err("reader failed").to_string(),
+            "thread limit"
+        );
+        assert!(child.try_wait().expect("child was reaped").is_some());
     }
 }

@@ -165,7 +165,9 @@ pub fn remote_for_display(raw: &str) -> String {
     let trimmed = raw.trim();
     if let Some(scheme) = trimmed.find("://") {
         let authority_start = scheme + 3;
-        if let Some(at) = trimmed[authority_start..].find('@') {
+        if let Some(at) = trimmed[authority_start..].find('@')
+            && !trimmed[authority_start..authority_start + at].contains(['/', '?', '#'])
+        {
             let at = authority_start + at;
             return format!("{}{}", &trimmed[..authority_start], &trimmed[at + 1..]);
         }

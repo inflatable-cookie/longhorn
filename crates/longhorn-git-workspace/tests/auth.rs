@@ -797,6 +797,46 @@ fn concurrent_callers_share_one_refresh() {
 }
 
 #[test]
+fn different_slots_refresh_concurrently() {
+    let store = MemoryCredentialStore::new();
+    let slots = [
+        CredentialSlot::consumer_scoped("longhorn-tests", "parallel-a", "device-token")
+            .expect("slot"),
+        CredentialSlot::consumer_scoped("longhorn-tests", "parallel-b", "device-token")
+            .expect("slot"),
+    ];
+    let now = SystemTime::now();
+    for slot in &slots {
+        write_grant(
+            &scope(&store, slot),
+            &TokenGrant {
+                access_token: SecretString::from("old-access"),
+                access_expires_at: Some(now),
+                refresh_token: Some(SecretString::from("old-refresh")),
+                refresh_expires_at: Some(now + Duration::from_secs(3600)),
+            },
+        )
+        .expect("seed grant");
+    }
+    let mut client = FakeTokenClient::new(vec![
+        Ok(token_response("new-a", "refresh-a", 3600)),
+        Ok(token_response("new-b", "refresh-b", 3600)),
+    ]);
+    client.delay = Duration::from_millis(200);
+    let barrier = std::sync::Barrier::new(2);
+    thread::scope(|threads| {
+        for slot in &slots {
+            threads.spawn(|| {
+                barrier.wait();
+                fresh_access_token(&scope(&store, slot), CLIENT_ID, &client, now, false, None)
+                    .expect("refresh");
+            });
+        }
+    });
+    assert_eq!(client.max_in_flight.load(Ordering::SeqCst), 2);
+}
+
+#[test]
 fn concurrent_forced_refreshes_reuse_an_already_rotated_grant() {
     let store = MemoryCredentialStore::new();
     let slot = test_slot();
