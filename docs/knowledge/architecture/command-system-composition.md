@@ -162,8 +162,8 @@ Private Rust crates are inventoried with
 `cargo package --list --allow-dirty`, archived, unpacked into a clean
 workspace, and run offline. Jetstream resolves only `longhorn-command` and
 `longhorn-core`. Loophole selects config, settings, command settings, and
-Tauri adapters explicitly. Registry-normalized Rust publication remains a
-release-lane gate while the interdependent crates are private.
+Tauri adapters explicitly. The [release contract](../contracts/release.md)
+defines the Git-tagged Rust distribution.
 
 ## Retained, Changed, Rejected, Deferred
 

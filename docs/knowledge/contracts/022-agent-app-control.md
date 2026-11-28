@@ -13,7 +13,7 @@ consumer may ship in a packaged build (`agent-control`), with `evaluate` split b
 from the Figmatic lane, 2026-09-22). Prior: child-webview semantic targeting
 admitted, opt-in per label at mount, default closed (operator decision;
 g02.035 executes).
-Prior: g02.034 evidence closeout (Card 238): `screenshot`
+Packaged screenshot evidence: `screenshot`
 composes the whole window across child webviews; the tool-surface claim,
 native-surface boundary, required evidence, and narrowings updated to the
 proved mechanism
@@ -75,8 +75,7 @@ agent can use while the app runs unfocused in the background.
   is rejected before dispatch. This is the DNS-rebinding defense and is
   not optional — a rebinding attack still presents the attacker's origin.
   Loopback browser origins are admitted (they still need the token, which
-  no browser can read) so localhost tooling such as MCP Inspector works;
-  Cards 228-229 implement and fixture this rule.
+  no browser can read) so localhost tooling such as MCP Inspector works.
 - `evaluate` and command invocation are full code execution in the app.
   The token is the entire trust boundary; treat its file like a credential.
 - Harnesses that cannot speak streamable HTTP reach the same instance
@@ -136,7 +135,7 @@ agent can use while the app runs unfocused in the background.
   same deadline so a wedged check still times out with `waitTimeout`.
   Waiting is DOM-relative, never time- or animation-relative:
   WKWebView coalesces DOM timers in every window state and stops
-  `requestAnimationFrame` entirely while the window is not key (Card 227),
+  `requestAnimationFrame` entirely while the window is not key,
   so rAF-driven visuals must not be awaited and elapsed time proves
   nothing about page progress.
 - `screenshot`: one image of the whole logical window, composed on macOS
@@ -145,9 +144,8 @@ agent can use while the app runs unfocused in the background.
   separately and drawn at its tauri-reported physical bounds, back to front
   in the view hierarchy's z-order, clipped to the window). Child webviews
   attached to the window appear in the image; hidden ones do not, matching
-  what the window shows. Works occluded, unfocused, and minimized — Card
-  227 proved the UI webview fresh in all three states and Card 238
-  re-proved it per child webview. Requires no screen-recording permission
+  what the window shows. Packaged tests show fresh parent and child captures when occluded,
+  unfocused or minimized. Requires no screen-recording permission
   or private API. If any hosted visible webview's snapshot fails, the call
   fails typed rather than returning an image that silently omits a surface.
 - `command`: invoke a registered contract-006 command by id. This is the
@@ -275,33 +273,31 @@ Satisfied, with the proof named:
 - artifact scan proving a build without `agent-control` contains no server,
   routes, token code, or shim asset, and that a packaged `agent-control` build
   contains the server but not `evaluate` —
-  `effigy check:agent-control-release-absence` (Cards 230-233; re-scoped
-  g02.043)
+  `effigy check:agent-control-release-absence`
 - stateless conformance: tool calls with no session id succeed; minted
-  session ids never appear in responses — Card 229 conformance fixtures
+  session ids never appear in responses — loopback conformance fixtures
 - ref stability fixtures: snapshot, mutate DOM, re-resolve; stale ref fails
-  explicitly — Card 232 shim fixtures and Card 233 marshalling
-- unfocused-and-occluded screenshot proof on packaged macOS — Card 231
-  freshness matrix ([2026-08-19 packaged run](../../../examples/agent-control-proof/evidence/2026-08-19T17-41-52-packaged/matrix.json))
+  explicitly — shim and marshalling fixtures
+- unfocused-and-occluded screenshot proof on packaged macOS — freshness matrix ([2026-08-19 packaged run](../../../examples/agent-control-proof/evidence/2026-08-19T17-41-52-packaged/matrix.json))
 - whole-window screenshot composition across child webviews: both-surfaces
   baseline failure, then every window state fresh for parent and island,
   pixel-exact bounds, clipping, overlap order, and hidden-island absence on
-  packaged macOS — Card 238 freshness matrix v2
+  packaged macOS — whole-window freshness matrix
   ([baseline failure](../../../examples/agent-control-proof/evidence/2026-08-20T13-53-08-packaged/matrix.json),
   [passing composition](../../../examples/agent-control-proof/evidence/2026-08-20T14-14-36-packaged/matrix.json))
-- Origin-rejection and bad-token fixtures — Cards 229-230
+- Origin-rejection and bad-token fixtures
 - discovery lifecycle: create, enumerate, stale-pid detection and sweep,
-  cleanup — Cards 229-231
+  cleanup
 - two concurrent clients interleaving on one instance without interference —
-  Card 229 loopback journal plus Card 234 [packaged two-client snapshot and
+  loopback journal plus [packaged two-client snapshot and
   listen streams](../../../examples/agent-control-proof/evidence/2026-08-19T20-34-25-e2e/e2e.json)
 - one packaged consumer app driven end-to-end by an MCP client while the
   app never holds OS focus —
-  Card 234 [packaged end-to-end run](../../../examples/agent-control-proof/evidence/2026-08-19T20-34-25-e2e/e2e.json)
+  [packaged end-to-end run](../../../examples/agent-control-proof/evidence/2026-08-19T20-34-25-e2e/e2e.json)
 - opted-in child webview driven end-to-end (snapshot, click, type, drag,
   wait_for, evaluate) unfocused, plus closed-child `Unsupported`,
   cross-webview `UnresolvedRef`, and two-client UI/island interleave —
-  Card 240 [child-webview end-to-end run](../../../examples/agent-control-proof/evidence/2026-08-20T15-55-00-e2e/e2e.json)
+  [child-webview end-to-end run](../../../examples/agent-control-proof/evidence/2026-08-20T15-55-00-e2e/e2e.json)
 
 Narrowed, explicitly:
 
@@ -315,7 +311,7 @@ Narrowed, explicitly:
 - Genuinely native (non-webview) surfaces do not appear in the composed
   screenshot; no native-surface provider ships, and native chrome is not
   clicked.
-- Another-Space window state was not probed (Card 231).
+- Another-Space window state was not probed.
 - Listen delivers page events as `resources/updated` on the three URIs
   above, not as custom MCP notification methods.
 

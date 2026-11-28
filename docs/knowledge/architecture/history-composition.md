@@ -204,23 +204,22 @@ partially committed new runtime back in place.
 | retained | typed product mutations, inverse/coalesce policy, 750 ms grouping capability, 100-entry default, undo/redo/checkout, product snapshot, journal suffix, recovery, cross-session undo, product labels |
 | improved | plan/apply/commit admission, verified failure invariance, exact rollback-failure evidence, strict envelopes, authoritative future pages, listener-first refresh, per-instance teardown |
 | rejected | renderer-owned redo, move-before-apply, silent empty fallback, generic payload transport, Tauri capability as product authority, durable-event claim |
-| deferred | project versions, collaboration, registry publication |
+| deferred | project versions and collaboration |
 
-Card 068 proves fork topology privately. Card 069 promotes its semantics while
-retaining the prototype as research. Card 070 implements the optional pure
-Rust identity, topology, branch, and divergent-record foundation. Card 071 adds
-atomic mixed-route navigation, protected pruning, and opaque checkpoint replay
-accounting without changing Loophole or the linear packages. Card 072 adds
-dense bytes-only persistence with independent migrations and strict complete
-graph admission. Card 073 adds bounded metadata clients: startup loads only
-the preferred linear path; branches and alternate paths are explicit pages.
-Card 074 proves private document and Loophole-shaped artifacts while retaining
-the unchanged linear-only control. Storage, durability, product payloads, and
+The private fork-tree prototype established branch semantics and remains
+research evidence. See the [release contract](../contracts/release.md) for
+distribution. The optional Rust graph owns identity, topology, branches
+and divergent records. It provides atomic mixed-route navigation, protected
+pruning and opaque checkpoint replay accounting. The persistence layer uses
+a dense payload format, independent migrations and strict graph admission.
+Metadata clients load the preferred linear path at startup and page through
+branches and alternate paths. The artifact proof covers a document shape,
+a Loophole shape and the unchanged linear-only control. Storage, durability, product payloads, and
 consumer adoption remain outside the shared layer.
 
 ## Fork-tree Artifact Measurements
 
-The proof repeats the Card 068 document and Loophole shapes from produced
+The proof repeats the prototype document and Loophole shapes from produced
 private artifacts.
 
 | Metric | Document | Loophole-shaped |
@@ -231,7 +230,7 @@ private artifacts.
 | retained payload bytes | 4,224 | 540,672 |
 | LCA checkout steps | 65 | 1,025 |
 | dense envelope | 46,110 B | 1,369,420 B |
-| Card 068 numeric-array envelope | 99,295 B | 7,534,856 B |
+| Prototype numeric-array envelope | 99,295 B | 7,534,856 B |
 | requested path / branch records | 17 / 5 | 17 / 17 |
 
 Durations remain local observations, not thresholds. Exact counts, graph

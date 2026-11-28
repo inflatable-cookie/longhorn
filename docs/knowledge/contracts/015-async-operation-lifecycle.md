@@ -28,7 +28,7 @@ progress, or decide which operation may start.
 The pure crate imports no async runtime, bridge, config, Tauri, Svelte,
 Poodle, executor, or consumer package.
 
-Cards 075-076 implement the pure authority: bounded identities and progress,
+The pure authority implements bounded identities and progress,
 distinct revisions, queued or direct-running registration, the exact sticky
 lifecycle, cancellation receipts, count/weight retention, retry lineage,
 explicit dismissal, and controlled teardown. Serialization, transports, and
@@ -185,7 +185,7 @@ Clients listen before taking a current snapshot. Duplicate and stale events
 are ignored. A gap, epoch change, newer snapshot, or unknown operation forces
 refresh. Events are non-durable refresh evidence, not catalogue authority.
 
-Card 077 implements this seam. Public events carry request correlation,
+The operation protocol implements this seam. Public events carry request correlation,
 authority cursor, previous and committed catalogue revisions, optional
 operation id, and change kind. They carry no product result, artifact, report,
 or log payload.
@@ -205,7 +205,7 @@ The Poodle adapter maps authoritative state to public `Progress`,
 `StatusIndicator`, buttons, lists, and dialogs. Poodle owns visuals. Longhorn
 does not fork feedback components or place product copy in the generic layer.
 
-Card 078 implements this boundary. A framework-neutral controller owns one
+The renderer adapter implements this boundary. A framework-neutral controller owns one
 listener-first subscription, monotonic snapshot installation, selection, and
 request-keyed cancellation or dismissal per renderer instance. Svelte mirrors
 that controller. Unmount clears renderer state and listeners only. Delayed

@@ -14,8 +14,7 @@ policy remain consumer-owned.
 ## Workspace And Versions
 
 - Cargo and npm workspaces live in one repository.
-- Publishable Rust and TypeScript packages use one coordinated Longhorn
-  version.
+- Rust crates and TypeScript packages use one coordinated Longhorn version.
 - Rust crates use edition 2024 with MSRV 1.97.1 until an explicit compatibility
   change.
 - TypeScript packages target Svelte 5 and Tauri 2 where those peers apply.
@@ -74,7 +73,7 @@ policy remain consumer-owned.
   to prune, and tree-shaking already keeps unused exports out of an
   application bundle.
 - TypeScript packages are therefore grouped by **peer requirement**, which is
-  the only axis on which they genuinely differ, not by domain. Card 164
+  the only axis on which they genuinely differ, not by domain. The package consolidation
   collapsed eighteen packages into three on that axis:
   `@inflatable-cookie/longhorn` (no peers), `-poodle-svelte` (svelte, Poodle,
   longhorn), and `-tauri` (`@tauri-apps/api`, longhorn). Every domain is a
@@ -95,18 +94,18 @@ policy remain consumer-owned.
 - Service-supervision and production network transports are optional adapter
   edges. A no-service consumer resolves none of them.
 - Generated TypeScript bindings live with their owning domain package.
-- No umbrella package is published in g01.
+- Consumers select capability crates or the TypeScript packages below by
+  peer requirement.
 - Empty placeholder packages are not scaffolded before their implementation
   milestone.
 
 ## Consumer Adoption
 
-- Package-manager publication happens at `0.1.0`: the `@inflatable-cookie`
-  scope was claimed on 2026-08-09, the three TypeScript packages are
-  publishable (`publishConfig.access: public`), and Poodle is published at
-  `0.4.2` (g02.039), so the adapter's precondition is met and the linked-Poodle
-  exemption is gone (Card 218 step 5). Rust crates stay `publish = false`;
-  consumers take them by git tag.
+- The three TypeScript packages have shipped on npm under
+  `@inflatable-cookie` since Longhorn 0.1.0. Rust crates set
+  `publish = false` and consumers take them by Git tag. The
+  [release contract](release.md) owns distribution. Poodle 0.4.2 satisfied
+  the public-peer precondition and ended the linked-Poodle exemption.
 - Private consumer repos may merge explicit sibling path or `file:` sources.
   Each adopted graph records the exact clean Longhorn and Poodle commits.
 - Moving branch references and unrecorded dirty sources are not valid pins.
@@ -118,8 +117,6 @@ policy remain consumer-owned.
   with a third-party version newer than the root lock fails the proof. The
   pack typecheck's newest-admitted peer pass deliberately resolves Svelte and
   Poodle ranges; it reports the versions it tested.
-- Registry names, normalized Cargo packages, versions, and public compatibility
-  ranges remain a later release-lane decision.
 - Consumer lockfiles pin exact resolved versions.
 - An MSRV claim uses an exact compatible lock. A fresh unconstrained resolver
   result is not MSRV evidence when transitive dependencies may raise their
@@ -147,8 +144,8 @@ A release candidate requires:
 
 - Nucleus composes window/layout support without importing Surfaces, and
   the minimal-shell proof composes configuration and shell support without importing layout
-  hosting. Stated as imports rather than installs: Card 164 put every domain
-  in one package, so a consumer resolves them all and tree-shaking is what
+  hosting. The consolidated package puts domains behind export subpaths. A
+  consumer resolves the package, and tree-shaking is what
   keeps the unused ones out of a bundle. The Rust tier keeps the install
   claim, where the split is still real.
 - Loophole can compose the full optional hierarchy
@@ -166,7 +163,7 @@ consumer does.
 
 - npm: `@inflatable-cookie/poodle-core@0.4.16` and
   `@inflatable-cookie/poodle-svelte@0.4.16`, from the public registry. Longhorn's dev and proof installs pin one
-  release, while the adapter's published peers take the `>=0.4.16 <0.5` range
+  release, while the checkout declares the `>=0.4.16 <0.5` peer range
   (floor raised 2026-11-26, Workspace And Versions above).
 - Rust: git tag `v0.4.16` at `114c7b5a0bf204b9ea86cccccf7164cb38470586`. One
   tag for `poodle-specs` and for every direct prototype Poodle crate --
@@ -187,7 +184,7 @@ consumer does.
 
 Kept as the record of what the pin was, not as anything still in force.
 
-**Superseded 2026-08-08 by Poodle Card 020.** Poodle collapsed its six
+**Superseded 2026-08-08 by Poodle package consolidation.** Poodle collapsed its six
 publish-intent packages into three grouped by framework binding, so the set
 below was two tarballs rather than five:
 
@@ -197,21 +194,20 @@ below was two tarballs rather than five:
 - `@inflatable-cookie/poodle-core` — `ac13b2ef31c84b11…`, 291,471 bytes
 - `@inflatable-cookie/poodle-svelte` — `8a845d0fb7279ef5…`, 200,091 bytes
 
-The paragraphs below record the sets each card was bound to at the time and
-keep their original package names deliberately.
+The historical proof receipts below retain the original package names.
 
-Card 039 is bound to artifact set
+The five-package adapter proof used artifact set
 `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`
 from `~/Dev/projects/poodle/.artifacts/g12.016-A698XB/evidence.json`.
 
 The five packages are `@inflatable-cookie/poodle-headless`, `@inflatable-cookie/poodle-styles`,
 `@inflatable-cookie/poodle-svelte-tokens`, `@inflatable-cookie/poodle-icons-lucide`, and `@inflatable-cookie/poodle-svelte`, all at
 `0.1.0`. The supported Svelte peer range is `>=5.38.6 <6`. Adapter evidence
-must verify the set id and individual SHA-256 values recorded in Card 038
+must verify the set id and individual SHA-256 values in the five-package preview receipt
 before mounting.
 
-Card 041 packs seven Longhorn packages and installs a minimal consumer (retired 2026-10-22), Nucleus, and
-Loophole proof consumers into isolated roots. Nucleus resolves no Surface
+The private shell proof packed seven Longhorn packages and installed a minimal consumer
+(retired 2026-10-22), Nucleus and Loophole proof consumers into isolated roots. Nucleus resolves no Surface
 package; a minimal consumer resolves no layout host; Loophole resolves the full optional
 graph. Each root contains one Svelte `5.38.6` runtime and the exact five
 Poodle tarballs.
@@ -219,50 +215,49 @@ Poodle tarballs.
 Evidence:
 the retired logs (Git history).
 
-Card 048 packs the settings TypeScript family and installs isolated minimal consumer (retired 2026-10-22),
-Soundcheck, Loophole, and Nucleus consumers against the same exact Poodle set.
+The private settings proof packed the settings TypeScript family and installed isolated minimal
+(retired 2026-10-22), Soundcheck, Loophole and Nucleus consumers against the same exact Poodle set.
 Each root contains one Svelte `5.38.6` runtime, no sibling source alias, and
 only its declared Longhorn optional systems. Six private Rust crate
-inventories also unpack and build offline. Registry-normalized Cargo packages
-remain a public release-lane gate while the interdependent crates are private.
+inventories unpacked and built offline. That proof qualified the archived
+Rust sources.
 
 Evidence:
 the retired logs (Git history).
 
-Card 101 repeats the Nucleus graph against exact current clean sources:
-Longhorn `4f09e1c8`, Poodle `208532f0`, Poodle artifact set `25083fe0`, and
-Nucleus `40a8314d`. The isolated renderer resolves one Svelte/Poodle runtime
-and no Surface package. The Rust graph contains no Surface package. Registry
-publication remains deferred.
+Final Nucleus conformance used the recorded Longhorn `4f09e1c8`, Poodle
+`208532f0`, Poodle artifact set `25083fe0`, and Nucleus `40a8314d`. The
+isolated renderer resolved one Svelte/Poodle runtime. Neither graph resolved
+a Surface package at those pins. The proof used private artifacts before
+Longhorn published to npm.
 
 Evidence:
 the retired logs (Git history).
 
-Card 055 packs `@inflatable-cookie/longhorn/core`, `@inflatable-cookie/longhorn-tauri`, and
-`@inflatable-cookie/longhorn/bridge`, then installs a minimal consumer (retired 2026-10-22), Jetstream, Soundcheck, Nucleus, and
-Loophole-shaped consumers in isolated roots. Every consumer resolves version
+The private bridge proof packed `@inflatable-cookie/longhorn/core`, `@inflatable-cookie/longhorn-tauri`, and
+`@inflatable-cookie/longhorn/bridge`, then installed a minimal consumer (retired 2026-10-22) and shapes for
+Jetstream, Soundcheck, Nucleus and Loophole in isolated roots. Every consumer resolves version
 `0.1.0`, one Tauri API `2.10.1` peer, exact declared bridge subpaths, and no
 workspace or sibling source alias. Separate offline Rust consumers prove a
 query-only graph without supervision/Tauri and a selected full-host graph.
 
-The private Rust evidence uses `cargo package --list` plus exact source
-archives. Registry-normalized Cargo packaging remains a release-lane gate.
+The private Rust evidence used `cargo package --list` plus exact source
+archives.
 
 Evidence:
 the retired logs (Git history).
 
 ## Native-content Artifact Checkpoint
 
-Card 093 inventories five private Rust source artifacts after successful
-`cargo package --list`, then compiles pure, child-view, isolated-window, and
-backing-surface consumers offline on Rust 1.95. Registry-normalized Cargo
-packages remain a release-lane gate.
+The private native-content proof inventoried five private Rust source artifacts after
+`cargo package --list`, then compiled pure, child-view, isolated-window, and
+backing-surface consumers offline on Rust 1.95.
 
 It packs `@inflatable-cookie/longhorn/core`, `@inflatable-cookie/longhorn/native-content`, and
 `@inflatable-cookie/longhorn-poodle-svelte/native-content` and installs isolated Nucleus, Soundcheck,
 and Jetstream shapes. Each lock resolves version `0.1.0`, no workspace or
 sibling source alias, only its selected mechanism, and one Svelte/Poodle
-runtime where the Svelte adapter is selected. The exact Card 039 Poodle
+runtime where the Svelte adapter is selected. The exact five-package Poodle
 artifact set is reverified before mounted compilation.
 
 Rust-produced and renderer traces match across all three mechanism semantics.
@@ -271,22 +266,19 @@ claim.
 
 ## Private Migration Distribution Decision
 
-Nucleus and the other development apps may consume Longhorn and Poodle from
-explicit sibling sources while both libraries remain private. The source
-receipt names the exact clean commit. A separate clean temporary consumer must
-install the matching packed npm archives and Rust source artifacts without
-workspace or sibling resolution before the dependency graph is admitted.
-
-Package-manager publication, registry ownership, normalized Cargo archives,
-and public version-range promises are deferred to g01.016 release preparation.
-They are not gates for g01.014 or g01.015 donor migrations.
+The private migrations used explicit sibling sources from exact clean
+Longhorn and Poodle commits. Admission required a clean consumer to install
+the matching packed npm archives and Rust source artifacts outside both
+workspaces. Publication, registry ownership, normalized Cargo archives and
+public version ranges belonged to release preparation. The donor cutovers
+proceeded on isolated artifact evidence.
 
 Evidence:
 the retired logs (Git history).
 
 ## Nucleus Private Migration Checkpoint
 
-Card 095 installs eight selected Longhorn TypeScript packages plus the exact
+The Nucleus compatibility proof installed eight selected Longhorn TypeScript packages plus the exact
 five-package Poodle g12.018 artifact set in a clean Nucleus-shaped renderer.
 It compiles the public Poodle overlay geometry seam on Svelte 5.56.8,
 TypeScript 6.0.3, and Tauri API 2.11.1. No Surface package resolves.
@@ -298,7 +290,7 @@ prove Longhorn's MSRV. The selector emits the evolved lock digest with the
 artifact and source receipts.
 
 The operator accepted both Nucleus layout checks after the dependency proof.
-Card 095 therefore admits bounded donor writes and promotes Card 096. This
+That evidence admitted the bounded storage cutover. It
 makes no registry, publication, or public compatibility-range claim.
 
 Evidence:

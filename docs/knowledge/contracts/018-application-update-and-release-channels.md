@@ -20,7 +20,7 @@ Tauri and GPUI alike.
 This supersedes the 2026-08-08 amendment, which made execution host-dependent
 — Tauri hosts using the updater plugin, non-Tauri hosts using Longhorn's
 native implementation, both satisfying one conformance suite. That decision
-assumed the plugin could verify an artifact Longhorn hands it. Card 162
+assumed the plugin could verify an artifact Longhorn hands it. The updater-plugin evaluation
 established, from `tauri-plugin-updater` 2.10.1, that it cannot:
 
 - `verify_signature` is called in exactly one place, at the end of

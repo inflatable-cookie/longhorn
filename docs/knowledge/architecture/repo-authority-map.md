@@ -3,8 +3,8 @@
 Status: active first pass  
 Owner: Tom  
 Updated: 2026-09-16
-Architecture: `system-architecture.md`, `system-inventory.md`,
-`secondary-consumer-migration-map.md`
+Architecture: [system shape](system-architecture.md) and
+[system inventory](system-inventory.md)
 
 ## Topology
 
@@ -12,6 +12,9 @@ Longhorn becomes the mechanism authority. Consumer repos retain product
 authority and migrate through explicit batches. Poodle remains independent.
 
 ## Repo Authorities
+
+This map owns the consumer roster. The Longhorn and Poodle rows identify
+shared suppliers, and Soundcheck Library is a library consumer.
 
 | Repo | Owns | Consumes from Longhorn | Must not move |
 | --- | --- | --- | --- |
@@ -26,7 +29,6 @@ authority and migrate through explicit batches. Poodle remains independent.
 | `finch` | product policy | config, core, settings, windowing, display | product authority |
 | `acowtancy` (`apps/bovine-desktop`) | contextual-agent product policy | config, command, operation, settings, windowing, agent-control | Bovine product authority |
 | `kimi-shell` | shell product policy | config, display, windowing | shell product authority |
-| `<private-consumer>` | content workspace | minimal config/settings and public Poodle artifacts | content/navigation/editorial/Git domain; no forced layout |
 
 ## Cross-Repo Rules
 
@@ -47,21 +49,12 @@ authority and migrate through explicit batches. Poodle remains independent.
   work: Longhorn writes to a consumer repository only with the operator's
   go-ahead and an explicit migration card.
 
-## Planning Gaps
+## Migration Evidence
 
-- later release-lane registry ownership, public names, and publication policy
-
-The generic Echo transfer is complete under `loophole-migration-map.md`.
-Product schemas, policies, payloads, and named adapters remain in Loophole.
-Secondary-consumer selection and retained authority are compiled under
-`secondary-consumer-migration-map.md`; Card 113 now freezes exact receipts,
-behavior seams, selected packages, rollback inputs, and the protected minimal consumer
-docs-only overlap before any new consumer write. Card 119 closes Soundcheck's
-selected graph and retains every SQLite, scan, plugin, DAW, Composer,
-Keepsake, Signal, Swallowtail, and visual-product authority downstream. Card
-120 moves only the minimal consumer's storage, preference persistence, settings structure,
-and Tauri transport to Longhorn; content, hierarchy, navigation meaning,
-editorial, validation, Git, and SplitView presentation remain downstream.
-Card 121 closes the minimal graph with one preference authority, exact
-settings-session teardown, retained legacy rollback, and no layout or optional
-system edge.
+[Loophole](loophole-migration-map.md) and [Nucleus](nucleus-migration-map.md)
+record their authority cutovers. The
+[secondary-consumer map](secondary-consumer-migration-map.md) records
+Soundcheck's migrated graph and the retired minimal consumer. The latter
+kept content, navigation, editorial, validation, Git and SplitView policy
+downstream. Its single preference authority, session teardown, rollback and
+layout-free selection remain covered by the minimal-shell composition.

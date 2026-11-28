@@ -111,7 +111,7 @@ to start native dragging. Failure goes through an injected reporter.
   2026-11-26). Its Rust crates now use tag `v0.4.16` at
   `114c7b5a0bf204b9ea86cccccf7164cb38470586`. Contract 012 carries the full
   checkpoint.
-- Superseded: Card 038 artifact set
+- Superseded: five-tarball preview artifact set
   `39f08c04fa2579ae709db412c28221c04f22b89f09e633cef93764e5d49f8c74`, the
   packable preview this replaced. Kept as record, not as a live pin.
 - Every adapter has a framework-neutral client test and a mounted lifecycle
@@ -120,14 +120,14 @@ to start native dragging. Failure goes through an injected reporter.
 
 ## Implementation Evidence
 
-Card 039 implements private `@inflatable-cookie/longhorn-poodle-svelte/poodle` against the exact Card 038
+The preview adapter implemented private `@inflatable-cookie/longhorn-poodle-svelte/poodle` against the exact five-tarball
 artifact. Public Tabs, DockRegion, and SplitView bindings project registered
 layout state, serialize expected-revision mutation, reconcile controlled state,
 and keep labels, icons, bodies, and static panels in consumer resolvers and
 snippets. The root imports no Surface or transfer package. Mounted Nucleus and
 Loophole shapes exercise the same adapter.
 
-Card 041 installs three shell shapes from packed artifacts. Public Poodle
+The isolated shell proof installs three shell shapes from packed artifacts. Public Poodle
 theme and presentation setup surrounds distinct consumer frames. Checked
 authority loads before guarded reveal; loading, reconnecting, unsupported,
 and failed states stay visible. Mounted teardown covers connections and armed
@@ -136,7 +136,7 @@ transfer cancellation.
 Evidence: the retired logs (Git history),
 the retired logs (Git history).
 
-Card 078 applies the same boundary to operations. Per-instance sessions own
+The operation adapter applies the same boundary to operations. Per-instance sessions own
 listener lifetime and request-keyed pending state. Teardown never requests
 host cancellation. Public Poodle progress, status, list, button, and dialog
 composition covers Soundcheck scan and Loophole queue fixtures; consumer

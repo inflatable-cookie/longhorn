@@ -9,32 +9,32 @@ Governing refs: contracts 003, 004, 009, 012-014, and 017
 
 The read-only audit used Nucleus commit
 `c084d57ca15f9e4276f49a9b6b2923f5d10e7313` on `main`. The worktree was
-clean at audit start. Card 095's final compatibility receipt uses clean commit
+clean at audit start. The final compatibility receipt uses clean commit
 `df5af3da03f8392f948ff65d0a3cf16c36cb6c12`, which adds only operator
 acceptance documentation.
-Card 096's storage cutover is Nucleus commit
+The storage cutover is Nucleus commit
 `1c0f8e225849718888afdba63cee4745f623e906`. It uses Longhorn commit
 `973c89f260804a777747ead3218b50d146d16118` as its shared-library source.
-Card 097's protected-window cutover is Nucleus commit
+The protected-window cutover is Nucleus commit
 `fa7f06e7dfdf4a8bde7f4ab48df360a3087a05e7`. It uses Longhorn commit
 `32f4bd66e7df813af07514c654ce3b03ddc21ccd`, including sole-primary Tauri
 display observation.
-Card 098's project-layout cutover is Nucleus commit
+The project-layout cutover is Nucleus commit
 `fc083647f1bad76a7f544efe0f1644b66c042571`. Its exact Longhorn shape freeze
 is commit `01b9c0a79a8af9214984c29c3969db8a8dc790d3`.
-Card 099's renderer cutover is Nucleus commit
+The renderer cutover is Nucleus commit
 `74ca4e7c72f447e064419de6dc72502265cbbf49`. It uses Longhorn Poodle commit
 `ca755cbd332260abd971d86509f6190a0e76d269`.
-Card 100's native Browser cutover is Nucleus commit
+The native Browser cutover is Nucleus commit
 `ce71af24c7f042c16d0f44ee4f13332cb4fdfa98`. Its native policy seam is
 Longhorn commit `920bb8c1f19e0ce3a6a5766598d2bfa488ddde63`.
-Card 101's final Nucleus receipt is
+The final Nucleus receipt is
 `40a8314d067a3e33eb2254499e53a6db5a8962d5`. Its admitted Longhorn selected
 source is `4f09e1c8a9b55965605f74dfc364c1bb8a836570`; its Poodle source is
 `208532f0d18dcd1683cdef157e370d0ba0f0d3b3` with artifact set
 `25083fe0c5f1b457572c5cb2eb3e3e88f06ed92f55a700d25a9f22d56492cc69`.
-Card 098's unrelated `TerminalPanel.svelte` edit was independently committed
-before Card 099 and remained outside both migration diffs.
+An unrelated `TerminalPanel.svelte` edit was independently committed
+before the renderer cutover and remained outside both migration diffs.
 
 Nucleus has removed the inherited hosted-Surface layer. Its current hierarchy
 is:
@@ -50,7 +50,7 @@ therefore strengthened, not weakened, the Longhorn no-Surface composition.
 
 Nucleus roadmap `g05/001` is complete. The operator accepted cross-project
 layout retention and confirmed a previously unseen project opens with Agent
-Chat only. Card 095 admits bounded donor writes from exact clean receipts.
+Chat only. The compatibility proof admits bounded donor writes from exact clean receipts.
 
 ## Current Donor Authorities
 
@@ -105,14 +105,14 @@ combined `ui.json` authority into distinct window and layout domains, commit
 the fixed canonical-id locator last, and retain the source until receipted
 cleanup. There is no dual-write or silent old-path fallback.
 
-Card 096 implements that target. Startup selects the fixed locator before it
+The storage adapter implements that target. Startup selects the fixed locator before it
 considers import, so a committed transition is not replayed. Missing legacy
 storage leaves the native target unselected. Corrupt or future UI state,
 occupied targets, overlap, and interrupted transitions fail or recover without
 creating a second authority. The source root and unknown files remain intact;
 cleanup is deferred.
 
-Card 097 converts the raw window file once into registered machine-state
+The window cutover converts the raw window file once into registered machine-state
 domain `nucleus.window-placement`. The legacy bytes are copied to the backup
 root and digest-verified before the raw target is removed. Receipt interruption
 resumes against the published envelope without replaying old placement. Normal
@@ -141,8 +141,8 @@ The migration preserves:
 - product-owned allowed-region and instance-count policy
 - resource targets outside the shared layout document
 
-Card 098 adds expected-revision mutation and separate registered persistence.
-Card 099 removes the transition DTO and whole-snapshot save. The renderer now
+The layout cutover adds expected-revision mutation and separate registered persistence.
+The renderer cutover removes the transition DTO and whole-snapshot save. The renderer now
 registers its listener before the first snapshot, rejects older projection
 revisions and foreign projects, scopes optimism by request id, and invalidates
 late results by client generation. Project switch and unmount destroy the
@@ -172,7 +172,7 @@ The native child remains a mechanism under Nucleus browser policy.
 | close | panel close destroys the child; ordinary unmount or project switch hides it for reuse |
 | focus | construction stays unfocused; focus behavior must be observed, not fabricated |
 
-Card 099 removes the private selector
+The renderer cutover removes the private selector
 `.poodle-popover__surface, [role="menu"]` and all Browser viewport DOM
 discovery. Popover and Menu publish public surface-geometry changes into a
 Nucleus-owned overlay map. Browser panels publish their viewport rectangles
@@ -192,18 +192,18 @@ Poodle g12.018 implements the public snapshot seam at
 Nucleus may consume the exact clean sibling source during private development;
 the artifact proof remains the compatibility evidence.
 
-The renderer lock at Card 099 pins local private Longhorn and Poodle sources
+The recorded renderer cutover lock pinned local Longhorn and Poodle sources
 through one override graph. Frozen install, Svelte check, mounted tests, and
-production build pass without a duplicate Svelte runtime. Package-manager
-publication remains deferred.
+production build passed with one Svelte runtime. This evidence predates npm
+publication. See the [release contract](../contracts/release.md) for current
+distribution.
 
 The current Tauri capability names only the bundled `main` webview. That is
 useful negative evidence: remote children receive no app capability. Cutover
 must retain an exact capability audit and label validation; a broad wildcard
 is not an acceptable substitute.
 
-Card 100 completes that cutover. Stable panel ids map to native-content
-islands; destroy/replacement advances attach generation while ordinary unmount
+Stable panel ids map to native-content islands after the Browser cutover; destroy/replacement advances attach generation while ordinary unmount
 hides for process-lifetime reuse. The Svelte session measures the exact
 viewport, supplies explicit device scale, and resolves mounted, active,
 nonzero, gesture, and overlay inhibitors. The raw renderer Webview API and its
@@ -224,11 +224,10 @@ Nucleus worktree and records exact clean Longhorn and Poodle source commits
 plus their produced artifact identities.
 Overlapping unrelated edits stop the card.
 
-Nucleus already uses explicit sibling `file:` dependencies for private Poodle
-development. Longhorn may use the same private source-link posture. A source
-link is never artifact evidence: Card 095 installs the matching produced graph
-in clean temporary consumers. That proof and both Nucleus layout checks pass.
-Package-manager publication is deferred to the later release lane.
+Nucleus used explicit sibling `file:` dependencies for Poodle and applied
+the same source-link approach to Longhorn. The compatibility proof installed
+the matching artifacts in clean temporary consumers. The installation and both
+Nucleus layout checks passed.
 
 Cutovers are vertical and single-authority:
 
@@ -238,7 +237,7 @@ Cutovers are vertical and single-authority:
 4. transfer checked renderer lifetime and public Poodle bindings
 5. transfer native child coordination
 
-Cards 096-100 complete all five authority slices. Card 101 completes restart,
+All five authority slices moved to the selected shared authorities. The final conformance proof covers restart,
 rollback, artifact, duplicate-code, capability, and no-Surface conformance.
 
 Before a slice changes authority, freeze its donor fixtures and preserve its
@@ -247,8 +246,8 @@ slice. Rollback uses the recorded migration receipt and retained source with
 the previous app build. It never means live dual-write, a silent legacy read,
 or two active implementations.
 
-Card 101 supplies the final restart evidence, exact dependency and capability
-inventories, duplicate-code searches, and retained-policy records. Longhorn is
+The final conformance receipt supplies restart evidence, dependency and
+capability inventories, duplicate-code searches, and retained-policy records. Longhorn is
 now mechanism authority for the migrated systems. The old source remains
 recoverable; deletion still requires its exact import receipt and separate
 operator authority.

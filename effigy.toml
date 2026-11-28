@@ -283,7 +283,7 @@ include = ["config/release.toml"]
 # published peer range resolves from npm.
 # `proof:artifacts`: heavy task table below ([tasks."proof:artifacts"]).
 "proof:pack-typecheck" = "bun scripts/verify-pack-typecheck.ts"
-"proof:guide-corpus" = "bun scripts/verify-guide-corpus.ts"
+"proof:guide-corpus" = "bun test scripts/verify-guide-corpus.test.ts && bun scripts/verify-guide-corpus.ts"
 "proof:poodle-preview" = "bun scripts/verify-poodle-preview.ts"
 "proof:documented-commands" = "bun scripts/verify-documented-commands.ts"
 "proof:bridge-topology-conformance" = "bun scripts/verify-bridge-topology-conformance.ts"

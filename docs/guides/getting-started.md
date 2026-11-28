@@ -1,7 +1,5 @@
 # Getting Started: Zero To Running
 
-Status: checked private adoption guidance
-Updated: 2026-08-15
 Governing contracts: [002](../knowledge/contracts/002-composable-workspace-hosting.md),
 [004](../knowledge/contracts/004-configuration-storage-backup-and-recovery.md), and
 [005](../knowledge/contracts/005-settings-and-system-registration.md)
@@ -10,32 +8,20 @@ Governing contracts: [002](../knowledge/contracts/002-composable-workspace-hosti
 
 A minimal Svelte + Tauri app that stores its preferences through Longhorn: one
 config domain, one settings surface, atomic writes, and a restart-proof file.
-This is the smallest proven shape — two Longhorn TypeScript packages (plus the
-Poodle renderer packages) and six Rust crates. Work through it once and you
-know the pattern every larger composition builds on.
+The minimal composition uses two Longhorn TypeScript packages and six Rust
+crates. Add the Svelte/Poodle bindings when your app needs their UI.
 
-> **Publishing status.** `0.1.0` is on npm —
-> `@inflatable-cookie/longhorn`,
-> `@inflatable-cookie/longhorn-poodle-svelte`, and
-> `@inflatable-cookie/longhorn-tauri` — and Poodle resolves from npm at
-> `0.4.16`, the release Longhorn pins for its own dev and proof installs.
-> This guide still walks the `file:`
-> sibling path because that is what the proofs use; installing by version is
-> the shorter route. The
-> [private 0.1 candidate](../reference/private-0-1-candidate.md) receipt is
-> frozen history — it records the 17-tarball TypeScript layout of 2026-08-02;
-> the tree produces three tarballs today. The Rust steps are stable: crates
-> are taken by git tag.
+The examples below use the coordinated Longhorn 0.6.0 release. TypeScript
+packages come from npm, and Rust crates come from the matching Git tag.
+See the [release contract](../knowledge/contracts/release.md) and
+[changelog](../../CHANGELOG.md) for other versions.
 
 ## 1. Prerequisites
 
 - Rust toolchain (edition 2024; the repo floor is 1.97.1)
 - `bun` or `npm` (the proofs use bun 1.3.x)
 - the Tauri CLI (2.x) for dev builds
-- the Longhorn Rust artifacts from the
-  [private 0.1 candidate](../reference/private-0-1-candidate.md) — source
-  archives plus Cargo inventory — and a sibling Longhorn checkout for the
-  TypeScript `file:` pins in step 4
+- Git access to `inflatable-cookie/longhorn` for the Rust dependencies
 
 ## 2. Scaffold The App
 
@@ -52,21 +38,17 @@ Edit `src-tauri/Cargo.toml`:
 
 ```toml
 [dependencies]
-longhorn-config = "0.1.0"
-longhorn-core = "0.1.0"
-longhorn-settings = "0.1.0"
-longhorn-settings-config = "0.1.0"
-longhorn-tauri-config = "0.1.0"
-longhorn-tauri-settings = "0.1.0"
+longhorn-config = { git = "ssh://git@github.com/inflatable-cookie/longhorn.git", tag = "v0.6.0" }
+longhorn-core = { git = "ssh://git@github.com/inflatable-cookie/longhorn.git", tag = "v0.6.0" }
+longhorn-settings = { git = "ssh://git@github.com/inflatable-cookie/longhorn.git", tag = "v0.6.0" }
+longhorn-settings-config = { git = "ssh://git@github.com/inflatable-cookie/longhorn.git", tag = "v0.6.0" }
+longhorn-tauri-config = { git = "ssh://git@github.com/inflatable-cookie/longhorn.git", tag = "v0.6.0" }
+longhorn-tauri-settings = { git = "ssh://git@github.com/inflatable-cookie/longhorn.git", tag = "v0.6.0" }
 ```
 
-These crates are not on crates.io — do not run `cargo add`. Resolve them
-against the candidate's Cargo inventory and commit-derived source archives
-with the exact lock from the receipt, then verify offline:
-
-```sh
-cargo check --locked
-```
+Keep the scaffold's Tauri dependency. Run `cargo check` in `src-tauri` to
+resolve the tagged crates, then commit `Cargo.lock`. Check the committed
+resolution with `cargo check --locked`.
 
 ### Registering the shipped commands
 
@@ -76,7 +58,6 @@ commands it ships are registered **by qualified path**:
 ```rust
 .invoke_handler(tauri::generate_handler![
     longhorn_tauri_settings::longhorn_settings_registry,
-    longhorn_tauri_notifications::longhorn_notifications_snapshot,
 ])
 ```
 
@@ -91,55 +72,33 @@ function and the helper `generate_handler!` needs, whatever the crate's module
 layout. Importing the bare function name first and registering that does not,
 because the helper is not imported with it.
 
-## 4. TypeScript: Install The Renderer Packages [temporary]
+## 4. TypeScript: Install The Renderer Packages
 
-Nothing is on npm today — do not run a registry install for Longhorn or
-Poodle packages. Pin the Longhorn packages by `file:` against a sibling
-checkout:
-
-```json
-{
-  "dependencies": {
-    "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn",
-    "@inflatable-cookie/longhorn-tauri": "file:../longhorn/packages/longhorn-tauri",
-    "@tauri-apps/api": "2.10.1",
-    "svelte": "5.56.8"
-  },
-  "overrides": {
-    "@inflatable-cookie/longhorn": "file:../longhorn/packages/longhorn"
-  }
-}
-```
+From the app root:
 
 ```sh
-bun install
+bun add --exact @inflatable-cookie/longhorn@0.6.0 @inflatable-cookie/longhorn-tauri@0.6.0 @tauri-apps/api@2.10.1 svelte@5.56.8
 ```
 
-One dependency on `@inflatable-cookie/longhorn` covers every selected system
-— `./config`, `./settings`, and the rest are export subpaths, not installable
-packages. Add `@inflatable-cookie/longhorn-poodle-svelte` by the same `file:`
-discipline when the shape selects Svelte/Poodle bindings. The Poodle packages
-(`@inflatable-cookie/poodle-svelte`, `@inflatable-cookie/poodle-core`) are
-published on npm, and the adapter takes `0.4.x` from `0.4.16`; install
-them by version, or pin them from a Poodle checkout the same way. Adjust relative paths to your
-layout; commit the lockfile.
+Commit the lockfile. The Tauri and Svelte/Poodle adapters for this release
+both require exactly `@inflatable-cookie/longhorn@0.6.0`. Import systems
+from public subpaths such as `@inflatable-cookie/longhorn/config` and
+`@inflatable-cookie/longhorn/settings`.
 
-The `overrides` block is required, not optional. `longhorn-poodle-svelte` and
-`longhorn-tauri` peer-depend on `@inflatable-cookie/longhorn` at exact
-`0.1.0`. A top-level `file:` dependency does not satisfy that peer for bun, so
-install reaches the registry for `0.1.0` and 404s — for a package that is
-already on disk. Point the override at the same path as the dependency.
+If you select the Svelte/Poodle bindings, add the adapter and the Poodle
+packages it uses. Poodle 0.4.16 is a checked peer version.
 
-Longhorn `0.1.0` is published — depend by version and delete the `overrides`
-entry. It exists only to keep `file:` installs off the registry.
-
-The 17-tarball `npm install ./artifacts/...` recipe this section used to
-carry is frozen with the
-[private 0.1 candidate](../reference/private-0-1-candidate.md) receipt: it
-matches the 2026-08-02 tree, which produced 17 TypeScript tarballs; the
-current tree produces three.
+```sh
+bun add --exact @inflatable-cookie/longhorn-poodle-svelte@0.6.0 @inflatable-cookie/poodle-core@0.4.16 @inflatable-cookie/poodle-svelte@0.4.16
+```
 
 ### Development inner loop
+
+For checkout-based development, set the Longhorn dependencies to
+`file:../longhorn/packages/<package-dir>` and override
+`@inflatable-cookie/longhorn` to `file:../longhorn/packages/longhorn` so Bun
+resolves the adapters' exact peer to the same checkout. Adjust the relative
+paths to your layout.
 
 `bun install` for a `file:` dependency materializes `node_modules` as a real
 directory of per-file symlinks resolved at install time. Edits to existing
@@ -190,8 +149,8 @@ store.mutate(
 ```
 
 The default storage profile writes to the platform-native location for your
-OS — `~/Library/Application Support/my-app/config` on macOS, the equivalent
-under `%LOCALAPPDATA%` on Windows, and XDG roots on Linux.
+OS, such as `~/Library/Application Support/my-app/config` on macOS or
+`$XDG_CONFIG_HOME/my-app` on Linux.
 
 ## 6. Run And Verify
 

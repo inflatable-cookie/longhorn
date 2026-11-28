@@ -5,7 +5,7 @@ Status: superseded by [contract 002](002-composable-workspace-hosting.md) —
 
 ## Superseded
 
-Card 179 removed the layout container. A Surface now carries the schema it
+A Surface carries the schema it
 instantiates, its regions, its sizing slots and the panel instances placed in
 them, so the separate layout document this contract governed no longer exists
 and `LayoutContainerId` is gone from the model.

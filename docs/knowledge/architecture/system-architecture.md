@@ -33,7 +33,7 @@ display inventory -> window plan
 - Loophole hosts several Surfaces per window, each carrying its own layout.
 - Panel and region logic does not need to know which hosting choice was made.
 
-There is no surfaces-free layout crate: Card 179 absorbed `longhorn-layout`
+There is no surfaces-free layout crate: The Surface layout engine absorbed `longhorn-layout`
 into `longhorn-surfaces`, and the two-container chain collapsed with it.
 
 ## Target Layers
@@ -236,7 +236,7 @@ adoption, provider execution, dependency changes, and production release remain
 held under task g02.036 (Git history).
 
 The canonical bootstrap, mutation, capability, artifact, and migration rules
-are in [Settings Composition](settings-composition.md). Card 048 proves modal,
+are in [Settings Composition](settings-composition.md). The settings artifact proof covers modal,
 window, and panel hosts across four isolated app shapes.
 
 ### Command, action, and input
@@ -289,14 +289,14 @@ Minimal and Loophole-shaped produced-artifact compositions, recovery rules,
 and later donor-cutover gates are in
 [History Composition](history-composition.md).
 
-Forkable undo is not live donor behavior. Card 068 proves divergent retention,
+Forkable undo is not live donor behavior. The fork-tree prototype proved divergent retention,
 stable first-class branch refs, lowest-common-ancestor checkout, protected
 pruning, opaque checkpoints, independent migration, and credible document and
-Loophole-shaped costs. Card 069 promotes those semantics. Card 070 implements
+Loophole-shaped costs. The production graph implements
 the production tree identity, topology, branch refs, and divergent-record
-foundation. Card 071 adds bounded mixed LCA navigation through one atomic
+foundation. The navigation layer adds bounded mixed LCA navigation through one atomic
 consumer transaction, current/pinned protection, deterministic leaf
-pruning, and opaque checkpoint replay accounting. Card 072 adds a strict
+pruning, and opaque checkpoint replay accounting. The persistence layer adds a strict
 dense graph envelope, independent structural and payload migration, explicit
 byte bounds, and complete pre-admission validation.
 
@@ -324,13 +324,13 @@ cancellation request receipts, explicit retention, teardown, and
 current/recent projections. Consumers own admission, scheduling, execution,
 product progress, reports, artifacts, retry policy, persistence, and recovery.
 
-Cards 075-076 implement the pure authority: bounded identity and progress,
+The operation crates implement the pure authority: bounded identity and progress,
 distinct revisions, finite registration, exact lifecycle transitions,
 receipted cancellation, count/weight retention, retry lineage, dismissal, and
-controlled teardown. Card 077 adds the Rust-generated payload-free protocol,
+controlled teardown. The operation protocol adds the Rust-generated payload-free protocol,
 framework-neutral checked client, direct and serialized adapters, injected
 Tauri authority/executor assembly, and optional bridge-domain correlation.
-Card 078 adds a framework-neutral presentation controller, per-instance
+The operation client adds a framework-neutral presentation controller, per-instance
 Svelte sessions, request-keyed cancellation and dismissal, and a controlled
 public-Poodle panel. Soundcheck scan and Loophole queue shapes share the same
 controller. Product detail stays injected.
@@ -345,7 +345,7 @@ transitions. A consumer projector may observe selected operation terminal
 transitions, but non-operation domain events use the same ledger and operation
 state never depends on notification publication.
 
-Card 079 implements that root over `longhorn-core` alone. Adds always create a
+The notification ledger implements that root over `longhorn-core` alone. Adds always create a
 fresh identity; replacement requires an explicit source/key pair; producer
 tokens provide separate durable idempotency. Standard records prune oldest
 first under count and canonical encoded-weight limits. Consumer-selected
@@ -353,7 +353,7 @@ protected records make an unsatisfiable mutation reject atomically. The
 feature-gated operation observer receives only an immutable committed record
 and transition receipt.
 
-Card 080 adds the Rust-generated exact-v1 protocol, direct/serialized/Tauri
+The notification client adds the Rust-generated exact-v1 protocol, direct/serialized/Tauri
 clients, app-wide invalidation hints, listener-first gap/epoch refresh, and
 bounded renderer paging. Svelte sessions are per instance. The retained panel
 survives remount by reloading host truth; transient toasts do not replay on an
@@ -476,7 +476,7 @@ Local configuration, windowing, and layout do not require a service.
   windows, and embedded backing surfaces
 - opaque island identity, host binding, attach generation, revisions, desired
   and observed state, and exact apply/teardown receipts
-- one host-local `ClientCssPx` presentation and interaction viewport with
+- one host-local `ClientLogicalPx` presentation and interaction viewport with
   explicit `ScaleFactor`
 - explicit presence, visibility, focus intent, and input-routing mode
 
@@ -493,8 +493,8 @@ Poodle retains layout and overlay presentation.
 Visibility policy is explicit. Longhorn does not inspect DOM overlays or infer
 occlusion from focus or time. Unknown native visibility stays unknown unless a
 platform adapter supplies stronger evidence. The common coordination boundary
-is promoted through contract 017. Cards 082-085 prove the private pure model
-and three independently packaged macOS mechanisms. Card 086 promotes the split
+is promoted through contract 017. The prototypes prove the private pure model
+and three independently packaged macOS mechanisms. The production composition uses the split
 production graph: pure kernel, three opt-in mechanism layers, checked
 TypeScript, and per-instance Svelte support. Poodle remains a consumer
 composition seam. Initial native-host claims are macOS-only and preserve

@@ -251,8 +251,8 @@ These require separate contract evidence.
 
 ## Implementation Evidence
 
-Card 031 implements the process-local session, lease, and deterministic target
-core in `longhorn-transfer`. Card 032 adds fresh movable-panel admission,
+`longhorn-transfer` implements the process-local session, lease, and deterministic target
+core in `longhorn-transfer`. The panel commit layer adds fresh movable-panel admission,
 opaque direct-window and Surface-container host projections, same-domain and
 revision rechecks, and the existing coordinated expected-revision `MovePanel`
 publication.
@@ -263,7 +263,7 @@ imports no whole-Surface transfer adapter or provisioning types. Cross-document
 and copy attempts consume the terminal session and publish no bytes. Success
 returns the existing authoritative layout and configuration receipt.
 
-Card 033 adds `longhorn-surface-transfer`. Admission resolves the fresh
+`longhorn-surface-transfer` handles whole-Surface commits. Admission resolves the fresh
 registered Surface and primary host binding. Terminal commit rechecks the
 recorded revision, current primary host, target participation, declared host
 preference, consumer policy, insertion, and empty-window policy before using
@@ -277,7 +277,7 @@ hidden, placed, ready receipt and retained authority. Publication failure
 invokes cleanup; unresolved cleanup or post-publication host commit failure
 returns typed reconciliation evidence.
 
-Card 034 adds Rust-generated `@inflatable-cookie/longhorn/surfaces`, `@inflatable-cookie/longhorn/transfer`, and
+The renderer edge uses Rust-generated `@inflatable-cookie/longhorn/surfaces`, `@inflatable-cookie/longhorn/transfer`, and
 `@inflatable-cookie/longhorn/surface-transfer` protocols and clients. `@inflatable-cookie/longhorn-tauri` is the
 sole raw invoke/listen transport. `longhorn-tauri-transfer` binds commands to
 the caller's current managed-window identity, projects checked client
@@ -289,7 +289,7 @@ Snapshot readback and the liveness recheck run outside adapter locks. An invoke
 returns its issued epoch. The best-effort hint goes to the caller's webview,
 with publication ordered for that window and superseded snapshots skipped.
 
-Packaged multi-window runtime evidence remains Card 035.
+The packaged multi-window transfer proof records the native runtime evidence.
 
 ## Acceptance
 

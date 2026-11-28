@@ -22,7 +22,7 @@ placement.
 
 ## Package Gate
 
-Card 086 selects `Promote` from Cards 082-085 evidence. The production graph
+The pure and packaged prototype proofs justify the production graph. It
 is one pure kernel, three independently selectable mechanism layers, a checked
 TypeScript client, and a separate Svelte lifecycle package:
 
@@ -33,11 +33,11 @@ TypeScript client, and a separate Svelte lifecycle package:
 - `@inflatable-cookie/longhorn/native-content`
 - `@inflatable-cookie/longhorn-poodle-svelte/native-content`
 
-These working names are fixed for g01.018 but are not released registry or
-compatibility promises. There is no Poodle-specific native-content package.
+The last two names are export subpaths of the published TypeScript packages.
+Poodle integration uses public layout and presentation seams.
 
-Cards 082-085 remain non-publishable evidence. Cards 087-093 complete the
-production package and isolated-artifact gate. Donor migration remains
+The prototypes remain non-publishable evidence. The production packages
+pass the isolated-artifact gate. Donor migration remains
 separately gated by contract 003 and the exact consumer authority map. Native
 host support starts on macOS. Child-view Windows and Linux are unproved;
 isolated-window and backing-surface Windows and Linux are unsupported.
@@ -121,8 +121,7 @@ is Tauri-owned and platform-specific; Longhorn observes it through
 remains the sole admission path for every navigation, including the initial
 document's origin.
 
-This support ships with 0.5.0; its candidate is prepared under decision
-`cc2087bb`, and publication stays a later release-contract step.
+Bundled local sources ship from 0.5.0.
 `ChildViewSpec::new` taking `ChildViewSource` instead of a bare `Url` is the
 one deliberate source break for external callers, coordinated under the
 pre-1.0 rule. It closes the exact offline bundled-document dependency gap
@@ -193,7 +192,7 @@ mechanism. An adapter rejects a desired operation it cannot honor.
 
 ## Geometry
 
-The desired content viewport uses host-local `ClientCssPx`. It is the region
+The desired content viewport uses host-local `ClientLogicalPx`. It is the region
 where content is presented and interactive, not necessarily the native view's
 frame.
 
@@ -347,7 +346,7 @@ menus, focus visuals, and presentation timing. Longhorn must not inspect
 private Poodle DOM, copy components, or treat a Poodle panel as native host
 authority.
 
-Card 086 promotes the per-instance Svelte lifecycle because viewport
+The composition uses a per-instance Svelte lifecycle because viewport
 measurement, explicit visibility/focus gates, stale async rejection, and
 listener/observer teardown recur across child-view and backing-surface shapes.
 Poodle stays a public consumer composition seam; no native-content package may
@@ -407,7 +406,7 @@ depend on it without a later public-seam proof and contract change.
 
 | Gate | Evidence | Decision |
 | --- | --- | --- |
-| common vocabulary | Card 082 has 21 passing pure tests and lossless traces for all three mechanisms | promote pure kernel |
+| common vocabulary | The pure prototype has 21 passing tests and lossless traces for all three mechanisms | promote pure kernel |
 | dependency isolation | pure and each packaged graph omit other mechanisms and product stacks | promote separate mechanism layers |
 | child view | packaged macOS attach, retained policy-admitted navigation, reuse, geometry, visibility commands, focus command, security, close, and teardown pass | promote macOS-first adapter; keep Windows/Linux unproved |
 | isolated window | packaged macOS 11/11 resize, lifecycle, helper-loss, timeout, and teardown matrix passes | promote macOS-only adapter |
@@ -421,7 +420,7 @@ The canonical composition and migration prerequisites are in
 
 ## Artifact Gate Record
 
-Card 093 proves the production boundary from produced artifacts rather than
+The isolated artifact proof verifies the production boundary from produced artifacts rather than
 workspace source:
 
 - five Rust source inventories pass `cargo package --list` and compile in
@@ -443,7 +442,7 @@ capability, and visibility policy map. Soundcheck and Jetstream remain behind
 the sequential consumer runway and their named plugin/helper or GPU/input
 authority maps.
 
-Cards 132-134 extend the child-view artifact without changing the common
+Retained-document navigation extends the child-view artifact without changing the common
 protocol. The staged private source artifact compiles generation-checked
 current-URL observation and navigation from an isolated consumer. The common
 fixture and generated TypeScript digests remain exact. Packaged macOS evidence

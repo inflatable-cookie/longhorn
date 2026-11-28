@@ -128,9 +128,8 @@ capability drift.
 The private Rust proof inventories each crate with `cargo package --list`,
 archives that inventory, unpacks it into a clean temporary workspace, and
 builds a consumer offline. This proves source completeness and dependency
-direction before release. Cargo registry-normalized `.crate` installation
-remains a release-lane concern because the private interdependent crates do
-not yet exist in a registry.
+direction for the Git-tagged crates. The
+[release contract](../contracts/release.md) owns distribution.
 
 ## Consumer Migration
 

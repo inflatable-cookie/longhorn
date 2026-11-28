@@ -68,7 +68,7 @@ window -> Surface -> region -> panel
 ```
 
 It uses one unlabelled Surface carrying the layout (a Surface is the layout
-since Card 179), with public Longhorn/Poodle region bindings. It composes no
+under contract 002), with public Longhorn/Poodle region bindings. It composes no
 Surface feature and no Surface-transfer package. A transfer package may be
 added later for direct-window panel movement without changing that rule.
 

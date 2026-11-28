@@ -286,7 +286,7 @@ authority.
 
 ## Implemented Evidence
 
-Cards 049-055 generate and zero-diff check the exact-v1 bridge protocol,
+The bridge protocol checks generate and zero-diff check the exact-v1 bridge protocol,
 execute one semantic contract through direct, Tauri, and serialized-loopback
 adapters, and install five isolated consumers from packed TypeScript
 artifacts. Import inventories distinguish invoke-only, stream, event, and

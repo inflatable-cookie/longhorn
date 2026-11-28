@@ -1,10 +1,10 @@
 # Poodle Overlay Geometry Boundary
 
-Status: implemented upstream; private artifact admitted for Card 095
+Status: implemented upstream; private artifact verified at the Nucleus compatibility checkpoint
 Owner: Tom
 Updated: 2026-08-01
 Governing refs: Poodle contract 002; Longhorn contract 017; Nucleus migration
-map and Card 094
+map and pre-cutover behavior freeze
 
 ## Boundary
 
@@ -105,12 +105,12 @@ then prove in Svelte and React:
 - public declarations expose no element, selector, or host-runtime type
 - existing consumers that omit the callback retain current behavior
 
-The exact Poodle source commit and clean artifact proof are the private
-migration gate. Package-manager publication is deferred.
+The private migration required an exact Poodle commit and a clean artifact
+proof. The [release contract](../contracts/release.md) governs distribution.
 
 ## Nucleus Adoption
 
-Card 099 replaces both selector calls with explicit component callbacks. The
+The renderer cutover replaces both selector calls with explicit component callbacks. The
 Nucleus adapter keeps a surface map per product overlay and intersects all
 visible snapshots with all mounted Browser viewport snapshots. It recomputes
 when either side changes; opening time alone is insufficient.
@@ -126,7 +126,7 @@ Completed acceptance covers:
 
 Nucleus commit `74ca4e7c72f447e064419de6dc72502265cbbf49`
 implements the adapter and removes DOM discovery. Popover/Menu and Browser
-movement tests pass. Card 099's mounted session proof covers project switch,
+movement tests pass. The mounted renderer session proof covers project switch,
 late mutation, teardown, and remount.
 
 ## Admission Decision
@@ -136,7 +136,6 @@ Poodle g12.018 implements this contract at
 `agent/public-overlay-geometry-observation`. Its clean Svelte artifact proof is
 `ed9d800843a5d008a812a29000cbe2fcd3d619ea53e231627a1f253449c4d41d`.
 
-The source/API and private-artifact gates are resolved. Package-manager
-publication is not part of Card 095. Nucleus g05 has accepted cross-project
-layout retention and the new-project Agent Chat-only default. Card 095 admits
-donor writes.
+The source/API and private-artifact gates passed. Nucleus accepted
+cross-project layout retention and the new-project Agent Chat-only default.
+That private artifact check admitted donor writes.
