@@ -7,7 +7,7 @@
 //! [`ToolError`] as JSON content so agents read the same error vocabulary
 //! the host produced.
 
-use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use rmcp::{
@@ -26,8 +26,8 @@ use rmcp::{
 use super::args::{ResizeWindowArgs, invalid_params};
 use crate::{
     AnswerSelectionRequest, AnswerSelectionResult, ClickRequest, CommandRequest, ControlHandler,
-    DragRequest, EvaluateRequest, EvaluateResult, PageEvent, PageEventBatch, PressRequest,
-    RejectSelectionRequest, RejectSelectionResult, ScreenshotRequest, ScrollRequest,
+    DragRequest, EvaluateRequest, EvaluateResult, PageEvent, PageEventBatch, PageEventReader,
+    PressRequest, RejectSelectionRequest, RejectSelectionResult, ScreenshotRequest, ScrollRequest,
     SelectionRegistry, SetFileInputRequest, SnapshotRequest, ToolError, TypeRequest,
     WaitForRequest,
 };
@@ -377,7 +377,6 @@ where
     async fn listen(&self, context: SubscriptionContext) -> Result<(), ErrorData> {
         let sink = context.sink().clone();
         let accepted = context.accepted().clone();
-        let mut cursor = ListenCursor::default();
         let selection_subscribed = accepted
             .resource_subscriptions
             .as_ref()
@@ -393,57 +392,54 @@ where
                 })
             });
         let mut selection_rx = self.registry.subscribe();
-        let mut page_interval = tokio::time::interval_at(
-            tokio::time::Instant::now() + PAGE_EVENT_POLL_INTERVAL,
-            PAGE_EVENT_POLL_INTERVAL,
-        );
-        page_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-        let mut pending_eval: Option<
-            Pin<Box<dyn Future<Output = Option<PageEventBatch>> + Send + '_>>,
-        > = None;
-
-        loop {
-            tokio::select! {
-                () = context.cancelled() => break,
-                changed = selection_rx.changed(), if selection_subscribed => {
-                    if changed.is_err() {
-                        break;
-                    }
-                    let _ = sink.notify_resource_updated(events::SELECTION_URI).await;
-                }
-                batch = async { pending_eval.as_mut().expect("checked is_some").await }, if pending_eval.is_some() => {
-                    pending_eval = None;
-                    let Some(batch) = batch else {
-                        // No page yet, evaluate failed, or timed out: keep the
-                        // stream alive; the next tick retries.
-                        continue;
-                    };
-                    cursor.apply(&batch);
-                    for event in batch.events {
-                        let uri = events::event_uri(&event);
-                        let subscribed = accepted
-                            .resource_subscriptions
-                            .as_ref()
-                            .is_some_and(|uris| uris.iter().any(|item| item == uri));
-                        if subscribed {
-                            let _ = sink.notify_resource_updated(uri).await;
-                        }
-                    }
-                }
-                _ = page_interval.tick(), if page_events_subscribed && pending_eval.is_none() => {
-                    let seq = cursor.seq;
-                    let epoch = cursor.epoch.clone();
-                    pending_eval = Some(Box::pin(async move {
-                        tokio::time::timeout(
-                            PAGE_EVENT_EVAL_TIMEOUT,
-                            self.handler.read_page_events(seq, epoch.as_deref()),
-                        )
-                        .await
-                        .ok()
-                        .and_then(Result::ok)
-                    }));
+        let selection_updates = async {
+            while selection_rx.changed().await.is_ok() {
+                if sink
+                    .notify_resource_updated(events::SELECTION_URI)
+                    .await
+                    .is_err()
+                {
+                    break;
                 }
             }
+        };
+
+        let page_updates = async {
+            let mut reader = self.handler.page_event_reader();
+            let mut cursor = ListenCursor::default();
+            let mut interval = tokio::time::interval_at(
+                tokio::time::Instant::now() + PAGE_EVENT_POLL_INTERVAL,
+                PAGE_EVENT_POLL_INTERVAL,
+            );
+            interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            loop {
+                interval.tick().await;
+                let Ok(Ok(batch)) = tokio::time::timeout(
+                    PAGE_EVENT_EVAL_TIMEOUT,
+                    reader.read(cursor.seq, cursor.epoch.as_deref()),
+                )
+                .await
+                else {
+                    continue;
+                };
+                cursor.apply(&batch);
+                for event in batch.events {
+                    let uri = events::event_uri(&event);
+                    let subscribed = accepted
+                        .resource_subscriptions
+                        .as_ref()
+                        .is_some_and(|uris| uris.iter().any(|item| item == uri));
+                    if subscribed && sink.notify_resource_updated(uri).await.is_err() {
+                        return;
+                    }
+                }
+            }
+        };
+
+        tokio::select! {
+            () = context.cancelled() => {},
+            () = selection_updates, if selection_subscribed => {},
+            () = page_updates, if page_events_subscribed => {},
         }
         Ok(())
     }

@@ -17,14 +17,13 @@ agent-control-evaluate = []
 # g02.044: the stdio carrier is opt-in. A build without `client` contains
 # none of it: no binary target (see `[[bin]]` below) and no HTTP client in
 # the graph.
-# `tokio/process` is for the end-to-end test only: it spawns the built
-# binary as a child harness would. `tokio/io-std` is the carrier's stdio.
-client = ["dep:reqwest", "tokio/io-std", "tokio/process"]
+# `tokio/io-std` is the carrier's stdio.
+client = ["dep:reqwest", "tokio/io-std"]
 
 [dependencies]
 axum.workspace = true
 base64.workspace = true
-getrandom.workspace = true
+getrandom = { workspace = true, features = ["std"] }
 indexmap = "2"
 longhorn-storage-layout.workspace = true
 longhorn-core.workspace = true
@@ -46,6 +45,7 @@ required-features = ["client"]
 [dev-dependencies]
 http-body-util.workspace = true
 tempfile.workspace = true
+tokio = { workspace = true, features = ["process"] }
 tower.workspace = true
 
 [lints]

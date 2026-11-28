@@ -38,7 +38,7 @@
 // SAFETY argument.
 #![allow(unsafe_code)]
 
-use std::sync::{Arc, Mutex};
+use std::cell::Cell;
 
 use block2::RcBlock;
 use objc2::{AllocAnyThread, msg_send, rc::Retained, runtime::AnyObject};
@@ -52,10 +52,12 @@ use objc2_foundation::{
 };
 use objc2_web_kit::WKWebView;
 use serde_json::Value;
-use tauri::{PhysicalSize, Runtime, Webview, Window};
+use tauri::{Manager, PhysicalSize, Runtime, Webview, Window};
 use tokio::sync::oneshot;
 
 use longhorn_agent_control::ToolError;
+
+use crate::handler::on_main_thread;
 
 /// Runs `js` in the window's webview and returns the JSON-shaped result:
 /// strings, numbers, and booleans keep their types. `undefined` and `null` (both reported
@@ -65,36 +67,52 @@ pub(crate) async fn evaluate_webview<R: Runtime>(
     js: String,
 ) -> Result<Value, ToolError> {
     let (tx, rx) = oneshot::channel();
-    let tx = Arc::new(Mutex::new(Some(tx)));
-    webview_handle
+    dispatch_evaluation(webview_handle, js, tx)?;
+    rx.await.map_err(|_| ToolError::EvaluationFailed {
+        message: "the main thread dropped the evaluate result".to_owned(),
+    })?
+}
+
+fn dispatch_evaluation<R: Runtime>(
+    webview: &Webview<R>,
+    js: String,
+    tx: oneshot::Sender<Result<Value, ToolError>>,
+) -> Result<(), ToolError> {
+    #[cfg(test)]
+    if let Some(dispatch) = webview.try_state::<tests::HeldWebviewDispatch>() {
+        return dispatch.hold(tx);
+    }
+
+    webview
         .with_webview(move |webview| {
-            let tx = Arc::clone(&tx);
-            let Some(webview) = retain_webview(&webview, &tx, |message| {
-                ToolError::EvaluationFailed { message }
-            }) else {
+            if tx.is_closed() {
+                return;
+            }
+            let Some(webview) = retain_webview(&webview) else {
+                let _ = tx.send(Err(ToolError::EvaluationFailed {
+                    message: "with_webview handed over a nil WKWebView".to_owned(),
+                }));
                 return;
             };
             let source = NSString::from_str(&js);
+            let tx = Cell::new(Some(tx));
             let completion = RcBlock::new(move |result: *mut AnyObject, error: *mut NSError| {
-                let outcome = match error_message(error) {
-                    Some(message) => Err(ToolError::EvaluationFailed { message }),
-                    None => Ok(json_result(result)),
-                };
-                send(&tx, outcome);
+                if let Some(tx) = tx.take() {
+                    let outcome = match error_message(error) {
+                        Some(message) => Err(ToolError::EvaluationFailed { message }),
+                        None => Ok(json_result(result)),
+                    };
+                    let _ = tx.send(outcome);
+                }
             });
-            // SAFETY: runs on the main thread inside `with_webview`;
-            // `webview` is a live WKWebView and `completion` matches the
-            // selector's block signature.
+            // SAFETY: this main-thread block matches the WKWebView selector.
             unsafe {
                 webview.evaluateJavaScript_completionHandler(&source, Some(&completion));
             }
         })
         .map_err(|error| ToolError::EvaluationFailed {
             message: format!("main-thread dispatch failed: {error}"),
-        })?;
-    rx.await.map_err(|_| ToolError::EvaluationFailed {
-        message: "the main thread dropped the evaluate result".to_owned(),
-    })?
+        })
 }
 
 /// One webview's contribution to the composed window image. Geometry is in
@@ -121,9 +139,13 @@ struct Surface {
 pub(crate) async fn screenshot_window<R: Runtime>(
     window: &Window<R>,
 ) -> Result<Vec<u8>, ToolError> {
-    let inner = window
-        .inner_size()
-        .map_err(|error| capture_failed(format!("window size read failed: {error}")))?;
+    let size_window = window.clone();
+    let inner = on_main_thread(window.app_handle(), move || {
+        size_window
+            .inner_size()
+            .map_err(|error| capture_failed(format!("window size read failed: {error}")))
+    })
+    .await?;
     let ui_label = window.label().to_owned();
 
     // Snapshot sequence is label-sorted for determinism; the draw order is
@@ -138,18 +160,28 @@ pub(crate) async fn screenshot_window<R: Runtime>(
             // window's screen coordinates, not a content-relative origin.
             (0.0, 0.0, f64::from(inner.width), f64::from(inner.height))
         } else {
-            let position = webview.position().map_err(|error| {
-                capture_failed(format!("webview {label:?} position read failed: {error}"))
-            })?;
-            let size = webview.size().map_err(|error| {
-                capture_failed(format!("webview {label:?} size read failed: {error}"))
-            })?;
-            (
-                f64::from(position.x),
-                f64::from(position.y),
-                f64::from(size.width),
-                f64::from(size.height),
-            )
+            let child = webview.clone();
+            on_main_thread(window.app_handle(), move || {
+                let position = child.position().map_err(|error| {
+                    capture_failed(format!(
+                        "webview {:?} position read failed: {error}",
+                        child.label()
+                    ))
+                })?;
+                let size = child.size().map_err(|error| {
+                    capture_failed(format!(
+                        "webview {:?} size read failed: {error}",
+                        child.label()
+                    ))
+                })?;
+                Ok((
+                    f64::from(position.x),
+                    f64::from(position.y),
+                    f64::from(size.width),
+                    f64::from(size.height),
+                ))
+            })
+            .await?
         };
         if let Some(surface) = snapshot_surface(&webview, label, x, y, width, height).await? {
             surfaces.push(surface);
@@ -160,7 +192,7 @@ pub(crate) async fn screenshot_window<R: Runtime>(
             .cmp(&right.order)
             .then_with(|| left.label.cmp(&right.label))
     });
-    composite(window, inner, surfaces).await
+    on_main_thread(window.app_handle(), move || compose_png(inner, surfaces)).await
 }
 
 /// Snapshots one webview's viewport on the main thread. Returns `None` for
@@ -175,19 +207,25 @@ async fn snapshot_surface<R: Runtime>(
     height: f64,
 ) -> Result<Option<Surface>, ToolError> {
     let (tx, rx) = oneshot::channel();
-    let tx = Arc::new(Mutex::new(Some(tx)));
     webview_handle
         .with_webview(move |webview| {
-            let tx = Arc::clone(&tx);
-            let Some(webview) = retain_webview(&webview, &tx, capture_failed) else {
+            if tx.is_closed() {
+                return;
+            }
+            let Some(webview) = retain_webview(&webview) else {
+                let _ = tx.send(Err(capture_failed(
+                    "with_webview handed over a nil WKWebView",
+                )));
                 return;
             };
             if webview.isHiddenOrHasHiddenAncestor() {
-                send(&tx, Ok(None));
+                let _ = tx.send(Ok(None));
                 return;
             }
             let order = z_order(&webview);
+            let tx = Cell::new(Some(tx));
             let completion = RcBlock::new(move |image: *mut NSImage, error: *mut NSError| {
+                let Some(tx) = tx.take() else { return };
                 let outcome = match error_message(error) {
                     Some(message) => Err(capture_failed(message)),
                     None if image.is_null() => {
@@ -207,7 +245,7 @@ async fn snapshot_surface<R: Runtime>(
                         })
                     }),
                 };
-                send(&tx, outcome);
+                let _ = tx.send(outcome);
             });
             // SAFETY: runs on the main thread inside `with_webview`; a nil
             // configuration asks for a snapshot of the current viewport,
@@ -233,25 +271,6 @@ fn z_order(webview: &WKWebView) -> usize {
     let subviews: Retained<NSArray<objc2_app_kit::NSView>> = superview.subviews();
     // NSNotFound is `NSUInteger::MAX` — the same "drawn last" sentinel.
     subviews.indexOfObjectIdenticalTo(webview)
-}
-
-/// Draws the surfaces into a physical-pixel bitmap of the window's inner
-/// size and returns the PNG. Runs entirely on the main thread: AppKit
-/// drawing is main-thread-only, and only PNG bytes cross threads.
-async fn composite<R: Runtime>(
-    window: &Window<R>,
-    inner: PhysicalSize<u32>,
-    surfaces: Vec<Surface>,
-) -> Result<Vec<u8>, ToolError> {
-    let (tx, rx) = oneshot::channel();
-    let tx = Arc::new(Mutex::new(Some(tx)));
-    window
-        .run_on_main_thread(move || {
-            send(&tx, compose_png(inner, surfaces));
-        })
-        .map_err(|error| capture_failed(format!("main-thread dispatch failed: {error}")))?;
-    rx.await
-        .map_err(|_| capture_failed("the main thread dropped the composite result"))?
 }
 
 /// The drawing itself: one bitmap at the window's physical size, each
@@ -338,38 +357,17 @@ fn draw_surfaces(canvas: &NSBitmapImageRep, surfaces: Vec<Surface>) -> Result<()
     Ok(())
 }
 
-/// Retains the raw `WKWebView` pointer tauri hands over; on failure, reports
-/// through the channel and returns `None` so the closure can simply return.
-fn retain_webview<T>(
-    webview: &tauri::webview::PlatformWebview,
-    tx: &Mutex<Option<oneshot::Sender<Result<T, ToolError>>>>,
-    failure: fn(String) -> ToolError,
-) -> Option<Retained<WKWebView>> {
+/// Retains the raw `WKWebView` pointer Tauri hands over, if present.
+fn retain_webview(webview: &tauri::webview::PlatformWebview) -> Option<Retained<WKWebView>> {
     // SAFETY: tauri guarantees the pointer is a live WKWebView for the
     // duration of the `with_webview` closure.
-    let retained = unsafe { Retained::retain(webview.inner().cast::<WKWebView>()) };
-    if retained.is_none() {
-        send(
-            tx,
-            Err(failure(
-                "with_webview handed over a nil WKWebView".to_owned(),
-            )),
-        );
-    }
-    retained
+    unsafe { Retained::retain(webview.inner().cast::<WKWebView>()) }
 }
 
 /// Converts an `NSError` pointer into a message, if present.
 fn error_message(error: *mut NSError) -> Option<String> {
     // SAFETY: non-null pointers from a completion handler are live NSErrors.
     (!error.is_null()).then(|| unsafe { &*error }.localizedDescription().to_string())
-}
-
-/// Sends the outcome once, ignoring a dropped receiver.
-fn send<T>(tx: &Mutex<Option<oneshot::Sender<T>>>, outcome: T) {
-    if let Some(tx) = tx.lock().expect("result sender poisoned").take() {
-        let _ = tx.send(outcome);
-    }
 }
 
 /// Renders a JavaScript result value as JSON.
@@ -429,7 +427,21 @@ fn capture_failed(message: impl Into<String>) -> ToolError {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        io::Write as _,
+        net::TcpStream,
+        sync::{Arc, mpsc},
+        thread,
+        time::{Duration, Instant},
+    };
+
+    use longhorn_agent_control::{ControlHandler as _, SnapshotRequest, enumerate_discovery};
+    use tauri::{WebviewWindowBuilder, test::MockRuntime};
+
     use super::*;
+    use crate::{
+        AgentControlConfig, NoCommandBridge, handler::TauriControlHandler, mount_agent_control,
+    };
 
     #[test]
     fn evaluate_keeps_booleans_distinct_from_numeric_zero_and_one() {
@@ -453,5 +465,120 @@ mod tests {
             capture_failed("PNG encoding returned nil"),
             ToolError::HostFailure { .. }
         ));
+    }
+
+    type EvaluationReply = oneshot::Sender<Result<Value, ToolError>>;
+
+    /// The mock runtime drops `with_webview` callbacks. Hold the reply
+    /// instead to reproduce a callback the main thread cannot complete.
+    pub(super) struct HeldWebviewDispatch(mpsc::Sender<EvaluationReply>);
+
+    impl HeldWebviewDispatch {
+        pub(super) fn hold(&self, reply: EvaluationReply) -> Result<(), ToolError> {
+            self.0.send(reply).map_err(|_| ToolError::EvaluationFailed {
+                message: "the mock main thread dropped the dispatch queue".to_owned(),
+            })
+        }
+    }
+
+    fn app_with_held_dispatch() -> (tauri::App<MockRuntime>, mpsc::Receiver<EvaluationReply>) {
+        let app = tauri::test::mock_app();
+        WebviewWindowBuilder::new(app.handle(), "main", Default::default())
+            .build()
+            .unwrap();
+        let (dispatch, callbacks) = mpsc::channel();
+        assert!(app.manage(HeldWebviewDispatch(dispatch)));
+        (app, callbacks)
+    }
+
+    #[test]
+    fn shutdown_from_the_app_thread_does_not_wait_for_webkit() {
+        let (webview_pending, pending) = mpsc::channel();
+        let (shutdown_finished, finished) = mpsc::channel();
+        let app_thread = thread::spawn(move || {
+            let (app, callbacks) = app_with_held_dispatch();
+            let state = tempfile::tempdir().unwrap();
+            let discovery_dir = state.path().join("agent-control");
+            let handle = mount_agent_control(
+                app.handle(),
+                AgentControlConfig::new("app").with_state_root(state.path().to_owned()),
+                Arc::new(NoCommandBridge),
+            )
+            .unwrap();
+            let ready_by = Instant::now() + Duration::from_secs(3);
+            let record = loop {
+                if let Some(record) = enumerate_discovery(&discovery_dir).unwrap().instances.pop() {
+                    break record;
+                }
+                assert!(
+                    Instant::now() < ready_by,
+                    "server did not publish discovery"
+                );
+                thread::sleep(Duration::from_millis(10));
+            };
+            let file = record.file();
+            let mut stream = TcpStream::connect(("127.0.0.1", file.port)).unwrap();
+            stream
+                .set_write_timeout(Some(Duration::from_secs(2)))
+                .unwrap();
+            let body = r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"snapshot","arguments":{"window":"main"}}}"#;
+            write!(
+                stream,
+                "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nAccept: application/json, text/event-stream\r\nAuthorization: Bearer {}\r\nMcp-Protocol-Version: 2025-03-26\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                file.port,
+                file.token.as_str(),
+                body.len(),
+            )
+            .unwrap();
+            let callback = callbacks
+                .recv_timeout(Duration::from_secs(2))
+                .expect("snapshot dispatched a WebKit evaluation");
+            assert!(!callback.is_closed());
+
+            webview_pending.send((callback, stream)).unwrap();
+            let receipt = handle.shutdown().unwrap();
+            assert_eq!(receipt.bound.port(), file.port);
+            assert!(
+                enumerate_discovery(&discovery_dir)
+                    .unwrap()
+                    .instances
+                    .is_empty()
+            );
+            shutdown_finished.send(()).unwrap();
+        });
+
+        // Hold the socket and the WebKit completion through the join on
+        // the owning thread. This bound precedes the evaluation deadline.
+        let (_callback, _stream) = pending
+            .recv_timeout(Duration::from_secs(5))
+            .expect("snapshot reached WebKit");
+        finished
+            .recv_timeout(Duration::from_secs(2))
+            .expect("shutdown waited for WebKit");
+        app_thread.join().unwrap();
+    }
+
+    #[tokio::test]
+    async fn snapshot_times_out_while_webkit_still_holds_the_callback() {
+        let (app, callbacks) = app_with_held_dispatch();
+        let handler = TauriControlHandler::new(
+            app.handle().clone(),
+            Arc::new(NoCommandBridge),
+            Default::default(),
+        );
+        let result = tokio::time::timeout(
+            Duration::from_secs(8),
+            handler.snapshot(SnapshotRequest {
+                window: None,
+                webview: None,
+            }),
+        )
+        .await
+        .expect("snapshot has its own evaluation deadline");
+        assert!(matches!(
+            result,
+            Err(ToolError::EvaluationFailed { message }) if message.contains("timed out")
+        ));
+        assert!(callbacks.try_recv().unwrap().is_closed());
     }
 }

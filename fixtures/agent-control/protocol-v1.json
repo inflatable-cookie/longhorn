@@ -1,7 +1,7 @@
 {
   "beginFailure": {
-    "error": "hostFailure",
-    "message": "selection id entropy unavailable"
+    "error": "invalidArgument",
+    "message": "save does not accept multiple or directory"
   },
   "beginSelection": {
     "options": {

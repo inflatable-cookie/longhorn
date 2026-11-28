@@ -19,14 +19,14 @@ use std::{
     time::{Duration, Instant},
 };
 
-use longhorn_agent_control::ServeError;
+use longhorn_agent_control::{DiscoveryError, SelectionRegistry, ServeError};
 use longhorn_core::CommandId;
 use longhorn_tauri_agent_control::{
-    AgentControlConfig, AgentControlShutdownError, CommandBridge, NoCommandBridge,
-    mount_agent_control,
+    AgentControlConfig, AgentControlMountError, AgentControlShutdownError, CommandBridge,
+    NoCommandBridge, mount_agent_control,
 };
 use serde_json::{Value, json};
-use tauri::WebviewWindowBuilder;
+use tauri::{Manager, WebviewWindowBuilder};
 use tempfile::TempDir;
 
 type Invocation = (String, Option<Value>);
@@ -301,6 +301,25 @@ fn wait_for_discovery(discovery_dir: &Path) -> PathBuf {
         assert!(Instant::now() < deadline, "discovery file never appeared");
         thread::sleep(Duration::from_millis(20));
     }
+}
+
+#[test]
+fn invalid_app_id_is_rejected_before_installing_the_plugin() {
+    let app = tauri::test::mock_app();
+    let state_root = tempfile::tempdir().unwrap();
+    let invalid = "../outside";
+    let outcome = mount_agent_control(
+        app.handle(),
+        AgentControlConfig::new(invalid).with_state_root(state_root.path().to_owned()),
+        Arc::new(NoCommandBridge),
+    );
+    assert!(matches!(
+        outcome,
+        Err(AgentControlMountError::Discovery(DiscoveryError::InvalidAppId { app_id }))
+            if app_id == invalid
+    ));
+    assert!(app.try_state::<SelectionRegistry>().is_none());
+    assert!(!state_root.path().join("agent-control").exists());
 }
 
 #[test]

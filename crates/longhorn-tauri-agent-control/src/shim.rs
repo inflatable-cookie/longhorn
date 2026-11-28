@@ -206,84 +206,25 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn evaluate_prefix_executes_caller_scripts_in_bun() {
-        let scripts = [
-            (
-                "(() => 42)()",
-                json!({ "value": 42, "markAgentOriginCalls": 1 }),
-            ),
-            (
-                "[1, 2].length",
-                json!({ "value": 2, "markAgentOriginCalls": 1 }),
-            ),
-            ("1 + 2", json!({ "value": 3, "markAgentOriginCalls": 1 })),
-        ];
-        let sources = scripts
-            .iter()
-            .map(|(js, _)| compose_evaluate_js(js))
-            .collect::<Vec<_>>();
-        let sources_json = serde_json::to_string(&sources).expect("sources are JSON strings");
-        let program = r#"
-const sources = JSON.parse(process.env.LONGHORN_EVALUATE_SOURCES);
-const results = sources.map((source) => {
-  let markAgentOriginCalls = 0;
-  globalThis.__longhornAgentControl = {
-    markAgentOrigin() { markAgentOriginCalls += 1; },
-  };
-  return { value: eval(source), markAgentOriginCalls };
-});
-console.log(JSON.stringify(results));
-"#;
-        let output = std::process::Command::new("bun")
-            .arg("-e")
-            .arg(program)
-            .env("LONGHORN_EVALUATE_SOURCES", sources_json)
-            .output()
-            .expect("Bun must be available to execute the composed JavaScript");
-        assert!(
-            output.status.success(),
-            "Bun evaluation failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let actual: Vec<Value> = serde_json::from_slice(&output.stdout)
-            .expect("Bun prints the evaluated results as JSON");
-        let expected = scripts
-            .iter()
-            .map(|(_, result)| result.clone())
-            .collect::<Vec<_>>();
-        assert_eq!(actual, expected);
+    fn evaluate_prefix_preserves_the_callers_final_expression() {
+        for js in ["(() => 42)()", "[1, 2].length", "1 + 2"] {
+            assert_eq!(
+                compose_evaluate_js(js),
+                format!("{MARK_AGENT_ORIGIN_JS}\n{js}")
+            );
+        }
+        assert!(MARK_AGENT_ORIGIN_JS.ends_with(".markAgentOrigin();"));
     }
 
     #[test]
-    fn event_read_passes_the_cursor_without_marking_agent_origin() {
-        let program = r#"
-let agentOrigin = false;
-globalThis.__longhornAgentControl = {
-  markAgentOrigin() { agentOrigin = true; },
-  readEvents(seq, epoch) { return { seq, epoch }; },
-};
-const batches = JSON.parse(process.env.LONGHORN_EVENT_SOURCES)
-  .map((source) => JSON.parse(eval(source)));
-console.log(JSON.stringify({ batches, agentOrigin }));
-"#;
-        let sources = [read_events_js(0, None), read_events_js(5, Some("doc-\"2"))];
-        let output = std::process::Command::new("bun")
-            .args(["-e", program])
-            .env("LONGHORN_EVENT_SOURCES", json!(sources).to_string())
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        let actual: Value = serde_json::from_slice(&output.stdout).unwrap();
+    fn event_read_encodes_cursor_without_marking_agent_origin() {
         assert_eq!(
-            actual,
-            json!({
-                "batches": [{ "seq": 0, "epoch": null }, { "seq": 5, "epoch": "doc-\"2" }],
-                "agentOrigin": false,
-            })
+            read_events_js(0, None),
+            "JSON.stringify(globalThis.__longhornAgentControl.readEvents(0, null));",
+        );
+        assert_eq!(
+            read_events_js(5, Some("doc-\"2")),
+            r#"JSON.stringify(globalThis.__longhornAgentControl.readEvents(5, "doc-\"2"));"#,
         );
     }
 

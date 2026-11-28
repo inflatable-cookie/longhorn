@@ -141,7 +141,7 @@ fn resolve(
 }
 
 /// Validates that `app_id` is one safe filename component.
-fn validate_app_id(app_id: &str) -> Result<(), DiscoveryError> {
+pub fn validate_app_id(app_id: &str) -> Result<(), DiscoveryError> {
     let safe = !app_id.is_empty()
         && app_id.len() <= 255
         && app_id != "."

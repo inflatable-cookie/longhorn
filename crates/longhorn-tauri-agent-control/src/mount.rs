@@ -15,7 +15,7 @@
 use std::{
     collections::BTreeSet,
     error::Error,
-    fmt, io,
+    fmt,
     path::PathBuf,
     sync::Arc,
     thread::{self, JoinHandle},
@@ -24,6 +24,7 @@ use std::{
 use longhorn_agent_control::{
     ControlServerConfig, DiscoveryError, SelectionRegistry, ServeError, ServeReceipt,
     resolve_discovery_dir, resolve_discovery_dir_with_state_override, serve_control_surface,
+    validate_app_id,
 };
 use longhorn_tauri_config::{TauriDirectorySnapshot, platform_directory_facts};
 use tauri::{AppHandle, Manager, Runtime};
@@ -93,7 +94,7 @@ fn inject_shim(label: &str, eval: impl FnOnce(&str) -> tauri::Result<()>) {
 
 #[cfg(test)]
 mod injection_tests {
-    use std::sync::Mutex;
+    use std::{io, sync::Mutex};
 
     use longhorn_core::{BestEffortDiagnostics, install_best_effort_diagnostics};
 
@@ -189,8 +190,7 @@ impl AgentControlConfig {
     }
 }
 
-/// Mount-time failure: the discovery directory could not be resolved before
-/// the server thread was spawned.
+/// Failure before the control server thread starts.
 #[derive(Debug)]
 pub enum AgentControlMountError {
     /// A Tauri path-edge lookup failed.
@@ -200,7 +200,7 @@ pub enum AgentControlMountError {
         /// Underlying Tauri error.
         source: tauri::Error,
     },
-    /// Discovery directory resolution rejected the resolved facts.
+    /// The app id or resolved discovery directory is invalid.
     Discovery(DiscoveryError),
     /// Registering the Tauri plugin failed (selection registry and init script
     /// would not be installed).
@@ -288,9 +288,9 @@ impl AgentControlHandle {
     /// use, ends the server thread before any shutdown is requested; the join
     /// is how that original failure reaches the caller.
     ///
-    /// Blocks until the server finishes: axum's graceful shutdown drains
-    /// in-flight requests, then the core removes the discovery file before
-    /// the thread returns. Call this from the run-event callback — hook
+    /// Cancels active MCP exchanges before the HTTP server drains. The core
+    /// removes the discovery file before the thread returns, even when an
+    /// exchange was waiting on the app's main thread. Call from the run-event callback — hook
     /// `RunEvent::Exit` (and `ExitRequested` where it fires) — before the
     /// process exits.
     pub fn shutdown(mut self) -> Result<ServeReceipt, AgentControlShutdownError> {
@@ -317,13 +317,14 @@ impl AgentControlHandle {
 /// The server binds 127.0.0.1 only, generates its per-instance token, and
 /// publishes the discovery file once bound; all of that happens on the
 /// spawned thread, so a bind or token failure surfaces at
-/// [`AgentControlHandle::shutdown`], not here. Mount-time failures are
-/// limited to resolving the discovery directory.
+/// [`AgentControlHandle::shutdown`]. Mount validates the app id and resolves
+/// the discovery directory before registering the plugin.
 pub fn mount_agent_control<R: Runtime>(
     app: &AppHandle<R>,
     config: AgentControlConfig,
     commands: Arc<dyn CommandBridge>,
 ) -> Result<AgentControlHandle, AgentControlMountError> {
+    validate_app_id(&config.app_id).map_err(AgentControlMountError::Discovery)?;
     let facts = platform_directory_facts(directory_snapshot(app)?);
     let discovery_dir = match &config.state_root {
         Some(state_root) => resolve_discovery_dir_with_state_override(&facts, state_root),
@@ -361,9 +362,7 @@ pub fn mount_agent_control<R: Runtime>(
         {
             Ok(runtime) => runtime,
             Err(source) => {
-                return Err(ServeError::Io(io::Error::other(format!(
-                    "tokio runtime must build: {source}"
-                ))));
+                return Err(ServeError::Io(source));
             }
         };
         runtime.block_on(serve_control_surface(

@@ -93,6 +93,23 @@ pub fn control_router<H>(handler: H, token: InstanceToken, registry: SelectionRe
 where
     H: ControlHandler,
 {
+    control_router_with_config(
+        handler,
+        token,
+        registry,
+        StreamableHttpServerConfig::default(),
+    )
+}
+
+fn control_router_with_config<H>(
+    handler: H,
+    token: InstanceToken,
+    registry: SelectionRegistry,
+    config: StreamableHttpServerConfig,
+) -> Router
+where
+    H: ControlHandler,
+{
     let handler = Arc::new(handler);
     let service = StreamableHttpService::new(
         move || {
@@ -102,7 +119,7 @@ where
             ))
         },
         Arc::new(LocalSessionManager::default()),
-        StreamableHttpServerConfig::default().with_legacy_session_mode(false),
+        config.with_legacy_session_mode(false),
     );
     Router::new()
         .nest_service("/mcp", service)
@@ -116,7 +133,8 @@ where
 ///
 /// Generates the instance token, binds, publishes the discovery file with
 /// the bound port (after sweeping dead-pid leftovers), serves, and removes
-/// the file on the way out.
+/// the file on the way out. Shutdown cancels active MCP exchanges and
+/// settles pending selections before the HTTP server drains.
 pub async fn serve_control_surface<H>(
     config: ControlServerConfig,
     handler: H,
@@ -140,8 +158,16 @@ where
     )
     .map_err(ServeError::Discovery)?;
 
-    let serve_result = axum::serve(listener, control_router(handler, token, registry.clone()))
-        .with_graceful_shutdown(shutdown)
+    let http_config = StreamableHttpServerConfig::default();
+    let cancellation = http_config.cancellation_token.clone();
+    let router = control_router_with_config(handler, token, registry.clone(), http_config);
+    let pending = registry.clone();
+    let serve_result = axum::serve(listener, router)
+        .with_graceful_shutdown(async move {
+            shutdown.await;
+            cancellation.cancel();
+            pending.shutdown();
+        })
         .await;
 
     registry.shutdown();

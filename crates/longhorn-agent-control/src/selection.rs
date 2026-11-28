@@ -22,6 +22,7 @@ use std::{
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use indexmap::IndexMap;
+use longhorn_core::OpaqueIdError;
 use serde::{Deserialize, Serialize};
 use tokio::{
     sync::{oneshot, watch},
@@ -181,23 +182,43 @@ pub enum SelectionOutcome {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BeginSelectionError {
     /// Operating-system CSPRNG was unavailable for the request id.
-    EntropyUnavailable,
+    EntropyUnavailable(getrandom::Error),
+    /// The generated id did not satisfy the opaque-id contract.
+    InvalidId(OpaqueIdError),
+    /// Save accepts a single file path.
+    InvalidSaveOptions,
 }
 
 impl fmt::Display for BeginSelectionError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EntropyUnavailable => formatter.write_str("selection id entropy unavailable"),
+            Self::EntropyUnavailable(_) => formatter.write_str("selection id entropy unavailable"),
+            Self::InvalidId(source) => {
+                write!(formatter, "generated selection id is invalid: {source}")
+            }
+            Self::InvalidSaveOptions => {
+                formatter.write_str("save does not accept multiple or directory")
+            }
         }
     }
 }
 
-impl std::error::Error for BeginSelectionError {}
+impl std::error::Error for BeginSelectionError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::EntropyUnavailable(source) => Some(source),
+            Self::InvalidId(source) => Some(source),
+            Self::InvalidSaveOptions => None,
+        }
+    }
+}
 
 impl From<BeginSelectionError> for ToolError {
     fn from(error: BeginSelectionError) -> Self {
-        Self::HostFailure {
-            message: error.to_string(),
+        let message = error.to_string();
+        match error {
+            BeginSelectionError::InvalidSaveOptions => Self::InvalidArgument { message },
+            _ => Self::HostFailure { message },
         }
     }
 }
@@ -310,6 +331,9 @@ impl SelectionRegistry {
         &self,
         request: BeginSelectionRequest,
     ) -> Result<SelectionWait, BeginSelectionError> {
+        if request.kind == SelectionKind::Save && (request.multiple || request.directory) {
+            return Err(BeginSelectionError::InvalidSaveOptions);
+        }
         self.sweep();
         let id = generate_id()?;
         let spec = PendingSelection {
@@ -548,9 +572,9 @@ impl Drop for SelectionWait {
 
 fn generate_id() -> Result<SelectionId, BeginSelectionError> {
     let mut bytes = [0_u8; 12];
-    getrandom::fill(&mut bytes).map_err(|_| BeginSelectionError::EntropyUnavailable)?;
+    getrandom::fill(&mut bytes).map_err(BeginSelectionError::EntropyUnavailable)?;
     SelectionId::new(format!("sel_{}", URL_SAFE_NO_PAD.encode(bytes)))
-        .map_err(|_| BeginSelectionError::EntropyUnavailable)
+        .map_err(BeginSelectionError::InvalidId)
 }
 
 fn validate_answer(
@@ -565,6 +589,11 @@ fn validate_answer(
     {
         return Err(ToolError::MalformedSelection {
             message: "paths must be non-empty and must not contain NUL".to_owned(),
+        });
+    }
+    if paths.iter().any(|path| !Path::new(path).is_absolute()) {
+        return Err(ToolError::MalformedSelection {
+            message: "answer paths must be absolute".to_owned(),
         });
     }
     match kind {
@@ -669,6 +698,67 @@ mod tests {
             default_path: None,
             window: Some("main".to_owned()),
             webview: None,
+        }
+    }
+
+    #[test]
+    fn invalid_save_options_never_publish_a_request() {
+        let registry = SelectionRegistry::new("app:1");
+        for (multiple, directory) in [(true, false), (false, true), (true, true)] {
+            let result = registry.begin(BeginSelectionRequest {
+                kind: SelectionKind::Save,
+                directory,
+                multiple,
+                ..open_file_request()
+            });
+            assert!(matches!(
+                result,
+                Err(BeginSelectionError::InvalidSaveOptions)
+            ));
+        }
+        assert!(registry.pending().is_empty());
+        assert_eq!(registry.generation(), 0);
+    }
+
+    #[test]
+    fn an_id_error_is_distinct_from_entropy_failure_and_keeps_its_source() {
+        use std::error::Error as _;
+
+        let id_error = SelectionId::new("")
+            .map_err(BeginSelectionError::InvalidId)
+            .unwrap_err();
+        assert!(matches!(id_error, BeginSelectionError::InvalidId(_)));
+        assert_eq!(
+            id_error.source().unwrap().downcast_ref::<OpaqueIdError>(),
+            Some(&OpaqueIdError::Empty)
+        );
+        let entropy_error = BeginSelectionError::EntropyUnavailable(getrandom::Error::UNSUPPORTED);
+        assert_eq!(
+            entropy_error
+                .source()
+                .unwrap()
+                .downcast_ref::<getrandom::Error>(),
+            Some(&getrandom::Error::UNSUPPORTED)
+        );
+    }
+
+    #[test]
+    fn relative_answers_leave_the_selection_pending() {
+        let registry = SelectionRegistry::new("app:1");
+        for kind in [SelectionKind::Open, SelectionKind::Save] {
+            let wait = registry
+                .begin(BeginSelectionRequest {
+                    kind,
+                    ..open_file_request()
+                })
+                .unwrap();
+            assert_eq!(
+                registry.answer(wait.id(), &["Cargo.toml".to_owned()]),
+                Err(ToolError::MalformedSelection {
+                    message: "answer paths must be absolute".to_owned(),
+                })
+            );
+            assert_eq!(registry.pending().len(), 1);
         }
     }
 

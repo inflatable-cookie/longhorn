@@ -1,0 +1,1 @@
+Agent-control Rust errors preserve their causes. Match `TokenError::EntropyUnavailable(_)` and `BeginSelectionError::EntropyUnavailable(_)`, and handle `BeginSelectionError::InvalidId` and `InvalidSaveOptions` in exhaustive matches.

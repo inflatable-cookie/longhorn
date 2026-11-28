@@ -758,14 +758,19 @@ impl fmt::Display for ToolError {
             Self::UnresolvedRef { element } => {
                 write!(
                     formatter,
-                    "element ref {element:?} does not resolve against the live DOM"
+                    "element ref {:?} does not resolve against the live DOM",
+                    element.as_str()
                 )
             }
             Self::UnknownWindow { window } => {
-                write!(formatter, "window {window:?} does not exist")
+                write!(formatter, "window {:?} does not exist", window.as_str())
             }
             Self::UnknownWebview { webview } => {
-                write!(formatter, "webview {webview:?} is not hosted by the window")
+                write!(
+                    formatter,
+                    "webview {:?} is not hosted by the window",
+                    webview.as_str()
+                )
             }
             Self::WaitTimeout { timeout_ms } => {
                 write!(formatter, "predicate did not hold within {timeout_ms} ms")
@@ -774,7 +779,11 @@ impl fmt::Display for ToolError {
                 write!(formatter, "evaluate failed: {message}")
             }
             Self::CommandFailed { command, message } => {
-                write!(formatter, "command {command:?} failed: {message}")
+                write!(
+                    formatter,
+                    "command {:?} failed: {message}",
+                    command.as_str()
+                )
             }
             Self::Unsupported { message } => {
                 write!(formatter, "unsupported: {message}")
@@ -785,14 +794,19 @@ impl fmt::Display for ToolError {
             Self::UnknownSelection { id } => {
                 write!(
                     formatter,
-                    "selection {id:?} is not pending on this instance"
+                    "selection {:?} is not pending on this instance",
+                    id.as_str()
                 )
             }
             Self::ExpiredSelection { id } => {
-                write!(formatter, "selection {id:?} expired before settlement")
+                write!(
+                    formatter,
+                    "selection {:?} expired before settlement",
+                    id.as_str()
+                )
             }
             Self::SettledSelection { id } => {
-                write!(formatter, "selection {id:?} has already settled")
+                write!(formatter, "selection {:?} has already settled", id.as_str())
             }
             Self::MalformedSelection { message } => {
                 write!(formatter, "malformed selection answer: {message}")
@@ -800,7 +814,8 @@ impl fmt::Display for ToolError {
             Self::CancelledSelection { id } => {
                 write!(
                     formatter,
-                    "selection {id:?} was cancelled before settlement"
+                    "selection {:?} was cancelled before settlement",
+                    id.as_str()
                 )
             }
             Self::InvalidArgument { message } => {
@@ -818,6 +833,55 @@ mod tests {
 
     fn ref_a() -> ElementRef {
         ElementRef::new("e1").unwrap()
+    }
+
+    #[test]
+    fn error_messages_quote_wire_ids_without_rust_type_names() {
+        let id = SelectionId::new("sel_1").unwrap();
+        let errors = [
+            (
+                ToolError::UnresolvedRef { element: ref_a() },
+                "element ref \"e1\" does not resolve against the live DOM",
+            ),
+            (
+                ToolError::UnknownWindow {
+                    window: WindowId::new("main").unwrap(),
+                },
+                "window \"main\" does not exist",
+            ),
+            (
+                ToolError::UnknownWebview {
+                    webview: WebviewLabel::new("preview").unwrap(),
+                },
+                "webview \"preview\" is not hosted by the window",
+            ),
+            (
+                ToolError::CommandFailed {
+                    command: CommandId::new("app.open").unwrap(),
+                    message: "unavailable".to_owned(),
+                },
+                "command \"app.open\" failed: unavailable",
+            ),
+            (
+                ToolError::UnknownSelection { id: id.clone() },
+                "selection \"sel_1\" is not pending on this instance",
+            ),
+            (
+                ToolError::ExpiredSelection { id: id.clone() },
+                "selection \"sel_1\" expired before settlement",
+            ),
+            (
+                ToolError::SettledSelection { id: id.clone() },
+                "selection \"sel_1\" has already settled",
+            ),
+            (
+                ToolError::CancelledSelection { id },
+                "selection \"sel_1\" was cancelled before settlement",
+            ),
+        ];
+        for (error, message) in errors {
+            assert_eq!(error.to_string(), message);
+        }
     }
 
     #[test]
