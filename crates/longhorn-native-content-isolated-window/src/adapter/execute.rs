@@ -10,8 +10,8 @@ use longhorn_native_content::{
 };
 
 use crate::{
-    IsolatedWindowAdapterEvent, IsolatedWindowError, IsolatedWindowRuntime,
-    IsolatedWindowRuntimeOperation, RuntimeAttachRequest, TeardownOutcome,
+    IsolatedWindowAdapterEvent, IsolatedWindowError, IsolatedWindowRuntime, RuntimeAttachRequest,
+    TeardownOutcome,
 };
 
 use super::{Attachment, IsolatedWindowAdapter, compare_generation, state::MAX_TEARDOWN_REPORTS};
@@ -56,9 +56,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
                 if plan.generation() == attachment.generation && !is_detach {
                     return Err(IsolatedWindowError::FailedGeneration);
                 }
-                if !attachment.detaching
-                    && attachment.generation.checked_next().ok() == Some(plan.generation())
-                {
+                if failed_owner_successor(attachment, state.retired_generation, plan.generation()) {
                     return Ok(());
                 }
             }
@@ -166,9 +164,7 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             // Claim teardown before releasing the lock. The failed owner stays
             // in the slot until teardown confirms it is gone.
             if let Some(attachment) = state.attachment.as_mut()
-                && attachment.failed
-                && retired != Some(attachment.generation)
-                && attachment.generation.checked_next().ok() == Some(generation)
+                && failed_owner_successor(attachment, retired, generation)
             {
                 let predecessor = attachment.generation;
                 let handle = Self::begin_teardown(attachment)?;
@@ -352,10 +348,9 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             generation,
             outcome: outcome.clone(),
         });
-        if matches!(outcome, TeardownOutcome::TimedOut { .. }) {
-            return Err(IsolatedWindowError::Runtime {
-                operation: IsolatedWindowRuntimeOperation::Teardown,
-                detail: "owner missed bounded teardown deadline".to_string(),
+        if let TeardownOutcome::TimedOut { timeout_millis } = &outcome {
+            return Err(IsolatedWindowError::TeardownTimedOut {
+                timeout_millis: *timeout_millis,
             });
         }
         Ok(())
@@ -428,4 +423,15 @@ impl<R: IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
         }
         Ok(())
     }
+}
+
+fn failed_owner_successor<H>(
+    attachment: &Attachment<H>,
+    retired_generation: Option<AttachGeneration>,
+    generation: AttachGeneration,
+) -> bool {
+    attachment.failed
+        && !attachment.detaching
+        && retired_generation != Some(attachment.generation)
+        && attachment.generation.checked_next().ok() == Some(generation)
 }
