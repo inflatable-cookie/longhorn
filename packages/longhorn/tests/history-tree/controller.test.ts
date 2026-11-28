@@ -3,6 +3,7 @@ import {
   ForkHistoryController,
   ForkHistoryLateResultError,
   ForkHistoryProjectionGapError,
+  ForkHistoryUnavailableError,
 } from "../../src/history-tree/controller.ts";
 import type { ForkHistoryPort } from "../../src/history-tree/ports.ts";
 import { ForkHistoryValidationError } from "../../src/history-tree/validation.ts";
@@ -236,5 +237,81 @@ describe("fork-history controller", () => {
     await Promise.all([starting, stopping]);
     expect(disposed).toBe(1);
     expect(controller.status.kind).toBe("idle");
+  });
+});
+
+describe("fork-history controller failures", () => {
+  it("gives each controller error a name and a message", () => {
+    for (const error of [
+      new ForkHistoryUnavailableError(),
+      new ForkHistoryProjectionGapError(),
+      new ForkHistoryLateResultError(),
+    ]) {
+      expect(error.name).toBe(error.constructor.name);
+      expect(error.message).toContain("fork-history");
+    }
+  });
+
+  it("reports a failed navigation in status and recovers on refresh", async () => {
+    const state = tracked();
+    const controller = new ForkHistoryController({ port: state.port });
+    await controller.start();
+    const failure = new Error("navigation refused by transport");
+    state.port.navigate = () => Promise.reject(failure);
+
+    await expect(controller.undo()).rejects.toBe(failure);
+    expect(controller.status).toEqual({ kind: "failed", error: failure });
+    expect(controller.navigationPending).toBe(false);
+
+    await controller.refresh();
+    expect(controller.status).toEqual({ kind: "ready" });
+    await controller.stop();
+  });
+
+  it("leaves a stopped controller idle when its navigation fails late", async () => {
+    const state = tracked();
+    const controller = new ForkHistoryController({ port: state.port });
+    await controller.start();
+    const result = Promise.withResolvers<unknown>();
+    state.port.navigate = () => result.promise;
+    const navigation = controller.undo();
+    await controller.stop();
+    result.reject(new Error("too late"));
+
+    await expect(navigation).rejects.toThrow("too late");
+    expect(controller.status).toEqual({ kind: "idle" });
+  });
+
+  it.each([
+    ["continuations", "restart"],
+    ["continuations", "refresh"],
+    ["run", "restart"],
+    ["run", "refresh"],
+  ] as const)("discards %s overtaken by a %s", async (page, action) => {
+    const state = tracked();
+    const controller = new ForkHistoryController({ port: state.port });
+    await controller.start();
+    const result = Promise.withResolvers<unknown>();
+    const livePath = state.port.path;
+    state.port.continuations = () => result.promise;
+    state.port.path = (command) =>
+      command.target.kind === "continuation" ? result.promise : livePath(command);
+    const load =
+      page === "run"
+        ? controller.loadContinuationRun("entry:1")
+        : controller.loadContinuations(null);
+    if (action === "restart") {
+      await controller.stop();
+      await controller.start();
+    } else {
+      state.advance(5);
+      await controller.refresh();
+    }
+    result.resolve({ ...clone(page === "run" ? pathPage : continuationPage), revision: 4 });
+
+    await expect(load).rejects.toBeInstanceOf(
+      action === "restart" ? ForkHistoryLateResultError : ForkHistoryProjectionGapError,
+    );
+    await controller.stop();
   });
 });

@@ -1,4 +1,4 @@
-import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
+import { CheckedSnapshotConnection, CheckedSubscription } from "@inflatable-cookie/longhorn/core";
 import type {
   ConnectionFailure,
   ConnectionFailureReporter,
@@ -53,42 +53,19 @@ export class SurfaceClient {
     listener: (snapshot: SurfaceSnapshot) => void,
     onFailure?: ConnectionFailureReporter,
   ): SurfaceSubscription {
-    return new SurfaceSnapshotSubscription(this, this.#transport, listener, onFailure);
-  }
-}
-
-class SurfaceSnapshotSubscription implements SurfaceSubscription {
-  readonly ready: Promise<void>;
-  readonly #connection: CheckedSnapshotConnection<SurfaceSnapshot>;
-
-  constructor(
-    client: SurfaceClient,
-    transport: EventTransport,
-    listener: (snapshot: SurfaceSnapshot) => void,
-    onFailure?: ConnectionFailureReporter,
-  ) {
-    this.#connection = new CheckedSnapshotConnection({
-      listen: (receive) => transport.listen(SURFACE_CHANGED_EVENT, receive),
-      loadSnapshot: () => client.snapshot(),
-      validateSnapshot: parseSurfaceSnapshot,
-      handleEvent: surfaceEventAction,
-      isNewer: isNewerSurfaceSnapshot,
-      onSnapshot: listener,
-      onFailure,
-    });
-    this.ready = this.#connection.ready.then(() => undefined);
-  }
-
-  current(): SurfaceSnapshot | undefined {
-    return this.#connection.current();
-  }
-
-  failures(): ReadonlyArray<ConnectionFailure> {
-    return this.#connection.failures();
-  }
-
-  dispose(): Promise<void> {
-    return this.#connection.dispose();
+    const transport = this.#transport;
+    return new CheckedSubscription(
+      new CheckedSnapshotConnection({
+        listen: (receive) => transport.listen(SURFACE_CHANGED_EVENT, receive),
+        loadSnapshot: () => this.snapshot(),
+        validateSnapshot: parseSurfaceSnapshot,
+        handleEvent: surfaceEventAction,
+        isNewer: isNewerSurfaceSnapshot,
+        onSnapshot: listener,
+        onFailure,
+      }),
+      () => {},
+    );
   }
 }
 

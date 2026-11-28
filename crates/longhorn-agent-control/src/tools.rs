@@ -49,6 +49,7 @@ macro_rules! control_id {
     ($(#[doc = $doc:literal])* $name:ident) => {
         $(#[doc = $doc])*
         #[derive(Clone, Debug, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd)]
+        #[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
         pub struct $name(String);
 
         impl $name {
@@ -118,6 +119,7 @@ control_id!(
 
 /// One node of the semantic element tree: role, name, value, state.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SemanticNode {
     /// Reference stamped into the live DOM for this element.
@@ -126,20 +128,25 @@ pub struct SemanticNode {
     pub role: String,
     /// Accessible name, when the element has one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "bindings", ts(optional = false))]
     pub name: Option<String>,
     /// Current value, when the role carries one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "bindings", ts(optional = false))]
     pub value: Option<String>,
     /// State tokens, e.g. `disabled`, `checked`, `expanded`.
     #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+    #[cfg_attr(feature = "bindings", ts(optional = false))]
     pub states: BTreeSet<String>,
     /// Child elements.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "bindings", ts(optional = false))]
     pub children: Vec<SemanticNode>,
 }
 
 /// Page-level state accompanying a snapshot or wait result.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PageState {
     /// Current document URL.
@@ -313,12 +320,14 @@ pub struct DragRequest {
 /// The agent is the byte source. There is no path field; Longhorn never
 /// reads the filesystem for this tool (contract 022).
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct FileInputFile {
     /// File name presented to the page (`File.name`).
     pub name: String,
-    /// Optional media type presented to the page (`File.type`).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Optional media type presented to the page (`File.type`). Serialized as
+    /// `null` when absent, so the shim receives the shape its binding declares.
+    #[serde(default)]
     pub media_type: Option<String>,
     /// Standard base64 of the file bytes.
     pub content_base64: String,
@@ -486,6 +495,7 @@ pub struct EvaluateResult {
 /// nothing about page progress under WKWebView timer coalescing, and
 /// rAF-driven visuals must not be awaited (contract 022).
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
     tag = "predicate",
     rename_all = "camelCase",
@@ -667,6 +677,7 @@ pub struct RejectSelectionResult {}
 
 /// Typed failure for every tool in the surface.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(
     tag = "error",
     rename_all = "camelCase",

@@ -115,6 +115,8 @@ semantics.
   resolves. The stream keeps its current snapshot and stays live. A resync reply
   that arrives late cannot move the baseline back, so an event already inside
   the baseline is classified stale and does not apply again.
+- A snapshot accepted behind an event already observed requires another load.
+  The stream asks for it without waiting for a further event.
 - Events are live projections and invalidation hints, not durable delivery.
 - Request-correlated progress, cancellation, and terminal events are optional
   capabilities.

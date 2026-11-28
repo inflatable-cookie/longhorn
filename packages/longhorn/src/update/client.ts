@@ -1,4 +1,4 @@
-import { listenChecked } from "../core/connection.ts";
+import { listenChecked, reportFailure } from "../core/connection.ts";
 import type { ConnectionFailureReporter } from "../core/connection.ts";
 import type {
   UpdateApplyCommand,
@@ -57,17 +57,33 @@ export class UpdateClient implements CheckedUpdatePort {
     assertUpdateOutcome(value);
     return value;
   }
-  /** Prepares with live reports when the port can scope them to this invocation. */
+  /**
+   * Prepares with live reports when the port can scope them to this invocation.
+   *
+   * A malformed report ends delivery for this invocation and is reported to
+   * `onFailure` with phase `event`; the prepare itself still settles.
+   */
   async prepareWithProgress(
     command: UpdatePrepareCommand,
     listener: (event: UpdateProgressEvent) => void,
+    onFailure?: ConnectionFailureReporter,
   ): Promise<UpdateOutcomeProjection> {
     if (this.port.prepareWithProgress === undefined) {
       return this.prepare(command);
     }
     assertUpdatePrepareCommand(command);
+    let malformed = false;
     const value = await this.port.prepareWithProgress(command, (event) => {
-      assertUpdateProgressEvent(event);
+      if (malformed) {
+        return;
+      }
+      try {
+        assertUpdateProgressEvent(event);
+      } catch (error) {
+        malformed = true;
+        reportFailure(onFailure, { phase: "event", error });
+        return;
+      }
       listener(event);
     });
     assertUpdateOutcome(value);
@@ -92,17 +108,6 @@ export class UpdateClient implements CheckedUpdatePort {
     return listenChecked({
       listen: (receive) => this.port.listen?.(receive) ?? (() => {}),
       validate: assertUpdateChangedEvent,
-      listener,
-      onFailure,
-    });
-  }
-  listenProgress(
-    listener: (event: UpdateProgressEvent) => void,
-    onFailure?: ConnectionFailureReporter,
-  ): Promise<UpdateUnlisten> {
-    return listenChecked({
-      listen: (receive) => this.port.listenProgress?.(receive) ?? (() => {}),
-      validate: assertUpdateProgressEvent,
       listener,
       onFailure,
     });

@@ -8,6 +8,7 @@
   //! table that outlives the DOM. Truncation is a sentinel child with role
   //! `truncated` (the core vocabulary has no truncation field; a silent cap
   //! is forbidden). Synthetic events are untrusted: `isTrusted` stays false.
+  //! Every shape that crosses to Rust is a generated binding (contract 010).
   var REF_ATTR = "data-longhorn-agent-ref";
   var REF_SEQ_ATTR = "data-longhorn-agent-ref-seq";
   var REF_PREFIX_GLOBAL = "__longhornAgentRefPrefix";
@@ -94,6 +95,10 @@
     }
     return style.display !== "none" && style.visibility !== "hidden";
   }
+  function declaresEditable(element) {
+    const value = element.getAttribute("contenteditable")?.toLowerCase();
+    return value === "" || value === "true" || value === "plaintext-only";
+  }
   function implicitRole(element) {
     const tag = element.tagName;
     if (tag === "A") {
@@ -172,7 +177,7 @@
       }
       return "textbox";
     }
-    if (element.hasAttribute("contenteditable")) {
+    if (declaresEditable(element)) {
       return "textbox";
     }
     return null;
@@ -271,7 +276,7 @@
       const first = selected && selected.length > 0 ? selected[0] : undefined;
       return first?.textContent?.trim() ?? prop(element, "value");
     }
-    if (element.hasAttribute("contenteditable")) {
+    if (declaresEditable(element)) {
       return element.textContent ?? undefined;
     }
     return;
@@ -329,6 +334,8 @@
     return {
       elementRef: TRUNCATED_REF,
       role: TRUNCATED_ROLE,
+      name: null,
+      value: null,
       states: [],
       children: []
     };
@@ -356,17 +363,11 @@
     const node = {
       elementRef: stamp(element, document),
       role: roleOf(element) ?? element.tagName.toLowerCase(),
+      name: accessibleName(element) ?? null,
+      value: valueOf(element) || null,
       states: statesOf(element, document),
       children: []
     };
-    const name = accessibleName(element);
-    if (name) {
-      node.name = name;
-    }
-    const value = valueOf(element);
-    if (value !== undefined && value.length > 0) {
-      node.value = value;
-    }
     if (depth >= MAX_DEPTH) {
       if (element.children.length > 0) {
         budget.truncated = true;
@@ -460,34 +461,84 @@
     }
     return ok();
   }
-  function insertText(element, text) {
-    if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
-      const current = prop(element, "value") ?? "";
-      const start = prop(element, "selectionStart") ?? current.length;
+  var UNTYPED_INPUT_TYPES = new Set([
+    "button",
+    "checkbox",
+    "hidden",
+    "image",
+    "radio",
+    "reset",
+    "submit"
+  ]);
+  var REPLACED_INPUT_TYPES = new Set([
+    "color",
+    "date",
+    "datetime-local",
+    "month",
+    "range",
+    "time",
+    "week"
+  ]);
+  function inputType(element) {
+    return (prop(element, "type") ?? element.getAttribute("type") ?? "text").toLowerCase();
+  }
+  function textInserter(element) {
+    if (element.tagName !== "INPUT" && element.tagName !== "TEXTAREA") {
+      return (text) => {
+        if (!declaresEditable(element) && prop(element, "isContentEditable") !== true) {
+          return false;
+        }
+        element.textContent = `${element.textContent ?? ""}${text}`;
+        return true;
+      };
+    }
+    const type = element.tagName === "INPUT" ? inputType(element) : "textarea";
+    if (UNTYPED_INPUT_TYPES.has(type)) {
+      return () => false;
+    }
+    const read = () => prop(element, "value") ?? "";
+    let held = REPLACED_INPUT_TYPES.has(type) ? "" : read();
+    let seen = read();
+    return (text) => {
+      const current = read();
+      const start = prop(element, "selectionStart");
+      if (typeof start !== "number") {
+        if (current !== seen) {
+          held = current;
+        }
+        held += text;
+        Object.assign(element, { value: held });
+        seen = read();
+        return true;
+      }
       const end = prop(element, "selectionEnd") ?? start;
-      const next = `${current.slice(0, start)}${text}${current.slice(end)}`;
-      Object.assign(element, { value: next });
+      Object.assign(element, { value: `${current.slice(0, start)}${text}${current.slice(end)}` });
       const cursor = start + text.length;
       prop(element, "setSelectionRange")?.call(element, cursor, cursor);
-      return;
-    }
-    if (element.hasAttribute("contenteditable") || prop(element, "isContentEditable")) {
-      element.textContent = `${element.textContent ?? ""}${text}`;
-    }
+      return true;
+    };
   }
   function typeInto(world, element, text) {
     const node = resolveRef(world.document, element);
     if (!node) {
       return unresolved(element);
     }
+    if (node.tagName === "INPUT" && inputType(node) === "file") {
+      return unsupported("type cannot set an input type=file; use set_file_input");
+    }
     focus(node);
+    const insert = textInserter(node);
+    let changed = false;
     for (const char of text) {
-      dispatchKey(world, node, "keydown", char, []);
-      insertText(node, char);
-      dispatchInput(world, node, char);
+      if (dispatchKey(world, node, "keydown", char, []) && insert(char)) {
+        changed = true;
+        dispatchInput(world, node, char);
+      }
       dispatchKey(world, node, "keyup", char, []);
     }
-    node.dispatchEvent(new world.Event("change", { bubbles: true }));
+    if (changed) {
+      node.dispatchEvent(new world.Event("change", { bubbles: true }));
+    }
     return ok();
   }
   function press(world, key, modifiers = [], element) {
@@ -537,7 +588,7 @@
     dispatchMouse(world, source, "mousedown", from);
     dispatchMouse(world, target, "pointermove", to);
     dispatchMouse(world, target, "mousemove", to);
-    const transfer = typeof DataTransfer === "function" ? new DataTransfer : { setData() {}, getData: () => "" };
+    const transfer = world.DataTransfer ? new world.DataTransfer : { setData() {}, getData: () => "" };
     const dragEvent = (type, current, point) => {
       const event = new world.MouseEvent(type, {
         bubbles: true,
@@ -593,8 +644,7 @@
     if (!node) {
       return unresolved(element);
     }
-    const inputType = (prop(node, "type") ?? node.getAttribute("type") ?? "").toLowerCase();
-    if (node.tagName !== "INPUT" || inputType !== "file") {
+    if (node.tagName !== "INPUT" || inputType(node) !== "file") {
       return unsupported("set_file_input requires an input type=file");
     }
     if (!Array.isArray(files) || files.length === 0) {
@@ -604,8 +654,7 @@
     if (files.length > 1 && !multiple) {
       return unsupported("set_file_input received multiple files for an input without multiple");
     }
-    const FileCtor = world.File ?? (typeof File === "function" ? File : undefined);
-    const DataTransferCtor = world.DataTransfer ?? (typeof DataTransfer === "function" ? DataTransfer : undefined);
+    const { File: FileCtor, DataTransfer: DataTransferCtor } = world;
     if (!FileCtor || !DataTransferCtor) {
       return unsupported("set_file_input needs File and DataTransfer in the page");
     }
@@ -658,6 +707,13 @@
         };
     }
   }
+  function describeValue(value) {
+    try {
+      return String(value);
+    } catch {
+      return "[unprintable]";
+    }
+  }
   function installEventRing(world) {
     const existing = world[SHIM_GLOBAL];
     if (existing) {
@@ -683,7 +739,7 @@
           seq: nextSeq,
           kind: "console",
           level,
-          text: args.map(String).join(" ")
+          text: args.map(describeValue).join(" ")
         });
         original?.(...args);
       };
@@ -694,11 +750,11 @@
     wrap("error");
     wrap("debug");
     world.addEventListener("error", (event) => {
-      const message = "message" in event && typeof event.message === "string" ? event.message : String(event);
+      const message = "message" in event && typeof event.message === "string" ? event.message : describeValue(event);
       push({ seq: nextSeq, kind: "error", message });
     });
     world.addEventListener("unhandledrejection", (event) => {
-      const reason = "reason" in event ? String(event.reason) : "unhandledrejection";
+      const reason = "reason" in event ? describeValue(event.reason) : "unhandledrejection";
       push({ seq: nextSeq, kind: "error", message: reason });
     });
     const notifyNavigation = () => {

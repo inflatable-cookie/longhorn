@@ -45,10 +45,4 @@ export class SerializedUpdatePort implements UpdatePort {
     }
     return this.inner.listen((event) => listener(wireCopy(event)));
   }
-  async listenProgress(listener: (event: unknown) => void): Promise<UpdateUnlisten> {
-    if (this.inner.listenProgress === undefined) {
-      return () => {};
-    }
-    return this.inner.listenProgress((event) => listener(wireCopy(event)));
-  }
 }

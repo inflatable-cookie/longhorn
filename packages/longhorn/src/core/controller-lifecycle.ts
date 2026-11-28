@@ -42,6 +42,11 @@ export class ControllerLifecycle {
     return this.active && this.#revision === revision;
   }
 
+  /** Retains the lifetime's first event failure until the controller stops. */
+  recordEventFailure(error: unknown): void {
+    this.#eventFailure ??= { kind: "failed", error };
+  }
+
   async start({ loading, connect, failed }: ControllerStart): Promise<void> {
     if (this.active) {
       return;
@@ -66,7 +71,7 @@ export class ControllerLifecycle {
           reportFailure: ({ phase, error }) => {
             if (isCurrent() && phase !== "unlisten") {
               if (phase === "event") {
-                this.#eventFailure ??= { kind: "failed", error };
+                this.recordEventFailure(error);
               }
               failed(error);
             }

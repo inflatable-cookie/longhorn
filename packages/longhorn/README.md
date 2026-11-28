@@ -9,8 +9,8 @@ effigy check:bindings
 effigy test:ts
 ```
 
-Every domain is a subpath. `@inflatable-cookie/longhorn` itself resolves to
-`core`, the base every other domain builds on.
+Every domain is a subpath. The bare package name resolves to nothing: import
+`/core`, the base every other domain builds on, by its subpath.
 
 | Subpath | Domain |
 | --- | --- |

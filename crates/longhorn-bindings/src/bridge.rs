@@ -35,7 +35,7 @@ use crate::{
         Artifact, DomainArtifacts, GENERATE_TASK, build_domain_artifacts, config,
         exported_declaration,
     },
-    serde_shape::enum_names_json,
+    serde_shape::{enum_names, enum_names_json},
 };
 
 mod fixture;
@@ -111,6 +111,62 @@ fn render_admitted_transitions() -> Result<String, Box<dyn Error>> {
         ));
     }
     rendered.push_str("};\n");
+    Ok(rendered)
+}
+
+/// Emits the supervision tables the Rust machine admits actions from.
+///
+/// Like the connection matrices, these are relations between enums rather than
+/// types, so `ts-rs` cannot carry them.
+fn render_service_supervision() -> Result<String, Box<dyn Error>> {
+    let outcomes = enum_names::<BridgeServiceOutcome>()?;
+    if enum_names::<BridgeServiceAction>()?.len() != BridgeServiceAction::ALL.len() {
+        return Err("BridgeServiceAction::ALL does not list every action".into());
+    }
+    let unit_outcomes = outcomes
+        .iter()
+        .filter(|name| **name != "failed")
+        .collect::<Vec<_>>();
+
+    let mut rendered = format!(
+        "export const BRIDGE_SERVICE_UNIT_OUTCOMES = {} as const;\n\
+         export const BRIDGE_SERVICE_FAILURE_STATE: BridgeServiceState = {};\n\
+         export const BRIDGE_SERVICE_INCARNATION_STATES: readonly BridgeServiceState[] = {};\n\n",
+        serde_json::to_string(&unit_outcomes)?,
+        serde_json::to_string(&BridgeServiceState::OF_FAILURE)?,
+        serde_json::to_string(BridgeServiceState::STARTS_INCARNATION)?,
+    );
+
+    rendered.push_str(
+        "export const BRIDGE_SERVICE_ADMISSIONS: Record<\n\
+         \u{20} BridgeServiceAction,\n\
+         \u{20} {\n\
+         \u{20}   readonly ownerships: readonly BridgeServiceOwnership[];\n\
+         \u{20}   readonly states: readonly BridgeServiceState[];\n\
+         \u{20}   readonly requiresOwnedLifecycle: boolean;\n\
+         \u{20} }\n\
+         > = {\n",
+    );
+    for action in BridgeServiceAction::ALL {
+        rendered.push_str(&format!(
+            "  {}: {},\n",
+            serde_json::to_string(&action)?,
+            serde_json::to_string(&action.admission_rule())?
+        ));
+    }
+    rendered.push_str("};\n\n");
+
+    rendered.push_str(
+        "export const BRIDGE_SERVICE_ADMITTED_OBSERVATIONS: readonly (readonly [\n\
+         \u{20} BridgeServiceAction,\n\
+         \u{20} BridgeServiceOutcome,\n\
+         \u{20} BridgeServiceState,\n\
+         ])[] = [\n",
+    );
+    for observation in BridgeServiceAction::ADMITTED_OBSERVATIONS {
+        rendered.push_str(&format!("  {},\n", serde_json::to_string(observation)?));
+    }
+    rendered.push_str("];\n");
     Ok(rendered)
 }
 
@@ -277,6 +333,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const BRIDGE_TERMINAL_DECISIONS = {} as const;\n\n\
          {}\n\
          {}\n\
+         {}\n\
          {}\n",
         enum_names_json::<BridgeHostForm>()?,
         enum_names_json::<BridgeConnectionState>()?,
@@ -304,6 +361,7 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         declarations.join("\n\n"),
         render_admitted_reasons()?,
         render_admitted_transitions()?,
+        render_service_supervision()?,
         domain_id_rule = serde_json::json!({
             "maximumBytes": DomainId::MAX_BYTES,
             "separator": DomainId::SEPARATOR,

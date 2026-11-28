@@ -146,7 +146,8 @@ state unchanged.
 Every mechanism adapter enforces one shared generation rule, implemented once
 in `longhorn-native-content`: reject stale, future, retired, attaching, or
 absent generations before native work. Runtime callbacks for a foreign island
-return a typed island mismatch. Mechanism-specific lifecycle rules also apply:
+return a typed island mismatch. The TypeScript client refuses a host reply whose
+snapshot or event names another island, and keeps its current state. Mechanism-specific lifecycle rules also apply:
 
 - backing-surface storage can outlive host invalidation inside the
   invalidate-then-detach window, so a retained attachment rejects further

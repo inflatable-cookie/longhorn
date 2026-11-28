@@ -20,6 +20,7 @@ use crate::{
 
 /// One batch from the current document's page-event ring.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PageEventBatch {
     /// Identity of the document whose ring produced this batch.
@@ -27,8 +28,10 @@ pub struct PageEventBatch {
     /// Events after the requested cursor, or all retained events after a reload.
     pub events: Vec<PageEvent>,
     /// Sequence number the ring will assign to the next event.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub next_seq: u64,
     /// Count of events evicted from this document's ring.
+    #[cfg_attr(feature = "bindings", ts(type = "number"))]
     pub dropped: u64,
 }
 
@@ -55,11 +58,13 @@ impl<H: ControlHandler + ?Sized> PageEventReader for &H {
 
 /// One entry in the page-event ring.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum PageEvent {
     /// A captured page console message.
     Console {
         /// Sequence of the message within the document.
+        #[cfg_attr(feature = "bindings", ts(type = "number"))]
         seq: u64,
         /// Console level reported by the page.
         level: String,
@@ -69,6 +74,7 @@ pub enum PageEvent {
     /// An unhandled page error or rejected promise.
     Error {
         /// Sequence of the error within the document.
+        #[cfg_attr(feature = "bindings", ts(type = "number"))]
         seq: u64,
         /// Error message reported by the page.
         message: String,
@@ -76,6 +82,7 @@ pub enum PageEvent {
     /// Initial document load or a URL change.
     Navigation {
         /// Sequence of the navigation within the document.
+        #[cfg_attr(feature = "bindings", ts(type = "number"))]
         seq: u64,
         /// New page URL.
         url: String,

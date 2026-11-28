@@ -36,7 +36,6 @@ test.each([
 });
 
 const bridgeExportMap = {
-  ".": "./src/core/index.ts",
   "./bridge": "./src/bridge/index.ts",
   "./bridge/protocol": "./src/bridge/protocol.ts",
   "./bridge/stream": "./src/bridge/stream.ts",

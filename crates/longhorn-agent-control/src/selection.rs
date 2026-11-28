@@ -82,10 +82,8 @@ pub struct BeginSelectionArgs {
     #[serde(default)]
     pub filters: Vec<SelectionFilter>,
     /// Dialog title, when the caller supplied one.
-    #[cfg_attr(feature = "bindings", ts(optional = nullable))]
     pub title: Option<String>,
     /// Default-path hint, never an answer.
-    #[cfg_attr(feature = "bindings", ts(optional = nullable))]
     pub default_path: Option<String>,
 }
 

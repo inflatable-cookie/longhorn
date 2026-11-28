@@ -72,7 +72,8 @@ export async function listenChecked<Event>(
   return close;
 }
 
-function reportFailure(
+/** Reports to an optional consumer callback, which cannot throw back into the caller. */
+export function reportFailure(
   reporter: ConnectionFailureReporter | undefined,
   failure: ConnectionFailure,
 ): void {
@@ -117,6 +118,25 @@ export class CheckedSnapshotConnection<Snapshot> {
 
   failures(): ReadonlyArray<ConnectionFailure> {
     return [...this.#failures];
+  }
+
+  /**
+   * Asks for one more authoritative load: the caller learned that the snapshot
+   * it was just given does not cover everything already observed. Requests made
+   * while a load is in flight collapse into one further pass. It is a no-op
+   * after dispose or failure.
+   */
+  requestRefresh(): void {
+    if (this.#disposed || this.#failures.length > 0) {
+      return;
+    }
+    this.#refreshPending = true;
+    if (this.#registered) {
+      void this.#synchronize().catch((error: unknown) => {
+        this.#recordFailure("snapshot", error);
+        void this.#closeAfterFailure();
+      });
+    }
   }
 
   /**
@@ -223,13 +243,7 @@ export class CheckedSnapshotConnection<Snapshot> {
         case "ignore":
           return;
         case "refresh":
-          this.#refreshPending = true;
-          if (this.#registered) {
-            void this.#synchronize().catch((error: unknown) => {
-              this.#recordFailure("snapshot", error);
-              void this.#closeAfterFailure();
-            });
-          }
+          this.requestRefresh();
           return;
         case "snapshot":
           candidate = this.#options.validateSnapshot(action.value);
@@ -308,5 +322,35 @@ export class CheckedSnapshotConnection<Snapshot> {
     } catch (error) {
       this.#recordFailure("unlisten", error);
     }
+  }
+}
+
+/**
+ * The lifetime a domain subscription exposes over one connection. `ready`
+ * settles when the first synchronization does, and `present` decides what it
+ * resolves to.
+ */
+export class CheckedSubscription<Snapshot, Ready = void> {
+  readonly ready: Promise<Ready>;
+  readonly #connection: CheckedSnapshotConnection<Snapshot>;
+
+  constructor(
+    connection: CheckedSnapshotConnection<Snapshot>,
+    present: (snapshot: Snapshot | undefined) => Ready,
+  ) {
+    this.#connection = connection;
+    this.ready = connection.ready.then(present);
+  }
+
+  current(): Snapshot | undefined {
+    return this.#connection.current();
+  }
+
+  failures(): ReadonlyArray<ConnectionFailure> {
+    return this.#connection.failures();
+  }
+
+  dispose(): Promise<void> {
+    return this.#connection.dispose();
   }
 }

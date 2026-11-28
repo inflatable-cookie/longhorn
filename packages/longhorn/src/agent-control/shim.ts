@@ -6,6 +6,17 @@
 //! table that outlives the DOM. Truncation is a sentinel child with role
 //! `truncated` (the core vocabulary has no truncation field; a silent cap
 //! is forbidden). Synthetic events are untrusted: `isTrusted` stays false.
+//! Every shape that crosses to Rust is a generated binding (contract 010).
+
+import type {
+  FileInputFile,
+  PageEvent,
+  PageEventBatch,
+  PageState,
+  SemanticNode,
+  ToolError,
+  WaitPredicate,
+} from "./generated/protocol.ts";
 
 export const REF_ATTR = "data-longhorn-agent-ref";
 export const REF_SEQ_ATTR = "data-longhorn-agent-ref-seq";
@@ -35,42 +46,13 @@ function prop<T>(element: Element, name: string): T | undefined {
   return Reflect.get(element, name) as T | undefined;
 }
 
-export type ToolErrorBody =
-  | { error: "unresolvedRef"; element: string }
-  | { error: "unsupported"; message: string };
+/** The tool failures the page itself can report. */
+export type ToolErrorBody = Extract<ToolError, { error: "unresolvedRef" | "unsupported" }>;
 
 export type ShimOk<T> = { ok: true } & T;
 export type ShimErr = { ok: false; error: ToolErrorBody };
 export type ShimResult<T> = ShimOk<T> | ShimErr;
 export type ActionOk = ShimOk<Record<string, never>>;
-
-export type SemanticNode = {
-  elementRef: string;
-  role: string;
-  name?: string;
-  value?: string;
-  states: Array<string>;
-  children: Array<SemanticNode>;
-};
-
-export type PageState = { url: string; title: string };
-
-export type PageEvent =
-  | { seq: number; kind: "console"; level: string; text: string }
-  | { seq: number; kind: "error"; message: string }
-  | { seq: number; kind: "navigation"; url: string };
-
-export type WaitPredicate =
-  | { predicate: "refResolve"; element: string }
-  | { predicate: "refAbsent"; element: string }
-  | { predicate: "pageUrlContains"; needle: string }
-  | { predicate: "pageTitleContains"; needle: string };
-
-export type FileInputFile = {
-  name: string;
-  mediaType?: string;
-  contentBase64: string;
-};
 
 export type AgentControlApi = {
   snapshot: () => ShimResult<{ page: PageState; root: SemanticNode }>;
@@ -91,15 +73,7 @@ export type AgentControlApi = {
   waitFor: (predicate: WaitPredicate) => ShimResult<{ holds: boolean }>;
   markAgentOrigin: () => void;
   isAgentOriginated: () => boolean;
-  readEvents: (
-    sinceSeq?: number,
-    sinceEpoch?: string | null,
-  ) => {
-    epoch: string;
-    events: Array<PageEvent>;
-    nextSeq: number;
-    dropped: number;
-  };
+  readEvents: (sinceSeq?: number, sinceEpoch?: string | null) => PageEventBatch;
 };
 
 export type ShimWorld = {
@@ -204,6 +178,15 @@ function isVisible(element: Element): boolean {
   return style.display !== "none" && style.visibility !== "hidden";
 }
 
+/**
+ * Whether this element itself declares an editable host. `false` and invalid
+ * values do not: `contenteditable="false"` is how a page opts a region out.
+ */
+function declaresEditable(element: Element): boolean {
+  const value = element.getAttribute("contenteditable")?.toLowerCase();
+  return value === "" || value === "true" || value === "plaintext-only";
+}
+
 function implicitRole(element: Element): string | null {
   const tag = element.tagName;
   if (tag === "A") {
@@ -289,7 +272,7 @@ function implicitRole(element: Element): string | null {
     }
     return "textbox";
   }
-  if (element.hasAttribute("contenteditable")) {
+  if (declaresEditable(element)) {
     return "textbox";
   }
   return null;
@@ -405,7 +388,7 @@ function valueOf(element: Element): string | undefined {
     const first = selected && selected.length > 0 ? selected[0] : undefined;
     return first?.textContent?.trim() ?? prop<string>(element, "value");
   }
-  if (element.hasAttribute("contenteditable")) {
+  if (declaresEditable(element)) {
     return element.textContent ?? undefined;
   }
   return undefined;
@@ -480,6 +463,8 @@ function truncatedNode(): SemanticNode {
   return {
     elementRef: TRUNCATED_REF,
     role: TRUNCATED_ROLE,
+    name: null,
+    value: null,
     states: [],
     children: [],
   };
@@ -513,17 +498,12 @@ function walk(
   const node: SemanticNode = {
     elementRef: stamp(element, document),
     role: roleOf(element) ?? element.tagName.toLowerCase(),
+    name: accessibleName(element) ?? null,
+    // An empty value is reported the same way as no value.
+    value: valueOf(element) || null,
     states: statesOf(element, document),
     children: [],
   };
-  const name = accessibleName(element);
-  if (name) {
-    node.name = name;
-  }
-  const value = valueOf(element);
-  if (value !== undefined && value.length > 0) {
-    node.value = value;
-  }
   if (depth >= MAX_DEPTH) {
     if (element.children.length > 0) {
       budget.truncated = true;
@@ -643,24 +623,79 @@ function click(world: ShimWorld, element: string): ShimResult<Record<string, nev
   return ok();
 }
 
-function insertText(element: Element, text: string): void {
-  if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
-    const current = prop<string>(element, "value") ?? "";
-    const start = prop<number | null>(element, "selectionStart") ?? current.length;
+/** Input types whose value is not typed text. Keys reach them; nothing is inserted. */
+const UNTYPED_INPUT_TYPES = new Set([
+  "button",
+  "checkbox",
+  "hidden",
+  "image",
+  "radio",
+  "reset",
+  "submit",
+]);
+
+/** Input types that hold one structured value, which typed text replaces. */
+const REPLACED_INPUT_TYPES = new Set([
+  "color",
+  "date",
+  "datetime-local",
+  "month",
+  "range",
+  "time",
+  "week",
+]);
+
+function inputType(element: Element): string {
+  return (prop<string>(element, "type") ?? element.getAttribute("type") ?? "text").toLowerCase();
+}
+
+/**
+ * Returns the function that types one character into the element, which
+ * answers whether the element took it.
+ */
+function textInserter(element: Element): (text: string) => boolean {
+  if (element.tagName !== "INPUT" && element.tagName !== "TEXTAREA") {
+    return (text) => {
+      if (!declaresEditable(element) && prop<boolean>(element, "isContentEditable") !== true) {
+        return false;
+      }
+      element.textContent = `${element.textContent ?? ""}${text}`;
+      return true;
+    };
+  }
+  const type = element.tagName === "INPUT" ? inputType(element) : "textarea";
+  if (UNTYPED_INPUT_TYPES.has(type)) {
+    return () => false;
+  }
+  const read = () => prop<string>(element, "value") ?? "";
+  // Types without a selection (email, number, date, ...) report a null
+  // `selectionStart` and throw from `setSelectionRange`. They also blank a value
+  // that is not complete yet, so the typed text is held here and assigned whole.
+  let held = REPLACED_INPUT_TYPES.has(type) ? "" : read();
+  let seen = read();
+  return (text) => {
+    const current = read();
+    const start = prop<number | null>(element, "selectionStart");
+    if (typeof start !== "number") {
+      // The page rewrote the field between keys; continue from what it wrote.
+      if (current !== seen) {
+        held = current;
+      }
+      held += text;
+      Object.assign(element, { value: held });
+      seen = read();
+      return true;
+    }
     const end = prop<number | null>(element, "selectionEnd") ?? start;
-    const next = `${current.slice(0, start)}${text}${current.slice(end)}`;
-    Object.assign(element, { value: next });
+    Object.assign(element, { value: `${current.slice(0, start)}${text}${current.slice(end)}` });
     const cursor = start + text.length;
     prop<(this: Element, start: number, end: number) => void>(element, "setSelectionRange")?.call(
       element,
       cursor,
       cursor,
     );
-    return;
-  }
-  if (element.hasAttribute("contenteditable") || prop<boolean>(element, "isContentEditable")) {
-    element.textContent = `${element.textContent ?? ""}${text}`;
-  }
+    return true;
+  };
 }
 
 function typeInto(
@@ -672,14 +707,23 @@ function typeInto(
   if (!node) {
     return unresolved(element);
   }
+  if (node.tagName === "INPUT" && inputType(node) === "file") {
+    return unsupported("type cannot set an input type=file; use set_file_input");
+  }
   focus(node);
+  const insert = textInserter(node);
+  let changed = false;
   for (const char of text) {
-    dispatchKey(world, node, "keydown", char, []);
-    insertText(node, char);
-    dispatchInput(world, node, char);
+    // A cancelled keydown suppresses the text, as it does for a real key.
+    if (dispatchKey(world, node, "keydown", char, []) && insert(char)) {
+      changed = true;
+      dispatchInput(world, node, char);
+    }
     dispatchKey(world, node, "keyup", char, []);
   }
-  node.dispatchEvent(new world.Event("change", { bubbles: true }));
+  if (changed) {
+    node.dispatchEvent(new world.Event("change", { bubbles: true }));
+  }
   return ok();
 }
 
@@ -749,8 +793,9 @@ function drag(
   dispatchMouse(world, target, "pointermove", to);
   dispatchMouse(world, target, "mousemove", to);
   // Only the two methods are read, so a page without DataTransfer gets a stand-in with just those.
-  const transfer: Pick<DataTransfer, "setData" | "getData"> =
-    typeof DataTransfer === "function" ? new DataTransfer() : { setData() {}, getData: () => "" };
+  const transfer: Pick<DataTransfer, "setData" | "getData"> = world.DataTransfer
+    ? new world.DataTransfer()
+    : { setData() {}, getData: () => "" };
   const dragEvent = (type: string, current: Element, point: { x: number; y: number }) => {
     const event = new world.MouseEvent(type, {
       bubbles: true,
@@ -816,8 +861,7 @@ function setFileInput(
   if (!node) {
     return unresolved(element);
   }
-  const inputType = (prop<string>(node, "type") ?? node.getAttribute("type") ?? "").toLowerCase();
-  if (node.tagName !== "INPUT" || inputType !== "file") {
+  if (node.tagName !== "INPUT" || inputType(node) !== "file") {
     return unsupported("set_file_input requires an input type=file");
   }
   if (!Array.isArray(files) || files.length === 0) {
@@ -827,9 +871,8 @@ function setFileInput(
   if (files.length > 1 && !multiple) {
     return unsupported("set_file_input received multiple files for an input without multiple");
   }
-  const FileCtor = world.File ?? (typeof File === "function" ? File : undefined);
-  const DataTransferCtor =
-    world.DataTransfer ?? (typeof DataTransfer === "function" ? DataTransfer : undefined);
+  // Constructed in the page's own realm, or the input refuses the FileList.
+  const { File: FileCtor, DataTransfer: DataTransferCtor } = world;
   if (!FileCtor || !DataTransferCtor) {
     return unsupported("set_file_input needs File and DataTransfer in the page");
   }
@@ -888,6 +931,19 @@ function waitFor(world: ShimWorld, predicate: WaitPredicate): ShimResult<{ holds
   }
 }
 
+/**
+ * Text for a value the page logged or threw. `String` throws for a
+ * prototype-less object or a throwing `toString`, and that must not escape into
+ * the page's own `console` call.
+ */
+function describeValue(value: unknown): string {
+  try {
+    return String(value);
+  } catch {
+    return "[unprintable]";
+  }
+}
+
 function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
   const existing = world[SHIM_GLOBAL];
   if (existing) {
@@ -919,7 +975,7 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
         seq: nextSeq,
         kind: "console",
         level,
-        text: args.map(String).join(" "),
+        text: args.map(describeValue).join(" "),
       });
       original?.(...args);
     };
@@ -932,11 +988,13 @@ function installEventRing(world: ShimWorld): AgentControlApi["readEvents"] {
 
   world.addEventListener("error", (event) => {
     const message =
-      "message" in event && typeof event.message === "string" ? event.message : String(event);
+      "message" in event && typeof event.message === "string"
+        ? event.message
+        : describeValue(event);
     push({ seq: nextSeq, kind: "error", message });
   });
   world.addEventListener("unhandledrejection", (event) => {
-    const reason = "reason" in event ? String(event.reason) : "unhandledrejection";
+    const reason = "reason" in event ? describeValue(event.reason) : "unhandledrejection";
     push({ seq: nextSeq, kind: "error", message: reason });
   });
 

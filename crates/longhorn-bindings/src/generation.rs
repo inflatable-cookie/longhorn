@@ -120,6 +120,7 @@ fn apply_in(
     for artifact in artifacts {
         if artifact.relative_path.ends_with("protocol.ts") {
             assert_protocol_references_resolve(domain, &artifact.contents)?;
+            assert_protocol_has_no_optional_fields(domain, &artifact.contents)?;
         }
     }
     match mode {
@@ -175,6 +176,33 @@ pub fn assert_protocol_references_resolve(
             missing.into_iter().collect::<Vec<_>>().join(", ")
         ))
         .into())
+    }
+}
+
+/// Refuse to emit a protocol module with an optional property.
+///
+/// Contract 010: every field is present on the wire, and an absent value is an
+/// explicit `| null`. A derived validator can then be exactly as strict as the
+/// Rust reader without guessing between absent and null.
+///
+/// # Errors
+///
+/// Returns an error if the module declares an optional property.
+pub fn assert_protocol_has_no_optional_fields(
+    domain: &str,
+    contents: &str,
+) -> Result<(), Box<dyn Error>> {
+    let without_comments = strip_ts_comments(contents);
+    let scanned = strip_ts_string_literals(&without_comments);
+    let compact: String = scanned.chars().filter(|c| !c.is_whitespace()).collect();
+    if compact.contains("?:") {
+        Err(io::Error::other(format!(
+            "{domain} protocol declares an optional field; emit it as `| null` \
+             (remove `ts(optional)` from the Rust field)"
+        ))
+        .into())
+    } else {
+        Ok(())
     }
 }
 
@@ -1033,6 +1061,21 @@ fn is_typescript_builtin_type(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_optional_protocol_field_is_refused_outside_comments_and_strings() {
+        let optional = "export type Args = { title?: string | null, };";
+        let error = assert_protocol_has_no_optional_fields("agent-control", optional)
+            .expect_err("optional field");
+        assert!(error.to_string().contains("optional field"));
+
+        let quoted = "export type Args = { \"title\"?: string, };";
+        assert!(assert_protocol_has_no_optional_fields("agent-control", quoted).is_err());
+
+        let required = "/** Is it set?: no. */\nexport type Args = { title: \"a?:b\" | null, };";
+        assert_protocol_has_no_optional_fields("agent-control", required)
+            .expect("comments and literals are not fields");
+    }
 
     /// Card 187. Three arm shapes in one union, because the unit variant is
     /// the one a hand-written map guesses at and the multi-field variant is

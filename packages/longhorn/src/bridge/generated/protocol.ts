@@ -238,3 +238,37 @@ export const BRIDGE_ADMITTED_CONNECTION_TRANSITIONS: Record<
   "closed": [],
 };
 
+export const BRIDGE_SERVICE_UNIT_OUTCOMES = ["accepted","ready","notReady","stopped"] as const;
+export const BRIDGE_SERVICE_FAILURE_STATE: BridgeServiceState = "failed";
+export const BRIDGE_SERVICE_INCARNATION_STATES: readonly BridgeServiceState[] = ["starting","attaching","restarting","reconnecting"];
+
+export const BRIDGE_SERVICE_ADMISSIONS: Record<
+  BridgeServiceAction,
+  {
+    readonly ownerships: readonly BridgeServiceOwnership[];
+    readonly states: readonly BridgeServiceState[];
+    readonly requiresOwnedLifecycle: boolean;
+  }
+> = {
+  "spawn": {"ownerships":["ownedLocal"],"states":["absent","stopped","failed"],"requiresOwnedLifecycle":true},
+  "attach": {"ownerships":["externalLocal","externalRemote"],"states":["absent","stopped","failed"],"requiresOwnedLifecycle":false},
+  "checkReadiness": {"ownerships":["ownedLocal","externalLocal","externalRemote"],"states":["starting","attaching","awaitingReadiness","restarting","reconnecting","ready"],"requiresOwnedLifecycle":false},
+  "restart": {"ownerships":["ownedLocal"],"states":["ready","failed"],"requiresOwnedLifecycle":true},
+  "reconnect": {"ownerships":["ownedLocal","externalLocal","externalRemote"],"states":["ready","failed","stopped"],"requiresOwnedLifecycle":false},
+  "shutdown": {"ownerships":["ownedLocal"],"states":["starting","attaching","awaitingReadiness","ready","restarting","reconnecting","failed"],"requiresOwnedLifecycle":true},
+};
+
+export const BRIDGE_SERVICE_ADMITTED_OBSERVATIONS: readonly (readonly [
+  BridgeServiceAction,
+  BridgeServiceOutcome,
+  BridgeServiceState,
+])[] = [
+  ["spawn","accepted","starting"],
+  ["attach","accepted","attaching"],
+  ["checkReadiness","ready","ready"],
+  ["checkReadiness","notReady","awaitingReadiness"],
+  ["restart","accepted","restarting"],
+  ["reconnect","accepted","reconnecting"],
+  ["shutdown","stopped","stopped"],
+];
+

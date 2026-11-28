@@ -9,7 +9,7 @@ description = "Host-agnostic core of the Longhorn agent app-control surface (con
 publish = false
 
 [features]
-bindings = ["dep:ts-rs"]
+bindings = ["dep:ts-rs", "longhorn-core/bindings"]
 # Off by default. The `evaluate` MCP tool stays listed so a packaged
 # `agent-control` build answers typed `Unsupported`; this feature is what
 # compiles the JS escape hatch (contract 022; expected only in dev/test).

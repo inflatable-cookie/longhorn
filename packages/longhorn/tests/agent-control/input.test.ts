@@ -278,7 +278,7 @@ describe("agent-control setFileInput", () => {
     }
     const target = findByName(snapshot.root, "Manifest");
     const result = api.setFileInput(target!.elementRef, [
-      { name: "manifest.json", contentBase64: "@@@" },
+      { name: "manifest.json", mediaType: null, contentBase64: "@@@" },
     ]);
     expect(result.ok).toBe(false);
     if (result.ok) {

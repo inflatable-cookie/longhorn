@@ -1,8 +1,5 @@
-import { CheckedSnapshotConnection } from "@inflatable-cookie/longhorn/core";
-import type {
-  ConnectionFailure,
-  ConnectionFailureReporter,
-} from "@inflatable-cookie/longhorn/core";
+import { CheckedSnapshotConnection, CheckedSubscription } from "@inflatable-cookie/longhorn/core";
+import type { ConnectionFailureReporter } from "@inflatable-cookie/longhorn/core";
 
 import type {
   BridgeEventEnvelope,
@@ -27,25 +24,12 @@ export interface BridgeStreamConnectionOptions<Snapshot, Event> {
   readonly onFailure?: ConnectionFailureReporter;
 }
 
-export class BridgeStreamConnection<Snapshot> {
-  readonly ready: Promise<BridgeSnapshotEnvelope<Snapshot> | undefined>;
-  readonly #connection: CheckedSnapshotConnection<BridgeSnapshotEnvelope<Snapshot>>;
-
+export class BridgeStreamConnection<Snapshot> extends CheckedSubscription<
+  BridgeSnapshotEnvelope<Snapshot>,
+  BridgeSnapshotEnvelope<Snapshot> | undefined
+> {
   constructor(connection: CheckedSnapshotConnection<BridgeSnapshotEnvelope<Snapshot>>) {
-    this.#connection = connection;
-    this.ready = connection.ready;
-  }
-
-  current(): BridgeSnapshotEnvelope<Snapshot> | undefined {
-    return this.#connection.current();
-  }
-
-  failures(): ReadonlyArray<ConnectionFailure> {
-    return this.#connection.failures();
-  }
-
-  dispose(): Promise<void> {
-    return this.#connection.dispose();
+    super(connection, (snapshot) => snapshot);
   }
 }
 
@@ -61,6 +45,11 @@ export function connectBridgeStream<Snapshot, Event>(
       const decision = tracker.acceptSnapshot(snapshot.cursor);
       if (decision === "supersededSession" || decision === "wrongDomain") {
         throw new BridgeStreamAuthorityError(decision);
+      }
+      // The reply is behind an event already seen, and the events in between
+      // were not applied. Nothing else will ask again if the stream goes quiet.
+      if (decision === "acceptedResnapshotRequired") {
+        connection.requestRefresh();
       }
       // A stale reply is returned unchanged. The tracker kept its baseline, and
       // the connection's isNewer check drops the reply, so the stream stays live.

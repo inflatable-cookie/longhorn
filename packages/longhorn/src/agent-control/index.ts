@@ -10,15 +10,11 @@ export {
   TRUNCATED_ROLE,
   installAgentControlShim,
   type AgentControlApi,
-  type FileInputFile,
-  type PageEvent,
-  type PageState,
-  type SemanticNode,
   type ShimResult,
   type ShimWorld,
   type ToolErrorBody,
-  type WaitPredicate,
 } from "./shim.ts";
+export type * from "./generated/protocol.ts";
 export {
   BEGIN_SELECTION_COMMAND,
   SELECTION_ORIGIN_AGENT,

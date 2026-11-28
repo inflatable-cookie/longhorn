@@ -9,13 +9,7 @@
   },
   "homepage": "https://github.com/inflatable-cookie/longhorn#readme",
   "type": "module",
-  "types": "./src/core/index.ts",
   "exports": {
-    ".": {
-      "types": "./src/core/index.ts",
-      "import": "./src/core/index.ts",
-      "default": "./src/core/index.ts"
-    },
     "./agent-control": {
       "types": "./src/agent-control/index.ts",
       "import": "./src/agent-control/index.ts",

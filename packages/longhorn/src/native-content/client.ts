@@ -23,6 +23,7 @@ import type {
   ContentSizeProposal,
   DesiredUpdate,
   NativeContentContentSizeDecisionResult,
+  NativeContentCursor,
   NativeContentDesiredUpdateResult,
   NativeContentIslandId,
   NativeContentProtocolRejection,
@@ -109,7 +110,11 @@ class CheckedNativeContentConnection implements NativeContentConnection {
     this.#connection = new CheckedSnapshotConnection<NativeContentSnapshot>({
       listen: async (receive) => (port.listen === undefined ? () => {} : port.listen(receive)),
       loadSnapshot: () => this.#loadSnapshot(),
-      validateSnapshot: parseSnapshot,
+      validateSnapshot: (value) => {
+        const snapshot = parseSnapshot(value);
+        assertIsland(snapshot.cursor, islandId);
+        return snapshot;
+      },
       handleEvent: (payload, current) => eventAction(payload, current, islandId),
       isNewer: isNewerSessionSnapshot,
       onSnapshot: listener,
@@ -150,6 +155,8 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       assertValidNativeContentDesiredUpdateResult(value);
       assertCorrelation(value.request_id, requestId);
       if (value.status === "committed") {
+        assertIsland(value.event.cursor, this.#islandId);
+        assertIsland(value.snapshot.cursor, this.#islandId);
         this.#connection.offer(value.snapshot);
       }
       return value;
@@ -179,6 +186,8 @@ class CheckedNativeContentConnection implements NativeContentConnection {
       assertValidNativeContentDecisionResult(value);
       assertCorrelation(value.request_id, requestId);
       if (value.status === "decided") {
+        assertIsland(value.event.cursor, this.#islandId);
+        assertIsland(value.snapshot.cursor, this.#islandId);
         this.#connection.offer(value.snapshot);
       }
       return value;
@@ -358,6 +367,13 @@ export function isNewerNativeContentSnapshot(
   );
 }
 
+/** A host reply that carries state is only accepted for the island that asked. */
+function assertIsland(cursor: NativeContentCursor, expected: NativeContentIslandId): void {
+  if (cursor.island_id !== expected) {
+    throw new NativeContentIslandCorrelationError(expected, cursor.island_id);
+  }
+}
+
 function assertCorrelation(received: string, expected: string): void {
   if (received !== expected) {
     throw new NativeContentResponseCorrelationError(expected, received);
@@ -373,6 +389,18 @@ export class NativeContentResponseCorrelationError extends Error {
       `native-content response correlation mismatch: expected ${expectedRequestId}; received ${receivedRequestId}`,
     );
     this.name = "NativeContentResponseCorrelationError";
+  }
+}
+
+export class NativeContentIslandCorrelationError extends Error {
+  constructor(
+    readonly expectedIslandId: NativeContentIslandId,
+    readonly receivedIslandId: NativeContentIslandId,
+  ) {
+    super(
+      `native-content reply is for another island: expected ${expectedIslandId}; received ${receivedIslandId}`,
+    );
+    this.name = "NativeContentIslandCorrelationError";
   }
 }
 
