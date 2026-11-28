@@ -381,12 +381,12 @@ mod tests {
         assert!(WindowId::new("editor:secondary_2").is_ok());
         assert!(OperationAuthorityId::new("authority:desktop").is_ok());
         assert!(OperationId::new("operation:scan-42").is_ok());
-        assert!(OperationKindId::new("soundcheck.plugin-scan").is_ok());
+        assert!(OperationKindId::new("example.plugin-scan").is_ok());
         assert!(OperationScopeId::new("library:default").is_ok());
         assert!(OperationPhaseId::new("scan:introspecting").is_ok());
         assert!(NotificationAuthorityId::new("notifications:desktop").is_ok());
         assert!(NotificationId::new("notification:render-42").is_ok());
-        assert!(NotificationSourceId::new("loophole.render").is_ok());
+        assert!(NotificationSourceId::new("example.render").is_ok());
         assert!(NotificationReplacementKey::new("render:42").is_ok());
         assert!(NotificationActionReferenceId::new("render:open-report").is_ok());
         assert!(NotificationCauseId::new("operation:render-42").is_ok());

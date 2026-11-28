@@ -70,15 +70,15 @@ fn query_only_receipt_has_no_subscription_or_service_feature() {
 }
 
 #[test]
-fn jetstream_fixture_requires_listener_first_snapshot_and_gap_resync() {
-    let jetstream = receipt(
-        host("host:jetstream-desktop", BridgeHostForm::TauriLocal),
-        "session:jetstream",
+fn ordered_receipt_requires_listener_first_snapshot_and_gap_resync() {
+    let ordered = receipt(
+        host("host:ordered-desktop", BridgeHostForm::TauriLocal),
+        "session:ordered",
         &["request_reply", "ordered_streams"],
-        vec![capabilities("jetstream.snapshot", &["query", "subscribe"]).unwrap()],
+        vec![capabilities("example.snapshot", &["query", "subscribe"]).unwrap()],
         vec![authority(
-            "jetstream.snapshot",
-            "scope:jetstream-snapshot",
+            "example.snapshot",
+            "scope:snapshot",
             ReadAuthority::Authoritative,
             WriteAuthority::None,
             ExecutionAuthority::None,
@@ -88,21 +88,21 @@ fn jetstream_fixture_requires_listener_first_snapshot_and_gap_resync() {
     )
     .unwrap();
     let mut stream = BridgeStreamTracker::new(
-        BridgeSessionId::new("session:jetstream").unwrap(),
-        domain("jetstream.snapshot"),
+        BridgeSessionId::new("session:ordered").unwrap(),
+        domain("example.snapshot"),
     );
 
     assert_eq!(
         stream.classify_event(&super::support::cursor(
-            "session:jetstream",
-            "jetstream.snapshot",
+            "session:ordered",
+            "example.snapshot",
             2,
             1,
         )),
         longhorn_bridge::BridgeStreamDecision::ResnapshotRequired
     );
     assert_eq!(
-        jetstream
+        ordered
             .transport_features()
             .iter()
             .map(TransportFeatureId::as_str)
@@ -112,21 +112,21 @@ fn jetstream_fixture_requires_listener_first_snapshot_and_gap_resync() {
 }
 
 #[test]
-fn soundcheck_service_absence_preserves_local_domain_authority() {
-    let soundcheck = receipt(
-        host("host:soundcheck-desktop", BridgeHostForm::TauriLocal),
-        "session:soundcheck",
+fn service_absence_preserves_local_domain_authority() {
+    let local_first = receipt(
+        host("host:local-first-desktop", BridgeHostForm::TauriLocal),
+        "session:local-first",
         &["request_reply", "ordered_streams", "job_execution"],
         vec![
-            capabilities("soundcheck.local-config", &["query", "mutate"]).unwrap(),
-            capabilities("soundcheck.local-window", &["query", "mutate"]).unwrap(),
-            capabilities("soundcheck.local-settings", &["query", "mutate"]).unwrap(),
-            capabilities("soundcheck.analysis", &["query", "start_job", "cancel_job"]).unwrap(),
+            capabilities("example.local-config", &["query", "mutate"]).unwrap(),
+            capabilities("example.local-window", &["query", "mutate"]).unwrap(),
+            capabilities("example.local-settings", &["query", "mutate"]).unwrap(),
+            capabilities("example.analysis", &["query", "start_job", "cancel_job"]).unwrap(),
         ],
         vec![
             authority(
-                "soundcheck.local-config",
-                "scope:soundcheck-local-config",
+                "example.local-config",
+                "scope:local-config",
                 ReadAuthority::Authoritative,
                 WriteAuthority::Authoritative,
                 ExecutionAuthority::None,
@@ -134,8 +134,8 @@ fn soundcheck_service_absence_preserves_local_domain_authority() {
                 Some(6),
             ),
             authority(
-                "soundcheck.local-window",
-                "scope:soundcheck-local-window",
+                "example.local-window",
+                "scope:local-window",
                 ReadAuthority::Authoritative,
                 WriteAuthority::Authoritative,
                 ExecutionAuthority::None,
@@ -143,8 +143,8 @@ fn soundcheck_service_absence_preserves_local_domain_authority() {
                 Some(7),
             ),
             authority(
-                "soundcheck.local-settings",
-                "scope:soundcheck-local-settings",
+                "example.local-settings",
+                "scope:local-settings",
                 ReadAuthority::Authoritative,
                 WriteAuthority::Authoritative,
                 ExecutionAuthority::None,
@@ -152,8 +152,8 @@ fn soundcheck_service_absence_preserves_local_domain_authority() {
                 Some(8),
             ),
             authority_with_availability(
-                "soundcheck.analysis",
-                "scope:soundcheck-analysis",
+                "example.analysis",
+                "scope:analysis",
                 DomainAvailability::Offline,
                 ReadAuthority::None,
                 WriteAuthority::None,
@@ -165,27 +165,27 @@ fn soundcheck_service_absence_preserves_local_domain_authority() {
     )
     .unwrap();
 
-    for local in &soundcheck.domain_authorities()[..3] {
+    for local in &local_first.domain_authorities()[..3] {
         assert_eq!(local.availability(), DomainAvailability::Available);
         assert_eq!(local.write_authority(), WriteAuthority::Authoritative);
     }
     assert_eq!(
-        soundcheck.domain_authorities()[3].availability(),
+        local_first.domain_authorities()[3].availability(),
         DomainAvailability::Offline
     );
 }
 
 #[test]
-fn nucleus_fixture_supports_embedded_and_optional_service_hosts() {
+fn receipts_support_embedded_and_optional_service_hosts() {
     let build = |form, host_id, session_id| {
         receipt(
             host(host_id, form),
             session_id,
             &["request_reply", "job_execution"],
-            vec![capabilities("nucleus.indexing", &["query", "start_job"]).unwrap()],
+            vec![capabilities("example.indexing", &["query", "start_job"]).unwrap()],
             vec![authority(
-                "nucleus.indexing",
-                "scope:nucleus-indexing",
+                "example.indexing",
+                "scope:indexing",
                 ReadAuthority::Projection,
                 WriteAuthority::None,
                 ExecutionAuthority::Executor,
@@ -197,13 +197,13 @@ fn nucleus_fixture_supports_embedded_and_optional_service_hosts() {
     };
     let embedded = build(
         BridgeHostForm::Direct,
-        "host:nucleus-embedded",
-        "session:nucleus-embedded",
+        "host:indexing-embedded",
+        "session:indexing-embedded",
     );
     let optional_service = build(
         BridgeHostForm::LocalService,
-        "host:nucleus-service",
-        "session:nucleus-service",
+        "host:indexing-service",
+        "session:indexing-service",
     );
 
     assert_eq!(embedded.host().form, BridgeHostForm::Direct);
@@ -220,16 +220,16 @@ fn nucleus_fixture_supports_embedded_and_optional_service_hosts() {
 }
 
 #[test]
-fn loophole_host_form_switch_preserves_domain_identity() {
+fn host_form_switch_preserves_domain_identity() {
     let build = |form, host_id, session_id| {
         receipt(
             host(host_id, form),
             session_id,
             &["request_reply", "ordered_streams"],
-            vec![capabilities("loophole.workspace", &["query", "mutate", "subscribe"]).unwrap()],
+            vec![capabilities("example.workspace", &["query", "mutate", "subscribe"]).unwrap()],
             vec![authority(
-                "loophole.workspace",
-                "scope:loophole-workspace",
+                "example.workspace",
+                "scope:workspace",
                 ReadAuthority::Authoritative,
                 WriteAuthority::Authoritative,
                 ExecutionAuthority::Executor,
@@ -241,13 +241,13 @@ fn loophole_host_form_switch_preserves_domain_identity() {
     };
     let local = build(
         BridgeHostForm::LocalFirst,
-        "host:loophole-local",
-        "session:loophole-local",
+        "host:switch-local",
+        "session:switch-local",
     );
     let remote = build(
         BridgeHostForm::Remote,
-        "host:loophole-remote",
-        "session:loophole-remote",
+        "host:switch-remote",
+        "session:switch-remote",
     );
 
     assert_ne!(local.host().form, remote.host().form);

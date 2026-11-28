@@ -60,8 +60,8 @@ mod tests {
 
     #[test]
     fn settings_ids_share_the_bounded_core_grammar() {
-        assert!(SettingsModuleId::new("soundcheck:preferences").is_ok());
-        assert!(SettingsPageId::new("soundcheck:audio").is_ok());
+        assert!(SettingsModuleId::new("example:preferences").is_ok());
+        assert!(SettingsPageId::new("example:audio").is_ok());
         assert!(SettingsAuthorityToken::new("token:0198f97e").is_ok());
         assert_eq!(
             SettingsRendererId::new("ConsumerRenderer"),

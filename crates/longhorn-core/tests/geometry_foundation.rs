@@ -76,7 +76,7 @@ fn identity_scale_is_exact_and_conversion_overflow_is_typed() {
 }
 
 #[test]
-fn nucleus_negative_origin_and_oversized_window_fit() {
+fn negative_origin_and_oversized_window_fit() {
     let work_area = ScreenRect::new(ScreenPoint::new(-1920, 0), ScreenSize::new(1920, 1080));
     let oversized = ScreenRect::new(ScreenPoint::new(-2500, -100), ScreenSize::new(3000, 1600));
 
@@ -89,14 +89,14 @@ fn nucleus_negative_origin_and_oversized_window_fit() {
 }
 
 #[test]
-fn soundcheck_minimum_is_policy_input_not_a_core_constant() {
+fn consumer_minimum_is_policy_input_not_a_core_constant() {
     let work_area = ScreenRect::new(ScreenPoint::new(0, 0), ScreenSize::new(1440, 900));
     let tiny = ScreenRect::new(ScreenPoint::new(1500, 950), ScreenSize::new(10, 20));
-    let soundcheck_minimum = ScreenSize::new(320, 240);
+    let consumer_minimum = ScreenSize::new(320, 240);
 
-    let fitted = tiny.fit_within(&work_area, &soundcheck_minimum).unwrap();
+    let fitted = tiny.fit_within(&work_area, &consumer_minimum).unwrap();
 
-    assert_eq!(fitted.size(), soundcheck_minimum);
+    assert_eq!(fitted.size(), consumer_minimum);
     assert_eq!(fitted.origin(), ScreenPoint::new(1120, 660));
     assert!(work_area.contains_rect(&fitted));
 }
@@ -130,7 +130,7 @@ fn contained_window_is_unchanged_by_visibility_clamp() {
 }
 
 #[test]
-fn loophole_placement_and_live_metrics_preserve_frame_distinction() {
+fn placement_and_live_metrics_preserve_frame_distinction() {
     let placement = WindowPlacement::new(ScreenPoint::new(40, 80), ScreenSize::new(1200, 700));
     let live = LiveWindowMetrics::new(
         ScreenRect::new(ScreenPoint::new(40, 80), ScreenSize::new(1216, 739)),
