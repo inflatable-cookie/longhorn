@@ -15,19 +15,20 @@ import {
   parseBridgeQueryEnvelope,
   parseBridgeQueryReply,
   record,
-  type BridgeCancellationReceipt,
-  type BridgeCancellationRequest,
-  type BridgeCodec,
-  type BridgeHelloRequest,
-  type BridgeHostForm,
-  type BridgeNegotiationReceipt,
-  type BridgeOperationAdapter,
-  type BridgeOperationDescriptor,
-  type BridgeQueryEnvelope,
-  type BridgeQueryReply,
-  type BridgeSessionId,
-  type DomainAuthorityDescriptor,
-  type DomainId,
+} from "@inflatable-cookie/longhorn/bridge";
+import type {
+  BridgeCancellationReceipt,
+  BridgeCancellationRequest,
+  BridgeCodec,
+  BridgeHelloRequest,
+  BridgeHostForm,
+  BridgeNegotiationReceipt,
+  BridgeOperationDescriptor,
+  BridgeQueryEnvelope,
+  BridgeQueryReply,
+  BridgeSessionId,
+  DomainAuthorityDescriptor,
+  DomainId,
 } from "@inflatable-cookie/longhorn/bridge";
 import {
   BRIDGE_CANCEL_COMMAND,
@@ -45,22 +46,18 @@ export type ShapeName =
 
 export interface DomainDeclaration {
   readonly domainId: DomainId;
-  readonly capabilities: readonly string[];
+  readonly capabilities: ReadonlyArray<string>;
   readonly authority: Omit<DomainAuthorityDescriptor, "domainId">;
 }
 
 export interface ShapeDeclaration {
-  readonly hostForms: readonly BridgeHostForm[];
-  readonly transportFeatures: readonly string[];
-  readonly imports: readonly string[];
-  readonly tauriPermissions: readonly string[];
-  readonly serviceOwnership:
-    | "ownedLocal"
-    | "externalLocal"
-    | "externalRemote"
-    | null;
+  readonly hostForms: ReadonlyArray<BridgeHostForm>;
+  readonly transportFeatures: ReadonlyArray<string>;
+  readonly imports: ReadonlyArray<string>;
+  readonly tauriPermissions: ReadonlyArray<string>;
+  readonly serviceOwnership: "ownedLocal" | "externalLocal" | "externalRemote" | null;
   readonly maximumQueryRetries: number;
-  readonly domains: readonly DomainDeclaration[];
+  readonly domains: ReadonlyArray<DomainDeclaration>;
 }
 
 export interface TopologyDeclarations {
@@ -83,16 +80,18 @@ export type AdapterName = "direct" | "tauri" | "loopback";
 
 export const adapterNames = ["direct", "tauri", "loopback"] as const;
 
+// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- declarations.json is this proof's fixed, reviewed input (verify-bridge-topology-artifacts reads it back); it is not wire data.
 export const declarations = JSON.parse(
   readFileSync(new URL("declarations.json", import.meta.url), "utf8"),
 ) as TopologyDeclarations;
 
 const probeCodec = bridgeCodec<ProbePayload>((value) => {
   const source = record(value, ["value"]);
-  if (!Number.isSafeInteger(source.value)) {
+  const probe = source.value;
+  if (typeof probe !== "number" || !Number.isSafeInteger(probe)) {
     throw new TypeError("probe value must be an integer");
   }
-  return { value: source.value as number };
+  return { value: probe };
 });
 
 const failureCodec = bridgeCodec<ProbeFailure>((value) => {
@@ -103,14 +102,21 @@ const failureCodec = bridgeCodec<ProbeFailure>((value) => {
   return { code: source.code };
 });
 
-const cancellationReplyCodec = bridgeCodec<
-  BridgeCancellationReceipt<ProbeFailure>
->((value) =>
-  parseBridgeCancellationReceipt(value, failureCodec)
+const cancellationReplyCodec = bridgeCodec<BridgeCancellationReceipt<ProbeFailure>>((value) =>
+  parseBridgeCancellationReceipt(value, failureCodec),
 );
 
 export function declaration(name: ShapeName): ShapeDeclaration {
   return declarations.shapes[name];
+}
+
+// The declared item at `index`. A missing one means the fixture is broken, so it fails here.
+export function declaredAt<T>(items: ReadonlyArray<T>, index: number, what: string): T {
+  const item = items.at(index);
+  if (item === undefined) {
+    throw new Error(`fixture declares no ${what} at index ${index}`);
+  }
+  return item;
 }
 
 export function hello(
@@ -126,7 +132,7 @@ export function hello(
 
 export function receipt(
   name: ShapeName,
-  form = declaration(name).hostForms[0]!,
+  form = declaredAt(declaration(name).hostForms, 0, "host form"),
   sessionId: BridgeSessionId = `session:fixture-${name}`,
   domains = declaration(name).domains,
 ): BridgeNegotiationReceipt {
@@ -154,23 +160,24 @@ export function receipt(
       })),
       diagnostics: [],
     },
-    hello(name, domains.map(({ domainId }) => domainId)),
+    hello(
+      name,
+      domains.map(({ domainId }) => domainId),
+    ),
   );
 }
 
 export function session(
   name: ShapeName,
   form?: BridgeHostForm,
-  domains?: readonly DomainDeclaration[],
+  domains?: ReadonlyArray<DomainDeclaration>,
 ): BridgeSession {
   return new BridgeSession(receipt(name, form, undefined, domains));
 }
 
 export function readableDomain(name: ShapeName): DomainDeclaration {
   const domain = declaration(name).domains.find(
-    ({ authority }) =>
-      authority.availability !== "offline" &&
-      authority.readAuthority !== "none",
+    ({ authority }) => authority.availability !== "offline" && authority.readAuthority !== "none",
   );
   if (domain === undefined) {
     throw new Error(`${name} has no readable fixture domain`);
@@ -188,19 +195,11 @@ export async function queryParity(
   const domain = selectedDomain ?? readableDomain(name);
   const negotiated = receipt(name);
   const operation = queryOperation(domain.domainId);
-  const request = queryRequest(
-    negotiated.sessionId,
-    domain.domainId,
-    `request:fixture-${name}`,
-  );
-  const router = routerFor(
-    negotiated,
-    operation,
-    (candidate) => ({
-      requestId: candidate.context.requestId,
-      outcome: { success: { value: candidate.payload.value + 1 } },
-    }),
-  );
+  const request = queryRequest(negotiated.sessionId, domain.domainId, `request:fixture-${name}`);
+  const router = routerFor(negotiated, operation, (candidate) => ({
+    requestId: candidate.context.requestId,
+    outcome: { success: { value: candidate.payload.value + 1 } },
+  }));
 
   const direct = new DirectBridgeAdapter(router);
   const loopback = new SerializedLoopbackBridgeAdapter(router);
@@ -244,16 +243,12 @@ export async function cancellationParity(
     targetRequestId: `request:fixture-${name}-job`,
     jobId: `job:fixture-${name}`,
   };
-  const router = routerFor(
-    negotiated,
-    operation,
-    (candidate) => ({
-      requestId: candidate.context.requestId,
-      targetRequestId: candidate.targetRequestId,
-      jobId: candidate.jobId,
-      outcome: "accepted" as const,
-    }),
-  );
+  const router = routerFor(negotiated, operation, (candidate) => ({
+    requestId: candidate.context.requestId,
+    targetRequestId: candidate.targetRequestId,
+    jobId: candidate.jobId,
+    outcome: "accepted" as const,
+  }));
   const direct = new DirectBridgeAdapter(router);
   const loopback = new SerializedLoopbackBridgeAdapter(router);
   const tauri = new RouterInvokeTransport(router);
@@ -265,52 +260,41 @@ export async function cancellationParity(
   };
 }
 
-export function sameValues<T>(
-  values: Readonly<Record<AdapterName, T>>,
-): boolean {
+export function sameValues<T>(values: Readonly<Record<AdapterName, T>>): boolean {
   const encoded = adapterNames.map((name) => JSON.stringify(values[name]));
   return new Set(encoded).size === 1;
 }
 
 export function authorityProjection(
   negotiated: BridgeNegotiationReceipt,
-): readonly DomainAuthorityDescriptor[] {
+): ReadonlyArray<DomainAuthorityDescriptor> {
   return negotiated.domainAuthorities.map((authority) => ({
     ...authority,
   }));
 }
 
+// JSON semantics are the point: the proof checks that a value survives the wire's JSON form.
 export function jsonRoundTrip<T>(value: T): T {
+  // oxlint-disable-next-line unicorn/prefer-structured-clone, typescript/no-unsafe-type-assertion -- structuredClone would keep what JSON drops, and the proof must not; JSON.parse yields the value's own JSON form.
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export const unknownCodec: BridgeCodec<unknown> = bridgeCodec(
-  (value) => value,
-);
+export const unknownCodec: BridgeCodec<unknown> = bridgeCodec((value) => value);
 
-function queryOperation(
-  domainId: DomainId,
-): BridgeOperationDescriptor<QueryRequest, QueryReply> {
+function queryOperation(domainId: DomainId): BridgeOperationDescriptor<QueryRequest, QueryReply> {
   return {
     route: `${domainId}.fixture_query`,
     domainId,
     kind: "query",
     requiredCapability: "query",
-    request: bridgeCodec((value) =>
-      parseBridgeQueryEnvelope(value, probeCodec)
-    ),
-    reply: bridgeCodec((value) =>
-      parseBridgeQueryReply(value, probeCodec, failureCodec)
-    ),
+    request: bridgeCodec((value) => parseBridgeQueryEnvelope(value, probeCodec)),
+    reply: bridgeCodec((value) => parseBridgeQueryReply(value, probeCodec, failureCodec)),
   };
 }
 
 function cancellationOperation(
   domainId: DomainId,
-): BridgeOperationDescriptor<
-  BridgeCancellationRequest,
-  BridgeCancellationReceipt<ProbeFailure>
-> {
+): BridgeOperationDescriptor<BridgeCancellationRequest, BridgeCancellationReceipt<ProbeFailure>> {
   return {
     route: `${domainId}.fixture_cancel`,
     domainId,
@@ -372,18 +356,13 @@ class RouterInvokeTransport {
   invoke(
     command: string,
     arguments_: Record<string, unknown>,
+    // oxlint-disable-next-line quality/no-unknown-returns -- the Tauri invoke boundary returns the router's decoded reply; the caller parses it.
   ): Promise<unknown> {
     if (command === BRIDGE_HELLO_COMMAND) {
       return this.#router.negotiate(arguments_.request);
     }
-    if (
-      command === BRIDGE_QUERY_COMMAND ||
-      command === BRIDGE_CANCEL_COMMAND
-    ) {
-      return this.#router.invoke(
-        String(arguments_.route),
-        arguments_.request,
-      );
+    if (command === BRIDGE_QUERY_COMMAND || command === BRIDGE_CANCEL_COMMAND) {
+      return this.#router.invoke(String(arguments_.route), arguments_.request);
     }
     throw new Error(`unexpected fixture Tauri command: ${command}`);
   }

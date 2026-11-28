@@ -113,7 +113,8 @@ include = ["config/release.toml"]
 # Coordinated version bump. Takes X.Y.Z after `--`. Does not tag or publish.
 "release:bump" = { rhai = "scripts/release-bump.rhai" }
 "check:release-gates" = "bun scripts/check-release-gates-alignment.ts"
-"test:release-tooling" = "bun test --timeout=30000 --no-orphans scripts/longhorn-version.test.ts scripts/msrv.test.ts scripts/release-bump.test.ts scripts/sync-prototype-locks.test.ts scripts/prototype-dependency-coverage.test.ts scripts/check-release-gates-alignment.test.ts scripts/check-ci-static-parity.test.ts scripts/check-markers.test.ts scripts/scanner-heuristics.test.ts scripts/check-generated-sources.test.ts scripts/check-runner-tools.test.ts scripts/bridge-topology-artifact-proof/artifacts.test.ts scripts/verify-private-candidate-docs.test.ts scripts/qa-group-routing.test.ts scripts/check-changelog.test.ts scripts/check-bun-deps.test.ts scripts/rust-command.test.ts scripts/proof-member-run.test.ts scripts/staged-storage.test.ts scripts/agents-md-claims.test.ts scripts/git-snapshot.test.ts scripts/verify-config-age-security.test.ts scripts/verify-repo-containment.test.ts scripts/verify-host-protocol.test.ts"
+# Every scripts/**/*.test.ts on disk: the list is derived, so a new test file runs.
+"test:release-tooling" = "bun scripts/release-tooling-tests.ts"
 
 # --- TypeScript and Svelte ----------------------------------------------
 "check:bun-deps" = "bun scripts/check-bun-deps.ts"
@@ -145,11 +146,11 @@ include = ["config/release.toml"]
 ]
 "lint:ts" = [
   { task = "check:bun-deps" },
-  "OXLINT_TSGOLINT_PATH=./node_modules/.bin/tsgolint bun x --bun oxlint --type-aware --deny-warnings packages scripts examples/agent-control-proof oxlint.config.ts knip.ts",
+  "OXLINT_TSGOLINT_PATH=./node_modules/.bin/tsgolint bun x --bun oxlint --type-aware --deny-warnings packages scripts examples/agent-control-proof 'examples/bridge-topology-proof/*.ts' skills/agent-control/scripts oxlint.config.ts knip.ts",
 ]
 "fmt:ts" = [
   { task = "check:bun-deps" },
-  "node node_modules/.bin/oxfmt --check 'packages/**/*.ts' 'scripts/**/*.ts' 'examples/agent-control-proof/*.ts' oxlint.config.ts knip.ts svelte.config.mjs",
+  "node node_modules/.bin/oxfmt --check 'packages/**/*.ts' 'scripts/**/*.ts' 'examples/agent-control-proof/*.ts' 'examples/bridge-topology-proof/*.ts' 'skills/agent-control/scripts/*.ts' oxlint.config.ts knip.ts svelte.config.mjs",
   # Keep Svelte separate so its measured coverage stays visible.
   "node node_modules/.bin/oxfmt --check 'packages/**/*.svelte'",
 ]
@@ -1292,7 +1293,7 @@ members = [
     task = "check:ts",
     args = [],
     targets = ["workspace:root"],
-    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:tsconfig.base.json", "path:tsconfig.json", "path:package.json", "path:bun.lock"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:skills/agent-control/scripts/*.ts", "path:tsconfig.base.json", "path:tsconfig.json", "path:package.json", "path:bun.lock"],
     limits = ["Typechecks the three packages, scripts and agent-control proof drivers"],
   },
   {
@@ -1312,7 +1313,7 @@ members = [
     task = "lint:ts",
     args = [],
     targets = ["workspace:root"],
-    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:oxlint.config.ts"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:examples/bridge-topology-proof/*.ts", "path:examples/bridge-topology-proof/tsconfig.json", "path:skills/agent-control/scripts/**", "path:oxlint.config.ts"],
     limits = ["Requires zero lint diagnostics in authored TypeScript and Svelte script blocks"],
   },
   {
@@ -1322,7 +1323,7 @@ members = [
     task = "fmt:ts",
     args = [],
     targets = ["workspace:root"],
-    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:.oxfmtrc.jsonc"],
+    covers = ["path:packages/longhorn/**", "path:packages/longhorn-tauri/**", "path:packages/longhorn-poodle-svelte/**", "path:scripts/**", "path:examples/agent-control-proof/*.ts", "path:examples/bridge-topology-proof/*.ts", "path:skills/agent-control/scripts/**", "path:.oxfmtrc.jsonc"],
     limits = ["Checks authored TypeScript and Svelte formatting"],
   },
   {

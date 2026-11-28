@@ -1,0 +1,1 @@
+`effigy test:release-tooling` runs every `scripts/**/*.test.ts` file on disk instead of a hand-kept list in `effigy.toml`, so a new test file runs without an edit. No public API changes; the release-bump header now states that a version below the current one is refused and the current version is idempotent.

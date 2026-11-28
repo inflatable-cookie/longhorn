@@ -5,15 +5,18 @@ import {
   parseBridgeCancellationRequest,
   parseBridgeCommandEnvelope,
   record,
-  type BridgeCancellationRequest,
-  type BridgeCommandEnvelope,
-  type BridgeOperationDescriptor,
+} from "@inflatable-cookie/longhorn/bridge";
+import type {
+  BridgeCancellationRequest,
+  BridgeCommandEnvelope,
+  BridgeOperationDescriptor,
 } from "@inflatable-cookie/longhorn/bridge";
 import { BridgeServiceRuntime } from "@inflatable-cookie/longhorn/bridge/supervision";
 
 import {
   cancellationParity,
   declaration,
+  declaredAt,
   queryParity,
   receipt,
   sameValues,
@@ -30,8 +33,8 @@ const emptyCodec = bridgeCodec<Record<string, never>>((value) => {
 
 export async function runCapabilityAuthorityTrace() {
   const fixture = declaration("capability-authority");
-  const local = fixture.domains[0]!;
-  const executor = fixture.domains[1]!;
+  const local = declaredAt(fixture.domains, 0, "domain");
+  const executor = declaredAt(fixture.domains, 1, "domain");
   const embedded = receipt("capability-authority", "direct");
   const optionalHost = receipt(
     "capability-authority",
@@ -39,10 +42,7 @@ export async function runCapabilityAuthorityTrace() {
     "session:fixture-capability-authority-service",
   );
   const optionalService = new BridgeServiceRuntime("externalLocal");
-  const attach = await optionalService.execute(
-    { perform: () => "accepted" },
-    "attach",
-  );
+  const attach = await optionalService.execute({ perform: () => "accepted" }, "attach");
   const current = session("capability-authority");
   const inertAdapter = {
     invoke: () => Promise.reject(new Error("authority should reject first")),
@@ -71,11 +71,9 @@ export async function runCapabilityAuthorityTrace() {
   return {
     hostConnectionSeparate: embedded.host.form !== optionalHost.host.form,
     optionalHostLifecycle: attach.current,
-    domainIdentityStable: embedded.domainAuthorities.map((value) =>
-      value.domainId
-    ).join(",") === optionalHost.domainAuthorities.map((value) =>
-      value.domainId
-    ).join(","),
+    domainIdentityStable:
+      embedded.domainAuthorities.map((value) => value.domainId).join(",") ===
+      optionalHost.domainAuthorities.map((value) => value.domainId).join(","),
     capabilityDoesNotGrantWrite: writeDenied,
     capabilityDoesNotGrantExecution: executionDenied,
     executionParity: sameValues(execution),
@@ -95,17 +93,13 @@ function context(domainId: string) {
   };
 }
 
-function command(
-  domainId: string,
-): BridgeOperationDescriptor<FixtureCommand, unknown> {
+function command(domainId: string): BridgeOperationDescriptor<FixtureCommand, unknown> {
   return {
     route: `${domainId}.fixture_command`,
     domainId,
     kind: "command",
     requiredCapability: "mutate",
-    request: bridgeCodec((value) =>
-      parseBridgeCommandEnvelope(value, emptyCodec)
-    ),
+    request: bridgeCodec((value) => parseBridgeCommandEnvelope(value, emptyCodec)),
     reply: unknownCodec,
   };
 }

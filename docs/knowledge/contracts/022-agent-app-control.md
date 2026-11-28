@@ -96,7 +96,9 @@ agent can use while the app runs unfocused in the background.
   `$XDG_STATE_HOME/longhorn/agent-control/<app-id>-<pid>.json`
   (macOS: `~/Library/Application Support` state equivalent) containing app
   id, pid, port, token, and schema version. Removed on clean exit; mount
-  and find-instance also unlink discovery files whose pid is dead.
+  and find-instance also unlink discovery files whose pid is proven dead (ESRCH).
+  A pid that exists under another user (EPERM) is alive and keeps its file.
+  find-instance reads a record only when its port is an integer from 1 to 65535.
 - Agents enumerate the directory to find live instances. Two agents may
   drive two instances, or interleave on one, without coordination.
 

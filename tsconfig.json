@@ -3,6 +3,7 @@
   "include": [
     "scripts/**/*.ts",
     "examples/agent-control-proof/*.ts",
+    "skills/agent-control/scripts/*.ts",
     "oxlint.config.ts",
     "knip.ts"
   ]

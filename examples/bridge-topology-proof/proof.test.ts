@@ -58,10 +58,7 @@ describe("five-shape bridge topology conformance", () => {
     const { retryAudit } = await runBridgeTopologyProof();
     for (const trace of Object.values(retryAudit)) {
       expect(trace.admitted.slice(0, trace.maximum)).toEqual(
-        Array.from(
-          { length: trace.maximum },
-          (_, index) => index + 1,
-        ),
+        Array.from({ length: trace.maximum }, (_, index) => index + 1),
       );
       expect(trace.admitted.at(-1)).toBeNull();
     }

@@ -13,6 +13,9 @@ import { join } from "node:path";
 
 export const DISCOVERY_SCHEMA_VERSION = 1;
 
+// The highest TCP port. A discovery file naming a port outside 1-65535 is unreadable.
+const MAX_PORT = 65_535;
+
 export type DiscoveryFile = {
   schemaVersion: number;
   appId: string;
@@ -26,8 +29,14 @@ export type LiveInstance = {
   file: DiscoveryFile;
 };
 
+// The options `find-instance` takes from its arguments.
+export type FinderOptions = {
+  appId?: string;
+  discoveryDir?: string;
+};
+
 export type ScanResult = {
-  live: LiveInstance[];
+  live: Array<LiveInstance>;
   /** Dead-pid files successfully unlinked. */
   removed: number;
   /** Dead-pid files still present because unlink failed. */
@@ -40,14 +49,7 @@ export function defaultDiscoveryDir(): string {
     return process.env.LONGHORN_AGENT_CONTROL_DISCOVERY_DIR;
   }
   if (process.platform === "darwin") {
-    return join(
-      homedir(),
-      "Library",
-      "Application Support",
-      "longhorn",
-      "state",
-      "agent-control",
-    );
+    return join(homedir(), "Library", "Application Support", "longhorn", "state", "agent-control");
   }
   if (process.platform === "win32") {
     const local = process.env.LOCALAPPDATA;
@@ -60,42 +62,79 @@ export function defaultDiscoveryDir(): string {
   return join(stateHome, "longhorn", "agent-control");
 }
 
-export function pidAlive(pid: number): boolean {
+// `kill(pid, 0)` signals nothing; it only asks whether the pid exists. ESRCH is
+// the one answer that proves a process gone. EPERM means it exists under another
+// user, so it is alive: unlinking its discovery file would hide a live instance.
+// Any other error also counts as alive, because only a proven-dead pid may lose
+// its file.
+export function pidAlive(
+  pid: number,
+  kill: (target: number, signal: number) => boolean = (target, signal) =>
+    process.kill(target, signal),
+): boolean {
   try {
-    process.kill(pid, 0);
+    kill(pid, 0);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    return errorCode(error) !== "ESRCH";
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function errorCode(error: unknown): string | undefined {
+  if (isRecord(error) && typeof error["code"] === "string") {
+    return error["code"];
+  }
+  return undefined;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+// A record is trusted only when its own fields agree with its file name, which
+// carries the app id and pid, and its port and token are usable as written.
 function parseRecord(name: string, text: string): DiscoveryFile | null {
-  if (!name.endsWith(".json")) return null;
+  if (!name.endsWith(".json")) {
+    return null;
+  }
   const stem = name.slice(0, -".json".length);
   const split = stem.lastIndexOf("-");
-  if (split <= 0) return null;
+  if (split <= 0) {
+    return null;
+  }
   const appId = stem.slice(0, split);
   const pid = Number.parseInt(stem.slice(split + 1), 10);
-  if (!Number.isInteger(pid) || pid < 0) return null;
+  if (!Number.isInteger(pid) || pid < 0) {
+    return null;
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object") return null;
-  const record = parsed as Partial<DiscoveryFile>;
+  if (!isRecord(parsed)) {
+    return null;
+  }
+  const { schemaVersion, appId: recordedAppId, pid: recordedPid, port, token } = parsed;
   if (
-    record.schemaVersion !== DISCOVERY_SCHEMA_VERSION ||
-    record.appId !== appId ||
-    record.pid !== pid ||
-    typeof record.port !== "number" ||
-    typeof record.token !== "string" ||
-    record.token.length === 0
+    schemaVersion !== DISCOVERY_SCHEMA_VERSION ||
+    recordedAppId !== appId ||
+    recordedPid !== pid ||
+    typeof port !== "number" ||
+    !Number.isInteger(port) ||
+    port < 1 ||
+    port > MAX_PORT ||
+    typeof token !== "string" ||
+    token.length === 0
   ) {
     return null;
   }
-  return record as DiscoveryFile;
+  return { schemaVersion: DISCOVERY_SCHEMA_VERSION, appId, pid, port, token };
 }
 
 export async function scanDiscovery(
@@ -104,12 +143,11 @@ export async function scanDiscovery(
   alive: (pid: number) => boolean = pidAlive,
   removeFile: (path: string) => Promise<void> = unlink,
 ): Promise<ScanResult> {
-  let names: string[];
+  let names: Array<string>;
   try {
     names = await readdir(dir);
   } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "ENOENT") {
+    if (errorCode(error) === "ENOENT") {
       return { live: [], removed: 0, unlinkFailed: 0, unreadable: 0 };
     }
     throw error;
@@ -140,7 +178,9 @@ export async function scanDiscovery(
       }
       continue;
     }
-    if (appId && file.appId !== appId) continue;
+    if (appId && file.appId !== appId) {
+      continue;
+    }
     result.live.push({ path, file });
   }
   result.live.sort((left, right) => {
@@ -158,7 +198,7 @@ export function instanceUrl(file: DiscoveryFile): string {
 // underscores; reverse-DNS app ids carry dots, so every unsafe symbol
 // becomes a hyphen (Soundcheck adoption finding, 2026-08-19).
 export function mcpServerName(file: DiscoveryFile): string {
-  const appId = file.appId.replace(/[^A-Za-z0-9_-]+/g, "-");
+  const appId = file.appId.replaceAll(/[^A-Za-z0-9_-]+/g, "-");
   return `longhorn-${appId}-${file.pid}`;
 }
 
@@ -167,14 +207,12 @@ export function mcpAddLine(file: DiscoveryFile): string {
   return `claude mcp add --transport http ${mcpServerName(file)} ${url} --header "Authorization: Bearer ${file.token}"`;
 }
 
-export function formatStdout(live: LiveInstance[]): string {
-  return live
-    .map(({ file }) => `url: ${instanceUrl(file)}\n${mcpAddLine(file)}`)
-    .join("\n\n");
+export function formatStdout(live: Array<LiveInstance>): string {
+  return live.map(({ file }) => `url: ${instanceUrl(file)}\n${mcpAddLine(file)}`).join("\n\n");
 }
 
 export function formatDiagnostics(scan: ScanResult, appId: string | undefined): string {
-  const lines: string[] = [];
+  const lines: Array<string> = [];
   if (scan.live.length === 0) {
     lines.push(
       appId
@@ -201,10 +239,10 @@ export function formatDiagnostics(scan: ScanResult, appId: string | undefined): 
   return lines.join("\n");
 }
 
-export function parseArgs(argv: string[]): { appId?: string; discoveryDir?: string } {
-  const out: { appId?: string; discoveryDir?: string } = {};
+export function parseArgs(argv: Array<string>): FinderOptions {
+  const out: FinderOptions = {};
   for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
+    const arg = argv[index] ?? "";
     const next = argv[index + 1];
     if (arg === "--app-id" && next) {
       out.appId = next;
@@ -217,9 +255,7 @@ export function parseArgs(argv: string[]): { appId?: string; discoveryDir?: stri
       continue;
     }
     if (arg === "--help" || arg === "-h") {
-      throw new Error(
-        "usage: find-instance.ts [--app-id <id>] [--discovery-dir <path>]",
-      );
+      throw new Error("usage: find-instance.ts [--app-id <id>] [--discovery-dir <path>]");
     }
     throw new Error(`unknown argument ${arg}`);
   }
@@ -227,17 +263,19 @@ export function parseArgs(argv: string[]): { appId?: string; discoveryDir?: stri
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
-  let options: { appId?: string; discoveryDir?: string };
+  let options: FinderOptions;
   try {
     options = parseArgs(argv);
   } catch (error) {
-    console.error((error as Error).message);
+    console.error(errorMessage(error));
     return 2;
   }
   const dir = options.discoveryDir ?? defaultDiscoveryDir();
   const scan = await scanDiscovery(dir, options.appId);
   console.error(formatDiagnostics(scan, options.appId));
-  if (scan.live.length === 0) return 1;
+  if (scan.live.length === 0) {
+    return 1;
+  }
   console.log(formatStdout(scan.live));
   return 0;
 }

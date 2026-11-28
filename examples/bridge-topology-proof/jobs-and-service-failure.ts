@@ -13,21 +13,24 @@ import {
   queryParity,
   sameValues,
   unknownCodec,
-  type AdapterName,
 } from "./common.ts";
+import type { AdapterName } from "./common.ts";
 
 const requestId = "request:fixture-jobs-and-service-failure-job";
 const jobId = "job:fixture-jobs-and-service-failure";
 
 export async function runJobsAndServiceFailureTrace() {
   const fixture = declaration("jobs-and-service-failure");
-  const jobDomain = fixture.domains.at(-1)!;
+  const jobDomain = fixture.domains.at(-1);
+  if (jobDomain === undefined) {
+    throw new Error("jobs-and-service-failure declares no domain");
+  }
   const cancellation = await cancellationParity("jobs-and-service-failure", jobDomain);
   const jobs = {
     direct: directJobTrace(false),
     tauri: await tauriJobTrace(),
     loopback: directJobTrace(true),
-  } satisfies Record<AdapterName, readonly string[]>;
+  } satisfies Record<AdapterName, ReadonlyArray<string>>;
 
   const service = new BridgeServiceRuntime("externalLocal");
   const failedService = await service.execute(
@@ -37,14 +40,9 @@ export async function runJobsAndServiceFailureTrace() {
   const localDomains = fixture.domains.filter(
     ({ authority }) => authority.availability === "available",
   );
-  const localQueries: Record<
-    string,
-    Awaited<ReturnType<typeof queryParity>>["traces"]
-  > = {};
+  const localQueries: Record<string, Awaited<ReturnType<typeof queryParity>>["traces"]> = {};
   for (const domain of localDomains) {
-    localQueries[domain.domainId] = (
-      await queryParity("jobs-and-service-failure", domain)
-    ).traces;
+    localQueries[domain.domainId] = (await queryParity("jobs-and-service-failure", domain)).traces;
   }
 
   return {
@@ -59,10 +57,9 @@ export async function runJobsAndServiceFailureTrace() {
   } as const;
 }
 
-function directJobTrace(serialized: boolean): readonly string[] {
+function directJobTrace(serialized: boolean): ReadonlyArray<string> {
   const tracker = new BridgeJobTracker(requestId, jobId);
-  const transfer = <T>(value: T) =>
-    serialized ? jsonRoundTrip(value) : value;
+  const transfer = <T>(value: T) => (serialized ? jsonRoundTrip(value) : value);
   const progress = transfer({
     requestId,
     jobId,
@@ -87,9 +84,9 @@ function directJobTrace(serialized: boolean): readonly string[] {
   ];
 }
 
-async function tauriJobTrace(): Promise<readonly string[]> {
+async function tauriJobTrace(): Promise<ReadonlyArray<string>> {
   const listeners = new Map<string, (value: unknown) => void>();
-  const accepted: string[] = [];
+  const accepted: Array<string> = [];
   const transport = {
     invoke: () => Promise.reject(new Error("invoke is not used")),
     listen(event: string, listener: (value: unknown) => void) {
@@ -111,8 +108,7 @@ async function tauriJobTrace(): Promise<readonly string[]> {
     },
     transport,
   );
-  const emit = (event: string, value: unknown) =>
-    listeners.get(event)?.(value);
+  const emit = (event: string, value: unknown) => listeners.get(event)?.(value);
   emit(BRIDGE_PROGRESS_EVENT, {
     requestId,
     jobId,
@@ -137,9 +133,7 @@ async function tauriJobTrace(): Promise<readonly string[]> {
   emit(BRIDGE_TERMINAL_EVENT, terminal);
   await dispose();
   if (JSON.stringify(accepted) !== '["accept","terminal"]') {
-    throw new Error(
-      `unexpected Tauri job callbacks: ${JSON.stringify(accepted)}`,
-    );
+    throw new Error(`unexpected Tauri job callbacks: ${JSON.stringify(accepted)}`);
   }
   return [
     "accept",

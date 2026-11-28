@@ -1,14 +1,8 @@
-import {
-  BridgeQueryRetryRuntime,
-  type BridgeRuntimeClock,
-} from "@inflatable-cookie/longhorn/bridge";
+import { BridgeQueryRetryRuntime } from "@inflatable-cookie/longhorn/bridge";
+import type { BridgeRuntimeClock } from "@inflatable-cookie/longhorn/bridge";
 
-import {
-  adapterNames,
-  declaration,
-  declarations,
-  type ShapeName,
-} from "./common.ts";
+import { adapterNames, declaration, declarations } from "./common.ts";
+import type { ShapeName } from "./common.ts";
 import { runMinimalShellTrace } from "./minimal-shell.ts";
 import { runOrderedStreamsTrace } from "./ordered-streams.ts";
 import { runReconnectingLifecycleTrace } from "./reconnecting-lifecycle.ts";
@@ -57,10 +51,12 @@ function dependencyGraph() {
       {
         imports: declaration(name).imports,
         tauriPermissions: declaration(name).tauriPermissions,
-        events:
-          declaration(name).imports.includes("@inflatable-cookie/longhorn-tauri/bridge-events"),
-        service:
-          declaration(name).imports.includes("@inflatable-cookie/longhorn/bridge/supervision"),
+        events: declaration(name).imports.includes(
+          "@inflatable-cookie/longhorn-tauri/bridge-events",
+        ),
+        service: declaration(name).imports.includes(
+          "@inflatable-cookie/longhorn/bridge/supervision",
+        ),
       },
     ]),
   );
@@ -78,16 +74,14 @@ function retryAudit() {
       );
       const admitted = [];
       for (let attempt = 0; attempt <= maximum; attempt += 1) {
-        admitted.push(
-          runtime.schedule("retry", "afterBackoff")?.attempt ?? null,
-        );
+        admitted.push(runtime.schedule("retry", "afterBackoff")?.attempt ?? null);
       }
       return [name, { maximum, admitted }];
     }),
   );
 }
 
-function shapeNames(): ShapeName[] {
+function shapeNames(): Array<ShapeName> {
   return [
     "minimal-shell",
     "ordered-streams",
