@@ -170,7 +170,7 @@ fn aborts(error_codes: &[&str]) -> Result<Vec<SurfaceTransferAbort>, serde_json:
                 "message": format!("golden fixture for {code}"),
                 "retryable": false,
                 "session_consumed": surface_code_consumes_session(code),
-                "reconciliation_required": code == "host_reconciliation_required",
+                "reconciliation_required": matches!(code, "host_reconciliation_required" | "publication_failed"),
             }))
         })
         .chain(std::iter::once_with(|| {
@@ -218,7 +218,6 @@ fn surface_code_consumes_session(code: &str) -> bool {
             | "invalid_insertion_position"
             | "empty_display_disabled"
             | "no_empty_display_target"
-            | "ambiguous_empty_display_target"
             | "provision_failed"
             | "provision_receipt_mismatch"
             | "surface_mutation_rejected"

@@ -46,8 +46,6 @@ pub enum SurfaceTransferErrorCode {
     EmptyDisplayDisabled,
     /// No consumer-approved display target contained the point.
     NoEmptyDisplayTarget,
-    /// Multiple consumer-approved display targets contained the point.
-    AmbiguousEmptyDisplayTarget,
     /// The injected host failed before a prepared target existed.
     ProvisionFailed,
     /// The provisioner returned authority for another target.
@@ -101,6 +99,22 @@ pub enum SurfaceProvisionFailureEvidence {
     },
 }
 
+impl SurfaceProvisionFailureEvidence {
+    fn cleanup_failure(&self) -> Option<&SurfaceWindowProvisionFailure> {
+        match self {
+            Self::PreparedTargetRejected {
+                cleanup: ProvisionCleanupOutcome::Failed(failure),
+                ..
+            }
+            | Self::PublicationFailed {
+                cleanup: ProvisionCleanupOutcome::Failed(failure),
+                ..
+            } => Some(failure),
+            _ => None,
+        }
+    }
+}
+
 /// Typed whole-Surface admission, commit, or provisioning failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SurfaceTransferError {
@@ -146,13 +160,14 @@ impl SurfaceTransferError {
     }
 
     pub(crate) fn with_provisioning(mut self, evidence: SurfaceProvisionFailureEvidence) -> Self {
+        if let Some(failure) = evidence.cleanup_failure() {
+            self.detail = format!(
+                "{}. Provisioned target cleanup failed: {}",
+                self.detail,
+                failure.detail()
+            );
+        }
         self.provisioning = Some(Box::new(evidence));
-        self
-    }
-
-    pub(crate) fn reconciliation_required(mut self, detail: impl Into<String>) -> Self {
-        self.code = SurfaceTransferErrorCode::HostReconciliationRequired;
-        self.detail = detail.into();
         self
     }
 
@@ -184,6 +199,17 @@ impl SurfaceTransferError {
     #[must_use]
     pub const fn surface_code(&self) -> Option<SurfaceMutationRejectionCode> {
         self.surface_code
+    }
+
+    /// Returns whether cleanup or host commit left native state unresolved.
+    #[must_use]
+    pub fn reconciliation_required(&self) -> bool {
+        self.provisioning().is_some_and(|evidence| {
+            matches!(
+                evidence,
+                SurfaceProvisionFailureEvidence::ReconciliationRequired { .. }
+            ) || evidence.cleanup_failure().is_some()
+        })
     }
 
     /// Returns provisioning, cleanup, or reconciliation evidence.

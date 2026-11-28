@@ -1,0 +1,1 @@
+Surface transfer aborts preserve the original rejection code and diagnostic when cleanup fails. Check `reconciliation_required()` in Rust or `reconciliation_required` on the wire to detect unresolved host state across abort codes.

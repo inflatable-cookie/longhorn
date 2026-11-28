@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use longhorn_transfer::{
     MonotonicClock, PanelSessionStartRequest, PanelTransferCommand, PanelTransferResponse,
@@ -60,7 +60,7 @@ trait ErasedTransferCommands: Send + Sync {
 /// One command assembly combining shared handler state and one panel adapter.
 pub struct AssembledTransferCommands<R, C, P> {
     handler: Arc<TransferHandlerAssembly<R, C>>,
-    panel: Mutex<P>,
+    panel: P,
 }
 
 impl<R, C, P> AssembledTransferCommands<R, C, P> {
@@ -69,17 +69,14 @@ impl<R, C, P> AssembledTransferCommands<R, C, P> {
     pub fn new(handler: TransferHandlerAssembly<R, C>, panel: P) -> Self {
         Self {
             handler: Arc::new(handler),
-            panel: Mutex::new(panel),
+            panel,
         }
     }
 
     /// Assembles panel commands over existing shared handler state.
     #[must_use]
     pub const fn from_shared(handler: Arc<TransferHandlerAssembly<R, C>>, panel: P) -> Self {
-        Self {
-            handler,
-            panel: Mutex::new(panel),
-        }
+        Self { handler, panel }
     }
 
     /// Returns the shared handler core for trusted lifecycle integration.
@@ -115,11 +112,7 @@ where
         caller: &HostWindowHandle,
         request: PanelSessionStartRequest,
     ) -> Result<TransferSessionResponse, TransferHandlerError> {
-        let mut panel = self
-            .panel
-            .lock()
-            .map_err(|_| TransferHandlerError::StateUnavailable)?;
-        self.handler.start_panel(caller, request, &mut *panel)
+        self.handler.start_panel(caller, request, &self.panel)
     }
 
     /// Publishes one complete caller-window zone replacement.
@@ -137,11 +130,7 @@ where
         caller: &HostWindowHandle,
         request: PanelTransferCommand,
     ) -> Result<PanelTransferResponse, TransferHandlerError> {
-        let mut panel = self
-            .panel
-            .lock()
-            .map_err(|_| TransferHandlerError::StateUnavailable)?;
-        self.handler.commit_panel(caller, request, &mut *panel)
+        self.handler.commit_panel(caller, request, &self.panel)
     }
 
     /// Cancels one bounded transfer session.
@@ -158,7 +147,7 @@ impl<R, C, P> ErasedTransferCommands for AssembledTransferCommands<R, C, P>
 where
     R: ManagedTransferRuntime + 'static,
     C: MonotonicClock + Send + Sync + 'static,
-    P: PanelTransferAdapter + Send + 'static,
+    P: PanelTransferAdapter + Send + Sync + 'static,
 {
     fn snapshot_and_publish(
         &self,
@@ -213,24 +202,24 @@ impl TauriTransferState {
     where
         R: ManagedTransferRuntime + 'static,
         C: MonotonicClock + Send + Sync + 'static,
-        P: PanelTransferAdapter + Send + 'static,
+        P: PanelTransferAdapter + Send + Sync + 'static,
     {
         Self { commands }
     }
 }
 
-async fn run_blocking<R: Runtime, T: Send + 'static>(
-    state: State<'_, TauriTransferState>,
+async fn run_blocking<R, E, T>(
+    commands: &Arc<E>,
     window: &WebviewWindow<R>,
-    action: impl FnOnce(
-        &dyn ErasedTransferCommands,
-        &HostWindowHandle,
-    ) -> Result<T, TransferHandlerError>
-    + Send
-    + 'static,
-) -> Result<T, TransferHostError> {
+    action: impl FnOnce(&E, &HostWindowHandle) -> Result<T, TransferHandlerError> + Send + 'static,
+) -> Result<T, TransferHostError>
+where
+    R: Runtime,
+    E: Send + Sync + 'static + ?Sized,
+    T: Send + 'static,
+{
     let caller = caller_handle(window)?;
-    let commands = Arc::clone(&state.commands);
+    let commands = Arc::clone(commands);
     tauri::async_runtime::spawn_blocking(move || action(commands.as_ref(), &caller))
         .await
         .map_err(|_| TransferHostError::state_unavailable())?
@@ -244,7 +233,7 @@ pub async fn longhorn_transfer_snapshot<R: Runtime>(
     state: State<'_, TauriTransferState>,
 ) -> Result<TransferClientSnapshot, TransferHostError> {
     let emit_window = window.clone();
-    run_blocking(state, &window, move |commands, caller| {
+    run_blocking(&state.commands, &window, move |commands, caller| {
         commands.snapshot_and_publish(caller, &|snapshot| {
             // Emission is advisory once the invoke has issued new authority.
             if let Err(error) = emit_window.emit_to(
@@ -266,7 +255,7 @@ pub async fn longhorn_transfer_start_panel<R: Runtime>(
     state: State<'_, TauriTransferState>,
     request: PanelSessionStartRequest,
 ) -> Result<TransferSessionResponse, TransferHostError> {
-    run_blocking(state, &window, move |commands, caller| {
+    run_blocking(&state.commands, &window, move |commands, caller| {
         commands.start_panel(caller, request)
     })
     .await
@@ -279,7 +268,7 @@ pub async fn longhorn_transfer_publish_lease<R: Runtime>(
     state: State<'_, TauriTransferState>,
     request: TransferLeaseRequest,
 ) -> Result<TransferLeaseResponse, TransferHostError> {
-    run_blocking(state, &window, move |commands, caller| {
+    run_blocking(&state.commands, &window, move |commands, caller| {
         commands.publish_lease(caller, request)
     })
     .await
@@ -292,7 +281,7 @@ pub async fn longhorn_transfer_commit_panel<R: Runtime>(
     state: State<'_, TauriTransferState>,
     request: PanelTransferCommand,
 ) -> Result<PanelTransferResponse, TransferHostError> {
-    run_blocking(state, &window, move |commands, caller| {
+    run_blocking(&state.commands, &window, move |commands, caller| {
         commands.commit_panel(caller, request)
     })
     .await
@@ -305,13 +294,13 @@ pub async fn longhorn_transfer_cancel<R: Runtime>(
     state: State<'_, TauriTransferState>,
     request: TransferCancelRequest,
 ) -> Result<TransferCancelResponse, TransferHostError> {
-    run_blocking(state, &window, move |commands, caller| {
+    run_blocking(&state.commands, &window, move |commands, caller| {
         commands.cancel(caller, request)
     })
     .await
 }
 
-pub(super) fn caller_handle<R: Runtime>(
+fn caller_handle<R: Runtime>(
     window: &WebviewWindow<R>,
 ) -> Result<HostWindowHandle, TransferHostError> {
     HostWindowHandle::new(window.label())

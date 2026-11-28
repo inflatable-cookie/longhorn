@@ -5,6 +5,7 @@ use longhorn_surface_transfer::{
     SurfaceHostBinding, SurfaceHostBindings, SurfaceSessionStartRequest, SurfaceTransferAbort,
     SurfaceTransferAbortSource, SurfaceTransferErrorCode,
 };
+use longhorn_surfaces::SurfaceMutationRejectionCode;
 use longhorn_transfer::TransferErrorCode;
 use serde_json::json;
 
@@ -48,6 +49,34 @@ fn strict_wire_deserialization_rejects_future_version_and_spoof_fields() {
     let mut spoofed = valid;
     spoofed["window_id"] = json!("window:other");
     assert!(serde_json::from_value::<SurfaceSessionStartRequest>(spoofed).is_err());
+}
+
+#[test]
+fn surface_abort_requires_a_nullable_surface_code() {
+    let mut value = serde_json::to_value(SurfaceTransferAbort::host_transfer(
+        TransferRequestId::new("request:host").unwrap(),
+        TransferErrorCode::UnknownClientEpoch,
+        "unbound caller",
+    ))
+    .unwrap();
+    assert_eq!(value["surface_code"], serde_json::Value::Null);
+    let abort = serde_json::from_value::<SurfaceTransferAbort>(value.clone()).unwrap();
+    assert_eq!(abort.surface_code(), None);
+
+    value["surface_code"] = json!("stale_revision");
+    let abort = serde_json::from_value::<SurfaceTransferAbort>(value.clone()).unwrap();
+    assert_eq!(
+        abort.surface_code(),
+        Some(SurfaceMutationRejectionCode::StaleRevision)
+    );
+
+    value
+        .as_object_mut()
+        .unwrap()
+        .remove("surface_code")
+        .unwrap();
+    let error = serde_json::from_value::<SurfaceTransferAbort>(value).unwrap_err();
+    assert!(error.to_string().contains("missing field `surface_code`"));
 }
 
 #[test]

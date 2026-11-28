@@ -55,7 +55,7 @@ struct RecordingSurface {
 
 impl SurfaceTransferAdapter for RecordingSurface {
     fn start_surface(
-        &mut self,
+        &self,
         caller: TransferCallerAuthority,
         request: SurfaceSessionStartRequest,
         sessions: &mut TransferSessionRegistrar<'_>,
@@ -87,7 +87,7 @@ impl SurfaceTransferAdapter for RecordingSurface {
     }
 
     fn commit_surface(
-        &mut self,
+        &self,
         caller: TransferCallerAuthority,
         request: SurfaceTransferCommand,
         resolution: TerminalTransferResolution,
@@ -114,7 +114,7 @@ struct NoopPanel;
 
 impl PanelTransferAdapter for NoopPanel {
     fn start_panel(
-        &mut self,
+        &self,
         _caller: TransferCallerAuthority,
         request: PanelSessionStartRequest,
         _sessions: &mut TransferSessionRegistrar<'_>,
@@ -129,7 +129,7 @@ impl PanelTransferAdapter for NoopPanel {
     }
 
     fn commit_panel(
-        &mut self,
+        &self,
         _caller: TransferCallerAuthority,
         request: PanelTransferCommand,
         _attempt: TerminalTransferAttempt,

@@ -1,15 +1,21 @@
-use longhorn_core::ScreenPoint;
+use std::fs;
+
+use longhorn_config::DomainLocation;
+use longhorn_core::{ScreenPoint, SurfaceRequestId, SurfaceRevision, TransferRequestId};
 use longhorn_surface_transfer::{
     EmptyDisplayProvisionPolicy, ProvisionCleanupOutcome, SurfaceProvisionFailureEvidence,
     SurfaceTransferAbort, SurfaceTransferAbortSource, SurfaceTransferCommitRequest,
     SurfaceTransferErrorCode, SurfaceTransferPolicy, commit_surface_transfer,
 };
-use longhorn_surfaces::EmptyWindowPolicy;
+use longhorn_surfaces::{
+    EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationRejectionCode, SurfaceMutationRequest,
+};
+use longhorn_surfaces_config::publish_surface_mutation;
 use longhorn_transfer::{DropZoneId, TargetSelector, TransferErrorCode};
 
 use super::support::{
-    Fixture, MockMode, MockProvisioner, RuntimeFixture, StalingProvisioner, domain, load_surface,
-    options, policy, policy_with_provision, surface_id, window_id,
+    Fixture, InterveningProvisioner, MockMode, MockProvisioner, RuntimeFixture, domain,
+    load_surface, options, policy, policy_with_provision, surface_id, window_id,
 };
 
 #[test]
@@ -151,16 +157,32 @@ fn empty_display_disabled_and_provision_failure_leave_source_exact() {
 #[test]
 fn failed_publication_cleans_prepared_target_and_reports_cleanup_failure() {
     for (mode, cleanup_failed) in [(MockMode::Success, false), (MockMode::CleanupFail, true)] {
-        let mut fixture = Fixture::new();
+        let mut storage = Fixture::new();
         let domain = domain();
-        fixture.store.register(&domain).unwrap();
+        storage.store.register(&domain).unwrap();
         let mut runtime = RuntimeFixture::new();
-        let session = runtime.admit(&fixture.store, &domain).unwrap();
+        let session = runtime.admit(&storage.store, &domain).unwrap();
         let live_target = runtime.live_target();
-        let mut provisioner = StalingProvisioner::new(mode, &fixture.store, &domain);
+        let mut provisioner = InterveningProvisioner::new(mode, || {
+            publish_surface_mutation(
+                &storage.store,
+                &domain,
+                options(),
+                EmptyWindowPolicy::Allow,
+                &SurfaceMutationRequest::new(
+                    SurfaceRequestId::new("request:intervening").unwrap(),
+                    SurfaceRevision::new(7),
+                    SurfaceMutationCommand::RenameSurface {
+                        surface_id: surface_id("surface:a"),
+                        label: Some("Intervening".to_owned()),
+                    },
+                ),
+            )
+            .unwrap();
+        });
 
         let error = commit_surface_transfer(
-            &fixture.store,
+            &storage.store,
             &domain,
             &mut runtime.coordinator,
             &runtime.clock,
@@ -188,11 +210,34 @@ fn failed_publication_cleans_prepared_target_and_reports_cleanup_failure() {
             matches!(cleanup, ProvisionCleanupOutcome::Failed(_)),
             cleanup_failed
         );
+        assert_eq!(error.code(), SurfaceTransferErrorCode::StaleSurfaceRevision);
         assert_eq!(
-            error.code() == SurfaceTransferErrorCode::HostReconciliationRequired,
-            cleanup_failed
+            error.surface_code(),
+            Some(SurfaceMutationRejectionCode::StaleRevision)
         );
-        let current = load_surface(&fixture.store, &domain);
+        assert!(error.detail().contains("revision"), "{}", error.detail());
+        if cleanup_failed {
+            assert!(
+                error.detail().contains("close failed"),
+                "{}",
+                error.detail()
+            );
+        }
+        let abort = SurfaceTransferAbort::from_domain(
+            TransferRequestId::new("request:surface-publication").unwrap(),
+            &error,
+        );
+        assert_eq!(
+            abort.source(),
+            SurfaceTransferAbortSource::SurfaceTransfer(
+                SurfaceTransferErrorCode::StaleSurfaceRevision
+            )
+        );
+        assert_eq!(abort.surface_code(), error.surface_code());
+        assert_eq!(abort.message(), error.detail());
+        assert_eq!(abort.reconciliation_required(), cleanup_failed);
+        assert!(abort.session_consumed());
+        let current = load_surface(&storage.store, &domain);
         let source = current.surface(&surface_id("surface:a")).unwrap();
         assert_eq!(current.revision().get(), 8);
         assert_eq!(source.label(), Some("Intervening"));
@@ -201,6 +246,65 @@ fn failed_publication_cleans_prepared_target_and_reports_cleanup_failure() {
             &window_id("window:main")
         );
     }
+}
+
+#[test]
+fn cleanup_failure_preserves_the_config_store_failure() {
+    let mut storage = Fixture::new();
+    let domain = domain();
+    storage.store.register(&domain).unwrap();
+    let DomainLocation::File(location) = storage.store.location(&domain).unwrap() else {
+        panic!("Surface transfer uses a file-backed domain");
+    };
+    let mut runtime = RuntimeFixture::new();
+    let session = runtime.admit(&storage.store, &domain).unwrap();
+    let live_target = runtime.live_target();
+    let invalid_document = b"{ invalid";
+    let mut provisioner = InterveningProvisioner::new(MockMode::CleanupFail, || {
+        let path = location.full_path();
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, invalid_document).unwrap();
+    });
+
+    let error = commit_surface_transfer(
+        &storage.store,
+        &domain,
+        &mut runtime.coordinator,
+        &runtime.clock,
+        &runtime.bindings,
+        &policy_with_provision(),
+        &mut provisioner,
+        SurfaceTransferCommitRequest::new(
+            session,
+            TargetSelector::ScreenPoint(ScreenPoint::new(1200, 200)),
+            [live_target],
+            options(),
+        ),
+    )
+    .unwrap_err();
+    let abort = SurfaceTransferAbort::from_domain(
+        TransferRequestId::new("request:surface-store-failure").unwrap(),
+        &error,
+    );
+    assert_eq!(error.code(), SurfaceTransferErrorCode::PublicationFailed);
+    assert_eq!(
+        abort.source(),
+        SurfaceTransferAbortSource::SurfaceTransfer(error.code())
+    );
+    assert_eq!(abort.surface_code(), None);
+    assert!(abort.reconciliation_required());
+    assert!(abort.session_consumed());
+    assert!(
+        abort.message().contains("mutation refused: Recovery"),
+        "{}",
+        abort.message()
+    );
+    assert!(
+        abort.message().contains("close failed"),
+        "{}",
+        abort.message()
+    );
+    assert_eq!(fs::read(location.full_path()).unwrap(), invalid_document);
 }
 
 #[test]
@@ -233,6 +337,11 @@ fn host_commit_failure_returns_authoritative_reconciliation_evidence() {
         error.code(),
         SurfaceTransferErrorCode::HostReconciliationRequired
     );
+    let abort = SurfaceTransferAbort::from_domain(
+        TransferRequestId::new("request:surface-host-commit").unwrap(),
+        &error,
+    );
+    assert!(abort.reconciliation_required());
     let Some(SurfaceProvisionFailureEvidence::ReconciliationRequired { publication, .. }) =
         error.provisioning()
     else {

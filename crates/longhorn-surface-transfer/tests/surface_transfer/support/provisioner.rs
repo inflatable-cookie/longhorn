@@ -1,14 +1,9 @@
-use longhorn_config::ConfigStore;
-use longhorn_core::{SurfaceRequestId, SurfaceRevision, TransferHostBindingId};
+use longhorn_core::TransferHostBindingId;
 use longhorn_surface_transfer::{
     ProvisionedSurfaceWindow, SurfaceWindowCleanupReceipt, SurfaceWindowCommitReceipt,
     SurfaceWindowProvisionFailure, SurfaceWindowProvisionReceipt, SurfaceWindowProvisionRequest,
     SurfaceWindowProvisionStage, SurfaceWindowProvisioner,
 };
-use longhorn_surfaces::{EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationRequest};
-use longhorn_surfaces_config::publish_surface_mutation;
-
-use super::{TestDomain, options, surface_id};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MockMode {
@@ -88,23 +83,21 @@ impl SurfaceWindowProvisioner for MockProvisioner {
     }
 }
 
-pub struct StalingProvisioner<'a> {
+pub struct InterveningProvisioner<F> {
     pub inner: MockProvisioner,
-    store: &'a ConfigStore,
-    domain: &'a TestDomain,
+    intervene: F,
 }
 
-impl<'a> StalingProvisioner<'a> {
-    pub const fn new(mode: MockMode, store: &'a ConfigStore, domain: &'a TestDomain) -> Self {
+impl<F> InterveningProvisioner<F> {
+    pub const fn new(mode: MockMode, intervene: F) -> Self {
         Self {
             inner: MockProvisioner::new(mode),
-            store,
-            domain,
+            intervene,
         }
     }
 }
 
-impl SurfaceWindowProvisioner for StalingProvisioner<'_> {
+impl<F: FnMut()> SurfaceWindowProvisioner for InterveningProvisioner<F> {
     type Authority = longhorn_core::WindowId;
 
     fn provision(
@@ -112,21 +105,7 @@ impl SurfaceWindowProvisioner for StalingProvisioner<'_> {
         request: &SurfaceWindowProvisionRequest,
     ) -> Result<ProvisionedSurfaceWindow<Self::Authority>, SurfaceWindowProvisionFailure> {
         let prepared = self.inner.provision(request)?;
-        publish_surface_mutation(
-            self.store,
-            self.domain,
-            options(),
-            EmptyWindowPolicy::Allow,
-            &SurfaceMutationRequest::new(
-                SurfaceRequestId::new("request:intervening").unwrap(),
-                SurfaceRevision::new(7),
-                SurfaceMutationCommand::RenameSurface {
-                    surface_id: surface_id("surface:a"),
-                    label: Some("Intervening".to_owned()),
-                },
-            ),
-        )
-        .unwrap();
+        (self.intervene)();
         Ok(prepared)
     }
 

@@ -69,7 +69,7 @@ impl EmptyDisplayProvisionTarget {
 pub enum EmptyDisplayProvisionPolicy {
     /// Never create a native window from an empty-display drop.
     Disabled,
-    /// Admit only the supplied fresh display targets.
+    /// Admit only the supplied nonempty list of disjoint display targets.
     Enabled(Vec<EmptyDisplayProvisionTarget>),
 }
 
@@ -125,22 +125,16 @@ impl SurfaceTransferPolicy {
         let EmptyDisplayProvisionPolicy::Enabled(targets) = &self.empty_display_policy else {
             return Err(EmptyTargetResolution::Disabled);
         };
-        let matches = targets
+        targets
             .iter()
-            .filter(|target| target.display_bounds.contains_point(&point))
-            .collect::<Vec<_>>();
-        match matches.as_slice() {
-            [target] => Ok(target),
-            [] => Err(EmptyTargetResolution::NoMatch),
-            _ => Err(EmptyTargetResolution::Ambiguous),
-        }
+            .find(|target| target.display_bounds.contains_point(&point))
+            .ok_or(EmptyTargetResolution::NoMatch)
     }
 }
 
 pub(crate) enum EmptyTargetResolution {
     Disabled,
     NoMatch,
-    Ambiguous,
 }
 
 /// Invalid consumer Surface transfer policy.
@@ -172,9 +166,14 @@ fn validate_empty_targets(
     let EmptyDisplayProvisionPolicy::Enabled(targets) = policy else {
         return Ok(());
     };
+    if targets.is_empty() {
+        return Err(invalid_policy(
+            "enabled empty-display provisioning requires at least one target",
+        ));
+    }
     let mut displays = BTreeSet::new();
     let mut windows = BTreeSet::new();
-    for target in targets {
+    for (index, target) in targets.iter().enumerate() {
         if !allowed_target_windows.contains(&target.window_id) {
             return Err(invalid_policy(format!(
                 "empty-display target window {} is not in allowed_target_windows",
@@ -201,6 +200,17 @@ fn validate_empty_targets(
             return Err(invalid_policy(format!(
                 "duplicate provisioned window target {}",
                 target.window_id
+            )));
+        }
+        if let Some(other) = targets[..index].iter().find(|other| {
+            target
+                .display_bounds
+                .intersection(&other.display_bounds)
+                .is_some()
+        }) {
+            return Err(invalid_policy(format!(
+                "empty-display target bounds overlap for {} and {}",
+                other.display_id, target.display_id
             )));
         }
     }
