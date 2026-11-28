@@ -1,7 +1,7 @@
 use serde_json::Value;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
-use crate::{BridgeHostError, BridgeHostErrorCode};
+use crate::{BridgeHostError, BridgeHostErrorCode, webview::ui_webview};
 
 /// Authoritative domain update event.
 pub const BRIDGE_DOMAIN_EVENT: &str = "longhorn://bridge/domain";
@@ -12,11 +12,10 @@ pub const BRIDGE_TERMINAL_EVENT: &str = "longhorn://bridge/terminal";
 
 /// Injected event publication edge shared by real and mock hosts.
 ///
-/// Delivery is targeted: an event goes to the window that owns the session
-/// it was published under, not to every webview in the application. The
-/// client already drops foreign-session cursors, so app-wide broadcast was
-/// delivery without a consumer — and a read-authority hole beside the rest
-/// of the per-caller model.
+/// Delivery is targeted: an event goes to the UI webview of the window that
+/// owns the session it was published under, never to another window or to a
+/// child webview. The assembly hands a sink only payloads that session may
+/// read.
 pub trait BridgeEventSink: Send + Sync {
     /// Publishes one checked generic bridge payload to `target`.
     fn emit(
@@ -61,9 +60,8 @@ impl<R: Runtime> BridgeEventSink for TauriBridgeEventSink<R> {
         event: &'static str,
         payload: Value,
     ) -> Result<(), BridgeHostError> {
-        let webview = self.app.get_webview_window(target).ok_or_else(|| {
-            publication_error("bridge event's target webview window is unavailable")
-        })?;
+        let webview = ui_webview(&self.app, target)
+            .ok_or_else(|| publication_error("bridge event's target UI webview is unavailable"))?;
         // Tauri's filtered events can still evaluate the payload in other
         // webviews. Deliver directly to the owning webview instead.
         webview

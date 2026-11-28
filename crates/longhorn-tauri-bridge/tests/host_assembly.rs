@@ -14,14 +14,12 @@ use longhorn_bridge::{
     BridgeCancellationReceipt, BridgeCommandEnvelope, BridgeCommandOutcome, BridgeCommandReply,
     BridgeConnectionReason, BridgeConnectionState, BridgeConnectionStatus, BridgeEventEnvelope,
     BridgeHelloRequest, BridgeHostDescriptor, BridgeHostForm, BridgeNegotiationReceipt,
-    BridgeQueryEnvelope, BridgeQueryOutcome, BridgeQueryReply, BridgeRequestContext,
-    BridgeSnapshotEnvelope, BridgeStreamCursor, BridgeStreamSequence, DomainAuthorityDescriptor,
-    DomainAvailability, DomainCapabilityDescriptor, ExecutionAuthority, ReadAuthority,
-    WriteAuthority,
+    BridgeQueryEnvelope, BridgeQueryOutcome, BridgeQueryReply, BridgeStreamCursor,
+    BridgeStreamSequence, DomainAuthorityDescriptor, DomainAvailability,
+    DomainCapabilityDescriptor, ExecutionAuthority, ReadAuthority, WriteAuthority,
 };
 use longhorn_core::{
-    AuthorityScopeId, BridgeCapabilityId, BridgeId, BridgeRequestId, BridgeSessionId, DomainId,
-    HostInstanceId,
+    AuthorityScopeId, BridgeJobId, BridgeRequestId, BridgeSessionId, HostInstanceId,
 };
 use longhorn_tauri_bridge::{
     BRIDGE_DOMAIN_EVENT, BridgeAuthorityProvider, BridgeDomainRegistry, BridgeHandlerAssembly,
@@ -30,34 +28,9 @@ use longhorn_tauri_bridge::{
 use serde_json::{Value, json};
 use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
-const DOMAIN: &str = "fixture.workspace";
-const READ: &str = "workspace.read";
-const WRITE: &str = "workspace.write";
-const CANCEL: &str = "workspace.cancel";
+mod support;
 
-#[derive(Clone)]
-struct FixedAuthority {
-    receipt: BridgeNegotiationReceipt,
-}
-
-impl BridgeAuthorityProvider for FixedAuthority {
-    fn negotiate(
-        &mut self,
-        _caller: &str,
-        _request: &BridgeHelloRequest,
-        _registered_domains: &[DomainCapabilityDescriptor],
-    ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
-        Ok(self.receipt.clone())
-    }
-
-    fn refresh(
-        &mut self,
-        _caller: &str,
-        _current: &BridgeNegotiationReceipt,
-    ) -> Result<BridgeNegotiationReceipt, BridgeHostError> {
-        Ok(self.receipt.clone())
-    }
-}
+use support::*;
 
 #[test]
 fn rejects_before_dispatch_when_session_authority_or_metadata_is_invalid() {
@@ -77,7 +50,7 @@ fn rejects_before_dispatch_when_session_authority_or_metadata_is_invalid() {
     let wrong_domain = query_request(
         "request:wrong-domain",
         receipt.session_id().as_str(),
-        "fixture.other",
+        "example.other",
     );
     assert_eq!(
         assembly
@@ -364,7 +337,126 @@ fn a_session_without_read_authority_publishes_nothing() {
         assembly.publish_domain_event(&event).unwrap_err().code,
         BridgeHostErrorCode::ReadDenied
     );
+    // Execution authority admits the job, not the payload.
+    let session = BridgeSessionId::new("session:no-read").unwrap();
+    assert_eq!(
+        assembly
+            .publish_progress(&session, &domain(), &progress_event())
+            .unwrap_err()
+            .code,
+        BridgeHostErrorCode::ReadDenied
+    );
+    assert_eq!(
+        assembly
+            .publish_terminal(&session, &domain(), &terminal_event())
+            .unwrap_err()
+            .code,
+        BridgeHostErrorCode::ReadDenied
+    );
     assert!(emissions.lock().unwrap().is_empty());
+}
+
+#[test]
+fn job_events_still_need_execution_authority() {
+    let emissions = Arc::new(AtomicUsize::new(0));
+    let captured = Arc::clone(&emissions);
+    let assembly = BridgeHandlerAssembly::with_event_sink(
+        FixedAuthority {
+            receipt: authority_receipt_with(
+                "session:current",
+                capabilities(),
+                ReadAuthority::Authoritative,
+                WriteAuthority::None,
+                ExecutionAuthority::None,
+            ),
+        },
+        registered_domains(Arc::new(AtomicUsize::new(0))),
+        Arc::new(move |_target: &str, _name: &'static str, _payload: Value| {
+            captured.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }),
+    );
+    let receipt = assembly.hello("main", hello()).unwrap();
+
+    assert_eq!(
+        assembly
+            .publish_progress(receipt.session_id(), &domain(), &progress_event())
+            .unwrap_err()
+            .code,
+        BridgeHostErrorCode::ExecutionDenied
+    );
+    assert_eq!(
+        assembly
+            .publish_terminal(receipt.session_id(), &domain(), &terminal_event())
+            .unwrap_err()
+            .code,
+        BridgeHostErrorCode::ExecutionDenied
+    );
+    assert_eq!(emissions.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn an_unknown_route_error_echoes_only_a_bounded_well_formed_route() {
+    let dispatches = Arc::new(AtomicUsize::new(0));
+    let assembly = query_only_assembly(Arc::clone(&dispatches), WriteAuthority::Authoritative);
+    let receipt = assembly.hello("main", hello()).unwrap();
+    let session = receipt.session_id().as_str();
+    let errors_for = |route: &str| {
+        [
+            assembly
+                .query(
+                    "main",
+                    route,
+                    query_request("request:route-query", session, DOMAIN),
+                )
+                .unwrap_err(),
+            assembly
+                .command(
+                    "main",
+                    route,
+                    BridgeCommandEnvelope::new(
+                        context("request:route-command", session, DOMAIN),
+                        AuthorityEpoch::new(1).unwrap(),
+                        None,
+                        None,
+                        json!({}),
+                    ),
+                )
+                .unwrap_err(),
+            assembly
+                .cancel(
+                    "main",
+                    route,
+                    longhorn_bridge::BridgeCancellationRequest::new(
+                        context("request:route-cancel", session, DOMAIN),
+                        BridgeRequestId::new("request:route-target").unwrap(),
+                        BridgeJobId::new("job:route").unwrap(),
+                    ),
+                )
+                .unwrap_err(),
+        ]
+    };
+
+    // 128 bytes is the registration bound.
+    let longest = "a".repeat(128);
+    for error in errors_for(&longest) {
+        assert_eq!(error.code, BridgeHostErrorCode::UnknownRoute);
+        assert!(error.message.ends_with(&longest), "{}", error.message);
+    }
+    for route in [
+        "a".repeat(129),
+        "a".repeat(1 << 20),
+        "line\nbreak".to_owned(),
+    ] {
+        for error in errors_for(&route) {
+            assert_eq!(error.code, BridgeHostErrorCode::UnknownRoute);
+            assert_eq!(
+                error.message,
+                "bridge route is not registered for this operation"
+            );
+        }
+    }
+    assert_eq!(dispatches.load(Ordering::SeqCst), 0);
 }
 
 #[test]
@@ -442,167 +534,6 @@ fn query_only_assembly(
         },
         registry,
     ))
-}
-
-fn registered_domains(dispatches: Arc<AtomicUsize>) -> BridgeDomainRegistry {
-    let mut registry = BridgeDomainRegistry::new();
-    registry.register_domain(capabilities()).unwrap();
-    let query_count = Arc::clone(&dispatches);
-    registry
-        .register_query::<Value, Value, Value, _>(
-            domain(),
-            "workspace.read",
-            capability(READ),
-            move |request: BridgeQueryEnvelope<Value>| {
-                query_count.fetch_add(1, Ordering::SeqCst);
-                Ok(BridgeQueryReply::new(
-                    request.context().request_id().clone(),
-                    BridgeQueryOutcome::Success(request.into_payload()),
-                ))
-            },
-        )
-        .unwrap();
-
-    let command_count = Arc::clone(&dispatches);
-    registry
-        .register_command::<Value, Value, Value, _>(
-            domain(),
-            "workspace.write",
-            capability(WRITE),
-            move |request: BridgeCommandEnvelope<Value>| {
-                command_count.fetch_add(1, Ordering::SeqCst);
-                Ok(BridgeCommandReply::new(
-                    request.context().request_id().clone(),
-                    Some(AuthorityRevision::new(2)),
-                    BridgeCommandOutcome::Applied(request.into_payload()),
-                ))
-            },
-        )
-        .unwrap();
-
-    let cancel_count = Arc::clone(&dispatches);
-    registry
-        .register_cancellation::<Value, _>(
-            domain(),
-            "workspace.cancel",
-            capability(CANCEL),
-            move |request: longhorn_bridge::BridgeCancellationRequest| {
-                cancel_count.fetch_add(1, Ordering::SeqCst);
-                Ok(BridgeCancellationReceipt::new(
-                    request.context().request_id().clone(),
-                    request.target_request_id().clone(),
-                    request.job_id().clone(),
-                    BridgeCancellationOutcome::Accepted,
-                ))
-            },
-        )
-        .unwrap();
-
-    registry
-        .register_snapshot::<Value, _>(
-            domain(),
-            capability(READ),
-            |session_id: &BridgeSessionId, _domain_id: &DomainId| {
-                Ok(BridgeSnapshotEnvelope::new(
-                    BridgeStreamCursor::new(
-                        session_id.clone(),
-                        domain(),
-                        AuthorityEpoch::new(1).unwrap(),
-                        BridgeStreamSequence::new(1),
-                    ),
-                    json!({ "items": [] }),
-                ))
-            },
-        )
-        .unwrap();
-    registry
-}
-
-fn authority_receipt(
-    capabilities: DomainCapabilityDescriptor,
-    write: WriteAuthority,
-) -> BridgeNegotiationReceipt {
-    authority_receipt_for(
-        "session:current",
-        capabilities,
-        ReadAuthority::Authoritative,
-        write,
-    )
-}
-
-fn authority_receipt_for(
-    session: &str,
-    capabilities: DomainCapabilityDescriptor,
-    read: ReadAuthority,
-    write: WriteAuthority,
-) -> BridgeNegotiationReceipt {
-    BridgeNegotiationReceipt::new(
-        BridgeHostDescriptor {
-            host_instance_id: HostInstanceId::new("host:tauri-fixture").unwrap(),
-            form: BridgeHostForm::TauriLocal,
-        },
-        BridgeSessionId::new(session).unwrap(),
-        BridgeConnectionStatus::new(
-            BridgeConnectionState::Ready,
-            Some(BridgeConnectionReason::NegotiationAccepted),
-        )
-        .unwrap(),
-        AuthenticationPosture::NotRequired,
-        Vec::new(),
-        vec![capabilities],
-        vec![
-            DomainAuthorityDescriptor::new(
-                domain(),
-                AuthorityScopeId::new("scope:workspace").unwrap(),
-                DomainAvailability::Available,
-                read,
-                write,
-                ExecutionAuthority::Executor,
-                AuthorityEpoch::new(1).unwrap(),
-                // A revision exists only when something is authoritative.
-                (read == ReadAuthority::Authoritative || write == WriteAuthority::Authoritative)
-                    .then(|| AuthorityRevision::new(1)),
-            )
-            .unwrap(),
-        ],
-        Vec::new(),
-    )
-    .unwrap()
-}
-
-fn hello() -> BridgeHelloRequest {
-    BridgeHelloRequest::new(BridgeId::new("bridge:test").unwrap(), vec![domain()]).unwrap()
-}
-
-fn query_request(request: &str, session: &str, domain_id: &str) -> BridgeQueryEnvelope<Value> {
-    BridgeQueryEnvelope::new(
-        context(request, session, domain_id),
-        json!({ "query": true }),
-    )
-}
-
-fn context(request: &str, session: &str, domain_id: &str) -> BridgeRequestContext {
-    BridgeRequestContext::new(
-        BridgeRequestId::new(request).unwrap(),
-        BridgeSessionId::new(session).unwrap(),
-        DomainId::new(domain_id).unwrap(),
-    )
-}
-
-fn capabilities() -> DomainCapabilityDescriptor {
-    DomainCapabilityDescriptor::new(
-        domain(),
-        vec![capability(READ), capability(WRITE), capability(CANCEL)],
-    )
-    .unwrap()
-}
-
-fn domain() -> DomainId {
-    DomainId::new(DOMAIN).unwrap()
-}
-
-fn capability(value: &str) -> BridgeCapabilityId {
-    BridgeCapabilityId::new(value).unwrap()
 }
 
 fn cursor(sequence: u64) -> BridgeStreamCursor {
@@ -814,7 +745,7 @@ fn rejects_mismatched_reply_request_id_and_cancellation_correlation() {
             longhorn_bridge::BridgeCancellationRequest::new(
                 context("request:cancel-1", session, DOMAIN),
                 BridgeRequestId::new("request:target-1").unwrap(),
-                longhorn_core::BridgeJobId::new("job:cancel-1").unwrap(),
+                BridgeJobId::new("job:cancel-1").unwrap(),
             ),
         )
         .unwrap_err();

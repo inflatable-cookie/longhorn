@@ -53,12 +53,12 @@ mod tests {
 
     #[test]
     fn command_ids_share_the_bounded_core_grammar() {
-        assert!(CommandId::new("loophole:transport.play").is_ok());
+        assert!(CommandId::new("example:transport.play").is_ok());
         assert!(CommandContextId::new("global").is_ok());
         assert!(CommandRouteId::new("consumer:transport.play").is_ok());
         assert!(CommandRequestId::new("request:0198f97e").is_ok());
         assert!(CommandAvailabilityReasonId::new("editor:no-selection").is_ok());
-        assert!(CommandKeymapPresetId::new("loophole:default").is_ok());
+        assert!(CommandKeymapPresetId::new("example:default").is_ok());
         assert!(CommandBindingId::new("transport:play").is_ok());
         assert_eq!(
             CommandFieldId::new("TrackName"),

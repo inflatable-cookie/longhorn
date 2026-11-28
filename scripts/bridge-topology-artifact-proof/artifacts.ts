@@ -1,6 +1,6 @@
 import { readPackageManifest } from "../proof-json.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
-import { basename, join } from "node:path";
+import { basename, join, relative } from "node:path";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { MSRV } from "../msrv.ts";
 
@@ -38,6 +38,21 @@ const donorNames = [
   "reconnecting-lifecycle",
 ] as const;
 
+// Consumer repositories, whose names are product vocabulary. The roster owner
+// is docs/knowledge/architecture/repo-authority-map.md. They match anywhere, so
+// `name_host` and `NameHost` count.
+const consumerNames = [
+  "loophole",
+  "nucleus",
+  "soundcheck",
+  "jetstream",
+  "figmatic",
+  "finch",
+  "acowtancy",
+  "bovine",
+  "kimi-shell",
+] as const;
+
 const productionNetworkMarkers = [
   "reqwest",
   "tokio-tungstenite",
@@ -56,16 +71,26 @@ const credentialValueMarkers = [
 // Match whole names in the source. Removing whitespace joined prose such as
 // “event source” into a network marker. Match call syntax and the literal
 // fixture domain prefix without joining adjacent prose.
-// Test-module text is in scope: Cargo packs `#[cfg(test)]` code under `src`,
-// so a fixture domain or a donor name in a test module ships with the crate.
-// Keep fixture names out of bridge sources, test modules included.
-const forbiddenPatterns = [
-  ...[...donorNames, ...productionNetworkMarkers, ...credentialValueMarkers].map((marker) => ({
-    marker,
-    pattern: new RegExp(`(?<![\\w$])${marker}(?![\\w$])`, "i"),
-  })),
-  { marker: "fetch(", pattern: /(?<![\w$])fetch\s*\(/i },
+// Tests are in scope: a crate archive holds the whole crate directory, so a
+// fixture domain or a donor name in a test ships with the crate.
+// Keep fixture names out of the packed crates, test modules included.
+const wholeName = (marker: string) => ({
+  marker,
+  pattern: new RegExp(`(?<![\\w$])${marker}(?![\\w$])`, "i"),
+});
+
+/** Donor and fixture vocabulary: no packed source may carry it. */
+const vocabularyPatterns = [
+  ...donorNames.map(wholeName),
+  ...consumerNames.map((marker) => ({ marker, pattern: new RegExp(marker, "i") })),
   { marker: "fixture.", pattern: /(?<![\w$])fixture\.(?=[\w$])/i },
+];
+
+/** Bridge sources also carry no production transport or credential value. */
+const forbiddenPatterns = [
+  ...vocabularyPatterns,
+  ...[...productionNetworkMarkers, ...credentialValueMarkers].map(wholeName),
+  { marker: "fetch(", pattern: /(?<![\w$])fetch\s*\(/i },
 ];
 
 export async function packTypescriptArtifacts(
@@ -204,22 +229,36 @@ export function assertBridgeSurface(
   }
 }
 
-async function auditRustBoundary(workspace: string): Promise<void> {
-  const source = (
-    await Promise.all(
-      ["longhorn-bridge", "longhorn-tauri-bridge"].map(async (name) => {
-        const crateRoot = join(workspace, "crates", name);
-        return `${await readFile(join(crateRoot, "Cargo.toml"), "utf8")}\n${await readSourceTree(
-          join(crateRoot, "src"),
-        )}`;
-      }),
-    )
-  ).join("\n");
-  assertProductNeutral("Rust bridge artifacts", source);
+/**
+ * Checks every file each packed crate carries, not only `src`. `longhorn-core`
+ * owns credential types, whose field names are not values, so it is checked for
+ * donor and fixture vocabulary only.
+ */
+export async function auditRustBoundary(workspace: string): Promise<void> {
+  for (const name of rustCrates) {
+    const patterns = name === "longhorn-core" ? vocabularyPatterns : forbiddenPatterns;
+    const crateRoot = join(workspace, "crates", name);
+    const entries = await readdir(crateRoot, { recursive: true, withFileTypes: true });
+    for (const entry of entries.filter((candidate) => candidate.isFile())) {
+      const path = join(entry.parentPath, entry.name);
+      assertProductNeutral(
+        `Rust bridge artifact ${name}/${relative(crateRoot, path)}`,
+        await readFile(path, "utf8"),
+        patterns,
+      );
+    }
+  }
 }
 
-export function assertProductNeutral(label: string, source: string): void {
-  for (const { marker, pattern } of forbiddenPatterns) {
+export function assertProductNeutral(
+  label: string,
+  source: string,
+  patterns: ReadonlyArray<{
+    readonly marker: string;
+    readonly pattern: RegExp;
+  }> = forbiddenPatterns,
+): void {
+  for (const { marker, pattern } of patterns) {
     if (pattern.test(source)) {
       throw new Error(`${label} contains forbidden marker: ${marker}`);
     }

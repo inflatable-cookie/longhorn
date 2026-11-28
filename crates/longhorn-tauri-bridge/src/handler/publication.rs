@@ -9,7 +9,7 @@ use crate::{
 
 use super::{
     BridgeHandlerAssembly,
-    authorization::{authority_for, ensure_execution},
+    authorization::{authority_for, ensure_execution, ensure_read},
 };
 
 impl<A> BridgeHandlerAssembly<A>
@@ -33,41 +33,47 @@ where
         }
         // Delivery is targeted at the session's own window, so a full
         // payload crosses only where the session may read.
-        if authority.read_authority() == longhorn_bridge::ReadAuthority::None {
-            return Err(BridgeHostError::new(
-                BridgeHostErrorCode::ReadDenied,
-                "session holds no read authority for the domain",
-                false,
-            ));
-        }
+        ensure_read(authority)?;
         let target = record.caller.clone();
         self.emit(&target, BRIDGE_DOMAIN_EVENT, event)
     }
 
-    /// Publishes one request-correlated progress event for current execution authority.
+    /// Publishes one request-correlated progress event to a session holding
+    /// current execution and read authority.
     pub fn publish_progress<Payload: Serialize>(
         &self,
         session_id: &BridgeSessionId,
         domain_id: &DomainId,
         event: &BridgeProgressEvent<Payload>,
     ) -> Result<(), BridgeHostError> {
-        let record = self.session_by_id(session_id)?;
-        ensure_execution(authority_for(&record.receipt, domain_id)?)?;
-        let target = record.caller.clone();
+        let target = self.job_event_target(session_id, domain_id)?;
         self.emit(&target, BRIDGE_PROGRESS_EVENT, event)
     }
 
-    /// Publishes one request-correlated terminal event for current execution authority.
+    /// Publishes one request-correlated terminal event to a session holding
+    /// current execution and read authority.
     pub fn publish_terminal<Success: Serialize, Detail: Serialize>(
         &self,
         session_id: &BridgeSessionId,
         domain_id: &DomainId,
         event: &BridgeJobTerminalEvent<Success, Detail>,
     ) -> Result<(), BridgeHostError> {
-        let record = self.session_by_id(session_id)?;
-        ensure_execution(authority_for(&record.receipt, domain_id)?)?;
-        let target = record.caller.clone();
+        let target = self.job_event_target(session_id, domain_id)?;
         self.emit(&target, BRIDGE_TERMINAL_EVENT, event)
+    }
+
+    /// The window a job event may cross into. Execution authority admits the
+    /// job; read authority admits its payload.
+    fn job_event_target(
+        &self,
+        session_id: &BridgeSessionId,
+        domain_id: &DomainId,
+    ) -> Result<String, BridgeHostError> {
+        let record = self.session_by_id(session_id)?;
+        let authority = authority_for(&record.receipt, domain_id)?;
+        ensure_execution(authority)?;
+        ensure_read(authority)?;
+        Ok(record.caller)
     }
 
     fn emit<Payload: Serialize>(

@@ -39,8 +39,8 @@ fn capability_connection_and_authentication_do_not_grant_authority() {
 #[test]
 fn execution_only_authority_does_not_imply_write_authority() {
     let execution = authority(
-        "nucleus.indexing",
-        "scope:nucleus-indexing",
+        "example.indexing",
+        "scope:indexing",
         ReadAuthority::None,
         WriteAuthority::None,
         ExecutionAuthority::Executor,
@@ -48,10 +48,10 @@ fn execution_only_authority_does_not_imply_write_authority() {
         None,
     );
     let negotiated = receipt(
-        host("host:nucleus-embedded", BridgeHostForm::Direct),
-        "session:nucleus",
+        host("host:indexing-embedded", BridgeHostForm::Direct),
+        "session:indexing",
         &["request_reply", "job_execution"],
-        vec![capabilities("nucleus.indexing", &["start_job"]).unwrap()],
+        vec![capabilities("example.indexing", &["start_job"]).unwrap()],
         vec![execution],
     )
     .unwrap();

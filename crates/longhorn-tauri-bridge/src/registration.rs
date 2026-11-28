@@ -345,15 +345,19 @@ impl BridgeDomainRegistry {
     }
 }
 
-fn validate_route(route: &str) -> Result<(), BridgeHostError> {
-    let valid = !route.is_empty()
+/// Whether `route` has the bounded shape every registered route has.
+pub(crate) fn is_route(route: &str) -> bool {
+    !route.is_empty()
         && route.len() <= MAXIMUM_ROUTE_BYTES
         && route.bytes().all(|byte| {
             byte.is_ascii_lowercase()
                 || byte.is_ascii_digit()
                 || matches!(byte, b'.' | b'_' | b':' | b'-')
-        });
-    if valid {
+        })
+}
+
+fn validate_route(route: &str) -> Result<(), BridgeHostError> {
+    if is_route(route) {
         Ok(())
     } else {
         Err(registration_error(format!(

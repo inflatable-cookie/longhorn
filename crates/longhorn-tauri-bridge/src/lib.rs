@@ -6,6 +6,7 @@ mod error;
 mod events;
 mod handler;
 mod registration;
+mod webview;
 
 pub use authority::BridgeAuthorityProvider;
 pub use commands::{

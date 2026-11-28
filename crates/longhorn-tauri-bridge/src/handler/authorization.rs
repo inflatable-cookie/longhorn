@@ -4,7 +4,10 @@ use longhorn_bridge::{
 };
 use longhorn_core::{BridgeCapabilityId, BridgeSessionId, DomainId};
 
-use crate::{BridgeHostError, BridgeHostErrorCode, registration::RegisteredHandler};
+use crate::{
+    BridgeHostError, BridgeHostErrorCode,
+    registration::{RegisteredHandler, is_route},
+};
 
 #[derive(Clone, Copy)]
 pub(super) enum RouteKind {
@@ -99,6 +102,17 @@ pub(super) fn ensure_execution(
     }
 }
 
+pub(super) fn ensure_read(authority: &DomainAuthorityDescriptor) -> Result<(), BridgeHostError> {
+    if authority.read_authority() == ReadAuthority::None {
+        Err(denied(
+            BridgeHostErrorCode::ReadDenied,
+            authority.domain_id(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 pub(super) fn invalid_session(session_id: &BridgeSessionId) -> BridgeHostError {
     BridgeHostError::new(
         BridgeHostErrorCode::InvalidSession,
@@ -115,12 +129,22 @@ pub(crate) fn caller_torn_down(caller: &str) -> BridgeHostError {
     )
 }
 
-pub(super) fn unknown_route(route: &str) -> BridgeHostError {
+pub(crate) fn caller_not_ui_webview(webview: &str) -> BridgeHostError {
     BridgeHostError::new(
-        BridgeHostErrorCode::UnknownRoute,
-        format!("bridge route is not registered for this operation: {route}"),
+        BridgeHostErrorCode::InvalidSession,
+        format!("bridge caller is not its window's UI webview: {webview}"),
         false,
     )
+}
+
+pub(super) fn unknown_route(route: &str) -> BridgeHostError {
+    // The route is unchecked renderer input. Only a well-formed one, which is
+    // length-bounded, is echoed.
+    let mut message = "bridge route is not registered for this operation".to_owned();
+    if is_route(route) {
+        message = format!("{message}: {route}");
+    }
+    BridgeHostError::new(BridgeHostErrorCode::UnknownRoute, message, false)
 }
 
 pub(super) fn invalid_authority(message: impl Into<String>) -> BridgeHostError {
