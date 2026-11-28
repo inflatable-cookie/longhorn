@@ -93,8 +93,8 @@ pub struct BridgeServiceAdmissionRule {
 }
 
 impl BridgeServiceAction {
-    /// Every action. The binding generator checks this list against the
-    /// variants Serde reads.
+    /// Every action. The binding generator checks that this list is as long as
+    /// the variant list Serde reads.
     pub const ALL: [Self; 6] = [
         Self::Spawn,
         Self::Attach,

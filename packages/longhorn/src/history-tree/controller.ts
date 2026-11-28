@@ -453,22 +453,22 @@ function pageSize(value: number): number {
   return value;
 }
 export class ForkHistoryUnavailableError extends Error {
-  constructor() {
-    super("fork-history controller is not ready");
+  constructor(message = "fork-history controller is not ready") {
+    super(message);
     this.name = "ForkHistoryUnavailableError";
   }
 }
 
 export class ForkHistoryProjectionGapError extends Error {
-  constructor() {
-    super("fork-history projections do not share one authority revision");
+  constructor(message = "fork-history projections do not share one authority revision") {
+    super(message);
     this.name = "ForkHistoryProjectionGapError";
   }
 }
 
 export class ForkHistoryLateResultError extends Error {
-  constructor() {
-    super("fork-history result arrived after the controller moved on");
+  constructor(message = "fork-history result arrived after the controller moved on") {
+    super(message);
     this.name = "ForkHistoryLateResultError";
   }
 }
