@@ -136,7 +136,9 @@ the manifest requirement, coordinate the requirement change and prove both
 fresh resolution and any affected compatibility fixtures.
 
 The [changelog](../../../CHANGELOG.md) records per-release lock changes and
-publication evidence.
+publication evidence. Getting Started follows the latest version with a
+`Publication evidence` entry. A version heading added during preparation
+records a candidate.
 
 ## Publishing credentials
 

@@ -204,10 +204,11 @@ partially committed new runtime back in place.
 | retained | typed product mutations, inverse/coalesce policy, 750 ms grouping capability, 100-entry default, undo/redo/checkout, product snapshot, journal suffix, recovery, cross-session undo, product labels |
 | improved | plan/apply/commit admission, verified failure invariance, exact rollback-failure evidence, strict envelopes, authoritative future pages, listener-first refresh, per-instance teardown |
 | rejected | renderer-owned redo, move-before-apply, silent empty fallback, generic payload transport, Tauri capability as product authority, durable-event claim |
-| deferred | project versions, collaboration, registry publication |
+| deferred | project versions and collaboration |
 
 The private fork-tree prototype established branch semantics and remains
-research evidence. The optional Rust graph owns identity, topology, branches
+research evidence. See the [release contract](../contracts/release.md) for
+distribution. The optional Rust graph owns identity, topology, branches
 and divergent records. It provides atomic mixed-route navigation, protected
 pruning and opaque checkpoint replay accounting. The persistence layer uses
 a dense payload format, independent migrations and strict graph admission.

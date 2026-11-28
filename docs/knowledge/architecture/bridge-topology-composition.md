@@ -152,15 +152,14 @@ It rejects workspace aliases, sibling source resolution, undeclared imports,
 permission drift, product vocabulary, credential values, and production
 network dependencies.
 
-Private Rust crates cannot yet produce registry-normalized `.crate` archives
-because their private dependencies are not published. The proof therefore:
+Rust crates are taken by Git tag under the
+[release contract](../contracts/release.md). The proof checks the source
+archives:
 
 - runs `cargo package --list --allow-dirty` for each crate
 - archives the exact private source roots
 - checks query-only and full-host consumers offline from unpacked archives
 - proves supervision and Tauri remain removable graph edges
-
-Registry-normalized Rust packaging remains a release-lane gate.
 
 ## Deferred Production Work
 

@@ -106,9 +106,9 @@ protocols with Rust-produced golden fixtures.
 
 ## TypeScript Packages
 
-Three published packages, grouped by peer requirement rather than by domain.
-Contract 012 records why the current split
-earned its keep on the Rust side and not here.
+The three npm packages group exports by peer requirement. Contract 012
+explains the package boundaries. See the
+[release contract](../contracts/release.md) for distribution.
 
 ### `@inflatable-cookie/longhorn` — no peers
 
@@ -149,12 +149,8 @@ earned its keep on the Rust side and not here.
 A planned `@inflatable-cookie/longhorn-windowing` surface for window snapshots
 and placement is not yet implemented.
 
-Names are working names until registry verification. Packages appear only
-when their milestone implements a usable slice.
-
-The implemented TypeScript packages remain private until registry authority
-is verified. `@inflatable-cookie/longhorn-tauri` contains only the raw Tauri transport adapter;
-domain behavior remains in the framework-neutral packages.
+`@inflatable-cookie/longhorn-tauri` adapts Tauri transport. Domain behavior
+remains in the framework-neutral packages.
 `@inflatable-cookie/longhorn/bridge` adds no product payload vocabulary. Its checked session,
 strict compatibility layer, direct adapter, deterministic serialized
 loopback, and optional stream subpath compose with domain-owned generated
@@ -181,10 +177,10 @@ consumer composition only; the package has no Poodle or private-DOM edge.
 
 The implemented Svelte root is Surface-free. Optional layout, Surface,
 transfer, and Surface-transfer bindings are subpath exports backed by optional
-peers, not root re-exports. The implemented private Poodle root is also
-Surface-free and owns public Tabs, DockRegion, and SplitView integration. It is
-tested against the exact five-tarball preview artifact. A public peer range remains
-a later release-lane gate, not an inferred promise from sibling source.
+peers, not root re-exports. The Poodle root is also Surface-free and owns
+public Tabs, DockRegion and SplitView integration. Early proofs used the
+five-tarball preview artifact. Consumers use the peer range declared in the
+published package manifest.
 
 `@inflatable-cookie/longhorn/settings` keeps its framework-neutral root UI-free. Its optional
 `/svelte` subpath owns per-instance settings sessions; `/poodle` composes one
@@ -285,7 +281,7 @@ The production graph separates the mechanisms:
 - `@inflatable-cookie/longhorn-poodle-svelte/native-content`: per-instance lifecycle, viewport
   measurement, explicit gates, and teardown
 
-These are g01.018 working production names, not released registry promises.
+The TypeScript entries are export subpaths of the published packages.
 The mechanism crates depend downward on the pure kernel and never on each
 other. The pure graph has no Tauri, browser, plugin, GPU, Svelte, or Poodle
 edge. TypeScript depends on its owning Rust protocol. Svelte depends on the
@@ -441,5 +437,5 @@ Examples arrive with the capability they prove:
 
 Private consumers may use explicit sibling source links covered by exact clean
 commit receipts. The settings verifier rewrites source links to produced
-archives in clean temporary roots. Artifact claims come only from those clean
-installs. Package-manager publication remains deferred to g01.016.
+archives in clean temporary roots. Those installs establish artifact
+compatibility for the source-linked graph.

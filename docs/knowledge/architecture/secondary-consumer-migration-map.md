@@ -7,9 +7,10 @@ Contracts: 003-007, 009-010, 012-017
 
 ## Boundary
 
-g01.016 proves Longhorn in three materially different desktop apps and four
-greenfield compositions. It does not turn product workflows into shared
-packages and does not publish packages to registries.
+The migration proved Longhorn in three materially different desktop apps and
+four greenfield compositions using private artifacts. Product workflows
+remained consumer-owned. The [release contract](../contracts/release.md)
+governs current distribution.
 
 Consumer repositories remain authoritative until the named cutover gates pass. Source-linked development graphs require exact clean Longhorn and Poodle
 receipts plus isolated produced-artifact proof.
@@ -43,8 +44,9 @@ and no consumer graph contains a forbidden system. The prior exact Poodle
 artifact-set receipt was retained for comparison.
 
 Rollback requires retained consumer sources, exact source/artifact receipts,
-and previous locks. Dual writes, silent fallback, automatic source cleanup,
-package-manager publication, tags, and hosted releases remain forbidden.
+and previous locks. Cutover excluded dual writes, silent fallback and
+automatic source cleanup. The private source freeze excluded publication,
+tags and hosted releases.
 
 ## Private Artifact Admission
 
@@ -350,9 +352,9 @@ hierarchy is `window -> native-content-island -> backing-surface`; display,
 shared windowing, layout, Surfaces, transfer, config, settings, history,
 operations, notifications, isolated-window, and child-view remain absent.
 
-The immutable artifact ids from private admission remain the production boundary. All
-Jetstream-selected Longhorn and Poodle paths are unchanged and clean relative
-to the frozen artifact sources, even though broader Poodle work has advanced.
+Jetstream conformance used the immutable artifact IDs from private admission.
+At closeout all selected Longhorn and Poodle paths matched those frozen
+artifact sources, even after other Poodle changes had landed.
 The renderer graph has one Svelte runtime. Peer evidence is Svelte
 `>=5.38.6 <6`, Tauri API `^2.10.1`, optional Poodle Svelte `0.1.0`, resolved
 Svelte 5.56.8 and Tauri API 2.11.1. The frozen Jetstream Rust artifact graph proves Rust 1.85.0
@@ -362,15 +364,15 @@ No raw state event, raw viewport endpoint, generic bridge execution bus,
 renderer shortcut table, or process-lifetime native leak remains. Engine,
 renderer, world, gizmo, and platform source paths are unchanged from the
 pre-migration commit. That prior source passes 19 Rust unit, four IPC, and 65
-renderer tests in disposable sibling worktrees. Rollback needs no dual write,
-fallback, or second authority. Package-manager publication remains deferred.
+renderer tests in disposable sibling worktrees. Rollback restores one
+authority from the recorded inputs.
 
 ## Greenfield Matrix
 
 | Shape | Required systems | Forbidden accidental edges |
 | --- | --- | --- |
 | minimal | core, config, Tauri config, Svelte shell | layout, Surfaces, service, history, native content |
-| workspace | minimal plus windowing, layout, settings, commands | Surfaces and service unless selected |
+| workspace | minimal plus windowing, one unlabelled layout Surface, settings and commands | named Surfaces and service unless selected |
 | full hosting | windowing, layout, Surfaces, transfer, settings, commands, linear history | fork tree and product payloads |
 | optional server | minimal or workspace plus bridge and injected supervision | service authority in local domains |
 
@@ -386,22 +388,15 @@ mutation, reload, and teardown. No donor vocabulary, copied Poodle primitive,
 native-content, operation, notification, or registry publication enters the
 matrix. See [Greenfield Composition Matrix](greenfield-composition-matrix.md).
 
-## Private Release Boundary
+## Private Candidate Scope
 
-g01.016 may produce a coordinated `0.1.0` private candidate, compatibility
-matrix, upgrade notes, API docs, deterministic package inventories, checksums,
-and clean consumer installs. It may run read-only release gates.
-
-It may not:
-
-- claim registry ownership for working package names
-- publish npm or Cargo packages
-- create a release tag or hosted release
-- widen Poodle, Svelte, Tauri, platform, or MSRV support beyond evidence
-- describe unsupported Windows/Linux native-content hosts as portable
-
-Registry ownership, public package names, and publication require a later
-operator-authorized release action.
+The [frozen 0.1.0 candidate](../../reference/private-0-1-candidate.md) recorded
+compatibility, upgrade guidance, API docs, package inventories, checksums
+and clean installs. The migration could run read-only release gates.
+Registry ownership, package publication, tags and hosted releases required
+separate operator authorization. Compatibility claims stayed within the
+tested Poodle, Svelte, Tauri, platform and MSRV ranges, including the limits
+on Windows and Linux native-content support.
 
 ## Ordered Adoption
 

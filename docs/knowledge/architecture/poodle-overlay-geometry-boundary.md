@@ -105,8 +105,8 @@ then prove in Svelte and React:
 - public declarations expose no element, selector, or host-runtime type
 - existing consumers that omit the callback retain current behavior
 
-The exact Poodle source commit and clean artifact proof are the private
-migration gate. Package-manager publication is deferred.
+The private migration required an exact Poodle commit and a clean artifact
+proof. The [release contract](../contracts/release.md) governs distribution.
 
 ## Nucleus Adoption
 

@@ -192,10 +192,11 @@ Poodle g12.018 implements the public snapshot seam at
 Nucleus may consume the exact clean sibling source during private development;
 the artifact proof remains the compatibility evidence.
 
-The renderer cutover lock pins local private Longhorn and Poodle sources
+The recorded renderer cutover lock pinned local Longhorn and Poodle sources
 through one override graph. Frozen install, Svelte check, mounted tests, and
-production build pass without a duplicate Svelte runtime. Package-manager
-publication remains deferred.
+production build passed with one Svelte runtime. This evidence predates npm
+publication. See the [release contract](../contracts/release.md) for current
+distribution.
 
 The current Tauri capability names only the bundled `main` webview. That is
 useful negative evidence: remote children receive no app capability. Cutover
@@ -223,11 +224,10 @@ Nucleus worktree and records exact clean Longhorn and Poodle source commits
 plus their produced artifact identities.
 Overlapping unrelated edits stop the card.
 
-Nucleus already uses explicit sibling `file:` dependencies for private Poodle
-development. Longhorn may use the same private source-link posture. The
-compatibility proof installs the matching produced graph in clean temporary
-consumers. That proof and both Nucleus layout checks pass.
-Package-manager publication is deferred to the later release lane.
+Nucleus used explicit sibling `file:` dependencies for Poodle and applied
+the same source-link approach to Longhorn. The compatibility proof installed
+the matching artifacts in clean temporary consumers. The installation and both
+Nucleus layout checks passed.
 
 Cutovers are vertical and single-authority:
 

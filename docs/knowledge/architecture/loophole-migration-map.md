@@ -339,8 +339,9 @@ transaction and journal, eight-entry invalidation projection, and the legacy
 atomic-checkout command. None is a second generic structural authority.
 
 Legacy storage and projections remain retained. Cleanup still requires an
-exact receipt and separate operator authority. Package-manager publication did
-not occur.
+exact receipt and separate operator authority. The cutover used private
+artifacts. See the [release contract](../contracts/release.md) for current
+distribution.
 
 ## Deferred Systems
 
@@ -348,4 +349,4 @@ The audit also found reusable-looking operation, notification, bridge,
 supervision, plugin editor, and native-content seams. They remain outside
 g01.015 because changing them is not required to transfer the workspace shell
 authorities above. Their product adapters stay in Loophole and their later
-adoption must use separate cards. Package-manager publication remains deferred.
+adoption requires separate migration approval.
