@@ -3,9 +3,10 @@
 // version, internal pins, npm versions and adapter peers, the agent-control
 // skill stamp, the changelog heading, excluded prototype locks, and the
 // generated API reference. It reports every file it changed, including lock
-// rewrites. It refuses a non-increasing version, is idempotent at the same
-// version, and fails if a lock line other than a Longhorn path-package
-// version moved. A failure after any write restores the files it touched.
+// rewrites. It refuses a version below the current one. Running it again at
+// the current version is idempotent. It fails if a lock line other than a
+// Longhorn path-package version moved. A failure after any write restores the
+// files it touched.
 
 import { readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";

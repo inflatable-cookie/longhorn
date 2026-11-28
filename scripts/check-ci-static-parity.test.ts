@@ -130,8 +130,9 @@ describe("executedEffigyTasks", () => {
 });
 
 describe("parseQaTasks", () => {
-  test("reads the qa aggregate in order and stops at its closing bracket", () => {
+  test("reads the qa aggregate in order and ignores later tables", () => {
     const toml = [
+      "[tasks]",
       "qa = [",
       '  { task = "check:ts" },',
       '  { task = "lint:ts" },',
@@ -140,6 +141,15 @@ describe("parseQaTasks", () => {
       "",
     ].join("\n");
     expect(parseQaTasks(toml)).toEqual(["check:ts", "lint:ts"]);
+  });
+
+  test("a one-line qa array is read the same as a multi-line one", () => {
+    const toml = '[tasks]\nqa = [{ task = "fmt:rust" }, { task = "lint:ts" }]\n';
+    expect(parseQaTasks(toml)).toEqual(["fmt:rust", "lint:ts"]);
+  });
+
+  test("a qa array without a [tasks] table is refused", () => {
+    expect(() => parseQaTasks('qa = [{ task = "fmt:rust" }]\n')).toThrow(/no qa aggregate/);
   });
 });
 

@@ -39,12 +39,16 @@ export const ATTENTION_PATTERNS = {
 const SEVERITY_ORDER: ReadonlyArray<AttentionSeverity> = ["critical", "high", "warning"];
 
 // Extensions the scanner treated as code. Anything else is not scanned.
+// The scanner's list plus the module and component extensions this repository
+// ships (.mjs/.cjs, .mts/.cts, and Svelte components in packages/).
 const CODE_EXTENSIONS: ReadonlySet<string> = new Set([
   "c",
   "cc",
+  "cjs",
   "cpp",
   "cs",
   "css",
+  "cts",
   "go",
   "h",
   "hpp",
@@ -55,7 +59,9 @@ const CODE_EXTENSIONS: ReadonlySet<string> = new Set([
   "kts",
   "lua",
   "m",
+  "mjs",
   "mm",
+  "mts",
   "php",
   "py",
   "rb",
@@ -64,6 +70,7 @@ const CODE_EXTENSIONS: ReadonlySet<string> = new Set([
   "sc",
   "sh",
   "sql",
+  "svelte",
   "swift",
   "ts",
   "tsx",

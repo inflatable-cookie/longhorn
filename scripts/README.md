@@ -19,7 +19,8 @@ worth wiring, and if it is not wired it should be deleted.
 
 `scripts/fmt-rust.ts` runs under `fmt:rust` to format-check root workspace
 members, all eight `prototypes/*/` workspaces (both via `scripts/rust-command.sh`),
-and the staged example template Rust sources (`rustfmt --edition 2024 --check`).
+and every Rust source under `examples/`, read from disk (`rustfmt --edition 2024
+--check`), so a new example group needs no edit here.
 
 `scripts/proof-artifacts.ts` keeps that order but runs every member even after
 one fails (`scripts/proof-member-run.ts`), so a milestone run reports every broken
@@ -172,7 +173,9 @@ defects from local `qa` during the first release runs:
 2. `check:repo-containment` + `check:consumer-isolation` — no sibling path
 3. `check:bun-links` — no active bun global link; registered ones are reported
 4. `check:runner-tools` checks scripts for tools absent from clean runners,
-   validates release-gate tool installs, and checks the Rust CI jobs' Bun pins.
+   follows each release gate through its effigy task and the scripts that task
+   runs, validates the tool installs those gates need, and checks the Rust CI
+   jobs' Bun pins.
 5. `rust-command.sh fetch --locked` under a fresh `CARGO_HOME`, then offline
    metadata through the same switch point
 6. `CI=1 effigy proof:artifacts` under that `CARGO_HOME` — coloured vitest output

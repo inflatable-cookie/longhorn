@@ -1,7 +1,9 @@
 import { requireValue } from "./proof-support.ts";
 // Fails when scripts invoke tools a clean GitHub runner does not have, when a
 // release gate needs a tool `release.yml` does not install, or when the Rust
-// CI jobs lack the pinned Bun their tests require.
+// CI jobs lack the pinned Bun their tests require. A release gate is followed
+// through the effigy task it runs and the shell scripts that task invokes, so a
+// tool used inside a gate counts as much as the gate's own command line.
 //
 // Release run 6 died on missing `rg` twice: once in the greenfield proof, once
 // in check-release-floor.sh, where `set -o pipefail` made the absence look
@@ -87,8 +89,101 @@ const STOCK_CARGO_SUBCOMMANDS = new Set([
 ]);
 
 // First-token programs a GitHub macos runner already has. Not bun, effigy,
-// cargo, or cargo plugins: those come from workflow setup / install steps.
-const STOCK_RUNNER_COMMANDS = new Set(["bash", "git", "grep", "sh", "zsh"]);
+// cargo, or cargo plugins: those come from workflow setup / install steps. The
+// base utilities are the macOS system tools every hosted image ships.
+const STOCK_RUNNER_COMMANDS: ReadonlySet<string> = new Set([
+  "awk",
+  "basename",
+  "bash",
+  "cat",
+  "chmod",
+  "cp",
+  "cut",
+  "date",
+  "diff",
+  "dirname",
+  "env",
+  "find",
+  "git",
+  "grep",
+  "head",
+  "jq",
+  "ln",
+  "ls",
+  "mkdir",
+  "mktemp",
+  "mv",
+  "nice",
+  "readlink",
+  "rm",
+  "sed",
+  "sh",
+  "sleep",
+  "sort",
+  "stat",
+  "tail",
+  "tar",
+  "touch",
+  "tr",
+  "uname",
+  "uniq",
+  "wc",
+  "xargs",
+  "zsh",
+]);
+
+// Shell builtins run without a program on the runner's PATH.
+const SHELL_BUILTINS: ReadonlySet<string> = new Set([
+  ":",
+  ".",
+  "[",
+  "[[",
+  "cd",
+  "echo",
+  "exit",
+  "export",
+  "false",
+  "local",
+  "pwd",
+  "printf",
+  "read",
+  "return",
+  "set",
+  "shift",
+  "source",
+  "test",
+  "trap",
+  "true",
+  "unset",
+  "wait",
+]);
+// Keywords that open or close a compound command and carry no command word.
+const SHELL_HEADERS: ReadonlySet<string> = new Set([
+  "case",
+  "done",
+  "esac",
+  "fi",
+  "for",
+  "in",
+  "until",
+  "while",
+]);
+// Keywords that may precede the command word on the same line.
+const SHELL_PREFIXES: ReadonlySet<string> = new Set([
+  "!",
+  "{",
+  "}",
+  "do",
+  "elif",
+  "else",
+  "if",
+  "then",
+]);
+// Programs that run their argument as the command to map.
+const WRAPPERS: ReadonlySet<string> = new Set(["command", "exec", "nohup", "time"]);
+const SHELL_PROGRAMS: ReadonlySet<string> = new Set(["bash", "sh", "zsh"]);
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
+const MAX_NESTING = 16;
 
 const CARGO_INSTALL_FLAGS_WITH_VALUE = new Set([
   "--branch",
@@ -111,7 +206,7 @@ const CARGO_INSTALL_FLAGS_WITH_VALUE = new Set([
 
 function tokenize(input: string): Array<string> {
   const tokens: Array<string> = [];
-  const pattern = /(?:'[^']*'|"[^"]*"|\S+)/g;
+  const pattern = /(?:[^\s'"]+|'[^']*'|"[^"]*")+/g;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(input))) {
     let token = match[0];
@@ -126,39 +221,432 @@ function tokenize(input: string): Array<string> {
   return tokens;
 }
 
-export function toolsNeededByCommand(command: string): Array<string> {
+// Where a gate's command can be read from: the effigy task table, and the repo
+// files a gate runs as scripts. Without a resolver, only the command line itself
+// is mapped.
+export type ToolResolver = {
+  readonly effigyTask: (name: string) => ReadonlyArray<string>;
+  readonly readScript: (path: string) => string;
+};
+
+export function toolsNeededByCommand(command: string, resolver?: ToolResolver): Array<string> {
   const trimmed = command.trim();
   if (trimmed.length === 0) {
     throw new Error("cannot map an empty gate command to a runner tool");
   }
-  const needs = new Set<string>();
+  const tools = commandTools(trimmed, resolver, 0);
+  if (tools.length === 0) {
+    throw new Error(`cannot map gate command to a tool without executing it: ${trimmed}`);
+  }
+  return tools;
+}
 
-  for (const subcommand of cargoSubcommands(trimmed)) {
+// Tools one command line needs: its own program, the cargo plugins its Cargo
+// launches name, and whatever a nested body runs (`sh -c`, an effigy task, a
+// script it invokes).
+function commandTools(
+  command: string,
+  resolver: ToolResolver | undefined,
+  depth: number,
+): Array<string> {
+  return wordTools(tokenize(command), resolver, depth, command);
+}
+
+// Drops redirections (`> file`, `2>&1`, `>&2`); none of them names a program.
+function stripRedirections(words: ReadonlyArray<string>): Array<string> {
+  const kept: Array<string> = [];
+  for (let index = 0; index < words.length; index += 1) {
+    const word = words[index] ?? "";
+    if (/^\d*(?:&?>>?|<)/.test(word)) {
+      if (/^\d*(?:&?>>?|<)&?$/.test(word)) {
+        index += 1;
+      }
+      continue;
+    }
+    kept.push(word);
+  }
+  return kept;
+}
+
+function wordTools(
+  words: ReadonlyArray<string>,
+  resolver: ToolResolver | undefined,
+  depth: number,
+  label: string,
+): Array<string> {
+  if (depth > MAX_NESTING) {
+    throw new Error(`gate command nests too deeply, so it may call itself: ${label}`);
+  }
+  const argv = commandWords(stripRedirections(words));
+  const program = argv[0];
+  if (program === undefined || SHELL_HEADERS.has(program) || SHELL_BUILTINS.has(program)) {
+    return [];
+  }
+  if (program.startsWith("$") && !isLauncher(program)) {
+    throw new Error(`cannot map gate command to a tool, its program is a variable: ${label}`);
+  }
+
+  // `rust-command.sh exec ... -- <tool>` leases one tool that calls Cargo itself.
+  // The leased tool is a command of its own; a variable here is the caller's
+  // forwarded arguments, so only the Cargo the lease always needs is named.
+  const execAt = argv.findIndex((word, index) => isLauncher(word) && argv[index + 1] === "exec");
+  if (execAt !== -1) {
+    const dash = argv.indexOf("--", execAt + 2);
+    const leased = dash === -1 ? [] : argv.slice(dash + 1);
+    const leasedTools =
+      leased[0] === undefined || leased[0].startsWith("$")
+        ? []
+        : wordTools(leased, resolver, depth + 1, label);
+    return [...new Set(["cargo", ...leasedTools])];
+  }
+
+  const nested = nestedTools(argv, resolver, depth);
+  if (SHELL_PROGRAMS.has(program) && argv[1] === "-c" && nested.length === 0) {
+    throw new Error(`cannot map gate command to a tool without executing it: ${label}`);
+  }
+
+  const needs = new Set<string>();
+  for (const subcommand of cargoSubcommands(argv)) {
     needs.add("cargo");
     if (!STOCK_CARGO_SUBCOMMANDS.has(subcommand)) {
       needs.add(`cargo-${subcommand}`);
     }
   }
-
-  const argv = leadingCommand(tokenize(trimmed));
-  const program = argv[0];
-  if (!program) {
-    throw new Error(`cannot map gate command to a tool without executing it: ${trimmed}`);
-  }
+  const launches = program === "cargo" || isLauncher(program);
   if (
-    (program === "sh" || program === "bash" || program === "zsh") &&
-    argv[1] === "-c" &&
-    needs.size === 0
+    !launches &&
+    (!STOCK_RUNNER_COMMANDS.has(program) || (needs.size === 0 && nested.length === 0))
   ) {
-    throw new Error(`cannot map gate command to a tool without executing it: ${trimmed}`);
-  }
-  if (program !== "cargo" && (!STOCK_RUNNER_COMMANDS.has(program) || needs.size === 0)) {
     needs.add(program);
   }
-  if (needs.size === 0) {
-    throw new Error(`cannot map gate command to a tool without executing it: ${trimmed}`);
+  return [...new Set([...needs, ...nested])];
+}
+
+function nestedTools(
+  argv: ReadonlyArray<string>,
+  resolver: ToolResolver | undefined,
+  depth: number,
+): Array<string> {
+  const program = argv[0] ?? "";
+  const first = argv[1];
+  if (program === "effigy" && resolver !== undefined && first !== undefined) {
+    return resolver.effigyTask(first).flatMap((line) => commandTools(line, resolver, depth + 1));
   }
-  return [...needs];
+  if (SHELL_PROGRAMS.has(program) && first === "-c") {
+    const body = argv[2];
+    return body === undefined ? [] : scriptTools(body, resolver, depth + 1);
+  }
+  if (resolver !== undefined) {
+    if (SHELL_PROGRAMS.has(program) && first !== undefined && isScriptPath(first)) {
+      return scriptTools(resolver.readScript(first), resolver, depth + 1);
+    }
+    if (isScriptPath(program)) {
+      return scriptTools(resolver.readScript(program), resolver, depth + 1);
+    }
+  }
+  return [];
+}
+
+// Each simple command of a shell body. A `NAME=value` word set earlier in the
+// body stands for its value in later commands, so `"$runner" clippy` is seen as
+// the launcher it names.
+function scriptTools(
+  script: string,
+  resolver: ToolResolver | undefined,
+  depth: number,
+): Array<string> {
+  if (depth > MAX_NESTING) {
+    throw new Error(`gate script nests too deeply, so it may call itself: ${script}`);
+  }
+  const { commands, substitutions, functions } = splitShell(script);
+  const defined = new Set(functions);
+  const variables = new Map<string, string>();
+  const tools: Array<string> = substitutions.flatMap((body) =>
+    scriptTools(body, resolver, depth + 1),
+  );
+  for (const command of commands) {
+    const expanded = expandVariables(command, variables);
+    const words = tokenize(expanded);
+    for (const word of words) {
+      if (!ASSIGNMENT.test(word)) {
+        break;
+      }
+      const equals = word.indexOf("=");
+      variables.set(word.slice(0, equals), unquote(word.slice(equals + 1)));
+    }
+    const called = commandWords(words)[0];
+    if (called !== undefined && defined.has(called)) {
+      // A call to a function this script defines; its body is analysed above.
+      continue;
+    }
+    tools.push(...wordTools(words, resolver, depth + 1, expanded));
+  }
+  return tools;
+}
+
+// Splits shell text into simple commands. Operators and newlines end one; quoted
+// text stays whole; heredoc bodies, arithmetic and array values are not commands.
+// Each `$(...)` or backtick body is returned separately, so the program inside it
+// is still mapped. Function names the text defines are returned too.
+export type ShellText = {
+  readonly commands: Array<string>;
+  readonly substitutions: Array<string>;
+  readonly functions: Array<string>;
+};
+
+export function splitShell(script: string): ShellText {
+  const text = stripHeredocs(script.replaceAll(/\\\r?\n/g, " "));
+  const commands: Array<string> = [];
+  const substitutions: Array<string> = [];
+  const functions: Array<string> = [];
+  let current = "";
+  let quote: "'" | '"' | undefined;
+  const flush = (): void => {
+    if (current.trim() !== "") {
+      commands.push(current.trim());
+    }
+    current = "";
+  };
+  for (let index = 0; index < text.length; index += 1) {
+    const ch = text.charAt(index);
+    const next = text.charAt(index + 1);
+    if (quote === "'") {
+      if (ch === "'") {
+        quote = undefined;
+      }
+      current += ch;
+      continue;
+    }
+    if (ch === "$" && next === "(") {
+      const close = matchingParen(text, index + 1);
+      if (text.charAt(index + 2) === "(") {
+        // `$((...))` is arithmetic and runs no command.
+        current += "0";
+      } else {
+        substitutions.push(text.slice(index + 2, close));
+        current += "__subst__";
+      }
+      index = close;
+      continue;
+    }
+    if (ch === "`") {
+      const close = text.indexOf("`", index + 1);
+      if (close === -1) {
+        throw new Error("unterminated backtick in a gate script");
+      }
+      substitutions.push(text.slice(index + 1, close));
+      current += "__subst__";
+      index = close;
+      continue;
+    }
+    if (quote === '"') {
+      if (ch === '"') {
+        quote = undefined;
+      }
+      current += ch;
+      continue;
+    }
+    if (ch === "[" && next === "[" && startsCommand(current)) {
+      // `[[ ... ]]` is one test: its `||` and `&&` are not command separators.
+      const close = text.indexOf("]]", index);
+      if (close === -1) {
+        throw new Error("unterminated [[ in a gate script");
+      }
+      current += text.slice(index, close + 2);
+      index = close + 1;
+      continue;
+    }
+    if (ch === "(" && next === "(") {
+      // `((...))` is the arithmetic test a shell `if` runs; it runs no command.
+      flush();
+      index = matchingParen(text, index);
+      continue;
+    }
+    if (ch === "(" && next === ")") {
+      // `name() {` defines a function; its name is not a command.
+      functions.push(current.trim());
+      current = "";
+      index += 1;
+      continue;
+    }
+    if (ch === "(" && current.endsWith("=")) {
+      // `name=( ... )` is an array value, not a subshell.
+      index = matchingParen(text, index);
+      current += "()";
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      current += ch;
+      continue;
+    }
+    if (ch === "\\") {
+      current += ch + next;
+      index += 1;
+      continue;
+    }
+    if (ch === "#" && (current === "" || /\s$/.test(current))) {
+      const eol = text.indexOf("\n", index);
+      if (eol === -1) {
+        break;
+      }
+      index = eol - 1;
+      continue;
+    }
+    if (ch === "&" && (next === ">" || current.endsWith(">"))) {
+      current += ch;
+      continue;
+    }
+    if (ch === "\n" || ch === ";" || ch === "&" || ch === "|" || ch === "(" || ch === ")") {
+      flush();
+      continue;
+    }
+    current += ch;
+  }
+  flush();
+  return { commands, substitutions, functions };
+}
+
+// Whether the text so far leaves the next word in command position: nothing
+// yet, or only a keyword such as `if` or `then` that precedes a command.
+function startsCommand(current: string): boolean {
+  const pending = current.trim();
+  return pending === "" || /(?:^|\s)(?:if|elif|then|do|else|while|until|!)$/.test(pending);
+}
+
+// Removes heredoc bodies: the lines from a `<<WORD` line through its terminator.
+// `<<<` is a here-string, not a heredoc.
+function stripHeredocs(text: string): string {
+  const kept: Array<string> = [];
+  let terminator: { readonly word: string; readonly tabs: boolean } | undefined;
+  for (const line of text.split("\n")) {
+    if (terminator !== undefined) {
+      const candidate = terminator.tabs ? line.replace(/^\t+/, "") : line;
+      if (candidate === terminator.word) {
+        terminator = undefined;
+      }
+      continue;
+    }
+    kept.push(line);
+    const match = /(?<!<)<<(-?)\s*(["']?)([A-Za-z_][A-Za-z0-9_]*)\2/.exec(line);
+    if (match) {
+      terminator = { word: match[3] ?? "", tabs: match[1] === "-" };
+    }
+  }
+  return kept.join("\n");
+}
+
+function matchingParen(text: string, open: number): number {
+  let depth = 0;
+  for (let index = open; index < text.length; index += 1) {
+    const ch = text.charAt(index);
+    if (ch === "(") {
+      depth += 1;
+    } else if (ch === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+  throw new Error("unterminated ( in a gate script");
+}
+
+function expandVariables(text: string, variables: ReadonlyMap<string, string>): string {
+  return text.replaceAll(
+    /\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?/g,
+    (match, name: string) => variables.get(name) ?? match,
+  );
+}
+
+function unquote(value: string): string {
+  const first = value.charAt(0);
+  if (value.length >= 2 && (first === '"' || first === "'") && value.endsWith(first)) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+function isLauncher(word: string): boolean {
+  return word.endsWith("rust-command.sh");
+}
+
+function isScriptPath(word: string): boolean {
+  return word.endsWith(".sh") && !isLauncher(word);
+}
+
+// Drops what precedes the command word: assignments, keywords, and the
+// wrappers that exec their argument (`nice -n 5 bash ...`, `env X=1 cmd`).
+function commandWords(words: ReadonlyArray<string>): Array<string> {
+  const skip = leadingSkip(words);
+  return skip === 0 ? [...words] : commandWords(words.slice(skip));
+}
+
+function leadingSkip(words: ReadonlyArray<string>): number {
+  const first = words[0] ?? "";
+  if (ASSIGNMENT.test(first) || SHELL_PREFIXES.has(first) || WRAPPERS.has(first)) {
+    return 1;
+  }
+  const isOption = (word: string | undefined): boolean =>
+    word !== undefined && (ASSIGNMENT.test(word) || word.startsWith("-"));
+  if (first === "env") {
+    let skip = 1;
+    while (isOption(words[skip])) {
+      skip += 1;
+    }
+    return skip;
+  }
+  if (first === "nice") {
+    if (words[1] === "-n") {
+      return 3;
+    }
+    let skip = 1;
+    while (words[skip]?.startsWith("-")) {
+      skip += 1;
+    }
+    return skip;
+  }
+  return 0;
+}
+
+// Resolves effigy task bodies from effigy.toml, read as TOML. A table task's
+// `run` lines are its body; a `{ rhai = … }` task cannot be mapped, so it fails.
+export function repoToolResolver(root: string): ToolResolver {
+  const parsed: unknown = Bun.TOML.parse(readFileSync(join(root, "effigy.toml"), "utf8"));
+  const tasks = isMapping(parsed) ? parsed["tasks"] : undefined;
+  if (!isMapping(tasks)) {
+    throw new Error("effigy.toml has no [tasks] table");
+  }
+  return {
+    effigyTask(name: string): Array<string> {
+      const entry = tasks[name];
+      if (entry === undefined) {
+        throw new Error(`effigy.toml has no task ${name}, which a release gate runs`);
+      }
+      return taskCommandLines(entry, name);
+    },
+    readScript(path: string): string {
+      return readFileSync(join(root, path), "utf8");
+    },
+  };
+}
+
+function taskCommandLines(entry: unknown, name: string): Array<string> {
+  if (typeof entry === "string") {
+    return [entry];
+  }
+  if (Array.isArray(entry)) {
+    return entry.flatMap((item: unknown) => taskCommandLines(item, name));
+  }
+  if (isMapping(entry)) {
+    if (typeof entry["task"] === "string") {
+      return [`effigy ${entry["task"]}`];
+    }
+    if ("run" in entry) {
+      return taskCommandLines(entry["run"], name);
+    }
+  }
+  throw new Error(`effigy task ${name} has a form this check cannot map: ${JSON.stringify(entry)}`);
 }
 
 export function cargoInstallCrates(script: string): Array<string> {
@@ -200,22 +688,23 @@ function toolsProvidedByAction(uses: string): Array<string> {
   return [];
 }
 
-function cargoSubcommands(command: string): Array<string> {
+function cargoSubcommands(argv: ReadonlyArray<string>): Array<string> {
   const subcommands: Array<string> = [];
   // A gate that launches Cargo through `scripts/rust-command.sh` runs `cargo`
   // on a CI runner and `oxide` on a developer machine, so the word `cargo` may
   // not appear at all. The runner tool is the same either way, so read the
   // subcommand after the launcher exactly as after a literal `cargo`.
-  const pattern = /\bcargo\b|scripts\/rust-command\.sh/g;
-  let match: RegExpExecArray | null;
-  while ((match = pattern.exec(command))) {
-    const rest = command.slice(match.index + match[0].length);
-    const tokens = tokenize(rest);
-    const subcommand = tokens.find((token) => !token.startsWith("+") && !token.startsWith("-"));
-    if (subcommand) {
+  argv.forEach((word, index) => {
+    if (word !== "cargo" && !isLauncher(word)) {
+      return;
+    }
+    const subcommand = argv
+      .slice(index + 1)
+      .find((token) => !token.startsWith("+") && !token.startsWith("-"));
+    if (subcommand !== undefined) {
       subcommands.push(subcommand);
     }
-  }
+  });
   return subcommands;
 }
 
@@ -330,10 +819,11 @@ export function releaseWorkflowInstalls(workflow: string): Map<string, string> {
 export function checkReleaseRunnerTools(root = repoRoot) {
   const gates = parseReleaseGates(readFileSync(join(root, "config/release.toml"), "utf8"));
   const installs = releaseWorkflowInstalls(readFileSync(join(root, RELEASE_WORKFLOW), "utf8"));
+  const resolver = repoToolResolver(root);
   const requirements = gates
     .filter(({ name }) => name !== "workspace")
     .flatMap(({ name, command }) =>
-      toolsNeededByCommand(command).map((tool) => ({
+      toolsNeededByCommand(command, resolver).map((tool) => ({
         gate: name,
         command,
         tool,

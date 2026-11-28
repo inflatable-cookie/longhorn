@@ -35,6 +35,7 @@ source = "effigy release:source-consumer"
 `;
 
 const alignedEffigy = `
+[tasks]
 "release:gates" = [
   "bun scripts/verify-private-candidate-docs.ts",
   "cargo deny check advisories",
@@ -44,6 +45,33 @@ const alignedEffigy = `
   { task = "release:source-consumer" },
 ]
 `;
+
+describe("TOML reading", () => {
+  test("a gate command with quotes and brackets is read as written", () => {
+    const toml = [
+      "[release.gates]",
+      `docs = 'RUSTDOCFLAGS="-D warnings" effigy docs:rust'`,
+      `index = "bash -c 'x[0]'"`,
+      "",
+    ].join("\n");
+    expect(parseReleaseGates(toml)).toEqual([
+      { name: "docs", command: 'RUSTDOCFLAGS="-D warnings" effigy docs:rust' },
+      { name: "index", command: "bash -c 'x[0]'" },
+    ]);
+  });
+
+  test("a release:gates entry containing a bracket is not cut short", () => {
+    const toml = [
+      "[tasks]",
+      '"release:gates" = [',
+      `  "bash -c 'x[0]'",`,
+      '  { task = "docs:rust" },',
+      "]",
+      "",
+    ].join("\n");
+    expect(parseReleaseGatesSelector(toml)).toEqual(["bash -c 'x[0]'", "effigy docs:rust"]);
+  });
+});
 
 describe("release:gates alignment", () => {
   test("equals [release.gates] minus workspace in declaration order", () => {
@@ -70,6 +98,7 @@ describe("release:gates alignment", () => {
 
   test("fails on a dropped or reordered gate", () => {
     const subset = `
+[tasks]
 "release:gates" = [
   { task = "release:floor" },
   { task = "release:source-consumer" },
@@ -89,7 +118,10 @@ describe("release:gates alignment", () => {
     const root = await scratch.create("longhorn-release-gates-");
     await mkdir(join(root, "config"), { recursive: true });
     await writeFile(join(root, "config/release.toml"), releaseToml);
-    await writeFile(join(root, "effigy.toml"), `"release:gates" = [{ task = "release:floor" }]\n`);
+    await writeFile(
+      join(root, "effigy.toml"),
+      `[tasks]\n"release:gates" = [{ task = "release:floor" }]\n`,
+    );
     expect(() => checkReleaseGatesAlignment(root)).toThrow(/minus workspace/);
   });
 });

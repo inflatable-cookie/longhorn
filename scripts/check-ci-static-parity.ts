@@ -139,23 +139,21 @@ export function executedTasksAcrossJobs(workflow: string): Array<string> {
   return tasks;
 }
 
-// Task names of the `qa = [ ... ]` aggregate in effigy.toml, in order.
+// Task names of the `qa = [ ... ]` aggregate in effigy.toml, in order. Read as
+// TOML, so a one-line array and a multi-line one give the same answer. A bare
+// string entry is a shell line, not a task name, so it is not listed.
 export function parseQaTasks(effigyToml: string): Array<string> {
-  const header = /^qa = \[\s*$/m.exec(effigyToml);
-  if (header === null) {
+  const parsed: unknown = Bun.TOML.parse(effigyToml);
+  const tasks = isRecord(parsed) ? parsed["tasks"] : undefined;
+  const qa = isRecord(tasks) ? tasks["qa"] : undefined;
+  if (!Array.isArray(qa)) {
     throw new Error("effigy.toml has no qa aggregate");
   }
-  const rest = effigyToml.slice(header.index + header[0].length);
-  const end = rest.search(/^\]\s*$/m);
-  const body = end === -1 ? rest : rest.slice(0, end);
-  const tasks: Array<string> = [];
-  for (const match of body.matchAll(/task = "([^"]+)"/g)) {
-    const task = match[1] ?? "";
-    if (task !== "") {
-      tasks.push(task);
-    }
-  }
-  return tasks;
+  return qa.flatMap((entry: unknown): Array<string> =>
+    isRecord(entry) && typeof entry["task"] === "string" && entry["task"] !== ""
+      ? [entry["task"]]
+      : [],
+  );
 }
 
 export function clientsParityProblems(inputs: ParityInputs): Array<string> {

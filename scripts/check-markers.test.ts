@@ -34,9 +34,21 @@ describe("rule 1: scope", () => {
       "scripts/x.sh",
       "app/x.zsh",
       "packages/p/src/a.vue",
+      "packages/p/src/a.svelte",
+      "packages/p/src/a.mjs",
+      "scripts/x.cjs",
     ]) {
       expect(isAttentionScanPath(path)).toBe(true);
     }
+  });
+
+  test("a Svelte component and an .mjs module carry their markers into the gate", () => {
+    expect(summary("packages/p/src/a.svelte", "<!-- BUG: broken -->\n")).toEqual([
+      "1:BUG:critical:deferred-work",
+    ]);
+    expect(summary("packages/p/src/a.mjs", "// BUG: broken\n")).toEqual([
+      "1:BUG:critical:deferred-work",
+    ]);
   });
 
   test("documentation, data, excluded directories, lockfiles, non-code and dot-only names are not", () => {
@@ -52,7 +64,6 @@ describe("rule 1: scope", () => {
       "build/x.ts",
       "target/x.rs",
       ".github/workflows/ci.yml",
-      "packages/p/src/a.svelte",
       "src/.ts",
     ]) {
       expect(isAttentionScanPath(path)).toBe(false);

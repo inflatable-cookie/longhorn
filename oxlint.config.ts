@@ -21,8 +21,13 @@ export default defineConfig({
   overrides: [
     ...(cloudflare.overrides ?? []),
     {
-      // Command selectors and proof drivers use stdout/stderr as their interface.
-      files: ["scripts/**/*.ts", "examples/agent-control-proof/*.ts"],
+      // Command selectors, proof drivers and the shipped agent-control finder use
+      // stdout/stderr as their interface.
+      files: [
+        "scripts/**/*.ts",
+        "examples/agent-control-proof/*.ts",
+        "skills/agent-control/scripts/*.ts",
+      ],
       rules: { "no-console": "off" },
     },
     {

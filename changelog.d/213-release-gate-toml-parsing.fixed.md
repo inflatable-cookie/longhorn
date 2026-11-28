@@ -1,0 +1,1 @@
+`check:release-gates` and `check:ci-static-parity` read `[release.gates]`, `[tasks].release:gates` and `[tasks].qa` as TOML. A gate or qa entry with quotes or brackets is read as written, and a one-line `qa = [...]` array is accepted, where the regex readers rejected or truncated them.

@@ -308,12 +308,103 @@ afterEach(async () => {
   await Promise.all(fixtures.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-async function writeRepo(releaseToml: string, workflow: string): Promise<string> {
+// The gate tasks the fixture's [release.gates] names, as effigy.toml defines them.
+const fixtureEffigy = `
+[tasks]
+"docs:rust" = "RUSTDOCFLAGS=\\"-D warnings\\" bash scripts/rust-command.sh doc --workspace --no-deps --locked"
+"check:prototypes" = "true"
+"release:floor" = "true"
+"release:source-consumer" = "true"
+`;
+
+async function writeRepo(
+  releaseToml: string,
+  workflow: string,
+  extra: Record<string, string> = {},
+): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "longhorn-release-runner-tools-"));
   fixtures.push(root);
   await mkdir(join(root, "config"), { recursive: true });
+  await mkdir(join(root, "scripts"), { recursive: true });
   await mkdir(join(root, ".github/workflows"), { recursive: true });
   await writeFile(join(root, "config/release.toml"), releaseToml);
+  await writeFile(join(root, "effigy.toml"), fixtureEffigy);
   await writeFile(join(root, ".github/workflows/release.yml"), workflow);
+  for (const [path, text] of Object.entries(extra)) {
+    await writeFile(join(root, path), text);
+  }
   return root;
 }
+
+describe("release gates read the effigy tasks and scripts they run", () => {
+  const floorGate = `
+[release.gates]
+floor = "effigy release:floor"
+`;
+
+  test("a tool a gate's script runs is required, even though the gate runs effigy", async () => {
+    const root = await writeRepo(floorGate, workflowWithDeny, {
+      "effigy.toml": `[tasks]\n"release:floor" = "bash scripts/floor.sh"\n`,
+      "scripts/floor.sh": [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        'release_root=$(dirname "$0")',
+        'nice -n 5 mytool --check "$release_root"',
+      ].join("\n"),
+    });
+    const result = checkReleaseRunnerTools(root);
+    expect(result.failures.map(({ gate, tool }) => `${gate}:${tool}`)).toEqual(["floor:mytool"]);
+  });
+
+  test("a cargo plugin inside a sh -c task body is required from the runner", async () => {
+    const root = await writeRepo(floorGate.replace("release:floor", "machete"), workflowWithDeny, {
+      "effigy.toml": `[tasks]\n"machete" = "sh -c 'cargo machete --check'"\n`,
+    });
+    const result = checkReleaseRunnerTools(root);
+    expect(result.failures.map(({ gate, tool }) => `${gate}:${tool}`)).toEqual([
+      "floor:cargo-machete",
+    ]);
+  });
+
+  test("heredoc bodies, defined functions and test brackets are not commands", async () => {
+    const root = await writeRepo(floorGate, workflowWithDeny, {
+      "effigy.toml": `[tasks]\n"release:floor" = "bash scripts/floor.sh"\n`,
+      "scripts/floor.sh": [
+        "set -euo pipefail",
+        "release_write() {",
+        "  cat <<EOF > /dev/null",
+        "unknowntool --inside-heredoc",
+        "EOF",
+        "}",
+        "release_write",
+        'if [[ -e "$0" || -L "$0" ]]; then printf ok; fi',
+      ].join("\n"),
+    });
+    const result = checkReleaseRunnerTools(root);
+    expect(result.failures).toEqual([]);
+    const tools = result.requirements.map(({ tool }) => tool);
+    expect(tools).not.toContain("unknowntool");
+    expect(tools).not.toContain("release_write");
+    expect(tools).not.toContain("-L");
+  });
+
+  test("a quoted value inside an assignment stays one word", () => {
+    expect(
+      toolsNeededByCommand('RUSTDOCFLAGS="-D warnings" bash scripts/rust-command.sh doc'),
+    ).toEqual(["cargo"]);
+  });
+
+  test("an effigy task that calls itself is refused, not followed forever", async () => {
+    const root = await writeRepo(floorGate, workflowWithDeny, {
+      "effigy.toml": `[tasks]\n"release:floor" = "effigy release:floor"\n`,
+    });
+    expect(() => checkReleaseRunnerTools(root)).toThrow(/nests too deeply/);
+  });
+
+  test("a task form the check cannot read fails instead of passing", async () => {
+    const root = await writeRepo(floorGate, workflowWithDeny, {
+      "effigy.toml": `[tasks]\n"release:floor" = { rhai = "scripts/floor.rhai" }\n`,
+    });
+    expect(() => checkReleaseRunnerTools(root)).toThrow(/form this check cannot map/);
+  });
+});

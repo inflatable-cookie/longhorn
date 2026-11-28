@@ -93,7 +93,8 @@ declaration order: private-candidate, dependencies, rustdoc, prototypes,
 workspace (`effigy qa`), floor (MSRV Clippy and tests), source (git-dependency
 consumer). `effigy release:gates` is the same list minus `workspace`;
 `check:release-gates` fails if the two drift. `check:runner-tools` derives
-extra tools from those commands (`cargo deny` needs cargo-deny) and fails if
+extra tools from those commands, through the effigy task each one runs and the
+scripts it invokes (`cargo deny` needs cargo-deny), and fails if
 `.github/workflows/release.yml` does not install them in an unconditional
 step of the same job, before `effigy release:gates`; a comment is not an
 install. The dependency gate checks advisories, bans, licenses and sources
@@ -104,8 +105,9 @@ Effigy step, because the Rust test suites run a Bun script. The
 `private-candidate` gate reads version, Rust crate count, and
 consumer-graph count from the frozen receipt; CHANGELOG and the
 compatibility guide must still carry those facts, not a fixed phrase.
-`effigy test:release-tooling` covers the bump, the alignment check, that
-mapping, and this fact check.
+`effigy test:release-tooling` runs every `scripts/**/*.test.ts` on disk, so the
+bump, the alignment check, that mapping and this fact check are covered without a
+hand-kept list.
 
 Effigy `release prepare` cannot see the workspace-excluded
 `prototypes/*/Cargo.lock` files. `sync:prototype-locks` rewrites Longhorn

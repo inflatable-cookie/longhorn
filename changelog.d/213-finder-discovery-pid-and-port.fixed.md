@@ -1,0 +1,1 @@
+`find-instance` no longer unlinks a live instance's discovery file. `kill(pid, 0)` returning EPERM means the process exists under another user, so it is alive; only ESRCH proves a pid gone. A discovery record whose port is not an integer from 1 to 65535 is unreadable, not offered as a live instance. The script's casts are replaced by narrowing.
