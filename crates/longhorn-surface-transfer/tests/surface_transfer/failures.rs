@@ -5,7 +5,8 @@ use longhorn_core::{ScreenPoint, SurfaceRequestId, SurfaceRevision, TransferRequ
 use longhorn_surface_transfer::{
     EmptyDisplayProvisionPolicy, ProvisionCleanupOutcome, SurfaceProvisionFailureEvidence,
     SurfaceTransferAbort, SurfaceTransferAbortSource, SurfaceTransferCommitRequest,
-    SurfaceTransferErrorCode, SurfaceTransferPolicy, commit_surface_transfer,
+    SurfaceTransferErrorCode, SurfaceTransferPolicy, SurfaceWindowProvisionStage,
+    commit_surface_transfer,
 };
 use longhorn_surfaces::{
     EmptyWindowPolicy, SurfaceMutationCommand, SurfaceMutationRejectionCode, SurfaceMutationRequest,
@@ -152,6 +153,83 @@ fn empty_display_disabled_and_provision_failure_leave_source_exact() {
         ["create_hidden", "place", "ready"]
     );
     assert_eq!(load_surface(&fixture.store, &domain), baseline);
+}
+
+#[test]
+fn mismatched_provision_receipt_reports_cleanup_without_publishing() {
+    for (mode, cleanup_failed) in [(MockMode::Success, false), (MockMode::CleanupFail, true)] {
+        let mut storage = Fixture::new();
+        let domain = domain();
+        storage.store.register(&domain).unwrap();
+        let baseline = load_surface(&storage.store, &domain);
+        let mut runtime = RuntimeFixture::new();
+        let session = runtime.admit(&storage.store, &domain).unwrap();
+        let live_target = runtime.live_target();
+        let unexpected_window = window_id("window:unexpected");
+        let mut provisioner =
+            MockProvisioner::new(mode).with_provisioned_window(unexpected_window.clone());
+
+        let error = commit_surface_transfer(
+            &storage.store,
+            &domain,
+            &mut runtime.coordinator,
+            &runtime.clock,
+            &runtime.bindings,
+            &policy_with_provision(),
+            &mut provisioner,
+            SurfaceTransferCommitRequest::new(
+                session,
+                TargetSelector::ScreenPoint(ScreenPoint::new(1200, 200)),
+                [live_target],
+                options(),
+            ),
+        )
+        .unwrap_err();
+        assert_eq!(
+            provisioner.calls,
+            ["create_hidden", "place", "ready", "cleanup"]
+        );
+        assert_eq!(
+            error.code(),
+            SurfaceTransferErrorCode::ProvisionReceiptMismatch
+        );
+        let Some(SurfaceProvisionFailureEvidence::PreparedTargetRejected { provision, cleanup }) =
+            error.provisioning()
+        else {
+            panic!("receipt mismatch should retain the rejected target and cleanup evidence");
+        };
+        assert_eq!(provision.window_id(), &unexpected_window);
+        match (cleanup_failed, cleanup) {
+            (false, ProvisionCleanupOutcome::Succeeded(receipt)) => {
+                assert_eq!(receipt.window_id(), &unexpected_window);
+            }
+            (true, ProvisionCleanupOutcome::Failed(failure)) => {
+                assert_eq!(failure.stage(), SurfaceWindowProvisionStage::Cleanup);
+                assert_eq!(failure.detail(), "close failed");
+            }
+            _ => panic!("unexpected cleanup outcome for {mode:?}: {cleanup:?}"),
+        }
+        assert_eq!(error.reconciliation_required(), cleanup_failed);
+        let abort = SurfaceTransferAbort::from_domain(
+            TransferRequestId::new("request:surface-receipt-mismatch").unwrap(),
+            &error,
+        );
+        assert_eq!(
+            abort.source(),
+            SurfaceTransferAbortSource::SurfaceTransfer(
+                SurfaceTransferErrorCode::ProvisionReceiptMismatch,
+            )
+        );
+        assert!(
+            abort.message().contains("another admitted target"),
+            "{}",
+            abort.message()
+        );
+        assert_eq!(abort.message().contains("close failed"), cleanup_failed);
+        assert_eq!(abort.reconciliation_required(), cleanup_failed);
+        assert!(abort.session_consumed());
+        assert_eq!(load_surface(&storage.store, &domain), baseline);
+    }
 }
 
 #[test]

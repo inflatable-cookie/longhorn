@@ -1,4 +1,4 @@
-use longhorn_core::TransferHostBindingId;
+use longhorn_core::{TransferHostBindingId, WindowId};
 use longhorn_surface_transfer::{
     ProvisionedSurfaceWindow, SurfaceWindowCleanupReceipt, SurfaceWindowCommitReceipt,
     SurfaceWindowProvisionFailure, SurfaceWindowProvisionReceipt, SurfaceWindowProvisionRequest,
@@ -16,6 +16,7 @@ pub enum MockMode {
 pub struct MockProvisioner {
     pub mode: MockMode,
     pub calls: Vec<&'static str>,
+    provisioned_window: Option<WindowId>,
 }
 
 impl MockProvisioner {
@@ -23,7 +24,13 @@ impl MockProvisioner {
         Self {
             mode,
             calls: Vec::new(),
+            provisioned_window: None,
         }
+    }
+
+    pub fn with_provisioned_window(mut self, window_id: WindowId) -> Self {
+        self.provisioned_window = Some(window_id);
+        self
     }
 }
 
@@ -43,10 +50,14 @@ impl SurfaceWindowProvisioner for MockProvisioner {
                 "renderer readiness failed",
             ));
         }
+        let window_id = self
+            .provisioned_window
+            .as_ref()
+            .unwrap_or(request.window_id());
         Ok(ProvisionedSurfaceWindow::new(
-            request.window_id().clone(),
+            window_id.clone(),
             SurfaceWindowProvisionReceipt::hidden_ready(
-                request.window_id().clone(),
+                window_id.clone(),
                 TransferHostBindingId::new("binding:new").unwrap(),
                 request.display_id().clone(),
                 request.placement(),
