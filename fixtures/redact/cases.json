@@ -723,6 +723,61 @@
       "count": 1,
       "replaced": 1,
       "dropped_secrets": 0
+    },
+    {
+      "name": "unquoted-bearer-backslash-keeps-trailing-field",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "prefix Bearer abcdef\\,tag=public",
+      "expected": "prefix Bearer [redacted],tag=public",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-line-feed-after-colon",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\n\"neutral-value\"}",
+      "expected": "{\"password\":\n\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-line-feed-before-colon",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\"\n:\"neutral-value\"}",
+      "expected": "{\"password\"\n:\"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-crlf-after-colon",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":\r\n  \"neutral-value\"}",
+      "expected": "{\"password\":\r\n  \"[redacted]\"}",
+      "count": 1,
+      "replaced": 1,
+      "dropped_secrets": 0
+    },
+    {
+      "name": "json-key-number-value-keeps-boundary",
+      "source": "boundary",
+      "rules": "common",
+      "seeds": [],
+      "input": "{\"password\":12345}",
+      "expected": "{\"password\":12345}",
+      "count": 0,
+      "replaced": 0,
+      "dropped_secrets": 0
     }
   ]
 }
