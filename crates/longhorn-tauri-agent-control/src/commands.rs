@@ -165,14 +165,14 @@ mod origin_tests {
 
     #[tokio::test]
     async fn begin_failure_serializes_as_a_tool_error_object() {
-        let error = settle_selection(Err(BeginSelectionError::EntropyUnavailable), false)
+        let error = settle_selection(Err(BeginSelectionError::InvalidSaveOptions), false)
             .await
             .unwrap_err();
         assert_eq!(
             serde_json::to_value(error).unwrap(),
             json!({
-                "error": "hostFailure",
-                "message": "selection id entropy unavailable",
+                "error": "invalidArgument",
+                "message": "save does not accept multiple or directory",
             }),
         );
     }

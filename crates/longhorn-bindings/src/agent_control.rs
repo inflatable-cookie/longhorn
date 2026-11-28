@@ -36,7 +36,7 @@ pub(crate) fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
     };
     let samples = json!({
         "beginSelection": { "options": request },
-        "beginFailure": ToolError::from(BeginSelectionError::EntropyUnavailable),
+        "beginFailure": ToolError::from(BeginSelectionError::InvalidSaveOptions),
     });
 
     Ok(vec![

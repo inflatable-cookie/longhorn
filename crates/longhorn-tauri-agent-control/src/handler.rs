@@ -17,25 +17,62 @@
 //! are namespaced to that child's label so they cannot resolve in another
 //! webview.
 
-use std::{collections::BTreeSet, sync::Arc};
+use std::{collections::BTreeSet, future::Future, sync::Arc, time::Duration};
 
 use longhorn_agent_control::{
     ActionReceipt, ClickRequest, CommandRequest, CommandResult, ControlHandler, DragRequest,
     EvaluateRequest, EvaluateResult, ListWindowsRequest, ListWindowsResult, PageEventBatch,
-    PressRequest, ResizeWindowRequest, ScreenshotRequest, ScreenshotResult, ScrollRequest,
-    SetFileInputRequest, SnapshotRequest, SnapshotResult, ToolError, TypeRequest,
+    PageEventReader, PressRequest, ResizeWindowRequest, ScreenshotRequest, ScreenshotResult,
+    ScrollRequest, SetFileInputRequest, SnapshotRequest, SnapshotResult, ToolError, TypeRequest,
     ValidatedSetFileInputRequest, WaitForRequest, WaitForResult, WebviewLabel, WebviewTarget,
     WindowTarget,
 };
 use longhorn_core::WindowId;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime, Webview, Window};
+use tokio::sync::oneshot;
 
 use crate::{bridge::CommandBridge, shim};
 
 mod window_ops;
 
 use window_ops::{window_focused, window_info};
+
+/// Bound a tool's target resolution and JavaScript evaluation together.
+const WEBVIEW_EVAL_TIMEOUT: Duration = Duration::from_secs(5);
+
+async fn bound_evaluation<T>(
+    evaluation: impl Future<Output = Result<T, ToolError>>,
+) -> Result<T, ToolError> {
+    tokio::time::timeout(WEBVIEW_EVAL_TIMEOUT, evaluation)
+        .await
+        .map_err(|_| ToolError::EvaluationFailed {
+            message: format!(
+                "webview evaluation timed out after {} ms",
+                WEBVIEW_EVAL_TIMEOUT.as_millis()
+            ),
+        })?
+}
+
+/// Wry's synchronous getters can wait on the main thread. Queue those
+/// operations and await their result instead, so shutdown can drop the wait.
+pub(crate) async fn on_main_thread<R: Runtime, T: Send + 'static>(
+    app: &AppHandle<R>,
+    operation: impl FnOnce() -> Result<T, ToolError> + Send + 'static,
+) -> Result<T, ToolError> {
+    let (tx, rx) = oneshot::channel();
+    app.run_on_main_thread(move || {
+        if !tx.is_closed() {
+            let _ = tx.send(operation());
+        }
+    })
+    .map_err(|error| ToolError::HostFailure {
+        message: format!("main-thread dispatch failed: {error}"),
+    })?;
+    rx.await.map_err(|_| ToolError::HostFailure {
+        message: "the main thread dropped the operation result".to_owned(),
+    })?
+}
 
 /// Host authority for the control surface, backed by the Tauri app handle.
 pub struct TauriControlHandler<R: Runtime> {
@@ -247,13 +284,38 @@ impl<R: Runtime> TauriControlHandler<R> {
             })
     }
 
+    async fn with_handler_on_main<T: Send + 'static>(
+        &self,
+        operation: impl FnOnce(&Self) -> Result<T, ToolError> + Send + 'static,
+    ) -> Result<T, ToolError> {
+        let handler = Self {
+            app: self.app.clone(),
+            commands: Arc::clone(&self.commands),
+            semantic_children: self.semantic_children.clone(),
+        };
+        on_main_thread(&self.app, move || operation(&handler)).await
+    }
+
     async fn eval_js(
         &self,
         window: &WindowTarget,
         webview: &WebviewTarget,
         js: String,
     ) -> Result<(WindowId, LiveTarget<R>, serde_json::Value), ToolError> {
-        let (window_id, live) = self.resolve_semantic(window, webview)?;
+        bound_evaluation(self.eval_js_unbounded(window, webview, js)).await
+    }
+
+    async fn eval_js_unbounded(
+        &self,
+        window: &WindowTarget,
+        webview: &WebviewTarget,
+        js: String,
+    ) -> Result<(WindowId, LiveTarget<R>, Value), ToolError> {
+        let window = window.clone();
+        let webview = webview.clone();
+        let (window_id, live) = self
+            .with_handler_on_main(move |handler| handler.resolve_semantic(&window, &webview))
+            .await?;
         let js = live.with_ref_prefix(js);
         let value = eval_webview(&live.webview, js).await?;
         Ok((window_id, live, value))
@@ -398,9 +460,14 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         since_seq: u64,
         since_epoch: Option<&str>,
     ) -> Result<PageEventBatch, ToolError> {
-        let (_, live) = self.resolve_window(&None)?;
-        let js = shim::read_events_js(since_seq, since_epoch);
-        shim::decode_events(eval_webview(&live.webview, js).await?)
+        bound_evaluation(self.page_event_reader().read(since_seq, since_epoch)).await
+    }
+
+    fn page_event_reader(&self) -> impl PageEventReader {
+        DefaultPageEvents {
+            handler: self,
+            webview: None,
+        }
     }
 
     async fn wait_for(&self, request: WaitForRequest) -> Result<WaitForResult, ToolError> {
@@ -413,7 +480,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
             let window = window.clone();
             let webview = webview.clone();
             async move {
-                let (_, _, value) = self.eval_js(&window, &webview, js).await?;
+                let (_, _, value) = self.eval_js_unbounded(&window, &webview, js).await?;
                 shim::decode_wait(value)
             }
         })
@@ -421,7 +488,9 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
     }
 
     async fn screenshot(&self, request: ScreenshotRequest) -> Result<ScreenshotResult, ToolError> {
-        let (window, live) = self.resolve_window(&request.window)?;
+        let (window, live) = self
+            .with_handler_on_main(move |handler| handler.resolve_window(&request.window))
+            .await?;
         #[cfg(target_os = "macos")]
         {
             // The whole window, child webviews composed in (Card 238) —
@@ -431,7 +500,7 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         }
         #[cfg(not(target_os = "macos"))]
         {
-            let _ = live;
+            let _ = (window, live);
             Err(ToolError::Unsupported {
                 message: "screenshot capture is implemented on macOS only (contract 020)"
                     .to_owned(),
@@ -450,20 +519,60 @@ impl<R: Runtime> ControlHandler for TauriControlHandler<R> {
         &self,
         _request: ListWindowsRequest,
     ) -> Result<ListWindowsResult, ToolError> {
-        let windows = self
-            .windows()
-            .iter()
-            .map(|(label, live)| window_info(label, &live.window))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(ListWindowsResult { windows })
+        self.with_handler_on_main(|handler| {
+            let windows = handler
+                .windows()
+                .iter()
+                .map(|(label, live)| window_info(label, &live.window))
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(ListWindowsResult { windows })
+        })
+        .await
     }
 
     async fn resize_window(
         &self,
         request: ResizeWindowRequest,
     ) -> Result<ActionReceipt, ToolError> {
-        let (_, live) = self.resolve_window(&Some(request.window.clone()))?;
-        window_ops::resize_window(&request, &live.window)
+        self.with_handler_on_main(move |handler| {
+            let (_, live) = handler.resolve_window(&Some(request.window.clone()))?;
+            window_ops::resize_window(&request, &live.window)
+        })
+        .await
+    }
+}
+
+/// Keep the resolved webview even when focus or the document epoch changes.
+struct DefaultPageEvents<'a, R: Runtime> {
+    handler: &'a TauriControlHandler<R>,
+    webview: Option<Webview<R>>,
+}
+
+impl<R: Runtime> DefaultPageEvents<'_, R> {
+    async fn target(&mut self) -> Result<&Webview<R>, ToolError> {
+        let webview = match &mut self.webview {
+            Some(webview) => webview,
+            slot @ None => {
+                let (_, live) = self
+                    .handler
+                    .with_handler_on_main(|handler| handler.resolve_window(&None))
+                    .await?;
+                slot.insert(live.webview)
+            }
+        };
+        Ok(webview)
+    }
+}
+
+impl<R: Runtime> PageEventReader for DefaultPageEvents<'_, R> {
+    async fn read(
+        &mut self,
+        since_seq: u64,
+        since_epoch: Option<&str>,
+    ) -> Result<PageEventBatch, ToolError> {
+        let webview = self.target().await?;
+        let js = shim::read_events_js(since_seq, since_epoch);
+        shim::decode_events(eval_webview(webview, js).await?)
     }
 }
 
@@ -503,6 +612,32 @@ mod tests {
             Arc::new(NoCommandBridge),
             BTreeSet::new(),
         )
+    }
+
+    #[tokio::test]
+    async fn a_listener_retains_its_webview_when_the_default_changes() {
+        let app = tauri::test::mock_app();
+        WebviewWindowBuilder::new(app.handle(), "b", Default::default())
+            .build()
+            .unwrap();
+        let handler = handler(&app);
+        let mut reader = DefaultPageEvents {
+            handler: &handler,
+            webview: None,
+        };
+        assert_eq!(reader.target().await.unwrap().label(), "b");
+
+        // The mock runtime cannot change focus. Add an earlier label
+        // to make the same default resolver select a different webview.
+        WebviewWindowBuilder::new(app.handle(), "a", Default::default())
+            .build()
+            .unwrap();
+        let mut new_reader = DefaultPageEvents {
+            handler: &handler,
+            webview: None,
+        };
+        assert_eq!(new_reader.target().await.unwrap().label(), "a");
+        assert_eq!(reader.target().await.unwrap().label(), "b");
     }
 
     #[tokio::test]

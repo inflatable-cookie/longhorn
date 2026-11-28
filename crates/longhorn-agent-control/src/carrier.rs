@@ -19,7 +19,7 @@
 
 use std::{
     collections::{BTreeMap, HashMap},
-    fmt,
+    fmt, io,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -55,7 +55,7 @@ const MAX_BODY_BYTES: usize = 64 * 1024 * 1024;
 #[derive(Debug)]
 pub enum CarrierError {
     /// Discovery enumeration, resolution, or fact construction failed.
-    Discovery(String),
+    Discovery(DiscoveryError),
     /// No live instance matches the selection.
     NoLiveInstance {
         /// Directory that was enumerated.
@@ -77,10 +77,12 @@ pub enum CarrierError {
         /// Variable or fact that was missing.
         what: String,
     },
-    /// A proxied exchange failed and the message could not be answered.
-    Exchange(String),
+    /// The HTTP client could not be constructed.
+    HttpClient(reqwest::Error),
+    /// Reading the harness's stdin failed.
+    Input(io::Error),
     /// Stdout is broken; the harness is gone.
-    OutputClosed(String),
+    OutputClosed(io::Error),
 }
 
 impl fmt::Display for CarrierError {
@@ -114,17 +116,27 @@ impl fmt::Display for CarrierError {
                     "cannot resolve platform directories: {what} is missing"
                 )
             }
-            Self::Exchange(reason) => write!(formatter, "exchange failed: {reason}"),
+            Self::HttpClient(source) => write!(formatter, "HTTP client failed: {source}"),
+            Self::Input(source) => write!(formatter, "stdin failed: {source}"),
             Self::OutputClosed(reason) => write!(formatter, "stdout closed: {reason}"),
         }
     }
 }
 
-impl std::error::Error for CarrierError {}
+impl std::error::Error for CarrierError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Discovery(source) => Some(source),
+            Self::HttpClient(source) => Some(source),
+            Self::Input(source) | Self::OutputClosed(source) => Some(source),
+            _ => None,
+        }
+    }
+}
 
 impl From<DiscoveryError> for CarrierError {
     fn from(error: DiscoveryError) -> Self {
-        Self::Discovery(error.to_string())
+        Self::Discovery(error)
     }
 }
 
@@ -537,61 +549,84 @@ fn observe_server_message(
     }
 }
 
-/// Incremental SSE parser: feeds response chunks, emits complete `data:`
-/// payloads. Matches the `text/event-stream` framing rmcp's server emits.
+/// Guards the buffered bytes of one response or SSE event.
+#[derive(Debug)]
+enum ResponseError {
+    Http(reqwest::Error),
+    TooLarge,
+    MissingReply,
+}
+
+impl fmt::Display for ResponseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Http(source) => {
+                write!(formatter, "could not read control server reply: {source}")
+            }
+            Self::TooLarge => write!(formatter, "response exceeds {MAX_BODY_BYTES} bytes"),
+            Self::MissingReply => {
+                formatter.write_str("control server stream closed without a reply")
+            }
+        }
+    }
+}
+
+/// Incremental SSE parser. Complete lines are consumed once, and a
+/// fragmented line is scanned only as its new bytes arrive.
 #[derive(Debug, Default)]
 struct SseParser {
-    buffer: Vec<u8>,
+    line: Vec<u8>,
     pending: Vec<u8>,
 }
 
 impl SseParser {
-    /// Pushes one chunk; returns complete event payloads and whether the
-    /// stream preview already exceeds the body bound.
-    fn push(&mut self, chunk: &[u8]) -> Result<Vec<Vec<u8>>, CarrierError> {
-        self.buffer.extend_from_slice(chunk);
-        if self.buffer.len() + self.pending.len() > MAX_BODY_BYTES {
-            return Err(CarrierError::Exchange(format!(
-                "response exceeds {MAX_BODY_BYTES} bytes"
-            )));
+    /// Pushes a line or line fragment from `split_inclusive`. A blank line
+    /// dispatches the buffered event and frees its space before the next one.
+    fn push_line(&mut self, fragment: &[u8]) -> Result<Option<Vec<u8>>, ResponseError> {
+        if fragment.len() > MAX_BODY_BYTES - self.line.len() - self.pending.len() {
+            return Err(ResponseError::TooLarge);
         }
-        let mut payloads = Vec::new();
-        while let Some(end) = self.buffer.iter().position(|byte| *byte == b'\n') {
-            let mut line: Vec<u8> = self.buffer.drain(..=end).collect();
-            line.pop();
-            if line.last() == Some(&b'\r') {
-                line.pop();
-            }
-            if line.is_empty() {
-                if !self.pending.is_empty() {
-                    // Trailing newline of a multi-line data block is framing.
-                    self.pending.pop();
-                    payloads.push(std::mem::take(&mut self.pending));
-                }
-                continue;
-            }
-            if line.first() == Some(&b':') {
-                continue;
-            }
-            if let Some(data) = line
-                .strip_prefix(b"data:")
-                .map(|rest| rest.strip_prefix(b" ").unwrap_or(rest))
-            {
-                self.pending.extend_from_slice(data);
+        self.line.extend_from_slice(fragment);
+        let Some(line) = self.line.strip_suffix(b"\n") else {
+            return Ok(None);
+        };
+        let line = line.strip_suffix(b"\r").unwrap_or(line);
+        let payload = if line.is_empty() {
+            self.finish()
+        } else {
+            if let Some(data) = line.strip_prefix(b"data:") {
+                self.pending
+                    .extend_from_slice(data.strip_prefix(b" ").unwrap_or(data));
                 self.pending.push(b'\n');
             }
-        }
-        Ok(payloads)
+            None
+        };
+        self.line.clear();
+        Ok(payload)
     }
 
     /// Flushes a final under-terminated payload, if any.
     fn finish(&mut self) -> Option<Vec<u8>> {
-        if self.pending.is_empty() {
-            return None;
-        }
-        self.pending.pop();
+        self.pending.pop()?;
         Some(std::mem::take(&mut self.pending))
     }
+}
+
+async fn read_body(mut response: reqwest::Response) -> Result<Vec<u8>, ResponseError> {
+    if response
+        .content_length()
+        .is_some_and(|len| len > MAX_BODY_BYTES as u64)
+    {
+        return Err(ResponseError::TooLarge);
+    }
+    let mut body = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(ResponseError::Http)? {
+        if chunk.len() > MAX_BODY_BYTES - body.len() {
+            return Err(ResponseError::TooLarge);
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
 }
 
 /// How the carrier's run loop ended.
@@ -626,7 +661,8 @@ pub async fn run_carrier(
     let client = reqwest::Client::builder()
         .no_proxy()
         .build()
-        .map_err(|error| CarrierError::Exchange(format!("HTTP client failed: {error}")))?;
+        .map_err(CarrierError::HttpClient)?;
+    let (output_error, mut output_errors) = tokio::sync::mpsc::channel(1);
     let shared = Arc::new(CarrierShared {
         client,
         endpoint: selection.endpoint.clone(),
@@ -634,39 +670,32 @@ pub async fn run_carrier(
         session: Mutex::new(SessionState::default()),
         output: tokio::sync::Mutex::new(stdout),
         inflight: tokio::sync::Mutex::new(HashMap::new()),
-        output_broken: std::sync::atomic::AtomicBool::new(false),
+        output_error,
     });
 
     let mut lines = BufReader::new(stdin).lines();
-    loop {
-        let line = lines
-            .next_line()
-            .await
-            .map_err(|error| CarrierError::Exchange(format!("stdin failed: {error}")))?;
-        let Some(line) = line else {
-            shared.abort_all().await;
-            return Ok(CarrierExit::HarnessClosed);
+    let outcome = loop {
+        let line = tokio::select! {
+            line = lines.next_line() => line,
+            Some(error) = output_errors.recv() => break Err(CarrierError::OutputClosed(error)),
+        };
+        let line = match line {
+            Ok(Some(line)) => line,
+            Ok(None) => break Ok(CarrierExit::HarnessClosed),
+            Err(error) => break Err(CarrierError::Input(error)),
         };
         let line = line.strip_suffix('\r').unwrap_or(&line);
         if line.is_empty() {
             continue;
         }
         let Ok(message) = serde_json::from_str::<Value>(line) else {
-            // Unparsable input has no id to correlate a reply to; ignore it
-            // like the rmcp stdio codec does.
+            // Unparsable input has no id to correlate a reply to.
             continue;
         };
         shared.dispatch(line.to_owned(), message).await;
-        if shared
-            .output_broken
-            .load(std::sync::atomic::Ordering::SeqCst)
-        {
-            shared.abort_all().await;
-            return Err(CarrierError::OutputClosed(
-                "harness stdout is gone".to_owned(),
-            ));
-        }
-    }
+    };
+    shared.abort_all().await;
+    outcome
 }
 
 /// One live exchange plus its dedup generation: a duplicate JSON-RPC id
@@ -681,7 +710,7 @@ struct CarrierShared<W> {
     session: Mutex<SessionState>,
     output: tokio::sync::Mutex<W>,
     inflight: tokio::sync::Mutex<Inflight>,
-    output_broken: std::sync::atomic::AtomicBool,
+    output_error: tokio::sync::mpsc::Sender<io::Error>,
 }
 
 impl<W> CarrierShared<W>
@@ -811,102 +840,98 @@ where
             }
             return;
         }
-        if !status.is_success() {
-            let body = response.bytes().await.unwrap_or_default();
-            match message_from_body(&body) {
-                Some(messages) => {
-                    for message in messages {
-                        self.observe(&message, method.as_deref());
+        let is_stream = status.is_success()
+            && response
+                .headers()
+                .get("content-type")
+                .and_then(|value| value.to_str().ok())
+                .is_some_and(|value| value.contains("text/event-stream"));
+        if is_stream {
+            self.forward_stream(response, method.as_deref(), &id).await;
+            return;
+        }
+
+        let body = match read_body(response).await {
+            Ok(body) => body,
+            Err(error) => {
+                self.answer_request(&id, &response_error(error)).await;
+                return;
+            }
+        };
+        match message_from_body(&body) {
+            Some(messages) => {
+                for message in messages {
+                    self.observe(&message, method.as_deref());
+                    if !is_notification || !status.is_success() {
                         self.write_line(&message).await;
                     }
                 }
-                None => {
-                    self.answer_request(&id, &http_status_error(status.as_u16(), &body))
-                        .await;
-                }
             }
-            return;
-        }
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|value| value.to_str().ok())
-            .unwrap_or_default()
-            .to_owned();
-        if content_type.contains("text/event-stream") {
-            self.forward_stream(response, method.as_deref(), is_notification)
-                .await;
-        } else {
-            let body = response.bytes().await.unwrap_or_default();
-            match message_from_body(&body) {
-                Some(messages) => {
-                    for message in messages {
-                        self.observe(&message, method.as_deref());
-                        if !is_notification {
-                            self.write_line(&message).await;
-                        }
-                    }
-                }
-                None => {
-                    self.answer_request(&id, &http_status_error(status.as_u16(), &body))
-                        .await;
-                }
+            None => {
+                self.answer_request(&id, &http_status_error(status.as_u16(), &body))
+                    .await;
             }
         }
     }
 
-    /// Streams an SSE reply: each `data:` payload is one JSON-RPC message
-    /// written to stdout in arrival order. For `subscriptions/listen` this
-    /// keeps server-to-client notifications flowing on the pending stdio
-    /// request until the stream closes.
+    /// Streams notifications and replies as they arrive. If the stream ends
+    /// before the request's terminal reply, synthesize one for its pending id.
     async fn forward_stream(
         &self,
         mut response: reqwest::Response,
         method: Option<&str>,
-        is_notification: bool,
+        id: &Option<String>,
     ) {
         let mut parser = SseParser::default();
-        loop {
+        let mut replied = false;
+        let failure = 'stream: loop {
             match response.chunk().await {
-                Ok(Some(chunk)) => match parser.push(&chunk) {
-                    Ok(payloads) => {
-                        for payload in payloads {
-                            self.forward_payload(&payload, method, is_notification)
-                                .await;
+                Ok(Some(chunk)) => {
+                    for fragment in chunk.split_inclusive(|byte| *byte == b'\n') {
+                        match parser.push_line(fragment) {
+                            Ok(Some(payload)) => {
+                                replied |=
+                                    self.forward_payload(&payload, method, id.as_deref()).await;
+                            }
+                            Ok(None) => {}
+                            Err(error) => break 'stream error,
                         }
                     }
-                    Err(error) => {
-                        eprintln!("longhorn-agent-control-client: {error}");
-                        return;
-                    }
-                },
-                Ok(None) => break,
-                Err(error) => {
-                    eprintln!("longhorn-agent-control-client: stream failed: {error}");
-                    return;
                 }
+                Ok(None) => {
+                    if let Some(payload) = parser.finish() {
+                        replied |= self.forward_payload(&payload, method, id.as_deref()).await;
+                    }
+                    break ResponseError::MissingReply;
+                }
+                Err(error) => break ResponseError::Http(error),
             }
-        }
-        if let Some(payload) = parser.finish() {
-            self.forward_payload(&payload, method, is_notification)
-                .await;
+        };
+        if !replied {
+            self.answer_request(id, &response_error(failure)).await;
         }
     }
 
-    async fn forward_payload(&self, payload: &[u8], method: Option<&str>, is_notification: bool) {
-        if payload.is_empty() {
-            return;
-        }
+    /// Returns whether this message was the pending request's terminal reply.
+    async fn forward_payload(
+        &self,
+        payload: &[u8],
+        method: Option<&str>,
+        id: Option<&str>,
+    ) -> bool {
         let Ok(message) = serde_json::from_slice::<Value>(payload) else {
-            return;
+            return false;
         };
         if !message.is_object() {
-            return;
+            return false;
         }
         self.observe(&message, method);
-        if !is_notification {
-            self.write_line(&message).await;
-        }
+        let Some(id) = id else { return false };
+        self.write_line(&message).await;
+        (message.get("result").is_some() || message.get("error").is_some())
+            && message
+                .get("id")
+                .is_some_and(|received| canonical_id(received) == id)
     }
 
     fn observe(&self, message: &Value, method: Option<&str>) {
@@ -933,11 +958,13 @@ where
         let mut text = serde_json::to_string(message).unwrap_or_else(|_| "{}".to_owned());
         text.push('\n');
         let mut output = self.output.lock().await;
-        if output.write_all(text.as_bytes()).await.is_err() || output.flush().await.is_err() {
-            // Flagged for the run loop, which aborts all exchanges and
-            // exits: there is no harness left to answer.
-            self.output_broken
-                .store(true, std::sync::atomic::Ordering::SeqCst);
+        let result = async {
+            output.write_all(text.as_bytes()).await?;
+            output.flush().await
+        }
+        .await;
+        if let Err(error) = result {
+            let _ = self.output_error.try_send(error);
         }
     }
 }
@@ -956,6 +983,13 @@ fn transport_error(error: &reqwest::Error) -> Value {
     serde_json::json!({
         "code": -32000,
         "message": format!("carrier: control server unreachable: {error}"),
+    })
+}
+
+fn response_error(error: ResponseError) -> Value {
+    serde_json::json!({
+        "code": -32000,
+        "message": format!("carrier: {error}"),
     })
 }
 
@@ -1302,12 +1336,20 @@ mod tests {
         assert!(session.tool_schemas.contains_key("press"));
     }
 
+    fn push_chunk(parser: &mut SseParser, chunk: &[u8]) -> Vec<Vec<u8>> {
+        chunk
+            .split_inclusive(|byte| *byte == b'\n')
+            .filter_map(|fragment| parser.push_line(fragment).unwrap())
+            .collect()
+    }
+
     #[test]
     fn sse_parser_emits_data_payloads_in_order() {
         let mut parser = SseParser::default();
-        let payloads = parser
-            .push(b"event: message\ndata: {\"a\":1}\n\ndata: {\"b\":2}\n\n")
-            .unwrap();
+        let payloads = push_chunk(
+            &mut parser,
+            b"event: message\ndata: {\"a\":1}\n\ndata: {\"b\":2}\n\n",
+        );
         assert_eq!(payloads.len(), 2);
         assert_eq!(payloads[0], b"{\"a\":1}");
         assert_eq!(payloads[1], b"{\"b\":2}");
@@ -1316,17 +1358,176 @@ mod tests {
     #[test]
     fn sse_parser_handles_split_chunks_and_crlf() {
         let mut parser = SseParser::default();
-        assert!(parser.push(b"data: {\"a\"").unwrap().is_empty());
-        let payloads = parser.push(b":1}\r\n\r\n").unwrap();
+        assert!(push_chunk(&mut parser, b"data: {\"a\"").is_empty());
+        let payloads = push_chunk(&mut parser, b":1}\r\n\r\n");
         assert_eq!(payloads, vec![b"{\"a\":1}".to_vec()]);
     }
 
     #[test]
     fn sse_parser_ignores_comments_and_empty_dispatches() {
         let mut parser = SseParser::default();
-        let payloads = parser.push(b": keep-alive\n\n").unwrap();
+        let payloads = push_chunk(&mut parser, b": keep-alive\n\n");
         assert!(payloads.is_empty());
         assert_eq!(parser.finish(), None);
+    }
+
+    #[test]
+    fn sse_parser_handles_a_large_bytewise_fragmented_line_within_a_bound() {
+        let (finished, result) = std::sync::mpsc::channel();
+        let parsing = std::thread::spawn(move || {
+            let data = vec![b'x'; 512 * 1024];
+            let mut parser = SseParser::default();
+            assert!(push_chunk(&mut parser, b"data: ").is_empty());
+            for byte in &data {
+                assert!(push_chunk(&mut parser, std::slice::from_ref(byte)).is_empty());
+            }
+            assert_eq!(push_chunk(&mut parser, b"\n\n"), vec![data]);
+            finished.send(()).unwrap();
+        });
+        result
+            .recv_timeout(std::time::Duration::from_secs(5))
+            .expect("fragmented SSE line is parsed in linear time");
+        parsing.join().unwrap();
+    }
+
+    #[tokio::test]
+    async fn sse_read_failure_answers_the_pending_id() {
+        // A successful SSE response whose first HTTP chunk is cut short.
+        let reply = proxy_reply(
+            "200 OK",
+            "Content-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n",
+            b"10\r\ndata:",
+            false,
+        )
+        .await;
+        assert!(
+            reply["error"]["message"]
+                .as_str()
+                .unwrap()
+                .contains("could not read control server reply"),
+            "{reply}"
+        );
+    }
+
+    #[tokio::test]
+    async fn sse_eof_without_a_result_answers_the_pending_id() {
+        let reply = proxy_reply(
+            "200 OK",
+            "Content-Type: text/event-stream\r\nContent-Length: 0\r\n",
+            b"",
+            false,
+        )
+        .await;
+        assert_eq!(
+            reply["error"]["message"],
+            "carrier: control server stream closed without a reply"
+        );
+    }
+
+    #[tokio::test]
+    async fn chunked_responses_cannot_exceed_the_bound() {
+        for (status, content_type) in [
+            ("200 OK", "application/json"),
+            ("200 OK", "text/event-stream"),
+            ("502 Bad Gateway", "application/json"),
+        ] {
+            let reply = proxy_reply(
+                status,
+                &format!("Content-Type: {content_type}\r\nTransfer-Encoding: chunked\r\n"),
+                b"",
+                true,
+            )
+            .await;
+            assert_eq!(
+                reply["error"]["message"],
+                format!("carrier: response exceeds {MAX_BODY_BYTES} bytes"),
+                "{status} {content_type}"
+            );
+        }
+    }
+
+    async fn proxy_reply(status: &str, headers: &str, data: &[u8], overflow: bool) -> Value {
+        use std::time::Duration;
+        use tokio::io::AsyncReadExt as _;
+
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let dir = tempfile::tempdir().unwrap();
+        let _discovery =
+            crate::publish_discovery(dir.path(), "app", port, InstanceToken::generate().unwrap())
+                .unwrap();
+        let selection = select_instance(dir.path(), None).unwrap();
+        let (mut input, stdin) = tokio::io::duplex(1024);
+        let (stdout, output) = tokio::io::duplex(1024);
+        let carrier = tokio::spawn(run_carrier(selection, stdin, stdout));
+        let response = format!("HTTP/1.1 {status}\r\nConnection: close\r\n{headers}\r\n");
+        let response_server = async {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut stream = BufReader::new(stream);
+            let mut content_length = 0;
+            loop {
+                let mut line = String::new();
+                assert_ne!(stream.read_line(&mut line).await.unwrap(), 0);
+                if line == "\r\n" {
+                    break;
+                }
+                if let Some(length) = line.to_ascii_lowercase().strip_prefix("content-length:") {
+                    content_length = length.trim().parse().unwrap();
+                }
+            }
+            stream
+                .read_exact(&mut vec![0; content_length])
+                .await
+                .unwrap();
+            stream.write_all(response.as_bytes()).await.unwrap();
+            stream.write_all(data).await.unwrap();
+            if overflow {
+                const CHUNK_SIZE: usize = 64 * 1024;
+                let mut chunk = format!("{CHUNK_SIZE:x}\r\n").into_bytes();
+                chunk.extend(std::iter::repeat_n(b'x', CHUNK_SIZE));
+                chunk.extend_from_slice(b"\r\n");
+                for _ in 0..=MAX_BODY_BYTES / CHUNK_SIZE {
+                    if stream.write_all(&chunk).await.is_err() {
+                        return;
+                    }
+                }
+                let _ = stream.write_all(b"0\r\n\r\n").await;
+            }
+        };
+        let harness = async {
+            input.write_all(b"{\"jsonrpc\":\"2.0\",\"id\":\"pending\",\"method\":\"tools/list\",\"params\":{}}\n").await.unwrap();
+            let mut reply = String::new();
+            assert_ne!(
+                BufReader::new(output).read_line(&mut reply).await.unwrap(),
+                0
+            );
+            drop(input);
+            let reply = serde_json::from_str::<Value>(&reply).unwrap();
+            assert_eq!(reply["id"], "pending", "{reply}");
+            reply
+        };
+        let (_, reply) = tokio::time::timeout(Duration::from_secs(10), async {
+            tokio::join!(response_server, harness)
+        })
+        .await
+        .expect("the carrier answers before its request deadline");
+        assert_eq!(carrier.await.unwrap().unwrap(), CarrierExit::HarnessClosed);
+        reply
+    }
+
+    #[test]
+    fn carrier_discovery_error_preserves_its_cause() {
+        use std::error::Error as _;
+
+        let error = CarrierError::from(DiscoveryError::InvalidAppId {
+            app_id: "../outside".to_owned(),
+        });
+        assert!(matches!(
+            error.source().unwrap().downcast_ref::<DiscoveryError>(),
+            Some(DiscoveryError::InvalidAppId { app_id }) if app_id == "../outside"
+        ));
     }
 
     #[test]

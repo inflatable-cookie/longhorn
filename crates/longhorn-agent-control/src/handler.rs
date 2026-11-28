@@ -32,6 +32,27 @@ pub struct PageEventBatch {
     pub dropped: u64,
 }
 
+/// A listener's page-event source. Hosts with multiple pages can keep this
+/// source bound to one webview for the lifetime of the listener.
+pub trait PageEventReader: Send {
+    /// Read events after the cursor, resetting it when the document changes.
+    fn read(
+        &mut self,
+        since_seq: u64,
+        since_epoch: Option<&str>,
+    ) -> impl Future<Output = Result<PageEventBatch, ToolError>> + Send;
+}
+
+impl<H: ControlHandler + ?Sized> PageEventReader for &H {
+    async fn read(
+        &mut self,
+        since_seq: u64,
+        since_epoch: Option<&str>,
+    ) -> Result<PageEventBatch, ToolError> {
+        self.read_page_events(since_seq, since_epoch).await
+    }
+}
+
 /// One entry in the page-event ring.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -154,6 +175,12 @@ pub trait ControlHandler: Send + Sync + 'static {
         since_seq: u64,
         since_epoch: Option<&str>,
     ) -> impl Future<Output = Result<PageEventBatch, ToolError>> + Send;
+
+    /// Creates a reader for one subscription. The default reads the host's
+    /// default ring. Multi-page hosts can resolve a stable target in their reader.
+    fn page_event_reader(&self) -> impl PageEventReader {
+        self
+    }
 
     /// Polls a DOM-relative predicate until it holds or the bound ends.
     fn wait_for(

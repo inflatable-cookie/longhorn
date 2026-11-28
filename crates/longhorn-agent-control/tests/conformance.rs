@@ -29,6 +29,7 @@ use longhorn_agent_control::{
 };
 use serde_json::{Value, json};
 use tempfile::TempDir;
+use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _, BufReader};
 use tower::ServiceExt as _;
 
 const SESSION_HEADER: &str = "mcp-session-id";
@@ -959,7 +960,7 @@ async fn two_clients_interleave_without_cross_talk() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn discovery_lifetime_tracks_the_server() {
+async fn shutdown_drains_an_open_listen_stream_and_removes_discovery() {
     let root = TempDir::new().unwrap();
     let dir = root.path().join("agent-control");
     let config = ControlServerConfig {
@@ -969,7 +970,7 @@ async fn discovery_lifetime_tracks_the_server() {
     };
 
     let (shutdown, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
-    let server = tokio::spawn(serve_control_surface(
+    let mut server = tokio::spawn(serve_control_surface(
         config,
         StubHandler::default(),
         SelectionRegistry::new("dev.example.conformance"),
@@ -1026,9 +1027,51 @@ async fn discovery_lifetime_tracks_the_server() {
     assert!(raw.contains("\"evaluate\""), "{raw}");
     assert!(!raw.to_ascii_lowercase().contains(SESSION_HEADER), "{raw}");
 
-    // Shutdown removes the file.
+    let mut listener = BufReader::new(
+        tokio::net::TcpStream::connect(("127.0.0.1", port))
+            .await
+            .unwrap(),
+    );
+    let body = json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "subscriptions/listen",
+        "params": {
+            "notifications": {"resourceSubscriptions": ["longhorn://agent-control/selection"]},
+            "_meta": meta(),
+        },
+    })
+    .to_string();
+    let request = format!(
+        "POST /mcp HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Type: application/json\r\nAccept: application/json, text/event-stream\r\nAuthorization: Bearer {}\r\nMcp-Protocol-Version: 2026-07-28\r\nMcp-Method: subscriptions/listen\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+        token.as_str(),
+        body.len(),
+    );
+    listener.write_all(request.as_bytes()).await.unwrap();
+    tokio::time::timeout(Duration::from_secs(2), async {
+        let mut line = String::new();
+        loop {
+            line.clear();
+            assert_ne!(
+                listener.read_line(&mut line).await.unwrap(),
+                0,
+                "stream ended before acknowledgment"
+            );
+            if line.contains("notifications/subscriptions/acknowledged") {
+                break;
+            }
+        }
+    })
+    .await
+    .expect("listen stream acknowledged the subscription");
+
+    // Keep the client connected until the server has finished shutting down.
     shutdown.send(()).unwrap();
-    let receipt = server.await.unwrap().unwrap();
+    let Ok(result) = tokio::time::timeout(Duration::from_secs(2), &mut server).await else {
+        server.abort();
+        panic!("shutdown stalled on the open subscription");
+    };
+    let receipt = result.unwrap().unwrap();
     assert_eq!(receipt.bound.port(), port);
     assert!(enumerate_discovery(&dir).unwrap().instances.is_empty());
 }

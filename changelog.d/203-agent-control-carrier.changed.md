@@ -1,0 +1,1 @@
+The stdio carrier bounds HTTP replies and reports stream failures against the pending request id. Rust callers can match `CarrierError::HttpClient` or `Input` in place of `Exchange`. `Discovery` and `OutputClosed` now carry typed errors. Enable Tokio's `process` feature directly if your application needs it.

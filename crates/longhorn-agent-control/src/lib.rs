@@ -24,9 +24,9 @@ pub use discovery::{
     DISCOVERY_SCHEMA_VERSION, DiscoveryError, DiscoveryFile, DiscoveryInstance, DiscoveryRecord,
     DiscoveryScan, enumerate_discovery, enumerate_discovery_with, process_alive, publish_discovery,
     remove_discovery_file, resolve_discovery_dir, resolve_discovery_dir_with_state_override,
-    sweep_stale_discovery, sweep_stale_discovery_with,
+    sweep_stale_discovery, sweep_stale_discovery_with, validate_app_id,
 };
-pub use handler::{ControlHandler, PageEvent, PageEventBatch};
+pub use handler::{ControlHandler, PageEvent, PageEventBatch, PageEventReader};
 pub use provider::{NativeSurfaceAction, NativeSurfaceProvider};
 pub use selection::{
     BeginSelectionArgs, BeginSelectionError, BeginSelectionRequest, DEFAULT_SELECTION_TTL,

@@ -55,11 +55,15 @@ agent can use while the app runs unfocused in the background.
   pending requests. Selection updates are pushed over a watch channel with
   zero polling; page-event subscriptions poll `readEvents` on a retained
   50 ms interval with a 2 s per-evaluation bound run concurrently with
-  cancellation and selection notifications. Resource reads and polling use a
+  cancellation and selection notifications. Tauri binds each listener to the
+  default UI webview resolved on its first successful target lookup. Focus
+  changes leave the listener on that webview. Resource reads and polling use a
   dedicated host read that leaves picker origin untouched. The event batch
   requires `epoch`, `events`, `nextSeq`, and `dropped`. The shim resets the
   read cursor when the document epoch changes.
-- Closing a request's response stream cancels that request.
+- Closing a request's response stream cancels that request. Server shutdown
+  cancels active MCP exchanges and settles pending selections before draining
+  HTTP connections and removing discovery.
 
 ### Availability And Security
 
@@ -83,12 +87,11 @@ agent can use while the app runs unfocused in the background.
   (opt-in `client` feature): it fronts the discovered instance with its
   bearer over stdio, one POST per message, and owns no catalogue,
   registry, lease, or listener. No second production MCP server exists.
-  Every reply a harness receives through the carrier is the router's own
-  reply to the same exchange made directly over HTTP: the carrier stamps
-  each POST with the harness's own declared protocol version, so the server
-  answers both paths from the same source and the two cannot drift. The
-  carrier suite (`test:agent-control-carrier`) proves this exchange by
-  exchange.
+  The carrier stamps each POST with the harness's declared protocol version
+  and forwards the server's replies and notifications. It buffers at most
+  64 MiB per response body or in-progress SSE event. An HTTP read or size
+  failure, or a stream that closes before its terminal reply, produces a
+  JSON-RPC transport error for the pending request id.
 
 ### Discovery
 
@@ -140,6 +143,9 @@ agent can use while the app runs unfocused in the background.
   `requestAnimationFrame` entirely while the window is not key,
   so rAF-driven visuals must not be awaited and elapsed time proves
   nothing about page progress.
+- Tauri bounds target lookup and evaluation for `evaluate`, `snapshot`,
+  and the input tools to five seconds per call. On expiry, the caller
+  receives `evaluationFailed`. JavaScript already running may still complete.
 - `screenshot`: one image of the whole logical window, composed on macOS
   from every hosted webview's own fresh viewport snapshot (`takeSnapshot`
   reaches only the webview it is called on, so each surface is captured
@@ -174,8 +180,9 @@ agent can use while the app runs unfocused in the background.
   `save` calls. Its `longhorn` TypeScript entry point preserves their result
   shapes: one path or `null` for single selection, path array or `null` for
   multiple selection, and one path or `null` for save. Directory selection
-  is an `open` request with directory intent. The caller's existing handling
-  of the returned path remains app-owned.
+  is an `open` request with directory intent. A save request specifying
+  `multiple` or `directory` fails with `invalidArgument` before publication.
+  The caller's existing handling of the returned path remains app-owned.
 - A pending request has a unique id, requesting app instance, window and
   webview, selection kind, multiplicity, filters, title, and optional default path.
   The default path is a hint, never an answer. The pending state is readable
@@ -193,8 +200,9 @@ agent can use while the app runs unfocused in the background.
   plugin's cancellation result). The Rust waiter receives the rejection reason.
   Unknown, expired, already-settled, malformed,
   or kind-incompatible answers fail typed. Single, multiple, directory, and
-  save cardinality and shape are checked before delivery; an `open` answer
-  must name an existing file or directory of the requested kind. No default path or
+  save cardinality and shape are checked before delivery. All answer paths
+  must be absolute. An `open` answer must name an existing file or directory
+  of the requested kind. No default path or
   silent native-dialog fallback is allowed for an agent-routed request.
 - The selection route is available under `agent-control` in both dev and
   packaged builds. A build without that feature contains no selection

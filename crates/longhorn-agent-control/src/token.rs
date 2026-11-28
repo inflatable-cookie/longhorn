@@ -21,7 +21,7 @@ const TOKEN_CHARS: usize = 43;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TokenError {
     /// The operating system CSPRNG was unavailable.
-    EntropyUnavailable,
+    EntropyUnavailable(getrandom::Error),
     /// Token was not exactly 43 characters.
     InvalidLength {
         /// Length actually supplied.
@@ -37,7 +37,9 @@ pub enum TokenError {
 impl fmt::Display for TokenError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EntropyUnavailable => formatter.write_str("operating system CSPRNG unavailable"),
+            Self::EntropyUnavailable(source) => {
+                write!(formatter, "operating system CSPRNG unavailable: {source}")
+            }
             Self::InvalidLength { actual } => {
                 write!(
                     formatter,
@@ -54,7 +56,14 @@ impl fmt::Display for TokenError {
     }
 }
 
-impl Error for TokenError {}
+impl Error for TokenError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::EntropyUnavailable(source) => Some(source),
+            _ => None,
+        }
+    }
+}
 
 /// A per-instance bearer token.
 ///
@@ -81,7 +90,7 @@ impl InstanceToken {
     /// Generates a fresh token from the operating system's CSPRNG.
     pub fn generate() -> Result<Self, TokenError> {
         let mut bytes = [0_u8; TOKEN_RANDOM_BYTES];
-        getrandom::fill(&mut bytes).map_err(|_| TokenError::EntropyUnavailable)?;
+        getrandom::fill(&mut bytes).map_err(TokenError::EntropyUnavailable)?;
         Self::new(URL_SAFE_NO_PAD.encode(bytes))
     }
 
@@ -157,6 +166,15 @@ const fn is_base64url(symbol: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn entropy_error_exposes_its_cause() {
+        let error = TokenError::EntropyUnavailable(getrandom::Error::UNSUPPORTED);
+        assert_eq!(
+            error.source().unwrap().downcast_ref::<getrandom::Error>(),
+            Some(&getrandom::Error::UNSUPPORTED)
+        );
+    }
 
     #[test]
     fn generated_tokens_validate_and_round_trip() {

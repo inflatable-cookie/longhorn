@@ -365,9 +365,11 @@ macOS quit delivers `RunEvent::Exit` without a preceding `ExitRequested`.
 Hooking only `ExitRequested` strands the discovery file on clean quit.
 Hook both. `Option::take` makes the second fire a no-op.
 
-`mount_agent_control` returns before the server binds, so a startup failure
-such as a port already in use does not fail the mount. `shutdown` reports it
-instead as `AgentControlShutdownError::Serve`, after joining the server thread.
+`mount_agent_control` validates the app id before installing the plugin.
+It returns before the server binds. A bind failure surfaces from `shutdown`
+as `AgentControlShutdownError::Serve` after joining the server thread. During
+shutdown, open subscriptions and in-flight requests waiting for the app's
+main thread are cancelled before the server drains its connections.
 
 ```rust
 app.run(|app, event| {
