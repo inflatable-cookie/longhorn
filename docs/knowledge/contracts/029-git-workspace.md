@@ -81,9 +81,10 @@ vocabulary, `secrecy` for every secret value, `serde` and `serde_json` for the
 wire projections and the stored grant, a blocking `reqwest` with rustls for the
 device flow, the token exchange and the profile read, `sha2` for the token
 digest the identity cache keys on, `tempfile` for the bridge's private folder,
-`uuid` for staging names, and `rustix` on Unix for exclusive rename,
-process-group termination and child exit observation. It has no Tauri, no shell,
-no `unsafe` code and no credential-store implementation: the store is injected.
+`uuid` for staging names, and `rustix` on Unix for process-group termination
+and child exit observation, and on Linux and macOS for the exclusive rename.
+It has no Tauri, no shell, no `unsafe` code and no credential-store
+implementation: the store is injected.
 
 The handle:
 
@@ -674,7 +675,7 @@ within the skew, or has already expired, is refreshed before it is used. A
 grant with no declared expiry is used as it is unless the caller forces a
 refresh.
 
-A process-wide lock per slot covers the read, the exchange and the write, so
+A lock per slot covers the read, the exchange and the write, so
 two callers that need a refresh at once cause one exchange and the second
 adopts the rotated grant. `fresh_access_token(scope, client_id, client, now,
 force, rejected_access)` is the one entry point; `force_refresh_token` is its
