@@ -2,7 +2,7 @@
 
 Status: active compiled boundary
 Owner: Tom
-Updated: 2026-07-30
+Updated: 2026-11-28
 Evidence: `002-shared-desktop-systems-follow-up.md` (Git history);
 `014-command-input-and-palette-boundary.md` (Git history)
 
@@ -157,7 +157,13 @@ conflict semantics. Checked TypeScript passes the same fixtures. Each
 whitespace-separated search term must match a label, keyword, category path,
 command ID, or description. Command ID matching is case-insensitive. The
 TypeScript scorer folds IDs supplied through injected ports. Search results
-carry the original IDs for dispatch.
+carry the original IDs for dispatch. The TypeScript boundary therefore requires
+only a non-empty command id; every other command identifier follows the opaque
+grammar of contract 010, and every nested member is checked.
+
+A search the consumer injects is not part of the controller's load. Its failure
+leaves the loaded commands ready, clears the search hits and is reported as
+`searchFailure` until a later search succeeds.
 
 Equal-specificity bindings are ordered by binding ID in UTF-8 byte order.
 The renderer projector rejects catalogue commands with missing availability.

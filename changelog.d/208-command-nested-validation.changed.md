@@ -1,0 +1,1 @@
+Command validators check every nested catalogue, availability, keymap request and reply member against the generated field maps, so a binding without `trigger.modifiers` or a command without `textInputPolicy` is refused at load instead of breaking or ungating keypresses. Migration: custom command ports and keymap patches must send complete generated types.
