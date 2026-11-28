@@ -8,66 +8,68 @@ import type {
 
 import { freezeProjection } from "../../bindings/freeze-projection.ts";
 
+import { SessionProjection } from "../../bindings/session-projection.svelte.ts";
+
 export class OperationSession {
   readonly #controller: OperationController;
-  readonly #unobserve: () => void;
-  #projection: ReturnType<typeof project>;
+  readonly #projection: SessionProjection<ReturnType<typeof project>>;
 
   constructor(options: OperationControllerOptions) {
     this.#controller = new OperationController(options);
-    this.#projection = $state.raw(project(this.#controller));
-    this.#unobserve = this.#controller.observe(() => {
-      this.#projection = project(this.#controller);
-    });
+    this.#projection = new SessionProjection(this.#controller, () => project(this.#controller));
   }
 
   get status() {
-    return this.#projection.status;
+    return this.#projection.retryFailure ?? this.#projection.current.status;
   }
 
   get snapshot() {
-    return this.#projection.snapshot;
+    return this.#projection.current.snapshot;
   }
 
   get active() {
-    return this.#projection.active;
+    return this.#projection.current.active;
   }
 
   get recent() {
-    return this.#projection.recent;
+    return this.#projection.current.recent;
   }
 
   get selectedOperationId() {
-    return this.#projection.selectedOperationId;
+    return this.#projection.current.selectedOperationId;
   }
 
   get selected() {
-    return this.#projection.selected;
+    return this.#projection.current.selected;
   }
 
   get pendingCommands() {
-    return this.#projection.pendingCommands;
+    return this.#projection.current.pendingCommands;
   }
 
   get commandRejection() {
-    return this.#projection.commandRejection;
+    return this.#projection.current.commandRejection;
   }
 
   get commandFailure() {
-    return this.#projection.commandFailure;
+    return this.#projection.current.commandFailure;
   }
 
   start(): Promise<void> {
-    return this.#controller.start();
+    return this.#projection.start();
   }
 
   stop(): Promise<void> {
-    return this.#controller.stop();
+    return this.#projection.stop();
+  }
+
+  retry(): Promise<void> {
+    const status = this.status;
+    return status.kind === "failed" ? this.#projection.retry(status.error) : this.start();
   }
 
   async dispose(): Promise<void> {
-    this.#unobserve();
-    await this.#controller.stop();
+    await this.#projection.dispose();
   }
 
   select(operationId: OperationId | undefined): void {

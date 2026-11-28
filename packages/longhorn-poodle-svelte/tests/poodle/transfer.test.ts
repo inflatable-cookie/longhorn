@@ -1,10 +1,11 @@
 import { fireEvent, render, waitFor } from "@testing-library/svelte";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   CROSS_WINDOW_DRAG_MIME_TYPE,
   CROSS_WINDOW_DRAG_PROTOCOL_VERSION,
 } from "@inflatable-cookie/poodle-core";
+import type { CrossWindowDragTargetEvent } from "@inflatable-cookie/poodle-core";
 import {
   LONGHORN_TRANSFER_MIME_TYPE,
   TRANSFER_CANCEL_COMMAND,
@@ -35,6 +36,37 @@ import {
 } from "./support.ts";
 
 describe("public Poodle cross-window transfer seam", () => {
+  it("forwards host target events to subscribers until they unsubscribe", () => {
+    const hostListeners = new Set<(event: CrossWindowDragTargetEvent) => void>();
+    const target = createPanelTransferDropTarget({
+      state: transferState("client:target", async () => {
+        throw new Error("unexpected transfer command");
+      }),
+      selector: { kind: "explicit_zone", dropZoneId: "zone:center" },
+      nextRequestId: () => "request:commit-zone",
+      reportError: () => undefined,
+      subscribeToIncoming(listener) {
+        hostListeners.add(listener);
+        return () => {
+          hostListeners.delete(listener);
+        };
+      },
+    });
+    const listener = vi.fn();
+    const unsubscribe = target.subscribe(listener);
+    const event: CrossWindowDragTargetEvent = {
+      type: "left",
+      receipt: { protocolVersion: CROSS_WINDOW_DRAG_PROTOCOL_VERSION, token: "drag:incoming" },
+    };
+
+    for (const receive of hostListeners) {
+      receive(event);
+    }
+    expect(listener).toHaveBeenCalledExactlyOnceWith(event);
+    unsubscribe();
+    expect(hostListeners.size).toBe(0);
+  });
+
   it("arms before dragstart, writes only protocol payload, and commits an explicit lease zone", async () => {
     const sourceRequests: Array<unknown> = [];
     const commits: Array<PanelTransferCommand> = [];

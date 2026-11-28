@@ -36,6 +36,8 @@ export class SettingsSessionDocument {
   #registry = $state.raw<SettingsRegistrySnapshot | undefined>(undefined);
   #projection = $state.raw<SettingsRegistryProjection | undefined>(undefined);
   #route = $state.raw<SettingsRoute | undefined>(undefined);
+  #currentPageSession = $state.raw<SettingsPageSession | undefined>(undefined);
+  #acceptsRoutes = false;
   #routeGeneration = 0;
   #focusRevision = $state(0);
   #renderers = new Map<string, SettingsPageRenderer>();
@@ -73,8 +75,7 @@ export class SettingsSessionDocument {
   }
 
   get currentPageSession(): SettingsPageSession | undefined {
-    const page = this.currentPage;
-    return page === undefined ? undefined : this.#pageSession(page);
+    return this.#currentPageSession;
   }
 
   currentScopes(): Array<SettingsScopeState> {
@@ -109,17 +110,27 @@ export class SettingsSessionDocument {
     this.#renderers = renderers;
     const [firstPage] = projection.pages;
     if (firstPage === undefined) {
+      this.#route = undefined;
       return "unsupported";
     }
     const route =
       preferredRoute !== undefined && registry.pages.some(({ id }) => id === preferredRoute.pageId)
         ? preferredRoute
         : { pageId: firstPage.id };
-    await this.installRoute(route);
+    this.#acceptsRoutes = true;
+    const moved = route.pageId !== this.#route?.pageId || route.anchorId !== this.#route?.anchorId;
+    await this.#installRoute(route, moved);
     return "ready";
   }
 
-  async installRoute(route: SettingsRoute): Promise<void> {
+  installRoute(route: SettingsRoute): Promise<void> {
+    return this.#installRoute(route, true);
+  }
+
+  async #installRoute(route: SettingsRoute, focus: boolean): Promise<void> {
+    if (!this.#acceptsRoutes) {
+      throw new SettingsRegistryUnavailableError();
+    }
     const registry = this.requiredRegistry();
     const { page } = resolveSettingsDeepLink(registry, route);
     // Scopes start asynchronously, so a route with scopes can commit after a
@@ -135,13 +146,17 @@ export class SettingsSessionDocument {
       return;
     }
     this.#route = route;
-    this.#pageSession(page);
-    this.#focusRevision += 1;
+    this.#currentPageSession = this.#pageSession(page);
+    if (focus) {
+      this.#focusRevision += 1;
+    }
   }
 
   async clearAuthority(): Promise<void> {
     // Any route install still awaiting its scope starts is superseded.
     this.#routeGeneration += 1;
+    this.#acceptsRoutes = false;
+    this.#currentPageSession = undefined;
     for (const page of this.#pages.values()) {
       page.stop();
     }

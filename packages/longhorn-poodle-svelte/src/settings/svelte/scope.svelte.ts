@@ -46,7 +46,7 @@ export class SettingsScopeState {
   }
 
   start(): Promise<void> {
-    return this.#lifecycle.start((generation) => this.#begin(generation));
+    return this.#lifecycle.start((generation) => this.#begin(generation), true);
   }
 
   accept(snapshot: SettingsScopeSnapshot): void {
@@ -103,6 +103,10 @@ export class SettingsScopeState {
     } catch (error) {
       if (generation === this.#lifecycle.generation) {
         this.#status = { kind: "failed", error };
+        const subscription = this.#subscription;
+        this.#subscription = undefined;
+        // The failed subscription retains its startup and teardown evidence.
+        await subscription?.dispose().catch(() => undefined);
       }
       throw error;
     }

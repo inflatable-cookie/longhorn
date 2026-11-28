@@ -2,6 +2,7 @@ import { fireEvent, waitFor } from "@testing-library/svelte";
 import { describe, expect, it } from "vitest";
 
 import type { InvokeTransport } from "@inflatable-cookie/longhorn/core";
+import { LONGHORN_TRANSFER_MIME_TYPE } from "@inflatable-cookie/longhorn/transfer";
 import {
   TRANSFER_COMMIT_SURFACE_COMMAND,
   TRANSFER_START_SURFACE_COMMAND,
@@ -29,6 +30,44 @@ function deferred<T>() {
 }
 
 describe("SurfaceTransferState", () => {
+  it.each([TRANSFER_START_SURFACE_COMMAND, TRANSFER_COMMIT_SURFACE_COMMAND])(
+    "keeps Surface transfer available after %s rejects",
+    async (failedCommand) => {
+      const failure = new Error("command refused");
+      let shouldFail = true;
+      const state = new SurfaceTransferState({
+        client: new SurfaceTransferClient({
+          async invoke(command) {
+            if (command === failedCommand && shouldFail) {
+              shouldFail = false;
+              throw failure;
+            }
+            return command === TRANSFER_START_SURFACE_COMMAND
+              ? fixture.session_responses[0]
+              : fixture.commit_responses[0];
+          },
+        }),
+        async cancelSession() {},
+      });
+      const start = fixture.session_requests[0] as SurfaceSessionStartRequest;
+      const commit = fixture.commit_requests[0] as SurfaceTransferCommand;
+
+      await state.start();
+      if (failedCommand === TRANSFER_START_SURFACE_COMMAND) {
+        await expect(state.prepare(start)).rejects.toBe(failure);
+        expect(state.preparation).toEqual({ status: "failed", error: failure });
+      } else {
+        await state.prepare(start);
+        await expect(state.commit(commit)).rejects.toBe(failure);
+        expect(state.completion).toEqual({ status: "failed", error: failure });
+      }
+      expect(state.status.kind).toBe("ready");
+      await state.cancelPreparation();
+      await expect(state.prepare(start)).resolves.toMatchObject({ status: "started" });
+      await state.destroy();
+    },
+  );
+
   it("cancels a preparation that completes after teardown", async () => {
     const preparation = deferred<SurfaceSessionResponse>();
     const cancelled: Array<string> = [];
@@ -128,7 +167,15 @@ describe("SurfaceTransferState", () => {
     dragAction.update({ ...dragOptions, reportError: (error) => errors.push(error) });
     source.dispatchEvent(dragEvent("dragstart", dataTransfer));
     dragAction.update({ ...dragOptions, reportError: (error) => errors.push(error) });
-    target.dispatchEvent(dragEvent("dragover", dataTransfer));
+    const protectedStore = new DataTransfer();
+    protectedStore.setData(LONGHORN_TRANSFER_MIME_TYPE, "");
+    const dragOver = dragEvent("dragover", protectedStore);
+    target.dispatchEvent(dragOver);
+    expect(dragOver.defaultPrevented).toBe(true);
+    expect(protectedStore.dropEffect).toBe("move");
+    const unrelatedDragOver = dragEvent("dragover", new DataTransfer());
+    target.dispatchEvent(unrelatedDragOver);
+    expect(unrelatedDragOver.defaultPrevented).toBe(false);
     target.dispatchEvent(dragEvent("drop", dataTransfer, { screenX: 800, screenY: 420 }));
 
     await waitFor(() => expect(commands.length + errors.length).toBeGreaterThan(0));

@@ -76,8 +76,9 @@ describe("DropZoneLeaseRegistry", () => {
     document.body.append(scroller);
     scroller.append(first, second);
     let top = 30.5;
+    let width = 300;
     first.getBoundingClientRect = () => rectangle(20.25, top, 400, 260);
-    second.getBoundingClientRect = () => rectangle(440, 30, 300, 260);
+    second.getBoundingClientRect = () => rectangle(440, 30, width, 260);
     const firstAction = registry.zone(first, {
       id: "zone:center",
       insertion_position: 1,
@@ -130,6 +131,14 @@ describe("DropZoneLeaseRegistry", () => {
     );
 
     expect(requests).toHaveLength(2);
+
+    width = 0;
+    await registry.publish();
+    expect(requests.at(-1)?.zones.map(({ id }) => id)).toEqual(["zone:center"]);
+
+    width = 300;
+    await registry.publish();
+    expect(requests.at(-1)?.zones.map(({ id }) => id)).toEqual(["zone:center", "zone:surface"]);
 
     listener?.({
       ...snapshot,

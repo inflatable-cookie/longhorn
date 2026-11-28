@@ -19,6 +19,25 @@ import {
 } from "./support.ts";
 
 describe("operation Svelte and public Poodle adapters", () => {
+  it("retries a failed operation subscription through the panel", async () => {
+    const { port, session } = createMountedSession();
+    const read = vi
+      .spyOn(port, "snapshot")
+      .mockRejectedValueOnce(new Error("Operation host unavailable"));
+    const mounted = render(OperationPanelHarness, {
+      props: { session, shape: "soundcheck" },
+    });
+
+    expect(await mounted.findByText("Operation host unavailable")).toBeTruthy();
+    await fireEvent.click(mounted.getByRole("button", { name: "Retry" }));
+    expect(await mounted.findByRole("button", { name: "Scan plug-ins" })).toBeTruthy();
+    expect(read).toHaveBeenCalledTimes(2);
+    expect(port.listeners.size).toBe(1);
+    mounted.unmount();
+    await session.stop();
+    expect(port.listeners.size).toBe(0);
+  });
+
   it("keeps operation projections read-only while session commands update selection", async () => {
     const { session } = createMountedSession();
     await session.start();

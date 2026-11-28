@@ -25,6 +25,55 @@ function connection(
 }
 
 describe("ReactiveClientState", () => {
+  it("retries a failed start after disposing its connection", async () => {
+    const failure = new Error("snapshot unavailable");
+    const dispose = vi.fn(async () => undefined);
+    const connect = vi
+      .fn(() => connection(() => "recovered"))
+      .mockImplementationOnce(() => connection(() => undefined, Promise.reject(failure), dispose));
+    const state = new ReactiveClientState({ capability: { kind: "supported", connect } });
+
+    await expect(state.start()).rejects.toBe(failure);
+    expect(dispose).toHaveBeenCalledTimes(1);
+    await state.start();
+    expect(state.status.kind).toBe("ready");
+    expect(state.snapshot).toBe("recovered");
+    await state.destroy();
+  });
+
+  it("retains the snapshot during reconnect and ignores the old listener", async () => {
+    const disposal = deferred<void>();
+    const release = vi.fn(() => disposal.promise);
+    const replacementRelease = vi.fn(async () => undefined);
+    let oldListener: ((value: string) => void) | undefined;
+    const state = new ReactiveClientState<string>({
+      capability: {
+        kind: "supported",
+        connect(listener) {
+          if (oldListener === undefined) {
+            oldListener = listener;
+            return connection(() => "initial", Promise.resolve(), release);
+          }
+          return connection(() => "replacement", Promise.resolve(), replacementRelease);
+        },
+      },
+    });
+
+    await state.start();
+    const reconnect = state.reconnect();
+    expect(state.status.kind).toBe("reconnecting");
+    expect(state.snapshot).toBe("initial");
+    oldListener?.("stale");
+    expect(state.snapshot).toBe("initial");
+    disposal.resolve();
+    await reconnect;
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(state.status.kind).toBe("ready");
+    expect(state.snapshot).toBe("replacement");
+    await state.stop();
+    expect(replacementRelease).toHaveBeenCalledTimes(1);
+  });
+
   it.each(["stop", "destroy"] as const)("lets %s supersede a queued start", async (end) => {
     const disposal = deferred<void>();
     let connections = 0;

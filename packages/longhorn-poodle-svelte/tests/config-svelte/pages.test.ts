@@ -76,6 +76,8 @@ describe("public Poodle config pages", () => {
 
     expect(screen.getAllByText("com.example.sample-app")).toHaveLength(2);
     expect(screen.getByText("/Users/example/Library/Caches/com.example.sample-app")).toBeTruthy();
+    expect(screen.getByText("macOS")).toBeTruthy();
+    expect(screen.queryByText("canonicalApplicationId")).toBeNull();
     const select = screen.getByLabelText("Storage profile");
     await fireEvent.change(select, {
       target: { value: "unified-app-root-v1" },
@@ -98,9 +100,10 @@ describe("public Poodle config pages", () => {
     });
 
     expect(screen.getByText("Unpublished configuration changes")).toBeTruthy();
-    for (const state of ["locked", "corrupt", "foreign", "unknown"]) {
+    for (const state of ["Locked", "Corrupt", "Different application", "Unrecognized archive"]) {
       expect(screen.getByRole("rowheader", { name: state })).toBeTruthy();
     }
+    expect(screen.getByText("Available")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Flush and create" })).toBeTruthy();
   });
 
@@ -239,6 +242,7 @@ describe("public Poodle config pages", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Run adapter restore" }));
 
     expect(await screen.findByText("Adapter restore receipt")).toBeTruthy();
+    expect(screen.getByText("app.database: Restore verified")).toBeTruthy();
     expect(transport.calls).toEqual([
       CONFIG_RESTORE_INSPECT_COMMAND,
       CONFIG_RESTORE_ADAPTER_EXECUTE_COMMAND,
@@ -283,6 +287,7 @@ describe("public Poodle config pages", () => {
     await fireEvent.click(screen.getByRole("button", { name: "Confirm recovery" }));
 
     expect(await screen.findByText("Recovery receipt")).toBeTruthy();
+    expect(screen.getByText(/Changes rolled back/)).toBeTruthy();
     expect(transport.calls).toEqual([CONFIG_RESTORE_RECOVER_COMMAND]);
   });
 });

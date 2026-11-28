@@ -132,6 +132,33 @@ describe("command Svelte and public Poodle adapters", () => {
     await session.stop();
   });
 
+  it("distinguishes keymap loading, read failure, no matches and write failure", async () => {
+    const { session } = createSession();
+    await session.start();
+    const records = session.settingsRecords;
+    const mounted = render(KeybindingSettings, { records, status: { kind: "loading" } });
+    expect(mounted.getByLabelText("Loading keyboard shortcuts")).toBeTruthy();
+    expect(mounted.queryByRole("listitem")).toBeNull();
+
+    await mounted.rerender({ status: { kind: "failed", error: new Error("Keymap host offline") } });
+    expect(mounted.getByText("Keymap host offline")).toBeTruthy();
+    expect(mounted.queryByText("No matching commands")).toBeNull();
+
+    await mounted.rerender({ status: { kind: "ready" }, query: "does not exist" });
+    expect(mounted.getByText("No matching commands")).toBeTruthy();
+    expect(mounted.queryByText("Keymap host offline")).toBeNull();
+
+    await mounted.rerender({
+      query: "",
+      dirty: true,
+      mutation: { kind: "failed", error: new Error("Keymap could not be written") },
+    });
+    expect(mounted.getByText("Keymap could not be written")).toBeTruthy();
+    expect(mounted.queryByText("No matching commands")).toBeNull();
+    expect(mounted.getByRole("button", { name: "Apply" }).hasAttribute("disabled")).toBe(false);
+    await session.stop();
+  });
+
   it("resets the keymap only after confirmation", async () => {
     let resets = 0;
     const mounted = render(KeybindingSettings, {

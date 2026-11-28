@@ -173,9 +173,27 @@
     session.canLeaveCurrent ? null : "Apply or discard this page before leaving.",
   );
 
+  let focusedRoute: { session: SettingsSession; revision: number } | undefined;
   $effect(() => {
-    void session.focusRevision;
-    void tick().then(() => focusTarget?.focus());
+    const current = session;
+    const revision = current.focusRevision;
+    const target = focusTarget;
+    if (!open || target === null || revision === 0) {
+      return;
+    }
+    void tick().then(() => {
+      if (
+        target.isConnected &&
+        target === focusTarget &&
+        current === session &&
+        revision === current.focusRevision &&
+        open &&
+        (focusedRoute?.session !== current || focusedRoute.revision !== revision)
+      ) {
+        focusedRoute = { session: current, revision };
+        target.focus();
+      }
+    });
   });
 
   // A default rather than an optional parameter: the packed artifact strips
@@ -191,14 +209,7 @@
     // a scope that will not load, a deep link that no longer resolves -- is a
     // failure the operator has to see, not a promise nobody observes. Focus
     // moves only after the route it moves to has committed.
-    runAction(
-      () => session.navigate(route),
-      (navigated) => {
-        if (navigated) {
-          void tick().then(() => focusTarget?.focus());
-        }
-      },
-    );
+    runAction(() => session.navigate(route));
   }
 
   // Poodle's shell holds itself open on `closeRefusedReason` and returns
@@ -216,14 +227,10 @@
   // shown. It sits above the page region rather than inside it: a failed
   // navigation can leave the session in its failed state, and the page that
   // would have carried the record is then not the one on screen. The open
-  // dialogs cover the page, so they carry it too. The success continuation runs
-  // only after the action resolved, never beside the failure that replaced it.
+  // dialogs cover the page, so they carry it too.
   let actionFailure = $state<{ readonly error: unknown } | undefined>();
 
-  function runAction<Result>(
-    action: () => Promise<Result>,
-    onSuccess?: (result: Result) => void,
-  ): void {
+  function runAction<Result>(action: () => Promise<Result>): void {
     actionFailure = undefined;
     let result: Promise<Result>;
     try {
@@ -232,7 +239,7 @@
       actionFailure = { error };
       return;
     }
-    void result.then(onSuccess, (error: unknown) => {
+    void result.catch((error: unknown) => {
       actionFailure = { error };
     });
   }

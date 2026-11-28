@@ -1,3 +1,5 @@
+import { notify, reportError, resolveDropSelector } from "../bindings/drop-target.ts";
+import type { DropSelector } from "../bindings/drop-target.ts";
 import { errorMessage } from "../failures.ts";
 
 import {
@@ -8,7 +10,6 @@ import type {
   CrossWindowDragReceipt,
   CrossWindowDragSourceBridge,
   CrossWindowDragTargetBridge,
-  CrossWindowDragTargetEvent,
   DragDropCommitResult,
 } from "@inflatable-cookie/poodle-core";
 import { TRANSFER_PROTOCOL_VERSION } from "@inflatable-cookie/longhorn/transfer";
@@ -16,17 +17,11 @@ import type {
   PanelSessionStartRequest,
   PanelTransferCommand,
   PanelTransferResponse,
-  TransferCommitSelector,
   TransferSessionResponse,
 } from "@inflatable-cookie/longhorn/transfer";
 import type { TransferState } from "@inflatable-cookie/longhorn-poodle-svelte/transfer";
 
-export type PanelDropSelector =
-  | {
-      readonly kind: "explicit_zone";
-      readonly dropZoneId: string;
-    }
-  | { readonly kind: "screen_point" };
+export type PanelDropSelector = DropSelector;
 
 export interface PanelTransferDragSourceOptions {
   readonly state: TransferState;
@@ -38,6 +33,8 @@ export interface PanelTransferDragSourceOptions {
 export interface PanelTransferDropTargetOptions {
   readonly state: TransferState;
   readonly selector: PanelDropSelector;
+  /** Host-owned projection and terminal events for incoming drags. */
+  readonly subscribeToIncoming?: CrossWindowDragTargetBridge["subscribe"];
   readonly nextRequestId: () => string;
   readonly reportError: (error: unknown) => void;
   readonly onResponse?: (response: PanelTransferResponse) => void;
@@ -78,7 +75,7 @@ export function createPanelTransferDragSource(
     },
     cancel() {
       void options.state.cancelPreparation().catch((error: unknown) => {
-        report(options.reportError, error);
+        reportError(options.reportError, error);
       });
     },
   };
@@ -87,7 +84,6 @@ export function createPanelTransferDragSource(
 export function createPanelTransferDropTarget(
   options: PanelTransferDropTargetOptions,
 ): CrossWindowDragTargetBridge {
-  const listeners = new Set<(event: CrossWindowDragTargetEvent) => void>();
   return {
     capabilities: {
       pointer: true,
@@ -95,10 +91,7 @@ export function createPanelTransferDropTarget(
       keyboardTargetPicker: false,
     },
     subscribe(listener) {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
+      return options.subscribeToIncoming?.(listener) ?? (() => undefined);
     },
     async commit(request, signal) {
       if (signal.aborted) {
@@ -109,19 +102,19 @@ export function createPanelTransferDropTarget(
           protocol_version: TRANSFER_PROTOCOL_VERSION,
           request_id: options.nextRequestId(),
           session_id: request.receipt.token,
-          selector: resolveSelector(options),
+          selector: resolveDropSelector(options.selector, options.screenPoint),
         };
         const response = await options.state.commitPanel(transferRequest);
         notify(options.onResponse, response, options.reportError);
         return commitResult(response);
       } catch (error) {
-        report(options.reportError, error);
+        reportError(options.reportError, error);
         return {
           status: "failed",
           reason: errorMessage(error),
         };
       } finally {
-        notifyTerminal(options.onTerminal, options.reportError);
+        notify(options.onTerminal, undefined, options.reportError);
       }
     },
   };
@@ -134,59 +127,11 @@ function receiptFor(sessionId: string): CrossWindowDragReceipt {
   };
 }
 
-function resolveSelector(options: PanelTransferDropTargetOptions): TransferCommitSelector {
-  if (options.selector.kind === "explicit_zone") {
-    return {
-      kind: "explicit_zone",
-      drop_zone_id: options.selector.dropZoneId,
-    };
-  }
-  const point = options.screenPoint?.();
-  if (point === undefined || !Number.isSafeInteger(point.x) || !Number.isSafeInteger(point.y)) {
-    throw new RangeError("drop screen point must use integer screen DIPs");
-  }
-  return {
-    kind: "screen_point",
-    point: { x: point.x, y: point.y },
-  };
-}
-
 function commitResult(response: PanelTransferResponse): DragDropCommitResult {
   if (response.status === "committed") {
     return { status: "committed" };
   }
   return { status: "rejected", reason: response.abort.source.code };
-}
-
-function report(reporter: (error: unknown) => void, error: unknown): void {
-  try {
-    reporter(error);
-  } catch {
-    // Reporting failure must not escape an event callback.
-  }
-}
-
-function notify<T>(
-  listener: ((value: T) => void) | undefined,
-  value: T,
-  reporter: (error: unknown) => void,
-): void {
-  try {
-    listener?.(value);
-  } catch (error) {
-    report(reporter, error);
-  }
-}
-
-function notifyTerminal(
-  listener: (() => void) | undefined,
-  reporter: (error: unknown) => void,
-): void {
-  try {
-    listener?.();
-  } catch (error) {
-    report(reporter, error);
-  }
 }
 
 export type { CrossWindowDragReceipt };

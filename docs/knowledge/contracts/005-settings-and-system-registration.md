@@ -141,6 +141,10 @@ Listener registration precedes initial snapshots. Scope revision and registry
 generation reject stale updates. Teardown releases listeners and pending
 session work exactly once.
 
+An authority replacement clears the current page session before scope
+teardown. Page sessions are published after route scopes load. A registry
+update that retains the current page and anchor leaves focus alone.
+
 ## Presentation
 
 The same registry and session controller can be hosted in a modal, independent

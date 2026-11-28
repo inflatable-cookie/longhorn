@@ -30,7 +30,20 @@
     RestorePlanProjection,
     RestoreRecoveryReceiptProjection,
   } from "@inflatable-cookie/longhorn/config";
-  import { canUseArchive, compatibilityLabel, identityLabel } from "./restore-model.ts";
+  import {
+    canUseArchive,
+    compatibilityLabel,
+    consistencyModeLabels,
+    identityLabel,
+    restoreActionLabels,
+    restoreAdapterLabels,
+    restoreChoiceLabels,
+    restoreFailureLabels,
+    restoreRecoveryLabels,
+    restoreStageLabels,
+    sourceStateLabels,
+    storageClassLabels,
+  } from "./restore-model.ts";
   import type { RestoreChoice } from "./restore-model.ts";
   import ConfigSnapshotState from "./ConfigSnapshotState.svelte";
   import { configRequest, useConfigPage } from "./page-state.svelte.ts";
@@ -90,8 +103,8 @@
     })) ?? []),
   ]);
   const conflictOptions: Array<RadioGroupOption> = [
-    { value: "useArchive", label: "Use archive" },
-    { value: "keepCurrent", label: "Keep current" },
+    { value: "useArchive", label: restoreChoiceLabels.useArchive },
+    { value: "keepCurrent", label: restoreChoiceLabels.keepCurrent },
   ];
 
   async function inspect(): Promise<void> {
@@ -205,7 +218,6 @@
       if (outcome.status === "completed") {
         adapterReceipt = outcome.receipt;
         page.acceptSnapshot(outcome.snapshot);
-        page.notice = `Adapter restore finished with ${outcome.receipt.outcome}.`;
       } else {
         reject(outcome.rejection);
       }
@@ -233,7 +245,6 @@
       if (outcome.status === "recovered") {
         recoveryReceipt = outcome.receipt;
         page.acceptSnapshot(outcome.snapshot);
-        page.notice = `Recovery finished with ${outcome.receipt.outcome}.`;
       } else if (outcome.status === "recoveryRequired") {
         failure = outcome.failure;
         page.acceptSnapshot(outcome.snapshot);
@@ -388,7 +399,9 @@
                   <strong>{domain.domainId}</strong>
                   <p>{compatibilityLabel(domain.compatibility)}</p>
                   <small
-                    >{domain.storageClass} · {domain.consistencyGroup} · {domain.sourceState}</small
+                    >{storageClassLabels[domain.storageClass]} · {domain.consistencyGroup} · {sourceStateLabels[
+                      domain.sourceState
+                    ]}</small
                   >
                 </Stack>
                 <Stack>
@@ -423,7 +436,7 @@
             <Stack gap="sm" asRole="list">
               {#each inspection.consistencyGroups as group (group.id)}
                 <span role="listitem"
-                  ><strong>{group.id}</strong>: {group.mode} via {group.authority}</span
+                  ><strong>{group.id}</strong>: {consistencyModeLabels[group.mode]} via {group.authority}</span
                 >
               {/each}
             </Stack>
@@ -462,9 +475,9 @@
           <Stack gap="sm" asRole="list">
             {#each plan.entries as entry (entry.domainId)}
               <span role="listitem">
-                <strong>{entry.domainId}</strong>: {entry.choice}
+                <strong>{entry.domainId}</strong>: {restoreChoiceLabels[entry.choice]}
                 {#if entry.action}
-                  → {entry.action}{/if}
+                  · {restoreActionLabels.get(entry.action) ?? "Unknown action"}{/if}
                 {#if entry.current?.state === "present"}
                   ({entry.current.byteLength} bytes, {entry.current.sha256})
                 {/if}
@@ -511,22 +524,24 @@
     {#if failure}
       <Callout
         tone={failure.terminal === "recoveryRequired" ? "danger" : "warning"}
-        title={`Restore terminal: ${failure.terminal}`}
-        message={`${failure.stage}: ${failure.detail}`}
+        title={restoreFailureLabels[failure.terminal]}
+        message={`${restoreStageLabels[failure.stage]}: ${failure.detail}`}
       />
     {/if}
     {#if adapterReceipt}
       <Callout
         tone={adapterReceipt.outcome === "recoveryRequired" ? "danger" : "info"}
         title="Adapter restore receipt"
-        message={`${adapterReceipt.domainId}: ${adapterReceipt.outcome}`}
+        message={`${adapterReceipt.domainId}: ${restoreAdapterLabels[adapterReceipt.outcome]}`}
+        announceMode="polite"
       />
     {/if}
     {#if recoveryReceipt}
       <Callout
         tone="success"
         title="Recovery receipt"
-        message={`${recoveryReceipt.outcome}; ${recoveryReceipt.domainIds.length} domain(s) considered.`}
+        message={`${restoreRecoveryLabels[recoveryReceipt.outcome]}. ${recoveryReceipt.domainIds.length} domain(s) considered.`}
+        announceMode="polite"
       />
     {/if}
   </Stack>

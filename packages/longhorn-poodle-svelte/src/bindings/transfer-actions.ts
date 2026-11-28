@@ -128,13 +128,20 @@ export class DropZoneLeaseRegistry {
       throw new DropZoneLeaseSnapshotUnavailableError();
     }
     const generation = nextGeneration(this.#lastGeneration);
+    const zones: Array<ClientDropZone> = [];
+    for (const registration of this.#zones.values()) {
+      const zone = measureZone(registration);
+      if (zone !== undefined) {
+        zones.push(zone);
+      }
+    }
     const request: TransferLeaseRequest = {
       protocol_version: TRANSFER_PROTOCOL_VERSION,
       request_id: this.#options.nextRequestId(),
       client_id: snapshot.client_id,
       client_epoch: snapshot.client_epoch,
       generation,
-      zones: [...this.#zones.values()].map(measureZone),
+      zones,
     };
     const response = await this.#options.state.publishLease(request);
     if (response.status === "published") {
@@ -198,15 +205,18 @@ export class DropZoneLeaseDestroyedError extends Error {
   }
 }
 
-function measureZone(registration: RegisteredZone): ClientDropZone {
+function measureZone(registration: RegisteredZone): ClientDropZone | undefined {
   const rect = registration.node.getBoundingClientRect();
   for (const value of [rect.left, rect.top, rect.width, rect.height]) {
     if (!Number.isFinite(value)) {
       throw new RangeError("drop-zone geometry must be finite");
     }
   }
-  if (rect.width <= 0 || rect.height <= 0) {
-    throw new RangeError("drop-zone geometry must have positive extent");
+  if (rect.width < 0 || rect.height < 0) {
+    throw new RangeError("drop-zone geometry must have non-negative extent");
+  }
+  if (rect.width === 0 || rect.height === 0) {
+    return undefined;
   }
   return {
     ...registration.definition,

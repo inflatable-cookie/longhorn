@@ -10,62 +10,59 @@ import type {
 } from "@inflatable-cookie/longhorn/history-tree/protocol";
 import { freezeProjection } from "../../bindings/freeze-projection.ts";
 
+import { SessionProjection } from "../../bindings/session-projection.svelte.ts";
+
 export class ForkHistorySession {
   readonly #controller: ForkHistoryController;
-  readonly #unobserve: () => void;
-  #projection: ReturnType<typeof project>;
+  readonly #projection: SessionProjection<ReturnType<typeof project>>;
 
   constructor(options: ForkHistoryControllerOptions) {
     this.#controller = new ForkHistoryController(options);
-    this.#projection = $state.raw(project(this.#controller));
-    this.#unobserve = this.#controller.observe(() => {
-      this.#projection = project(this.#controller);
-    });
+    this.#projection = new SessionProjection(this.#controller, () => project(this.#controller));
   }
   get status() {
-    return this.#projection.status;
+    return this.#projection.current.status;
   }
 
   get snapshot() {
-    return this.#projection.snapshot;
+    return this.#projection.current.snapshot;
   }
 
   get path() {
-    return this.#projection.path;
+    return this.#projection.current.path;
   }
 
   get branches() {
-    return this.#projection.branches;
+    return this.#projection.current.branches;
   }
 
   get entries() {
-    return this.#projection.entries;
+    return this.#projection.current.entries;
   }
 
   get navigationPending() {
-    return this.#projection.navigationPending;
+    return this.#projection.current.navigationPending;
   }
 
   get canUndo() {
-    return this.#projection.canUndo;
+    return this.#projection.current.canUndo;
   }
 
   get canRedo() {
-    return this.#projection.canRedo;
+    return this.#projection.current.canRedo;
   }
 
   start() {
-    return this.#controller.start();
+    return this.#projection.start();
   }
   stop() {
-    return this.#controller.stop();
+    return this.#projection.stop();
   }
   refresh() {
     return this.#controller.refresh();
   }
   async dispose() {
-    this.#unobserve();
-    await this.#controller.stop();
+    await this.#projection.dispose();
   }
   loadBranches(offset = 0) {
     return this.#controller.loadBranches(offset);

@@ -39,6 +39,112 @@ function deferred<T>() {
 }
 
 describe("TransferState", () => {
+  it("retries a failed startup and refreshes the client on reconnect", async () => {
+    const failure = new Error("transfer initially unavailable");
+    const listeners = new Set<(payload: unknown) => void>();
+    let epoch = fixture.client_snapshot.client_epoch;
+    let available = false;
+    const transport: EventTransport = {
+      async listen(_event, listener) {
+        listeners.add(listener);
+        return () => {
+          listeners.delete(listener);
+        };
+      },
+      async invoke() {
+        if (!available) {
+          throw failure;
+        }
+        return { ...fixture.client_snapshot, client_epoch: epoch };
+      },
+    };
+    const state = new TransferState({
+      client: new TransferClient(transport),
+      makeCancellationRequest: (sessionId) => ({
+        protocol_version: 1,
+        request_id: "request:cancel",
+        session_id: sessionId,
+      }),
+    });
+
+    await expect(state.start()).rejects.toBe(failure);
+    expect(listeners.size).toBe(0);
+    available = true;
+    await state.start();
+    expect(state.status.kind).toBe("ready");
+    expect(state.snapshot?.client_epoch).toBe(epoch);
+    const [priorListener] = listeners;
+
+    epoch += 1;
+    const reconnect = state.reconnect();
+    expect(state.status.kind).toBe("reconnecting");
+    expect(state.snapshot?.client_epoch).toBe(epoch - 1);
+    await reconnect;
+    expect(state.status.kind).toBe("ready");
+    expect(state.snapshot?.client_epoch).toBe(epoch);
+    expect(listeners.size).toBe(1);
+    expect([...listeners]).not.toContain(priorListener);
+    await state.destroy();
+    expect(listeners.size).toBe(0);
+  });
+
+  it.each(["preparation", "lease", "completion", "cancellation"] as const)(
+    "keeps cancellation available after a rejected %s request",
+    async (operation) => {
+      const failure = new Error("request refused");
+      const commands = {
+        preparation: TRANSFER_START_PANEL_COMMAND,
+        lease: TRANSFER_PUBLISH_LEASE_COMMAND,
+        completion: TRANSFER_COMMIT_PANEL_COMMAND,
+        cancellation: TRANSFER_CANCEL_COMMAND,
+      };
+      let rejected = false;
+      const cancel = fixture.cancel_requests[0] as TransferCancelRequest;
+      const transport: EventTransport = {
+        async listen() {
+          return () => undefined;
+        },
+        async invoke(command) {
+          if (command === commands[operation] && !rejected) {
+            rejected = true;
+            throw failure;
+          }
+          switch (command) {
+            case TRANSFER_SNAPSHOT_COMMAND:
+              return fixture.client_snapshot;
+            case TRANSFER_START_PANEL_COMMAND:
+              return fixture.session_responses[0];
+            case TRANSFER_CANCEL_COMMAND:
+              return fixture.cancel_responses[0];
+            default:
+              throw new Error(`unexpected command: ${command}`);
+          }
+        },
+      };
+      const state = new TransferState({
+        client: new TransferClient(transport),
+        makeCancellationRequest: (sessionId) => ({ ...cancel, session_id: sessionId }),
+      });
+      const prepare = () =>
+        state.preparePanel(fixture.session_requests[0] as PanelSessionStartRequest);
+      const invoke = {
+        preparation: prepare,
+        lease: () => state.publishLease(fixture.lease_requests[0] as TransferLeaseRequest),
+        completion: () => state.commitPanel(fixture.commit_requests[0] as PanelTransferCommand),
+        cancellation: () => state.cancel(cancel),
+      };
+      await state.start();
+      if (operation !== "preparation") {
+        await prepare();
+      }
+      await expect(invoke[operation]()).rejects.toBe(failure);
+      expect(state[operation]).toEqual({ status: "failed", error: failure });
+      expect(state.status.kind).toBe("ready");
+      await expect(state.cancel(cancel)).resolves.toMatchObject({ status: "cancelled" });
+      await state.destroy();
+    },
+  );
+
   it("cleans late preparation, timer, lease, and listener on stop", async () => {
     const preparation = deferred<TransferSessionResponse>();
     const timers = new Set<unknown>();

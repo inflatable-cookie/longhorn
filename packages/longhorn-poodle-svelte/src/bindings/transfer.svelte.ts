@@ -176,7 +176,6 @@ export class TransferState {
         if (generation === this.#preparationGeneration && !this.#stopped) {
           this.#clearPreparationTimer();
           this.#preparation = { status: "failed", error };
-          this.#lifecycle.fail(error);
         }
         throw error;
       });
@@ -204,7 +203,6 @@ export class TransferState {
       return response;
     } catch (error) {
       this.#lease = { status: "failed", error };
-      this.#lifecycle.fail(error);
       throw error;
     }
   }
@@ -232,7 +230,6 @@ export class TransferState {
       return response;
     } catch (error) {
       this.#completion = { status: "failed", error };
-      this.#lifecycle.fail(error);
       throw error;
     }
   }
@@ -366,7 +363,6 @@ export class TransferState {
       return response;
     } catch (error) {
       this.#cancellation = { status: "failed", error };
-      this.#lifecycle.fail(error);
       throw error;
     }
   }

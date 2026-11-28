@@ -28,6 +28,50 @@ function deferred<T>() {
 }
 
 describe("SurfaceState", () => {
+  it("keeps its subscription ready after a mutation fails and reconnects to a new epoch", async () => {
+    const failure = new Error("mutation refused");
+    let snapshot = fixture.snapshots[1] as SurfaceSnapshot;
+    let unlistens = 0;
+    const state = new SurfaceState({
+      client: new SurfaceClient({
+        async listen() {
+          return () => {
+            unlistens += 1;
+          };
+        },
+        async invoke(command) {
+          if (command === SURFACE_SNAPSHOT_COMMAND) {
+            return snapshot;
+          }
+          throw failure;
+        },
+      }),
+    });
+    await state.start();
+
+    const request = fixture.commands[0] as SurfaceMutationRequest;
+    await expect(state.mutate(request, (document) => ({ ...document, surfaces: [] }))).rejects.toBe(
+      failure,
+    );
+    expect(state.operations).toEqual([
+      { requestId: request.request_id, status: "failed", error: failure },
+    ]);
+    expect(state.projectedDocument).toEqual(snapshot.document);
+    expect(state.status.kind).toBe("ready");
+
+    const next = fixture.snapshots[0] as SurfaceSnapshot;
+    snapshot = { ...next, epoch: snapshot.epoch + 1 };
+    const reconnect = state.reconnect();
+    expect(state.status.kind).toBe("reconnecting");
+    await reconnect;
+    expect(state.status.kind).toBe("ready");
+    expect(state.snapshot).toEqual(snapshot);
+    expect(state.projectedDocument).toEqual(snapshot.document);
+    expect(unlistens).toBe(1);
+    await state.destroy();
+    expect(unlistens).toBe(2);
+  });
+
   it("reconciles request-keyed optimism against a newer snapshot", async () => {
     let snapshot = fixture.snapshots[0] as SurfaceSnapshot;
     const mutation = deferred<SurfaceMutationResponse>();
