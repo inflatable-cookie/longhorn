@@ -9,6 +9,7 @@ use longhorn_operation::{
     OperationChangedEvent, OperationMutationCommand, OperationOverallProgressProjection,
     OperationPhaseProgressProjection, OperationProtocolVersion, OperationSnapshot,
     OperationSnapshotQuery, OperationSnapshotResponse, OperationStateProjection,
+    QueuedCancellationConfirmation,
 };
 use serde_json::{json, to_value};
 
@@ -68,7 +69,10 @@ pub fn render() -> Result<String, Box<dyn Error>> {
         operation_id: id("operation:scan"),
         expected_operation_revision: OperationRevision::new(1),
     };
-    let cancelled = catalogue.execute_protocol_cancellation(cancel.clone())?;
+    let cancelled = catalogue.execute_protocol_cancellation(
+        cancel.clone(),
+        QueuedCancellationConfirmation::Unconfirmed,
+    )?;
     let terminal = OperationMutationCommand::Transition {
         request_id: id("request:terminal"),
         protocol_version: OperationProtocolVersion::CURRENT,

@@ -1,0 +1,1 @@
+Enforce lifecycle transition edges during `OperationCatalogue::teardown` so `Complete(state)` rejects illegal edges such as `Queued -> Succeeded` with `OperationCatalogueError::InvalidTransition` instead of allowing any terminal state.

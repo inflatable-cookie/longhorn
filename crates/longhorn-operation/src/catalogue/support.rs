@@ -289,6 +289,14 @@ pub(crate) fn validate_teardown(
             OperationTeardownResolutionOutcome::Complete(state) if !state.is_terminal() => {
                 return Err(OperationCatalogueError::InvalidTeardownTerminal { state: *state });
             }
+            OperationTeardownResolutionOutcome::Complete(state)
+                if !operation.state().can_transition_to(*state) =>
+            {
+                return Err(OperationCatalogueError::InvalidTransition {
+                    current: operation.state(),
+                    next: *state,
+                });
+            }
             OperationTeardownResolutionOutcome::Transfer(target)
                 if target == &catalogue.authority =>
             {

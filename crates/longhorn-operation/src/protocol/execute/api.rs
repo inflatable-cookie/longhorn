@@ -2,9 +2,17 @@
 
 use longhorn_core::OperationRequestId;
 
-use crate::{OperationCancellationOutcome, OperationCancellationRequest, OperationCatalogue};
-
-use super::super::*;
+use crate::protocol::{
+    OperationCancellationCommand, OperationCancellationOutcomeProjection,
+    OperationCancellationReceiptProjection, OperationCancellationResult,
+    OperationExecutorDispatchProjection, OperationMutationCommand, OperationMutationResult,
+    OperationProtocolProjectionError, OperationProtocolVersion, OperationRejection,
+    OperationSnapshot, incompatible_protocol,
+};
+use crate::{
+    OperationCancellationOutcome, OperationCancellationRequest, OperationCatalogue,
+    QueuedCancellationConfirmation,
+};
 
 use super::execute_mutation;
 
@@ -33,6 +41,7 @@ impl OperationCatalogue {
     pub fn execute_protocol_cancellation(
         &mut self,
         command: OperationCancellationCommand,
+        queued_confirmation: QueuedCancellationConfirmation,
     ) -> Result<OperationCancellationResult, OperationProtocolProjectionError> {
         let request_id = command.request_id.clone();
         if command.protocol_version != OperationProtocolVersion::CURRENT {
@@ -43,7 +52,8 @@ impl OperationCatalogue {
                 authority,
                 command.operation_id,
                 command.expected_operation_revision,
-            ),
+            )
+            .with_queued_confirmation(queued_confirmation),
             Err(error) => return self.rejected_cancellation(request_id, error.into()),
         };
         match self.request_cancellation(request) {

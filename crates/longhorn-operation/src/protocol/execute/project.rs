@@ -1,10 +1,12 @@
 //! Protocol execution over OperationCatalogue.
 
+use crate::protocol::{
+    OperationAuthorityProjection, OperationRejection, OperationTeardownOutcomeProjection,
+    OperationTeardownResolutionProjection,
+};
 use crate::{
     OperationTeardownOutcome, OperationTeardownResolution, OperationTeardownResolutionOutcome,
 };
-
-use super::super::*;
 
 pub(crate) fn project_teardown_resolution(
     value: OperationTeardownResolutionProjection,

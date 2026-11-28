@@ -1,8 +1,7 @@
 //! Protocol execution over OperationCatalogue.
 
 use crate::OperationCatalogueError;
-
-use super::super::*;
+use crate::protocol::{OperationProtocolInputError, OperationRejection, OperationRejectionCode};
 
 impl From<OperationCatalogueError> for OperationRejection {
     fn from(error: OperationCatalogueError) -> Self {

@@ -5,7 +5,7 @@ use longhorn_operation::{
     OperationCancellationSupportProjection, OperationCatalogue, OperationCatalogueLimits,
     OperationMutationCommand, OperationMutationResult, OperationOverallProgressProjection,
     OperationProtocolVersion, OperationSnapshot, OperationSnapshotQuery, OperationSnapshotResponse,
-    OperationStateProjection,
+    OperationStateProjection, QueuedCancellationConfirmation,
 };
 use serde_json::{Value, json};
 
@@ -47,7 +47,7 @@ fn main() {
         expected_operation_revision: OperationRevision::INITIAL,
     };
     let cancelled = catalogue
-        .execute_protocol_cancellation(cancel.clone())
+        .execute_protocol_cancellation(cancel.clone(), QueuedCancellationConfirmation::Unconfirmed)
         .unwrap();
     let repeat_cancel = OperationCancellationCommand {
         request_id: id("request:repeat-cancel"),
@@ -57,7 +57,10 @@ fn main() {
         expected_operation_revision: OperationRevision::new(1),
     };
     let repeated = catalogue
-        .execute_protocol_cancellation(repeat_cancel.clone())
+        .execute_protocol_cancellation(
+            repeat_cancel.clone(),
+            QueuedCancellationConfirmation::Unconfirmed,
+        )
         .unwrap();
     assert!(matches!(
         &repeated,

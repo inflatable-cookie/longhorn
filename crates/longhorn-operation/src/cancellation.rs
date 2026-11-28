@@ -82,7 +82,6 @@ pub enum OperationCancellationOutcome {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationCancellationReceipt {
     pub(crate) operation: OperationRecord,
-    pub(crate) operation_id: OperationId,
     pub(crate) outcome: OperationCancellationOutcome,
     pub(crate) previous_state: OperationState,
     pub(crate) committed_state: OperationState,
@@ -104,7 +103,7 @@ impl OperationCancellationReceipt {
     /// Returns the target operation.
     #[must_use]
     pub const fn operation_id(&self) -> &OperationId {
-        &self.operation_id
+        self.operation.operation_id()
     }
 
     /// Returns cancellation admission outcome.
