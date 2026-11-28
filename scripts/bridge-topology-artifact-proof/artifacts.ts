@@ -1,6 +1,6 @@
 import { readPackageManifest } from "../proof-json.ts";
 import { workspaceDependencies } from "../workspace-dependencies.ts";
-import { basename, join } from "node:path";
+import { basename, join, relative } from "node:path";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { MSRV } from "../msrv.ts";
 
@@ -56,9 +56,9 @@ const credentialValueMarkers = [
 // Match whole names in the source. Removing whitespace joined prose such as
 // “event source” into a network marker. Match call syntax and the literal
 // fixture domain prefix without joining adjacent prose.
-// Test-module text is in scope: Cargo packs `#[cfg(test)]` code under `src`,
-// so a fixture domain or a donor name in a test module ships with the crate.
-// Keep fixture names out of bridge sources, test modules included.
+// Tests are in scope: a bridge crate archive holds the whole crate directory,
+// so a fixture domain or a donor name in a test ships with the crate.
+// Keep fixture names out of the bridge crates, test modules included.
 const forbiddenPatterns = [
   ...[...donorNames, ...productionNetworkMarkers, ...credentialValueMarkers].map((marker) => ({
     marker,
@@ -204,18 +204,19 @@ export function assertBridgeSurface(
   }
 }
 
-async function auditRustBoundary(workspace: string): Promise<void> {
-  const source = (
-    await Promise.all(
-      ["longhorn-bridge", "longhorn-tauri-bridge"].map(async (name) => {
-        const crateRoot = join(workspace, "crates", name);
-        return `${await readFile(join(crateRoot, "Cargo.toml"), "utf8")}\n${await readSourceTree(
-          join(crateRoot, "src"),
-        )}`;
-      }),
-    )
-  ).join("\n");
-  assertProductNeutral("Rust bridge artifacts", source);
+/** Checks every file each packed bridge crate carries, not only `src`. */
+export async function auditRustBoundary(workspace: string): Promise<void> {
+  for (const name of ["longhorn-bridge", "longhorn-tauri-bridge"]) {
+    const crateRoot = join(workspace, "crates", name);
+    const entries = await readdir(crateRoot, { recursive: true, withFileTypes: true });
+    for (const entry of entries.filter((candidate) => candidate.isFile())) {
+      const path = join(entry.parentPath, entry.name);
+      assertProductNeutral(
+        `Rust bridge artifact ${name}/${relative(crateRoot, path)}`,
+        await readFile(path, "utf8"),
+      );
+    }
+  }
 }
 
 export function assertProductNeutral(label: string, source: string): void {

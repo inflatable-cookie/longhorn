@@ -1,7 +1,11 @@
 import { expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import {
   assertBridgeSurface,
   assertProductNeutral,
+  auditRustBoundary,
   bridgePackageName,
   packedTypescriptPackageNames,
 } from "./artifacts.ts";
@@ -33,6 +37,32 @@ test.each([
   expect(() => assertProductNeutral("test artifact", source)).toThrow(
     `test artifact contains forbidden marker: ${marker}`,
   );
+});
+
+test.each([
+  "longhorn-bridge/tests/contract.rs",
+  "longhorn-tauri-bridge/tests/support/mod.rs",
+  "longhorn-tauri-bridge/examples/permissions/query.toml",
+])("audits the packed file %s outside src", async (packed) => {
+  const workspace = await mkdtemp(join(tmpdir(), "longhorn-bridge-audit-"));
+  const write = async (path: string, text: string): Promise<void> => {
+    const target = join(workspace, "crates", path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, text);
+  };
+  try {
+    await write("longhorn-bridge/src/lib.rs", "//! Neutral.");
+    await write("longhorn-tauri-bridge/src/lib.rs", "//! Neutral.");
+    await write(packed, 'name = "example.workspace"');
+    await auditRustBoundary(workspace);
+
+    await write(packed, 'name = "fixture.workspace"');
+    await expect(auditRustBoundary(workspace)).rejects.toThrow(
+      `Rust bridge artifact ${packed} contains forbidden marker: fixture.`,
+    );
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+  }
 });
 
 const bridgeExportMap = {

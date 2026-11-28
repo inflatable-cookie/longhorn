@@ -39,15 +39,15 @@ fn absent_domains_remain_absent_and_extra_domains_are_rejected() {
 }
 
 #[test]
-fn query_only_minimal_shell_fixture_has_no_subscription_or_service_feature() {
-    let minimal_shell = receipt(
-        host("host:minimal-shell-desktop", BridgeHostForm::TauriLocal),
-        "session:minimal-shell",
+fn query_only_receipt_has_no_subscription_or_service_feature() {
+    let query_only = receipt(
+        host("host:query-only-desktop", BridgeHostForm::TauriLocal),
+        "session:query-only",
         &["request_reply"],
-        vec![capabilities("minimal-shell.workspace", &["query"]).unwrap()],
+        vec![capabilities("query-only.workspace", &["query"]).unwrap()],
         vec![authority(
-            "minimal-shell.workspace",
-            "scope:minimal-shell-workspace",
+            "query-only.workspace",
+            "scope:query-only-workspace",
             ReadAuthority::Authoritative,
             WriteAuthority::None,
             ExecutionAuthority::None,
@@ -57,14 +57,14 @@ fn query_only_minimal_shell_fixture_has_no_subscription_or_service_feature() {
     )
     .unwrap();
 
-    let feature_names: Vec<_> = minimal_shell
+    let feature_names: Vec<_> = query_only
         .transport_features()
         .iter()
         .map(TransportFeatureId::as_str)
         .collect();
     assert_eq!(feature_names, ["request_reply"]);
     assert_eq!(
-        minimal_shell.domain_capabilities()[0].capabilities()[0].as_str(),
+        query_only.domain_capabilities()[0].capabilities()[0].as_str(),
         "query"
     );
 }

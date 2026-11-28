@@ -22,7 +22,7 @@ use longhorn_core::{
 use longhorn_tauri_bridge::{BridgeAuthorityProvider, BridgeDomainRegistry, BridgeHostError};
 use serde_json::{Value, json};
 
-pub const DOMAIN: &str = "fixture.workspace";
+pub const DOMAIN: &str = "example.workspace";
 pub const READ: &str = "workspace.read";
 pub const WRITE: &str = "workspace.write";
 pub const CANCEL: &str = "workspace.cancel";

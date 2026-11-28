@@ -50,7 +50,7 @@ fn rejects_before_dispatch_when_session_authority_or_metadata_is_invalid() {
     let wrong_domain = query_request(
         "request:wrong-domain",
         receipt.session_id().as_str(),
-        "fixture.other",
+        "example.other",
     );
     assert_eq!(
         assembly
