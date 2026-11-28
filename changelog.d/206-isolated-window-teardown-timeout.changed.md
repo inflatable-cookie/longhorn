@@ -1,0 +1,1 @@
+Isolated-window teardown timeouts now return `IsolatedWindowError::TeardownTimedOut { timeout_millis }` and report `isolated:teardown-timeout` in apply receipts. Exhaustive matches on `IsolatedWindowError` must handle this variant; callers can retry teardown while the owner remains available.

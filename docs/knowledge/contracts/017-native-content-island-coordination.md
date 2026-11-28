@@ -156,7 +156,10 @@ return a typed island mismatch. Mechanism-specific lifecycle rules also apply:
   teardown, and yields only to the next generation. Attaching that successor
   first runs bounded teardown on the failed owner. A timeout or runtime error
   keeps the owner available for retry and blocks the successor from launching.
-  Teardown reports name the failed generation.
+  A readiness event that reports native content was not attached fails the
+  generation. Teardown reports name the failed generation, and a teardown
+  timeout is returned as a typed `TeardownTimedOut` adapter error carrying the
+  applied deadline.
 
 The isolated-window adapter admits up to 128 pending requests. It deduplicates
 all pending request IDs and the latest 256 accepted IDs per generation.

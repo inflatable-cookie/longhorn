@@ -562,6 +562,35 @@ fn helper_loss_is_terminal_and_stale_generation_cannot_mutate_replacement() {
 }
 
 #[test]
+fn readiness_without_native_content_fails_the_generation() {
+    let runtime = FakeRuntime::default();
+    let adapter = adapter(runtime.clone(), Arc::default());
+    let authority = coordinator(1);
+    adapter
+        .apply(&authority, &authority.plan().unwrap())
+        .unwrap();
+
+    runtime.emit(
+        1,
+        IsolatedWindowRuntimeEventKind::Ready {
+            snapshot: snapshot(),
+            owner_process_id: 42,
+            native_content_attached: false,
+        },
+    );
+
+    let observed = adapter.observe(generation(1)).unwrap();
+    let observed = serde_json::to_value(observed).unwrap();
+    assert_eq!(observed["lifecycle"], "failed");
+    assert_eq!(observed["readiness"], "not_ready");
+    assert!(!adapter.is_attached(generation(1)).unwrap());
+    assert_eq!(
+        adapter.admit_runtime_event(runtime_event(1, ready_event())),
+        Err(IsolatedWindowError::FailedGeneration)
+    );
+}
+
+#[test]
 fn failed_owner_blocks_replacement_until_teardown_succeeds() {
     let runtime = FakeRuntime::default();
     let adapter = adapter(runtime.clone(), Arc::default());
@@ -596,13 +625,16 @@ fn failed_owner_blocks_replacement_until_teardown_succeeds() {
 
     let timeout = TeardownOutcome::TimedOut { timeout_millis: 25 };
     // No queued outcome simulates a runtime error. A queued timeout is reported.
-    for outcomes in [vec![], vec![timeout.clone()]] {
+    for (outcomes, expected_code) in [
+        (vec![], "isolated:teardown-failed"),
+        (vec![timeout.clone()], "isolated:teardown-timeout"),
+    ] {
         runtime.set_teardown(outcomes.clone());
         let receipt = adapter.apply(&authority, &replacement).unwrap();
         let OperationOutcome::Failed { code } = receipt.steps()[0].outcome() else {
             panic!("expected teardown failure on the replacement's attach step");
         };
-        assert_eq!(code.as_str(), "isolated:teardown-failed");
+        assert_eq!(code.as_str(), expected_code);
         assert!(!runtime.calls().contains(&attach));
         assert_eq!(
             adapter.observe(generation(1)).unwrap().lifecycle(),
@@ -741,10 +773,7 @@ fn host_destroy_retires_before_teardown_and_retries_an_unresolved_owner() {
     }));
     assert!(matches!(
         adapter.host_destroyed(&host_window_id(), generation(1)),
-        Err(IsolatedWindowError::Runtime {
-            operation: IsolatedWindowRuntimeOperation::Teardown,
-            ..
-        })
+        Err(IsolatedWindowError::TeardownTimedOut { timeout_millis: 25 })
     ));
     assert!(!adapter.is_attached(generation(1)).unwrap());
     assert_eq!(
@@ -859,6 +888,10 @@ fn bounded_timeout_keeps_owner_for_retry_then_reports_termination() {
         timeout.steps()[0].outcome(),
         OperationOutcome::Failed { .. }
     ));
+    let OperationOutcome::Failed { code } = timeout.steps()[0].outcome() else {
+        panic!("expected a typed teardown timeout failure");
+    };
+    assert_eq!(code.as_str(), "isolated:teardown-timeout");
     assert!(adapter.is_attached(generation(1)).unwrap());
     let terminated = adapter.apply(&detached, &plan).unwrap();
     assert_eq!(terminated.steps()[0].outcome(), &OperationOutcome::Applied);

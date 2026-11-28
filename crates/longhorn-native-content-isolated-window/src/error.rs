@@ -90,6 +90,11 @@ pub enum IsolatedWindowError {
     UnsupportedDetachPolicy,
     /// The current owner generation failed terminally.
     FailedGeneration,
+    /// Owner teardown exceeded its deadline and remains available for retry.
+    TeardownTimedOut {
+        /// Applied teardown deadline in milliseconds.
+        timeout_millis: u64,
+    },
     /// A helper repeated a correlation identity in one generation.
     DuplicateCorrelation,
     /// The bounded pending content-request queue is full.
@@ -129,6 +134,7 @@ impl IsolatedWindowError {
             Self::UnsupportedInputMode => "isolated:input-mode",
             Self::UnsupportedDetachPolicy => "isolated:detach-policy",
             Self::FailedGeneration => "isolated:helper-lost",
+            Self::TeardownTimedOut { .. } => "isolated:teardown-timeout",
             Self::DuplicateCorrelation => "isolated:duplicate-correlation",
             Self::RequestCapacity => "isolated:request-capacity",
             Self::NotResizeRequest => "isolated:not-resize-request",
@@ -191,6 +197,10 @@ impl fmt::Display for IsolatedWindowError {
                 formatter.write_str("isolated content requires owner-process teardown")
             }
             Self::FailedGeneration => formatter.write_str("isolated owner generation failed"),
+            Self::TeardownTimedOut { timeout_millis } => write!(
+                formatter,
+                "isolated owner teardown exceeded its {timeout_millis}ms deadline"
+            ),
             Self::DuplicateCorrelation => {
                 formatter.write_str("helper repeated a request correlation identity")
             }

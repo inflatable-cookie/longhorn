@@ -263,7 +263,13 @@ impl<R: crate::IsolatedWindowRuntime> IsolatedWindowAdapter<R> {
             let mut suppressed = None;
             match &event.kind {
                 IsolatedWindowRuntimeEventKind::Progress { .. } => {}
-                IsolatedWindowRuntimeEventKind::Ready { .. } => attachment.ready = true,
+                IsolatedWindowRuntimeEventKind::Ready {
+                    native_content_attached,
+                    ..
+                } => {
+                    attachment.ready = *native_content_attached;
+                    attachment.failed = !*native_content_attached;
+                }
                 IsolatedWindowRuntimeEventKind::ContentRequest { request } => {
                     if attachment.recent_request_ids.contains(&request.request_id)
                         || attachment
