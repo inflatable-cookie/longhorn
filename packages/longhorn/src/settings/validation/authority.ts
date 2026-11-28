@@ -3,6 +3,7 @@ import {
   SETTINGS_ACTIVATION_STATES,
   SETTINGS_EDITABILITIES,
   SETTINGS_EFFECTIVE_SOURCES,
+  SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
   SETTINGS_HARD_MAXIMUM_TEXT_BYTES,
   SETTINGS_POLICY_EFFECTS,
   SETTINGS_RECOVERY_CODES,
@@ -13,7 +14,6 @@ import { activation, hasPolicyOverride, recovery } from "./projection.ts";
 import {
   array,
   authority,
-  HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
   identity,
   known,
   opaque,
@@ -25,7 +25,7 @@ import {
 
 export function assertValidSettingsScopeSnapshot(
   value: unknown,
-  maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
+  maximumOpaqueValueBytes: number = SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsScopeSnapshot {
   const snapshot = record(value, SETTINGS_FIELDS.SettingsScopeSnapshot);
   protocolVersion(snapshot.protocolVersion);

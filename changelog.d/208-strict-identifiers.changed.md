@@ -1,0 +1,1 @@
+The command, operation, Surface, transfer and Surface-transfer TypeScript validators refuse identifiers Rust would refuse, where they only checked for a string. Command ids still need only be non-empty. Migration: custom ports and hand-built requests must use identifiers of at most 128 characters from `a-z`, `0-9`, `.`, `_`, `:` and `-`.

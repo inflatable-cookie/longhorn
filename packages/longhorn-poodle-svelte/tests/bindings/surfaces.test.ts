@@ -27,6 +27,15 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+// The client rejects a reply that does not echo its request id.
+function committed(requestId: string): SurfaceMutationResponse {
+  const response = fixture.responses[0] as Extract<
+    SurfaceMutationResponse,
+    { status: "committed" }
+  >;
+  return { ...response, receipt: { ...response.receipt, request_id: requestId } };
+}
+
 describe("SurfaceState", () => {
   it("reconciles request-keyed optimism against a newer snapshot", async () => {
     let snapshot = fixture.snapshots[0] as SurfaceSnapshot;
@@ -119,7 +128,9 @@ describe("SurfaceState", () => {
             return fixture.snapshots[0];
           }
           const request = arguments_.request as SurfaceMutationRequest;
-          return request.request_id === "request:delayed" ? delayed.promise : fixture.responses[0];
+          return request.request_id === "request:delayed"
+            ? delayed.promise
+            : committed(request.request_id);
         },
       }),
     });
@@ -136,7 +147,7 @@ describe("SurfaceState", () => {
     expect(state.pendingRequestIds).toEqual(["request:delayed"]);
 
     await state.stop();
-    delayed.resolve(fixture.responses[0] as SurfaceMutationResponse);
+    delayed.resolve(committed("request:delayed"));
     await pending;
     expect(state.operations).toEqual([]);
     expect(state.status.kind).toBe("idle");

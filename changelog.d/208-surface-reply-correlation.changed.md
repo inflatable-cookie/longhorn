@@ -1,0 +1,1 @@
+`SurfaceClient.mutate` rejects a reply whose `request_id` differs from the request's, with the new `SurfaceProtocolValidationError` code `uncorrelated_response`. Migration: echo the request id from custom transports, and handle the new code in exhaustive matches.

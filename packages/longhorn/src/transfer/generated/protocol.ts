@@ -12,6 +12,9 @@ export const TRANSFER_LEASE_RESPONSE_STATUSES = ["published","aborted"] as const
 export const TRANSFER_CANCEL_RESPONSE_STATUSES = ["cancelled","aborted"] as const;
 export const TRANSFER_SESSION_CANCELLATION_STATUSES = ["cancelled","already_cancelled"] as const;
 export const PANEL_TRANSFER_RESPONSE_STATUSES = ["committed","aborted"] as const;
+export const TRANSFER_TARGET_RESOLUTION_PATHS = ["explicit_zone","screen_point"] as const;
+export const TRANSFER_PANEL_HOST_BINDING_KINDS = ["direct_window","surface_container"] as const;
+export const TRANSFER_SCREEN_POINT_FIELDS = ["x","y"] as const;
 export const TRANSFER_ERROR_CODES = ["clock_regressed","invalid_lifetime","session_capacity","session_id_allocation","session_id_collision","unknown_session","session_expired","session_cancelled","session_replayed","source_window_destroyed","source_client_changed","client_window_capacity","unknown_client_epoch","stale_client_epoch","stale_lease_generation","lease_capacity","invalid_lease","lease_expired","invalid_live_windows","target_window_missing","stale_window_geometry","no_target","ambiguous_window","ambiguous_zone","ineligible_capability"] as const;
 export const PANEL_TRANSFER_ERROR_CODES = ["invalid_binding_snapshot","unknown_host_binding","stale_host_binding","layout_load_failed","layout_unavailable","unknown_panel","panel_not_movable","source_changed","unsupported_source","unsupported_target","cross_document","copy_unsupported","stale_surface_revision","target_changed","ineligible_target","instance_policy_exceeded","invalid_insertion_position","layout_mutation_rejected","publication_failed","transfer_rejected"] as const;
 

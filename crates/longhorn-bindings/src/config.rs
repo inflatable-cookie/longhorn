@@ -1,7 +1,5 @@
 use std::error::Error;
 
-use longhorn_core::MAX_OPAQUE_ID_BYTES;
-
 use longhorn_config::{
     BackupArchiveProjection, BackupCaptureReceiptProjection, BackupConsistencyMode,
     BackupCreateCommand, BackupCreateOutcome, BackupEncryptionState, BackupExportCommand,
@@ -260,7 +258,6 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          import type {{ RestoreOperationsProjection }} from \"./restore.ts\";\n\n\
          export const CONFIG_OPERATIONS_PROTOCOL_VERSION = \
          {CONFIG_OPERATIONS_PROTOCOL_VERSION} as const;\n\
-         export const CONFIG_MAXIMUM_OPAQUE_ID_BYTES = {MAX_OPAQUE_ID_BYTES} as const;\n\
          export const CONFIG_OPERATION_CAPABILITIES = {} as const;\n\
          export const CONFIG_OPERATION_REJECTION_CODES = {} as const;\n\
          export const STORAGE_PROFILE_IDS = {} as const;\n\

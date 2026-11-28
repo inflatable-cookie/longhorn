@@ -1,4 +1,3 @@
-import { COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES } from "./generated/protocol.ts";
 import type {
   CommandBindingCandidate,
   CommandDiscoveryRecord,
@@ -11,6 +10,7 @@ import type {
   CommandKeymapConflict,
   CommandPlatform,
 } from "./generated/protocol.ts";
+import { isPhysicalCode } from "./physical-code.ts";
 import { shortcutLabel } from "./projectors.ts";
 import type { CommandExecutionOutcome, CommandExecutionSource } from "./ports.ts";
 
@@ -80,7 +80,7 @@ export function resolveCommandKeyboard(
   options: CommandKeyboardResolutionOptions,
 ): CommandKeyResolution {
   const { input } = options;
-  if (!validPhysicalCode(input.chord.code)) {
+  if (!isPhysicalCode(input.chord.code)) {
     return { kind: "unbound" };
   }
   if (input.repeat) {
@@ -352,13 +352,4 @@ function compareText(left: string, right: string): number {
     }
   }
   return leftValues.length - rightValues.length;
-}
-
-function validPhysicalCode(code: string): boolean {
-  return (
-    code !== "Unidentified" &&
-    code.length > 0 &&
-    code.length <= COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES &&
-    /^[A-Z][A-Za-z0-9]*$/u.test(code)
-  );
 }

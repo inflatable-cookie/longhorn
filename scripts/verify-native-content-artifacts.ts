@@ -30,7 +30,7 @@ const LONGHORN_VERSION = longhornVersion();
 const NATIVE_CONTENT_PROTOCOL_FIXTURE =
   "0c07d5109e28454da978bd87c14df1b2d7f3a47f71395b858cbc20fa004edbd4";
 const NATIVE_CONTENT_TYPESCRIPT_PROTOCOL =
-  "197e1d1d6412d8ff9db6b23d3e7e6692b7b4454630109fa551bbb1a780c3470d";
+  "17fb4b146f281795b1f29e5c7448385e481cdb02768cececd4c0680bac5ec487";
 const repoRoot = resolve(import.meta.dir, "..");
 const proofRoot = join(repoRoot, "examples", "native-content-system-proof");
 const temporaryRoot = await stagingDirectory("longhorn-native-content-artifact-proof");

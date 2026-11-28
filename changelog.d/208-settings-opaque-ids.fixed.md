@@ -1,0 +1,1 @@
+Settings validators admit exactly the identifiers Rust admits. An id starting with `.`, `_`, `:` or `-` no longer fails the whole renderer snapshot, and an id containing `/` or longer than 128 bytes is now refused. Settings renderer, scope and capability definitions and durability evidence also refuse unknown fields.

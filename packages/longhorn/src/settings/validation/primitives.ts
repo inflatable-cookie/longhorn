@@ -1,3 +1,4 @@
+import { isOpaqueId } from "../../core/identifiers.ts";
 import { checkWireFields, readWireRecord, wireVariantFields } from "../../core/record.ts";
 import {
   SETTINGS_VARIANT_FIELDS,
@@ -11,14 +12,6 @@ import {
 import type { SettingsOpaqueValue } from "../generated/protocol.ts";
 import { incompatible } from "./error.ts";
 import type { SettingsProtocolValidationCode } from "./error.ts";
-
-/**
- * Kept under its original name so the twenty call sites do not churn, but the
- * value is now the Rust `SettingsLimits::HARD_MAXIMUM_OPAQUE_VALUE_BYTES`
- * rather than a literal that happened to match it.
- */
-export const HARD_MAXIMUM_OPAQUE_VALUE_BYTES: number = SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES;
-const OPAQUE_ID = /^[a-z0-9][a-z0-9._:/-]{0,254}$/;
 
 export function authority(value: unknown): void {
   const valueRecord = record(value, SETTINGS_FIELDS.SettingsAuthorityExpectation);
@@ -46,13 +39,13 @@ export function opaque(value: unknown, maximum: number): asserts value is Settin
     incompatible("invalid_opaque_value", value);
   }
   const bytes = new TextEncoder().encode(encoded).byteLength;
-  if (bytes > maximum || bytes > HARD_MAXIMUM_OPAQUE_VALUE_BYTES) {
+  if (bytes > maximum || bytes > SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES) {
     incompatible("opaque_value_too_large", bytes);
   }
 }
 
-export function definition(value: unknown): void {
-  const valueRecord = record(value);
+export function definition(value: unknown, allowed: ReadonlyArray<string>): void {
+  const valueRecord = record(value, allowed);
   identity(valueRecord.id);
   identity(valueRecord.moduleId);
 }
@@ -62,7 +55,7 @@ export function arraysOfIdentities(...values: Array<unknown>): void {
 }
 
 export function identity(value: unknown): asserts value is string {
-  if (typeof value !== "string" || !OPAQUE_ID.test(value)) {
+  if (!isOpaqueId(value)) {
     incompatible("invalid_identity", value);
   }
 }

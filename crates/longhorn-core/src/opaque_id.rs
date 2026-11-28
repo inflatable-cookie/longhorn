@@ -6,6 +6,13 @@ use std::{error::Error, fmt};
 /// against the same authority rather than a hand-copied literal.
 pub const MAX_OPAQUE_ID_BYTES: usize = 128;
 
+/// Every character an opaque identifier may contain, in any position.
+///
+/// All are ASCII, so an admitted identifier has one byte per character. Public
+/// for the same reason as [`MAX_OPAQUE_ID_BYTES`]: the TypeScript bindings
+/// emit this grammar instead of copying it.
+pub const OPAQUE_ID_CHARACTERS: &str = "abcdefghijklmnopqrstuvwxyz0123456789._:-";
+
 macro_rules! opaque_id {
     ($name:ident, $description:literal) => {
         #[doc = $description]
@@ -314,11 +321,10 @@ pub(crate) fn validate_opaque_id(value: &str) -> Result<(), OpaqueIdError> {
         });
     }
 
-    if let Some((index, _)) = value.char_indices().find(|(_, character)| {
-        !(character.is_ascii_lowercase()
-            || character.is_ascii_digit()
-            || matches!(character, '.' | '_' | ':' | '-'))
-    }) {
+    if let Some((index, _)) = value
+        .char_indices()
+        .find(|(_, character)| !OPAQUE_ID_CHARACTERS.contains(*character))
+    {
         return Err(OpaqueIdError::InvalidCharacter { index });
     }
 
@@ -433,6 +439,21 @@ mod tests {
         assert!(HistoryGroupId::new("gesture:0198f97e").is_ok());
         assert!(HistoryGroupKeyId::new("gesture:clip_move").is_ok());
         assert!(HistoryPlanId::new("plan:0198f97e").is_ok());
+    }
+
+    #[test]
+    fn the_declared_characters_are_the_whole_grammar() {
+        for character in (0..=u8::MAX).map(char::from) {
+            let admitted = character.is_ascii_lowercase()
+                || character.is_ascii_digit()
+                || matches!(character, '.' | '_' | ':' | '-');
+            assert_eq!(
+                WindowId::new(character.to_string()).is_ok(),
+                admitted,
+                "{character:?}"
+            );
+        }
+        assert!(WindowId::new("_internal").is_ok());
     }
 
     #[test]

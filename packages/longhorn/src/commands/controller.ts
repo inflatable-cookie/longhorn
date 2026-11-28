@@ -42,6 +42,11 @@ export type CommandMutationStatus =
   | { readonly kind: "conflict"; readonly detail: string }
   | { readonly kind: "failed"; readonly error: unknown };
 
+/** The newest search failed. The loaded commands stay authoritative. */
+export interface CommandSearchFailure {
+  readonly error: unknown;
+}
+
 export interface CommandControllerOptions {
   readonly ports: CommandPorts;
   readonly platform: CommandPlatform;
@@ -61,6 +66,7 @@ export class CommandController {
   #model: CommandJoinedState | undefined;
   #projection: CommandSurfaceProjection | undefined;
   #searchHits: ReadonlyArray<CommandSearchHit> = [];
+  #searchFailure: CommandSearchFailure | undefined;
   #query = "";
   #draft: CommandKeymapPatch | undefined;
   #loadRevision = 0;
@@ -96,6 +102,10 @@ export class CommandController {
 
   get searchHits(): ReadonlyArray<CommandSearchHit> {
     return this.#searchHits;
+  }
+
+  get searchFailure(): CommandSearchFailure | undefined {
+    return this.#searchFailure;
   }
 
   get draft(): CommandKeymapPatch | undefined {
@@ -137,6 +147,7 @@ export class CommandController {
       this.#model = undefined;
       this.#projection = undefined;
       this.#searchHits = [];
+      this.#searchFailure = undefined;
       this.#query = "";
       this.#draft = undefined;
       this.#mutation = { kind: "idle" };
@@ -173,12 +184,15 @@ export class CommandController {
         joinCommandState(loaded.catalogue, loaded.keymap.snapshot, loaded.availability),
       );
       this.#setStatus({ kind: "ready" });
-      await this.search(this.#query);
     } catch (error) {
       if (this.#lifecycle.active && revision === this.#loadRevision) {
         this.#setStatus({ kind: "failed", error });
       }
+      return;
     }
+    // A consumer search is not part of the load. `search` records its failure
+    // in `searchFailure`, so the rejection has nowhere further to go here.
+    await this.search(this.#query).catch(() => {});
   }
 
   async search(query: string): Promise<ReadonlyArray<CommandSearchHit>> {
@@ -187,13 +201,25 @@ export class CommandController {
     const revision = ++this.#searchRevision;
     if (model === undefined) {
       this.#searchHits = [];
+      this.#searchFailure = undefined;
       this.#notify();
       return [];
     }
-    const hits = await this.#search(model.catalogue.commands, query);
+    let hits: ReadonlyArray<CommandSearchHit>;
+    try {
+      hits = await this.#search(model.catalogue.commands, query);
+    } catch (error) {
+      if (revision === this.#searchRevision && model === this.#model) {
+        this.#searchHits = [];
+        this.#searchFailure = { error };
+        this.#notify();
+      }
+      throw error;
+    }
     if (revision !== this.#searchRevision || model !== this.#model) {
       return hits;
     }
+    this.#searchFailure = undefined;
     const visible = new Set(this.#projection?.palette.map(({ id }) => id));
     this.#searchHits = hits.filter(({ record }) => visible.has(record.id));
     this.#notify();

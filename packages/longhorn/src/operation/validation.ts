@@ -1,3 +1,4 @@
+import { isOpaqueId } from "../core/identifiers.ts";
 import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
 import { OPERATION_FIELDS } from "./generated/fields.ts";
 import {
@@ -46,7 +47,7 @@ export function assertValidOperationSnapshotQuery(
 ): asserts value is OperationSnapshotQuery {
   const object = exactObject(value, "$", OPERATION_FIELDS.OperationSnapshotQuery);
   protocol(object.protocolVersion, "$.protocolVersion");
-  text(object.requestId, "$.requestId");
+  identifier(object.requestId, "$.requestId");
 }
 
 export function assertValidOperationSnapshotResponse(
@@ -54,7 +55,7 @@ export function assertValidOperationSnapshotResponse(
 ): asserts value is OperationSnapshotResponse {
   assertPayloadFree(value);
   const object = exactObject(value, "$", OPERATION_FIELDS.OperationSnapshotResponse);
-  text(object.requestId, "$.requestId");
+  identifier(object.requestId, "$.requestId");
   assertValidOperationSnapshot(object.snapshot);
 }
 
@@ -90,15 +91,15 @@ export function assertValidOperationMutationCommand(
   const object = record(value, "$");
   member(object.kind, OPERATION_MUTATION_KINDS, "$.kind");
   protocol(object.protocolVersion, "$.protocolVersion");
-  text(object.requestId, "$.requestId");
+  identifier(object.requestId, "$.requestId");
   authority(object.authority, "$.authority");
   switch (object.kind) {
     case "register":
       exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
       natural(object.expectedCatalogueRevision, "$.expectedCatalogueRevision");
-      text(object.operationId, "$.operationId");
-      text(object.kindId, "$.kindId");
-      nullableText(object.scopeId, "$.scopeId");
+      identifier(object.operationId, "$.operationId");
+      identifier(object.kindId, "$.kindId");
+      nullableIdentifier(object.scopeId, "$.scopeId");
       text(object.label, "$.label");
       member(object.initialState, OPERATION_STATES, "$.initialState");
       member(
@@ -106,7 +107,7 @@ export function assertValidOperationMutationCommand(
         ["supported", "unsupported"] as const,
         "$.cancellationSupport",
       );
-      nullableText(object.retryOf, "$.retryOf");
+      nullableIdentifier(object.retryOf, "$.retryOf");
       break;
     case "progress":
       exactKeys(object, "$", variantKeys("OperationMutationCommand", object, "$"));
@@ -156,7 +157,7 @@ export function assertValidOperationCancellationCommand(
 ): asserts value is OperationCancellationCommand {
   assertPayloadFree(value);
   const object = exactObject(value, "$", OPERATION_FIELDS.OperationCancellationCommand);
-  text(object.requestId, "$.requestId");
+  identifier(object.requestId, "$.requestId");
   protocol(object.protocolVersion, "$.protocolVersion");
   authority(object.authority, "$.authority");
   operationTarget(object);
@@ -195,11 +196,11 @@ export function assertValidOperationChangedEvent(
   assertPayloadFree(value);
   const object = exactObject(value, "$", OPERATION_FIELDS.OperationChangedEvent);
   protocol(object.protocolVersion, "$.protocolVersion");
-  text(object.requestId, "$.requestId");
+  identifier(object.requestId, "$.requestId");
   authority(object.authority, "$.authority");
   natural(object.previousCatalogueRevision, "$.previousCatalogueRevision");
   natural(object.committedCatalogueRevision, "$.committedCatalogueRevision");
-  nullableText(object.operationId, "$.operationId");
+  nullableIdentifier(object.operationId, "$.operationId");
   member(object.kind, OPERATION_CHANGED_KINDS, "$.kind");
 }
 
@@ -211,7 +212,7 @@ function resultBase(value: unknown, statuses: ReadonlyArray<string>): Record<str
   assertPayloadFree(value);
   const object = record(value, "$");
   member(object.status, statuses, "$.status");
-  text(object.requestId, "$.requestId");
+  identifier(object.requestId, "$.requestId");
   assertValidOperationSnapshot(object.snapshot);
   return object;
 }
@@ -219,16 +220,16 @@ function resultBase(value: unknown, statuses: ReadonlyArray<string>): Record<str
 function operationEntry(value: unknown, path: string): asserts value is OperationEntryProjection {
   const object = exactObject(value, path, OPERATION_FIELDS.OperationEntryProjection);
   authority(object.authority, `${path}.authority`);
-  text(object.operationId, `${path}.operationId`);
-  text(object.kindId, `${path}.kindId`);
-  nullableText(object.scopeId, `${path}.scopeId`);
+  identifier(object.operationId, `${path}.operationId`);
+  identifier(object.kindId, `${path}.kindId`);
+  nullableIdentifier(object.scopeId, `${path}.scopeId`);
   text(object.label, `${path}.label`);
   member(
     object.cancellationSupport,
     ["supported", "unsupported"] as const,
     `${path}.cancellationSupport`,
   );
-  nullableText(object.retryOf, `${path}.retryOf`);
+  nullableIdentifier(object.retryOf, `${path}.retryOf`);
   natural(object.sequence, `${path}.sequence`);
   natural(object.revision, `${path}.revision`);
   natural(object.lastChangedCatalogueRevision, `${path}.lastChangedCatalogueRevision`);
@@ -265,7 +266,7 @@ function progressOverall(value: unknown, path: string): void {
 
 function phase(value: unknown, path: string): void {
   const object = exactObject(value, path, OPERATION_FIELDS.OperationPhaseProgressProjection);
-  text(object.phaseId, `${path}.phaseId`);
+  identifier(object.phaseId, `${path}.phaseId`);
   text(object.label, `${path}.label`);
   finite(object.completed, `${path}.completed`);
   finite(object.total, `${path}.total`);
@@ -281,7 +282,7 @@ function teardownResolution(value: unknown, path: string): void {
     exactKeys(object, path, variantKeys("OperationTeardownResolutionProjection", object, path));
     authority(object.targetAuthority, `${path}.targetAuthority`);
   }
-  text(object.operationId, `${path}.operationId`);
+  identifier(object.operationId, `${path}.operationId`);
   natural(object.expectedOperationRevision, `${path}.expectedOperationRevision`);
 }
 
@@ -352,7 +353,7 @@ function mutationReceipt(value: unknown, path: string): void {
 
 function cancellationReceipt(value: unknown, path: string): void {
   const object = exactObject(value, path, OPERATION_FIELDS.OperationCancellationReceiptProjection);
-  text(object.operationId, `${path}.operationId`);
+  identifier(object.operationId, `${path}.operationId`);
   member(object.outcome, OPERATION_CANCELLATION_OUTCOMES, `${path}.outcome`);
   member(object.previousState, OPERATION_STATES, `${path}.previousState`);
   member(object.committedState, OPERATION_STATES, `${path}.committedState`);
@@ -376,7 +377,7 @@ function executorDispatch(value: unknown, path: string): void {
 
 function removal(value: unknown, path: string): void {
   const object = exactObject(value, path, OPERATION_FIELDS.OperationRemovalProjection);
-  text(object.operationId, `${path}.operationId`);
+  identifier(object.operationId, `${path}.operationId`);
   natural(object.sequence, `${path}.sequence`);
   natural(object.encodedWeight, `${path}.encodedWeight`);
   member(object.reason, ["evicted", "dismissed"] as const, `${path}.reason`);
@@ -396,7 +397,7 @@ function teardownOutcome(value: unknown, path: string): void {
     exactKeys(object, path, variantKeys("OperationTeardownOutcomeProjection", object, path));
     authority(object.targetAuthority, `${path}.targetAuthority`);
   }
-  text(object.operationId, `${path}.operationId`);
+  identifier(object.operationId, `${path}.operationId`);
   natural(object.previousOperationRevision, `${path}.previousOperationRevision`);
   if (object.kind === "completed") {
     natural(object.committedOperationRevision, `${path}.committedOperationRevision`);
@@ -411,7 +412,7 @@ function limits(value: unknown, path: string): void {
 }
 
 function operationRevisionPair(object: Record<string, unknown>, path: string): void {
-  text(object.operationId, `${path}.operationId`);
+  identifier(object.operationId, `${path}.operationId`);
   natural(object.previousOperationRevision, `${path}.previousOperationRevision`);
   natural(object.committedOperationRevision, `${path}.committedOperationRevision`);
 }
@@ -422,13 +423,13 @@ function catalogueRevisionPair(object: Record<string, unknown>, path: string): v
 }
 
 function operationTarget(object: Record<string, unknown>): void {
-  text(object.operationId, "$.operationId");
+  identifier(object.operationId, "$.operationId");
   natural(object.expectedOperationRevision, "$.expectedOperationRevision");
 }
 
 function authority(value: unknown, path: string): void {
   const object = exactObject(value, path, OPERATION_FIELDS.OperationAuthorityProjection);
-  text(object.authorityId, `${path}.authorityId`);
+  identifier(object.authorityId, `${path}.authorityId`);
   natural(object.authorityEpoch, `${path}.authorityEpoch`);
   if (object.authorityEpoch === 0) {
     fail(`${path}.authorityEpoch`, "must be nonzero");
@@ -483,9 +484,15 @@ function text(value: unknown, path: string): asserts value is string {
   }
 }
 
-function nullableText(value: unknown, path: string): void {
+function identifier(value: unknown, path: string): asserts value is string {
+  if (!isOpaqueId(value)) {
+    fail(path, "expected bounded lowercase opaque id");
+  }
+}
+
+function nullableIdentifier(value: unknown, path: string): void {
   if (value !== null) {
-    text(value, path);
+    identifier(value, path);
   }
 }
 

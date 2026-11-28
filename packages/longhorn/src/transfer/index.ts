@@ -11,6 +11,7 @@ export * from "./connection.ts";
 export {
   assertTransferPayload,
   InvalidTransferPayloadError,
+  isTransferSessionId,
   LONGHORN_TRANSFER_MIME_TYPE,
   parseTransferPayload,
   serializeTransferPayload,

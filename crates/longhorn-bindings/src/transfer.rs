@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use longhorn_core::{
-    ClientLogicalPx, ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, TransferClientId,
-    TransferHostBindingId, TransferRequestId, WindowId,
+    ClientLogicalPx, ClientPoint, ClientRect, ClientSize, DomainId, DropZoneId, ScreenPoint,
+    TransferClientId, TransferHostBindingId, TransferRequestId, WindowId,
 };
 use longhorn_transfer::{
     ClientDropZone, ClientEpoch, DragSessionId, InsertionPosition, LeaseGeneration,
@@ -40,6 +40,15 @@ const ARTIFACTS: DomainArtifacts = DomainArtifacts {
     variant_fields_constant: "TRANSFER_VARIANT_FIELDS",
     fixture: "fixtures/transfer/protocol-v1.json",
 };
+
+/// The keys Serde writes for a screen point, which TypeScript declares inline.
+fn screen_point_fields_json() -> Result<String, Box<dyn Error>> {
+    let value = serde_json::to_value(ScreenPoint::new(0, 0))?;
+    let fields = value
+        .as_object()
+        .ok_or("a screen point must serialize as an object")?;
+    Ok(serde_json::to_string(&fields.keys().collect::<Vec<_>>())?)
+}
 
 /// Renders the transfer bindings and golden fixtures.
 ///
@@ -125,6 +134,9 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const TRANSFER_CANCEL_RESPONSE_STATUSES = {} as const;\n\
          export const TRANSFER_SESSION_CANCELLATION_STATUSES = {} as const;\n\
          export const PANEL_TRANSFER_RESPONSE_STATUSES = {} as const;\n\
+         export const TRANSFER_TARGET_RESOLUTION_PATHS = {} as const;\n\
+         export const TRANSFER_PANEL_HOST_BINDING_KINDS = {} as const;\n\
+         export const TRANSFER_SCREEN_POINT_FIELDS = {} as const;\n\
          export const TRANSFER_ERROR_CODES = {} as const;\n\
          export const PANEL_TRANSFER_ERROR_CODES = {} as const;\n\n\
          {}\n",
@@ -136,6 +148,9 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
         tagged_variants_json(&cancel_response)?,
         enum_names_json::<SessionCancellationStatus>()?,
         tagged_variants_json(&panel_response)?,
+        enum_names_json::<TargetResolutionPath>()?,
+        enum_names_json::<PanelHostBindingKind>()?,
+        screen_point_fields_json()?,
         serde_json::to_string(transfer_error_codes)?,
         serde_json::to_string(panel_error_codes)?,
         declarations.join("\n\n")

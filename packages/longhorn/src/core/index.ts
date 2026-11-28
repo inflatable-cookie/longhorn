@@ -7,3 +7,5 @@ export type {
   SnapshotEventAction,
 } from "./connection.ts";
 export * from "./transport.ts";
+export { isOpaqueId } from "./identifiers.ts";
+export { OPAQUE_ID_RULE } from "./generated/identifiers.ts";

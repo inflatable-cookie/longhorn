@@ -2,7 +2,6 @@
 // Rust serde types are the wire authority.
 
 export const BRIDGE_PROTOCOL_VERSION = 1 as const;
-export const BRIDGE_MAXIMUM_OPAQUE_ID_BYTES = 128 as const;
 export const BRIDGE_DOMAIN_ID_RULE = {"maximumBytes":128,"segmentAdditional":"0123456789_-","segmentInitial":"abcdefghijklmnopqrstuvwxyz","separator":"."} as const;
 // Wire-visible bounds. The Rust constants are the authority; a
 // hand-copied literal in a validator is drift waiting to happen.

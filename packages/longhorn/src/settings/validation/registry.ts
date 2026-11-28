@@ -1,5 +1,8 @@
 import { SETTINGS_FIELDS } from "../generated/fields.ts";
-import { SETTINGS_MUTATION_TIMINGS } from "../generated/protocol.ts";
+import {
+  SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
+  SETTINGS_MUTATION_TIMINGS,
+} from "../generated/protocol.ts";
 import type { SettingsRegistrySnapshot, SettingsLimits } from "../generated/protocol.ts";
 import { incompatible } from "./error.ts";
 import {
@@ -15,7 +18,6 @@ import {
   record,
   text,
   unsigned,
-  HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 } from "./primitives.ts";
 
 const DIGEST = /^[a-f0-9]{64}$/;
@@ -64,9 +66,9 @@ export function assertValidSettingsRegistrySnapshot(
     text(section.label, limits.maximumLabelBytes);
     integer(section.order);
   });
-  renderers.forEach(definition);
-  scopes.forEach(definition);
-  capabilities.forEach(definition);
+  renderers.forEach((value) => definition(value, SETTINGS_FIELDS.SettingsRendererDefinition));
+  scopes.forEach((value) => definition(value, SETTINGS_FIELDS.SettingsScopeDefinition));
+  capabilities.forEach((value) => definition(value, SETTINGS_FIELDS.SettingsCapabilityDefinition));
   applyUnits.forEach((value) => {
     const unit = record(value, SETTINGS_FIELDS.SettingsApplyUnitDefinition);
     identity(unit.id);
@@ -109,7 +111,7 @@ function validatePage(value: unknown, limits: SettingsLimits): void {
 function settingsLimits(value: unknown): SettingsLimits {
   const limits = record(value, SETTINGS_FIELDS.SettingsLimits);
   assertPositiveLimits(limits);
-  if (limits.maximumOpaqueValueBytes > HARD_MAXIMUM_OPAQUE_VALUE_BYTES) {
+  if (limits.maximumOpaqueValueBytes > SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES) {
     incompatible("invalid_registry", limits.maximumOpaqueValueBytes);
   }
   return limits;

@@ -14,6 +14,7 @@ import type {
   SettingsScopeId,
   SettingsScopeSnapshot,
 } from "./generated/protocol.ts";
+import { SETTINGS_PROTOCOL_VERSION } from "./generated/protocol.ts";
 import {
   assertValidSettingsRegistryChangedEvent,
   assertValidSettingsRegistrySnapshot,
@@ -70,7 +71,7 @@ export function connectSettingsScope(
     listen: (receive) => transport.listen(SETTINGS_SCOPE_CHANGED_EVENT, receive),
     loadSnapshot: async () => {
       const outcome = await load({
-        protocolVersion: 1,
+        protocolVersion: SETTINGS_PROTOCOL_VERSION,
         requestId: options.nextRequestId(),
         registryGeneration: options.registry.generation,
         pageId: options.pageId,

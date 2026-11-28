@@ -1,5 +1,5 @@
+import { isOpaqueId } from "../../core/identifiers.ts";
 import { checkWireFields, readWireRecord } from "../../core/record.ts";
-import { CONFIG_MAXIMUM_OPAQUE_ID_BYTES } from "../generated/base.ts";
 import { CONFIG_OPERATIONS_PROTOCOL_VERSION } from "../generated/protocol.ts";
 
 export type ConfigProtocolValidationCode =
@@ -123,12 +123,7 @@ export function fail(code: ConfigProtocolValidationCode, path: string, message: 
 }
 
 function opaqueId(value: unknown, path: string): asserts value is string {
-  string(value, path);
-  if (
-    value.length === 0 ||
-    value.length > CONFIG_MAXIMUM_OPAQUE_ID_BYTES ||
-    !/^[a-z0-9._:-]+$/.test(value)
-  ) {
+  if (!isOpaqueId(value)) {
     fail("invalid_payload", path, "expected bounded lowercase opaque id");
   }
 }

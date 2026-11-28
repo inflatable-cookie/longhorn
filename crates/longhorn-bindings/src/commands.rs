@@ -13,7 +13,7 @@ use longhorn_command::{
     CommandModifiers, CommandPhysicalCode, CommandPlatform, CommandPlatformScope,
     CommandRegistryDigest, CommandRegistryGeneration, CommandSearchHit, CommandShortcutRecord,
     CommandTextInputPolicy, CommandTriggerModifiers, CommandVisibility,
-    MAXIMUM_PHYSICAL_CODE_BYTES,
+    MAXIMUM_COMMAND_DIAGNOSTIC_BYTES, MAXIMUM_PHYSICAL_CODE_BYTES,
 };
 use longhorn_command_config::{
     COMMAND_KEYMAP_PROTOCOL_VERSION, CommandCatalogueChangedEvent, CommandCatalogueSnapshot,
@@ -169,6 +169,10 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          // Rust serde types are the wire authority.\n\n\
          export const COMMAND_KEYMAP_PROTOCOL_VERSION = {COMMAND_KEYMAP_PROTOCOL_VERSION} as const;\n\
          export const COMMAND_MAXIMUM_PHYSICAL_CODE_BYTES = {MAXIMUM_PHYSICAL_CODE_BYTES} as const;\n\
+         export const COMMAND_MAXIMUM_DIAGNOSTIC_BYTES = {MAXIMUM_COMMAND_DIAGNOSTIC_BYTES} as const;\n\
+         export const COMMAND_PLATFORMS = {} as const;\n\
+         export const COMMAND_PLATFORM_SCOPES = {} as const;\n\
+         export const COMMAND_TEXT_INPUT_POLICIES = {} as const;\n\
          export const COMMAND_AVAILABILITY_STATES = {} as const;\n\
          export const COMMAND_AVAILABILITY_REASON_KINDS = {} as const;\n\
          export const COMMAND_BINDING_SOURCE_KINDS = {} as const;\n\
@@ -183,6 +187,9 @@ pub fn render() -> Result<Vec<Artifact>, Box<dyn Error>> {
          export const COMMAND_KEYMAP_MUTATION_OUTCOMES = {} as const;\n\
          export const COMMAND_KEYMAP_OVERRIDE_KINDS = {} as const;\n\n\
          {}\n",
+        enum_names_json::<CommandPlatform>()?,
+        enum_names_json::<CommandPlatformScope>()?,
+        enum_names_json::<CommandTextInputPolicy>()?,
         enum_names_json::<CommandAvailabilityState>()?,
         tagged_variants_json(&reason_code)?,
         tagged_variants_json(&binding_source)?,

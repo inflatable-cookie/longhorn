@@ -1,4 +1,10 @@
-import { checkWireFields, readWireRecord, wireVariantFields } from "../core/record.ts";
+import { isOpaqueId } from "../core/identifiers.ts";
+import {
+  checkWireFields,
+  readWireRecord,
+  unsignedInteger,
+  wireVariantFields,
+} from "../core/record.ts";
 import {
   SURFACE_TRANSFER_VARIANT_FIELDS,
   SURFACE_TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
@@ -19,10 +25,16 @@ import type {
 import { SURFACE_TRANSFER_FIELDS } from "./generated/fields.ts";
 import {
   TRANSFER_ERROR_CODES,
-  assertValidTransferTargetBinding,
   assertTransferProtocolVersion,
+  assertValidTransferCommittedTarget,
+  assertValidTransferScreenPoint,
+  assertValidTransferSessionStarted,
+  isTransferSessionId,
 } from "@inflatable-cookie/longhorn/transfer";
-import { assertValidSurfaceMutationRejectionCode } from "@inflatable-cookie/longhorn/surfaces";
+import {
+  assertValidSurfaceDocument,
+  assertValidSurfaceMutationRejectionCode,
+} from "@inflatable-cookie/longhorn/surfaces";
 
 export type SurfaceTransferProtocolValidationCode =
   | "unknown_target"
@@ -56,8 +68,15 @@ export function assertValidSurfaceTransferTarget(
   assertKnown(target.kind, SURFACE_TRANSFER_TARGET_KINDS, "unknown_target");
   record(target, variantKeys("SurfaceTransferTarget", target));
   if (target.kind === "existing") {
-    assertValidTransferTargetBinding(record(record(target.target).binding));
+    assertValidTransferCommittedTarget(target.target);
+    return;
   }
+  assertValidTransferScreenPoint(target.drop_point);
+  assertFields(record(target.provisioning, SURFACE_TRANSFER_FIELDS.SurfaceProvisioningCompletion), {
+    window_id: isOpaqueId,
+    host_binding_id: isOpaqueId,
+    display_id: isOpaqueId,
+  });
 }
 
 export function assertValidSurfaceTransferAbort(
@@ -65,6 +84,13 @@ export function assertValidSurfaceTransferAbort(
 ): asserts value is SurfaceTransferAbort {
   const abort = record(value, SURFACE_TRANSFER_FIELDS.SurfaceTransferAbort);
   assertTransferProtocolVersion(abort.protocol_version);
+  assertFields(abort, {
+    request_id: isOpaqueId,
+    message: isString,
+    retryable: isBoolean,
+    session_consumed: isBoolean,
+    reconciliation_required: isBoolean,
+  });
   const source = record(abort.source);
   assertKnown(source.domain, SURFACE_TRANSFER_ABORT_DOMAINS, "unknown_abort_domain");
   record(source, variantKeys("SurfaceTransferAbortSource", source));
@@ -87,9 +113,7 @@ export function assertValidSurfaceSessionResponse(
     "SurfaceSessionResponse",
   );
   if (response.status === "started") {
-    const session = record(response.session);
-    assertTransferProtocolVersion(session.protocol_version);
-    assertTransferProtocolVersion(record(session.payload).protocol_version);
+    assertValidTransferSessionStarted(response.session);
   } else {
     assertValidSurfaceTransferAbort(response.abort);
   }
@@ -109,6 +133,15 @@ export function assertValidSurfaceTransferResponse(
       SURFACE_TRANSFER_FIELDS.SurfaceTransferCompletion,
     );
     assertTransferProtocolVersion(completion.protocol_version);
+    assertFields(completion, {
+      request_id: isOpaqueId,
+      session_id: isTransferSessionId,
+      source_host_binding_id: isOpaqueId,
+      target_host_binding_id: isOpaqueId,
+      previous_revision: unsignedInteger,
+      committed_revision: unsignedInteger,
+    });
+    assertValidSurfaceDocument(completion.authoritative_document);
     assertValidSurfaceTransferTarget(completion.target);
   } else {
     assertValidSurfaceTransferAbort(response.abort);
@@ -149,6 +182,25 @@ function assertKnown(
   if (typeof value !== "string" || !known.includes(value)) {
     throw new SurfaceTransferProtocolValidationError(code, value);
   }
+}
+
+function assertFields(
+  value: Record<string, unknown>,
+  checks: Readonly<Record<string, (member: unknown) => boolean>>,
+): void {
+  for (const [key, admits] of Object.entries(checks)) {
+    if (!admits(value[key])) {
+      throw new SurfaceTransferProtocolValidationError("invalid_object", { key, value });
+    }
+  }
+}
+
+function isString(value: unknown): boolean {
+  return typeof value === "string";
+}
+
+function isBoolean(value: unknown): boolean {
+  return typeof value === "boolean";
 }
 
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {

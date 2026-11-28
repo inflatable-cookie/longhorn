@@ -2,6 +2,7 @@ import { SETTINGS_FIELDS } from "../generated/fields.ts";
 import {
   SETTINGS_ACTIVATION_STATES,
   SETTINGS_DURABILITY_KINDS,
+  SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
   SETTINGS_LOAD_OUTCOME_STATUSES,
   SETTINGS_MUTATION_OUTCOMES,
   SETTINGS_MUTATION_RESULT_STATUSES,
@@ -21,7 +22,6 @@ import { activation, rejection } from "./projection.ts";
 import {
   array,
   authority,
-  HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
   identity,
   known,
   opaque,
@@ -48,7 +48,7 @@ export function assertValidSettingsLoadCommand(
 
 export function assertValidSettingsApplyCommand(
   value: unknown,
-  maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
+  maximumOpaqueValueBytes: number = SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsApplyCommand {
   const command = mutationCommand(value, SETTINGS_FIELDS.SettingsApplyCommand);
   opaque(command.intent, maximumOpaqueValueBytes);
@@ -63,7 +63,7 @@ export function assertValidSettingsResetCommand(
 
 export function assertValidSettingsLoadOutcome(
   value: unknown,
-  maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
+  maximumOpaqueValueBytes: number = SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsLoadOutcome {
   const outcome = record(value);
   known(outcome.status, SETTINGS_LOAD_OUTCOME_STATUSES);
@@ -77,7 +77,7 @@ export function assertValidSettingsLoadOutcome(
 
 export function assertValidSettingsMutationResult(
   value: unknown,
-  maximumOpaqueValueBytes = HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
+  maximumOpaqueValueBytes: number = SETTINGS_HARD_MAXIMUM_OPAQUE_VALUE_BYTES,
 ): asserts value is SettingsMutationResult {
   const result = record(value);
   known(result.status, SETTINGS_MUTATION_RESULT_STATUSES);
@@ -138,6 +138,7 @@ function receipt(value: unknown, maximum: number): void {
   known(receipt.outcome, SETTINGS_MUTATION_OUTCOMES);
   const durability = record(receipt.durability);
   known(durability.kind, SETTINGS_DURABILITY_KINDS);
+  record(durability, variantKeys("SettingsDurabilityEvidence", durability));
   if (durability.kind === "confirmed") {
     optionalOpaque(durability.evidence, maximum);
   }

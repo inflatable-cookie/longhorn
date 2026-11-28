@@ -1,9 +1,12 @@
+import { isOpaqueId, matchesDomainIdRule } from "../core/identifiers.ts";
 import {
   checkWireFields,
   readWireRecord,
+  unsigned32,
   unsignedInteger,
   wireVariantFields,
 } from "../core/record.ts";
+import { BRIDGE_DOMAIN_ID_RULE } from "../bridge/generated/protocol.ts";
 import {
   TRANSFER_VARIANT_FIELDS,
   TRANSFER_VARIANT_FIELDS_DISCRIMINANTS,
@@ -16,10 +19,13 @@ import {
   TRANSFER_COMMIT_SELECTOR_KINDS,
   TRANSFER_ERROR_CODES,
   TRANSFER_LEASE_RESPONSE_STATUSES,
+  TRANSFER_PANEL_HOST_BINDING_KINDS,
   TRANSFER_PROTOCOL_VERSION,
+  TRANSFER_SCREEN_POINT_FIELDS,
   TRANSFER_SESSION_CANCELLATION_STATUSES,
   TRANSFER_SESSION_RESPONSE_STATUSES,
   TRANSFER_TARGET_BINDING_KINDS,
+  TRANSFER_TARGET_RESOLUTION_PATHS,
 } from "./generated/protocol.ts";
 import type {
   PanelTransferResponse,
@@ -27,13 +33,16 @@ import type {
   TransferCancelResponse,
   TransferClientSnapshot,
   TransferCommitSelector,
+  TransferCommittedTarget,
   TransferLeaseResponse,
   TransferSessionResponse,
+  TransferSessionStarted,
   TransferTargetBinding,
 } from "./generated/protocol.ts";
 import { isTransferSessionId } from "./payload.ts";
 import { TRANSFER_FIELDS } from "./generated/fields.ts";
 import { assertValidLayoutMutationRejectionCode } from "@inflatable-cookie/longhorn/layout";
+import { assertValidSurfaceDocument } from "@inflatable-cookie/longhorn/surfaces";
 
 export type TransferProtocolValidationCode =
   | "unsupported_protocol_version"
@@ -74,6 +83,14 @@ export function assertValidTransferTargetBinding(
   const candidate = record(value);
   assertKnown(candidate.kind, TRANSFER_TARGET_BINDING_KINDS, "unknown_target_binding");
   record(candidate, variantKeys("TransferTargetBinding", candidate));
+  assertFields(candidate, {
+    host_binding_id: isOpaqueId,
+    document_id: isDomainId,
+    revision: unsignedInteger,
+  });
+  if (candidate.kind === "panel_region") {
+    assertFields(candidate, { surface_id: isOpaqueId, region_id: isOpaqueId });
+  }
 }
 
 export function assertValidTransferClientSnapshot(
@@ -81,9 +98,11 @@ export function assertValidTransferClientSnapshot(
 ): asserts value is TransferClientSnapshot {
   const snapshot = record(value, TRANSFER_FIELDS.TransferClientSnapshot);
   assertTransferProtocolVersion(snapshot.protocol_version);
-  if (typeof snapshot.client_id !== "string" || !unsignedInteger(snapshot.client_epoch)) {
-    throw new TransferProtocolValidationError("invalid_client_snapshot", value);
-  }
+  assertFields(
+    snapshot,
+    { client_id: isOpaqueId, client_epoch: unsignedInteger },
+    "invalid_client_snapshot",
+  );
 }
 
 export function assertValidTransferCommitSelector(
@@ -92,19 +111,29 @@ export function assertValidTransferCommitSelector(
   const candidate = record(value);
   assertKnown(candidate.kind, TRANSFER_COMMIT_SELECTOR_KINDS, "unknown_commit_selector");
   record(candidate, variantKeys("TransferCommitSelector", candidate));
+  if (candidate.kind === "explicit_zone") {
+    assertFields(candidate, { drop_zone_id: isOpaqueId });
+  } else {
+    assertValidTransferScreenPoint(candidate.point);
+  }
+}
+
+/** A Rust `ScreenPoint`: integral screen-DIP coordinates. */
+export function assertValidTransferScreenPoint(
+  value: unknown,
+): asserts value is { x: number; y: number } {
+  assertFields(record(value, TRANSFER_SCREEN_POINT_FIELDS), { x: isSigned32, y: isSigned32 });
 }
 
 export function assertValidTransferAbort(value: unknown): asserts value is TransferAbort {
   const abort = record(value, TRANSFER_FIELDS.TransferAbort);
   assertTransferProtocolVersion(abort.protocol_version);
-  if (
-    typeof abort.request_id !== "string" ||
-    typeof abort.message !== "string" ||
-    typeof abort.retryable !== "boolean" ||
-    typeof abort.session_consumed !== "boolean"
-  ) {
-    throw new TransferProtocolValidationError("invalid_object", abort);
-  }
+  assertFields(abort, {
+    request_id: isOpaqueId,
+    message: isString,
+    retryable: isBoolean,
+    session_consumed: isBoolean,
+  });
   const source = record(abort.source);
   assertKnown(source.domain, TRANSFER_ABORT_DOMAINS, "unknown_abort_domain");
   record(source, variantKeys("TransferAbortSource", source));
@@ -118,6 +147,30 @@ export function assertValidTransferAbort(value: unknown): asserts value is Trans
   }
 }
 
+export function assertValidTransferSessionStarted(
+  value: unknown,
+): asserts value is TransferSessionStarted {
+  const session = record(value, TRANSFER_FIELDS.TransferSessionStarted);
+  assertTransferProtocolVersion(session.protocol_version);
+  const payload = record(session.payload, TRANSFER_FIELDS.TransferPayload);
+  assertTransferProtocolVersion(payload.protocol_version);
+  assertFields(session, { request_id: isOpaqueId });
+  assertFields(payload, { session_id: isTransferSessionId });
+}
+
+export function assertValidTransferCommittedTarget(
+  value: unknown,
+): asserts value is TransferCommittedTarget {
+  const target = record(value, TRANSFER_FIELDS.TransferCommittedTarget);
+  assertKnown(target.path, TRANSFER_TARGET_RESOLUTION_PATHS, "invalid_object");
+  assertFields(target, {
+    window_id: isOpaqueId,
+    drop_zone_id: isOpaqueId,
+    insertion_position: isNullableUnsigned32,
+  });
+  assertValidTransferTargetBinding(target.binding);
+}
+
 export function assertValidTransferSessionResponse(
   value: unknown,
 ): asserts value is TransferSessionResponse {
@@ -127,13 +180,7 @@ export function assertValidTransferSessionResponse(
     "TransferSessionResponse",
   );
   if (response.status === "started") {
-    const session = record(response.session, TRANSFER_FIELDS.TransferSessionStarted);
-    assertTransferProtocolVersion(session.protocol_version);
-    const payload = record(session.payload, TRANSFER_FIELDS.TransferPayload);
-    assertTransferProtocolVersion(payload.protocol_version);
-    if (typeof session.request_id !== "string" || !isTransferSessionId(payload.session_id)) {
-      throw new TransferProtocolValidationError("invalid_object", session);
-    }
+    assertValidTransferSessionStarted(response.session);
   } else {
     assertValidTransferAbort(response.abort);
   }
@@ -150,15 +197,13 @@ export function assertValidTransferLeaseResponse(
   if (response.status === "published") {
     const lease = record(response.lease, TRANSFER_FIELDS.TransferLeaseReceipt);
     assertTransferProtocolVersion(lease.protocol_version);
-    if (
-      typeof lease.request_id !== "string" ||
-      typeof lease.client_id !== "string" ||
-      !unsignedInteger(lease.client_epoch) ||
-      !unsignedInteger(lease.generation) ||
-      !unsignedInteger(lease.zone_count)
-    ) {
-      throw new TransferProtocolValidationError("invalid_object", lease);
-    }
+    assertFields(lease, {
+      request_id: isOpaqueId,
+      client_id: isOpaqueId,
+      client_epoch: unsignedInteger,
+      generation: unsignedInteger,
+      zone_count: unsignedInteger,
+    });
   } else {
     assertValidTransferAbort(response.abort);
   }
@@ -175,12 +220,7 @@ export function assertValidTransferCancelResponse(
   if (response.status === "cancelled") {
     const cancellation = record(response.cancellation, TRANSFER_FIELDS.TransferCancelReceipt);
     assertTransferProtocolVersion(cancellation.protocol_version);
-    if (
-      typeof cancellation.request_id !== "string" ||
-      !isTransferSessionId(cancellation.session_id)
-    ) {
-      throw new TransferProtocolValidationError("invalid_object", cancellation);
-    }
+    assertFields(cancellation, { request_id: isOpaqueId, session_id: isTransferSessionId });
     assertKnown(cancellation.status, TRANSFER_SESSION_CANCELLATION_STATUSES, "invalid_object");
   } else {
     assertValidTransferAbort(response.abort);
@@ -196,13 +236,27 @@ export function assertValidPanelTransferResponse(
     "PanelTransferResponse",
   );
   if (response.status === "committed") {
-    const completion = record(response.completion, TRANSFER_FIELDS.PanelTransferCompletion);
-    assertTransferProtocolVersion(completion.protocol_version);
-    // oxlint-disable-next-line quality/no-known-value-widening -- Runtime validation also covers structurally typed callers and untrusted wire values.
-    assertValidTransferTargetBinding(record(record(completion.target).binding));
+    assertPanelTransferCompletion(response.completion);
   } else {
     assertValidTransferAbort(response.abort);
   }
+}
+
+function assertPanelTransferCompletion(value: unknown): void {
+  const completion = record(value, TRANSFER_FIELDS.PanelTransferCompletion);
+  assertTransferProtocolVersion(completion.protocol_version);
+  assertFields(completion, {
+    request_id: isOpaqueId,
+    session_id: isTransferSessionId,
+    source_host_binding_id: isOpaqueId,
+    target_host_binding_id: isOpaqueId,
+    previous_revision: unsignedInteger,
+    committed_revision: unsignedInteger,
+  });
+  assertKnown(completion.source_binding_kind, TRANSFER_PANEL_HOST_BINDING_KINDS, "invalid_object");
+  assertKnown(completion.target_binding_kind, TRANSFER_PANEL_HOST_BINDING_KINDS, "invalid_object");
+  assertValidSurfaceDocument(completion.authoritative_document);
+  assertValidTransferCommittedTarget(completion.target);
 }
 
 function responseWithStatus(
@@ -236,6 +290,39 @@ function assertKnown(
   if (typeof value !== "string" || !known.includes(value)) {
     throw new TransferProtocolValidationError(code, value);
   }
+}
+
+function assertFields(
+  value: Record<string, unknown>,
+  checks: Readonly<Record<string, (member: unknown) => boolean>>,
+  code: TransferProtocolValidationCode = "invalid_object",
+): void {
+  for (const [key, admits] of Object.entries(checks)) {
+    if (!admits(value[key])) {
+      throw new TransferProtocolValidationError(code, { key, value });
+    }
+  }
+}
+
+function isString(value: unknown): boolean {
+  return typeof value === "string";
+}
+
+function isBoolean(value: unknown): boolean {
+  return typeof value === "boolean";
+}
+
+function isDomainId(value: unknown): boolean {
+  return matchesDomainIdRule(value, BRIDGE_DOMAIN_ID_RULE);
+}
+
+function isSigned32(value: unknown): boolean {
+  const limit = 0x80_00_00_00;
+  return Number.isInteger(value) && Number(value) >= -limit && Number(value) < limit;
+}
+
+function isNullableUnsigned32(value: unknown): boolean {
+  return value === null || unsigned32(value);
 }
 
 function record(value: unknown, allowed?: ReadonlyArray<string>): Record<string, unknown> {

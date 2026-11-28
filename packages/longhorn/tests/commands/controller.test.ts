@@ -83,6 +83,32 @@ function harness(options?: {
 }
 
 describe("CommandController", () => {
+  test("keeps a valid load ready when the consumer search fails", async () => {
+    let broken = true;
+    const failure = new Error("search service unavailable");
+    const state = harness({
+      search: async (records) => {
+        if (broken) {
+          throw failure;
+        }
+        return records.map((record) => ({ record, score: 0 }));
+      },
+    });
+
+    await state.controller.start();
+    expect(state.controller.status.kind).toBe("ready");
+    expect(state.controller.searchFailure).toEqual({ error: failure });
+    expect(state.controller.searchHits).toEqual([]);
+    await expect(state.controller.search("open")).rejects.toBe(failure);
+    expect(state.controller.status.kind).toBe("ready");
+
+    broken = false;
+    await state.controller.search("open");
+    expect(state.controller.searchFailure).toBeUndefined();
+    expect(state.controller.searchHits.length).toBeGreaterThan(0);
+    await state.controller.stop();
+  });
+
   test("joins checked sources and routes palette and keyboard through one executor", async () => {
     const state = harness();
     await state.controller.start();

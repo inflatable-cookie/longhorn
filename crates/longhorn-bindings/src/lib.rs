@@ -25,6 +25,8 @@ pub mod generation;
 pub mod history;
 /// Fork-history protocol bindings and golden fixtures.
 pub mod history_tree;
+/// Identifier rules shared by every domain's TypeScript validators.
+pub mod identifiers;
 /// Layout protocol bindings and golden fixtures.
 pub mod layout;
 /// Licence protocol bindings and golden fixtures.
@@ -67,6 +69,10 @@ const DOMAINS: &[Domain] = &[
     Domain {
         name: "config",
         render: config::render,
+    },
+    Domain {
+        name: "core",
+        render: identifiers::render,
     },
     Domain {
         name: "history",
