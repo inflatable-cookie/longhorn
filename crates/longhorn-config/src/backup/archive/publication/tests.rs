@@ -181,13 +181,18 @@ fn unavailable_atomic_primitives_require_explicit_portable_publication() {
             .map(|archive| archive.manifest().kind())
             .map_err(|error| verification_error(path.clone(), false, error))
     };
+    // On macOS the minimum Rust version does not map ENOTSUP to Unsupported.
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    let link_error = io::Error::from_raw_os_error(rustix::io::Errno::NOTSUP.raw_os_error());
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    let link_error = io::Error::from(io::ErrorKind::Unsupported);
     let error = publisher
         .publish_with_commit(archive.bytes(), verify, |staging, target, _| {
             commit_no_replace(
                 staging,
                 target,
                 |_, _| Err(io::ErrorKind::Unsupported.into()),
-                |_, _| Err(io::ErrorKind::Unsupported.into()),
+                |_, _| Err(link_error),
             )
         })
         .unwrap_err();
@@ -214,6 +219,31 @@ fn unavailable_atomic_primitives_require_explicit_portable_publication() {
     let error = publisher.publish(archive.bytes(), verify).unwrap_err();
     assert_eq!(error.stage, BackupPublicationStage::ValidateDestination);
     assert_eq!(fs::read(&path).unwrap(), archive.bytes());
+}
+
+#[test]
+fn portable_export_rejects_replace_even_with_an_unused_destination() {
+    use crate::{BackupExportTarget, export_backup};
+
+    let temp = TempDir::new().unwrap();
+    let name = BackupArchiveFileName::new("export.longhorn-backup").unwrap();
+    let path = temp.path().join(name.as_str());
+    let target = BackupExportTarget::new(temp.path(), name).unwrap();
+    let options = BackupPublicationOptions::new(
+        DurabilityRequirement::Durable,
+        BackupArchiveLimits::default(),
+    )
+    .with_mode(BackupPublicationMode::PortableExclusiveCopy);
+    let error = export_backup(
+        &target,
+        &minimal_archive("user-export"),
+        ExportOverwrite::Replace,
+        options,
+    )
+    .unwrap_err();
+    assert_eq!(error.stage, BackupPublicationStage::ValidateDestination);
+    assert!(!error.published);
+    assert!(!path.exists());
 }
 
 #[test]

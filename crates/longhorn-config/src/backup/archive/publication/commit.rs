@@ -45,10 +45,7 @@ pub(super) fn commit_no_replace(
         }
         // Filesystems without hard-link support may report EPERM.
         Err(error)
-            if matches!(
-                error.kind(),
-                io::ErrorKind::Unsupported | io::ErrorKind::PermissionDenied
-            ) =>
+            if operation_unsupported(&error) || error.kind() == io::ErrorKind::PermissionDenied =>
         {
             Err(CommitError::AtomicNoReplaceUnavailable(error))
         }
@@ -57,30 +54,35 @@ pub(super) fn commit_no_replace(
 }
 
 fn rename_unsupported(error: &io::Error) -> bool {
-    match error.kind() {
-        io::ErrorKind::Unsupported => true,
-        // Linux also uses EINVAL for a filesystem without support for this flag.
-        // Both paths are sibling regular-file names and the flag is fixed.
-        #[cfg(target_os = "linux")]
-        io::ErrorKind::InvalidInput => {
-            error.raw_os_error() == Some(rustix::io::Errno::INVAL.raw_os_error())
-        }
-        _ => false,
+    // Linux also uses EINVAL for a filesystem without support for this flag.
+    // Both paths are sibling regular-file names and the flag is fixed.
+    #[cfg(target_os = "linux")]
+    if error.raw_os_error() == Some(rustix::io::Errno::INVAL.raw_os_error()) {
+        return true;
     }
+    operation_unsupported(error)
+}
+
+fn operation_unsupported(error: &io::Error) -> bool {
+    // Rust 1.97.1 on macOS leaves ENOTSUP distinct from Unsupported.
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    if let Some(raw) = error.raw_os_error() {
+        use rustix::io::Errno;
+        if [Errno::NOSYS, Errno::NOTSUP, Errno::OPNOTSUPP]
+            .map(Errno::raw_os_error)
+            .contains(&raw)
+        {
+            return true;
+        }
+    }
+    error.kind() == io::ErrorKind::Unsupported
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 fn rename_no_replace(staging: &Path, target: &Path) -> io::Result<()> {
     use rustix::fs::{CWD, RenameFlags, renameat_with};
 
-    renameat_with(CWD, staging, CWD, target, RenameFlags::NOREPLACE).map_err(|error| {
-        use rustix::io::Errno;
-        if error == Errno::NOSYS || error == Errno::NOTSUP || error == Errno::OPNOTSUPP {
-            io::ErrorKind::Unsupported.into()
-        } else {
-            error.into()
-        }
-    })
+    renameat_with(CWD, staging, CWD, target, RenameFlags::NOREPLACE).map_err(io::Error::from)
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]

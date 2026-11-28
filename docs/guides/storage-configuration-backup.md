@@ -434,6 +434,13 @@ exports use an explicit user-selected parent and canonical re-encoding.
 Retention never auto-deletes the new, pinned, locked, corrupt, unreadable,
 foreign, unknown-version, or unparseable archive.
 
+When strict export returns `BackupPublicationStage::AtomicNoReplaceUnsupported`
+on a removable volume such as exFAT or FAT32, offer a portable copy as an
+explicit user choice. Select `BackupPublicationMode::PortableExclusiveCopy`
+with `BackupPublicationOptions::with_mode`, use `ExportOverwrite::Refuse`,
+and choose a fresh file name. The file is visible while it is being written.
+See [archive publication guarantees](../knowledge/contracts/004-configuration-storage-backup-and-recovery.md#archive-publication-and-retention).
+
 ## Restore And Recovery
 
 Inspection does not mutate. It validates bounds, app identity, payload hashes,
