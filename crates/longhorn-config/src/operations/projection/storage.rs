@@ -1,7 +1,7 @@
 use crate::{
-    ConfigOperationProjectionError, Sha256Digest, StorageClass, StorageFileEvidence,
-    StorageTransitionAction, StorageTransitionCleanupReceipt, StorageTransitionConflictKind,
-    StorageTransitionOutcome, StorageTransitionPreview, StorageTransitionReceipt,
+    ConfigOperationProjectionError, Sha256Digest, StorageFileEvidence, StorageTransitionAction,
+    StorageTransitionCleanupReceipt, StorageTransitionConflictKind, StorageTransitionOutcome,
+    StorageTransitionPreview, StorageTransitionReceipt,
 };
 use longhorn_storage_layout::{
     PlatformDirectoryFact, RootKind, StorageLayoutDiagnostic, StorageLayoutWarning,
@@ -82,7 +82,7 @@ impl StorageTransitionPreviewProjection {
                 .map(|domain| {
                     Ok(StorageTransitionDomainProjection {
                         domain_id: domain.domain().as_str().into(),
-                        storage_class: storage_class_id(domain.storage_class()).into(),
+                        storage_class: domain.storage_class(),
                         action: transition_action_id(domain.action()),
                         source_path: domain.source_path().map(exact_path).transpose()?,
                         target_path: domain.target_path().map(exact_path).transpose()?,
@@ -226,21 +226,6 @@ const fn warning_id(value: StorageLayoutWarning) -> &'static str {
             "shared-product-backup-classification"
         }
         StorageLayoutWarning::PortableLifecycle => "portable-lifecycle",
-    }
-}
-
-pub(super) const fn storage_class_id(value: StorageClass) -> &'static str {
-    match value {
-        StorageClass::Defaults => "defaults",
-        StorageClass::Policy => "policy",
-        StorageClass::UserConfig => "user-config",
-        StorageClass::MachineState => "machine-state",
-        StorageClass::WorkspaceLocal => "workspace-local",
-        StorageClass::ProjectShared => "project-shared",
-        StorageClass::Secret => "secret",
-        StorageClass::Cache => "cache",
-        StorageClass::Runtime => "runtime",
-        StorageClass::Log => "log",
     }
 }
 

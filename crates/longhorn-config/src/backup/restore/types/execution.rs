@@ -4,7 +4,8 @@ use longhorn_core::{DomainId, SchemaVersion};
 
 use crate::{
     BackupArchiveFileName, BackupArchiveLimits, BackupCaptureOptions, BackupMetadata,
-    BackupOperationalRoot, BackupPublicationReceipt, RecoveryState, Sha256Digest, StoreError,
+    BackupOperationalRoot, BackupPublicationMode, BackupPublicationOptions,
+    BackupPublicationReceipt, DurabilityRequirement, RecoveryState, Sha256Digest, StoreError,
     UnavailableState,
 };
 
@@ -126,7 +127,7 @@ pub struct RestoreSafetyBackupOptions {
     pub(crate) root: BackupOperationalRoot,
     pub(crate) file_name: BackupArchiveFileName,
     pub(crate) capture: BackupCaptureOptions,
-    pub(crate) archive_limits: BackupArchiveLimits,
+    pub(crate) publication: BackupPublicationOptions,
 }
 
 impl RestoreSafetyBackupOptions {
@@ -144,8 +145,20 @@ impl RestoreSafetyBackupOptions {
             root,
             file_name,
             capture,
-            archive_limits,
+            publication: BackupPublicationOptions::new(
+                DurabilityRequirement::Durable,
+                archive_limits,
+            ),
         }
+    }
+
+    /// Selects an exclusive portable copy when the safety-backup volume needs it.
+    #[must_use]
+    pub const fn with_portable_publication(mut self) -> Self {
+        self.publication = self
+            .publication
+            .with_mode(BackupPublicationMode::PortableExclusiveCopy);
+        self
     }
 
     /// Returns safety-backup metadata.

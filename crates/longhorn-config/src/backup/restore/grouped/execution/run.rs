@@ -211,14 +211,9 @@ pub(crate) fn execute(
             error,
         ));
     }
-    journal::cleanup(authority).map_err(|error| {
-        failure(
-            RestoreAdapterGroupExecutionStage::Cleanup,
-            None,
-            RestoreFailureTerminal::RecoveryRequired,
-            error,
-        )
-    })?;
+    if let Err(error) = journal::cleanup(authority) {
+        longhorn_core::report_best_effort_failure("config.restore.grouped-journal-cleanup", error);
+    }
     Ok(RestoreAdapterGroupExecutionReceipt {
         confirmation_digest: plan.confirmation_digest.clone(),
         entries: plan.entries.iter().map(Into::into).collect(),

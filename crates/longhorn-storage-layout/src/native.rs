@@ -17,13 +17,7 @@ use crate::{PlatformDirectoryFact, PlatformDirectoryFacts, TargetPlatform};
 pub struct PlatformEnvironment {
     home_dir: Option<PathBuf>,
     temp_dir: Option<PathBuf>,
-    xdg_config_home: Option<PathBuf>,
-    xdg_data_home: Option<PathBuf>,
-    xdg_state_home: Option<PathBuf>,
-    xdg_cache_home: Option<PathBuf>,
-    xdg_runtime_dir: Option<PathBuf>,
-    windows_local_app_data: Option<PathBuf>,
-    windows_roaming_app_data: Option<PathBuf>,
+    variables: [Option<PathBuf>; DirectoryVariable::ALL.len()],
 }
 
 impl PlatformEnvironment {
@@ -34,58 +28,31 @@ impl PlatformEnvironment {
     /// variable.
     #[must_use]
     pub fn from_process() -> Self {
-        let variable = |name: &str| env::var_os(name).map(PathBuf::from);
         Self {
             home_dir: variable("HOME"),
             temp_dir: Some(env::temp_dir()),
-            xdg_config_home: variable("XDG_CONFIG_HOME"),
-            xdg_data_home: variable("XDG_DATA_HOME"),
-            xdg_state_home: variable("XDG_STATE_HOME"),
-            xdg_cache_home: variable("XDG_CACHE_HOME"),
-            xdg_runtime_dir: variable("XDG_RUNTIME_DIR"),
-            windows_local_app_data: variable("LOCALAPPDATA"),
-            windows_roaming_app_data: variable("APPDATA"),
+            variables: {
+                let mut variables = [const { None }; DirectoryVariable::ALL.len()];
+                for source in DirectoryVariable::ALL {
+                    variables[source as usize] = variable(source.name());
+                }
+                variables
+            },
         }
     }
 
-    /// Reads only the variables one fact's platform rule consults. The home
-    /// directory is read once, for every rule that falls back to it: all
-    /// facts on macOS and Linux except the runtime directory.
-    fn from_process_for(platform: TargetPlatform, fact: PlatformDirectoryFact) -> Self {
-        let variable = |name: &str| env::var_os(name).map(PathBuf::from);
+    /// Reads only the variables the selected fact needs.
+    fn from_process_for(source: DirectorySource) -> Self {
         let mut environment = Self::default();
-        if platform != TargetPlatform::Windows && fact != PlatformDirectoryFact::Runtime {
-            environment.home_dir = variable("HOME");
-        }
-        match (platform, fact) {
-            (TargetPlatform::MacOs | TargetPlatform::Windows, PlatformDirectoryFact::Runtime) => {
-                environment.temp_dir = Some(env::temp_dir());
+        match source {
+            DirectorySource::Home(_) => environment.home_dir = variable("HOME"),
+            DirectorySource::Temporary => environment.temp_dir = Some(env::temp_dir()),
+            DirectorySource::Variable(variable_source, fallback) => {
+                environment.variables[variable_source as usize] = variable(variable_source.name());
+                if fallback.is_some() {
+                    environment.home_dir = variable("HOME");
+                }
             }
-            (TargetPlatform::Windows, PlatformDirectoryFact::SharedData) => {
-                environment.windows_roaming_app_data = variable("APPDATA");
-            }
-            (TargetPlatform::Windows, _) => {
-                environment.windows_local_app_data = variable("LOCALAPPDATA");
-            }
-            (TargetPlatform::Linux, PlatformDirectoryFact::Config) => {
-                environment.xdg_config_home = variable("XDG_CONFIG_HOME");
-            }
-            (
-                TargetPlatform::Linux,
-                PlatformDirectoryFact::Data | PlatformDirectoryFact::SharedData,
-            ) => {
-                environment.xdg_data_home = variable("XDG_DATA_HOME");
-            }
-            (TargetPlatform::Linux, PlatformDirectoryFact::State | PlatformDirectoryFact::Log) => {
-                environment.xdg_state_home = variable("XDG_STATE_HOME");
-            }
-            (TargetPlatform::Linux, PlatformDirectoryFact::Cache) => {
-                environment.xdg_cache_home = variable("XDG_CACHE_HOME");
-            }
-            (TargetPlatform::Linux, PlatformDirectoryFact::Runtime) => {
-                environment.xdg_runtime_dir = variable("XDG_RUNTIME_DIR");
-            }
-            (TargetPlatform::MacOs, _) => {}
         }
         environment
     }
@@ -107,49 +74,49 @@ impl PlatformEnvironment {
     /// Replaces the `XDG_CONFIG_HOME` entry.
     #[must_use]
     pub fn with_xdg_config_home(mut self, value: Option<PathBuf>) -> Self {
-        self.xdg_config_home = value;
+        self.variables[DirectoryVariable::XdgConfig as usize] = value;
         self
     }
 
     /// Replaces the `XDG_DATA_HOME` entry.
     #[must_use]
     pub fn with_xdg_data_home(mut self, value: Option<PathBuf>) -> Self {
-        self.xdg_data_home = value;
+        self.variables[DirectoryVariable::XdgData as usize] = value;
         self
     }
 
     /// Replaces the `XDG_STATE_HOME` entry.
     #[must_use]
     pub fn with_xdg_state_home(mut self, value: Option<PathBuf>) -> Self {
-        self.xdg_state_home = value;
+        self.variables[DirectoryVariable::XdgState as usize] = value;
         self
     }
 
     /// Replaces the `XDG_CACHE_HOME` entry.
     #[must_use]
     pub fn with_xdg_cache_home(mut self, value: Option<PathBuf>) -> Self {
-        self.xdg_cache_home = value;
+        self.variables[DirectoryVariable::XdgCache as usize] = value;
         self
     }
 
     /// Replaces the `XDG_RUNTIME_DIR` entry.
     #[must_use]
     pub fn with_xdg_runtime_dir(mut self, value: Option<PathBuf>) -> Self {
-        self.xdg_runtime_dir = value;
+        self.variables[DirectoryVariable::XdgRuntime as usize] = value;
         self
     }
 
     /// Replaces the Windows known `LocalAppData` entry.
     #[must_use]
     pub fn with_windows_local_app_data(mut self, value: Option<PathBuf>) -> Self {
-        self.windows_local_app_data = value;
+        self.variables[DirectoryVariable::LocalAppData as usize] = value;
         self
     }
 
     /// Replaces the Windows known roaming `AppData` entry.
     #[must_use]
     pub fn with_windows_roaming_app_data(mut self, value: Option<PathBuf>) -> Self {
-        self.windows_roaming_app_data = value;
+        self.variables[DirectoryVariable::RoamingAppData as usize] = value;
         self
     }
 
@@ -157,18 +124,6 @@ impl PlatformEnvironment {
         self.home_dir
             .as_deref()
             .filter(|home| !home.as_os_str().is_empty() && home.is_absolute())
-    }
-
-    /// Applies one XDG variable with the spec's absolute-path rule.
-    fn xdg(
-        &self,
-        value: Option<&PathBuf>,
-        default: impl FnOnce(&Path) -> PathBuf,
-    ) -> Option<PathBuf> {
-        value
-            .map(PathBuf::as_path)
-            .filter(|path| !path.as_os_str().is_empty() && path.is_absolute())
-            .map_or_else(|| self.home().map(default), |path| Some(path.to_path_buf()))
     }
 }
 
@@ -216,7 +171,7 @@ pub fn native_platform_directory_fact(
     Ok(native_platform_directory_fact_from(
         platform,
         fact,
-        &PlatformEnvironment::from_process_for(platform, fact),
+        &PlatformEnvironment::from_process_for(directory_source(platform, fact)),
     ))
 }
 
@@ -288,46 +243,90 @@ fn native_directory_path_from(
     fact: PlatformDirectoryFact,
     environment: &PlatformEnvironment,
 ) -> Option<PathBuf> {
+    match directory_source(platform, fact) {
+        DirectorySource::Home(suffix) => environment.home().map(|home| home.join(suffix)),
+        DirectorySource::Temporary => absolute(environment.temp_dir.as_ref()),
+        DirectorySource::Variable(source, fallback) => {
+            absolute(environment.variables[source as usize].as_ref())
+                .or_else(|| Some(environment.home()?.join(fallback?)))
+        }
+    }
+}
+
+enum DirectorySource {
+    Home(&'static str),
+    Temporary,
+    Variable(DirectoryVariable, Option<&'static str>),
+}
+
+#[derive(Clone, Copy)]
+enum DirectoryVariable {
+    XdgConfig,
+    XdgData,
+    XdgState,
+    XdgCache,
+    XdgRuntime,
+    LocalAppData,
+    RoamingAppData,
+}
+
+impl DirectoryVariable {
+    const ALL: [Self; 7] = [
+        Self::XdgConfig,
+        Self::XdgData,
+        Self::XdgState,
+        Self::XdgCache,
+        Self::XdgRuntime,
+        Self::LocalAppData,
+        Self::RoamingAppData,
+    ];
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::XdgConfig => "XDG_CONFIG_HOME",
+            Self::XdgData => "XDG_DATA_HOME",
+            Self::XdgState => "XDG_STATE_HOME",
+            Self::XdgCache => "XDG_CACHE_HOME",
+            Self::XdgRuntime => "XDG_RUNTIME_DIR",
+            Self::LocalAppData => "LOCALAPPDATA",
+            Self::RoamingAppData => "APPDATA",
+        }
+    }
+}
+
+fn variable(name: &str) -> Option<PathBuf> {
+    env::var_os(name).map(PathBuf::from)
+}
+
+fn directory_source(platform: TargetPlatform, fact: PlatformDirectoryFact) -> DirectorySource {
+    use DirectorySource::{Home, Temporary, Variable};
+    use DirectoryVariable::{
+        LocalAppData, RoamingAppData, XdgCache, XdgConfig, XdgData, XdgRuntime, XdgState,
+    };
+
     match (platform, fact) {
-        (TargetPlatform::MacOs, PlatformDirectoryFact::Runtime)
-        | (TargetPlatform::Windows, PlatformDirectoryFact::Runtime) => {
-            absolute(environment.temp_dir.as_ref())
+        (TargetPlatform::MacOs | TargetPlatform::Windows, PlatformDirectoryFact::Runtime) => {
+            Temporary
         }
-        (TargetPlatform::MacOs, PlatformDirectoryFact::Cache) => environment
-            .home()
-            .map(|home| home.join("Library").join("Caches")),
-        (TargetPlatform::MacOs, PlatformDirectoryFact::Log) => environment
-            .home()
-            .map(|home| home.join("Library").join("Logs")),
-        (TargetPlatform::MacOs, _) => environment
-            .home()
-            .map(|home| home.join("Library").join("Application Support")),
+        (TargetPlatform::MacOs, PlatformDirectoryFact::Cache) => Home("Library/Caches"),
+        (TargetPlatform::MacOs, PlatformDirectoryFact::Log) => Home("Library/Logs"),
+        (TargetPlatform::MacOs, _) => Home("Library/Application Support"),
         (TargetPlatform::Windows, PlatformDirectoryFact::SharedData) => {
-            absolute(environment.windows_roaming_app_data.as_ref())
+            Variable(RoamingAppData, None)
         }
-        (TargetPlatform::Windows, _) => absolute(environment.windows_local_app_data.as_ref()),
-        (TargetPlatform::Linux, PlatformDirectoryFact::Config) => environment
-            .xdg(environment.xdg_config_home.as_ref(), |home| {
-                home.join(".config")
-            }),
+        (TargetPlatform::Windows, _) => Variable(LocalAppData, None),
+        (TargetPlatform::Linux, PlatformDirectoryFact::Config) => {
+            Variable(XdgConfig, Some(".config"))
+        }
         (
             TargetPlatform::Linux,
             PlatformDirectoryFact::Data | PlatformDirectoryFact::SharedData,
-        ) => environment.xdg(environment.xdg_data_home.as_ref(), |home| {
-            home.join(".local").join("share")
-        }),
+        ) => Variable(XdgData, Some(".local/share")),
         (TargetPlatform::Linux, PlatformDirectoryFact::State | PlatformDirectoryFact::Log) => {
-            environment.xdg(environment.xdg_state_home.as_ref(), |home| {
-                home.join(".local").join("state")
-            })
+            Variable(XdgState, Some(".local/state"))
         }
-        (TargetPlatform::Linux, PlatformDirectoryFact::Cache) => environment
-            .xdg(environment.xdg_cache_home.as_ref(), |home| {
-                home.join(".cache")
-            }),
-        (TargetPlatform::Linux, PlatformDirectoryFact::Runtime) => {
-            absolute(environment.xdg_runtime_dir.as_ref())
-        }
+        (TargetPlatform::Linux, PlatformDirectoryFact::Cache) => Variable(XdgCache, Some(".cache")),
+        (TargetPlatform::Linux, PlatformDirectoryFact::Runtime) => Variable(XdgRuntime, None),
     }
 }
 

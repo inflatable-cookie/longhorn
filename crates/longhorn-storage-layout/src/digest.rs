@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use longhorn_core::bytes_to_lowercase_hex;
+
 /// Lowercase hexadecimal SHA-256 digest of one resolved storage layout.
 ///
 /// The digest binds profile, platform, identity, leaf provenance, every
@@ -45,15 +47,6 @@ impl fmt::Display for StorageLayoutDigestError {
 }
 
 impl Error for StorageLayoutDigestError {}
-
-pub(crate) fn bytes_to_lowercase_hex(bytes: &[u8]) -> String {
-    let mut hex = String::with_capacity(bytes.len() * 2);
-    for byte in bytes {
-        hex.push(char::from_digit(u32::from(byte >> 4), 16).expect("high nibble is a hex digit"));
-        hex.push(char::from_digit(u32::from(byte & 0x0f), 16).expect("low nibble is a hex digit"));
-    }
-    hex
-}
 
 #[cfg(test)]
 mod tests {

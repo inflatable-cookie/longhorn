@@ -205,7 +205,7 @@ fn inspect_ordinary_domain(
         );
     }
     let location = store.roots.resolve(descriptor);
-    if !ordinary_restore_target(&location) {
+    let Some(file) = ordinary_restore_target(&location) else {
         return (
             domain_report(
                 source,
@@ -215,11 +215,12 @@ fn inspect_ordinary_domain(
             None,
             None,
         );
-    }
+    };
     match source.state() {
         BackupSourceState::Absent => (
             domain_report(source, target_schema, RestoreDomainCompatibility::Ready),
             Some(PreparedTarget {
+                location: file.clone(),
                 bytes: None,
                 schema_version: None,
             }),
@@ -276,6 +277,7 @@ fn inspect_ordinary_domain(
                     (
                         domain_report(source, target_schema, compatibility),
                         Some(PreparedTarget {
+                            location: file.clone(),
                             bytes: Some(target.bytes),
                             schema_version: Some(target.schema_version),
                         }),
@@ -319,12 +321,15 @@ pub(super) fn domain_report(
     )
 }
 
-fn ordinary_restore_target(location: &DomainLocation) -> bool {
-    matches!(
-        location,
+pub(super) fn ordinary_restore_target(location: &DomainLocation) -> Option<&crate::ResolvedFile> {
+    match location {
         DomainLocation::File(file)
-            if file.access() == AccessMode::ReadWrite && file.root_kind() != RootKind::Project
-    )
+            if file.access() == AccessMode::ReadWrite && file.root_kind() != RootKind::Project =>
+        {
+            Some(file)
+        }
+        _ => None,
+    }
 }
 
 pub(super) fn payload_for<'archive>(

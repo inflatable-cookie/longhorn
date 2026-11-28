@@ -8,6 +8,8 @@ export const CONFIG_OPERATION_CAPABILITIES = ["storageDiagnostics","storageTrans
 export const CONFIG_OPERATION_REJECTION_CODES = ["unauthorized","unsupported","authorityChanged","confirmationMismatch","transitionActive","recoveryRequired","conflicts","pendingPublication","selectionCancelled","archiveChanged","archiveCorrupt","archiveFutureVersion","identityMismatch","restorePlanStale","restoreActive","restoreAdapterChanged","incompleteInventory","encryptionInteractionRequired","policyBlocked"] as const;
 export const STORAGE_PROFILE_IDS = ["platform-native-v1","unified-app-root-v1","shared-product-root-v1","portable-v1"] as const;
 export const STORAGE_LEAF_PROVENANCES = ["canonicalApplicationId","stableStorageName"] as const;
+export const BACKUP_KINDS = ["operational","user-export","pre-migration","pre-restore"] as const;
+export const STORAGE_CLASSES = ["defaults","policy","user-config","machine-state","workspace-local","project-shared","secret","cache","runtime","log"] as const;
 export const BACKUP_INVENTORY_ENTRY_STATES = ["valid","locked","corrupt","foreign","unknown","unreadable","unmanaged"] as const;
 export const BACKUP_PENDING_POLICIES = ["refuse","flush"] as const;
 export const STORAGE_BOOTSTRAP_STATES = ["selected","recoveryRequired"] as const;
@@ -19,6 +21,7 @@ export const STORAGE_RECOVERY_STATUSES = ["recovered","rejected"] as const;
 export const STORAGE_CLEANUP_STATUSES = ["applied","rejected"] as const;
 export const BACKUP_CREATE_STATUSES = ["published","rejected"] as const;
 export const BACKUP_EXPORT_STATUSES = ["published","rejected"] as const;
+export const BACKUP_PUBLICATION_DURABILITIES = ["fileSynced","fileAndDirectorySynced","portableFileAndDirectorySynced"] as const;
 export const BACKUP_RETENTION_APPLY_STATUSES = ["applied","rejected"] as const;
 
 export type ConfigProtocolVersion = number;
@@ -129,6 +132,8 @@ bootstrap: StorageBootstrapProjection,
  */
 availableProfiles: Array<StorageProfileId>, };
 
+export type StorageClass = "defaults" | "policy" | "user-config" | "machine-state" | "workspace-local" | "project-shared" | "secret" | "cache" | "runtime" | "log";
+
 export type StorageTransitionDomainProjection = { 
 /**
  * Stable configuration domain id.
@@ -137,7 +142,7 @@ domainId: string,
 /**
  * Storage lifecycle class.
  */
-storageClass: string, 
+storageClass: StorageClass, 
 /**
  * Planned action.
  */
@@ -265,6 +270,8 @@ transitionReceiptDigest: string,
  */
 removedPaths: Array<string>, };
 
+export type BackupKind = "operational" | "user-export" | "pre-migration" | "pre-restore";
+
 export type BackupArchiveProjection = { 
 /**
  * Exact root-level archive path.
@@ -281,7 +288,7 @@ createdAt: string,
 /**
  * Backup kind.
  */
-kind: string, 
+kind: BackupKind, 
 /**
  * Digest over exact published archive bytes.
  */
@@ -649,6 +656,8 @@ totalPayloadBytes: number,
  */
 flushedPendingPublication: boolean, };
 
+export type BackupPublicationDurability = "fileSynced" | "fileAndDirectorySynced" | "portableFileAndDirectorySynced";
+
 export type BackupPublicationReceiptProjection = { 
 /**
  * Exact published path.
@@ -663,9 +672,9 @@ destination: string,
  */
 archiveSha256: string, 
 /**
- * Established durability level.
+ * Established visibility and filesystem durability.
  */
-durability: string, 
+durability: BackupPublicationDurability, 
 /**
  * Whether an authorized export was replaced.
  */

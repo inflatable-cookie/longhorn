@@ -158,6 +158,55 @@ impl Fixture {
     }
 }
 
+#[test]
+fn interrupted_create_rolls_back_when_the_nested_parent_never_existed() {
+    let sample = Fixture::new();
+    let parent = sample.target.parent().unwrap();
+    fs::remove_dir(parent).unwrap();
+    let authority = sample.store.coordinator.authority_root();
+    let staged = StagedDomain {
+        domain: sample.domain.descriptor.id().clone(),
+        action: RestoreAction::Create,
+        path: sample.target.clone(),
+        current: RestoreCurrentEvidence::Absent,
+        schema_version: Some(SchemaVersion::new(1).unwrap()),
+        bytes: Some(b"new-state".to_vec()),
+    };
+    let mut state = journal::persist_rollback(
+        authority,
+        std::slice::from_ref(&staged),
+        &[RollbackEntry {
+            domain: staged.domain.clone(),
+            bytes: None,
+        }],
+        &[JournalDescriptor {
+            domain: staged.domain.clone(),
+            storage_class: StorageClass::UserConfig,
+            relative_path: "restore/state.json".into(),
+        }],
+        JournalSeed {
+            operation_id: "interrupted-create".into(),
+            plan_digest: Sha256Digest::from_bytes(b"plan"),
+            safety_path: sample.temp.path().join("safety.longhorn-backup"),
+            safety_sha256: Sha256Digest::from_bytes(b"safety"),
+        },
+    )
+    .unwrap();
+    state.phase = JournalPhase::Applying;
+    journal::publish(authority, &state).unwrap();
+
+    let receipt = sample
+        .store
+        .recover_restore(RestoreRecoveryOptions::new(Duration::ZERO))
+        .unwrap();
+    assert_eq!(receipt.outcome(), RestoreRecoveryOutcome::RolledBack);
+    assert_eq!(
+        sample.store.restore_operation_state(),
+        RestoreOperationState::Inactive
+    );
+    assert!(!parent.exists());
+}
+
 const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
 
 fn operation_id_at_limit(fixture: &Fixture, phase: JournalPhase, old: &[u8], new: &[u8]) -> String {
@@ -456,4 +505,26 @@ fn stale_current_file_during_rollback_capture_reports_recheck_current() {
             .expect("stale file must be rejected");
     assert_eq!(error.stage, RestoreExecutionStage::RecheckCurrent);
     assert_eq!(error.terminal, RestoreFailureTerminal::NoLiveMutation);
+}
+
+#[test]
+fn mutation_refusal_display_omits_preserved_source_bytes() {
+    let sample = Fixture::new();
+    let source = vec![b'x'; crate::store::load::max_live_domain_bytes()];
+    fs::write(&sample.target, &source).unwrap();
+    let error = sample
+        .store
+        .mutate(
+            &sample.domain,
+            MutationOptions::new(Duration::ZERO, DurabilityRequirement::Durable),
+            |_| panic!("corrupt source must not be mutated"),
+        )
+        .unwrap_err();
+    let display = error.to_string();
+    assert!(display.contains("CorruptDocument"), "{display}");
+    assert!(display.len() < 1024);
+    let MutationError::Refused(crate::MutationRefusal::Recovery(recovery)) = error else {
+        panic!("expected a typed recovery refusal");
+    };
+    assert_eq!(recovery.source.unwrap().bytes, source);
 }

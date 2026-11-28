@@ -272,8 +272,9 @@ pub(super) fn read_rollback(
     let relative = Path::new(STATE_DIRECTORY)
         .join(ROLLBACK_DIRECTORY)
         .join(file_name);
-    let bytes =
-        crate::store::load::read_bounded(authority_root, &relative, bound).map_err(|error| {
+    let bytes = crate::bounded_file::read_relative(authority_root, &relative, bound)
+        .map_err(io::Error::from)
+        .map_err(|error| {
             if error.kind() == io::ErrorKind::InvalidData {
                 io::Error::other(format!(
                     "rollback payload length or digest does not match journal: {error}"

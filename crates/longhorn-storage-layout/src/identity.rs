@@ -118,7 +118,7 @@ impl StorageIdentity {
     }
 }
 
-fn validate_canonical_id(value: &str) -> Result<(), StorageIdentityError> {
+pub(crate) fn validate_canonical_id(value: &str) -> Result<(), StorageIdentityError> {
     validate_leaf(StorageIdentityField::CanonicalApplicationId, value, true)
 }
 

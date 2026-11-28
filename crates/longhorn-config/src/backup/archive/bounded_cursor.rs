@@ -1,4 +1,4 @@
-use std::io::{self, Cursor, Seek, SeekFrom, Write};
+use std::io::{self, Cursor, Read, Seek, SeekFrom, Write};
 
 pub(super) struct BoundedCursor {
     inner: Cursor<Vec<u8>>,
@@ -39,5 +39,11 @@ impl Write for BoundedCursor {
 impl Seek for BoundedCursor {
     fn seek(&mut self, position: SeekFrom) -> io::Result<u64> {
         self.inner.seek(position)
+    }
+}
+
+impl Read for BoundedCursor {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        self.inner.read(buffer)
     }
 }

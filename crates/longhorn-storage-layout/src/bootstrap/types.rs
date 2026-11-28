@@ -274,8 +274,30 @@ pub struct StorageProfileLocator {
 }
 
 impl StorageProfileLocator {
-    /// Projects one persisted locator after its document validated.
+    /// Constructs a locator with a validated canonical application id.
     pub fn new(
+        canonical_application_id: String,
+        selection: StorageProfileSelection,
+        transition_id: Option<String>,
+        last_committed_layout_digest: Option<StorageLayoutDigest>,
+    ) -> Result<Self, StorageLocatorError> {
+        crate::identity::validate_canonical_id(&canonical_application_id)
+            .map_err(StorageLocatorError::InvalidApplicationId)?;
+        if transition_id
+            .as_deref()
+            .is_some_and(|id| !valid_storage_transition_id(id))
+        {
+            return Err(StorageLocatorError::InvalidTransitionId);
+        }
+        Ok(Self::from_document(
+            canonical_application_id,
+            selection,
+            transition_id,
+            last_committed_layout_digest,
+        ))
+    }
+
+    pub(super) fn from_document(
         canonical_application_id: String,
         selection: StorageProfileSelection,
         transition_id: Option<String>,
@@ -312,6 +334,20 @@ impl StorageProfileLocator {
     pub fn last_committed_layout_digest(&self) -> Option<&StorageLayoutDigest> {
         self.last_committed_layout_digest.as_ref()
     }
+}
+
+/// Checks the grammar of a transition id used as a staging directory name.
+#[must_use]
+pub fn valid_storage_transition_id(id: &str) -> bool {
+    let mut components = std::path::Path::new(id).components();
+    id.len() <= 128
+        && matches!(
+            (components.next(), components.next()),
+            (Some(std::path::Component::Normal(_)), None)
+        )
+        && id.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')
+        })
 }
 
 /// Locator bootstrap state. Recovery never carries an implicit fallback.
@@ -419,6 +455,10 @@ impl Error for StorageBootstrapPathError {}
 /// The fixed locator could not be written, read, or judged.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StorageLocatorError {
+    /// The canonical application id did not pass storage identity validation.
+    InvalidApplicationId(crate::StorageIdentityError),
+    /// The transition id cannot name one staging directory.
+    InvalidTransitionId,
     /// The locator file exists but could not be read.
     Unreadable {
         /// Bounded host description.
@@ -445,6 +485,8 @@ pub enum StorageLocatorError {
 impl fmt::Display for StorageLocatorError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidApplicationId(error) => error.fmt(formatter),
+            Self::InvalidTransitionId => formatter.write_str("invalid storage transition id"),
             Self::Unreadable { detail } => {
                 write!(formatter, "the storage locator could not be read: {detail}")
             }

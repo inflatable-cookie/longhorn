@@ -1043,3 +1043,37 @@ fn json_domains_keep_their_envelope_bytes_and_behaviour() {
     assert_eq!(second.origin, LoadedOrigin::File);
     assert_eq!(second.value, json!({"enabled": true}));
 }
+
+#[test]
+fn domain_descriptor_enforces_the_format_suffix() {
+    use longhorn_config::{DocumentFormat, DomainDescriptorError};
+
+    let id = DomainId::new("example.format").unwrap();
+    let schema = SchemaVersion::new(1).unwrap();
+    let json_path = DomainFilePath::new("settings.json").unwrap();
+    let toml_path = DomainFilePath::new_toml("settings.toml").unwrap();
+    assert_eq!(
+        DomainDescriptor::new(
+            id.clone(),
+            schema,
+            StorageClass::UserConfig,
+            Some(toml_path.clone())
+        ),
+        Err(DomainDescriptorError::PathFormatMismatch {
+            path: toml_path,
+            format: DocumentFormat::Json
+        }),
+    );
+    assert_eq!(
+        DomainDescriptor::new_toml(
+            id,
+            schema,
+            StorageClass::UserConfig,
+            Some(json_path.clone())
+        ),
+        Err(DomainDescriptorError::PathFormatMismatch {
+            path: json_path,
+            format: DocumentFormat::Toml
+        }),
+    );
+}

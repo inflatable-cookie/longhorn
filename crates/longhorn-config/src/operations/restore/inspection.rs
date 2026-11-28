@@ -1,4 +1,5 @@
 use super::super::{ConfigGeneration, ConfigOperationRejection, ConfigProtocolVersion};
+use crate::{BackupConsistencyMode, BackupKind, BackupSourceState, StorageClass};
 use longhorn_core::ConfigRequestId;
 use serde::{Deserialize, Serialize};
 
@@ -155,7 +156,7 @@ pub struct RestoreConsistencyGroupProjection {
     /// Stable group id.
     pub id: String,
     /// Coordinated-bounded or external-snapshot mode.
-    pub mode: String,
+    pub mode: BackupConsistencyMode,
     /// Declared transaction authority.
     pub authority: String,
 }
@@ -399,13 +400,13 @@ pub struct RestoreDomainInspectionProjection {
     /// Stable domain id.
     pub domain_id: String,
     /// Manifest storage class.
-    pub storage_class: String,
+    pub storage_class: StorageClass,
     /// Manifest consistency group.
     pub consistency_group: String,
     /// Manifest adapter id.
     pub adapter: String,
     /// Present, absent, or source-preserved state.
-    pub source_state: String,
+    pub source_state: BackupSourceState,
     /// Archive source schema when readable.
     pub source_schema_version: Option<u32>,
     /// Registered target schema when known.
@@ -422,7 +423,7 @@ pub struct RestoreExclusionProjection {
     /// Excluded domain.
     pub domain_id: String,
     /// Manifest storage class.
-    pub storage_class: String,
+    pub storage_class: StorageClass,
     /// Stable manifest reason.
     pub reason: String,
     /// Whether the target registers this domain.
@@ -460,7 +461,7 @@ pub struct RestoreInspectionProjection {
     /// Strict manifest creation time.
     pub created_at: String,
     /// Archive purpose.
-    pub kind: String,
+    pub kind: BackupKind,
     /// Producing application version.
     pub application_version: String,
     /// Producing Longhorn version.

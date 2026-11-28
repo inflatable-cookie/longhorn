@@ -41,6 +41,7 @@ pub struct BackupRetentionDeletion {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BackupRetentionPlan {
     pub(crate) root: PathBuf,
+    pub(crate) max_ciphertext_bytes: Option<usize>,
     pub(crate) deletions: Vec<BackupRetentionDeletion>,
     pub(crate) retained: BTreeMap<Sha256Digest, BTreeSet<BackupRetentionReason>>,
     pub(crate) diagnostics: Vec<BackupRetentionDiagnostic>,
@@ -170,6 +171,7 @@ pub fn plan_backup_retention(
         .collect();
     Ok(BackupRetentionPlan {
         root: listing.root.clone(),
+        max_ciphertext_bytes: listing.max_ciphertext_bytes,
         deletions,
         retained,
         diagnostics,

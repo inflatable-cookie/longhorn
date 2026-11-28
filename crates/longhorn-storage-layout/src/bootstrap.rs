@@ -11,7 +11,7 @@ pub use types::{
     StorageBootstrapOrigin, StorageBootstrapPathError, StorageBootstrapPaths,
     StorageBootstrapRecovery, StorageBootstrapRecoveryKind, StorageBootstrapSelection,
     StorageBootstrapState, StorageLocatorError, StorageProfileLocator, StorageProfileSelection,
-    StorageProfileSelectionError,
+    StorageProfileSelectionError, valid_storage_transition_id,
 };
 
 const LOCATOR_SCHEMA_VERSION: u32 = 1;
@@ -78,25 +78,18 @@ pub fn inspect_storage_bootstrap(
         }
     };
 
-    let locator = match serde_json::from_slice::<LocatorDocument>(&bytes) {
+    let locator = match decode_locator(&bytes) {
         Ok(locator) => locator,
         Err(error) => {
-            return Ok(recovery(
-                paths,
-                StorageBootstrapRecoveryKind::InvalidDocument,
-                error.to_string(),
-            ));
+            let kind = match error {
+                StorageLocatorError::UnsupportedSchema { observed } => {
+                    StorageBootstrapRecoveryKind::UnsupportedSchema { observed }
+                }
+                _ => StorageBootstrapRecoveryKind::InvalidDocument,
+            };
+            return Ok(recovery(paths, kind, error.to_string()));
         }
     };
-    if locator.schema_version != LOCATOR_SCHEMA_VERSION {
-        return Ok(recovery(
-            paths,
-            StorageBootstrapRecoveryKind::UnsupportedSchema {
-                observed: locator.schema_version,
-            },
-            "unsupported locator schema",
-        ));
-    }
     if locator.canonical_application_id != identity.canonical_application_id() {
         return Ok(recovery(
             paths,
@@ -135,7 +128,7 @@ pub fn inspect_storage_bootstrap(
         },
         None => None,
     };
-    let public_locator = StorageProfileLocator::new(
+    let public_locator = StorageProfileLocator::from_document(
         locator.canonical_application_id,
         selection.clone(),
         locator.transition_id.clone(),
@@ -200,19 +193,35 @@ pub fn locator_matches(
             });
         }
     };
-    let locator = serde_json::from_slice::<LocatorDocument>(&bytes).map_err(|error| {
-        StorageLocatorError::InvalidDocument {
-            detail: error.to_string(),
-        }
-    })?;
-    if locator.schema_version != LOCATOR_SCHEMA_VERSION {
-        return Err(StorageLocatorError::UnsupportedSchema {
-            observed: locator.schema_version,
-        });
+    let locator = decode_locator(&bytes)?;
+    if !valid_storage_transition_id(transition_id) {
+        return Err(StorageLocatorError::InvalidTransitionId);
     }
     Ok(locator.canonical_application_id == canonical_application_id
         && locator.transition_id.as_deref() == Some(transition_id)
         && locator.last_committed_layout_sha256.as_deref() == Some(layout_digest.as_str()))
+}
+
+fn decode_locator(bytes: &[u8]) -> Result<LocatorDocument, StorageLocatorError> {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Schema {
+        schema_version: u32,
+    }
+
+    let invalid_document = |error: serde_json::Error| StorageLocatorError::InvalidDocument {
+        detail: error.to_string(),
+    };
+    let schema: Schema = serde_json::from_slice(bytes).map_err(invalid_document)?;
+    if schema.schema_version != LOCATOR_SCHEMA_VERSION {
+        return Err(StorageLocatorError::UnsupportedSchema {
+            observed: schema.schema_version,
+        });
+    }
+    let document: LocatorDocument = serde_json::from_slice(bytes).map_err(invalid_document)?;
+    crate::identity::validate_canonical_id(&document.canonical_application_id)
+        .map_err(StorageLocatorError::InvalidApplicationId)?;
+    Ok(document)
 }
 
 fn recovery(

@@ -87,9 +87,10 @@ pub(crate) fn sync_ancestors_to_root(root: &Path, directory: &Path) -> io::Resul
     Ok(())
 }
 
-/// Creates every missing directory in `path` and syncs every parent directory
-/// (including the deepest previously existing ancestor) that received a new
-/// child entry.
+/// Creates missing directories in order, syncing each entry before descending.
+///
+/// Rechecks the parent of the deepest existing directory so a retry covers
+/// an entry whose creation succeeded just before a failed sync.
 pub(crate) fn create_dir_all_synced(path: &Path) -> io::Result<()> {
     let mut missing = Vec::new();
     let mut cursor = path;
@@ -104,29 +105,23 @@ pub(crate) fn create_dir_all_synced(path: &Path) -> io::Result<()> {
         cursor = parent;
     }
 
-    let mut parents_to_sync = Vec::new();
+    sync_entry_parent(cursor)?;
     for directory in missing.into_iter().rev() {
         match fs::create_dir(&directory) {
-            Ok(()) => {
-                if let Some(parent) = directory.parent()
-                    && !parent.as_os_str().is_empty()
-                {
-                    parents_to_sync.push(parent.to_path_buf());
-                }
-            }
-            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {
-                if !directory.is_dir() {
-                    return Err(error);
-                }
-            }
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists && directory.is_dir() => {}
             Err(error) => return Err(error),
         }
-    }
-
-    for parent in parents_to_sync.into_iter().rev() {
-        sync_dir_path(&parent)?;
+        sync_entry_parent(&directory)?;
     }
     Ok(())
+}
+
+fn sync_entry_parent(path: &Path) -> io::Result<()> {
+    match path.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => sync_dir_path(parent),
+        _ => Ok(()),
+    }
 }
 
 /// Syncs the directory behind a cap-std capability.

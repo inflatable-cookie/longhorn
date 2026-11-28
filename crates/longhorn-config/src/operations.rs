@@ -232,7 +232,7 @@ pub struct StorageTransitionDomainProjection {
     /// Stable configuration domain id.
     pub domain_id: String,
     /// Storage lifecycle class.
-    pub storage_class: String,
+    pub storage_class: crate::StorageClass,
     /// Planned action.
     pub action: String,
     /// Exact source path when present.

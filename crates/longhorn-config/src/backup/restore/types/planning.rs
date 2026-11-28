@@ -244,6 +244,11 @@ pub enum RestorePlanError {
         /// Inspection result causing rejection.
         compatibility: RestoreDomainCompatibility,
     },
+    /// The selected domain no longer matches the prepared restore target.
+    TargetChanged {
+        /// Affected domain.
+        domain: DomainId,
+    },
     /// Current target evidence could not be read.
     CurrentReadFailed {
         /// Affected domain.
@@ -281,6 +286,12 @@ impl fmt::Display for RestorePlanError {
                 formatter,
                 "domain {domain} is not restorable: {compatibility:?}"
             ),
+            Self::TargetChanged { domain } => {
+                write!(
+                    formatter,
+                    "restore target for {domain} differs from inspection"
+                )
+            }
             Self::CurrentReadFailed {
                 domain,
                 path,

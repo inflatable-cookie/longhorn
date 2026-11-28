@@ -11,6 +11,7 @@
 
 mod atomic_file;
 mod backup;
+mod bounded_file;
 mod coordination;
 mod debounce;
 mod dir_sync;
@@ -37,12 +38,13 @@ pub use backup::{
     BackupArchiveFileNameError, BackupArchiveInspection, BackupArchiveLimits,
     BackupArchiveLimitsError, BackupAuthenticity, BackupCaptureError, BackupCaptureOptions,
     BackupCaptureReceipt, BackupCatalog, BackupCatalogError, BackupConsistencyGroup,
-    BackupConsistencyMode, BackupDestinationKind, BackupExclusion, BackupExclusionReason,
-    BackupExportTarget, BackupIntegrity, BackupKind, BackupLimits, BackupLimitsError,
-    BackupManifest, BackupManifestDomain, BackupMetadata, BackupMetadataError,
-    BackupOperationalCandidate, BackupOperationalListing, BackupOperationalRoot,
-    BackupPayloadManifest, BackupPayloadPath, BackupPayloadPathError, BackupPolicy, BackupProducer,
-    BackupPublicationError, BackupPublicationOptions, BackupPublicationReceipt,
+    BackupConsistencyMode, BackupDestinationKind, BackupEnvelopeError, BackupEnvelopeReader,
+    BackupExclusion, BackupExclusionReason, BackupExportTarget, BackupIntegrity, BackupKind,
+    BackupLimits, BackupLimitsError, BackupManifest, BackupManifestDomain, BackupMetadata,
+    BackupMetadataError, BackupOperationalCandidate, BackupOperationalListing,
+    BackupOperationalRoot, BackupPayloadManifest, BackupPayloadPath, BackupPayloadPathError,
+    BackupPolicy, BackupProducer, BackupPublicationDurability, BackupPublicationError,
+    BackupPublicationMode, BackupPublicationOptions, BackupPublicationReceipt,
     BackupPublicationStage, BackupRetentionApplyError, BackupRetentionApplyReceipt,
     BackupRetentionDeletion, BackupRetentionDiagnostic, BackupRetentionDiagnosticKind,
     BackupRetentionPlan, BackupRetentionPlanError, BackupRetentionPolicy,
@@ -65,7 +67,8 @@ pub use backup::{
     RestoreRecoveryOutcome, RestoreRecoveryReceipt, RestoreSafetyBackupOptions, RestoreStaging,
     RestoreStagingReceipt, Sha256Digest, Sha256DigestError, apply_backup_retention,
     encode_backup_archive, encode_backup_export_archive, export_backup, inspect_backup_archive,
-    list_operational_backups, plan_backup_retention, publish_operational_backup,
+    list_operational_backups, list_operational_backups_with_envelope, plan_backup_retention,
+    publish_encrypted_operational_backup, publish_operational_backup,
 };
 pub use coordination::{
     CoordinationAuthority, CoordinationAuthorityError, CoordinationFailure, CoordinationFailureKind,

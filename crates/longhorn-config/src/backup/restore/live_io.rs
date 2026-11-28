@@ -109,7 +109,11 @@ fn delete_state(file: &ResolvedFile) -> io::Result<()> {
     let parent = if parent_path.as_os_str().is_empty() {
         root.try_clone()?
     } else {
-        root.open_dir(parent_path)?
+        match root.open_dir(parent_path) {
+            Ok(parent) => parent,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error),
+        }
     };
     let file_name = relative
         .file_name()

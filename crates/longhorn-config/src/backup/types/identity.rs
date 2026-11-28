@@ -11,6 +11,7 @@ const HARD_MAX_TOTAL_BYTES: usize = 256 * 1024 * 1024;
 
 /// Purpose of one backup snapshot.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "kebab-case")]
 pub enum BackupKind {
     /// Consumer-scheduled operational recovery point.

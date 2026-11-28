@@ -169,8 +169,9 @@ configuration, arbitrary per-purpose overrides, or secrets.
 Explicit host input may bypass the locator. A missing locator selects the
 compiled default. An unreadable, corrupt, future, or unknown-profile locator
 returns typed recovery state; it never silently falls back and strands an
-existing store. Writing the locator refuses an explicit root that is not UTF-8,
-rather than writing a lossy copy of it.
+existing store. The schema discriminator is checked before current-version
+field validation. Locator construction validates the canonical application id,
+and writing requires a UTF-8 explicit root.
 
 Profile change is a migration:
 
@@ -206,7 +207,10 @@ and obey the live document limit. Inventory also enforces its file and aggregate
 budgets. The journal and staged copies are read below the fixed bootstrap
 directory. A transition journal must fit 4 MiB in every phase and represent paths
 exactly as UTF-8 before staging. Staged copies must match the confirmed bytes
-before publication.
+before publication. Execution, journal recovery, and staging cleanup require a
+transition id of at most 128 lowercase ASCII letters, digits, dots, underscores,
+or hyphens forming one normal path component. Historical ids on an already
+committed locator are read as evidence and grant no staging authority.
 
 Cleanup accepts only exact registered
 source paths and evidence carried by a committed receipt; it re-verifies target
@@ -216,6 +220,8 @@ and source state under both store coordinators and remains idempotent.
 
 - A domain has a stable id, schema version, codec, default value, and storage
   class.
+- Registration compares ASCII path letters case-insensitively and rejects both
+  file aliases and paths that would need a registered file to be a directory.
 - Separate files follow authority and mutation cadence, not individual UI
   controls.
 - Unrelated settings, window geometry, layout, cache, and credentials do not
@@ -430,7 +436,8 @@ Version 1 requires:
 - lexicographic entry order after the manifest
 - normalized 1980 ZIP timestamps, `0600` file mode, and no comments or ambient
   filesystem metadata
-- DEFLATE writer output; readers accept only Stored and DEFLATE
+- Stored and DEFLATE entries. The encoder stores empty entries and entries
+  whose DEFLATE expansion ratio would exceed the same limit used by inspection
 - regular declared files only; directories, links, devices, duplicates,
   absolute paths, parent traversal, NULs, and undeclared entries are rejected
 - finite configurable entry, per-entry byte, total uncompressed byte, and
@@ -461,9 +468,28 @@ checksums remain unchanged. The operational source is not mutated. A consumer
 must not recapture current state, byte-copy an operational archive, or carry a
 second ZIP codec to implement export.
 
-Both write a unique sibling partial, sync it, reopen and verify it, rename it
-once, and report achieved durability. Export does not overwrite an existing
-file without explicit caller authority.
+Strict publication writes, syncs, and verifies a unique sibling partial before
+making it visible atomically. Operational publication and exports without
+overwrite authority commit with exclusive rename or a hard link to the complete
+staged file. If neither primitive is available, publication returns
+`BackupPublicationStage::AtomicNoReplaceUnsupported`. Durable first publication
+syncs newly created root entries as well as the archive directory.
+
+A caller publishing to a removable filesystem such as exFAT can explicitly
+select `BackupPublicationMode::PortableExclusiveCopy`. This mode verifies the
+archive before exclusively creating the final file, writes through the opened
+descriptor, then syncs and verifies the result. Readers may see incomplete
+bytes during the copy, and a failed or interrupted copy can leave a file at the
+final path. The caller must inspect and remove that file before retrying to the
+same name. Portable copy requires an unused destination and refuses
+`ExportOverwrite::Replace`. Its `PortableFileAndDirectorySynced` receipt
+records the synced copy and its non-atomic visibility. The renderer value is
+`portableFileAndDirectorySynced`. Strict publication never selects this mode.
+
+The ordinary restore and migration safety-backup options default to strict
+durable publication. A host can explicitly opt into a portable safety copy
+with `RestoreSafetyBackupOptions::with_portable_publication`. Restore still
+verifies the complete safety archive before live mutation.
 
 Retention acts only on successfully inspected same-app operational archives.
 It always preserves the new archive and operation pins. Valid candidates
@@ -505,7 +531,12 @@ ordinary configuration.
   from `locked`
 - rotation changes new recipients; external key rings retain old identities
 - re-encryption is explicit decrypt-and-write with a new nonce
-- retention preserves archives it cannot authenticate and inspect
+- `AgeBackupEnvelopeReader` uses the injected provider to authenticate
+  `.longhorn-backup.age` for `publish_encrypted_operational_backup` and
+  `list_operational_backups_with_envelope`. The mixed inventory uses the same
+  policy for verified plaintext and encrypted archives. It selects by
+  authenticated manifest evidence and pins or deletes using the exact
+  ciphertext SHA-256. Locked and provider-failed archives remain on disk.
 
 The age v1 file format is the compatibility contract. A particular Rust age
 crate API is replaceable and must preserve the Rust 1.97.1 floor. Stored-data
@@ -524,7 +555,12 @@ planned create, replace, delete, migrate, or unchanged actions.
 The restore plan binds archive SHA-256, selected actions, explicit conflict
 choices, and current present/absent plus SHA-256 evidence into a confirmation
 digest. Execution rereads current evidence under the coordinator and rejects
-a stale plan.
+a stale plan. Planning refuses inspections whose selected targets no longer
+match the registered schema, format, or file authority.
+
+Renderer inspection and inventory use closed kebab-case values for backup kind,
+consistency mode, storage class, and source state. For example, an ordinary
+source can be `source-preserved` in a `user-config` domain.
 
 Archive migrations are side-effect-free during inspection. Execution migrates
 and validates the complete selected set into private current-schema staging
@@ -555,7 +591,9 @@ restore flows check every phase before applying any target so boot recovery can
 publish its rollback and recovery markers within the limit.
 
 Ordinary failure rolls back and verifies the complete selected set under the
-same guard. Unverified rollback retains the journal and enters
+same guard. An absent rollback target is already absent when its parent is
+missing. Cleanup after verified success is best effort for ordinary and grouped
+restore. Unverified rollback retains the journal and enters
 `restore-recovery-required`.
 
 Coordinated backup capture refuses active and recovery-required restore states.

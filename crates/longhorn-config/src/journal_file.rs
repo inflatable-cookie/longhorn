@@ -5,15 +5,14 @@
 //! unique-temporary publication model from [`crate::atomic_file`]. The
 //! transition journal has a separate document model and error mapping.
 
-use std::{
-    fs,
-    io::{self, Read},
-    path::Path,
-};
+use std::{io, path::Path};
 
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::atomic_file::UniqueTemporary;
+use crate::{
+    atomic_file::UniqueTemporary,
+    bounded_file::{self, BoundedReadError},
+};
 
 pub(crate) const MAX_JOURNAL_BYTES: usize = 4 * 1024 * 1024;
 
@@ -31,22 +30,16 @@ pub(crate) fn load<J>(path: &Path, expected_version: u32, subject: &str) -> io::
 where
     J: DeserializeOwned + JournalVersioned,
 {
-    let mut input = match fs::File::open(path) {
-        Ok(input) => input,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => return Err(error),
+    let bytes = match bounded_file::read_path(path, MAX_JOURNAL_BYTES) {
+        Ok(bytes) => bytes,
+        Err(BoundedReadError::Io(error)) if error.kind() == io::ErrorKind::NotFound => {
+            return Ok(None);
+        }
+        Err(BoundedReadError::TooLarge { .. }) => {
+            return Err(io::Error::other(format!("{subject} exceeds byte limit")));
+        }
+        Err(error) => return Err(error.into()),
     };
-    let observed = input.metadata()?.len();
-    if observed > MAX_JOURNAL_BYTES as u64 {
-        return Err(io::Error::other(format!("{subject} exceeds byte limit")));
-    }
-    let mut bytes = Vec::with_capacity(usize::try_from(observed).unwrap_or(0));
-    Read::by_ref(&mut input)
-        .take(MAX_JOURNAL_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)?;
-    if bytes.len() > MAX_JOURNAL_BYTES {
-        return Err(io::Error::other(format!("{subject} exceeds byte limit")));
-    }
     let journal: J = serde_json::from_slice(&bytes)
         .map_err(|error| io::Error::other(format!("invalid {subject}: {error}")))?;
     if journal.version() != expected_version {
@@ -107,6 +100,8 @@ pub(crate) fn publish<J: Serialize>(
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
 
     #[derive(Debug, PartialEq, serde::Deserialize, Serialize)]

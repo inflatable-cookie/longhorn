@@ -1,8 +1,8 @@
 use crate::{
-    BackupAdapterRestoreOutcome, BackupConsistencyMode, RestoreAction, RestoreAdapterReceipt,
-    RestoreConflictChoice, RestoreExecutionError, RestoreExecutionReceipt, RestoreInspection,
-    RestoreOperationState, RestorePlan, RestoreRecoveryOutcome, RestoreRecoveryReceipt,
-    RestoreStagingReceipt, Sha256Digest,
+    BackupAdapterRestoreOutcome, RestoreAction, RestoreAdapterReceipt, RestoreConflictChoice,
+    RestoreExecutionError, RestoreExecutionReceipt, RestoreInspection, RestoreOperationState,
+    RestorePlan, RestoreRecoveryOutcome, RestoreRecoveryReceipt, RestoreStagingReceipt,
+    Sha256Digest,
     operations::{
         RestoreAdapterOutcomeProjection, RestoreAdapterReceiptProjection,
         RestoreAuthenticityProjection, RestoreConsistencyGroupProjection,
@@ -18,10 +18,9 @@ use crate::{
 
 use crate::{BackupPublicationReceiptProjection, ConfigOperationProjectionError};
 
-use super::super::{backup, storage};
 use super::{
     action_id, choice, compatibility, current_evidence, domain_ids, execution_stage,
-    failure_terminal, identity_status, participation, source_state,
+    failure_terminal, identity_status, participation,
 };
 
 impl RestoreOperationsProjection {
@@ -53,7 +52,7 @@ impl RestoreInspectionProjection {
             archive_sha256: inspection.archive_sha256().as_str().into(),
             archive_id: manifest.archive_id().into(),
             created_at: manifest.created_at().into(),
-            kind: backup::backup_kind_id(manifest.kind()).into(),
+            kind: manifest.kind(),
             application_version: manifest.application().version().into(),
             producer_version: manifest.producer().version().into(),
             integrity: RestoreIntegrityProjection::Verified,
@@ -67,11 +66,7 @@ impl RestoreInspectionProjection {
                 .iter()
                 .map(|group| RestoreConsistencyGroupProjection {
                     id: group.id().into(),
-                    mode: match group.mode() {
-                        BackupConsistencyMode::CoordinatedBounded => "coordinatedBounded",
-                        BackupConsistencyMode::ExternalSnapshot => "externalSnapshot",
-                    }
-                    .into(),
+                    mode: group.mode(),
                     authority: group.authority().into(),
                 })
                 .collect(),
@@ -86,10 +81,10 @@ impl RestoreInspectionProjection {
                         .expect("inspection domains originate from the verified manifest");
                     RestoreDomainInspectionProjection {
                         domain_id: domain.domain().as_str().into(),
-                        storage_class: storage::storage_class_id(source.storage_class()).into(),
+                        storage_class: source.storage_class(),
                         consistency_group: source.consistency_group().into(),
                         adapter: source.adapter().into(),
-                        source_state: source_state(source.state()).into(),
+                        source_state: source.state(),
                         source_schema_version: domain
                             .source_schema_version()
                             .map(|version| version.get()),
@@ -105,8 +100,7 @@ impl RestoreInspectionProjection {
                 .iter()
                 .map(|report| RestoreExclusionProjection {
                     domain_id: report.exclusion().domain().as_str().into(),
-                    storage_class: storage::storage_class_id(report.exclusion().storage_class())
-                        .into(),
+                    storage_class: report.exclusion().storage_class(),
                     reason: report.exclusion().reason().into(),
                     registered: report.is_registered(),
                 })

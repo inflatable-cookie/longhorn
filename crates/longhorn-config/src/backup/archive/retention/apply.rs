@@ -1,8 +1,6 @@
 use std::{error::Error, fmt, fs, path::PathBuf};
 
-use crate::{
-    BackupArchiveLimits, Sha256Digest, backup::archive::publication::read_bounded_archive,
-};
+use crate::{BackupArchiveLimits, Sha256Digest, backup::archive::publication::read_archive_bytes};
 
 use super::BackupRetentionPlan;
 
@@ -51,7 +49,18 @@ pub fn apply_backup_retention(
                 "planned path escaped the operational root",
             ));
         }
-        let bytes = read_bounded_archive(&deletion.path, archive_limits)
+        let limit = if deletion.path.extension() == Some(std::ffi::OsStr::new("age")) {
+            plan.max_ciphertext_bytes.ok_or_else(|| {
+                apply_error(
+                    deletion.path.clone(),
+                    false,
+                    "encrypted archive was not inspected",
+                )
+            })?
+        } else {
+            archive_limits.max_archive_bytes()
+        };
+        let bytes = read_archive_bytes(&deletion.path, limit)
             .map_err(|error| apply_error(deletion.path.clone(), false, error.to_string()))?;
         if Sha256Digest::from_bytes(&bytes) != deletion.archive_sha256 {
             return Err(apply_error(

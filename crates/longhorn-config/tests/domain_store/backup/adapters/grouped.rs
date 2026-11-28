@@ -33,6 +33,8 @@ struct FileAdapter {
     failure: AtomicU8,
     verify_mismatch_pending: AtomicBool,
     apply_started: AtomicBool,
+    #[cfg(unix)]
+    block_cleanup: Option<PathBuf>,
 }
 
 impl FileAdapter {
@@ -65,6 +67,8 @@ impl FileAdapter {
             failure: AtomicU8::new(failure as u8),
             verify_mismatch_pending: AtomicBool::new(false),
             apply_started: AtomicBool::new(false),
+            #[cfg(unix)]
+            block_cleanup: None,
         }
     }
 
@@ -252,7 +256,7 @@ impl BackupAdapterGroupedRestore for FileAdapter {
 
     fn verify(
         &self,
-        _request: BackupAdapterGroupedVerifyRequest<'_>,
+        request: BackupAdapterGroupedVerifyRequest<'_>,
     ) -> Result<BackupAdapterStateEvidence, BackupAdapterError> {
         if self.mode() == FailureMode::PanicVerify as u8 {
             panic!("simulated interruption during grouped verification");
@@ -262,6 +266,14 @@ impl BackupAdapterGroupedRestore for FileAdapter {
                 Sha256Digest::from_bytes(b"injected-mismatch"),
             ));
         }
+        #[cfg(unix)]
+        if request.kind() == BackupAdapterGroupedApplyKind::Target
+            && let Some(path) = &self.block_cleanup
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(path, fs::Permissions::from_mode(0o500)).unwrap();
+        }
+        let _ = request;
         Ok(BackupAdapterStateEvidence::from_optional(self.evidence()))
     }
 }
@@ -1442,4 +1454,55 @@ fn group_metadata() -> BackupMetadata {
 
 fn group_options() -> RestoreAdapterGroupExecutionOptions {
     RestoreAdapterGroupExecutionOptions::new(Duration::from_secs(2), BackupLimits::default())
+}
+
+#[cfg(unix)]
+#[test]
+fn verified_grouped_restore_still_succeeds_if_cleanup_needs_a_retry() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let group = GroupFixture::new();
+    let GroupFixture {
+        fixture: sample, ..
+    } = &group;
+    let probe = sample.temp.path().join("permissions");
+    fs::create_dir(&probe).unwrap();
+    fs::write(probe.join("probe"), b"probe").unwrap();
+    fs::set_permissions(&probe, fs::Permissions::from_mode(0o500)).unwrap();
+    let unlink = fs::remove_file(probe.join("probe"));
+    fs::set_permissions(&probe, fs::Permissions::from_mode(0o700)).unwrap();
+    if unlink.is_ok() {
+        // A privileged test runner can unlink regardless of directory mode.
+        return;
+    }
+    assert_eq!(
+        unlink.unwrap_err().kind(),
+        std::io::ErrorKind::PermissionDenied
+    );
+    let payloads = sample
+        .temp
+        .path()
+        .join("data/.longhorn/grouped-adapter-restore/payloads");
+    let mut first = FileAdapter::new(group.first_path.clone(), FailureMode::None);
+    first.block_cleanup = Some(payloads.clone());
+    let second = FileAdapter::new(group.second_path.clone(), FailureMode::None);
+    let store = group.store();
+    let mut catalog = BackupCatalog::new();
+    catalog.custom(&group.first, &first).unwrap();
+    catalog.custom(&group.second, &second).unwrap();
+    let inspection = inspect(&store, &catalog, &group.archive);
+    let plan = plan(&store, &inspection, &group);
+    let result = store.execute_grouped_adapter_restore(
+        &catalog,
+        &group.archive,
+        &inspection,
+        &plan,
+        plan.confirmation_digest(),
+        group_options(),
+    );
+    assert!(payloads.is_dir(), "cleanup must have been refused");
+    fs::set_permissions(&payloads, fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(result.is_ok(), "{result:?}");
+    assert_eq!(fs::read(&group.first_path).unwrap(), b"new-first");
+    assert_eq!(fs::read(&group.second_path).unwrap(), b"new-second");
 }

@@ -161,3 +161,31 @@ fn defaults_and_external_authorities_do_not_become_files() {
         LoadOutcome::Unavailable(_)
     ));
 }
+
+#[test]
+fn registration_rejects_case_aliases_and_file_directory_conflicts() {
+    for (first, second) in [
+        ("Settings.json", "settings.json"),
+        ("Settings.json", "settings.json/nested.json"),
+        ("Settings.json/nested.json", "settings.json"),
+    ] {
+        let sample = Fixture::new();
+        let mut store = sample.store();
+        let first =
+            PreferencesDomain::new("example.first", StorageClass::UserConfig, Some(first), 3);
+        let second =
+            PreferencesDomain::new("example.second", StorageClass::UserConfig, Some(second), 3);
+        store.register(&first).unwrap();
+        assert!(matches!(
+            store.register(&second),
+            Err(RegistrationError::DuplicateLocation { .. })
+        ));
+        let sibling = PreferencesDomain::new(
+            "example.sibling",
+            StorageClass::UserConfig,
+            Some("settings.json-backup/nested.json"),
+            3,
+        );
+        store.register(&sibling).unwrap();
+    }
+}

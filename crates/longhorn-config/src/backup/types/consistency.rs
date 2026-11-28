@@ -8,6 +8,7 @@ pub(super) const ORDINARY_CONSISTENCY_GROUP: &str = "longhorn-config-store";
 
 /// Consistency mode claimed by one manifest group.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "kebab-case")]
 pub enum BackupConsistencyMode {
     /// Bounded capture under the Longhorn store coordinator.
@@ -65,6 +66,7 @@ impl BackupConsistencyGroup {
 
 /// Captured source state for one selected domain.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "bindings", derive(ts_rs::TS))]
 #[serde(rename_all = "kebab-case")]
 pub enum BackupSourceState {
     /// Exact valid ordinary source bytes are present.

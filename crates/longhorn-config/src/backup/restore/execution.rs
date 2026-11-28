@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::{
-    BackupCatalog, BackupKind, BackupPublicationOptions, BackupScope, ConfigStore,
-    DurabilityRequirement, RestoreAction, RestoreExecutionError, RestoreExecutionOptions,
-    RestoreExecutionReceipt, RestoreExecutionStage, RestoreFailureTerminal, RestoreStaging,
+    BackupCatalog, BackupKind, BackupScope, ConfigStore, RestoreAction, RestoreExecutionError,
+    RestoreExecutionOptions, RestoreExecutionReceipt, RestoreExecutionStage,
+    RestoreFailureTerminal, RestoreStaging,
     backup::{capture, encode_backup_archive, publish_operational_backup},
     coordination::CoordinationGuard,
 };
@@ -81,8 +81,8 @@ pub(super) fn execute_guarded(
             error,
         )
     })?;
-    let archive =
-        encode_backup_archive(&safety, options.safety_backup.archive_limits).map_err(|error| {
+    let archive = encode_backup_archive(&safety, options.safety_backup.publication.archive_limits)
+        .map_err(|error| {
             failure(
                 RestoreExecutionStage::EncodeSafetyBackup,
                 None,
@@ -94,10 +94,7 @@ pub(super) fn execute_guarded(
         &options.safety_backup.root,
         &options.safety_backup.file_name,
         &archive,
-        BackupPublicationOptions::new(
-            DurabilityRequirement::Durable,
-            options.safety_backup.archive_limits,
-        ),
+        options.safety_backup.publication,
     )
     .map_err(|error| {
         failure(
@@ -141,9 +138,10 @@ pub(super) fn execute_guarded(
         )
     })?;
 
-    if let Err(error) =
-        transaction::verify_published_safety(&safety_receipt, options.safety_backup.archive_limits)
-    {
+    if let Err(error) = transaction::verify_published_safety(
+        &safety_receipt,
+        options.safety_backup.publication.archive_limits,
+    ) {
         return Err(rollback_after_failure(
             store,
             &mut state,

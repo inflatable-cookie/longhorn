@@ -1,7 +1,7 @@
 use crate::{
-    BackupAdapterRestoreParticipation, BackupSourceState, DomainLocation, RestoreAction,
-    RestoreConflictChoice, RestoreCurrentEvidence, RestoreDomainCompatibility,
-    RestoreExecutionStage, RestoreFailureTerminal, RestoreIdentityStatus,
+    BackupAdapterRestoreParticipation, DomainLocation, RestoreAction, RestoreConflictChoice,
+    RestoreCurrentEvidence, RestoreDomainCompatibility, RestoreExecutionStage,
+    RestoreFailureTerminal, RestoreIdentityStatus,
     operations::{
         RestoreAdapterParticipationProjection, RestoreConflictChoiceProjection,
         RestoreCurrentEvidenceProjection, RestoreDomainCompatibilityProjection,
@@ -140,14 +140,6 @@ pub(crate) const fn action_id(value: RestoreAction) -> &'static str {
         RestoreAction::Delete => "delete",
         RestoreAction::Migrate => "migrate",
         RestoreAction::Unchanged => "unchanged",
-    }
-}
-
-pub(crate) const fn source_state(value: BackupSourceState) -> &'static str {
-    match value {
-        BackupSourceState::Present => "present",
-        BackupSourceState::Absent => "absent",
-        BackupSourceState::SourcePreserved => "sourcePreserved",
     }
 }
 
